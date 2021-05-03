@@ -13,3 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from nvtabular.framework_utils.torch.layers.embeddings import (
+    ConcatenatedEmbeddings,
+    MultiHotEmbeddings,
+)
+
+__all__ = [ConcatenatedEmbeddings, MultiHotEmbeddings]
