@@ -44,7 +44,7 @@ class WideAndDeep(tf.keras.Model):
         self.combiner_add = tf.keras.layers.Add()
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
-    def channels(numeric_columns, categorical_columns, **kwargs):
+    def channels(self, numeric_columns, categorical_columns, **kwargs):
         """
         Going to just throw everything in both wide and deep channels
         for now. This isn't, in general, how you would want to do this,

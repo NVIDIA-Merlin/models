@@ -32,7 +32,7 @@ class SimpleMLP(tf.keras.Model):
             )
             # + batchnorm, dropout, whatever...
 
-    def channels(numeric_columns, categorical_columns, **kwargs):
+    def channels(self, numeric_columns, categorical_columns, **kwargs):
         embedding_dims = kwargs.get("embedding_dims")
         if embedding_dims is None:
             embedding_dims = {
