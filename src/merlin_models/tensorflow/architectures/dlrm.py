@@ -25,11 +25,11 @@ class DLRM(tf.keras.Model):
     See model description at the bottom of page 3
     """
 
-    def __init__(self, numeric_columns, categorical_columns, **kwargs):
+    def __init__(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
         super().__init__()
-        channels = self.channels(numeric_columns, categorical_columns, **kwargs)
-
-        embedding_dim = arch_utils.get_embedding_dim(kwargs)
+        channels = self.channels(
+            numeric_columns, categorical_columns, embedding_dim, **kwargs
+        )
 
         self.fm_features_layer = DenseFeatures(channels["fm"], aggregation="stack")
         self.dense_features_layer = DenseFeatures(
@@ -62,8 +62,7 @@ class DLRM(tf.keras.Model):
             )
             # + batchnorm, dropout, whatever...
 
-    def channels(self, numeric_columns, categorical_columns, **kwargs):
-        embedding_dim = arch_utils.get_embedding_dim(kwargs)
+    def channels(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
         embedding_columns = arch_utils.get_embedding_columns(
             categorical_columns, embedding_dim
         )

@@ -34,11 +34,11 @@ class DeepFM(tf.keras.Model):
     route possible
     """
 
-    def __init__(self, numeric_columns, categorical_columns, **kwargs):
+    def __init__(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
         super().__init__()
-        channels = self.channels(numeric_columns, categorical_columns, **kwargs)
-
-        embedding_dim = arch_utils.get_embedding_dim(kwargs)
+        channels = self.channels(
+            numeric_columns, categorical_columns, embedding_dim, **kwargs
+        )
 
         self.deep_embedding_layer = DenseFeatures(channels["deep"])
         self.fm_embedding_layer = DenseFeatures(channels["fm"])
@@ -72,8 +72,7 @@ class DeepFM(tf.keras.Model):
         )
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
-    def channels(self, numeric_columns, categorical_columns, **kwargs):
-        embedding_dim = arch_utils.get_embedding_dim(kwargs)
+    def channels(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
         embedding_columns = arch_utils.get_embedding_columns(
             categorical_columns, embedding_dim
         )

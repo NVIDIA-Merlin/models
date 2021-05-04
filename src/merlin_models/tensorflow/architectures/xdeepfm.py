@@ -28,11 +28,11 @@ class xDeepFM(tf.keras.Model):
     https://arxiv.org/pdf/1803.05170.pdf
     """
 
-    def __init__(self, numeric_columns, categorical_columns, **kwargs):
+    def __init__(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
         super().__init__()
-        channels = self.channels(numeric_columns, categorical_columns, **kwargs)
-
-        embedding_dim = arch_utils.get_embedding_dim(kwargs)
+        channels = self.channels(
+            numeric_columns, categorical_columns, embedding_dim, **kwargs
+        )
 
         self.categorical_embedding_layer = DenseFeatures(channels["CIN"])
         self.continuous_embedding_layer = DenseFeatures(channels["deep"])
@@ -78,8 +78,7 @@ class xDeepFM(tf.keras.Model):
         )
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
-    def channels(self, numeric_columns, categorical_columns, **kwargs):
-        embedding_dim = arch_utils.get_embedding_dim(kwargs)
+    def channels(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
         embedding_columns = arch_utils.get_embedding_columns(
             categorical_columns, embedding_dim
         )
@@ -93,8 +92,6 @@ class xDeepFM(tf.keras.Model):
         return channels
 
     def call(self, inputs, training=False):
-        embedding_dim = arch_utils.get_embedding_dim(kwargs)
-
         categorical_embeddings = self.categorical_embedding_layer(inputs["CIN"])
         continuous_embeddings = self.continuous_embedding_layer(inputs["deep"])
 
