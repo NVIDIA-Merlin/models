@@ -22,16 +22,25 @@ class WideAndDeep(tf.keras.Model):
     https://arxiv.org/pdf/1606.07792.pdf
     """
 
-    def __init__(self, numeric_columns, categorical_columns, **kwargs):
+    def __init__(
+        self,
+        numeric_columns,
+        categorical_columns,
+        embedding_dims,
+        deep_hidden_dims=None,
+    ):
         super().__init__()
-        channels = self.channels(numeric_columns, categorical_columns, **kwargs)
+
+        deep_hidden_dims = deep_hidden_dims or []
+
+        channels = self.channels(numeric_columns, categorical_columns, embedding_dims)
 
         # Deep channel
         self.deep_input_layer = DenseFeatures(channels["deep"])
         self.deep_final_layer = tf.keras.layers.Dense(1, activation="linear")
 
         self.deep_hidden_layers = []
-        for dim in kwargs["deep_hidden_dims"]:
+        for dim in deep_hidden_dims:
             self.deep_hidden_layers.append(
                 tf.keras.layers.Dense(dim, activation="relu")
             )
@@ -44,18 +53,18 @@ class WideAndDeep(tf.keras.Model):
         self.combiner_add = tf.keras.layers.Add()
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
-    def channels(self, numeric_columns, categorical_columns, **kwargs):
+    def channels(self, numeric_columns, categorical_columns, embedding_dims):
         """
         Going to just throw everything in both wide and deep channels
         for now. This isn't, in general, how you would want to do this,
-        and you may want to do some more complicated logic on the
-        ProblemSchema in order to decide how to funnel stuff.
+        and you may want to do some more complicated logic in order to
+        decide how to funnel stuff.
         """
-        deep_embedding_dims = kwargs.get("embedding_dims")
-        if deep_embedding_dims is None:
+        if not isinstance(embedding_dims, dict):
             deep_embedding_dims = {
-                col.name: kwargs["embedding_dim"] for col in categorical_columns
+                col.name: embedding_dims for col in categorical_columns
             }
+
         deep_embedding_columns = [
             tf.feature_column.embedding_column(col, deep_embedding_dims[col.name])
             for col in categorical_columns

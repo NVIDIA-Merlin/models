@@ -28,10 +28,22 @@ class xDeepFM(tf.keras.Model):
     https://arxiv.org/pdf/1803.05170.pdf
     """
 
-    def __init__(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
+    def __init__(
+        self,
+        numeric_columns,
+        categorical_columns,
+        embedding_dim,
+        deep_hidden_dims=None,
+        cin_hidden_dims=None,
+        use_wide=False,
+    ):
         super().__init__()
+
+        deep_hidden_dims = deep_hidden_dims or []
+        cin_hidden_dims = cin_hidden_dims or []
+
         channels = self.channels(
-            numeric_columns, categorical_columns, embedding_dim, **kwargs
+            numeric_columns, categorical_columns, embedding_dim, use_wide
         )
 
         self.categorical_embedding_layer = DenseFeatures(channels["CIN"])
@@ -43,7 +55,7 @@ class xDeepFM(tf.keras.Model):
 
         self.deep_hidden_layers = []
 
-        for dim in kwargs["deep_hidden_dims"]:
+        for dim in deep_hidden_dims:
             self.deep_hidden_layers.append(
                 tf.keras.layers.Dense(dim, activation="relu")
             )
@@ -60,7 +72,7 @@ class xDeepFM(tf.keras.Model):
         )
 
         self.cin_hidden_layers = []
-        for dim in kwargs["cin_hidden_dims"]:
+        for dim in cin_hidden_dims:
             self.cin_hidden_layers.append(XDeepFmOuterProduct(dim))
 
         self.cin_final_layer = tf.keras.layers.Concatenate(axis=1)
@@ -78,7 +90,9 @@ class xDeepFM(tf.keras.Model):
         )
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
-    def channels(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
+    def channels(
+        self, numeric_columns, categorical_columns, embedding_dim, use_wide=False
+    ):
         embedding_columns = arch_utils.get_embedding_columns(
             categorical_columns, embedding_dim
         )
@@ -87,8 +101,9 @@ class xDeepFM(tf.keras.Model):
         # only feed them to deep channel
         channels = {"CIN": embedding_columns, "deep": numeric_columns}
 
-        if kwargs["use_wide"]:
+        if use_wide:
             channels["wide"] = numeric_columns + categorical_columns
+
         return channels
 
     def call(self, inputs, training=False):

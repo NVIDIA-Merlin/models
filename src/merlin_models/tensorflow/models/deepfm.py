@@ -34,10 +34,17 @@ class DeepFM(tf.keras.Model):
     route possible
     """
 
-    def __init__(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
+    def __init__(
+        self,
+        numeric_columns,
+        categorical_columns,
+        embedding_dim,
+        hidden_dims=[],
+        use_wide=False,
+    ):
         super().__init__()
         channels = self.channels(
-            numeric_columns, categorical_columns, embedding_dim, **kwargs
+            numeric_columns, categorical_columns, embedding_dim, use_wide
         )
 
         self.deep_embedding_layer = DenseFeatures(channels["deep"])
@@ -48,7 +55,7 @@ class DeepFM(tf.keras.Model):
         self.deep_final_layer = tf.keras.layers.Dense(1, activation="linear")(deep_x)
 
         self.deep_hidden_layers = []
-        for dim in kwargs["hidden_dims"]:
+        for dim in hidden_dims:
             self.deep_hidden_layers.append(
                 tf.keras.layers.Dense(dim, activation="relu")
             )
@@ -72,15 +79,18 @@ class DeepFM(tf.keras.Model):
         )
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
-    def channels(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
+    def channels(
+        self, numeric_columns, categorical_columns, embedding_dim, use_wide=False
+    ):
         embedding_columns = arch_utils.get_embedding_columns(
             categorical_columns, embedding_dim
         )
 
         channels = {"fm": embedding_columns, "deep": numeric_columns}
 
-        if kwargs["use_wide"]:
+        if use_wide:
             channels["wide"] = categorical_columns + numeric_columns
+
         return channels
 
     def call(self, inputs, training=False):

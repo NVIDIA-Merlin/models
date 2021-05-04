@@ -25,10 +25,23 @@ class DLRM(tf.keras.Model):
     See model description at the bottom of page 3
     """
 
-    def __init__(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
+    def __init__(
+        self,
+        numeric_columns,
+        categorical_columns,
+        embedding_dim,
+        dense_hidden_dims=None,
+        combiner_hidden_dims=None,
+    ):
         super().__init__()
+
+        dense_hidden_dims = dense_hidden_dims or []
+        combiner_hidden_dims = combiner_hidden_dims or []
+
         channels = self.channels(
-            numeric_columns, categorical_columns, embedding_dim, **kwargs
+            numeric_columns,
+            categorical_columns,
+            embedding_dim,
         )
 
         self.fm_features_layer = DenseFeatures(channels["fm"], aggregation="stack")
@@ -38,7 +51,7 @@ class DLRM(tf.keras.Model):
 
         # Dense channel (bottom MLP)
         self.dense_hidden_layers = []
-        for dim in kwargs["dense_hidden_dims"]:
+        for dim in dense_hidden_dims:
             self.dense_hidden_layers.append(
                 tf.keras.layers.Dense(dim, activation="relu")
             )
@@ -56,13 +69,13 @@ class DLRM(tf.keras.Model):
         self.combiner_final_layer = tf.keras.layers.Dense(1, activation="sigmoid")
 
         self.combiner_hidden_layers = []
-        for dim in kwargs["combiner_hidden_dims"]:
+        for dim in combiner_hidden_dims:
             self.combiner_hidden_layers.append(
                 tf.keras.layers.Dense(dim, activation="relu")
             )
             # + batchnorm, dropout, whatever...
 
-    def channels(self, numeric_columns, categorical_columns, embedding_dim, **kwargs):
+    def channels(self, numeric_columns, categorical_columns, embedding_dim):
         embedding_columns = arch_utils.get_embedding_columns(
             categorical_columns, embedding_dim
         )
