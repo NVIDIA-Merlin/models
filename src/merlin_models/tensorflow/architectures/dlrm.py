@@ -19,66 +19,74 @@ from merlin_models.tensorflow.layers import DenseFeatures, DotProductInteraction
 from . import arch_utils
 
 
-def channels(numeric_columns, categorical_columns, **kwargs):
-    embedding_dim = arch_utils.get_embedding_dim(kwargs)
-    embedding_columns = arch_utils.get_embedding_columns(
-        categorical_columns, embedding_dim
-    )
-    return {"dense": numeric_columns, "fm": embedding_columns}
-
-
-def architecture(channels, inputs, **kwargs):
+class DLRM(tf.keras.Model):
     """
-  https://arxiv.org/pdf/1906.00091.pdf
-  See model description at the bottom of page 3
-  """
-    # check embedding dim up front
-    embedding_dim = arch_utils.get_embedding_dim(kwargs)
+    https://arxiv.org/pdf/1906.00091.pdf
+    See model description at the bottom of page 3
+    """
 
-    # build inputs and map to dense representations
-    fm = DenseFeatures(channels["fm"], aggregation="stack")(inputs["fm"])
-    dense = DenseFeatures(channels["dense"], aggregation="concat")(inputs["dense"])
+    def __init__(self, numeric_columns, categorical_columns, **kwargs):
+        super(MyModel, self).__init__()
+        channels = self.channels(numeric_columns, categorical_columns, **kwargs)
 
-    # 'bottom' or 'dense' MLP
-    for dim in kwargs["bottom_mlp_hidden_dims"]:
-        dense = tf.keras.layers.Dense(dim, activation="relu")(dense)
-        # + dropout, batchnorm, whatever...
-    dense = tf.keras.layers.Dense(embedding_dim, activation="relu")(dense)
+        embedding_dim = arch_utils.get_embedding_dim(kwargs)
 
-    dense_fm = tf.keras.layers.Reshape((1, embedding_dim))(dense)
-    fm = tf.keras.layers.Concatenate(axis=1)([fm, dense_fm])
-    fm = DotProductInteraction()(fm)
+        self.fm_features_layer = DenseFeatures(channels["fm"], aggregation="stack")
+        self.dense_features_layer = DenseFeatures(
+            channels["dense"], aggregation="concat"
+        )
 
-    # 'top' or 'output' MLP
-    x = tf.keras.layers.Concatenate(axis=-1)([fm, dense])
-    for dim in kwargs["top_mlp_hidden_dims"]:
-        x = tf.keras.layers.Dense(dim, activation="relu")(x)
-    x = tf.keras.layers.Dense(1, activation="sigmoid")(x)
-    return x
+        # Dense channel (bottom MLP)
+        self.dense_hidden_layers = []
+        for dim in kwargs["dense_hidden_dims"]:
+            self.dense_hidden_layers.append(
+                tf.keras.layers.Dense(dim, activation="relu")
+            )
+            # + batchnorm, dropout, whatever...
 
+        self.dense_final_layer = tf.keras.layers.Dense(embedding_dim, activation="relu")
 
-def add_parser_args(parser):
-    parser.add_argument(
-        "--bottom_mlp_hidden_dims",
-        type=int,
-        nargs="+",
-        default=[512, 256, 128],
-        help=(
-            "Space separated sizes of hidden layers used in bottom MLP, "
-            "which transforms the continuous features *before* "
-            "matrix factorization"
-        ),
-    )
-    parser.add_argument(
-        "--top_mlp_hidden_dims",
-        type=int,
-        nargs="+",
-        default=[512, 256, 128],
-        help=(
-            "Space separated sizes of hidden layers in top MLP, "
-            "which transforms the matrix factorized features into "
-            "a probability of interaction"
-        ),
-    )
-    return parser
+        # FM channel
+        self.fm_dense_input_layer = tf.keras.layers.Reshape((1, embedding_dim))
+        self.fm_concat_layer = tf.keras.layers.Concatenate(axis=1)
+        self.fm_interaction_layer = DotProductInteraction()
 
+        # Combiner (top MLP)
+        self.combiner_concat_layer = tf.keras.layers.Concatenate(axis=-1)
+        self.combiner_final_layer = tf.keras.layers.Dense(1, activation="sigmoid")
+
+        self.combiner_hidden_layers = []
+        for dim in kwargs["combiner_hidden_dims"]:
+            self.combiner_hidden_layers.append(
+                tf.keras.layers.Dense(dim, activation="relu")
+            )
+            # + batchnorm, dropout, whatever...
+
+    def channels(numeric_columns, categorical_columns, **kwargs):
+        embedding_dim = arch_utils.get_embedding_dim(kwargs)
+        embedding_columns = arch_utils.get_embedding_columns(
+            categorical_columns, embedding_dim
+        )
+        return {"dense": numeric_columns, "fm": embedding_columns}
+
+    def call(self, inputs, training=False):
+        fm = self.fm_features_layer(inputs["fm"])
+        dense = self.dense_features_layer(inputs["dense"])
+
+        # Dense channel (bottom MLP)
+        for layer in self.dense_hidden_layers:
+            dense = layer(dense)
+        dense = self.dense_final_layer(dense)
+
+        # FM channel
+        dense_fm = self.fm_dense_input_layer(dense)
+        fm = self.fm_concat_layer([fm, dense_fm])
+        fm = self.fm_interaction_layer(fm)
+
+        # Combiner (top MLP)
+        combined_x = self.combiner_concat_layer([fm, dense])
+        for layer in self.combiner_hidden_layers:
+            combined_x = layer(combined_x)
+        combined_x = self.combiner_final_layer(combined_x)
+
+        return combined_x

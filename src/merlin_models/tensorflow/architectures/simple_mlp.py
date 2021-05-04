@@ -17,23 +17,37 @@ import tensorflow as tf
 from merlin_models.tensorflow.layers import DenseFeatures
 
 
-def channels(numeric_columns, categorical_columns, **kwargs):
-    embedding_dims = kwargs.get("embedding_dims")
-    if embedding_dims is None:
-        embedding_dims = {
-            col.name: kwargs["embedding_dim"] for col in categorical_columns
-        }
+class SimpleMLP(tf.keras.Model):
+    def __init__(self, numeric_columns, categorical_columns, **kwargs):
+        super(MyModel, self).__init__()
+        channels = self.channels(numeric_columns, categorical_columns, **kwargs)
 
-    embedding_columns = []
-    for column in categorical_columns:
-        dim = embedding_dims[column.name]
-        embedding_columns.append(tf.feature_column.embedding_column(column, dim))
-    return {"mlp": numeric_columns + embedding_columns}
+        self.input_layer = DenseFeatures(channels["mlp"])
+        self.final_layer = tf.keras.layers.Dense(1, activation="sigmoid")
 
+        self.hidden_layers = []
+        for dim in kwargs["hidden_dims"]:
+            self.deep_hidden_layers.append(
+                tf.keras.layers.Dense(dim, activation="relu")
+            )
+            # + batchnorm, dropout, whatever...
 
-def architecture(channels, inputs, **kwargs):
-    x = DenseFeatures(channels["mlp"])(inputs["mlp"])
-    for dim in kwargs["hidden_dims"]:
-        x = tf.keras.layers.Dense(dim, activation="relu")(x)
-        # + batchnorm, dropout, whatever...
-    return tf.keras.layers.Dense(1, activation="sigmoid")(x)
+    def channels(numeric_columns, categorical_columns, **kwargs):
+        embedding_dims = kwargs.get("embedding_dims")
+        if embedding_dims is None:
+            embedding_dims = {
+                col.name: kwargs["embedding_dim"] for col in categorical_columns
+            }
+
+        embedding_columns = []
+        for column in categorical_columns:
+            dim = embedding_dims[column.name]
+            embedding_columns.append(tf.feature_column.embedding_column(column, dim))
+        return {"mlp": numeric_columns + embedding_columns}
+
+    def call(self, inputs, training=False):
+        x = self.input_layer(inputs["mlp"])
+        for layer in self.hidden_layers:
+            x = layer(x)
+        x = self.final_layer(x)
+        return x

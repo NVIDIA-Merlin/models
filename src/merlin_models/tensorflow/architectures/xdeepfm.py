@@ -14,56 +14,111 @@
 #
 
 import tensorflow as tf
-from merlin_models.tensorflow.layers import DenseFeatures, LinearFeatures, XDeepFmOuterProduct
+from merlin_models.tensorflow.layers import (
+    DenseFeatures,
+    LinearFeatures,
+    XDeepFmOuterProduct,
+)
 
 from . import arch_utils
 
 
-def channels(numeric_columns, categorical_columns, **kwargs):
-    embedding_dim = arch_utils.get_embedding_dim(kwargs)
-    embedding_columns = arch_utils.get_embedding_columns(
-        categorical_columns, embedding_dim
-    )
-
-    # not really clear to me how to use numeric columns in CIN so will
-    # only feed them to deep channel
-    channels = {"CIN": embedding_columns, "deep": numeric_columns}
-
-    if kwargs["use_wide"]:
-        channels["wide"] = numeric_columns + categorical_columns
-    return channels
-
-
-def architecture(channels, inputs, **kwargs):
+class xDeepFM(tf.keras.Model):
     """
-  https://arxiv.org/pdf/1803.05170.pdf
-  """
-    embedding_dim = arch_utils.get_embedding_dim(kwargs)
+    https://arxiv.org/pdf/1803.05170.pdf
+    """
 
-    categorical_embeddings = DenseFeatures(channels["CIN"])(inputs["CIN"])
-    continuous_embeddings = DenseFeatures(channels["deep"])(inputs["deep"])
+    def __init__(self, numeric_columns, categorical_columns, **kwargs):
+        super(MyModel, self).__init__()
+        channels = self.channels(numeric_columns, categorical_columns, **kwargs)
 
-    deep_x = tf.keras.layers.Concatenate(axis=1)([categorical_embeddings, continuous_embeddings])
-    for dim in kwargs["deep_hidden_dims"]:
-        deep_x = tf.keras.layers.Dense(dim, activation="relu")(deep_x)
-    deep_x = tf.keras.layers.Dense(1, activation="linear")(deep_x)
+        embedding_dim = arch_utils.get_embedding_dim(kwargs)
 
-    cin_x0 = tf.keras.layers.Reshape((len(inputs["CIN"]), embedding_dim))(categorical_embeddings)
-    cin_x = cin_x0
+        self.categorical_embedding_layer = DenseFeatures(channels["CIN"])
+        self.continuous_embedding_layer = DenseFeatures(channels["deep"])
 
-    sum_pool_layer = tf.keras.layers.Lambda(lambda x: tf.reduce_sum(x, axis=2))
-    pooled_outputs = []
-    for dim in kwargs["cin_hidden_dims"]:
-        cin_x = XDeepFmOuterProduct(dim)([cin_x, cin_x0])
-        pooled_outputs.append(sum_pool_layer(cin_x))
-    cin_x = tf.keras.layers.Concatenate(axis=1)(pooled_outputs)
+        # Deep channel
+        self.deep_input_layer = tf.keras.layers.Concatenate(axis=1)
+        self.deep_final_layer = tf.keras.layers.Dense(1, activation="linear")
 
-    activation_inputs = [cin_x, deep_x]
-    if "wide" in channels:
-        wide_x = LinearFeatures(channels["wide"])(inputs["wide"])
-        activation_inputs.append(wide_x)
+        self.deep_hidden_layers = []
 
-    x = tf.keras.layers.Concatenate(axis=1)(activation_inputs)
-    x = tf.keras.layers.Lambda(lambda x: tf.reduce_sum(x, axis=1, keepdims=True))(x)
-    x = tf.keras.layers.Activation("sigmoid")(x)
-    return x
+        for dim in kwargs["deep_hidden_dims"]:
+            self.deep_hidden_layers.append(
+                tf.keras.layers.Dense(dim, activation="relu")
+            )
+            # + batchnorm, dropout, whatever...
+
+        # Compressed Interaction Network channel
+        num_cin_inputs = len(channels["CIN"])
+        self.cin_reshape_layer = tf.keras.layers.Reshape(
+            (num_cin_inputs, embedding_dim)
+        )
+
+        self.cin_sum_pool_layer = tf.keras.layers.Lambda(
+            lambda x: tf.reduce_sum(x, axis=2)
+        )
+
+        self.cin_hidden_layers = []
+        for dim in kwargs["cin_hidden_dims"]:
+            self.cin_hidden_layers.append(XDeepFmOuterProduct(dim))
+
+        self.cin_final_layer = tf.keras.layers.Concatenate(axis=1)
+
+        # Optional Wide channel
+        if "wide" in channels:
+            self.wide_linear_layer = LinearFeatures(channels["wide"])
+        else:
+            self.wide_linear_layer = None
+
+        # Channel combiner
+        self.combiner_concat = tf.keras.layers.Concatenate(axis=1)
+        self.combiner_reduce_sum = tf.keras.layers.Lambda(
+            lambda x: tf.reduce_sum(x, axis=1, keepdims=True)
+        )
+        self.combiner_activation = tf.keras.layers.Activation("sigmoid")
+
+    def channels(numeric_columns, categorical_columns, **kwargs):
+        embedding_dim = arch_utils.get_embedding_dim(kwargs)
+        embedding_columns = arch_utils.get_embedding_columns(
+            categorical_columns, embedding_dim
+        )
+
+        # not really clear to me how to use numeric columns in CIN so will
+        # only feed them to deep channel
+        channels = {"CIN": embedding_columns, "deep": numeric_columns}
+
+        if kwargs["use_wide"]:
+            channels["wide"] = numeric_columns + categorical_columns
+        return channels
+
+    def call(self, inputs, training=False):
+        embedding_dim = arch_utils.get_embedding_dim(kwargs)
+
+        categorical_embeddings = self.categorical_embedding_layer(inputs["CIN"])
+        continuous_embeddings = self.continuous_embedding_layer(inputs["deep"])
+
+        deep_x = self.deep_input_layer([categorical_embeddings, continuous_embeddings])
+        for layer in self.deep_hidden_layers:
+            deep_x = layer(deep_x)
+        deep_x = self.deep_final_layer(deep_x)
+
+        cin_x0 = self.cin_reshape_layer(categorical_embeddings)
+        cin_x = cin_x0
+
+        pooled_outputs = []
+        for layer in self.cin_hidden_layers:
+            cin_x = self.cin_hidden_layers([cin_x, cin_x0])
+            pooled_outputs.append(self.cin_sum_pool_layer(cin_x))
+        cin_x = self.cin_final_layer(pooled_outputs)
+
+        activation_inputs = [cin_x, deep_x]
+        if self.wide_linear_layer:
+            wide_x = self.wide_linear_layer(inputs["wide"])
+            activation_inputs.append(wide_x)
+
+        combined_x = self.combiner_concat(activation_inputs)
+        combined_x = self.combiner_reduce_sum(combined_x)
+        combined_x = self.combiner_activation(combined_x)
+
+        return combined_x
