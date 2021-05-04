@@ -23,7 +23,7 @@ class WideAndDeep(tf.keras.Model):
     """
 
     def __init__(self, numeric_columns, categorical_columns, **kwargs):
-        super(MyModel, self).__init__()
+        super().__init__()
         channels = self.channels(numeric_columns, categorical_columns, **kwargs)
 
         # Deep channel
