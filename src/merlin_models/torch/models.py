@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 import torch
-
 from nvtabular.framework_utils.torch.layers import ConcatenatedEmbeddings, MultiHotEmbeddings
 
 
