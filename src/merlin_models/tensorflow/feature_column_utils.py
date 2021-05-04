@@ -14,7 +14,7 @@
 #
 
 import tensorflow as tf
-from tensorflow.python.feature_column import feature_column_v2 as fc
+from tensorflow.python.feature_column import feature_column_v2 as fc  # noqa
 
 
 def _make_categorical_embedding(name, vocab_size, embedding_dim):
