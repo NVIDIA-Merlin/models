@@ -22,7 +22,8 @@ def continuous_columns():
 @pytest.fixture
 def categorical_columns():
     return [
-        tf.feature_column.categorical_column_with_identity("one_hot", 100),
+        tf.feature_column.categorical_column_with_identity("one_hot_a", 100),
+        tf.feature_column.categorical_column_with_identity("one_hot_b", 100),
     ]
 
 
@@ -39,10 +40,12 @@ def continuous_features():
 
 @pytest.fixture
 def categorical_features():
-    one_hot_feature = tf.random.uniform((1000, 1), maxval=100, dtype=tf.dtypes.int32)
+    one_hot_a = tf.random.uniform((1000, 1), maxval=100, dtype=tf.dtypes.int32)
+    one_hot_b = tf.random.uniform((1000, 1), maxval=100, dtype=tf.dtypes.int32)
 
     return {
-        "one_hot": one_hot_feature,
+        "one_hot_a": one_hot_a,
+        "one_hot_b": one_hot_b,
     }
 
 
