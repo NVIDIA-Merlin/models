@@ -29,7 +29,7 @@ class DLRM(tf.keras.Model):
         self,
         continuous_columns,
         categorical_columns,
-        embedding_dim,
+        embedding_dims,
         dense_hidden_dims=None,
         combiner_hidden_dims=None,
     ):
@@ -41,7 +41,7 @@ class DLRM(tf.keras.Model):
         channels = self.channels(
             continuous_columns,
             categorical_columns,
-            embedding_dim,
+            embedding_dims,
         )
 
         self.fm_features_layer = DenseFeatures(channels["fm"], aggregation="stack")
@@ -57,10 +57,12 @@ class DLRM(tf.keras.Model):
             )
             # + batchnorm, dropout, whatever...
 
-        self.dense_final_layer = tf.keras.layers.Dense(embedding_dim, activation="relu")
+        self.dense_final_layer = tf.keras.layers.Dense(
+            embedding_dims, activation="relu"
+        )
 
         # FM channel
-        self.fm_dense_input_layer = tf.keras.layers.Reshape((1, embedding_dim))
+        self.fm_dense_input_layer = tf.keras.layers.Reshape((1, embedding_dims))
         self.fm_concat_layer = tf.keras.layers.Concatenate(axis=1)
         self.fm_interaction_layer = DotProductInteraction()
 
