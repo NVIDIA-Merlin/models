@@ -38,13 +38,13 @@ class DeepFM(tf.keras.Model):
         self,
         continuous_columns,
         categorical_columns,
-        embedding_dim,
+        embedding_dims,
         hidden_dims=None,
         use_wide=False,
     ):
         super().__init__()
         channels = self.channels(
-            continuous_columns, categorical_columns, embedding_dim, use_wide
+            continuous_columns, categorical_columns, embedding_dims, use_wide
         )
 
         hidden_dim = hidden_dims or []
@@ -54,7 +54,7 @@ class DeepFM(tf.keras.Model):
 
         # Deep channel
         self.deep_input_layer = tf.keras.layers.Concatenate(axis=1)
-        self.deep_final_layer = tf.keras.layers.Dense(1, activation="linear")(deep_x)
+        self.deep_final_layer = tf.keras.layers.Dense(1, activation="linear")
 
         self.deep_hidden_layers = []
         for dim in hidden_dims:
@@ -64,7 +64,7 @@ class DeepFM(tf.keras.Model):
             # + batchnorm, dropout, whatever...
 
         # FM channel
-        fm_shape = len(inputs["fm"], embedding_dim)
+        fm_shape = (len(channels["fm"]), embedding_dims)
         self.fm_reshape_layer = tf.keras.layers.Reshape(fm_shape)
         self.fm_interaction_layer = DotProductInteraction()
 
