@@ -38,10 +38,15 @@ class XDeepFmOuterProduct(tf.keras.layers.Layer):
         super().__init__(**kwargs)
 
     def build(self, input_shapes):
-        if not isinstance(input_shapes[0], tuple):
+        if not (
+            isinstance(input_shapes[0], tuple)
+            or isinstance(input_shapes[0], tf.TensorShape)
+        ):
             raise ValueError("Should be called on a list of inputs.")
         if len(input_shapes) != 2:
-            raise ValueError("Should only have two inputs, found {}".format(len(input_shapes)))
+            raise ValueError(
+                "Should only have two inputs, found {}".format(len(input_shapes))
+            )
         for shape in input_shapes:
             if len(shape) != 3:
                 raise ValueError("Found shape {} without 3 dimensions".format(shape))
@@ -73,7 +78,9 @@ class XDeepFmOuterProduct(tf.keras.layers.Layer):
         # need to do shape manipulations so that we
         # can do element-wise multiply
         x_k_minus_1 = tf.expand_dims(x_k_minus_1, axis=2)  # B x H_{k-1} x 1 x D
-        x_k_minus_1 = tf.tile(x_k_minus_1, [1, 1, x_0.shape[1], 1])  # B x H_{k-1} x m x D
+        x_k_minus_1 = tf.tile(
+            x_k_minus_1, [1, 1, x_0.shape[1], 1]
+        )  # B x H_{k-1} x m x D
         x_k_minus_1 = tf.transpose(x_k_minus_1, (1, 0, 2, 3))  # H_{k-1} x B x m x D
         z_k = x_k_minus_1 * x_0  # H_{k-1} x B x m x D
         z_k = tf.transpose(z_k, (1, 0, 2, 3))  # B x H_{k-1} x m x D
