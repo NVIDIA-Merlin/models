@@ -107,7 +107,7 @@ class DeepFM(tf.keras.Model):
 
         # FM channel
         fm_embeddings = self.fm_reshape_layer(fm_embeddings)
-        fm_x = self.fm_embedding_layer(fm_embeddings)
+        fm_x = self.fm_interaction_layer(fm_embeddings)
 
         # Optional Wide channel
         activation_inputs = [fm_x, deep_x]
