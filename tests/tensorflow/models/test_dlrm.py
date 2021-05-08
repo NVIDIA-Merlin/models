@@ -21,25 +21,65 @@ tf = pytest.importorskip("tensorflow")
 models = pytest.importorskip("merlin_models.tensorflow.models")
 
 
-def test_dlrm_construction():
-    scalar_continuous = tf.feature_column.numeric_column("scalar_continuous", (1,))
-    vector_continuous = tf.feature_column.numeric_column("vector_continuous", (128,))
-    one_hot = tf.feature_column.categorical_column_with_identity("one_hot", 100)
-    multi_hot = tf.feature_column.categorical_column_with_identity("multi_hot", 5)
+from tests.tensorflow.tf_fixtures import (
+    continuous_columns,
+    categorical_columns,
+    continuous_features,
+    categorical_features,
+    labels,
+    transform_for_inference,
+)
 
-    numeric_columns = [scalar_continuous, vector_continuous]
-    categorical_columns = [one_hot, multi_hot]
 
-    embedding_dims = 512
-    dense_hidden_dims = [512, 256, 128]
-    combiner_hidden_dims = [256, 128, 64]
+def test_dlrm(
+    tmpdir,
+    continuous_columns,
+    categorical_columns,
+    continuous_features,
+    categorical_features,
+    labels,
+):
+    # Model definition
+    model_name = "dlrm"
 
     model = models.DLRM(
-        numeric_columns,
+        continuous_columns,
         categorical_columns,
-        embedding_dims,
-        dense_hidden_dims,
-        combiner_hidden_dims,
+        embedding_dims=512,
+        dense_hidden_dims=[512, 256, 128],
+        combiner_hidden_dims=[256, 128, 64],
     )
 
     model.compile("sgd", "binary_crossentropy")
+
+    # Training
+    training_data = {"dense": {**continuous_features}, "fm": {**categorical_features}}
+
+    training_ds = tf.data.Dataset.from_tensor_slices((training_data, labels))
+
+    model.fit(training_ds)
+
+    # Batch prediction
+    predictions = model.predict(training_data)
+    not_nan = tf.math.logical_not(tf.math.is_nan(predictions))
+
+    assert not_nan.numpy().all()
+    assert (predictions > 0).all()
+    assert (predictions < 1).all()
+
+    # Save/load
+    model.save(tmpdir / model_name)
+    loaded = tf.keras.models.load_model(tmpdir / model_name)
+
+    # Inference
+    infer = loaded.signatures["serving_default"]
+
+    inference_data = transform_for_inference(training_data)
+
+    outputs = infer(**inference_data)
+    predictions = outputs["output_1"]
+    not_nan = tf.math.logical_not(tf.math.is_nan(predictions))
+
+    assert not_nan.numpy().all()
+    assert (predictions > 0).numpy().all()
+    assert (predictions < 1).numpy().all()
