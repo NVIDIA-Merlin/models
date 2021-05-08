@@ -39,6 +39,8 @@ def test_simple_mlp(
     labels,
 ):
     # Model definition
+    model_name = "simple_mlp"
+
     model = models.SimpleMLP(
         continuous_columns,
         categorical_columns,
@@ -63,8 +65,8 @@ def test_simple_mlp(
     assert (predictions < 1).all()
 
     # Save/load
-    model.save(tmpdir / "simple_mlp")
-    loaded = tf.keras.models.load_model(tmpdir / "simple_mlp")
+    model.save(tmpdir / model_name)
+    loaded = tf.keras.models.load_model(tmpdir / model_name)
 
     # Inference
     infer = loaded.signatures["serving_default"]
