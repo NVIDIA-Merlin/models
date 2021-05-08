@@ -36,7 +36,7 @@ class DeepFM(tf.keras.Model):
 
     def __init__(
         self,
-        numeric_columns,
+        continuous_columns,
         categorical_columns,
         embedding_dim,
         hidden_dims=None,
@@ -44,7 +44,7 @@ class DeepFM(tf.keras.Model):
     ):
         super().__init__()
         channels = self.channels(
-            numeric_columns, categorical_columns, embedding_dim, use_wide
+            continuous_columns, categorical_columns, embedding_dim, use_wide
         )
 
         hidden_dim = hidden_dims or []
@@ -82,16 +82,16 @@ class DeepFM(tf.keras.Model):
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
     def channels(
-        self, numeric_columns, categorical_columns, embedding_dim, use_wide=False
+        self, continuous_columns, categorical_columns, embedding_dim, use_wide=False
     ):
         embedding_columns = arch_utils.get_embedding_columns(
             categorical_columns, embedding_dim
         )
 
-        channels = {"fm": embedding_columns, "deep": numeric_columns}
+        channels = {"fm": embedding_columns, "deep": continuous_columns}
 
         if use_wide:
-            channels["wide"] = categorical_columns + numeric_columns
+            channels["wide"] = categorical_columns + continuous_columns
 
         return channels
 

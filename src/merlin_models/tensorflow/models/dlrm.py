@@ -27,7 +27,7 @@ class DLRM(tf.keras.Model):
 
     def __init__(
         self,
-        numeric_columns,
+        continuous_columns,
         categorical_columns,
         embedding_dim,
         dense_hidden_dims=None,
@@ -39,7 +39,7 @@ class DLRM(tf.keras.Model):
         combiner_hidden_dims = combiner_hidden_dims or []
 
         channels = self.channels(
-            numeric_columns,
+            continuous_columns,
             categorical_columns,
             embedding_dim,
         )
@@ -75,11 +75,11 @@ class DLRM(tf.keras.Model):
             )
             # + batchnorm, dropout, whatever...
 
-    def channels(self, numeric_columns, categorical_columns, embedding_dim):
+    def channels(self, continuous_columns, categorical_columns, embedding_dim):
         embedding_columns = arch_utils.get_embedding_columns(
             categorical_columns, embedding_dim
         )
-        return {"dense": numeric_columns, "fm": embedding_columns}
+        return {"dense": continuous_columns, "fm": embedding_columns}
 
     def call(self, inputs, training=False):
         fm = self.fm_features_layer(inputs["fm"])

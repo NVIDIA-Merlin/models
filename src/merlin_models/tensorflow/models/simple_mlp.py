@@ -19,34 +19,34 @@ from merlin_models.tensorflow.layers import DenseFeatures
 
 class SimpleMLP(tf.keras.Model):
     def __init__(
-        self, numeric_columns, categorical_columns, embedding_dims, hidden_dims=None
+        self, continuous_columns, categorical_columns, embedding_dims, hidden_dims=None
     ):
         super().__init__()
 
         hidden_dims = hidden_dims or []
 
-        channels = self.channels(numeric_columns, categorical_columns, embedding_dims)
+        channels = self.channels(
+            continuous_columns, categorical_columns, embedding_dims
+        )
 
         self.input_layer = DenseFeatures(channels["mlp"])
         self.final_layer = tf.keras.layers.Dense(1, activation="sigmoid")
 
         self.hidden_layers = []
         for dim in hidden_dims:
-            self.deep_hidden_layers.append(
-                tf.keras.layers.Dense(dim, activation="relu")
-            )
+            self.hidden_layers.append(tf.keras.layers.Dense(dim, activation="relu"))
             # + batchnorm, dropout, whatever...
 
-    def channels(self, numeric_columns, categorical_columns, embedding_dims):
+    def channels(self, continuous_columns, categorical_columns, embedding_dims):
         if not isinstance(embedding_dims, dict):
             embedding_dims = {col.name: embedding_dims for col in categorical_columns}
 
         embedding_columns = [
-            tf.feature_column.embedding_column(col, deep_embedding_dims[col.name])
+            tf.feature_column.embedding_column(col, embedding_dims[col.name])
             for col in categorical_columns
         ]
 
-        return {"mlp": numeric_columns + embedding_columns}
+        return {"mlp": continuous_columns + embedding_columns}
 
     def call(self, inputs, training=False):
         x = self.input_layer(inputs["mlp"])

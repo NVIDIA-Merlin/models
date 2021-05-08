@@ -30,7 +30,7 @@ class xDeepFM(tf.keras.Model):
 
     def __init__(
         self,
-        numeric_columns,
+        continuous_columns,
         categorical_columns,
         embedding_dim,
         deep_hidden_dims=None,
@@ -43,7 +43,7 @@ class xDeepFM(tf.keras.Model):
         cin_hidden_dims = cin_hidden_dims or []
 
         channels = self.channels(
-            numeric_columns, categorical_columns, embedding_dim, use_wide
+            continuous_columns, categorical_columns, embedding_dim, use_wide
         )
 
         self.categorical_embedding_layer = DenseFeatures(channels["CIN"])
@@ -91,7 +91,7 @@ class xDeepFM(tf.keras.Model):
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
     def channels(
-        self, numeric_columns, categorical_columns, embedding_dim, use_wide=False
+        self, continuous_columns, categorical_columns, embedding_dim, use_wide=False
     ):
         embedding_columns = arch_utils.get_embedding_columns(
             categorical_columns, embedding_dim
@@ -99,10 +99,10 @@ class xDeepFM(tf.keras.Model):
 
         # not really clear to me how to use numeric columns in CIN so will
         # only feed them to deep channel
-        channels = {"CIN": embedding_columns, "deep": numeric_columns}
+        channels = {"CIN": embedding_columns, "deep": continuous_columns}
 
         if use_wide:
-            channels["wide"] = numeric_columns + categorical_columns
+            channels["wide"] = continuous_columns + categorical_columns
 
         return channels
 

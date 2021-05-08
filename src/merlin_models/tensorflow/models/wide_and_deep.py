@@ -24,7 +24,7 @@ class WideAndDeep(tf.keras.Model):
 
     def __init__(
         self,
-        numeric_columns,
+        continuous_columns,
         categorical_columns,
         embedding_dims,
         deep_hidden_dims=None,
@@ -33,7 +33,9 @@ class WideAndDeep(tf.keras.Model):
 
         deep_hidden_dims = deep_hidden_dims or []
 
-        channels = self.channels(numeric_columns, categorical_columns, embedding_dims)
+        channels = self.channels(
+            continuous_columns, categorical_columns, embedding_dims
+        )
 
         # Deep channel
         self.deep_input_layer = DenseFeatures(channels["deep"])
@@ -53,7 +55,7 @@ class WideAndDeep(tf.keras.Model):
         self.combiner_add = tf.keras.layers.Add()
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
-    def channels(self, numeric_columns, categorical_columns, embedding_dims):
+    def channels(self, continuous_columns, categorical_columns, embedding_dims):
         """
         Going to just throw everything in both wide and deep channels
         for now. This isn't, in general, how you would want to do this,
@@ -71,8 +73,8 @@ class WideAndDeep(tf.keras.Model):
         ]
 
         return {
-            "wide": categorical_columns + numeric_columns,
-            "deep": deep_embedding_columns + numeric_columns,
+            "wide": categorical_columns + continuous_columns,
+            "deep": deep_embedding_columns + continuous_columns,
         }
 
     def call(self, inputs, training=False):
