@@ -25,11 +25,8 @@ def _sort_columns(feature_columns):
 
 def _validate_numeric_column(feature_column):
     if len(feature_column.shape) > 1:
-        return (
-            "Matrix numeric features are not allowed, "
-            "found feature {} with shape {}".format(
-                feature_column.key, feature_column.shape
-            )
+        return "Matrix numeric features are not allowed, " "found feature {} with shape {}".format(
+            feature_column.key, feature_column.shape
         )
 
 
@@ -39,9 +36,7 @@ def _validate_categorical_column(feature_column):
             "Only acceptable categorical columns for feeding "
             "embeddings are identity, found column {} of type {}. "
             "Consider using NVTabular online preprocessing to perform "
-            "categorical transformations".format(
-                feature_column.name, type(feature_column).__name__
-            )
+            "categorical transformations".format(feature_column.name, type(feature_column).__name__)
         )
 
 
@@ -64,9 +59,7 @@ def _validate_dense_feature_columns(feature_columns):
                     "NVTabular to do preprocessing offline".format(feature_column.name)
                 )
         elif isinstance(feature_column, (fc.EmbeddingColumn, fc.IndicatorColumn)):
-            _errors.append(
-                _validate_categorical_column(feature_column.categorical_column)
-            )
+            _errors.append(_validate_categorical_column(feature_column.categorical_column))
 
         elif isinstance(feature_column, fc.NumericColumn):
             _errors.append(_validate_numeric_column(feature_column))
@@ -119,16 +112,21 @@ def _categorical_embedding_lookup(table, inputs, feature_name, combiner):
             )
 
         # build values and nnz tensors into ragged array, convert to sparse
-        values = inputs[feature_name + "__values"][:, 0]
-        row_lengths = inputs[feature_name + "__nnzs"][:, 0]
+        values = inputs[feature_name + "__values"]
+        nnzs = inputs[feature_name + "__nnzs"]
+
+        if values.shape[1] > 1:
+            values = tf.reshape(values, [-1, 1])
+
+        values = values[:, 0]
+        row_lengths = nnzs[:, 0]
+
         x = tf.RaggedTensor.from_row_lengths(values, row_lengths).to_sparse()
 
         # use ragged array for sparse embedding lookup.
         # note we're using safe_embedding_lookup_sparse to handle empty rows
         # ( https://github.com/NVIDIA/NVTabular/issues/389 )
-        embeddings = tf.nn.safe_embedding_lookup_sparse(
-            table, x, None, combiner=combiner
-        )
+        embeddings = tf.nn.safe_embedding_lookup_sparse(table, x, None, combiner=combiner)
     else:
         embeddings = tf.gather(table, inputs[feature_name][:, 0])
 
@@ -195,9 +193,7 @@ class DenseFeatures(tf.keras.layers.Layer):
             _validate_stack_dimensions(feature_columns)
         elif aggregation != "concat":
             raise ValueError(
-                "Unrecognized aggregation {}, must be stack or concat".format(
-                    aggregation
-                )
+                "Unrecognized aggregation {}, must be stack or concat".format(aggregation)
             )
 
         self.feature_columns = feature_columns
@@ -240,9 +236,7 @@ class DenseFeatures(tf.keras.layers.Layer):
                 feature_name = feature_column.categorical_column.name
                 table = self.embedding_tables[feature_name]
                 combiner = getattr(feature_column, "combiner", "sum")
-                embeddings = _categorical_embedding_lookup(
-                    table, inputs, feature_name, combiner
-                )
+                embeddings = _categorical_embedding_lookup(table, inputs, feature_name, combiner)
                 features.append(embeddings)
 
         if self.aggregation == "stack":
@@ -362,9 +356,7 @@ class LinearFeatures(tf.keras.layers.Layer):
                 shape=(numeric_kernel_dim, 1),
             )
 
-        self.bias = self.add_weight(
-            name="bias", initializer="zeros", trainable=True, shape=(1,)
-        )
+        self.bias = self.add_weight(name="bias", initializer="zeros", trainable=True, shape=(1,))
         self.built = True
 
     def call(self, inputs):
@@ -372,14 +364,10 @@ class LinearFeatures(tf.keras.layers.Layer):
         numeric_inputs = []
         for feature_column in self.feature_columns:
             if isinstance(feature_column, fc.NumericColumn):
-                numeric_inputs.append(
-                    _handle_continuous_feature(inputs, feature_column)
-                )
+                numeric_inputs.append(_handle_continuous_feature(inputs, feature_column))
             else:
                 table = self.embedding_tables[feature_column.key]
-                embeddings = _categorical_embedding_lookup(
-                    table, inputs, feature_column.key, "sum"
-                )
+                embeddings = _categorical_embedding_lookup(table, inputs, feature_column.key, "sum")
                 x = x + embeddings
 
         if len(numeric_inputs) > 0:

@@ -24,6 +24,7 @@ def categorical_columns():
     return [
         tf.feature_column.categorical_column_with_identity("one_hot_a", 100),
         tf.feature_column.categorical_column_with_identity("one_hot_b", 100),
+        tf.feature_column.categorical_column_with_identity("multi_hot_a", 100),
     ]
 
 
@@ -43,9 +44,15 @@ def categorical_features():
     one_hot_a = tf.random.uniform((1000, 1), maxval=100, dtype=tf.dtypes.int32)
     one_hot_b = tf.random.uniform((1000, 1), maxval=100, dtype=tf.dtypes.int32)
 
+    nnzs = 5
+    multi_hot_a__nnzs = tf.fill((1000, 1), nnzs)
+    multi_hot_a__values = tf.random.uniform((1000, 5), maxval=100, dtype=tf.dtypes.int32)
+
     return {
         "one_hot_a": one_hot_a,
         "one_hot_b": one_hot_b,
+        "multi_hot_a__nnzs": multi_hot_a__nnzs,
+        "multi_hot_a__values": multi_hot_a__values,
     }
 
 
