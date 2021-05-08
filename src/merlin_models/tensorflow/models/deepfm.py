@@ -39,13 +39,15 @@ class DeepFM(tf.keras.Model):
         numeric_columns,
         categorical_columns,
         embedding_dim,
-        hidden_dims=[],
+        hidden_dims=None,
         use_wide=False,
     ):
         super().__init__()
         channels = self.channels(
             numeric_columns, categorical_columns, embedding_dim, use_wide
         )
+
+        hidden_dim = hidden_dims or []
 
         self.deep_embedding_layer = DenseFeatures(channels["deep"])
         self.fm_embedding_layer = DenseFeatures(channels["fm"])
