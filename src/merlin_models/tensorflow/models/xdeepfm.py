@@ -32,7 +32,7 @@ class xDeepFM(tf.keras.Model):
         self,
         continuous_columns,
         categorical_columns,
-        embedding_dim,
+        embedding_dims,
         deep_hidden_dims=None,
         cin_hidden_dims=None,
         use_wide=False,
@@ -43,7 +43,7 @@ class xDeepFM(tf.keras.Model):
         cin_hidden_dims = cin_hidden_dims or []
 
         channels = self.channels(
-            continuous_columns, categorical_columns, embedding_dim, use_wide
+            continuous_columns, categorical_columns, embedding_dims, use_wide
         )
 
         self.categorical_embedding_layer = DenseFeatures(channels["CIN"])
@@ -64,7 +64,7 @@ class xDeepFM(tf.keras.Model):
         # Compressed Interaction Network channel
         num_cin_inputs = len(channels["CIN"])
         self.cin_reshape_layer = tf.keras.layers.Reshape(
-            (num_cin_inputs, embedding_dim)
+            (num_cin_inputs, embedding_dims)
         )
 
         self.cin_sum_pool_layer = tf.keras.layers.Lambda(
@@ -119,8 +119,8 @@ class xDeepFM(tf.keras.Model):
         cin_x = cin_x0
 
         pooled_outputs = []
-        for layer in self.cin_hidden_layers:
-            cin_x = self.cin_hidden_layers([cin_x, cin_x0])
+        for cin_hidden_layer in self.cin_hidden_layers:
+            cin_x = cin_hidden_layer([cin_x, cin_x0])
             pooled_outputs.append(self.cin_sum_pool_layer(cin_x))
         cin_x = self.cin_final_layer(pooled_outputs)
 
