@@ -14,6 +14,7 @@
 #
 
 import tensorflow as tf
+
 from merlin_models.tensorflow.layers import DenseFeatures, LinearFeatures
 
 
@@ -33,9 +34,7 @@ class WideAndDeep(tf.keras.Model):
 
         deep_hidden_dims = deep_hidden_dims or []
 
-        channels = self.channels(
-            continuous_columns, categorical_columns, embedding_dims
-        )
+        channels = self.channels(continuous_columns, categorical_columns, embedding_dims)
 
         # Deep channel
         self.deep_input_layer = DenseFeatures(channels["deep"])
@@ -43,9 +42,7 @@ class WideAndDeep(tf.keras.Model):
 
         self.deep_hidden_layers = []
         for dim in deep_hidden_dims:
-            self.deep_hidden_layers.append(
-                tf.keras.layers.Dense(dim, activation="relu")
-            )
+            self.deep_hidden_layers.append(tf.keras.layers.Dense(dim, activation="relu"))
             # + batchnorm, dropout, whatever...
 
         # Wide channel
@@ -63,9 +60,7 @@ class WideAndDeep(tf.keras.Model):
         decide how to funnel stuff.
         """
         if not isinstance(embedding_dims, dict):
-            deep_embedding_dims = {
-                col.name: embedding_dims for col in categorical_columns
-            }
+            deep_embedding_dims = {col.name: embedding_dims for col in categorical_columns}
 
         deep_embedding_columns = [
             tf.feature_column.embedding_column(col, deep_embedding_dims[col.name])

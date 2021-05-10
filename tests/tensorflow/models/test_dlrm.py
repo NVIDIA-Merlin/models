@@ -14,29 +14,21 @@
 # limitations under the License.
 #
 
-import numpy as np
+
 import pytest
+
+from tests.conftest import transform_for_inference
 
 tf = pytest.importorskip("tensorflow")
 models = pytest.importorskip("merlin_models.tensorflow.models")
 
 
-from tests.tensorflow.tf_fixtures import (
-    continuous_columns,
-    categorical_columns,
-    continuous_features,
-    categorical_features,
-    labels,
-    transform_for_inference,
-)
-
-
 def test_dlrm(
     tmpdir,
-    continuous_columns,
     categorical_columns,
-    continuous_features,
     categorical_features,
+    continuous_columns,
+    continuous_features,
     labels,
 ):
     # Model definition

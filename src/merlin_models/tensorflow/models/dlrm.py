@@ -14,6 +14,7 @@
 #
 
 import tensorflow as tf
+
 from merlin_models.tensorflow.layers import DenseFeatures, DotProductInteraction
 
 from . import arch_utils
@@ -45,21 +46,15 @@ class DLRM(tf.keras.Model):
         )
 
         self.fm_features_layer = DenseFeatures(channels["fm"], aggregation="stack")
-        self.dense_features_layer = DenseFeatures(
-            channels["dense"], aggregation="concat"
-        )
+        self.dense_features_layer = DenseFeatures(channels["dense"], aggregation="concat")
 
         # Dense channel (bottom MLP)
         self.dense_hidden_layers = []
         for dim in dense_hidden_dims:
-            self.dense_hidden_layers.append(
-                tf.keras.layers.Dense(dim, activation="relu")
-            )
+            self.dense_hidden_layers.append(tf.keras.layers.Dense(dim, activation="relu"))
             # + batchnorm, dropout, whatever...
 
-        self.dense_final_layer = tf.keras.layers.Dense(
-            embedding_dims, activation="relu"
-        )
+        self.dense_final_layer = tf.keras.layers.Dense(embedding_dims, activation="relu")
 
         # FM channel
         self.fm_dense_input_layer = tf.keras.layers.Reshape((1, embedding_dims))
@@ -72,15 +67,11 @@ class DLRM(tf.keras.Model):
 
         self.combiner_hidden_layers = []
         for dim in combiner_hidden_dims:
-            self.combiner_hidden_layers.append(
-                tf.keras.layers.Dense(dim, activation="relu")
-            )
+            self.combiner_hidden_layers.append(tf.keras.layers.Dense(dim, activation="relu"))
             # + batchnorm, dropout, whatever...
 
     def channels(self, continuous_columns, categorical_columns, embedding_dim):
-        embedding_columns = arch_utils.get_embedding_columns(
-            categorical_columns, embedding_dim
-        )
+        embedding_columns = arch_utils.get_embedding_columns(categorical_columns, embedding_dim)
         return {"dense": continuous_columns, "fm": embedding_columns}
 
     def call(self, inputs, training=False):
