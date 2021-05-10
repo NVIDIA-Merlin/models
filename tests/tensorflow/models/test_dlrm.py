@@ -17,7 +17,7 @@
 
 import pytest
 
-from tests.tensorflow.tf_fixtures import transform_for_inference
+from tests.conftest import transform_for_inference
 
 tf = pytest.importorskip("tensorflow")
 models = pytest.importorskip("merlin_models.tensorflow.models")
@@ -25,10 +25,10 @@ models = pytest.importorskip("merlin_models.tensorflow.models")
 
 def test_dlrm(
     tmpdir,
-    continuous_columns,
     categorical_columns,
-    continuous_features,
     categorical_features,
+    continuous_columns,
+    continuous_features,
     labels,
 ):
     # Model definition
