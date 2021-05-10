@@ -14,6 +14,7 @@
 #
 
 import tensorflow as tf
+
 from merlin_models.tensorflow.layers import DenseFeatures, DotProductInteraction
 
 from . import arch_utils

@@ -14,11 +14,8 @@
 #
 
 import tensorflow as tf
-from merlin_models.tensorflow.layers import (
-    DenseFeatures,
-    LinearFeatures,
-    XDeepFmOuterProduct,
-)
+
+from merlin_models.tensorflow.layers import DenseFeatures, LinearFeatures, XDeepFmOuterProduct
 
 from . import arch_utils
 
