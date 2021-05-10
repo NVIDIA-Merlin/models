@@ -42,9 +42,7 @@ class xDeepFM(tf.keras.Model):
         deep_hidden_dims = deep_hidden_dims or []
         cin_hidden_dims = cin_hidden_dims or []
 
-        channels = self.channels(
-            continuous_columns, categorical_columns, embedding_dims, use_wide
-        )
+        channels = self.channels(continuous_columns, categorical_columns, embedding_dims, use_wide)
 
         self.categorical_embedding_layer = DenseFeatures(channels["CIN"])
         self.continuous_embedding_layer = DenseFeatures(channels["deep"])
@@ -56,20 +54,14 @@ class xDeepFM(tf.keras.Model):
         self.deep_hidden_layers = []
 
         for dim in deep_hidden_dims:
-            self.deep_hidden_layers.append(
-                tf.keras.layers.Dense(dim, activation="relu")
-            )
+            self.deep_hidden_layers.append(tf.keras.layers.Dense(dim, activation="relu"))
             # + batchnorm, dropout, whatever...
 
         # Compressed Interaction Network channel
         num_cin_inputs = len(channels["CIN"])
-        self.cin_reshape_layer = tf.keras.layers.Reshape(
-            (num_cin_inputs, embedding_dims)
-        )
+        self.cin_reshape_layer = tf.keras.layers.Reshape((num_cin_inputs, embedding_dims))
 
-        self.cin_sum_pool_layer = tf.keras.layers.Lambda(
-            lambda x: tf.reduce_sum(x, axis=2)
-        )
+        self.cin_sum_pool_layer = tf.keras.layers.Lambda(lambda x: tf.reduce_sum(x, axis=2))
 
         self.cin_hidden_layers = []
         for dim in cin_hidden_dims:
@@ -90,12 +82,8 @@ class xDeepFM(tf.keras.Model):
         )
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
-    def channels(
-        self, continuous_columns, categorical_columns, embedding_dim, use_wide=False
-    ):
-        embedding_columns = arch_utils.get_embedding_columns(
-            categorical_columns, embedding_dim
-        )
+    def channels(self, continuous_columns, categorical_columns, embedding_dim, use_wide=False):
+        embedding_columns = arch_utils.get_embedding_columns(categorical_columns, embedding_dim)
 
         # not really clear to me how to use numeric columns in CIN so will
         # only feed them to deep channel

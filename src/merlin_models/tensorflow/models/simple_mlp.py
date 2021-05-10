@@ -18,16 +18,12 @@ from merlin_models.tensorflow.layers import DenseFeatures
 
 
 class SimpleMLP(tf.keras.Model):
-    def __init__(
-        self, continuous_columns, categorical_columns, embedding_dims, hidden_dims=None
-    ):
+    def __init__(self, continuous_columns, categorical_columns, embedding_dims, hidden_dims=None):
         super().__init__()
 
         hidden_dims = hidden_dims or []
 
-        channels = self.channels(
-            continuous_columns, categorical_columns, embedding_dims
-        )
+        channels = self.channels(continuous_columns, categorical_columns, embedding_dims)
 
         self.input_layer = DenseFeatures(channels["mlp"])
         self.final_layer = tf.keras.layers.Dense(1, activation="sigmoid")
