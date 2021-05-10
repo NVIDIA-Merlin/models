@@ -14,11 +14,8 @@
 #
 
 import tensorflow as tf
-from merlin_models.tensorflow.layers import (
-    DenseFeatures,
-    LinearFeatures,
-    DotProductInteraction,
-)
+
+from merlin_models.tensorflow.layers import DenseFeatures, DotProductInteraction, LinearFeatures
 
 from . import arch_utils
 
@@ -43,11 +40,9 @@ class DeepFM(tf.keras.Model):
         use_wide=False,
     ):
         super().__init__()
-        channels = self.channels(
-            continuous_columns, categorical_columns, embedding_dims, use_wide
-        )
+        channels = self.channels(continuous_columns, categorical_columns, embedding_dims, use_wide)
 
-        hidden_dim = hidden_dims or []
+        hidden_dims = hidden_dims or []
 
         self.deep_embedding_layer = DenseFeatures(channels["deep"])
         self.fm_embedding_layer = DenseFeatures(channels["fm"])
@@ -58,9 +53,7 @@ class DeepFM(tf.keras.Model):
 
         self.deep_hidden_layers = []
         for dim in hidden_dims:
-            self.deep_hidden_layers.append(
-                tf.keras.layers.Dense(dim, activation="relu")
-            )
+            self.deep_hidden_layers.append(tf.keras.layers.Dense(dim, activation="relu"))
             # + batchnorm, dropout, whatever...
 
         # FM channel
@@ -81,12 +74,8 @@ class DeepFM(tf.keras.Model):
         )
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
-    def channels(
-        self, continuous_columns, categorical_columns, embedding_dim, use_wide=False
-    ):
-        embedding_columns = arch_utils.get_embedding_columns(
-            categorical_columns, embedding_dim
-        )
+    def channels(self, continuous_columns, categorical_columns, embedding_dim, use_wide=False):
+        embedding_columns = arch_utils.get_embedding_columns(categorical_columns, embedding_dim)
 
         channels = {"fm": embedding_columns, "deep": continuous_columns}
 

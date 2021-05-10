@@ -1,7 +1,6 @@
-import pytest
+from pathlib import Path
 
-tf = pytest.importorskip("tensorflow")
-models = pytest.importorskip("merlin_models.tensorflow.models")
+import pytest
 
 
 @pytest.fixture
@@ -13,6 +12,7 @@ def tmpdir():
 
 @pytest.fixture
 def continuous_columns():
+    tf = pytest.importorskip("tensorflow")
     return [
         tf.feature_column.numeric_column("scalar_continuous", (1,)),
         tf.feature_column.numeric_column("vector_continuous", (128,)),
@@ -21,6 +21,7 @@ def continuous_columns():
 
 @pytest.fixture
 def categorical_columns():
+    tf = pytest.importorskip("tensorflow")
     return [
         tf.feature_column.categorical_column_with_identity("one_hot_a", 100),
         tf.feature_column.categorical_column_with_identity("one_hot_b", 100),
@@ -29,6 +30,8 @@ def categorical_columns():
 
 @pytest.fixture
 def continuous_features():
+    tf = pytest.importorskip("tensorflow")
+
     scalar_feature = tf.random.uniform((1000, 1))
     vector_feature = tf.random.uniform((1000, 128))
 
@@ -40,6 +43,8 @@ def continuous_features():
 
 @pytest.fixture
 def categorical_features():
+    tf = pytest.importorskip("tensorflow")
+
     one_hot_a = tf.random.uniform((1000, 1), maxval=100, dtype=tf.dtypes.int32)
     one_hot_b = tf.random.uniform((1000, 1), maxval=100, dtype=tf.dtypes.int32)
 
@@ -51,6 +56,8 @@ def categorical_features():
 
 @pytest.fixture
 def labels():
+    tf = pytest.importorskip("tensorflow")
+
     labels = tf.random.uniform((1000, 1), maxval=1, dtype=tf.dtypes.int32)
 
     return labels
