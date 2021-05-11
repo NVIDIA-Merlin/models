@@ -69,7 +69,7 @@ def categorical_features():
 def labels():
     tf = pytest.importorskip("tensorflow")
 
-    labels = tf.random.uniform((NUM_EXAMPLES, 1), maxval=1, dtype=tf.dtypes.int32)
+    labels = tf.random.uniform((NUM_EXAMPLES, 1), maxval=2, dtype=tf.dtypes.int32)
 
     return labels
 
