@@ -19,10 +19,10 @@ import pytest
 from tests.conftest import transform_for_inference
 
 tf = pytest.importorskip("tensorflow")
-models = pytest.importorskip("merlin_models.tensorflow.models")
+ranking_models = pytest.importorskip("merlin_models.tensorflow.models.ranking")
 
 
-def test_simple_mlp(
+def test_wide_and_deep(
     tmpdir,
     categorical_columns,
     categorical_features,
@@ -31,19 +31,22 @@ def test_simple_mlp(
     labels,
 ):
     # Model definition
-    model_name = "simple_mlp"
+    model_name = "wide_and_deep"
 
-    model = models.SimpleMLP(
+    model = ranking_models.WideAndDeep(
         continuous_columns,
         categorical_columns,
         embedding_dims=512,
-        hidden_dims=[512, 256, 128],
+        deep_hidden_dims=[512, 256, 128],
     )
 
     model.compile("sgd", "binary_crossentropy")
 
     # Input Data
-    training_data = {"mlp": {**continuous_features, **categorical_features}}
+    training_data = {
+        "deep": {**categorical_features, **continuous_features},
+        "wide": {**categorical_features, **continuous_features},
+    }
     inference_data = transform_for_inference(training_data)
 
     # Training

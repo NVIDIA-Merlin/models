@@ -16,8 +16,7 @@
 import tensorflow as tf
 
 from merlin_models.tensorflow.layers import DenseFeatures, LinearFeatures, XDeepFmOuterProduct
-
-from . import arch_utils
+from merlin_models.tensorflow.models import model_utils
 
 
 class xDeepFM(tf.keras.Model):
@@ -80,7 +79,7 @@ class xDeepFM(tf.keras.Model):
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
     def channels(self, continuous_columns, categorical_columns, embedding_dim, use_wide=False):
-        embedding_columns = arch_utils.get_embedding_columns(categorical_columns, embedding_dim)
+        embedding_columns = model_utils.get_embedding_columns(categorical_columns, embedding_dim)
 
         # not really clear to me how to use numeric columns in CIN so will
         # only feed them to deep channel
