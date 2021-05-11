@@ -2,6 +2,10 @@ from pathlib import Path
 
 import pytest
 
+NUM_EXAMPLES = 1000
+CARDINALITY = 100
+VECTOR_DIM = 128
+N_HOT = 5
 
 @pytest.fixture
 def tmpdir():
@@ -15,7 +19,7 @@ def continuous_columns():
     tf = pytest.importorskip("tensorflow")
     return [
         tf.feature_column.numeric_column("scalar_continuous", (1,)),
-        tf.feature_column.numeric_column("vector_continuous", (128,)),
+        tf.feature_column.numeric_column("vector_continuous", (VECTOR_DIM,)),
     ]
 
 
@@ -23,8 +27,8 @@ def continuous_columns():
 def categorical_columns():
     tf = pytest.importorskip("tensorflow")
     return [
-        tf.feature_column.categorical_column_with_identity("one_hot_a", 100),
-        tf.feature_column.categorical_column_with_identity("one_hot_b", 100),
+        tf.feature_column.categorical_column_with_identity("one_hot_a", CARDINALITY),
+        tf.feature_column.categorical_column_with_identity("one_hot_b", CARDINALITY),
     ]
 
 
@@ -32,8 +36,8 @@ def categorical_columns():
 def continuous_features():
     tf = pytest.importorskip("tensorflow")
 
-    scalar_feature = tf.random.uniform((1000, 1))
-    vector_feature = tf.random.uniform((1000, 128))
+    scalar_feature = tf.random.uniform((NUM_EXAMPLES, 1))
+    vector_feature = tf.random.uniform((NUM_EXAMPLES, VECTOR_DIM))
 
     return {
         "scalar_continuous": scalar_feature,
@@ -45,8 +49,8 @@ def continuous_features():
 def categorical_features():
     tf = pytest.importorskip("tensorflow")
 
-    one_hot_a = tf.random.uniform((1000, 1), maxval=100, dtype=tf.dtypes.int32)
-    one_hot_b = tf.random.uniform((1000, 1), maxval=100, dtype=tf.dtypes.int32)
+    one_hot_a = tf.random.uniform((NUM_EXAMPLES, 1), maxval=CARDINALITY, dtype=tf.dtypes.int32)
+    one_hot_b = tf.random.uniform((NUM_EXAMPLES, 1), maxval=CARDINALITY, dtype=tf.dtypes.int32)
 
     return {
         "one_hot_a": one_hot_a,
@@ -58,7 +62,7 @@ def categorical_features():
 def labels():
     tf = pytest.importorskip("tensorflow")
 
-    labels = tf.random.uniform((1000, 1), maxval=1, dtype=tf.dtypes.int32)
+    labels = tf.random.uniform((NUM_EXAMPLES, 1), maxval=1, dtype=tf.dtypes.int32)
 
     return labels
 
