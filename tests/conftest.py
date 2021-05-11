@@ -1,3 +1,4 @@
+from collections import defaultdict
 from pathlib import Path
 
 import pytest
@@ -75,10 +76,15 @@ def labels():
 
 
 def transform_for_inference(training_data):
-    inference_data = {}
+    tf = pytest.importorskip("tensorflow")
+
+    inference_data = defaultdict(dict)
 
     for channel_name, channel_features in training_data.items():
         for feature_name, feature in channel_features.items():
-            inference_data[f"{channel_name}_{feature_name}"] = feature
+            if "__values" in feature_name:
+                inference_data[channel_name][feature_name] = tf.reshape(feature, (-1, 1))
+            else:
+                inference_data[channel_name][feature_name] = feature
 
     return inference_data
