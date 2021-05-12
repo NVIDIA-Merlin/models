@@ -43,34 +43,29 @@ def test_xdeepfm(
 
     model.compile("sgd", "binary_crossentropy")
 
-    # Training
+    # Input Data
     training_data = {"deep": {**continuous_features}, "CIN": {**categorical_features}}
+    inference_data = transform_for_inference(training_data)
 
+    # Training
     training_ds = tf.data.Dataset.from_tensor_slices((training_data, labels))
+    num_examples = len(training_ds)
 
     model.fit(training_ds)
 
-    # Batch prediction
-    predictions = model.predict(training_data)
-    not_nan = tf.math.logical_not(tf.math.is_nan(predictions))
+    # Prediction
+    predictions = model(inference_data)
 
-    assert not_nan.numpy().all()
-    assert (predictions > 0).all()
-    assert (predictions < 1).all()
+    assert predictions.shape == tf.TensorShape((num_examples, 1))
+    assert (predictions > 0).numpy().all()
+    assert (predictions < 1).numpy().all()
 
     # Save/load
     model.save(tmpdir / model_name)
-    loaded = tf.keras.models.load_model(tmpdir / model_name)
+    loaded_model = tf.keras.models.load_model(tmpdir / model_name)
 
-    # Inference
-    infer = loaded.signatures["serving_default"]
+    predictions = loaded_model(inference_data)
 
-    inference_data = transform_for_inference(training_data)
-
-    outputs = infer(**inference_data)
-    predictions = outputs["output_1"]
-    not_nan = tf.math.logical_not(tf.math.is_nan(predictions))
-
-    assert not_nan.numpy().all()
+    assert predictions.shape == tf.TensorShape((num_examples, 1))
     assert (predictions > 0).numpy().all()
     assert (predictions < 1).numpy().all()
