@@ -8,6 +8,7 @@ CARDINALITY = 100
 VECTOR_DIM = 128
 N_HOT = 5
 
+
 @pytest.fixture
 def tmpdir():
     tmp = Path("./tmp")
@@ -56,7 +57,9 @@ def categorical_features():
 
     nnzs = 5
     multi_hot_a__nnzs = tf.fill((NUM_EXAMPLES, 1), nnzs)
-    multi_hot_a__values = tf.random.uniform((NUM_EXAMPLES, N_HOT), maxval=CARDINALITY, dtype=tf.dtypes.int32)
+    multi_hot_a__values = tf.random.uniform(
+        (NUM_EXAMPLES, N_HOT), maxval=CARDINALITY, dtype=tf.dtypes.int32
+    )
 
     return {
         "one_hot_a": one_hot_a,
