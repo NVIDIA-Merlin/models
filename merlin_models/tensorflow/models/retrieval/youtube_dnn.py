@@ -19,6 +19,11 @@ from merlin_models.tensorflow.layers import DenseFeatures
 
 
 class YouTubeDNN(tf.keras.Model):
+    """
+    https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/45530.pdf
+    See model architecture diagram in Figure 3
+    """
+
     def __init__(self, continuous_columns, categorical_columns, embedding_dims, hidden_dims=None):
 
         super().__init__()
@@ -27,7 +32,6 @@ class YouTubeDNN(tf.keras.Model):
 
         channels = self.channels(continuous_columns, categorical_columns, embedding_dims)
 
-        # TODO: Add a layer that transforms continuous columns to add sqrt(input) and pow(input, 2)?
         self.input_layer = DenseFeatures(channels["categorical"] + channels["continuous"])
 
         self.hidden_layers = []
