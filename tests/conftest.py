@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 NUM_EXAMPLES = 1000
+NUM_ITEMS = 500
 CARDINALITY = 100
 VECTOR_DIM = 128
 N_HOT = 5
@@ -33,6 +34,12 @@ def categorical_columns():
         tf.feature_column.categorical_column_with_identity("one_hot_b", CARDINALITY),
         tf.feature_column.categorical_column_with_identity("multi_hot_a", CARDINALITY),
     ]
+
+
+@pytest.fixture
+def items_column():
+    tf = pytest.importorskip("tensorflow")
+    return tf.feature_column.categorical_column_with_identity("items", NUM_ITEMS)
 
 
 @pytest.fixture
@@ -70,12 +77,35 @@ def categorical_features():
 
 
 @pytest.fixture
+def items_features():
+    tf = pytest.importorskip("tensorflow")
+
+    nnzs = 4
+    items__nnzs = tf.fill((NUM_EXAMPLES, 1), nnzs)
+    items__values = tf.random.uniform((NUM_EXAMPLES, nnzs), maxval=NUM_ITEMS, dtype=tf.dtypes.int32)
+
+    return {
+        "items__nnzs": items__nnzs,
+        "items__values": items__values,
+    }
+
+
+@pytest.fixture
 def labels():
     tf = pytest.importorskip("tensorflow")
 
     labels = tf.random.uniform((NUM_EXAMPLES, 1), maxval=2, dtype=tf.dtypes.int32)
 
     return labels
+
+
+@pytest.fixture
+def item_labels():
+    tf = pytest.importorskip("tensorflow")
+
+    item_labels = tf.random.uniform((NUM_EXAMPLES, 1), maxval=NUM_ITEMS, dtype=tf.dtypes.int32)
+
+    return item_labels
 
 
 def transform_for_inference(training_data):

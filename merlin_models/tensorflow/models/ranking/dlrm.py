@@ -16,8 +16,7 @@
 import tensorflow as tf
 
 from merlin_models.tensorflow.layers import DenseFeatures, DotProductInteraction
-
-from . import arch_utils
+from merlin_models.tensorflow.models import model_utils
 
 
 class DLRM(tf.keras.Model):
@@ -71,7 +70,7 @@ class DLRM(tf.keras.Model):
             # + batchnorm, dropout, whatever...
 
     def channels(self, continuous_columns, categorical_columns, embedding_dim):
-        embedding_columns = arch_utils.get_embedding_columns(categorical_columns, embedding_dim)
+        embedding_columns = model_utils.get_embedding_columns(categorical_columns, embedding_dim)
         return {"dense": continuous_columns, "fm": embedding_columns}
 
     def call(self, inputs, training=False):

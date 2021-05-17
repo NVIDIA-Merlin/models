@@ -13,3 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from .deepfm import DeepFM
+from .dlrm import DLRM
+from .simple_mlp import SimpleMLP
+from .wide_and_deep import WideAndDeep
+from .xdeepfm import xDeepFM
+
+__all__ = [DeepFM, DLRM, SimpleMLP, WideAndDeep, xDeepFM]

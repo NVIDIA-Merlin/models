@@ -16,8 +16,7 @@
 import tensorflow as tf
 
 from merlin_models.tensorflow.layers import DenseFeatures, DotProductInteraction, LinearFeatures
-
-from . import arch_utils
+from merlin_models.tensorflow.models import model_utils
 
 
 class DeepFM(tf.keras.Model):
@@ -75,7 +74,7 @@ class DeepFM(tf.keras.Model):
         self.combiner_activation = tf.keras.layers.Activation("sigmoid")
 
     def channels(self, continuous_columns, categorical_columns, embedding_dim, use_wide=False):
-        embedding_columns = arch_utils.get_embedding_columns(categorical_columns, embedding_dim)
+        embedding_columns = model_utils.get_embedding_columns(categorical_columns, embedding_dim)
 
         channels = {"fm": embedding_columns, "deep": continuous_columns}
 

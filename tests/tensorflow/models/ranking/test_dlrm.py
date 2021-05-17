@@ -14,15 +14,16 @@
 # limitations under the License.
 #
 
+
 import pytest
 
 from tests.conftest import transform_for_inference
 
 tf = pytest.importorskip("tensorflow")
-models = pytest.importorskip("merlin_models.tensorflow.models")
+ranking_models = pytest.importorskip("merlin_models.tensorflow.models.ranking")
 
 
-def test_xdeepfm(
+def test_dlrm(
     tmpdir,
     categorical_columns,
     categorical_features,
@@ -31,20 +32,20 @@ def test_xdeepfm(
     labels,
 ):
     # Model definition
-    model_name = "xdeepfm"
+    model_name = "dlrm"
 
-    model = models.xDeepFM(
+    model = ranking_models.DLRM(
         continuous_columns,
         categorical_columns,
         embedding_dims=512,
-        deep_hidden_dims=[512, 256, 128],
-        cin_hidden_dims=[256, 128, 64],
+        dense_hidden_dims=[512, 256, 128],
+        combiner_hidden_dims=[256, 128, 64],
     )
 
     model.compile("sgd", "binary_crossentropy")
 
     # Input Data
-    training_data = {"deep": {**continuous_features}, "CIN": {**categorical_features}}
+    training_data = {"dense": {**continuous_features}, "fm": {**categorical_features}}
     inference_data = transform_for_inference(training_data)
 
     # Training

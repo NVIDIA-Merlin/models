@@ -13,3 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from .youtube_dnn import YouTubeDNN
+
+__all__ = [YouTubeDNN]
