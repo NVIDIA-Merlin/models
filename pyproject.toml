@@ -1,9 +1,38 @@
-[build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
-]
-build-backend = "setuptools.build_meta"
+[tool.poetry]
+name = "models"
+description = ""
+version = "0.1"
+authors = ["nvidia"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+PyYAML = ">=5.3"
+cupy = ">=8"
+dask = ">=2.12.0"
+distributed = ">=2.12.0"
+# we require cudf / dask-cuda / dask-cudf
+# but there doesn't seem to be any way to get poetry to recognize them
+# (they aren't on pypi, specifying the git repo urls also doesn't work)
+# cudf =" >=0.19"
+# dask-cuda =" >=0.19"
+# dask-cudf =" >=0.19"
+
+[tool.poetry.dev-dependencies]
+dask = ">=19"
+flake8 = ">=3.7"
+nbsphinx = ">=0.6"
+pytest = ">=5"
+recommonmark = ">=0.6"
+Sphinx = ">=3"
+sphinx_markdown_tables = "*"
+sphinx-multiversion = "*"
+moto = "*"
+boto3 = "*"
+s3fs = "*"
+sphinx_rtd_theme = "*"
+scikit-learn = "*"
+graphviz = "*"
+asvdb = { git = "https://github.com/rapidsai/asvdb.git", branch = "main" }
 
 [tool.black]
 line-length = 100
