@@ -34,10 +34,10 @@ class DLRMBlock(Block):
         to_tabular = tf.keras.layers.Lambda(lambda x: dict(continuous=tf.expand_dims(x, 1)))
         self.continuous_embedding = continuous_features >> bottom_mlp >> to_tabular
 
-        self.top_mlp = top_mlp
-
         from nvtabular.framework_utils.tensorflow.layers import DotProductInteraction
         self.interaction_layer = interaction_layer or DotProductInteraction()
+
+        self.top_mlp = top_mlp
 
     @classmethod
     def from_column_group(cls,

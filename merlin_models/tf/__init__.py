@@ -30,6 +30,7 @@ from tensorflow.keras.layers import Layer, Dense
 from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.losses import Loss
 from tensorflow.python.training.tracking.data_structures import _DictWrapper, ListWrapper
+from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 
 ListWrapper.__repr__ = _repr.list_wrapper_repr
 _DictWrapper.__repr__ = _repr.dict_wrapper_repr
@@ -39,3 +40,4 @@ Layer.__rrshift__ = right_shift_layer
 Layer.__repr__ = _repr.layer_repr
 Loss.__repr__ = _repr.layer_repr_no_children
 Metric.__repr__ = _repr.layer_repr_no_children
+OptimizerV2.__repr__ = _repr.layer_repr_no_children

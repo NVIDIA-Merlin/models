@@ -1,4 +1,5 @@
 import copy
+import types
 from typing import Union
 
 import tensorflow as tf
@@ -8,9 +9,15 @@ from merlin_models.tf.heads import Head
 
 
 class BlockMixin:
-    def to_model(self, head: Head, **kwargs):
+    def to_model(self, head: Head, name=None, **kwargs):
         from merlin_models.tf.blocks.with_head import BlockWithHead
-        return BlockWithHead(self, head, **kwargs)
+
+        model = BlockWithHead(self, head, model_name=name)
+
+        if kwargs:
+            model.compile(**kwargs)
+
+        return model
 
 
 class TabularBlock(tabular.TabularLayer, BlockMixin):

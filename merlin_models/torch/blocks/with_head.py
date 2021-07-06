@@ -10,8 +10,9 @@ from .base import BlockType
 
 
 class BlockWithHead(torch.nn.Module):
-    def __init__(self, block: BlockType, head: Head, optimizer=torch.optim.Adam, **kwargs):
+    def __init__(self, block: BlockType, head: Head, optimizer=torch.optim.Adam, model_name=None, **kwargs):
         super().__init__()
+        self.model_name = model_name
         self.block = block
         self.head = head
         self.optimizer = optimizer
@@ -118,3 +119,9 @@ class BlockWithHead(torch.nn.Module):
             self.calculate_metrics(x, y, mode=mode)
 
         return self.compute_metrics(mode=mode)
+
+    def _get_name(self):
+        if self.model_name:
+            return self.model_name
+
+        return f"{self.block._get_name()}WithHead"
