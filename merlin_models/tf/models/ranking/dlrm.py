@@ -15,8 +15,8 @@
 
 import tensorflow as tf
 
-from merlin_models.tensorflow.layers import DenseFeatures, DotProductInteraction
-from merlin_models.tensorflow.models import model_utils
+from merlin_models.tf.layers import DenseFeatures, DotProductInteraction
+from merlin_models.tf.models import model_utils
 
 
 class DLRM(tf.keras.Model):

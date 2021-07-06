@@ -13,12 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from .tabular import FilterFeatures, StackFeatures, ConcatFeatures, AsTabular, TabularModule
-from .blocks.base import right_shift_block, SequentialBlock
+from .tabular import FilterFeatures, StackFeatures, ConcatFeatures, AsTabular, TabularLayer, AsSparseLayer, AsDenseLayer
+from .blocks.base import right_shift_layer, SequentialBlock
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, TableConfig, FeatureConfig
+from .features.text import TextEmbeddingFeaturesWithTransformers
 from .features.tabular import TabularFeatures
 from .heads import Head
+from .data import DataLoader, DataLoaderValidator
 from .blocks.mlp import MLPBlock
 from .blocks.with_head import BlockWithHead
-from .data import DataLoader
+from . import repr as _repr
+
+from tensorflow.keras.layers import Layer, Dense
+from tensorflow.python.keras.metrics import Metric
+from tensorflow.python.keras.losses import Loss
+from tensorflow.python.training.tracking.data_structures import _DictWrapper, ListWrapper
+
+ListWrapper.__repr__ = _repr.list_wrapper_repr
+_DictWrapper.__repr__ = _repr.dict_wrapper_repr
+
+Dense.extra_repr = _repr.dense_extra_repr
+Layer.__rrshift__ = right_shift_layer
+Layer.__repr__ = _repr.layer_repr
+Loss.__repr__ = _repr.layer_repr_no_children
+Metric.__repr__ = _repr.layer_repr_no_children

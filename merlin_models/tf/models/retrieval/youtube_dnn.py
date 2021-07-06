@@ -15,24 +15,28 @@
 
 import tensorflow as tf
 
-from merlin_models.tensorflow.layers import DenseFeatures
+from merlin_models.tf.layers import DenseFeatures
 
 
-class SimpleMLP(tf.keras.Model):
+class YouTubeDNN(tf.keras.Model):
+    """
+    https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/45530.pdf
+    See model architecture diagram in Figure 3
+    """
+
     def __init__(self, continuous_columns, categorical_columns, embedding_dims, hidden_dims=None):
+
         super().__init__()
 
         hidden_dims = hidden_dims or []
 
         channels = self.channels(continuous_columns, categorical_columns, embedding_dims)
 
-        self.input_layer = DenseFeatures(channels["mlp"])
-        self.final_layer = tf.keras.layers.Dense(1, activation="sigmoid")
+        self.input_layer = DenseFeatures(channels["categorical"] + channels["continuous"])
 
         self.hidden_layers = []
         for dim in hidden_dims:
             self.hidden_layers.append(tf.keras.layers.Dense(dim, activation="relu"))
-            # + batchnorm, dropout, whatever...
 
     def channels(self, continuous_columns, categorical_columns, embedding_dims):
         if not isinstance(embedding_dims, dict):
@@ -43,11 +47,10 @@ class SimpleMLP(tf.keras.Model):
             for col in categorical_columns
         ]
 
-        return {"mlp": continuous_columns + embedding_columns}
+        return {"categorical": embedding_columns, "continuous": continuous_columns}
 
     def call(self, inputs, training=False):
-        x = self.input_layer(inputs["mlp"])
+        x = self.input_layer({**inputs["categorical"], **inputs["continuous"]})
         for layer in self.hidden_layers:
             x = layer(x)
-        x = self.final_layer(x)
         return x

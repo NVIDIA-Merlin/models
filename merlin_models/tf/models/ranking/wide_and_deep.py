@@ -15,7 +15,7 @@
 
 import tensorflow as tf
 
-from merlin_models.tensorflow.layers import DenseFeatures, LinearFeatures
+from merlin_models.tf.layers import DenseFeatures, LinearFeatures
 
 
 class WideAndDeep(tf.keras.Model):
