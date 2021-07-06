@@ -23,21 +23,18 @@ class DLRMBlock(Block):
                  dynamic=False,
                  **kwargs):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
-        self.continuous_features = continuous_features
         self.embedding_layer = embedding_layer
         self.embedding_layer.aggregation = "stack"
-        self.bottom_mlp = bottom_mlp
-        self.top_mlp = top_mlp
 
-        if isinstance(continuous_features, TabularLayer):
-            self.con_input_layer = continuous_features
-        elif isinstance(continuous_features, ColumnGroup):
-            self.con_input_layer = TabularLayer.from_column_group(continuous_features, aggregation="concat")
-        elif isinstance(continuous_features, list):
-            self.con_input_layer = TabularLayer.from_features(continuous_features, aggregation="concat")
+        if isinstance(continuous_features, ColumnGroup):
+            continuous_features = ContinuousFeatures.from_column_group(continuous_features, aggregation="concat")
+        if isinstance(continuous_features, list):
+            continuous_features = ContinuousFeatures.from_features(continuous_features, aggregation="concat")
 
         to_tabular = tf.keras.layers.Lambda(lambda x: dict(continuous=tf.expand_dims(x, 1)))
-        self.continuous_embedding = self.con_input_layer >> bottom_mlp >> to_tabular
+        self.continuous_embedding = continuous_features >> bottom_mlp >> to_tabular
+
+        self.top_mlp = top_mlp
 
         from nvtabular.framework_utils.tensorflow.layers import DotProductInteraction
         self.interaction_layer = interaction_layer or DotProductInteraction()

@@ -142,21 +142,21 @@ class TabularLayer(tf.keras.layers.Layer):
 
         return input_shapes
 
-    def call_on_cols(self, inputs, columns_to_include):
-        return self(inputs, pre=FilterFeatures(columns_to_include))
-
-    def call_and_concat(self, inputs):
-        return self(inputs, post=ConcatFeatures())
-
-    def call_and_stack(self, inputs):
-        return self(inputs, post=StackFeatures())
-
     def apply_to_all(self, inputs, columns_to_filter=None):
         if columns_to_filter:
             inputs = FilterFeatures(columns_to_filter)(inputs)
         outputs = tf.nest.map_structure(self, inputs)
 
         return outputs
+
+    def repr_ignore(self):
+        return []
+
+    def repr_extra(self):
+        return []
+
+    def repr_add(self):
+        return []
 
     def calculate_batch_size_from_input_shapes(self, input_shapes):
         return calculate_batch_size_from_input_shapes(input_shapes)

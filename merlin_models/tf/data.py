@@ -285,7 +285,7 @@ class DataLoader(tf.keras.utils.Sequence, BaseDataLoader):
             buffer_size=buffer_size,  # how many batches to load at once
             parts_per_chunk=parts_per_chunk,
             column_group=col_group,
-            schema=ColumnGroup.read_schema(schema_path)
+            schema=col_group._schema
         )
 
         if named_labels and separate_labels:

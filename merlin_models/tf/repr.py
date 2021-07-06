@@ -51,7 +51,7 @@ def list_wrapper_repr(self):
 
 def _layer_repr(self, track_children=True):
     extra_lines = []
-    extra_repr = self.extra_repr() if getattr(self, "extra_repr", None) else None
+    extra_repr = self.repr_extra() if getattr(self, "repr_extra", None) else None
     # empty string will be split into list ['']
     if extra_repr:
         extra_lines = extra_repr.split('\n')

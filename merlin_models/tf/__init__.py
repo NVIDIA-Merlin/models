@@ -22,6 +22,7 @@ from .features.tabular import TabularFeatures
 from .heads import Head
 from .data import DataLoader, DataLoaderValidator
 from .blocks.mlp import MLPBlock
+from .blocks.dlrm import DLRMBlock
 from .blocks.with_head import BlockWithHead
 from . import repr as _repr
 
@@ -33,7 +34,7 @@ from tensorflow.python.training.tracking.data_structures import _DictWrapper, Li
 ListWrapper.__repr__ = _repr.list_wrapper_repr
 _DictWrapper.__repr__ = _repr.dict_wrapper_repr
 
-Dense.extra_repr = _repr.dense_extra_repr
+Dense.repr_extra = _repr.dense_extra_repr
 Layer.__rrshift__ = right_shift_layer
 Layer.__repr__ = _repr.layer_repr
 Loss.__repr__ = _repr.layer_repr_no_children
