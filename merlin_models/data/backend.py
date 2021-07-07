@@ -20,7 +20,6 @@ import warnings
 from collections import OrderedDict
 
 import cupy as cp
-
 from nvtabular.dispatch import _concat, _is_list_dtype, _make_df, _pull_apart_list
 from nvtabular.io.shuffle import _shuffle_df
 from nvtabular.ops import _get_embedding_order
