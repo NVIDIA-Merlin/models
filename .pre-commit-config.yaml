@@ -4,7 +4,6 @@ repos:
         hooks:
         - id: isort
           additional_dependencies: [toml]
-          exclude: examples/*
       - repo: https://github.com/python/black
         rev: 20.8b1
         hooks:
