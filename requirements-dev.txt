@@ -1,6 +1,6 @@
 # packages necessary to run tests and push PRs
 
 pytest>=5
-black
+black==20.8b1
 flake8
 isort
