@@ -1,11 +1,11 @@
 from merlin_models.types import ColumnGroup, Tag
 
-from ..tabular import TabularModule
+from ..tabular import MergeTabular
 from .continuous import ContinuousFeatures
 from .embedding import EmbeddingFeatures
 
 
-class TabularFeatures(TabularModule):
+class TabularFeatures(MergeTabular):
     def __init__(
         self,
         continuous_module=None,
@@ -13,26 +13,16 @@ class TabularFeatures(TabularModule):
         text_embedding_module=None,
         aggregation=None,
     ):
-        super(TabularFeatures, self).__init__()
-        self.categorical_module = categorical_module
-        self.continuous_module = continuous_module
-        self.text_embedding_module = text_embedding_module
-
-        self.to_apply = []
+        to_merge = []
         if continuous_module:
-            self.to_apply.append(continuous_module)
+            to_merge.append(continuous_module)
         if categorical_module:
-            self.to_apply.append(categorical_module)
+            to_merge.append(categorical_module)
         if text_embedding_module:
-            self.to_apply.append(text_embedding_module)
+            to_merge.append(text_embedding_module)
 
-        assert self.to_apply is not [], "Please provide at least one input layer"
-        self.set_aggregation(aggregation)
-
-    def forward(self, inputs, **kwargs):
-        return self.to_apply[0](
-            inputs, merge_with=self.to_apply[1:] if len(self.to_apply) > 1 else None
-        )
+        assert to_merge is not [], "Please provide at least one input layer"
+        super(TabularFeatures, self).__init__(*to_merge, aggregation=aggregation)
 
     @classmethod
     def from_column_group(

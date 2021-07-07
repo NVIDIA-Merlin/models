@@ -1,13 +1,11 @@
-from typing import List
-
 from merlin_models.tf.features.continuous import ContinuousFeatures
 from merlin_models.tf.features.embedding import EmbeddingFeatures
 from merlin_models.tf.features.text import TextEmbeddingFeaturesWithTransformers
-from merlin_models.tf.tabular import TabularLayer
+from merlin_models.tf.tabular import MergeTabular
 from merlin_models.types import ColumnGroup, Tag
 
 
-class TabularFeatures(TabularLayer):
+class TabularFeatures(MergeTabular):
     def __init__(
         self,
         continuous_layer=None,
@@ -16,28 +14,16 @@ class TabularFeatures(TabularLayer):
         aggregation=None,
         **kwargs
     ):
-        self.categorical_layer = categorical_layer
-        self.continuous_layer = continuous_layer
-        self.text_embedding_layer = text_embedding_layer
-
-        self.to_apply = []
+        to_merge = []
         if continuous_layer:
-            self.to_apply.append(continuous_layer)
+            to_merge.append(continuous_layer)
         if categorical_layer:
-            self.to_apply.append(categorical_layer)
+            to_merge.append(categorical_layer)
         if text_embedding_layer:
-            self.to_apply.append(text_embedding_layer)
+            to_merge.append(text_embedding_layer)
 
-        assert self.to_apply is not [], "Please provide at least one input layer"
-        super(TabularFeatures, self).__init__(aggregation=aggregation, **kwargs)
-
-    def call(self, inputs, **kwargs):
-        return self.to_apply[0](
-            inputs, merge_with=self.to_apply[1:] if len(self.to_apply) > 1 else None
-        )
-
-    def repr_ignore(self) -> List[str]:
-        return ["to_apply"]
+        assert to_merge is not [], "Please provide at least one input layer"
+        super(TabularFeatures, self).__init__(*to_merge, aggregation=aggregation, **kwargs)
 
     @classmethod
     def from_column_group(
