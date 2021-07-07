@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from merlin_models.tf.heads import Head
 from merlin_models.tf.blocks.base import BlockType
+from merlin_models.tf.heads import Head
 
 
 class ModelWithLoss(tf.keras.Model):
@@ -38,8 +38,7 @@ class ModelWithLoss(tf.keras.Model):
           Loss tensor.
         """
 
-        raise NotImplementedError(
-            "Implementers must implement the `compute_loss` method.")
+        raise NotImplementedError("Implementers must implement the `compute_loss` method.")
 
     def train_step(self, inputs):
         """Custom train step using the `compute_loss` method."""
