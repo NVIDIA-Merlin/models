@@ -16,7 +16,6 @@
 from .blocks.base import SequentialBlock, right_shift_block
 from .blocks.mlp import MLPBlock
 from .blocks.with_head import BlockWithHead
-from .data import DataLoader
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.tabular import TabularFeatures
@@ -35,7 +34,6 @@ __all__ = [
     "right_shift_block",
     "MLPBlock",
     "BlockWithHead",
-    "DataLoader",
     "ContinuousFeatures",
     "EmbeddingFeatures",
     "FeatureConfig",
@@ -50,3 +48,10 @@ __all__ = [
     "StackFeatures",
     "TabularModule",
 ]
+
+try:
+    from .data import DataLoader, DataLoaderValidator  # noqa: F401
+
+    __all__.append("DataLoader")
+except ImportError:
+    pass

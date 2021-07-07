@@ -24,7 +24,6 @@ from .blocks.base import Block, SequentialBlock, right_shift_layer
 from .blocks.dlrm import DLRMBlock
 from .blocks.mlp import MLPBlock
 from .blocks.with_head import BlockWithHead
-from .data import DataLoader, DataLoaderValidator
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.tabular import TabularFeatures
@@ -51,7 +50,6 @@ Loss.__repr__ = _repr.layer_repr_no_children
 Metric.__repr__ = _repr.layer_repr_no_children
 OptimizerV2.__repr__ = _repr.layer_repr_no_children
 
-
 __all__ = [
     "Block",
     "SequentialBlock",
@@ -59,8 +57,6 @@ __all__ = [
     "DLRMBlock",
     "MLPBlock",
     "BlockWithHead",
-    "DataLoader",
-    "DataLoaderValidator",
     "ContinuousFeatures",
     "EmbeddingFeatures",
     "FeatureConfig",
@@ -77,3 +73,10 @@ __all__ = [
     "StackFeatures",
     "TabularLayer",
 ]
+
+try:
+    from .data import DataLoader, DataLoaderValidator  # noqa: F401
+
+    __all__.extend(["DataLoader", "DataLoaderValidator"])
+except ImportError:
+    pass
