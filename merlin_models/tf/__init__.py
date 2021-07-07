@@ -13,24 +13,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from .tabular import FilterFeatures, StackFeatures, ConcatFeatures, AsTabular, TabularLayer, AsSparseLayer, AsDenseLayer
-from .blocks.base import right_shift_layer, SequentialBlock
-from .features.continuous import ContinuousFeatures
-from .features.embedding import EmbeddingFeatures, TableConfig, FeatureConfig
-from .features.text import TextEmbeddingFeaturesWithTransformers
-from .features.tabular import TabularFeatures
-from .heads import Head
-from .data import DataLoader, DataLoaderValidator
-from .blocks.mlp import MLPBlock
-from .blocks.dlrm import DLRMBlock
-from .blocks.with_head import BlockWithHead
-from . import repr as _repr
-
-from tensorflow.keras.layers import Layer, Dense
-from tensorflow.python.keras.metrics import Metric
+from tensorflow.keras.layers import Dense, Layer
 from tensorflow.python.keras.losses import Loss
-from tensorflow.python.training.tracking.data_structures import _DictWrapper, ListWrapper
+from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
+from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
+
+from . import repr as _repr
+from .blocks.base import Block, SequentialBlock, right_shift_layer
+from .blocks.dlrm import DLRMBlock
+from .blocks.mlp import MLPBlock
+from .blocks.with_head import BlockWithHead
+from .data import DataLoader, DataLoaderValidator
+from .features.continuous import ContinuousFeatures
+from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
+from .features.tabular import TabularFeatures
+from .features.text import TextEmbeddingFeaturesWithTransformers
+from .heads import Head
+from .tabular import (
+    AsDenseFeatures,
+    AsSparseFeatures,
+    AsTabular,
+    ConcatFeatures,
+    FilterFeatures,
+    MergeTabular,
+    StackFeatures,
+    TabularLayer,
+)
 
 ListWrapper.__repr__ = _repr.list_wrapper_repr
 _DictWrapper.__repr__ = _repr.dict_wrapper_repr
@@ -41,3 +50,30 @@ Layer.__repr__ = _repr.layer_repr
 Loss.__repr__ = _repr.layer_repr_no_children
 Metric.__repr__ = _repr.layer_repr_no_children
 OptimizerV2.__repr__ = _repr.layer_repr_no_children
+
+
+__all__ = [
+    "Block",
+    "SequentialBlock",
+    "right_shift_layer",
+    "DLRMBlock",
+    "MLPBlock",
+    "BlockWithHead",
+    "DataLoader",
+    "DataLoaderValidator",
+    "ContinuousFeatures",
+    "EmbeddingFeatures",
+    "FeatureConfig",
+    "TableConfig",
+    "TabularFeatures",
+    "TextEmbeddingFeaturesWithTransformers",
+    "Head",
+    "AsDenseFeatures",
+    "AsSparseFeatures",
+    "AsTabular",
+    "ConcatFeatures",
+    "FilterFeatures",
+    "MergeTabular",
+    "StackFeatures",
+    "TabularLayer",
+]

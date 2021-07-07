@@ -13,12 +13,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from .tabular import FilterFeatures, StackFeatures, ConcatFeatures, AsTabular, TabularModule
-from .blocks.base import right_shift_block, SequentialBlock
-from .features.continuous import ContinuousFeatures
-from .features.embedding import EmbeddingFeatures, TableConfig, FeatureConfig
-from .features.tabular import TabularFeatures
-from .heads import Head
+from .blocks.base import SequentialBlock, right_shift_block
 from .blocks.mlp import MLPBlock
 from .blocks.with_head import BlockWithHead
 from .data import DataLoader
+from .features.continuous import ContinuousFeatures
+from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
+from .features.tabular import TabularFeatures
+from .heads import Head, Task
+from .tabular import (
+    AsTabular,
+    ConcatFeatures,
+    FilterFeatures,
+    MergeTabular,
+    StackFeatures,
+    TabularModule,
+)
+
+__all__ = [
+    "SequentialBlock",
+    "right_shift_block",
+    "MLPBlock",
+    "BlockWithHead",
+    "DataLoader",
+    "ContinuousFeatures",
+    "EmbeddingFeatures",
+    "FeatureConfig",
+    "TableConfig",
+    "TabularFeatures",
+    "Head",
+    "Task",
+    "AsTabular",
+    "ConcatFeatures",
+    "FilterFeatures",
+    "MergeTabular",
+    "StackFeatures",
+    "TabularModule",
+]

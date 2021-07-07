@@ -1,26 +1,20 @@
 import math
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 import tensorflow as tf
 from nvtabular import ColumnGroup
 from nvtabular.ops import get_embedding_sizes
 from nvtabular.workflow import Workflow
 from tensorflow.python.ops import init_ops_v2
-from tensorflow.python.tpu.tpu_embedding_v2_utils import (
-    FeatureConfig,
-    TableConfig,
-)
+from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
-from merlin_models.tf.tabular import TabularLayer, AsSparseLayer, FilterFeatures
+from merlin_models.tf.tabular import AsSparseFeatures, FilterFeatures, TabularLayer
 
 
 class EmbeddingFeatures(TabularLayer):
-    """Mimics the API of [TPUEmbedding-layer](https://github.com/tensorflow/recommenders/blob/main/tensorflow_recommenders/layers/embedding/tpu_embedding_layer.py#L221)
-    from TF-recommenders, use this for efficient embeddings on CPU or GPU."""
-
     def __init__(self, feature_config: Dict[str, FeatureConfig], **kwargs):
         self.filter_features = FilterFeatures(list(feature_config.keys()))
-        self.convert_to_sparse = AsSparseLayer()
+        self.convert_to_sparse = AsSparseFeatures()
         self.embeddings = feature_config
         super().__init__(**kwargs)
 
@@ -76,7 +70,7 @@ class EmbeddingFeatures(TabularLayer):
         return ["filter_features"]
 
     @classmethod
-    def from_nvt_workflow(cls, workflow: Workflow, combiner="mean") -> "EmbeddingsLayer":
+    def from_nvt_workflow(cls, workflow: Workflow, combiner="mean") -> "EmbeddingFeatures":
         embedding_size = get_embedding_sizes(workflow)
         if isinstance(embedding_size, tuple):
             embedding_size = embedding_size[0]
@@ -95,9 +89,17 @@ class EmbeddingFeatures(TabularLayer):
         return cls(feature_config)
 
     @classmethod
-    def from_column_group(cls, column_group: ColumnGroup, embedding_dims=None, default_embedding_dim=64,
-                          infer_embedding_sizes=True, combiner="mean", tags=None, tags_to_filter=None,
-                          **kwargs) -> Optional["EmbeddingFeatures"]:
+    def from_column_group(
+        cls,
+        column_group: ColumnGroup,
+        embedding_dims=None,
+        default_embedding_dim=64,
+        infer_embedding_sizes=True,
+        combiner="mean",
+        tags=None,
+        tags_to_filter=None,
+        **kwargs
+    ) -> Optional["EmbeddingFeatures"]:
         if tags:
             column_group = column_group.get_tagged(tags, tags_to_filter=tags_to_filter)
 

@@ -1,5 +1,4 @@
 import copy
-import types
 from typing import Union
 
 import tensorflow as tf
@@ -47,7 +46,7 @@ class SequentialBlock(TabularBlock):
     ```
     """
 
-    def __init__(self, layers, filter_features=None, **kwargs):
+    def __init__(self, layers, filter_features=None, block_name=None, **kwargs):
         """Create a composition.
         Args:
           layers: A list or tuple of layers to compose.
@@ -56,11 +55,14 @@ class SequentialBlock(TabularBlock):
         Raises:
           TypeError: If any of the layers are not instances of keras `Layer`.
         """
+        self.block_name = block_name
         for layer in layers:
             if not isinstance(layer, tf.keras.layers.Layer):
                 raise TypeError(
-                    "Expected all layers to be instances of keras Layer, but saw: '{}'"
-                        .format(layer))
+                    "Expected all layers to be instances of keras Layer, but saw: '{}'".format(
+                        layer
+                    )
+                )
 
         super(SequentialBlock, self).__init__(**kwargs)
         self.filter_features = filter_features
@@ -71,75 +73,78 @@ class SequentialBlock(TabularBlock):
 
     def compute_output_shape(self, input_shape):
         output_shape = input_shape
-        for l in self.layers:
-            output_shape = l.compute_output_shape(output_shape)
+        for layer in self.layers:
+            output_shape = layer.compute_output_shape(output_shape)
         return output_shape
 
     def compute_output_signature(self, input_signature):
         output_signature = input_signature
-        for l in self.layers:
-            output_signature = l.compute_output_signature(output_signature)
+        for layer in self.layers:
+            output_signature = layer.compute_output_signature(output_signature)
         return output_signature
 
     def build(self, input_shape=None):
-        for l in self.layers:
-            l.build(input_shape)
-            input_shape = l.compute_output_shape(input_shape)
+        for layer in self.layers:
+            layer.build(input_shape)
+            input_shape = layer.compute_output_shape(input_shape)
         self.built = True
+
+    def _get_name(self):
+        return self.block_name if self.block_name else f"{self.__class__.__name__}"
 
     @property
     def trainable_weights(self):
         if not self.trainable:
             return []
         weights = {}
-        for l in self.layers:
-            for v in l.trainable_weights:
+        for layer in self.layers:
+            for v in layer.trainable_weights:
                 weights[id(v)] = v
         return list(weights.values())
 
     @property
     def non_trainable_weights(self):
         weights = {}
-        for l in self.layers:
-            for v in l.non_trainable_weights:
+        for layer in self.layers:
+            for v in layer.non_trainable_weights:
                 weights[id(v)] = v
         return list(weights.values())
 
     @property
     def trainable(self):
-        return all([l.trainable for l in self.layers])
+        return all([layer.trainable for layer in self.layers])
 
     @trainable.setter
     def trainable(self, value):
-        for l in self.layers:
-            l.trainable = value
+        for layer in self.layers:
+            layer.trainable = value
 
     @property
     def losses(self):
         values = set()
-        for l in self.layers:
-            values.update(l.losses)
+        for layer in self.layers:
+            values.update(layer.losses)
         return list(values)
 
     @property
     def regularizers(self):
         values = set()
-        for l in self.layers:
-            values.update(l.regularizers)
+        for layer in self.layers:
+            values.update(layer.regularizers)
         return list(values)
 
     def call(self, inputs, training=False, **kwargs):
         outputs = inputs
-        for l in self.layers:
-            outputs = l(outputs, training=training)
+        for layer in self.layers:
+            outputs = layer(outputs, training=training)
         return outputs
 
     def get_config(self):
         config = {"filter_features": self.filter_features}
         for i, layer in enumerate(self.layers):
             config[i] = {
-                'class_name': layer.__class__.__name__,
-                'config': copy.deepcopy(layer.get_config())
+                "class_name": layer.__class__.__name__,
+                "config": copy.deepcopy(layer.get_config()),
             }
 
         return config

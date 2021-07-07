@@ -1,7 +1,6 @@
 from typing import Optional
 
 import torch
-
 from nvtabular.column_group import ColumnGroup
 
 
@@ -69,8 +68,18 @@ class TabularMixin:
         else:
             self.aggregation = None
 
-    def __call__(self, inputs, *args, pre=None, post=None, merge_with=None, stack_outputs=False, concat_outputs=False,
-                 filter_columns=None, **kwargs):
+    def __call__(
+        self,
+        inputs,
+        *args,
+        pre=None,
+        post=None,
+        merge_with=None,
+        stack_outputs=False,
+        concat_outputs=False,
+        filter_columns=None,
+        **kwargs
+    ):
         post_op = getattr(self, "aggregation", None)
         if concat_outputs:
             post_op = ConcatFeatures()
@@ -102,11 +111,9 @@ class TabularModule(TabularMixin, torch.nn.Module):
         self.input_size = None
 
     @classmethod
-    def from_column_group(cls,
-                          column_group: ColumnGroup,
-                          tags=None,
-                          tags_to_filter=None,
-                          **kwargs) -> Optional["TabularModule"]:
+    def from_column_group(
+        cls, column_group: ColumnGroup, tags=None, tags_to_filter=None, **kwargs
+    ) -> Optional["TabularModule"]:
         if tags:
             column_group = column_group.get_tagged(tags, tags_to_filter=tags_to_filter)
 
@@ -116,11 +123,9 @@ class TabularModule(TabularMixin, torch.nn.Module):
         return cls.from_features(column_group.columns, **kwargs)
 
     @classmethod
-    def from_schema(cls,
-                    schema,
-                    tags=None,
-                    tags_to_filter=None,
-                    **kwargs) -> Optional["TabularModule"]:
+    def from_schema(
+        cls, schema, tags=None, tags_to_filter=None, **kwargs
+    ) -> Optional["TabularModule"]:
         from nvtabular.column_group import ColumnGroup
 
         col_group = ColumnGroup.from_schema(schema)
@@ -162,4 +167,36 @@ class TabularModule(TabularMixin, torch.nn.Module):
 
     def __rrshift__(self, other):
         from merlin_models.torch import right_shift_block
+
         return right_shift_block(self, other)
+
+
+class MergeTabular(TabularModule):
+    def __init__(self, *to_merge, aggregation=None):
+        self.to_merge = list(to_merge)
+        super().__init__(aggregation)
+
+    def call(self, inputs, **kwargs):
+        assert isinstance(inputs, dict), "Inputs needs to be a dict"
+
+        outputs = {}
+        for layer in self.to_merge:
+            outputs.update(layer(inputs))
+
+        return outputs
+
+    def forward_output_size(self, input_size):
+        output_shapes = {}
+
+        for layer in self.to_merge:
+            output_shapes.update(layer.forward_output_size(input_size))
+
+        return output_shapes
+
+
+def merge_tabular(self, other, **kwargs):
+    return MergeTabular(self, other)
+
+
+TabularModule.__add__ = merge_tabular
+TabularModule.merge = merge_tabular
