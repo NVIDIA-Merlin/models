@@ -10,7 +10,7 @@ from .base import BlockType
 
 
 class BlockWithHead(torch.nn.Module):
-    def __init__(self, block: BlockType, head: Head, optimizer=torch.optim.Adam, model_name=None, **kwargs):
+    def __init__(self, block: BlockType, head: Head, optimizer=torch.optim.Adam, model_name=None):
         super().__init__()
         self.model_name = model_name
         self.block = block
@@ -49,7 +49,7 @@ class BlockWithHead(torch.nn.Module):
 
             def training_step(self, batch, batch_idx):
                 loss = self.parent.compute_loss(*batch)
-                self.log('train_loss', loss)
+                self.log("train_loss", loss)
 
                 return loss
 
@@ -60,14 +60,16 @@ class BlockWithHead(torch.nn.Module):
 
         return BlockWithHeadLightning()
 
-    def fit(self,
-            dataloader,
-            optimizer=torch.optim.Adam,
-            eval_dataloader=None,
-            num_epochs=1,
-            amp=False,
-            train=True,
-            verbose=True):
+    def fit(
+        self,
+        dataloader,
+        optimizer=torch.optim.Adam,
+        eval_dataloader=None,
+        num_epochs=1,
+        amp=False,
+        train=True,
+        verbose=True,
+    ):
         if isinstance(dataloader, torch.utils.data.DataLoader):
             dataset = dataloader.dataset
         else:

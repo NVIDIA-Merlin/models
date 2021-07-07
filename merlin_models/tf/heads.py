@@ -1,8 +1,7 @@
 from collections import defaultdict
-from typing import Optional, Dict, Text, Union, List
+from typing import Dict, List, Optional, Text
 
 import tensorflow as tf
-
 from nvtabular.column_group import ColumnGroup
 
 
@@ -12,15 +11,16 @@ class TaskMixin:
 
 class Task(TaskMixin, tf.keras.layers.Layer):
     def __init__(
-            self,
-            loss: Optional[tf.keras.losses.Loss] = None,
-            pre: Optional[tf.keras.layers.Layer] = None,
-            body: Optional[tf.keras.layers.Layer] = None,
-            metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-            prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-            label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-            loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-            name: Optional[Text] = None) -> None:
+        self,
+        loss: Optional[tf.keras.losses.Loss] = None,
+        pre: Optional[tf.keras.layers.Layer] = None,
+        body: Optional[tf.keras.layers.Layer] = None,
+        metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        name: Optional[Text] = None,
+    ) -> None:
         """Initializes the task.
         Args:
           loss: Loss function. Defaults to BinaryCrossentropy.
@@ -37,8 +37,7 @@ class Task(TaskMixin, tf.keras.layers.Layer):
         self.body = body
         self.pre = pre
 
-        self.loss = (
-            loss if loss is not None else tf.keras.losses.BinaryCrossentropy())
+        self.loss = loss if loss is not None else tf.keras.losses.BinaryCrossentropy()
         self.eval_metrics = metrics or []
         self.prediction_metrics = prediction_metrics or []
         self.label_metrics = label_metrics or []
@@ -53,13 +52,22 @@ class Task(TaskMixin, tf.keras.layers.Layer):
 
         return x
 
-    def compute_loss(self, inputs, targets, training: bool = False, compute_metrics=True,
-                     sample_weight: Optional[tf.Tensor] = None, **kwargs) -> tf.Tensor:
-        predictions = self(inputs, training=training)
+    def compute_loss(
+        self,
+        inputs,
+        targets,
+        training: bool = False,
+        compute_metrics=True,
+        sample_weight: Optional[tf.Tensor] = None,
+        **kwargs
+    ) -> tf.Tensor:
+        predictions = self(inputs, training=training, **kwargs)
         loss = self.loss(y_true=targets, y_pred=predictions, sample_weight=sample_weight)
 
         if compute_metrics:
-            update_ops = self.calculate_metrics(predictions, targets, mode="train", forward=False, loss=loss)
+            update_ops = self.calculate_metrics(
+                predictions, targets, mode="train", forward=False, loss=loss
+            )
 
             update_ops = [x for x in update_ops if x is not None]
 
@@ -71,29 +79,27 @@ class Task(TaskMixin, tf.keras.layers.Layer):
     def repr_add(self):
         return [("loss", self.loss)]
 
-    def calculate_metrics(self, predictions, labels, mode="val", sample_weight=None, forward=True, loss=None):
+    def calculate_metrics(self, predictions, labels, sample_weight=None, forward=True, loss=None):
         if forward:
             predictions = self(predictions)
 
         update_ops = []
 
         for metric in self.eval_metrics:
-            update_ops.append(metric.update_state(
-                y_true=labels, y_pred=predictions, sample_weight=sample_weight))
+            update_ops.append(
+                metric.update_state(y_true=labels, y_pred=predictions, sample_weight=sample_weight)
+            )
 
         for metric in self.prediction_metrics:
-            update_ops.append(
-                metric.update_state(predictions, sample_weight=sample_weight))
+            update_ops.append(metric.update_state(predictions, sample_weight=sample_weight))
 
         for metric in self.label_metrics:
-            update_ops.append(
-                metric.update_state(labels, sample_weight=sample_weight))
+            update_ops.append(metric.update_state(labels, sample_weight=sample_weight))
 
         for metric in self.loss_metrics:
             if not loss:
                 loss = self.loss(y_true=labels, y_pred=predictions, sample_weight=sample_weight)
-            update_ops.append(
-                metric.update_state(loss, sample_weight=sample_weight))
+            update_ops.append(metric.update_state(loss, sample_weight=sample_weight))
 
         return update_ops
 
@@ -104,25 +110,25 @@ class Task(TaskMixin, tf.keras.layers.Layer):
             tf.keras.metrics.Precision(name=name_fn(name, "precision")),
             tf.keras.metrics.Recall(name=name_fn(name, "recall")),
             tf.keras.metrics.BinaryAccuracy(name=name_fn(name, "accuracy")),
-            tf.keras.metrics.AUC(name=name_fn(name, "auc"))
+            tf.keras.metrics.AUC(name=name_fn(name, "auc")),
         ]
 
         return cls(
             loss=tf.keras.losses.BinaryCrossentropy(),
             metrics=metrics,
-            pre=tf.keras.layers.Dense(1, activation="sigmoid", name=name_fn(name, "logit")) if add_logit_layer else None
+            pre=tf.keras.layers.Dense(1, activation="sigmoid", name=name_fn(name, "logit"))
+            if add_logit_layer
+            else None,
         )
 
     @classmethod
     def regression(cls, metrics=None, add_logit_layer=True, name=None):
-        metrics = metrics or [
-            tf.keras.metrics.RootMeanSquaredError(name=name_fn(name, "rmse"))
-        ]
+        metrics = metrics or [tf.keras.metrics.RootMeanSquaredError(name=name_fn(name, "rmse"))]
 
         return cls(
             loss=tf.keras.losses.MeanSquaredError(),
             metrics=metrics,
-            pre=tf.keras.layers.Dense(1, name=name_fn(name, "logit")) if add_logit_layer else None
+            pre=tf.keras.layers.Dense(1, name=name_fn(name, "logit")) if add_logit_layer else None,
         )
 
 
@@ -139,12 +145,18 @@ class Head(tf.keras.layers.Layer):
         to_return = cls()
 
         for binary_target in column_group.binary_targets_columns:
-            to_return = to_return.add_binary_classification_task(binary_target, add_logit_layer=add_logits,
-                                                                 task_weight=task_weights.get(binary_target, 1))
+            to_return = to_return.add_binary_classification_task(
+                binary_target,
+                add_logit_layer=add_logits,
+                task_weight=task_weights.get(binary_target, 1),
+            )
 
         for regression_target in column_group.regression_targets_columns:
-            to_return = to_return.add_regression_task(regression_target, add_logit_layer=add_logits,
-                                                      task_weight=task_weights.get(regression_target, 1))
+            to_return = to_return.add_regression_task(
+                regression_target,
+                add_logit_layer=add_logits,
+                task_weight=task_weights.get(regression_target, 1),
+            )
 
         # TODO: Add multi-class classification here. Figure out how to get number of classes
 
@@ -158,7 +170,9 @@ class Head(tf.keras.layers.Layer):
         return self
 
     def add_binary_classification_task(self, target_name, add_logit_layer=True, task_weight=1):
-        self.tasks[target_name] = Task.binary_classification(add_logit_layer=add_logit_layer, name=target_name)
+        self.tasks[target_name] = Task.binary_classification(
+            add_logit_layer=add_logit_layer, name=target_name
+        )
         if task_weight:
             self._task_weights[target_name] = task_weight
 
@@ -199,4 +213,5 @@ class Head(tf.keras.layers.Layer):
         return tf.reduce_sum(losses)
 
 
-name_fn = lambda name, inp: "/".join([name, inp]) if name else None
+def name_fn(name, inp):
+    return "/".join([name, inp]) if name else None

@@ -6,13 +6,15 @@ from .base import BuildableBlock, SequentialBlock
 
 
 class MLPBlock(BuildableBlock):
-    def __init__(self, 
-                 dimensions,
-                 activation=torch.nn.ReLU, 
-                 use_bias: bool = True,
-                 dropout=None,
-                 normalization=None,
-                 filter_features=None) -> None:
+    def __init__(
+        self,
+        dimensions,
+        activation=torch.nn.ReLU,
+        use_bias: bool = True,
+        dropout=None,
+        normalization=None,
+        filter_features=None,
+    ) -> None:
         super().__init__()
         self.normalization = normalization
         self.dropout = dropout
@@ -30,7 +32,7 @@ class MLPBlock(BuildableBlock):
         ]
 
         return SequentialBlock(*sequential)
-    
+
     def _create_layer(self, input_size, output_size):
         out = [torch.nn.Linear(input_size, output_size, bias=self.use_bias)]
         if self.activation:
@@ -40,7 +42,7 @@ class MLPBlock(BuildableBlock):
                 out.append(torch.nn.BatchNorm1d(output_size))
         if self.dropout:
             out.append(torch.nn.Dropout(self.dropout))
-            
+
         output = torch.nn.Sequential(*out)
 
         def _get_name(self):

@@ -18,10 +18,10 @@ from typing import Dict
 
 import pandas as pd
 import torch
+from nvtabular.loader.tensorflow import _validate_dataset
 from torch.utils.dlpack import from_dlpack
 
 from ..data.backend import BaseDataLoader
-from nvtabular.loader.tensorflow import _validate_dataset
 
 
 class IterDL(torch.utils.data.IterableDataset):
@@ -91,7 +91,7 @@ class DataLoader(torch.utils.data.IterableDataset, BaseDataLoader):
         sparse_max=None,
         sparse_as_dense=False,
         column_group=None,
-        schema=None
+        schema=None,
     ):
         dataset = _validate_dataset(
             paths_or_dataset, batch_size, buffer_size, engine, reader_kwargs
@@ -119,9 +119,21 @@ class DataLoader(torch.utils.data.IterableDataset, BaseDataLoader):
         self.schema = schema
 
     @classmethod
-    def from_directory(cls, directory, batch_size, shuffle=True, buffer_size=0.06, parts_per_chunk=1,
-                       separate_labels=True, named_labels=False, schema_path=None,
-                       continuous_features=None, categorical_features=None, targets=None, **kwargs):
+    def from_directory(
+        cls,
+        directory,
+        batch_size,
+        shuffle=True,
+        buffer_size=0.06,
+        parts_per_chunk=1,
+        separate_labels=True,
+        named_labels=False,
+        schema_path=None,
+        continuous_features=None,
+        categorical_features=None,
+        targets=None,
+        **kwargs
+    ):
         from nvtabular.column_group import ColumnGroup
 
         schema_path = schema_path or os.path.join(directory, "schema.pb")

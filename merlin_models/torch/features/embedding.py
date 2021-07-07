@@ -1,19 +1,21 @@
-from typing import Optional, Text, Dict
+from typing import Dict, Optional, Text
 
 import torch
-
 from nvtabular.column_group import ColumnGroup
-from ..tabular import TabularModule, FilterFeatures
+
+from ..tabular import FilterFeatures, TabularModule
 
 
 class TableConfig(object):
-    def __init__(self,
-                 vocabulary_size: int,
-                 dim: int,
-                 # initializer: Optional[Callable[[Any], None]],
-                 # optimizer: Optional[_Optimizer] = None,
-                 combiner: Text = "mean",
-                 name: Optional[Text] = None):
+    def __init__(
+        self,
+        vocabulary_size: int,
+        dim: int,
+        # initializer: Optional[Callable[[Any], None]],
+        # optimizer: Optional[_Optimizer] = None,
+        combiner: Text = "mean",
+        name: Optional[Text] = None,
+    ):
         if not isinstance(vocabulary_size, int) or vocabulary_size < 1:
             raise ValueError("Invalid vocabulary_size {}.".format(vocabulary_size))
 
@@ -35,24 +37,15 @@ class TableConfig(object):
                 vocabulary_size=self.vocabulary_size,
                 dim=self.dim,
                 combiner=self.combiner,
-                name=self.name, )
+                name=self.name,
+            )
         )
 
 
 class FeatureConfig(object):
-    def __init__(self,
-                 table: TableConfig,
-                 max_sequence_length: int = 0,
-                 name: Optional[Text] = None):
-        if not isinstance(table, TableConfig):
-            raise ValueError("table is type {}, expected "
-                             "`tf.tpu.experimental.embedding.TableConfig`".format(
-                type(table)))
-
-        if not isinstance(max_sequence_length, int) or max_sequence_length < 0:
-            raise ValueError("Invalid max_sequence_length {}.".format(
-                max_sequence_length))
-
+    def __init__(
+        self, table: TableConfig, max_sequence_length: int = 0, name: Optional[Text] = None
+    ):
         self.table = table
         self.max_sequence_length = max_sequence_length
         self.name = name
@@ -60,11 +53,9 @@ class FeatureConfig(object):
     def __repr__(self):
         return (
             "FeatureConfig(table={table!r}, "
-            "max_sequence_length={max_sequence_length!r}, name={name!r})"
-                .format(
-                table=self.table,
-                max_sequence_length=self.max_sequence_length,
-                name=self.name)
+            "max_sequence_length={max_sequence_length!r}, name={name!r})".format(
+                table=self.table, max_sequence_length=self.max_sequence_length, name=self.name
+            )
         )
 
 
@@ -82,14 +73,24 @@ class EmbeddingFeatures(TabularModule):
                 tables[table.name] = table
 
         for name, table in tables.items():
-            embedding_tables[name] = torch.nn.EmbeddingBag(table.vocabulary_size, table.dim, mode=table.combiner)
+            embedding_tables[name] = torch.nn.EmbeddingBag(
+                table.vocabulary_size, table.dim, mode=table.combiner
+            )
 
         self.embedding_tables = torch.nn.ModuleDict(embedding_tables)
 
     @classmethod
-    def from_column_group(cls, column_group: ColumnGroup, embedding_dims=None, default_embedding_dim=64,
-                          infer_embedding_sizes=True, combiner="mean", tags=None, tags_to_filter=None,
-                          **kwargs) -> Optional["EmbeddingsModule"]:
+    def from_column_group(
+        cls,
+        column_group: ColumnGroup,
+        embedding_dims=None,
+        default_embedding_dim=64,
+        infer_embedding_sizes=True,
+        combiner="mean",
+        tags=None,
+        tags_to_filter=None,
+        **kwargs
+    ) -> Optional["EmbeddingFeatures"]:
         if tags:
             column_group = column_group.get_tagged(tags, tags_to_filter=tags_to_filter)
 

@@ -19,11 +19,11 @@ from typing import Dict
 
 import numpy as np
 import tensorflow as tf
-
 from nvtabular.io.dataset import Dataset
-from ..data.backend import BaseDataLoader
 from nvtabular.loader.tf_utils import configure_tensorflow, get_dataset_schema_from_feature_columns
 from nvtabular.ops import _get_embedding_order
+
+from ..data.backend import BaseDataLoader
 
 from_dlpack = configure_tensorflow()
 
@@ -202,28 +202,28 @@ class DataLoader(tf.keras.utils.Sequence, BaseDataLoader):
     _use_nnz = True
 
     def __init__(
-            self,
-            paths_or_dataset,
-            batch_size,
-            label_names,
-            feature_columns=None,
-            cat_names=None,
-            cont_names=None,
-            engine=None,
-            shuffle=True,
-            seed_fn=None,
-            buffer_size=0.1,
-            device=None,
-            parts_per_chunk=1,
-            reader_kwargs=None,
-            global_size=None,
-            global_rank=None,
-            drop_last=False,
-            sparse_names=None,
-            sparse_max=None,
-            sparse_as_dense=False,
-            column_group=None,
-            schema=None
+        self,
+        paths_or_dataset,
+        batch_size,
+        label_names,
+        feature_columns=None,
+        cat_names=None,
+        cont_names=None,
+        engine=None,
+        shuffle=True,
+        seed_fn=None,
+        buffer_size=0.1,
+        device=None,
+        parts_per_chunk=1,
+        reader_kwargs=None,
+        global_size=None,
+        global_rank=None,
+        drop_last=False,
+        sparse_names=None,
+        sparse_max=None,
+        sparse_as_dense=False,
+        column_group=None,
+        schema=None,
     ):
         dataset = _validate_dataset(
             paths_or_dataset, batch_size, buffer_size, engine, reader_kwargs
@@ -259,9 +259,20 @@ class DataLoader(tf.keras.utils.Sequence, BaseDataLoader):
         self.schema = schema
 
     @classmethod
-    def from_directory(cls, directory, batch_size, shuffle=True, buffer_size=0.06, parts_per_chunk=1,
-                       separate_labels=True, named_labels=False, schema_path=None,
-                       continuous_features=None, categorical_features=None, targets=None):
+    def from_directory(
+        cls,
+        directory,
+        batch_size,
+        shuffle=True,
+        buffer_size=0.06,
+        parts_per_chunk=1,
+        separate_labels=True,
+        named_labels=False,
+        schema_path=None,
+        continuous_features=None,
+        categorical_features=None,
+        targets=None,
+    ):
         from nvtabular.column_group import ColumnGroup
 
         schema_path = schema_path or os.path.join(directory, "schema.pb")
@@ -285,7 +296,7 @@ class DataLoader(tf.keras.utils.Sequence, BaseDataLoader):
             buffer_size=buffer_size,  # how many batches to load at once
             parts_per_chunk=parts_per_chunk,
             column_group=col_group,
-            schema=col_group._schema
+            schema=col_group._schema,
         )
 
         if named_labels and separate_labels:
@@ -329,7 +340,9 @@ class DataLoader(tf.keras.utils.Sequence, BaseDataLoader):
             if feature.HasField("value_count"):
                 sizes[name] = tf.TensorShape([self.batch_size, feature.value_count.max])
             elif feature.HasField("shape"):
-                sizes[name] = tf.TensorShape([self.batch_size] + [d.size for d in feature.shape.dim])
+                sizes[name] = tf.TensorShape(
+                    [self.batch_size] + [d.size for d in feature.shape.dim]
+                )
             else:
                 sizes[name] = tf.TensorShape([self.batch_size, 1])
 
@@ -392,7 +405,7 @@ class DataLoader(tf.keras.utils.Sequence, BaseDataLoader):
             else:
                 inputs[col] = (
                     tf.keras.Input(name=f"{col}__values", dtype=tf.int64, shape=(1,)),
-                    tf.keras.Input(name=f"{col}__nnzs", dtype=tf.int64, shape=(1,))
+                    tf.keras.Input(name=f"{col}__nnzs", dtype=tf.int64, shape=(1,)),
                 )
 
         return inputs

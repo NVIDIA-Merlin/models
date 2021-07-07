@@ -3,8 +3,8 @@ from typing import Union
 
 import torch
 
-from ..tabular import TabularMixin, TabularModule, AsTabular, FilterFeatures
 from ..heads import Head
+from ..tabular import AsTabular, FilterFeatures, TabularMixin, TabularModule
 
 
 class BlockMixin:
@@ -76,12 +76,11 @@ def right_shift_block(self, other):
     right_side = list(self) if isinstance(self, SequentialBlock) else [self]
     sequential = left_side + right_side
 
-    check_gpu = lambda x: next(x.parameters()).is_cuda
     need_moving_to_gpu = False
     if isinstance(self, torch.nn.Module):
-        need_moving_to_gpu = need_moving_to_gpu or check_gpu(self)
+        need_moving_to_gpu = need_moving_to_gpu or _check_gpu(self)
     if isinstance(other, torch.nn.Module):
-        need_moving_to_gpu = need_moving_to_gpu or check_gpu(other)
+        need_moving_to_gpu = need_moving_to_gpu or _check_gpu(other)
 
     out = SequentialBlock(*sequential)
 
@@ -89,3 +88,7 @@ def right_shift_block(self, other):
         out.to("cuda")
 
     return out
+
+
+def _check_gpu(module):
+    return next(module.parameters()).is_cuda

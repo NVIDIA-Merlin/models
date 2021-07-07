@@ -1,10 +1,19 @@
 from typing import List
 
-from merlin_models.tf.tabular import TabularLayer, FilterFeatures
+from merlin_models.tf.tabular import FilterFeatures, TabularLayer
 
 
 class ContinuousFeatures(TabularLayer):
-    def __init__(self, features, aggregation=None, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
+    def __init__(
+        self,
+        features,
+        aggregation=None,
+        trainable=True,
+        name=None,
+        dtype=None,
+        dynamic=False,
+        **kwargs
+    ):
         super().__init__(aggregation, trainable, name, dtype, dynamic, **kwargs)
         self.filter_features = FilterFeatures(features)
 
