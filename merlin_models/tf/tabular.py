@@ -215,8 +215,8 @@ class MergeTabular(TabularLayer):
         dynamic=False,
         **kwargs
     ):
-        super().__init__(aggregation, trainable, name, dtype, dynamic, **kwargs)
         self.to_merge = list(to_merge)
+        super().__init__(aggregation, trainable, name, dtype, dynamic, **kwargs)
 
     def call(self, inputs, **kwargs):
         assert isinstance(inputs, dict), "Inputs needs to be a dict"
@@ -239,8 +239,8 @@ class MergeTabular(TabularLayer):
         return {"merge_layers": tf.keras.utils.serialize_keras_object(self.merge_layers)}
 
 
-def merge_tabular(self, other, **kwargs):
-    return MergeTabular(self, other)
+def merge_tabular(self, other, aggregation=None, **kwargs):
+    return MergeTabular(self, other, aggregation=aggregation, **kwargs)
 
 
 TabularLayer.__add__ = merge_tabular

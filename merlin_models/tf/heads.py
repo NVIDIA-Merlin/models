@@ -66,9 +66,7 @@ class Task(TaskMixin, tf.keras.layers.Layer):
         loss = self.loss(y_true=targets, y_pred=predictions, sample_weight=sample_weight)
 
         if compute_metrics:
-            update_ops = self.calculate_metrics(
-                predictions, targets, mode="train", forward=False, loss=loss
-            )
+            update_ops = self.calculate_metrics(predictions, targets, forward=False, loss=loss)
 
             update_ops = [x for x in update_ops if x is not None]
 
