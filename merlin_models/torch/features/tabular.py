@@ -1,5 +1,4 @@
-from nvtabular.column_group import ColumnGroup
-from nvtabular.tag import Tag
+from merlin_models.types import ColumnGroup, Tag
 
 from ..tabular import TabularModule
 from .continuous import ContinuousFeatures

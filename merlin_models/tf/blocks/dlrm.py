@@ -1,12 +1,12 @@
 from typing import List, Optional, Union
 
 import tensorflow as tf
-from nvtabular.column_group import ColumnGroup
 
 from merlin_models.tf import tabular
 from merlin_models.tf.blocks.base import Block, BlockType
 from merlin_models.tf.features.continuous import ContinuousFeatures
 from merlin_models.tf.features.embedding import EmbeddingFeatures
+from merlin_models.types import ColumnGroup
 
 
 class ExpandDimsAndToTabular(tf.keras.layers.Lambda):
@@ -50,7 +50,7 @@ class DLRMBlock(Block):
 
         self.stack_features = embedding_layer.merge(continuous_embedding, aggregation="stack")
 
-        from nvtabular.framework_utils.tensorflow.layers import DotProductInteraction
+        from merlin_models.tf.layers import DotProductInteraction
 
         self.interaction_layer = interaction_layer or DotProductInteraction()
 

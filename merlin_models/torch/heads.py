@@ -3,7 +3,8 @@ from typing import Dict, Optional, Text, Union
 
 import torch
 import torchmetrics as tm
-from nvtabular.column_group import ColumnGroup
+
+from merlin_models.types import ColumnGroup
 
 
 class Task(torch.nn.Module):

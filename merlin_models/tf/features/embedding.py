@@ -2,13 +2,11 @@ import math
 from typing import Dict, List, Optional
 
 import tensorflow as tf
-from nvtabular import ColumnGroup
-from nvtabular.ops import get_embedding_sizes
-from nvtabular.workflow import Workflow
 from tensorflow.python.ops import init_ops_v2
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 from merlin_models.tf.tabular import AsSparseFeatures, FilterFeatures, TabularLayer
+from merlin_models.types import ColumnGroup
 
 
 class EmbeddingFeatures(TabularLayer):
@@ -68,25 +66,6 @@ class EmbeddingFeatures(TabularLayer):
 
     def repr_ignore(self) -> List[str]:
         return ["filter_features"]
-
-    @classmethod
-    def from_nvt_workflow(cls, workflow: Workflow, combiner="mean") -> "EmbeddingFeatures":
-        embedding_size = get_embedding_sizes(workflow)
-        if isinstance(embedding_size, tuple):
-            embedding_size = embedding_size[0]
-        feature_config: Dict[str, FeatureConfig] = {}
-        for name, (vocab_size, dim) in embedding_size.items():
-            feature_config[name] = FeatureConfig(
-                TableConfig(
-                    vocabulary_size=vocab_size,
-                    dim=dim,
-                    name=name,
-                    combiner=combiner,
-                    initializer=init_ops_v2.TruncatedNormal(mean=0.0, stddev=1 / math.sqrt(dim)),
-                )
-            )
-
-        return cls(feature_config)
 
     @classmethod
     def from_column_group(

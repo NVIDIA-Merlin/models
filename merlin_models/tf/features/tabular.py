@@ -1,12 +1,10 @@
 from typing import List
 
-from nvtabular.column_group import ColumnGroup
-from nvtabular.tag import Tag
-
 from merlin_models.tf.features.continuous import ContinuousFeatures
 from merlin_models.tf.features.embedding import EmbeddingFeatures
 from merlin_models.tf.features.text import TextEmbeddingFeaturesWithTransformers
 from merlin_models.tf.tabular import TabularLayer
+from merlin_models.types import ColumnGroup, Tag
 
 
 class TabularFeatures(TabularLayer):

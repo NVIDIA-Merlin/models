@@ -1,8 +1,8 @@
 from typing import Dict, Optional, Text
 
 import torch
-from nvtabular.column_group import ColumnGroup
 
+from ...types import ColumnGroup
 from ..tabular import FilterFeatures, TabularModule
 
 

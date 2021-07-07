@@ -2,7 +2,8 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Text
 
 import tensorflow as tf
-from nvtabular.column_group import ColumnGroup
+
+from merlin_models.types import ColumnGroup
 
 
 class TaskMixin:
