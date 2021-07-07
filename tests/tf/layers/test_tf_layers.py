@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 
 tf = pytest.importorskip("tensorflow")
-layers = pytest.importorskip("merlin_models.tensorflow.layers")
+layers = pytest.importorskip("merlin_models.tf.layers")
 
 
 def get_good_feature_columns():

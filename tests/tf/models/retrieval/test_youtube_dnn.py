@@ -19,7 +19,7 @@ import pytest
 from tests.conftest import transform_for_inference
 
 tf = pytest.importorskip("tensorflow")
-retrieval_models = pytest.importorskip("merlin_models.tensorflow.models.retrieval")
+retrieval_models = pytest.importorskip("merlin_models.tf.models.retrieval")
 
 
 def test_youtube_dnn(

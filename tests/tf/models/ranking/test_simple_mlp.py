@@ -19,7 +19,7 @@ import pytest
 from tests.conftest import transform_for_inference
 
 tf = pytest.importorskip("tensorflow")
-ranking_models = pytest.importorskip("merlin_models.tensorflow.models.ranking")
+ranking_models = pytest.importorskip("merlin_models.tf.models.ranking")
 
 
 def test_simple_mlp(

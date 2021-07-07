@@ -19,10 +19,10 @@ import pytest
 from tests.conftest import transform_for_inference
 
 tf = pytest.importorskip("tensorflow")
-ranking_models = pytest.importorskip("merlin_models.tensorflow.models.ranking")
+ranking_models = pytest.importorskip("merlin_models.tf.models.ranking")
 
 
-def test_xdeepfm(
+def test_deepfm(
     tmpdir,
     categorical_columns,
     categorical_features,
@@ -31,20 +31,19 @@ def test_xdeepfm(
     labels,
 ):
     # Model definition
-    model_name = "xdeepfm"
+    model_name = "deepfm"
 
-    model = ranking_models.xDeepFM(
+    model = ranking_models.DeepFM(
         continuous_columns,
         categorical_columns,
         embedding_dims=512,
-        deep_hidden_dims=[512, 256, 128],
-        cin_hidden_dims=[256, 128, 64],
+        hidden_dims=[512, 256, 128],
     )
 
     model.compile("sgd", "binary_crossentropy")
 
     # Input Data
-    training_data = {"deep": {**continuous_features}, "CIN": {**categorical_features}}
+    training_data = {"deep": {**continuous_features}, "fm": {**categorical_features}}
     inference_data = transform_for_inference(training_data)
 
     # Training
