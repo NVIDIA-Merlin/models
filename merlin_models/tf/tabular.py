@@ -215,7 +215,7 @@ class MergeTabular(TabularLayer):
         **kwargs
     ):
         super().__init__(aggregation, trainable, name, dtype, dynamic, **kwargs)
-        self.to_merge = to_merge
+        self.to_merge = list(to_merge)
 
     def call(self, inputs, **kwargs):
         assert isinstance(inputs, dict), "Inputs needs to be a dict"
