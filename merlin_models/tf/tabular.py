@@ -1,7 +1,8 @@
 from typing import List, Optional
 
 import tensorflow as tf
-from nvtabular.column_group import ColumnGroup
+
+from merlin_models.types import ColumnGroup
 
 
 def calculate_batch_size_from_input_shapes(input_shapes):

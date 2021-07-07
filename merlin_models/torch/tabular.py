@@ -1,7 +1,8 @@
 from typing import Optional
 
 import torch
-from nvtabular.column_group import ColumnGroup
+
+from merlin_models.types import ColumnGroup
 
 
 class FilterFeatures(torch.nn.Module):
