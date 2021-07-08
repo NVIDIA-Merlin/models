@@ -10,7 +10,7 @@ class TaskMixin:
     pass
 
 
-class Task(TaskMixin, tf.keras.layers.Layer):
+class PredictionTask(TaskMixin, tf.keras.layers.Layer):
     def __init__(
         self,
         loss: Optional[tf.keras.losses.Loss] = None,
@@ -161,7 +161,7 @@ class Head(tf.keras.layers.Layer):
 
         return to_return
 
-    def add_task(self, target_name, task: Task, task_weight=1):
+    def add_task(self, target_name, task: PredictionTask, task_weight=1):
         self.tasks[target_name] = task
         if task_weight:
             self._task_weights[target_name] = task_weight
@@ -169,7 +169,7 @@ class Head(tf.keras.layers.Layer):
         return self
 
     def add_binary_classification_task(self, target_name, add_logit_layer=True, task_weight=1):
-        self.tasks[target_name] = Task.binary_classification(
+        self.tasks[target_name] = PredictionTask.binary_classification(
             add_logit_layer=add_logit_layer, name=target_name
         )
         if task_weight:
@@ -178,7 +178,9 @@ class Head(tf.keras.layers.Layer):
         return self
 
     def add_regression_task(self, target_name, add_logit_layer=True, task_weight=1):
-        self.tasks[target_name] = Task.regression(add_logit_layer=add_logit_layer, name=target_name)
+        self.tasks[target_name] = PredictionTask.regression(
+            add_logit_layer=add_logit_layer, name=target_name
+        )
         if task_weight:
             self._task_weights[target_name] = task_weight
 
@@ -206,7 +208,8 @@ class Head(tf.keras.layers.Layer):
         losses = []
 
         for name, task in self.tasks.items():
-            loss = task.compute_loss(block_outputs, targets, training=training, **kwargs)
+            task_target = targets[name] if isinstance(targets, dict) else targets
+            loss = task.compute_loss(block_outputs, task_target, training=training, **kwargs)
             losses.append(loss * self._task_weights[name])
 
         return tf.reduce_sum(losses)

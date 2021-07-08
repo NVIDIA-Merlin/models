@@ -5,7 +5,10 @@ from merlin_models.tf.heads import Head
 
 
 class ModelWithLoss(tf.keras.Model):
-    """Base model for TFRS models.
+    """Base model for models.
+
+    TODO: This is directly ported from tensorflow recommenders, should we depend on that?
+
     Many recommender models are relatively complex, and do not neatly fit into
     supervised or unsupervised paradigms. This base class makes it easy to
     define custom training and test losses for such complex models.
@@ -38,7 +41,7 @@ class ModelWithLoss(tf.keras.Model):
           Loss tensor.
         """
 
-        raise NotImplementedError("Implementers must implement the `compute_loss` method.")
+        raise NotImplementedError("Sub-classes must implement the `compute_loss` method.")
 
     def train_step(self, inputs):
         """Custom train step using the `compute_loss` method."""

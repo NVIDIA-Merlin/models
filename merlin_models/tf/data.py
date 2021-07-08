@@ -267,7 +267,7 @@ class DataLoader(tf.keras.utils.Sequence, BaseDataLoader):
         buffer_size=0.06,
         parts_per_chunk=1,
         separate_labels=True,
-        named_labels=False,
+        named_labels=True,
         schema_path=None,
         continuous_features=None,
         categorical_features=None,
@@ -299,7 +299,7 @@ class DataLoader(tf.keras.utils.Sequence, BaseDataLoader):
             schema=col_group._schema,
         )
 
-        if named_labels and separate_labels:
+        if named_labels and separate_labels and len(targets) > 1:
             return tf_dataset.map(lambda X, y: (X, dict(zip(targets, y))))
 
         return tf_dataset

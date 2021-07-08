@@ -24,6 +24,11 @@ class ContinuousFeatures(TabularLayer):
     def call(self, inputs, *args, **kwargs):
         return self.filter_features(inputs)
 
+    def compute_output_shape(self, input_shapes):
+        filtered = self.filter_features.compute_output_shape(input_shapes)
+
+        return super(ContinuousFeatures, self).compute_output_shape(filtered)
+
     def _get_name(self):
         return "ContinuousFeatures"
 
