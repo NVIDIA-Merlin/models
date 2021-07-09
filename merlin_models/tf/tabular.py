@@ -233,7 +233,7 @@ class MergeTabular(TabularLayer):
         for layer in self.to_merge:
             output_shapes.update(layer.compute_output_shape(input_shape))
 
-        return output_shapes
+        return super(MergeTabular, self).compute_output_shape(output_shapes)
 
     def get_config(self):
         return {"merge_layers": tf.keras.utils.serialize_keras_object(self.merge_layers)}

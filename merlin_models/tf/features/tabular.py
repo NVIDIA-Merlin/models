@@ -66,10 +66,3 @@ class TabularFeatures(MergeTabular):
             aggregation=aggregation,
             **kwargs
         )
-
-    def compute_output_shape(self, input_shapes):
-        output_shapes = {}
-        for in_layer in self.to_apply:
-            output_shapes.update(in_layer.compute_output_shape(input_shapes))
-
-        return super().compute_output_shape(output_shapes)
