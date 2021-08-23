@@ -24,19 +24,26 @@ class YouTubeDNN(tf.keras.Model):
     See model architecture diagram in Figure 3
     """
 
-    def __init__(self, continuous_columns, categorical_columns, embedding_dims, hidden_dims=None):
+    def __init__(self, continuous_columns, categorical_columns, embedding_dims, hidden_dims=None, activations=None):
 
         super().__init__()
 
         hidden_dims = hidden_dims or []
+        activations = activations or []
 
         channels = self.channels(continuous_columns, categorical_columns, embedding_dims)
 
         self.input_layer = DenseFeatures(channels["categorical"] + channels["continuous"])
 
         self.hidden_layers = []
-        for dim in hidden_dims:
-            self.hidden_layers.append(tf.keras.layers.Dense(dim, activation="relu"))
+        for dim, activation in zip(hidden_dims, activations):
+            self.hidden_layers.append(
+                tf.keras.layers.Dense(
+                    dim,
+                    activation=activation,
+                    activity_regularizer="l2",
+                )
+            )
 
     def channels(self, continuous_columns, categorical_columns, embedding_dims):
         if not isinstance(embedding_dims, dict):
@@ -50,7 +57,7 @@ class YouTubeDNN(tf.keras.Model):
         return {"categorical": embedding_columns, "continuous": continuous_columns}
 
     def call(self, inputs, training=False):
-        x = self.input_layer({**inputs["categorical"], **inputs["continuous"]})
+        x = self.input_layer(inputs)
         for layer in self.hidden_layers:
             x = layer(x)
         return x
