@@ -223,6 +223,9 @@ class DenseFeatures(tf.keras.layers.Layer):
                 embeddings = _categorical_embedding_lookup(table, inputs, feature_name, combiner)
                 features.append(embeddings)
 
+        # TODO: Figure out how to avoid this
+        features = [tf.cast(feature, dtype=tf.float32) for feature in features]
+
         if self.aggregation == "stack":
             return tf.stack(features, axis=1)
         return tf.concat(features, axis=1)
