@@ -31,6 +31,9 @@ class YouTubeDNN(tf.keras.Model):
         hidden_dims = hidden_dims or []
         activations = activations or []
 
+        if len(hidden_dims) != len(activations):
+            raise ValueError('"hidden_dims" and "activations" must be the same length.')
+
         channels = self.channels(continuous_columns, categorical_columns, embedding_dims)
 
         self.input_layer = DenseFeatures(channels["categorical"] + channels["continuous"])
