@@ -17,7 +17,6 @@
 from typing import List, Optional, Tuple, Type, Union, cast
 
 import tensorflow as tf
-
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.schema.tag import TagsType
 from merlin_standard_lib.utils.doc_utils import docstring_parameter

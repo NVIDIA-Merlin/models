@@ -16,7 +16,6 @@
 
 import pytest
 
-
 pytorch = pytest.importorskip("torch")
 tr = pytest.importorskip("merlin_models.torch")
 

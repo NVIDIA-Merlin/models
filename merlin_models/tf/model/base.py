@@ -19,12 +19,11 @@ from types import SimpleNamespace
 from typing import Dict, List, Optional, Text, Type, Union
 
 import tensorflow as tf
+from merlin_standard_lib import Schema, Tag
 from tensorflow.keras.layers import Layer
 from tensorflow.python.framework import ops
 from tensorflow.python.keras.utils import generic_utils
 from transformers import TFSequenceSummary
-
-from merlin_standard_lib import Schema, Tag
 
 from ..features.base import InputBlock
 from ..utils.tf_utils import (

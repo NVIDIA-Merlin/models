@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from merlin_standard_lib import Schema, Tag
 from tensorflow.keras.layers import Dense, Layer
 from tensorflow.python.keras.losses import Loss
 from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
-
-from merlin_standard_lib import Schema, Tag
 
 from .. import data
 from .block.base import Block, SequentialBlock, right_shift_layer

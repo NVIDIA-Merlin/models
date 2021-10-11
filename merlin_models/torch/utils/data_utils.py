@@ -18,10 +18,9 @@ import logging
 from abc import ABC
 
 import numpy as np
+from merlin_standard_lib import Registry, Schema, Tag
 from torch.utils.data import DataLoader as PyTorchDataLoader
 from torch.utils.data import Dataset, IterableDataset
-
-from merlin_standard_lib import Registry, Schema, Tag
 
 from ...utils import dependencies
 
@@ -171,10 +170,9 @@ if dependencies.is_pyarrow_available():
 
 
 if dependencies.is_gpu_dataloader_available():
+    from merlin_standard_lib.utils.misc_utils import validate_dataset
     from nvtabular.loader.torch import DLDataLoader
     from nvtabular.loader.torch import TorchAsyncItr as DataLoader
-
-    from merlin_standard_lib.utils.misc_utils import validate_dataset
 
     class DLDataLoaderWrapper(DLDataLoader):
         """

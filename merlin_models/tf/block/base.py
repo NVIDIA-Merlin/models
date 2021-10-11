@@ -20,8 +20,8 @@ from typing import Union
 
 import six
 import tensorflow as tf
-
 from merlin_standard_lib.utils.misc_utils import filter_kwargs
+
 from merlin_models.config.schema import SchemaMixin
 
 

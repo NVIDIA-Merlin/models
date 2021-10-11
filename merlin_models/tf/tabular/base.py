@@ -19,9 +19,9 @@ from functools import reduce
 from typing import Dict, List, Optional, Union
 
 import tensorflow as tf
-
 from merlin_standard_lib import Registry, RegistryMixin, Schema
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
+
 from merlin_models.config.schema import SchemaMixin
 
 from ..block.base import Block, SequentialBlock

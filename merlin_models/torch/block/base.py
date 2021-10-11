@@ -21,9 +21,8 @@ from collections import OrderedDict
 from typing import List, Optional, Union
 
 import torch
-from torch.nn import Module
-
 from merlin_standard_lib.utils.misc_utils import filter_kwargs
+from torch.nn import Module
 
 from ..utils import torch_utils
 

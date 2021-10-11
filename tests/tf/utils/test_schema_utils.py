@@ -16,7 +16,6 @@
 
 
 import pytest
-
 from merlin_standard_lib import ColumnSchema, Schema, Tag
 from merlin_standard_lib.schema.schema import ValueCount
 

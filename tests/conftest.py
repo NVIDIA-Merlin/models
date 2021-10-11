@@ -15,8 +15,8 @@
 #
 
 import pytest
-
 from merlin_standard_lib import Schema
+
 from merlin_models.data import tabular_testing_data
 
 

@@ -18,13 +18,12 @@ from copy import deepcopy
 from typing import Any, Callable, Dict, Optional
 
 import tensorflow as tf
-from tensorflow.python.keras import backend
-from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
-
 from merlin_standard_lib import Schema
 from merlin_standard_lib.schema.tag import TagsType
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 from merlin_standard_lib.utils.embedding_utils import get_embedding_sizes_from_schema
+from tensorflow.python.keras import backend
+from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 from ..tabular.base import (
     TABULAR_MODULE_PARAMS_DOCSTRING,

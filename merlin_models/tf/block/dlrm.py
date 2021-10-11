@@ -17,7 +17,6 @@
 from typing import List, Optional, Union, cast
 
 import tensorflow as tf
-
 from merlin_standard_lib import Schema, Tag
 
 from ..features.continuous import ContinuousFeatures

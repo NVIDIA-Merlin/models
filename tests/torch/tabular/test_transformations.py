@@ -15,7 +15,6 @@
 #
 
 import pytest
-
 from merlin_standard_lib import Tag, schema
 
 pytorch = pytest.importorskip("torch")

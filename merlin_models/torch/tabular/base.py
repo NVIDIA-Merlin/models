@@ -19,7 +19,6 @@ from functools import reduce
 from typing import Dict, List, Optional, Union
 
 import torch
-
 from merlin_standard_lib import Registry, Schema
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 
