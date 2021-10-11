@@ -1,10 +1,9 @@
 import logging
-from typing import Dict, Optional, Sequence, Type, Union
+from typing import Optional, Sequence, Type, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from ..block.mlp import MLPBlock
 from .base import PredictionTask
 
 

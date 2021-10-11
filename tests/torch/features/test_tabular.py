@@ -15,7 +15,6 @@
 #
 
 import pytest
-
 from merlin_standard_lib import Tag
 
 tr = pytest.importorskip("merlin_models.torch")
@@ -28,10 +27,10 @@ def test_tabular_features(tabular_schema, torch_tabular_data):
 
     outputs = tab_module(torch_tabular_data)
 
-    assert set(outputs.keys()) == set(
-        schema.select_by_tag(Tag.CONTINUOUS).column_names
-        + schema.select_by_tag(Tag.CATEGORICAL).column_names
-    )
+    con = schema.select_by_tag(Tag.CONTINUOUS).column_names
+    cat = schema.select_by_tag(Tag.CATEGORICAL).column_names
+
+    assert set(outputs.keys()) == set(con + cat)
 
 
 def test_tabular_features_embeddings_options(tabular_schema, torch_tabular_data):
@@ -73,11 +72,10 @@ def test_tabular_features_soft_encoding(tabular_schema, torch_tabular_data):
 
     outputs = tab_module(torch_tabular_data)
 
-    assert (
-        list(outputs.keys())
-        == schema.select_by_tag(Tag.CONTINUOUS).column_names
-        + schema.select_by_tag(Tag.CATEGORICAL).column_names
-    )
+    con = schema.select_by_tag(Tag.CONTINUOUS).column_names
+    cat = schema.select_by_tag(Tag.CATEGORICAL).column_names
+
+    assert list(outputs.keys()) == cat + con
 
     assert all(
         list(outputs[col_name].shape) == list(torch_tabular_data[col_name].shape) + [emb_dim]

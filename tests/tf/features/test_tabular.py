@@ -15,7 +15,6 @@
 #
 
 import pytest
-
 from merlin_standard_lib import Tag
 
 tr = pytest.importorskip("merlin_models.tf")
@@ -27,10 +26,10 @@ def test_tabular_features(tabular_schema, tf_tabular_data):
 
     outputs = tab_module(tf_tabular_data)
 
-    assert set(outputs.keys()) == set(
-        tabular_schema.select_by_tag(Tag.CONTINUOUS).column_names
-        + tabular_schema.select_by_tag(Tag.CATEGORICAL).column_names
-    )
+    con = tabular_schema.select_by_tag(Tag.CONTINUOUS).column_names
+    cat = tabular_schema.select_by_tag(Tag.CATEGORICAL).column_names
+
+    assert set(outputs.keys()) == set(con + cat)
 
 
 def test_serialization_tabular_features(tabular_schema):

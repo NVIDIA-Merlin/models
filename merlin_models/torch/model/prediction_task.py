@@ -16,13 +16,12 @@
 
 
 import logging
-from typing import Dict, Iterable, Optional
+from typing import Optional
 
 import torch
 import torchmetrics as tm
 
-from ..block.base import Block, BuildableBlock, SequentialBlock
-from ..block.mlp import MLPBlock
+from ..block.base import BuildableBlock, SequentialBlock
 from ..utils.torch_utils import LambdaModule
 from .base import BlockType, PredictionTask
 
