@@ -18,9 +18,8 @@ import pytest
 
 pytorch = pytest.importorskip("torch")
 np = pytest.importorskip("numpy")
-# tr = pytest.importorskip("merlin_models.torch")
+tr = pytest.importorskip("merlin_models.torch")
 
-from merlin_models import torch as tr
 
 schema_utils = pytest.importorskip("merlin_models.torch.utils.schema_utils")
 

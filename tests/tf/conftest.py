@@ -20,9 +20,8 @@ import numpy as np
 import pytest
 
 tf = pytest.importorskip("tensorflow")
-# tr = pytest.importorskip("merlin_models.tf")
+tr = pytest.importorskip("merlin_models.tf")
 
-from merlin_models import tf as tr
 
 schema_utils = pytest.importorskip("merlin_models.tf.utils.schema_utils")
 
