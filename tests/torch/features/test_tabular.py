@@ -75,7 +75,7 @@ def test_tabular_features_soft_encoding(tabular_schema, torch_tabular_data):
     con = schema.select_by_tag(Tag.CONTINUOUS).column_names
     cat = schema.select_by_tag(Tag.CATEGORICAL).column_names
 
-    assert list(outputs.keys()) == cat + con
+    assert set(outputs.keys()) == set(cat + con)
 
     assert all(
         list(outputs[col_name].shape) == list(torch_tabular_data[col_name].shape) + [emb_dim]
