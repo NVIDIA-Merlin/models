@@ -4,8 +4,14 @@ from typing import Optional, Union
 import tensorflow as tf
 from merlin_standard_lib import Schema
 
-from merlin_models.tf import MergeTabular, SequentialBlock, TabularBlock
-from merlin_models.tf.tabular.base import AsTabular, TabularAggregation, TabularTransformationType
+from merlin_models.tf.tabular.base import (
+    AsTabular,
+    MergeTabular,
+    SequentialBlock,
+    TabularAggregation,
+    TabularBlock,
+    TabularTransformationType,
+)
 from merlin_models.tf.typing import TabularData
 
 
