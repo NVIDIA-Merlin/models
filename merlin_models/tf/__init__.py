@@ -20,11 +20,12 @@ from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
+from merlin_models.tf.block.retrieval import Retrieval
+
 from .. import data
 from .block.base import Block, SequentialBlock, right_shift_layer
 from .block.dlrm import DLRMBlock
 from .block.mlp import MLPBlock
-from .block.retrieval import Retrieval
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.tabular import TabularFeatures
