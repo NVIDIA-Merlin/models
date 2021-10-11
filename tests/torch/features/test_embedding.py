@@ -18,7 +18,6 @@ from functools import partial
 
 import numpy as np
 import pytest
-
 from merlin_standard_lib import Tag
 
 pytorch = pytest.importorskip("torch")
@@ -143,12 +142,8 @@ def test_embedding_features_yoochoose_custom_initializers(yoochoose_schema, torc
     assert embeddings["item_id"].detach().numpy().mean() == pytest.approx(ITEM_MEAN, abs=0.1)
     assert embeddings["item_id"].detach().numpy().std() == pytest.approx(ITEM_STD, abs=0.1)
 
-    assert embeddings["categories"].detach().numpy().mean() == pytest.approx(
-        CATEGORY_MEAN, abs=0.1
-    )
-    assert embeddings["categories"].detach().numpy().std() == pytest.approx(
-        CATEGORY_STD, abs=0.1
-    )
+    assert embeddings["categories"].detach().numpy().mean() == pytest.approx(CATEGORY_MEAN, abs=0.1)
+    assert embeddings["categories"].detach().numpy().std() == pytest.approx(CATEGORY_STD, abs=0.1)
 
 
 def test_soft_embedding_invalid_num_embeddings():
