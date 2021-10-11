@@ -103,13 +103,12 @@ class StochasticSwapNoise(TabularTransformation):
             if len(input_tensor.shape) == len(mask.shape) - 1:
                 mask = mask[:, 0]
 
-        replacement_mask_matrix = (
-            tf.cast(
-                backend.random_binomial(array_ops.shape(input_tensor), p=self.replacement_prob),
-                tf.int32,
-            )
-            * tf.cast(mask, tf.int32)
+        casted = tf.cast(
+            backend.random_binomial(array_ops.shape(input_tensor), p=self.replacement_prob),
+            tf.int32,
         )
+
+        replacement_mask_matrix = casted * tf.cast(mask, tf.int32)
 
         n_values_to_replace = tf.reduce_sum(replacement_mask_matrix)
 
