@@ -24,6 +24,7 @@ from .. import data
 from .block.base import Block, SequentialBlock, right_shift_layer
 from .block.dlrm import DLRMBlock
 from .block.mlp import MLPBlock
+from .block.retrieval import Retrieval
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.tabular import TabularFeatures
@@ -64,6 +65,7 @@ __all__ = [
     "TableConfig",
     "TabularFeatures",
     "Head",
+    "Retrieval",
     "AsDenseFeatures",
     "AsSparseFeatures",
     "ElementwiseSum",

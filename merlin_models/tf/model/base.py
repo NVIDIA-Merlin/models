@@ -358,12 +358,15 @@ class Head(tf.keras.layers.Layer):
         return outputs
 
     def build(self, input_shape):
-        from .prediction_task import NextItemPredictionTask
+        try:
+            from .prediction_task import NextItemPredictionTask
 
-        # set modules for item prediction task
-        for task in self.prediction_task_dict.values():
-            if isinstance(task, NextItemPredictionTask):
-                task.build(input_shape, self.body, inputs=self.inputs)
+            # set modules for item prediction task
+            for task in self.prediction_task_dict.values():
+                if isinstance(task, NextItemPredictionTask):
+                    task.build(input_shape, self.body, inputs=self.inputs)
+        except ImportError:
+            pass
         return super().build(input_shape)
 
     def call(self, body_outputs: tf.Tensor, call_body=False, always_output_dict=False, **kwargs):
@@ -403,6 +406,9 @@ class Head(tf.keras.layers.Layer):
         }
 
         return _output_metrics(metrics)
+
+    def to_model(self, **kwargs) -> "Model":
+        return Model(self, **kwargs)
 
     def reset_metrics(self):
         for task in self.prediction_task_dict.values():
