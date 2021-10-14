@@ -77,9 +77,7 @@ def build_dnn(schema: Schema) -> ml.Model:
     # TODO: Change msl to be able to make this a single function call.
     schema = schema.remove_by_tag("bias")
 
-    model = ml.Model = ml.MLPBlock.from_schema(schema, [512, 256]).to_model(schema)
-
-    return model
+    return ml.MLPBlock.from_schema(schema, [512, 256]).to_model(schema)
 
 
 def build_advanced_dnn(schema: Schema) -> ml.Model:

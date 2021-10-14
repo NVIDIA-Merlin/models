@@ -25,7 +25,7 @@ from tensorflow.python.framework import ops
 from tensorflow.python.keras.utils import generic_utils
 from transformers import TFSequenceSummary
 
-from ..features.base import InputBlock
+# from ..features.base import InputBlock
 from ..utils.tf_utils import (
     LossMixin,
     MetricsMixin,
@@ -237,7 +237,7 @@ class Head(tf.keras.layers.Layer):
         task_weights: Optional[List[float]] = None,
         bias_block: Optional[Layer] = None,
         loss_reduction=tf.reduce_mean,
-        inputs: Optional[InputBlock] = None,
+        inputs=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -274,7 +274,7 @@ class Head(tf.keras.layers.Layer):
         task_weight_dict: Optional[Dict[str, float]] = None,
         bias_block: Optional[Layer] = None,
         loss_reduction=tf.reduce_mean,
-        inputs: Optional[InputBlock] = None,
+        inputs=None,
         **kwargs,
     ) -> "Head":
         task_weight_dict = task_weight_dict or {}
@@ -384,7 +384,8 @@ class Head(tf.keras.layers.Layer):
         **kwargs,
     ):
         if call_body:
-            bias_outputs = self.bias_block(inputs)
+            if bias_outputs is None and self.bias_block:
+                bias_outputs = self.bias_block(inputs)
             body_outputs = self.body(inputs)
         else:
             body_outputs = inputs
