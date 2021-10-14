@@ -48,6 +48,14 @@ synthetic_music_recsys_data_schema = Schema(
             num_items=100,
             value_count=msl.schema.ValueCount(1, 20),
         ),
+        # Bias
+        msl.ColumnSchema.create_continuous(
+            "position",
+            is_float=False,
+            min_value=1,
+            max_value=100,
+            tags=["bias"],
+        ),
         # Targets
         msl.ColumnSchema("click").with_tags(tags=[Tag.BINARY_CLASSIFICATION]),
         msl.ColumnSchema("play").with_tags(tags=[Tag.BINARY_CLASSIFICATION]),
@@ -57,17 +65,39 @@ synthetic_music_recsys_data_schema = Schema(
 
 
 def build_two_tower(schema: Schema, target="play") -> ml.Model:
-    user_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.USER), [512, 256])
-    item_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.ITEM), [512, 256])
-    body = ml.Retrieval(user_tower, item_tower)
+    # user_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.USER), [512, 256])
+    # item_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.ITEM), [512, 256])
+    # body = ml.Retrieval(user_tower, item_tower)
+    body = ml.Retrieval.from_schema(schema, [512, 256])
 
     return ml.Head.from_schema(schema.select_by_name(target), body).to_model()
 
 
 def build_dnn(schema: Schema) -> ml.Model:
+    # TODO: Change msl to be able to make this a single function call.
+    schema = schema.remove_by_tag("bias")
+
     body = ml.MLPBlock.from_schema(schema, [512, 256])
 
     return ml.Head.from_schema(synthetic_music_recsys_data_schema, body).to_model()
+
+
+def build_advanced_dnn(schema: Schema) -> ml.Model:
+    # TODO: Change msl to be able to make this a single function call.
+    bias_schema = schema.select_by_tag("bias")
+    schema = schema.remove_by_tag("bias")
+
+    body = ml.MLPBlock.from_schema(schema, [512, 256])
+    bias_block = ml.MLPBlock.from_schema(bias_schema, [64])
+
+    return ml.MMOEHead.from_schema(
+        synthetic_music_recsys_data_schema,
+        body,
+        task_blocks=ml.MLPBlock([64, 32]),
+        expert_block=ml.MLPBlock([64, 32]),
+        num_experts=3,
+        bias_block=bias_block,
+    ).to_model()
 
 
 def build_dlrm(schema: Schema) -> ml.Model:
@@ -92,7 +122,8 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
-    model = build_dnn(synthetic_music_recsys_data_schema)
+    # model = build_dnn(synthetic_music_recsys_data_schema)
+    model = build_advanced_dnn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
     # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
 

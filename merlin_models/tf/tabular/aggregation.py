@@ -99,6 +99,29 @@ class ElementwiseFeatureAggregation(TabularAggregation):
             )
 
 
+@tabular_aggregation_registry.register("add-left")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class AddLeft(ElementwiseFeatureAggregation):
+    def __init__(self, left_name="bias", **kwargs):
+        super().__init__(**kwargs)
+        self.left_name = left_name
+        self.concat = ConcatFeatures()
+        self.wide_logit = tf.keras.layers.Dense(1)
+
+    def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
+        left = inputs.pop(self.left_name)
+        if not left.shape[-1] == 1:
+            left = self.wide_logit(left)
+
+        return left + self.concat(inputs)
+
+    def compute_output_shape(self, input_shape):
+        batch_size = calculate_batch_size_from_input_shapes(input_shape)
+        last_dim = list(input_shape.values())[0][-1]
+
+        return batch_size, last_dim
+
+
 @tabular_aggregation_registry.register("element-wise-sum")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ElementwiseSum(ElementwiseFeatureAggregation):

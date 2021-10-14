@@ -29,6 +29,7 @@ from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.tabular import TabularFeatures
 from .model.base import Head, Model, PredictionTask
+from .model.multi_task import MMOEHead
 from .model.prediction_task import BinaryClassificationTask, RegressionTask
 from .tabular.aggregation import (
     ConcatFeatures,
@@ -36,7 +37,7 @@ from .tabular.aggregation import (
     ElementwiseSumItemMulti,
     StackFeatures,
 )
-from .tabular.base import AsTabular, FilterFeatures, MergeTabular, TabularBlock
+from .tabular.base import AsTabular, FilterFeatures, ParallelBlock, TabularBlock
 from .tabular.transformations import AsDenseFeatures, AsSparseFeatures, StochasticSwapNoise
 from .utils import repr_utils
 
@@ -65,6 +66,7 @@ __all__ = [
     "TableConfig",
     "TabularFeatures",
     "Head",
+    "MMOEHead",
     "Retrieval",
     "AsDenseFeatures",
     "AsSparseFeatures",
@@ -73,7 +75,7 @@ __all__ = [
     "AsTabular",
     "ConcatFeatures",
     "FilterFeatures",
-    "MergeTabular",
+    "ParallelBlock",
     "StackFeatures",
     "PredictionTask",
     "BinaryClassificationTask",

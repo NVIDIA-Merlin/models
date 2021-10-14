@@ -1,13 +1,13 @@
 import abc
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import tensorflow as tf
-from merlin_standard_lib import Schema
+from merlin_standard_lib import Schema, Tag
 
+from merlin_models.tf.block.dual import DualEncoderBlock
+from merlin_models.tf.block.mlp import MLPBlock
+from merlin_models.tf.features.embedding import EmbeddingFeatures
 from merlin_models.tf.tabular.base import (
-    AsTabular,
-    MergeTabular,
-    SequentialBlock,
     TabularAggregation,
     TabularBlock,
     TabularTransformationType,
@@ -34,11 +34,11 @@ class CosineSimilarity(Distance):
         return self.dot(list(inputs.values()))
 
 
-class Retrieval(MergeTabular):
+class Retrieval(DualEncoderBlock):
     def __init__(
         self,
-        left: Union[tf.keras.layers.Layer, TabularBlock],
-        right: Union[tf.keras.layers.Layer, TabularBlock],
+        query: Union[tf.keras.layers.Layer, TabularBlock],
+        item: Union[tf.keras.layers.Layer, TabularBlock],
         distance: Distance = CosineSimilarity(),
         pre: Optional[TabularTransformationType] = None,
         post: Optional[TabularTransformationType] = None,
@@ -48,18 +48,71 @@ class Retrieval(MergeTabular):
         right_name="item",
         **kwargs
     ):
-        if not isinstance(left, TabularBlock):
-            left = SequentialBlock([left, AsTabular(left_name)])
-        if not isinstance(right, TabularBlock):
-            right = SequentialBlock([right, AsTabular(right_name)])
-
         super().__init__(
-            left,
-            right,
+            query,
+            item,
             pre=pre,
             post=post,
             aggregation=distance,
             schema=schema,
             name=name,
+            left_name=left_name,
+            right_name=right_name,
             **kwargs
         )
+
+    @classmethod
+    def from_schema(  # type: ignore
+        cls,
+        schema: Schema,
+        dims: List[int],
+        query_tower_tag=Tag.USER,
+        item_tower_tag=Tag.ITEM,
+        **kwargs
+    ) -> "Retrieval":
+        query_tower = MLPBlock.from_schema(schema.select_by_tag(query_tower_tag), dims)
+        item_tower = MLPBlock.from_schema(schema.select_by_tag(item_tower_tag), dims)
+
+        return cls(query_tower, item_tower, **kwargs)
+
+
+class MatrixFactorization(DualEncoderBlock):
+    def __init__(
+        self,
+        query_embedding: EmbeddingFeatures,
+        item_embedding: EmbeddingFeatures,
+        distance: Distance = CosineSimilarity(),
+        pre: Optional[TabularTransformationType] = None,
+        post: Optional[TabularTransformationType] = None,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        left_name="user",
+        right_name="item",
+        **kwargs
+    ):
+        super().__init__(
+            query_embedding,
+            item_embedding,
+            pre=pre,
+            post=post,
+            aggregation=distance,
+            schema=schema,
+            name=name,
+            left_name=left_name,
+            right_name=right_name,
+            **kwargs
+        )
+
+    @classmethod
+    def from_schema(
+        cls,
+        schema: Schema,
+        query_id_tag=Tag.USER_ID,
+        item_id_tag=Tag.ITEM_ID,
+        distance: Distance = CosineSimilarity(),
+        **kwargs
+    ) -> "MatrixFactorization":
+        query = EmbeddingFeatures.from_schema(schema.select_by_tag(query_id_tag))
+        item = EmbeddingFeatures.from_schema(schema.select_by_tag(item_id_tag))
+
+        return cls(query, item, distance=distance, **kwargs)

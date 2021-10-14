@@ -235,6 +235,7 @@ class Head(tf.keras.layers.Layer):
         prediction_tasks: Union[List[PredictionTask], PredictionTask],
         task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
         task_weights: Optional[List[float]] = None,
+        bias_block: Optional[Layer] = None,
         loss_reduction=tf.reduce_mean,
         inputs: Optional[InputBlock] = None,
         **kwargs,
@@ -246,6 +247,9 @@ class Head(tf.keras.layers.Layer):
 
         self.prediction_tasks = prediction_tasks
         self.task_weights = task_weights
+
+        self.bias_block = bias_block
+        self.bias_logit = tf.keras.layers.Dense(1)
 
         self.prediction_task_dict = {}
         if prediction_tasks:
@@ -268,6 +272,7 @@ class Head(tf.keras.layers.Layer):
         body: Layer,
         task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
         task_weight_dict: Optional[Dict[str, float]] = None,
+        bias_block: Optional[Layer] = None,
         loss_reduction=tf.reduce_mean,
         inputs: Optional[InputBlock] = None,
         **kwargs,
@@ -294,6 +299,7 @@ class Head(tf.keras.layers.Layer):
             tasks,
             task_blocks=task_blocks,
             task_weights=task_weights,
+            bias_block=bias_block,
             loss_reduction=loss_reduction,
             inputs=inputs,
             **kwargs,
@@ -369,17 +375,39 @@ class Head(tf.keras.layers.Layer):
             pass
         return super().build(input_shape)
 
-    def call(self, body_outputs: tf.Tensor, call_body=False, always_output_dict=False, **kwargs):
-        outputs = {}
-
+    def call(
+        self,
+        inputs: tf.Tensor,
+        call_body=True,
+        always_output_dict=False,
+        bias_outputs=None,
+        **kwargs,
+    ):
         if call_body:
-            body_outputs = self.body(body_outputs)
+            bias_outputs = self.bias_block(inputs)
+            body_outputs = self.body(inputs)
+        else:
+            body_outputs = inputs
 
-        for name, task in self.prediction_task_dict.items():
-            outputs[name] = task(body_outputs, **kwargs)
+        if self.bias_block and bias_outputs is not None:
+            if not bias_outputs.shape[-1] == 1:
+                bias_outputs = self.bias_logit(bias_outputs)
+
+        outputs = self.call_tasks(body_outputs, bias=bias_outputs, **kwargs)
 
         if len(outputs) == 1 and not always_output_dict:
             return outputs[list(outputs.keys())[0]]
+
+        return outputs
+
+    def call_tasks(self, body_outputs, bias=None, **kwargs):
+        outputs = {}
+
+        for name, task in self.prediction_task_dict.items():
+            task_out = task(body_outputs, **kwargs)
+            if bias:
+                task_out += bias
+            outputs[name] = task_out
 
         return outputs
 
@@ -509,8 +537,7 @@ class Model(BaseModel):
         # TODO: Optimize this
         outputs = {}
         for head in self.heads:
-            body_outputs = head.body(inputs)
-            outputs.update(head(body_outputs, call_body=False, always_output_dict=True))
+            outputs.update(head(inputs, call_body=True, always_output_dict=True))
 
         if len(outputs) == 1:
             return outputs[list(outputs.keys())[0]]

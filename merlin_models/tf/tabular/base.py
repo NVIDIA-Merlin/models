@@ -202,7 +202,9 @@ class TabularBlock(Block):
             self.set_schema(schema)
 
     @classmethod
-    def from_schema(cls, schema: Schema, tags=None, **kwargs) -> Optional["TabularBlock"]:
+    def from_schema(
+        cls, schema: Schema, tags=None, allow_none=True, **kwargs
+    ) -> Optional["TabularBlock"]:
         """Instantiate a TabularLayer instance from a DatasetSchema.
 
         Parameters
@@ -218,6 +220,8 @@ class TabularBlock(Block):
         schema_copy = schema.copy()
         if tags:
             schema_copy = schema_copy.select_by_tag(tags)
+            if not schema_copy.column_names and not allow_none:
+                raise ValueError(f"No features with tags: {tags} found")
 
         if not schema_copy.column_names:
             return None
@@ -408,6 +412,10 @@ class TabularBlock(Block):
 
         return config
 
+    @property
+    def is_tabular(self) -> bool:
+        return True
+
     @classmethod
     def from_config(cls, config):
         config = maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
@@ -571,8 +579,8 @@ class FilterFeatures(TabularTransformation):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class MergeTabular(TabularBlock):
-    """Merge multiple TabularModule's into a single output of TabularData.
+class ParallelBlock(TabularBlock):
+    """Merge multiple layers or TabularModule's into a single output of TabularData.
 
     Parameters
     ----------
@@ -584,29 +592,41 @@ class MergeTabular(TabularBlock):
 
     def __init__(
         self,
-        *blocks_to_merge: Union[TabularBlock, Dict[str, TabularBlock]],
+        *inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]],
         pre: Optional[TabularTransformationType] = None,
         post: Optional[TabularTransformationType] = None,
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
+        strict: bool = False,
         **kwargs,
     ):
         super().__init__(
             pre=pre, post=post, aggregation=aggregation, schema=schema, name=name, **kwargs
         )
+        self.strict = strict
         self.to_merge: Union[List[TabularBlock], Dict[str, TabularBlock]]
-        if all(isinstance(x, dict) for x in blocks_to_merge):
-            to_merge: Dict[str, TabularBlock] = reduce(
-                lambda a, b: dict(a, **b), blocks_to_merge
+        if all(isinstance(x, dict) for x in inputs):
+            to_merge: Dict[str, tf.keras.layers.Layer] = reduce(
+                lambda a, b: dict(a, **b), inputs
             )  # type: ignore
-            self.to_merge = to_merge
-        elif all(isinstance(x, tf.keras.layers.Layer) for x in blocks_to_merge):
-            self.to_merge = list(blocks_to_merge)  # type: ignore
+            parsed_to_merge: Dict[str, TabularBlock] = {}
+            for key, val in to_merge.items():
+                if not getattr(val, "is_tabular", False):
+                    val = Block.from_layer(val).as_tabular(key)
+                parsed_to_merge[key] = val
+            self.to_merge = parsed_to_merge
+        elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
+            parsed: List[TabularBlock] = []
+            for i, inp in enumerate(inputs):
+                if not isinstance(inp, TabularBlock):
+                    inp = Block.from_layer(inp).as_tabular(str(i))
+                parsed.append(inp)
+            self.to_merge = parsed
         else:
             raise ValueError(
                 "Please provide one or multiple layer's to merge or "
-                f"dictionaries of layer. got: {blocks_to_merge}"
+                f"dictionaries of layer. got: {inputs}"
             )
 
         # Merge schemas if necessary.
@@ -629,7 +649,8 @@ class MergeTabular(TabularBlock):
         return {str(i): m for i, m in enumerate(self.to_merge)}
 
     def call(self, inputs, **kwargs):
-        assert isinstance(inputs, dict), "Inputs needs to be a dict"
+        if self.strict:
+            assert isinstance(inputs, dict), "Inputs needs to be a dict"
 
         outputs = {}
         for layer in self.merge_values:
@@ -647,7 +668,7 @@ class MergeTabular(TabularBlock):
 
     def get_config(self):
         return maybe_serialize_keras_objects(
-            self, super(MergeTabular, self).get_config(), ["merge_layers"]
+            self, super(ParallelBlock, self).get_config(), ["merge_layers"]
         )
 
 
@@ -676,10 +697,14 @@ class AsTabular(tf.keras.layers.Layer):
 
         return config
 
+    @property
+    def is_tabular(self) -> bool:
+        return True
 
-def merge_tabular(self, other, aggregation=None, **kwargs):
-    return MergeTabular(self, other, aggregation=aggregation, **kwargs)
+
+def call_parallel(self, other, aggregation=None, **kwargs):
+    return ParallelBlock(self, other, aggregation=aggregation, **kwargs)
 
 
-TabularBlock.__add__ = merge_tabular
-TabularBlock.merge = merge_tabular
+TabularBlock.__add__ = call_parallel
+TabularBlock.merge = call_parallel

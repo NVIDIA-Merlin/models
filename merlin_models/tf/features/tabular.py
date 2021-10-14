@@ -26,7 +26,7 @@ from ..block.mlp import MLPBlock
 from ..tabular.base import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     AsTabular,
-    MergeTabular,
+    ParallelBlock,
     TabularAggregationType,
     TabularBlock,
     TabularTransformationType,
@@ -51,7 +51,7 @@ TABULAR_FEATURES_PARAMS_DOCSTRING = """
     tabular_features_parameters=TABULAR_FEATURES_PARAMS_DOCSTRING,
 )
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class TabularFeatures(InputBlock, MergeTabular):
+class TabularFeatures(InputBlock, ParallelBlock):
     """Input block that combines different types of features: continuous, categorical & text.
 
     Parameters

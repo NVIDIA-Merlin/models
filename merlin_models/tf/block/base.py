@@ -49,6 +49,27 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return SequentialBlock([self, AsTabular(name)])
 
+    @classmethod
+    def from_layer(cls, layer: tf.keras.layers.Layer) -> "Block":
+        layer.__class__ = cls
+
+    # def add_bias_block(
+    #         self,
+    #         bias_block: tf.keras.layers.Layer,
+    #         aggregation="add-left",
+    #         **kwargs
+    # ):
+    #     from ..block.dual import DualEncoderBlock
+    #
+    #     return DualEncoderBlock(
+    #         bias_block,
+    #         self,
+    #         aggregation=aggregation,
+    #         left_name="bias",
+    #         right_name=self.name,
+    #         **kwargs
+    #     )
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SequentialBlock(Block):
@@ -206,6 +227,10 @@ class SequentialBlock(Block):
 
     def __getitem__(self, key):
         return self.layers[key]
+
+    @property
+    def is_tabular(self):
+        return getattr(self.layers[-1], "is_tabular", False)
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
