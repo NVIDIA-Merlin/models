@@ -16,27 +16,36 @@
 
 import copy
 import sys
-from typing import Union
+from typing import Union, overload
 
 import six
 import tensorflow as tf
+from merlin_standard_lib import Schema
 from merlin_standard_lib.utils.misc_utils import filter_kwargs
 
 from merlin_models.config.schema import SchemaMixin
 
 
 class Block(SchemaMixin, tf.keras.layers.Layer):
-    def to_model(self, prediction_task_or_head, inputs=None, **kwargs):
+    @overload
+    def to_model(self, prediction_task_or_head: Schema, inputs=None, **kwargs):
+        ...
+
+    def to_model(self, prediction_task_or_head_or_schema, inputs=None, **kwargs):
+        inputs = prediction_task_or_head_or_schema
+
         from ..model.base import Head, Model, PredictionTask
 
-        if isinstance(prediction_task_or_head, PredictionTask):
-            head = prediction_task_or_head.to_head(self, inputs=inputs, **kwargs)
-        elif isinstance(prediction_task_or_head, Head):
-            head = prediction_task_or_head
+        if isinstance(inputs, PredictionTask):
+            head = inputs.to_head(self, inputs=inputs, **kwargs)
+        elif isinstance(inputs, Head):
+            head = inputs
+        elif isinstance(inputs, Schema):
+            head = Head.from_schema(inputs, self)
         else:
             raise ValueError(
                 "`prediction_task_or_head` needs to be a `Head` or `PredictionTask` "
-                f"found: {type(prediction_task_or_head)}"
+                f"found: {type(inputs)}"
             )
 
         return Model(head, **kwargs)
@@ -52,6 +61,8 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
     @classmethod
     def from_layer(cls, layer: tf.keras.layers.Layer) -> "Block":
         layer.__class__ = cls
+
+        return layer  # type: ignore
 
     # def add_bias_block(
     #         self,

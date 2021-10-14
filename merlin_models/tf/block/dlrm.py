@@ -22,12 +22,16 @@ from merlin_standard_lib import Schema, Tag
 from ..features.continuous import ContinuousFeatures
 from ..features.embedding import EmbeddingFeatures
 from ..tabular.base import TabularBlock
-from .base import Block, BlockType
+from .base import Block, BlockType, SequentialBlock
 
 
 class ExpandDimsAndToTabular(tf.keras.layers.Lambda):
     def __init__(self, **kwargs):
         super().__init__(lambda x: dict(continuous=x), **kwargs)
+
+    @property
+    def is_tabular(self):
+        return True
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -59,8 +63,14 @@ class DLRMBlock(Block):
             _continuous_features = cast(Optional[TabularBlock], continuous_features)
 
         if _continuous_features:
-            continuous_embedding = _continuous_features >> bottom_mlp >> ExpandDimsAndToTabular()
-            continuous_embedding.block_name = "ContinuousEmbedding"
+            continuous_embedding = SequentialBlock(
+                [
+                    _continuous_features,
+                    bottom_mlp,
+                    ExpandDimsAndToTabular(),
+                ],
+                block_name="ContinuousEmbedding",
+            )
             self.stack_features = embedding_layer.merge(continuous_embedding, aggregation="stack")
         else:
             embedding_layer.set_aggregation("stack")

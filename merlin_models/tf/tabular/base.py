@@ -619,7 +619,7 @@ class ParallelBlock(TabularBlock):
         elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
             parsed: List[TabularBlock] = []
             for i, inp in enumerate(inputs):
-                if not isinstance(inp, TabularBlock):
+                if not getattr(inp, "is_tabular", False):
                     inp = Block.from_layer(inp).as_tabular(str(i))
                 parsed.append(inp)
             self.to_merge = parsed
