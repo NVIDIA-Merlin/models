@@ -80,12 +80,14 @@ def build_dnn(schema: Schema) -> ml.Model:
     return ml.MLPBlock.from_schema(schema, [512, 256]).to_model(schema)
 
 
-def build_advanced_dnn(schema: Schema) -> ml.Model:
+def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     # TODO: Change msl to be able to make this a single function call.
     bias_schema = schema.select_by_tag("bias")
     schema = schema.remove_by_tag("bias")
 
-    body = ml.MLPBlock.from_schema(schema, [512, 256])
+    body = ml.DLRMBlock.from_schema(
+        schema, bottom_mlp=ml.MLPBlock([512, 128]), top_mlp=ml.MLPBlock([512, 128])
+    )
     bias_block = ml.MLPBlock.from_schema(bias_schema, [64])
 
     return ml.MMOEHead.from_schema(
@@ -120,8 +122,8 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
-    model = build_dnn(synthetic_music_recsys_data_schema)
-    # model = build_advanced_dnn(synthetic_music_recsys_data_schema)
+    # model = build_dnn(synthetic_music_recsys_data_schema)
+    model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
     # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
 
