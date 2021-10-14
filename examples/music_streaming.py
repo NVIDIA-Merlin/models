@@ -90,6 +90,15 @@ def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     )
     bias_block = ml.MLPBlock.from_schema(bias_schema, [64])
 
+    # return ml.MMOEHead.from_schema(
+    #     synthetic_music_recsys_data_schema,
+    #     body,
+    #     task_blocks=ml.MLPBlock([64, 32]),
+    #     expert_block=ml.MLPBlock([64, 32]),
+    #     num_experts=3,
+    #     bias_block=bias_block,
+    # ).to_model()
+
     return ml.MMOEHead.from_schema(
         synthetic_music_recsys_data_schema,
         body,
