@@ -74,10 +74,18 @@ def build_two_tower(schema: Schema, target="play") -> ml.Model:
 
 
 def build_dnn(schema: Schema) -> ml.Model:
-    # TODO: Change msl to be able to make this a single function call.
     schema = schema.remove_by_tag("bias")
 
     return ml.MLPBlock.from_schema(schema, [512, 256]).to_model(schema)
+
+
+def build_dcn(schema: Schema) -> ml.Model:
+    schema = schema.remove_by_tag("bias")
+
+    cross = ml.CrossBlock.from_schema(schema, depth=3)
+    deep_cross = cross.add_in_parallel(ml.MLPBlock([512, 256]), aggregation="concat")
+
+    return deep_cross.to_model(schema)
 
 
 def build_advanced_ranking_model(schema: Schema) -> ml.Model:
@@ -91,7 +99,7 @@ def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     bias_block = ml.MLPBlock.from_schema(bias_schema, [64])
 
     # return ml.MMOEHead.from_schema(
-    #     synthetic_music_recsys_data_schema,
+    #     schema,
     #     body,
     #     task_blocks=ml.MLPBlock([64, 32]),
     #     expert_block=ml.MLPBlock([64, 32]),
@@ -100,7 +108,7 @@ def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     # ).to_model()
 
     return ml.PLEHead.from_schema(
-        synthetic_music_recsys_data_schema,
+        schema,
         body,
         task_blocks=ml.MLPBlock([64, 32]),
         expert_block=ml.MLPBlock([64, 32]),
@@ -134,7 +142,8 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
     # model = build_dnn(synthetic_music_recsys_data_schema)
-    model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
+    # model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
+    model = build_dcn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
     # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
 

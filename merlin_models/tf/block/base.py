@@ -40,7 +40,7 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
         elif isinstance(model_inputs, Head):
             head = model_inputs
         elif isinstance(model_inputs, Schema):
-            head = Head.from_schema(model_inputs, self)
+            head = Head.from_schema(model_inputs, self, **kwargs)
         else:
             raise ValueError(
                 "`prediction_task_or_head` needs to be a `Head` or `PredictionTask` "
@@ -63,22 +63,38 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return layer  # type: ignore
 
-    # def add_bias_block(
-    #         self,
-    #         bias_block: tf.keras.layers.Layer,
-    #         aggregation="add-left",
-    #         **kwargs
-    # ):
-    #     from ..block.dual import DualEncoderBlock
-    #
-    #     return DualEncoderBlock(
-    #         bias_block,
-    #         self,
-    #         aggregation=aggregation,
-    #         left_name="bias",
-    #         right_name=self.name,
-    #         **kwargs
-    #     )
+    def repeat(self, num: int) -> "SequentialBlock":
+        repeated = []
+        for _ in range(num):
+            repeated.append(self.from_config(self.to_config()))
+
+        return SequentialBlock(repeated)
+
+    def add(self, block: tf.keras.layers.Layer):
+        self.layers.append(block)
+
+        return self
+
+    def add_in_parallel(self, *block: tf.keras.layers.Layer, post=None, aggregation=None, **kwargs):
+        from merlin_models.tf import ParallelBlock
+
+        from ..features.base import is_input_block
+
+        if is_input_block(self.layers[0]):
+            return SequentialBlock(
+                [
+                    self.layers[0],
+                    ParallelBlock(
+                        SequentialBlock(self.layers[1:]),
+                        *block,
+                        post=post,
+                        aggregation=aggregation,
+                        **kwargs,
+                    ),
+                ]
+            )
+
+        return ParallelBlock(self, *block, post=post, aggregation=aggregation, **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

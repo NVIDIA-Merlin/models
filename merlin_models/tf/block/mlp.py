@@ -36,9 +36,9 @@ class MLPBlock(SequentialBlock):
         inputs: Optional[tf.keras.layers.Layer] = None,
         **kwargs
     ):
-        from .. import TabularBlock
+        from ..features.base import is_input_block
 
-        if inputs and isinstance(inputs, TabularBlock) and not inputs.aggregation:
+        if inputs and is_input_block(inputs) and not inputs.aggregation:
             inputs.set_aggregation("concat")
 
         layers = [inputs] if inputs else []

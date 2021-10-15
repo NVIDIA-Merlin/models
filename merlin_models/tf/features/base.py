@@ -17,5 +17,15 @@
 from merlin_models.tf.tabular.base import TabularBlock
 
 
-class InputBlock(TabularBlock):
+def is_input_block(block) -> bool:
+    return getattr(block, "is_input", False)
+
+
+class InputBlockMixin:
+    @property
+    def is_input(self) -> bool:
+        return True
+
+
+class InputBlock(TabularBlock, InputBlockMixin):
     pass

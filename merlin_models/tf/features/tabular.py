@@ -32,7 +32,7 @@ from ..tabular.base import (
     TabularTransformationType,
 )
 from ..utils import tf_utils
-from .base import InputBlock
+from .base import InputBlockMixin
 from .continuous import ContinuousFeatures
 from .embedding import EmbeddingFeatures
 
@@ -51,7 +51,7 @@ TABULAR_FEATURES_PARAMS_DOCSTRING = """
     tabular_features_parameters=TABULAR_FEATURES_PARAMS_DOCSTRING,
 )
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class TabularFeatures(InputBlock, ParallelBlock):
+class TabularFeatures(ParallelBlock, InputBlockMixin):
     """Input block that combines different types of features: continuous, categorical & text.
 
     Parameters

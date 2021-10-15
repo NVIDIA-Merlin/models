@@ -22,6 +22,7 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 
 from .. import data
 from .block.base import Block, SequentialBlock, right_shift_layer
+from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
 from .block.mlp import MLPBlock
 from .block.retrieval import Retrieval
@@ -57,6 +58,7 @@ __all__ = [
     "Block",
     "SequentialBlock",
     "right_shift_layer",
+    "CrossBlock",
     "DLRMBlock",
     "MLPBlock",
     "TabularBlock",
