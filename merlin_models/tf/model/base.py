@@ -266,6 +266,22 @@ class Head(tf.keras.layers.Layer):
         self._set_task_blocks(task_blocks)
 
     @classmethod
+    def get_tasks_from_schema(cls, schema, task_weight_dict):
+        tasks: List[PredictionTask] = []
+        task_weights = []
+        from .prediction_task import BinaryClassificationTask, RegressionTask
+
+        for binary_target in schema.select_by_tag(Tag.BINARY_CLASSIFICATION).column_names:
+            tasks.append(BinaryClassificationTask(binary_target))
+            task_weights.append(task_weight_dict.get(binary_target, 1.0))
+        for regression_target in schema.select_by_tag(Tag.REGRESSION).column_names:
+            tasks.append(RegressionTask(regression_target))
+            task_weights.append(task_weight_dict.get(regression_target, 1.0))
+        # TODO: Add multi-class classification here. Figure out how to get number of classes
+
+        return task_weights, tasks
+
+    @classmethod
     def from_schema(
         cls,
         schema: Schema,
@@ -279,20 +295,7 @@ class Head(tf.keras.layers.Layer):
     ) -> "Head":
         task_weight_dict = task_weight_dict or {}
 
-        tasks: List[PredictionTask] = []
-        task_weights = []
-
-        from .prediction_task import BinaryClassificationTask, RegressionTask
-
-        for binary_target in schema.select_by_tag(Tag.BINARY_CLASSIFICATION).column_names:
-            tasks.append(BinaryClassificationTask(binary_target))
-            task_weights.append(task_weight_dict.get(binary_target, 1.0))
-
-        for regression_target in schema.select_by_tag(Tag.REGRESSION).column_names:
-            tasks.append(RegressionTask(regression_target))
-            task_weights.append(task_weight_dict.get(regression_target, 1.0))
-
-        # TODO: Add multi-class classification here. Figure out how to get number of classes
+        task_weights, tasks = cls.get_tasks_from_schema(schema, task_weight_dict)
 
         return cls(
             body,

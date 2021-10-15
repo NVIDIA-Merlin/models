@@ -99,12 +99,14 @@ def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     #     bias_block=bias_block,
     # ).to_model()
 
-    return ml.MMOEHead.from_schema(
+    return ml.PLEHead.from_schema(
         synthetic_music_recsys_data_schema,
         body,
         task_blocks=ml.MLPBlock([64, 32]),
         expert_block=ml.MLPBlock([64, 32]),
-        num_experts=3,
+        num_shared_experts=2,
+        num_task_experts=2,
+        depth=2,
         bias_block=bias_block,
     ).to_model()
 

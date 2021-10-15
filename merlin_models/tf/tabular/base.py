@@ -130,7 +130,7 @@ class SequentialTabularTransformations(SequentialBlock):
     """
 
     def __init__(self, transformation: TabularTransformationsType):
-        if len(transformation) == 1 and isinstance(transformation, list):
+        if isinstance(transformation, list) and len(transformation) == 1:
             transformation = transformation[0]
         if not isinstance(transformation, (list, tuple)):
             transformation = [transformation]
@@ -605,7 +605,7 @@ class ParallelBlock(TabularBlock):
             pre=pre, post=post, aggregation=aggregation, schema=schema, name=name, **kwargs
         )
         self.strict = strict
-        self.to_merge: Union[List[TabularBlock], Dict[str, TabularBlock]]
+        self.parallel_layers: Union[List[TabularBlock], Dict[str, TabularBlock]]
         if all(isinstance(x, dict) for x in inputs):
             to_merge: Dict[str, tf.keras.layers.Layer] = reduce(
                 lambda a, b: dict(a, **b), inputs
@@ -615,14 +615,14 @@ class ParallelBlock(TabularBlock):
                 if not getattr(val, "is_tabular", False):
                     val = Block.from_layer(val).as_tabular(key)
                 parsed_to_merge[key] = val
-            self.to_merge = parsed_to_merge
+            self.parallel_layers = parsed_to_merge
         elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
             parsed: List[TabularBlock] = []
             for i, inp in enumerate(inputs):
                 if not getattr(inp, "is_tabular", False):
                     inp = Block.from_layer(inp).as_tabular(str(i))
                 parsed.append(inp)
-            self.to_merge = parsed
+            self.parallel_layers = parsed
         else:
             raise ValueError(
                 "Please provide one or multiple layer's to merge or "
@@ -630,30 +630,30 @@ class ParallelBlock(TabularBlock):
             )
 
         # Merge schemas if necessary.
-        if not schema and all(getattr(m, "schema", False) for m in self.merge_values):
-            s = reduce(lambda a, b: a + b, [m.schema for m in self.merge_values])  # type: ignore
+        if not schema and all(getattr(m, "schema", False) for m in self.parallel_values):
+            s = reduce(lambda a, b: a + b, [m.schema for m in self.parallel_values])  # type: ignore
             self.set_schema(s)
 
     @property
-    def merge_values(self) -> List[tf.keras.layers.Layer]:
-        if isinstance(self.to_merge, dict):
-            return list(self.to_merge.values())
+    def parallel_values(self) -> List[tf.keras.layers.Layer]:
+        if isinstance(self.parallel_layers, dict):
+            return list(self.parallel_layers.values())
 
-        return self.to_merge
+        return self.parallel_layers
 
     @property
-    def to_merge_dict(self) -> Dict[str, tf.keras.layers.Layer]:
-        if isinstance(self.to_merge, dict):
-            return self.to_merge
+    def parallel_dict(self) -> Dict[str, tf.keras.layers.Layer]:
+        if isinstance(self.parallel_layers, dict):
+            return self.parallel_layers
 
-        return {str(i): m for i, m in enumerate(self.to_merge)}
+        return {str(i): m for i, m in enumerate(self.parallel_layers)}
 
     def call(self, inputs, **kwargs):
         if self.strict:
             assert isinstance(inputs, dict), "Inputs needs to be a dict"
 
         outputs = {}
-        for layer in self.merge_values:
+        for layer in self.parallel_values:
             outputs.update(layer(inputs))
 
         return outputs
@@ -661,7 +661,7 @@ class ParallelBlock(TabularBlock):
     def compute_call_output_shape(self, input_shape):
         output_shapes = {}
 
-        for layer in self.merge_values:
+        for layer in self.parallel_values:
             output_shapes.update(layer.compute_output_shape(input_shape))
 
         return output_shapes

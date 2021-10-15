@@ -29,7 +29,7 @@ from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.tabular import TabularFeatures
 from .model.base import Head, Model, PredictionTask
-from .model.multi_task import MMOEHead
+from .model.multi_task import MMOEHead, PLEHead
 from .model.prediction_task import BinaryClassificationTask, RegressionTask
 from .tabular.aggregation import (
     ConcatFeatures,
@@ -67,6 +67,7 @@ __all__ = [
     "TabularFeatures",
     "Head",
     "MMOEHead",
+    "PLEHead",
     "Retrieval",
     "AsDenseFeatures",
     "AsSparseFeatures",

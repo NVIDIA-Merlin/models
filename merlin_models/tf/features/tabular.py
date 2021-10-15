@@ -123,7 +123,7 @@ class TabularFeatures(InputBlock, ParallelBlock):
             [continuous, MLPBlock(mlp_layers_dims), AsTabular("continuous_projection")]
         )
 
-        self.to_merge_dict["continuous_layer"] = continuous
+        self.parallel_dict["continuous_layer"] = continuous
 
         return self
 
@@ -164,15 +164,15 @@ class TabularFeatures(InputBlock, ParallelBlock):
 
     @property
     def continuous_layer(self) -> Optional[tf.keras.layers.Layer]:
-        if "continuous_layer" in self.to_merge_dict:
-            return self.to_merge_dict["continuous_layer"]
+        if "continuous_layer" in self.parallel_dict:
+            return self.parallel_dict["continuous_layer"]
 
         return None
 
     @property
     def categorical_layer(self) -> Optional[tf.keras.layers.Layer]:
-        if "categorical_layer" in self.to_merge_dict:
-            return self.to_merge_dict["categorical_layer"]
+        if "categorical_layer" in self.parallel_dict:
+            return self.parallel_dict["categorical_layer"]
 
         return None
 

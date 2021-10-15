@@ -37,7 +37,7 @@ def test_serialization_tabular_features(tabular_schema):
 
     copy_layer = test_utils.assert_serialization(inputs)
 
-    assert list(inputs.to_merge.keys()) == list(copy_layer.to_merge.keys())
+    assert list(inputs.parallel_layers.keys()) == list(copy_layer.parallel_layers.keys())
 
 
 def test_tabular_features_with_projection(tabular_schema, tf_tabular_data):
