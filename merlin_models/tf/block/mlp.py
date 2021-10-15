@@ -57,7 +57,7 @@ class MLPBlock(SequentialBlock):
                         "Normalization needs to be an instance `Layer` or " "`batch_norm`"
                     )
 
-        super().__init__(layers, filter_features, **kwargs)
+        super().__init__(layers, filter_features=filter_features, **kwargs)
 
     @classmethod
     def from_schema(

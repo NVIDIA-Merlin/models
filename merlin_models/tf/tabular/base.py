@@ -613,14 +613,20 @@ class ParallelBlock(TabularBlock):
             parsed_to_merge: Dict[str, TabularBlock] = {}
             for key, val in to_merge.items():
                 if not getattr(val, "is_tabular", False):
-                    val = Block.from_layer(val).as_tabular(key)
+                    if not hasattr(val, "as_tabular"):
+                        val = SequentialBlock([val, AsTabular(name)], copy_layers=False)
+                    else:
+                        val = val.as_tabular(key)
                 parsed_to_merge[key] = val
             self.parallel_layers = parsed_to_merge
         elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
             parsed: List[TabularBlock] = []
             for i, inp in enumerate(inputs):
                 if not getattr(inp, "is_tabular", False):
-                    inp = Block.from_layer(inp).as_tabular(str(i))
+                    if not hasattr(inp, "as_tabular"):
+                        val = SequentialBlock([inp, AsTabular(str(i))], copy_layers=False)
+                    else:
+                        inp = inp.as_tabular(str(i))
                 parsed.append(inp)
             self.parallel_layers = parsed
         else:

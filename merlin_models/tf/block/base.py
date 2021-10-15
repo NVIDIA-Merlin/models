@@ -55,7 +55,7 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
         if not name:
             name = self.name
 
-        return SequentialBlock([self, AsTabular(name)])
+        return SequentialBlock([self, AsTabular(name)], copy_layers=False)
 
     @classmethod
     def from_layer(cls, layer: tf.keras.layers.Layer) -> "Block":
@@ -75,24 +75,27 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return self
 
-    def add_in_parallel(self, *block: tf.keras.layers.Layer, post=None, aggregation=None, **kwargs):
+    def add_in_parallel(self, block: tf.keras.layers.Layer, post=None, aggregation=None, **kwargs):
         from merlin_models.tf import ParallelBlock
 
         from ..features.base import is_input_block
 
         if is_input_block(self.layers[0]):
-            return SequentialBlock(
+            inputs = self.layers.pop(0)
+            output = SequentialBlock(
                 [
-                    self.layers[0],
+                    inputs,
                     ParallelBlock(
-                        SequentialBlock(self.layers[1:]),
-                        *block,
+                        {self.name: self, block.name: block},
                         post=post,
                         aggregation=aggregation,
                         **kwargs,
                     ),
-                ]
+                ],
+                copy_layers=False
             )
+
+            return output
 
         return ParallelBlock(self, *block, post=post, aggregation=aggregation, **kwargs)
 
@@ -112,7 +115,7 @@ class SequentialBlock(Block):
         output = c(inputs)    # Equivalent to: output = layer3(layer2(layer1(inputs)))
     """
 
-    def __init__(self, layers, filter_features=None, block_name=None, **kwargs):
+    def __init__(self, layers, filter_features=None, block_name=None, copy_layers=True, **kwargs):
         """Create a composition.
 
         Parameters
@@ -140,9 +143,10 @@ class SequentialBlock(Block):
         if filter_features:
             from ..tabular.base import FilterFeatures
 
-            self.layers = [FilterFeatures(filter_features), *copy.copy(layers)]
+            layers = copy.copy(layers) if copy_layers else layers
+            self.layers = [FilterFeatures(filter_features), *layers]
         else:
-            self.layers = copy.copy(layers)
+            self.layers = copy.copy(layers) if copy_layers else layers
 
     def compute_output_shape(self, input_shape):
         output_shape = input_shape

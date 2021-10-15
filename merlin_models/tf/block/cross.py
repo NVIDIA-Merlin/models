@@ -22,6 +22,7 @@ class Cross(tf.keras.layers.Layer):
         bias_initializer: InitializerType = "zeros",
         kernel_regularizer: Optional[RegularizerType] = None,
         bias_regularizer: Optional[RegularizerType] = None,
+        output_x0: bool = False,
         **kwargs
     ):
         super(Cross, self).__init__(**kwargs)
@@ -34,6 +35,7 @@ class Cross(tf.keras.layers.Layer):
         self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
         self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
         self.input_dim = None
+        self.output_x0 = output_x0
 
         self._supports_masking = True
 
@@ -69,9 +71,11 @@ class Cross(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape):
         return input_shape
 
-    def call(self, x0: tf.Tensor, x: Optional[tf.Tensor] = None, **kwargs) -> tf.Tensor:
-        if x is None:
-            x = x0
+    def call(self, inputs: tf.Tensor, **kwargs):
+        if isinstance(inputs, tf.Tensor):
+            x, x0 = inputs, inputs
+        else:
+            x0, x = inputs
 
         self.validate_inputs(x0, x)
 
@@ -80,7 +84,11 @@ class Cross(tf.keras.layers.Layer):
         if self.diagonal_scale:
             projected = projected + self.diagonal_scale * x
 
-        return x0 * projected + x
+        output = x0 * projected + x
+        if self.output_x0:
+            return x0, output
+
+        return output
 
     def project(self, x):
         if self.projection_dim is None:
@@ -134,7 +142,7 @@ class CrossBlock(SequentialBlock):
 
         layers = [inputs] if inputs else []
 
-        for _ in range(depth):
+        for i in range(depth):
             layers.append(
                 Cross(
                     projection_dim=projection_dim,
@@ -144,10 +152,11 @@ class CrossBlock(SequentialBlock):
                     bias_initializer=bias_initializer,
                     kernel_regularizer=kernel_regularizer,
                     bias_regularizer=bias_regularizer,
+                    output_x0=i < depth - 1
                 )
             )
 
-        super().__init__(layers, filter_features, block_name="CrossBlock", **kwargs)
+        super().__init__(layers, filter_features=filter_features, **kwargs)
 
     @classmethod
     def from_schema(
