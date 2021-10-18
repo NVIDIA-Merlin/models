@@ -4,15 +4,15 @@ from typing import List, Optional, Union
 import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 
-from merlin_models.tf.block.dual import DualEncoderBlock
-from merlin_models.tf.block.mlp import MLPBlock
-from merlin_models.tf.features.embedding import EmbeddingFeatures
-from merlin_models.tf.tabular.base import (
+from .dual import DualEncoderBlock
+from .mlp import MLPBlock
+from ..features.embedding import EmbeddingFeatures
+from ..core import (
     TabularAggregation,
     TabularBlock,
     TabularTransformationType,
 )
-from merlin_models.tf.typing import TabularData
+from ..typing import TabularData
 
 
 class Distance(TabularAggregation, abc.ABC):

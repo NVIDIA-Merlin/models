@@ -22,7 +22,7 @@ from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
 from ..typing import TabularData, TensorOrTabularData
-from .base import TabularTransformation, tabular_transformation_registry
+from ..core import TabularTransformation, tabular_transformation_registry
 
 
 @tabular_transformation_registry.register("as-sparse")

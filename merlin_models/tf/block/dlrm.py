@@ -21,8 +21,7 @@ from merlin_standard_lib import Schema, Tag
 
 from ..features.continuous import ContinuousFeatures
 from ..features.embedding import EmbeddingFeatures
-from ..tabular.base import TabularBlock
-from .base import Block, BlockType, SequentialBlock
+from ..core import Block, BlockType, SequentialBlock, TabularBlock
 
 
 class ExpandDimsAndToTabular(tf.keras.layers.Lambda):

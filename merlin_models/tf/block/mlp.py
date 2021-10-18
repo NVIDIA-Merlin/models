@@ -20,7 +20,7 @@ import tensorflow as tf
 from merlin_standard_lib import Schema
 from merlin_standard_lib.schema.tag import Tag, TagsType
 
-from .base import SequentialBlock
+from ..core import SequentialBlock, is_input_block
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -36,8 +36,6 @@ class MLPBlock(SequentialBlock):
         inputs: Optional[tf.keras.layers.Layer] = None,
         **kwargs
     ):
-        from ..features.base import is_input_block
-
         if inputs and is_input_block(inputs) and not inputs.aggregation:
             inputs.set_aggregation("concat")
 

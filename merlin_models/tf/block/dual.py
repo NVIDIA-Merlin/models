@@ -3,8 +3,8 @@ from typing import Optional, Union
 import tensorflow as tf
 from merlin_standard_lib import Schema
 
-from merlin_models.tf.block.base import SequentialBlock
-from merlin_models.tf.tabular.base import (
+from ..core import (
+    SequentialBlock,
     AsTabular,
     TabularAggregationType,
     TabularBlock,

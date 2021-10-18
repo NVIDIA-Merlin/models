@@ -20,7 +20,7 @@ from merlin_standard_lib import Schema
 from ...config.schema import requires_schema
 from ..typing import TabularData
 from ..utils.tf_utils import calculate_batch_size_from_input_shapes
-from .base import TabularAggregation, tabular_aggregation_registry
+from ..core import TabularAggregation, tabular_aggregation_registry
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613

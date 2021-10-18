@@ -20,13 +20,13 @@ import tensorflow as tf
 from merlin_standard_lib import Schema
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 
-from ..tabular.base import (
+from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     FilterFeatures,
     TabularAggregationType,
     TabularTransformationType,
+    InputBlock
 )
-from .base import InputBlock
 
 
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
@@ -42,14 +42,14 @@ class ContinuousFeatures(InputBlock):
     """
 
     def __init__(
-        self,
-        features: List[str],
-        pre: Optional[TabularTransformationType] = None,
-        post: Optional[TabularTransformationType] = None,
-        aggregation: Optional[TabularAggregationType] = None,
-        schema: Optional[Schema] = None,
-        name: Optional[str] = None,
-        **kwargs
+            self,
+            features: List[str],
+            pre: Optional[TabularTransformationType] = None,
+            post: Optional[TabularTransformationType] = None,
+            aggregation: Optional[TabularAggregationType] = None,
+            schema: Optional[Schema] = None,
+            name: Optional[str] = None,
+            **kwargs
     ):
         super().__init__(
             pre=pre, post=post, aggregation=aggregation, schema=schema, name=name, **kwargs

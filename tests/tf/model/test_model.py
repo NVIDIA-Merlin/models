@@ -23,12 +23,11 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 # TODO: Fix this test when `run_eagerly=False`
 # @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_simple_model(tf_tabular_features, tf_tabular_data, run_eagerly=True):
+def test_simple_model(tabular_schema, tf_tabular_data, run_eagerly=True):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    inputs = tf_tabular_features
-    body = tr.SequentialBlock([inputs, tr.MLPBlock([64])])
-    model = tr.BinaryClassificationTask("target").to_model(body, inputs)
+    body = tr.MLPBlock.from_schema(tabular_schema, dimensions=[64])
+    model = tr.BinaryClassificationTask("target").to_model(body)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     dataset = tf.data.Dataset.from_tensor_slices((tf_tabular_data, targets)).batch(50)

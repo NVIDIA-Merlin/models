@@ -4,7 +4,7 @@ from typing import Optional, Sequence, Type, Union
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from .base import PredictionTask
+from ..core import PredictionTask
 
 
 def name_fn(name, inp):

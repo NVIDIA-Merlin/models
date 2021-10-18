@@ -21,7 +21,8 @@ from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
 from .. import data
-from .block.base import Block, SequentialBlock, right_shift_layer
+from .core import (Block, SequentialBlock, right_shift_layer, Head, Model, PredictionTask,
+                   AsTabular, FilterFeatures, ParallelBlock, TabularBlock)
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
 from .block.mlp import MLPBlock
@@ -29,7 +30,6 @@ from .block.retrieval import Retrieval
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.tabular import TabularFeatures
-from .model.base import Head, Model, PredictionTask
 from .model.multi_task import MMOEHead, PLEHead
 from .model.prediction_task import BinaryClassificationTask, RegressionTask
 from .tabular.aggregation import (
@@ -38,7 +38,6 @@ from .tabular.aggregation import (
     ElementwiseSumItemMulti,
     StackFeatures,
 )
-from .tabular.base import AsTabular, FilterFeatures, ParallelBlock, TabularBlock
 from .tabular.transformations import AsDenseFeatures, AsSparseFeatures, StochasticSwapNoise
 from .utils import repr_utils
 

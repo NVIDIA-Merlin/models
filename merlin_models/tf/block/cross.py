@@ -4,8 +4,8 @@ import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.schema.tag import TagsType
 
-from merlin_models.tf import SequentialBlock
-from merlin_models.tf.utils.tf_utils import maybe_serialize_keras_objects
+from ..core import SequentialBlock, is_input_block
+from ..utils.tf_utils import maybe_serialize_keras_objects
 
 InitializerType = Union[str, tf.keras.initializers.Initializer]
 RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
@@ -42,15 +42,17 @@ class Cross(tf.keras.layers.Layer):
     def build(self, input_shape):
         last_dim = input_shape[-1]
 
+        dense = tf.keras.layers.Dense(
+            last_dim,
+            kernel_initializer=self.kernel_initializer,
+            bias_initializer=self.bias_initializer,
+            kernel_regularizer=self.kernel_regularizer,
+            bias_regularizer=self.bias_regularizer,
+            use_bias=self.use_bias,
+        )
+
         if self.projection_dim is None:
-            self.dense = tf.keras.layers.Dense(
-                last_dim,
-                kernel_initializer=self.kernel_initializer,
-                bias_initializer=self.bias_initializer,
-                kernel_regularizer=self.kernel_regularizer,
-                bias_regularizer=self.bias_regularizer,
-                use_bias=self.use_bias,
-            )
+            self.dense = dense
         else:
             self.dense_u = tf.keras.layers.Dense(
                 self.projection_dim,
@@ -58,14 +60,7 @@ class Cross(tf.keras.layers.Layer):
                 kernel_regularizer=self.kernel_regularizer,
                 use_bias=False,
             )
-            self.dense_v = tf.keras.layers.Dense(
-                last_dim,
-                kernel_initializer=self.kernel_initializer,
-                bias_initializer=self.bias_initializer,
-                kernel_regularizer=self.kernel_regularizer,
-                bias_regularizer=self.bias_regularizer,
-                use_bias=self.use_bias,
-            )
+            self.dense_v = dense
         super(Cross, self).build(input_shape)
 
     def compute_output_shape(self, input_shape):
@@ -135,8 +130,6 @@ class CrossBlock(SequentialBlock):
         inputs: Optional[tf.keras.layers.Layer] = None,
         **kwargs
     ):
-        from merlin_models.tf.features.base import is_input_block
-
         if inputs and is_input_block(inputs) and not inputs.aggregation:
             inputs.set_aggregation("concat")
 

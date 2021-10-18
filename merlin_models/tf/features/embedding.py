@@ -25,20 +25,19 @@ from merlin_standard_lib.utils.embedding_utils import get_embedding_sizes_from_s
 from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
-from ..tabular.base import (
+from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     FilterFeatures,
     TabularAggregationType,
     TabularTransformationType,
+    InputBlock
 )
 from ..tabular.transformations import AsSparseFeatures
-from ..typing import TabularData
-from .base import InputBlock
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
-
+from ..typing import TabularData
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     feature_config: Dict[str, FeatureConfig]
@@ -66,16 +65,16 @@ class EmbeddingFeatures(InputBlock):
     """
 
     def __init__(
-        self,
-        feature_config: Dict[str, "FeatureConfig"],
-        item_id: Optional[str] = None,
-        pre: Optional[TabularTransformationType] = None,
-        post: Optional[TabularTransformationType] = None,
-        aggregation: Optional[TabularAggregationType] = None,
-        schema: Optional[Schema] = None,
-        name=None,
-        add_default_pre=True,
-        **kwargs,
+            self,
+            feature_config: Dict[str, "FeatureConfig"],
+            item_id: Optional[str] = None,
+            pre: Optional[TabularTransformationType] = None,
+            post: Optional[TabularTransformationType] = None,
+            aggregation: Optional[TabularAggregationType] = None,
+            schema: Optional[Schema] = None,
+            name=None,
+            add_default_pre=True,
+            **kwargs,
     ):
         if not item_id and schema and schema.select_by_tag(["item_id"]).column_names:
             item_id = schema.select_by_tag(["item_id"]).column_names[0]
@@ -92,18 +91,18 @@ class EmbeddingFeatures(InputBlock):
 
     @classmethod
     def from_schema(  # type: ignore
-        cls,
-        schema: Schema,
-        embedding_dims: Optional[Dict[str, int]] = None,
-        embedding_dim_default: Optional[int] = 64,
-        infer_embedding_sizes: bool = False,
-        infer_embedding_sizes_multiplier: float = 2.0,
-        embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
-        combiner: Optional[str] = "mean",
-        tags: Optional[TagsType] = None,
-        item_id: Optional[str] = None,
-        max_sequence_length: Optional[int] = None,
-        **kwargs,
+            cls,
+            schema: Schema,
+            embedding_dims: Optional[Dict[str, int]] = None,
+            embedding_dim_default: Optional[int] = 64,
+            infer_embedding_sizes: bool = False,
+            infer_embedding_sizes_multiplier: float = 2.0,
+            embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
+            combiner: Optional[str] = "mean",
+            tags: Optional[TagsType] = None,
+            item_id: Optional[str] = None,
+            max_sequence_length: Optional[int] = None,
+            **kwargs,
     ) -> Optional["EmbeddingFeatures"]:
         schema_copy = schema.copy()
 

@@ -70,6 +70,12 @@ def build_two_tower(schema: Schema, target="play") -> ml.Model:
     # body = ml.Retrieval(user_tower, item_tower)
     model = ml.Retrieval.from_schema(schema, [512, 256]).to_model(schema.select_by_name(target))
 
+    inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
+    inputs.route_by_tag(Tag.ITEM, ml.MLPBlock([512, 256]), output_name="query")
+    inputs.route_by_tag(Tag.USER, ml.MLPBlock([512, 256]), output_name="user")
+
+    inputs.route_by_tag("bias", ml.MLPBlock([512, 256]), output_name="bias")
+
     return model
 
 
@@ -96,27 +102,27 @@ def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     body = ml.DLRMBlock.from_schema(
         schema, bottom_mlp=ml.MLPBlock([512, 128]), top_mlp=ml.MLPBlock([512, 128])
     )
-    bias_block = ml.MLPBlock.from_schema(bias_schema, [64])
+    # bias_block = ml.MLPBlock.from_schema(bias_schema, [64])
 
-    # return ml.MMOEHead.from_schema(
-    #     schema,
-    #     body,
-    #     task_blocks=ml.MLPBlock([64, 32]),
-    #     expert_block=ml.MLPBlock([64, 32]),
-    #     num_experts=3,
-    #     bias_block=bias_block,
-    # ).to_model()
-
-    return ml.PLEHead.from_schema(
+    return ml.MMOEHead.from_schema(
         schema,
         body,
         task_blocks=ml.MLPBlock([64, 32]),
         expert_block=ml.MLPBlock([64, 32]),
-        num_shared_experts=2,
-        num_task_experts=2,
-        depth=2,
-        bias_block=bias_block,
+        num_experts=3,
+        # bias_block=bias_block,
     ).to_model()
+
+    # return ml.PLEHead.from_schema(
+    #     schema,
+    #     body,
+    #     task_blocks=ml.MLPBlock([64, 32]),
+    #     expert_block=ml.MLPBlock([64, 32]),
+    #     num_shared_experts=2,
+    #     num_task_experts=2,
+    #     depth=2,
+    #     bias_block=bias_block,
+    # ).to_model()
 
 
 def build_dlrm(schema: Schema) -> ml.Model:
@@ -142,8 +148,8 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
     # model = build_dnn(synthetic_music_recsys_data_schema)
-    # model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
-    model = build_dcn(synthetic_music_recsys_data_schema)
+    model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
+    # model = build_dcn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
     # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
 
