@@ -112,6 +112,20 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return SequentialBlock([self, block], copy_layers=False)
 
+    def add_with_residual(
+        self,
+        block: tf.keras.layers.Layer,
+        activation="relu",
+    ) -> "SequentialBlock":
+        residual_block = ResidualBlock(block, activation=activation)
+
+        if isinstance(self, SequentialBlock):
+            self.layers.append(residual_block)
+
+            return self
+
+        return SequentialBlock([self, residual_block], copy_layers=False)
+
     def add_in_parallel(
         self,
         block: tf.keras.layers.Layer,
