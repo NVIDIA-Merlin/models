@@ -3,18 +3,9 @@ from typing import Dict, List, Optional, Tuple, Union
 import tensorflow as tf
 from merlin_standard_lib import Schema
 
+from ..core import Block, ParallelBlock, PredictionTask, TabularBlock, TabularTransformation
 from ..tabular.aggregation import StackFeatures
-from ..core import (
-    Block,
-    ParallelBlock,
-    TabularAggregationType,
-    PredictionTask,
-    TabularBlock,
-    TabularTransformation,
-    TabularTransformationType,
-)
 from ..typing import TabularData
-
 
 # class MultiExpertsBlock(ParallelBlock):
 #     def __init__(
@@ -42,14 +33,14 @@ from ..typing import TabularData
 
 class MMOEGate(tf.keras.layers.Layer):
     def __init__(
-            self,
-            num_experts: int,
-            dim=32,
-            trainable=True,
-            name=None,
-            dtype=None,
-            dynamic=False,
-            **kwargs,
+        self,
+        num_experts: int,
+        dim=32,
+        trainable=True,
+        name=None,
+        dtype=None,
+        dynamic=False,
+        **kwargs,
     ):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
         self.gate = tf.keras.layers.Dense(dim, name=f"gate_{name}")
@@ -66,17 +57,20 @@ class MMOEGate(tf.keras.layers.Layer):
 
 
 class MultiGateMixtureOfExperts(TabularTransformation):
-    def __init__(self,
-                 expert_block: Union[Block, tf.keras.layers.Layer],
-                 num_experts: int,
-                 output_names: List[str],
-                 gate_dim: int = 32,
-                 **kwargs):
+    def __init__(
+        self,
+        expert_block: Union[Block, tf.keras.layers.Layer],
+        num_experts: int,
+        output_names: List[str],
+        gate_dim: int = 32,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
-        self.experts = expert_block.repeat_in_parallel(num_experts, prefix="expert_",
-                                                       aggregation=StackFeatures(axis=1))
+        self.experts = expert_block.repeat_in_parallel(
+            num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
+        )
         self.gate_dict: Dict[str, MMOEGate] = {}
         for task_name in output_names:
             self.gate_dict[task_name] = MMOEGate(num_experts, dim=gate_dim)
@@ -101,13 +95,13 @@ class MultiGateMixtureOfExperts(TabularTransformation):
 
 class CGCGateTransformation(TabularTransformation):
     def __init__(
-            self,
-            task_names: List[str],
-            num_task_experts: int = 1,
-            num_shared_experts: int = 1,
-            add_shared_gate: bool = True,
-            dim: int = 32,
-            **kwargs,
+        self,
+        task_names: List[str],
+        num_task_experts: int = 1,
+        num_shared_experts: int = 1,
+        add_shared_gate: bool = True,
+        dim: int = 32,
+        **kwargs,
     ):
         super().__init__(**kwargs)
         num_total_experts = num_task_experts + num_shared_experts
@@ -153,15 +147,15 @@ class CGCGateTransformation(TabularTransformation):
 
 class CGCBlock(ParallelBlock):
     def __init__(
-            self,
-            expert_block: Union[Block, tf.keras.layers.Layer],
-            prediction_tasks: List[PredictionTask],
-            num_task_experts: int = 1,
-            num_shared_experts: int = 1,
-            add_shared_gate: bool = True,
-            schema: Optional[Schema] = None,
-            name: Optional[str] = None,
-            **kwargs,
+        self,
+        expert_block: Union[Block, tf.keras.layers.Layer],
+        prediction_tasks: List[PredictionTask],
+        num_task_experts: int = 1,
+        num_shared_experts: int = 1,
+        add_shared_gate: bool = True,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        **kwargs,
     ):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)

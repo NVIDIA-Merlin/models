@@ -3,14 +3,15 @@ from typing import Optional, Union
 import tensorflow as tf
 from merlin_standard_lib import Schema
 
+from merlin_models.tf.utils.tf_utils import maybe_serialize_keras_objects
+
 from ..core import (
-    SequentialBlock,
     AsTabular,
+    SequentialBlock,
     TabularAggregationType,
     TabularBlock,
     TabularTransformationType,
 )
-from merlin_models.tf.utils.tf_utils import maybe_serialize_keras_objects
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

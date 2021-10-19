@@ -5,26 +5,26 @@ from merlin_standard_lib import Schema
 from tensorflow.python.keras.engine.base_layer import Layer
 
 from .. import PredictionTask
-from ..block.multi_task import CGCBlock, MMOEGate, MultiGateMixtureOfExperts
-from ..core import Block, SequentialBlock, Head, InputBlock, TabularTransformationType
+from ..block.multi_task import CGCBlock, MultiGateMixtureOfExperts
+from ..core import Block, Head, InputBlock, SequentialBlock, TabularTransformationType
 
 
 class MMOEHead(Head):
     def __init__(
-            self,
-            body: tf.keras.layers.Layer,
-            prediction_tasks: Union[List[PredictionTask], PredictionTask],
-            expert_block: Union[Block, tf.keras.layers.Layer],
-            num_experts: int,
-            gate_dim: int = 32,
-            task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-            task_weights: Optional[List[float]] = None,
-            bias_block: Optional[Layer] = None,
-            loss_reduction=tf.reduce_mean,
-            inputs: Optional[InputBlock] = None,
-            pre: Optional[TabularTransformationType] = None,
-            post: Optional[TabularTransformationType] = None,
-            **kwargs
+        self,
+        body: tf.keras.layers.Layer,
+        prediction_tasks: Union[List[PredictionTask], PredictionTask],
+        expert_block: Union[Block, tf.keras.layers.Layer],
+        num_experts: int,
+        gate_dim: int = 32,
+        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+        task_weights: Optional[List[float]] = None,
+        bias_block: Optional[Layer] = None,
+        loss_reduction=tf.reduce_mean,
+        inputs: Optional[InputBlock] = None,
+        pre: Optional[TabularTransformationType] = None,
+        post: Optional[TabularTransformationType] = None,
+        **kwargs
     ):
         super().__init__(
             body,
@@ -41,23 +41,24 @@ class MMOEHead(Head):
 
         task_names = [task.task_name for task in prediction_tasks]
         self.pre.append(
-            MultiGateMixtureOfExperts(expert_block, num_experts, output_names=task_names,
-                                      gate_dim=gate_dim)
+            MultiGateMixtureOfExperts(
+                expert_block, num_experts, output_names=task_names, gate_dim=gate_dim
+            )
         )
 
     @classmethod
     def from_schema(  # type: ignore
-            cls,
-            schema: Schema,
-            body: Layer,
-            expert_block: Union[Block, tf.keras.layers.Layer],
-            num_experts: int,
-            task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-            task_weight_dict: Optional[Dict[str, float]] = None,
-            bias_block: Optional[Layer] = None,
-            loss_reduction=tf.reduce_mean,
-            inputs: Optional[InputBlock] = None,
-            **kwargs
+        cls,
+        schema: Schema,
+        body: Layer,
+        expert_block: Union[Block, tf.keras.layers.Layer],
+        num_experts: int,
+        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+        task_weight_dict: Optional[Dict[str, float]] = None,
+        bias_block: Optional[Layer] = None,
+        loss_reduction=tf.reduce_mean,
+        inputs: Optional[InputBlock] = None,
+        **kwargs
     ) -> "MMOEHead":
         task_weight_dict = task_weight_dict or {}
 
@@ -79,19 +80,19 @@ class MMOEHead(Head):
 
 class PLEHead(Head):
     def __init__(
-            self,
-            body: tf.keras.layers.Layer,
-            expert_block: Union[Block, tf.keras.layers.Layer],
-            prediction_tasks: Union[List[PredictionTask], PredictionTask],
-            num_task_experts: int = 1,
-            num_shared_experts: int = 1,
-            depth: int = 1,
-            task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-            task_weights: Optional[List[float]] = None,
-            bias_block: Optional[Layer] = None,
-            loss_reduction=tf.reduce_mean,
-            inputs=None,
-            **kwargs
+        self,
+        body: tf.keras.layers.Layer,
+        expert_block: Union[Block, tf.keras.layers.Layer],
+        prediction_tasks: Union[List[PredictionTask], PredictionTask],
+        num_task_experts: int = 1,
+        num_shared_experts: int = 1,
+        depth: int = 1,
+        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+        task_weights: Optional[List[float]] = None,
+        bias_block: Optional[Layer] = None,
+        loss_reduction=tf.reduce_mean,
+        inputs=None,
+        **kwargs
     ):
         super().__init__(
             body,
@@ -119,19 +120,19 @@ class PLEHead(Head):
 
     @classmethod
     def from_schema(  # type: ignore
-            cls,
-            schema: Schema,
-            body: Layer,
-            expert_block: Union[Block, tf.keras.layers.Layer],
-            num_task_experts: int = 1,
-            num_shared_experts: int = 1,
-            depth: int = 1,
-            task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-            task_weight_dict: Optional[Dict[str, float]] = None,
-            bias_block: Optional[Layer] = None,
-            loss_reduction=tf.reduce_mean,
-            inputs: Optional[InputBlock] = None,
-            **kwargs
+        cls,
+        schema: Schema,
+        body: Layer,
+        expert_block: Union[Block, tf.keras.layers.Layer],
+        num_task_experts: int = 1,
+        num_shared_experts: int = 1,
+        depth: int = 1,
+        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+        task_weight_dict: Optional[Dict[str, float]] = None,
+        bias_block: Optional[Layer] = None,
+        loss_reduction=tf.reduce_mean,
+        inputs: Optional[InputBlock] = None,
+        **kwargs
     ) -> "PLEHead":
         task_weight_dict = task_weight_dict or {}
 

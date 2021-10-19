@@ -19,9 +19,9 @@ from typing import List, Optional, Union, cast
 import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 
+from ..core import Block, BlockType, SequentialBlock, TabularBlock
 from ..features.continuous import ContinuousFeatures
 from ..features.embedding import EmbeddingFeatures
-from ..core import Block, BlockType, SequentialBlock, TabularBlock
 
 
 class ExpandDimsAndToTabular(tf.keras.layers.Lambda):
