@@ -21,8 +21,8 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
-from ..typing import TabularData, TensorOrTabularData
 from ..core import TabularTransformation, tabular_transformation_registry
+from ..typing import TabularData, TensorOrTabularData
 
 
 @tabular_transformation_registry.register("as-sparse")
@@ -141,3 +141,12 @@ class StochasticSwapNoise(TabularTransformation):
         config["replacement_prob"] = self.replacement_prob
 
         return config
+
+
+class AddToAll(TabularTransformation):
+    def __init__(self, block, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
+        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+        self.block = block
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        pass

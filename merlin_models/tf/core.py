@@ -15,18 +15,24 @@
 #
 
 import abc
+import copy
+import sys
 from collections import defaultdict
 from functools import reduce
 from typing import Dict, List, Optional, Text, Type, Union, overload
-import copy
-import sys
-import six
 
+import six
 import tensorflow as tf
-from merlin_standard_lib import Schema, Tag
+from merlin_standard_lib import Registry, RegistryMixin, Schema, Tag
+from merlin_standard_lib.utils.doc_utils import docstring_parameter
+from merlin_standard_lib.utils.misc_utils import filter_kwargs
 from tensorflow.keras.layers import Layer
 from tensorflow.python.framework import ops
 from tensorflow.python.keras.utils import generic_utils
+
+from merlin_models.config.schema import SchemaMixin
+
+from .typing import TabularData, TensorOrTabularData
 
 # from ..features.base import InputBlock
 from .utils.tf_utils import (
@@ -36,15 +42,6 @@ from .utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
-
-from merlin_standard_lib.utils.misc_utils import filter_kwargs
-
-from merlin_standard_lib import Registry, RegistryMixin, Schema
-from merlin_standard_lib.utils.doc_utils import docstring_parameter
-
-from merlin_models.config.schema import SchemaMixin
-
-from .typing import TabularData, TensorOrTabularData
 
 
 class Block(SchemaMixin, tf.keras.layers.Layer):
@@ -89,14 +86,14 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
         return SequentialBlock(repeated)
 
     def repeat_in_parallel(
-            self,
-            num: int = 1,
-            prefix=None,
-            names: Optional[List[str]] = None,
-            post: Optional["TabularTransformationType"] = None,
-            aggregation: Optional["TabularAggregationType"] = None,
-            copies=True,
-            **kwargs
+        self,
+        num: int = 1,
+        prefix=None,
+        names: Optional[List[str]] = None,
+        post: Optional["TabularTransformationType"] = None,
+        aggregation: Optional["TabularAggregationType"] = None,
+        copies=True,
+        **kwargs,
     ) -> "ParallelBlock":
         repeated = {}
         iterator = names if names else range(num)
@@ -116,13 +113,14 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
         return SequentialBlock([self, block], copy_layers=False)
 
     def add_in_parallel(
-            self,
-            block: tf.keras.layers.Layer,
-            post: Optional["TabularTransformationType"] = None,
-            aggregation: Optional["TabularAggregationType"] = None,
-            **kwargs
+        self,
+        block: tf.keras.layers.Layer,
+        post: Optional["TabularTransformationType"] = None,
+        aggregation: Optional["TabularAggregationType"] = None,
+        names: Optional[List[str]] = None,
+        **kwargs,
     ) -> "Block":
-        if is_input_block(self.layers[0]) and not has_input_block(block):
+        if has_input_block(self) and not has_input_block(block):
             inputs = self.layers.pop(0)
             output = SequentialBlock(
                 [
@@ -134,12 +132,14 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
                         **kwargs,
                     ),
                 ],
-                copy_layers=False
+                copy_layers=False,
             )
 
             return output
 
-        return ParallelBlock(self, *block, post=post, aggregation=aggregation, **kwargs)
+        to_add = [{names[0]: self, names[1]: block}] if names else (self, block)
+
+        return ParallelBlock(*to_add, post=post, aggregation=aggregation, **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -157,7 +157,7 @@ class SequentialBlock(Block):
         output = c(inputs)    # Equivalent to: output = layer3(layer2(layer1(inputs)))
     """
 
-    def __init__(self, layers, filter_features=None, block_name=None, copy_layers=True, **kwargs):
+    def __init__(self, layers, filter_features=None, block_name=None, copy_layers=False, **kwargs):
         """Create a composition.
 
         Parameters
@@ -467,13 +467,13 @@ class TabularBlock(Block):
     """
 
     def __init__(
-            self,
-            pre: Optional[TabularTransformationsType] = None,
-            post: Optional[TabularTransformationsType] = None,
-            aggregation: Optional[TabularAggregationType] = None,
-            schema: Optional[Schema] = None,
-            name: Optional[str] = None,
-            **kwargs,
+        self,
+        pre: Optional[TabularTransformationsType] = None,
+        post: Optional[TabularTransformationsType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        **kwargs,
     ):
         super().__init__(name=name, **kwargs)
         self.input_size = None
@@ -486,7 +486,7 @@ class TabularBlock(Block):
 
     @classmethod
     def from_schema(
-            cls, schema: Schema, tags=None, allow_none=True, **kwargs
+        cls, schema: Schema, tags=None, allow_none=True, **kwargs
     ) -> Optional["TabularBlock"]:
         """Instantiate a TabularLayer instance from a DatasetSchema.
 
@@ -514,13 +514,13 @@ class TabularBlock(Block):
     @classmethod
     @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING, extra_padding=4)
     def from_features(
-            cls,
-            features: List[str],
-            pre: Optional[TabularTransformationsType] = None,
-            post: Optional[TabularTransformationsType] = None,
-            aggregation: Optional[TabularAggregationType] = None,
-            name=None,
-            **kwargs,
+        cls,
+        features: List[str],
+        pre: Optional[TabularTransformationsType] = None,
+        post: Optional[TabularTransformationsType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        name=None,
+        **kwargs,
     ) -> "TabularBlock":
         """
         Initializes a TabularLayer instance where the contents of features will be filtered out
@@ -541,7 +541,7 @@ class TabularBlock(Block):
         return cls(pre=pre, post=post, aggregation=aggregation, name=name, **kwargs)
 
     def pre_call(
-            self, inputs: TabularData, transformations: Optional[TabularTransformationsType] = None
+        self, inputs: TabularData, transformations: Optional[TabularTransformationsType] = None
     ) -> TabularData:
         """Method that's typically called before the forward method for pre-processing.
 
@@ -563,11 +563,11 @@ class TabularBlock(Block):
         return inputs
 
     def post_call(
-            self,
-            inputs: TabularData,
-            transformations: Optional[TabularTransformationsType] = None,
-            merge_with: Union["TabularBlock", List["TabularBlock"]] = None,
-            aggregation: Optional[TabularAggregationType] = None,
+        self,
+        inputs: TabularData,
+        transformations: Optional[TabularTransformationsType] = None,
+        merge_with: Union["TabularBlock", List["TabularBlock"]] = None,
+        aggregation: Optional[TabularAggregationType] = None,
     ) -> TensorOrTabularData:
         """Method that's typically called after the forward method for post-processing.
 
@@ -611,14 +611,14 @@ class TabularBlock(Block):
         return outputs
 
     def __call__(  # type: ignore
-            self,
-            inputs: TabularData,
-            *args,
-            pre: Optional[TabularTransformationsType] = None,
-            post: Optional[TabularTransformationsType] = None,
-            merge_with: Union["TabularBlock", List["TabularBlock"]] = None,
-            aggregation: Optional[TabularAggregationType] = None,
-            **kwargs,
+        self,
+        inputs: TabularData,
+        *args,
+        pre: Optional[TabularTransformationsType] = None,
+        post: Optional[TabularTransformationsType] = None,
+        merge_with: Union["TabularBlock", List["TabularBlock"]] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        **kwargs,
     ) -> TensorOrTabularData:
         """We overwrite the call method in order to be able to do pre- and post-processing.
 
@@ -654,9 +654,9 @@ class TabularBlock(Block):
         return outputs
 
     def _maybe_apply_transformations(
-            self,
-            inputs: TabularData,
-            transformations: Optional[TabularTransformationsType] = None,
+        self,
+        inputs: TabularData,
+        transformations: Optional[TabularTransformationsType] = None,
     ) -> TabularData:
         """Apply transformations to the inputs if these are defined.
 
@@ -685,6 +685,25 @@ class TabularBlock(Block):
         output_shapes = self._check_post_output_size(self.compute_call_output_shape(input_shapes))
 
         return output_shapes
+
+    def build(self, input_shapes):
+        super().build(input_shapes)
+        output_shapes = input_shapes
+        if self.pre:
+            self.pre.build(input_shapes)
+            output_shapes = self.pre.compute_output_shape(input_shapes)
+
+        output_shapes = self.compute_call_output_shape(output_shapes)
+
+        if isinstance(output_shapes, dict):
+            if self.post:
+                self.post.build(output_shapes)
+                output_shapes = self.post.compute_output_shape(output_shapes)
+            if self.aggregation:
+                schema = getattr(self, "schema", None)
+                self.aggregation.set_schema(schema)
+
+                self.aggregation.build(output_shapes)
 
     def get_config(self):
         config = super(TabularBlock, self).get_config()
@@ -734,7 +753,9 @@ class TabularBlock(Block):
 
         return super().set_schema(schema)
 
-    def route_by_tag(self, tag_or_tags, block, output_name=None):
+    def add_route(
+        self, feature_names_or_schema: Union[List[str], Schema], block: Block, output_name=None
+    ):
         pass
 
     def set_pre(self, value: Optional[TabularTransformationsType]):
@@ -825,8 +846,7 @@ class FilterFeatures(TabularTransformation):
     """
 
     def __init__(
-            self, to_include, trainable=False, name=None, dtype=None, dynamic=False, pop=False,
-            **kwargs
+        self, to_include, trainable=False, name=None, dtype=None, dynamic=False, pop=False, **kwargs
     ):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
         self.to_include = to_include
@@ -876,15 +896,15 @@ class ParallelBlock(TabularBlock):
     """
 
     def __init__(
-            self,
-            *inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]],
-            pre: Optional[TabularTransformationType] = None,
-            post: Optional[TabularTransformationType] = None,
-            aggregation: Optional[TabularAggregationType] = None,
-            schema: Optional[Schema] = None,
-            name: Optional[str] = None,
-            strict: bool = False,
-            **kwargs,
+        self,
+        *inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]],
+        pre: Optional[TabularTransformationType] = None,
+        post: Optional[TabularTransformationType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        strict: bool = False,
+        **kwargs,
     ):
         super().__init__(
             pre=pre, post=post, aggregation=aggregation, schema=schema, name=name, **kwargs
@@ -945,7 +965,8 @@ class ParallelBlock(TabularBlock):
 
         outputs = {}
         if isinstance(inputs, dict) and all(
-                name in inputs for name in list(self.parallel_dict.keys())):
+            name in inputs for name in list(self.parallel_dict.keys())
+        ):
             for key, block in self.parallel_dict.items():
                 out = block(inputs[key])
                 outputs.update(out)
@@ -962,6 +983,18 @@ class ParallelBlock(TabularBlock):
             output_shapes.update(layer.compute_output_shape(input_shape))
 
         return output_shapes
+
+    def build(self, input_shape):
+        if isinstance(input_shape, dict) and all(
+            name in input_shape for name in list(self.parallel_dict.keys())
+        ):
+            for key, block in self.parallel_dict.items():
+                block.build(input_shape[key])
+        else:
+            for layer in self.parallel_values:
+                layer.build(input_shape)
+
+        return super().build(input_shape)
 
     def get_config(self):
         return maybe_serialize_keras_objects(
@@ -999,6 +1032,40 @@ class AsTabular(tf.keras.layers.Layer):
         return True
 
 
+class NoOpLayer(tf.keras.layers.Layer):
+    def call(self, inputs, **kwargs):
+        return inputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
+class ResidualBlock(ParallelBlock):
+    def __init__(
+        self,
+        block: Union[tf.keras.layers.Layer, Block],
+        activation=None,
+        post: Optional[TabularTransformationType] = None,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        strict: bool = False,
+        **kwargs,
+    ):
+        from merlin_models.tf.tabular.aggregation import SumResidual
+
+        inputs = {block.name: block, "shortcut": NoOpLayer()}
+        aggregation = SumResidual(activation=activation)
+        super().__init__(
+            inputs,
+            post=post,
+            aggregation=aggregation,
+            schema=schema,
+            name=name,
+            strict=strict,
+            **kwargs,
+        )
+
+
 def call_parallel(self, other, aggregation=None, **kwargs):
     return ParallelBlock(self, other, aggregation=aggregation, **kwargs)
 
@@ -1016,18 +1083,18 @@ MetricOrMetricClass = Union[tf.keras.metrics.Metric, Type[tf.keras.metrics.Metri
 
 class PredictionTask(Layer, LossMixin, MetricsMixin):
     def __init__(
-            self,
-            loss: tf.keras.losses.Loss,
-            target_name: Optional[str] = None,
-            task_name: Optional[str] = None,
-            metrics: Optional[List[MetricOrMetricClass]] = None,
-            pre: Optional[Layer] = None,
-            task_block: Optional[Layer] = None,
-            prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-            label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-            loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-            name: Optional[Text] = None,
-            **kwargs,
+        self,
+        loss: tf.keras.losses.Loss,
+        target_name: Optional[str] = None,
+        task_name: Optional[str] = None,
+        metrics: Optional[List[MetricOrMetricClass]] = None,
+        pre: Optional[Layer] = None,
+        task_block: Optional[Layer] = None,
+        prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        name: Optional[Text] = None,
+        **kwargs,
     ) -> None:
         """Initializes the task.
 
@@ -1096,13 +1163,13 @@ class PredictionTask(Layer, LossMixin, MetricsMixin):
         return name_fn(self.task_name, name)
 
     def compute_loss(  # type: ignore
-            self,
-            predictions,
-            targets,
-            training: bool = False,
-            compute_metrics=True,
-            sample_weight: Optional[tf.Tensor] = None,
-            **kwargs,
+        self,
+        predictions,
+        targets,
+        training: bool = False,
+        compute_metrics=True,
+        sample_weight: Optional[tf.Tensor] = None,
+        **kwargs,
     ) -> tf.Tensor:
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
@@ -1211,17 +1278,17 @@ class MaybeCallBody(TabularTransformation):
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class Head(ParallelBlock):
     def __init__(
-            self,
-            body: tf.keras.layers.Layer,
-            prediction_tasks: Union[List[PredictionTask], PredictionTask],
-            task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-            task_weights: Optional[List[float]] = None,
-            bias_block: Optional[Layer] = None,
-            loss_reduction=tf.reduce_mean,
-            pre: Optional[TabularTransformationType] = None,
-            post: Optional[TabularTransformationType] = None,
-            inputs: Optional["InputBlock"] = None,
-            **kwargs,
+        self,
+        body: tf.keras.layers.Layer,
+        prediction_tasks: Union[List[PredictionTask], PredictionTask],
+        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+        task_weights: Optional[List[float]] = None,
+        bias_block: Optional[Layer] = None,
+        loss_reduction=tf.reduce_mean,
+        pre: Optional[TabularTransformationType] = None,
+        post: Optional[TabularTransformationType] = None,
+        inputs: Optional["InputBlock"] = None,
+        **kwargs,
     ):
         self.body = body
         self.inputs = inputs
@@ -1269,15 +1336,15 @@ class Head(ParallelBlock):
 
     @classmethod
     def from_schema(  # type: ignore
-            cls,
-            schema: Schema,
-            body: Layer,
-            task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-            task_weight_dict: Optional[Dict[str, float]] = None,
-            bias_block: Optional[Layer] = None,
-            loss_reduction=tf.reduce_mean,
-            inputs=None,
-            **kwargs,
+        cls,
+        schema: Schema,
+        body: Layer,
+        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+        task_weight_dict: Optional[Dict[str, float]] = None,
+        bias_block: Optional[Layer] = None,
+        loss_reduction=tf.reduce_mean,
+        inputs=None,
+        **kwargs,
     ) -> "Head":
         task_weight_dict = task_weight_dict or {}
 
@@ -1365,11 +1432,10 @@ class Head(ParallelBlock):
         return super().build(input_shape)
 
     def call(
-            self,
-            inputs: Union[TabularData, tf.Tensor],
-            # always_output_dict=False,
-            bias_outputs=None,
-            **kwargs,
+        self,
+        inputs: Union[TabularData, tf.Tensor],
+        bias_outputs=None,
+        **kwargs,
     ):
         # if call_body:
         #     if bias_outputs is None and self.bias_block:
@@ -1403,11 +1469,7 @@ class Head(ParallelBlock):
     #     return outputs
 
     def compute_loss(
-            self,
-            inputs: Union[tf.Tensor, TabularData],
-            targets,
-            training=False,
-            **kwargs
+        self, inputs: Union[tf.Tensor, TabularData], targets, training=False, **kwargs
     ) -> tf.Tensor:
         losses = []
 
@@ -1515,7 +1577,7 @@ class BaseModel(tf.keras.Model, LossMixin, abc.ABC):
 
 class Model(BaseModel):
     def __init__(
-            self, *head: Head, head_weights: Optional[List[float]] = None, name=None, **kwargs
+        self, *head: Head, head_weights: Optional[List[float]] = None, name=None, **kwargs
     ):
         if head_weights:
             if not isinstance(head_weights, (list, tuple)):
@@ -1542,12 +1604,12 @@ class Model(BaseModel):
         return outputs
 
     def compute_loss(  # type: ignore
-            self,
-            inputs: Union[tf.Tensor, TabularData],
-            targets: Union[tf.Tensor, TabularData],
-            training: bool = False,
-            compute_metrics=True,
-            **kwargs
+        self,
+        inputs: Union[tf.Tensor, TabularData],
+        targets: Union[tf.Tensor, TabularData],
+        training: bool = False,
+        compute_metrics=True,
+        **kwargs,
     ) -> tf.Tensor:
         if isinstance(inputs, dict):
             inputs = self.call(inputs, **kwargs)

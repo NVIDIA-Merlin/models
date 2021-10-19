@@ -21,12 +21,23 @@ from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
 from .. import data
-from .core import (Block, SequentialBlock, right_shift_layer, Head, Model, PredictionTask,
-                   AsTabular, FilterFeatures, ParallelBlock, TabularBlock)
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
-from .block.mlp import MLPBlock
+from .block.mlp import MLPBlock, MLPResidualBlock
 from .block.retrieval import Retrieval
+from .core import (
+    AsTabular,
+    Block,
+    FilterFeatures,
+    Head,
+    Model,
+    ParallelBlock,
+    PredictionTask,
+    ResidualBlock,
+    SequentialBlock,
+    TabularBlock,
+    right_shift_layer,
+)
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.tabular import TabularFeatures
@@ -56,10 +67,12 @@ __all__ = [
     "Tag",
     "Block",
     "SequentialBlock",
+    "ResidualBlock",
     "right_shift_layer",
     "CrossBlock",
     "DLRMBlock",
     "MLPBlock",
+    "MLPResidualBlock",
     "TabularBlock",
     "ContinuousFeatures",
     "EmbeddingFeatures",

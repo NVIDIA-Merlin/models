@@ -25,14 +25,14 @@ from ..block.mlp import MLPBlock
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     AsTabular,
+    InputBlockMixin,
     ParallelBlock,
+    SequentialBlock,
     TabularAggregationType,
     TabularBlock,
     TabularTransformationType,
-    SequentialBlock
 )
 from ..utils import tf_utils
-from ..core import InputBlockMixin
 from .continuous import ContinuousFeatures
 from .embedding import EmbeddingFeatures
 
@@ -64,17 +64,17 @@ class TabularFeatures(ParallelBlock, InputBlockMixin):
     EMBEDDING_MODULE_CLASS: Type[TabularBlock] = EmbeddingFeatures
 
     def __init__(
-            self,
-            continuous_layer: Optional[TabularBlock] = None,
-            categorical_layer: Optional[TabularBlock] = None,
-            text_embedding_layer: Optional[TabularBlock] = None,
-            continuous_projection: Optional[Union[List[int], int]] = None,
-            pre: Optional[TabularTransformationType] = None,
-            post: Optional[TabularTransformationType] = None,
-            aggregation: Optional[TabularAggregationType] = None,
-            schema: Optional[Schema] = None,
-            name: Optional[str] = None,
-            **kwargs
+        self,
+        continuous_layer: Optional[TabularBlock] = None,
+        categorical_layer: Optional[TabularBlock] = None,
+        text_embedding_layer: Optional[TabularBlock] = None,
+        continuous_projection: Optional[Union[List[int], int]] = None,
+        pre: Optional[TabularTransformationType] = None,
+        post: Optional[TabularTransformationType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        **kwargs
     ):
         to_merge = {}
         if continuous_layer:
@@ -99,7 +99,7 @@ class TabularFeatures(ParallelBlock, InputBlockMixin):
             self.project_continuous_features(continuous_projection)
 
     def project_continuous_features(
-            self, mlp_layers_dims: Union[List[int], int]
+        self, mlp_layers_dims: Union[List[int], int]
     ) -> "TabularFeatures":
         """Combine all concatenated continuous features with stacked MLP layers
 
@@ -129,16 +129,16 @@ class TabularFeatures(ParallelBlock, InputBlockMixin):
 
     @classmethod
     def from_schema(  # type: ignore
-            cls,
-            schema: Schema,
-            continuous_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CONTINUOUS,),
-            categorical_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CATEGORICAL,),
-            aggregation: Optional[str] = None,
-            continuous_projection: Optional[Union[List[int], int]] = None,
-            max_sequence_length=None,
-            max_text_length=None,
-            **kwargs
-    ):
+        cls,
+        schema: Schema,
+        continuous_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CONTINUOUS,),
+        categorical_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CATEGORICAL,),
+        aggregation: Optional[str] = None,
+        continuous_projection: Optional[Union[List[int], int]] = None,
+        max_sequence_length=None,
+        max_text_length=None,
+        **kwargs
+    ) -> "TabularFeatures":
         maybe_continuous_layer, maybe_categorical_layer = None, None
         if continuous_tags:
             maybe_continuous_layer = cls.CONTINUOUS_MODULE_CLASS.from_schema(

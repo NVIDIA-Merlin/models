@@ -34,7 +34,6 @@ class BinaryClassificationTask(PredictionTask):
         task_block: Optional[Layer] = None,
         loss=DEFAULT_LOSS,
         metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
-        summary_type="first",
         **kwargs,
     ):
         super().__init__(
@@ -42,7 +41,6 @@ class BinaryClassificationTask(PredictionTask):
             metrics=list(metrics),
             target_name=target_name,
             task_name=task_name,
-            summary_type=summary_type,
             task_block=task_block,
             **kwargs,
         )
@@ -61,7 +59,6 @@ class RegressionTask(PredictionTask):
         task_block: Optional[Layer] = None,
         loss=DEFAULT_LOSS,
         metrics=DEFAULT_METRICS,
-        summary_type="first",
         **kwargs,
     ):
         super().__init__(
@@ -69,7 +66,6 @@ class RegressionTask(PredictionTask):
             metrics=metrics,
             target_name=target_name,
             task_name=task_name,
-            summary_type=summary_type,
             task_block=task_block,
             **kwargs,
         )

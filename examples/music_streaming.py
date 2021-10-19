@@ -79,39 +79,55 @@ def build_two_tower(schema: Schema, target="play") -> ml.Model:
     return model
 
 
-def build_dnn(schema: Schema) -> ml.Model:
+def build_dnn(schema: Schema, residual=False) -> ml.Model:
     schema = schema.remove_by_tag("bias")
 
-    return ml.MLPBlock.from_schema(schema, [512, 256]).to_model(schema)
+    if residual:
+        block = ml.MLPResidualBlock.from_schema(schema, depth=2)
+
+    else:
+        block = ml.MLPBlock.from_schema(schema, [512, 256])
+
+    return block.to_model(schema)
 
 
 def build_dcn(schema: Schema) -> ml.Model:
+    # bias_schema = schema.select_by_tag("bias")
     schema = schema.remove_by_tag("bias")
 
     cross = ml.CrossBlock.from_schema(schema, depth=3)
     deep_cross = cross.add_in_parallel(ml.MLPBlock([512, 256]), aggregation="concat")
+
+    # inputs = ml.TabularFeatures.from_schema(schema)
+    # inputs.add_route(schema.select_by_tag("bias"), ml.MLPBlock([512, 256]))
+    # deep_cross = ml.CrossBlock(3).add_in_parallel(ml.MLPBlock([512, 256]), aggregation="concat")
+    # inputs.add_route(schema.remove_by_tag("bias"), deep_cross)
 
     return deep_cross.to_model(schema)
 
 
 def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     # TODO: Change msl to be able to make this a single function call.
-    bias_schema = schema.select_by_tag("bias")
+    # bias_schema = schema.select_by_tag("bias")
     schema = schema.remove_by_tag("bias")
 
     body = ml.DLRMBlock.from_schema(
         schema, bottom_mlp=ml.MLPBlock([512, 128]), top_mlp=ml.MLPBlock([512, 128])
     )
     # bias_block = ml.MLPBlock.from_schema(bias_schema, [64])
+    # body = body.add_in_parallel(bias_block, names=["main", "bias"])
 
-    return ml.MMOEHead.from_schema(
+    head = ml.MMOEHead.from_schema(
         schema,
         body,
         task_blocks=ml.MLPBlock([64, 32]),
         expert_block=ml.MLPBlock([64, 32]),
         num_experts=3,
         # bias_block=bias_block,
-    ).to_model()
+    )
+    # head.add_in_parallel()
+
+    return head.to_model()
 
     # return ml.PLEHead.from_schema(
     #     schema,
@@ -147,8 +163,8 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
-    # model = build_dnn(synthetic_music_recsys_data_schema)
-    model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
+    model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
+    # model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
     # model = build_dcn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
     # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")

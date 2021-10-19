@@ -11,6 +11,75 @@ InitializerType = Union[str, tf.keras.initializers.Initializer]
 RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
 
 
+class DenseSameDim(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        projection_dim: Optional[int] = None,
+        use_bias: bool = True,
+        activation=None,
+        kernel_initializer: InitializerType = "truncated_normal",
+        bias_initializer: InitializerType = "zeros",
+        kernel_regularizer: Optional[RegularizerType] = None,
+        bias_regularizer: Optional[RegularizerType] = None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.projection_dim = projection_dim
+        self.use_bias = use_bias
+        self.activation = activation
+        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
+        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
+        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
+        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
+
+    def build(self, input_shape):
+        last_dim = input_shape[-1]
+
+        dense = tf.keras.layers.Dense(
+            last_dim,
+            activation=self.activation,
+            kernel_initializer=self.kernel_initializer,
+            bias_initializer=self.bias_initializer,
+            kernel_regularizer=self.kernel_regularizer,
+            bias_regularizer=self.bias_regularizer,
+            use_bias=self.use_bias,
+        )
+
+        if self.projection_dim is None:
+            self.dense = dense
+        else:
+            self.dense_u = tf.keras.layers.Dense(
+                self.projection_dim,
+                activation=self.activation,
+                kernel_initializer=self.kernel_initializer,
+                kernel_regularizer=self.kernel_regularizer,
+                use_bias=False,
+            )
+            self.dense_v = dense
+        super(DenseSameDim, self).build(input_shape)
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        if self.projection_dim is None:
+            return self.dense(inputs)
+
+        return self.dense_v(self.dense_u(inputs))
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def get_config(self):
+        config = dict(
+            projection_dim=self.projection_dim, use_bias=self.use_bias, activation=self.activation
+        )
+        config.update(super(DenseSameDim, self).get_config())
+
+        return maybe_serialize_keras_objects(
+            self,
+            config,
+            ["kernel_initializer", "bias_initializer", "kernel_regularizer", "bias_regularizer"],
+        )
+
+
 @tf.keras.utils.register_keras_serializable()
 class Cross(tf.keras.layers.Layer):
     def __init__(
@@ -27,41 +96,21 @@ class Cross(tf.keras.layers.Layer):
     ):
         super(Cross, self).__init__(**kwargs)
 
-        self.projection_dim = projection_dim
         self.diagonal_scale = diagonal_scale
-        self.use_bias = use_bias
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
-        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
-        self.input_dim = None
         self.output_x0 = output_x0
-
-        self._supports_masking = True
-
-    def build(self, input_shape):
-        last_dim = input_shape[-1]
-
-        dense = tf.keras.layers.Dense(
-            last_dim,
-            kernel_initializer=self.kernel_initializer,
-            bias_initializer=self.bias_initializer,
-            kernel_regularizer=self.kernel_regularizer,
-            bias_regularizer=self.bias_regularizer,
-            use_bias=self.use_bias,
+        self.dense = kwargs.get(
+            "dense",
+            DenseSameDim(
+                projection_dim=projection_dim,
+                use_bias=use_bias,
+                kernel_initializer=kernel_initializer,
+                bias_initializer=bias_initializer,
+                kernel_regularizer=kernel_regularizer,
+                bias_regularizer=bias_regularizer,
+            ),
         )
 
-        if self.projection_dim is None:
-            self.dense = dense
-        else:
-            self.dense_u = tf.keras.layers.Dense(
-                self.projection_dim,
-                kernel_initializer=self.kernel_initializer,
-                kernel_regularizer=self.kernel_regularizer,
-                use_bias=False,
-            )
-            self.dense_v = dense
-        super(Cross, self).build(input_shape)
+        self._supports_masking = True
 
     def compute_output_shape(self, input_shape):
         return input_shape
@@ -74,7 +123,7 @@ class Cross(tf.keras.layers.Layer):
 
         self.validate_inputs(x0, x)
 
-        projected = self.project(x)
+        projected = self.dense(x)
 
         if self.diagonal_scale:
             projected = projected + self.diagonal_scale * x
@@ -85,12 +134,6 @@ class Cross(tf.keras.layers.Layer):
 
         return output
 
-    def project(self, x):
-        if self.projection_dim is None:
-            return self.dense(x)
-
-        return self.dense_v(self.dense_u(x))
-
     def validate_inputs(self, x0, x):
         if x0.shape[-1] != x.shape[-1]:
             raise ValueError(
@@ -99,20 +142,10 @@ class Cross(tf.keras.layers.Layer):
             )
 
     def get_config(self):
-        config = super(Cross, self).get_config()
-        config.update(
-            dict(
-                projection_dim=self.projection_dim,
-                diagonal_scale=self.diagonal_scale,
-                use_bias=self.use_bias,
-            )
-        )
+        config = dict(diagonal_scale=self.diagonal_scale)
+        config.update(super(Cross, self).get_config())
 
-        return maybe_serialize_keras_objects(
-            self,
-            config,
-            ["kernel_initializer", "bias_initializer", "kernel_regularizer", "bias_regularizer"],
-        )
+        return maybe_serialize_keras_objects(self, config, ["dense"])
 
 
 class CrossBlock(SequentialBlock):
@@ -145,7 +178,7 @@ class CrossBlock(SequentialBlock):
                     bias_initializer=bias_initializer,
                     kernel_regularizer=kernel_regularizer,
                     bias_regularizer=bias_regularizer,
-                    output_x0=i < depth - 1
+                    output_x0=i < depth - 1,
                 )
             )
 

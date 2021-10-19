@@ -18,9 +18,9 @@ import tensorflow as tf
 from merlin_standard_lib import Schema
 
 from ...config.schema import requires_schema
+from ..core import TabularAggregation, tabular_aggregation_registry
 from ..typing import TabularData
 from ..utils.tf_utils import calculate_batch_size_from_input_shapes
-from ..core import TabularAggregation, tabular_aggregation_registry
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
@@ -97,6 +97,43 @@ class ElementwiseFeatureAggregation(TabularAggregation):
                 "The shapes of all input features are not equal, which is required for element-wise"
                 " aggregation: {}".format({k: v.shape for k, v in inputs.items()})
             )
+
+
+@tabular_aggregation_registry.register("sum")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class Sum(TabularAggregation):
+    def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
+        summed = tf.reduce_sum(list(inputs.values()), axis=0)
+
+        return summed
+
+    def compute_output_shape(self, input_shape):
+        batch_size = calculate_batch_size_from_input_shapes(input_shape)
+        last_dim = list(input_shape.values())[0][-1]
+
+        return batch_size, last_dim
+
+
+@tabular_aggregation_registry.register("sum-residual")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class SumResidual(Sum):
+    def __init__(self, activation="relu", **kwargs):
+        super().__init__(**kwargs)
+        self.activation = tf.keras.layers.Activation(activation) if activation else None
+
+    def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
+        output = tf.reduce_sum(list(inputs.values()), axis=0)
+
+        if self.activation:
+            output = self.activation(output)
+
+        return output
+
+    def compute_output_shape(self, input_shape):
+        batch_size = calculate_batch_size_from_input_shapes(input_shape)
+        last_dim = list(input_shape.values())[0][-1]
+
+        return batch_size, last_dim
 
 
 @tabular_aggregation_registry.register("add-left")
