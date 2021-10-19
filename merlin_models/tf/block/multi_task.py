@@ -7,29 +7,6 @@ from ..core import Block, ParallelBlock, PredictionTask, TabularBlock, TabularTr
 from ..tabular.aggregation import StackFeatures
 from ..typing import TabularData
 
-# class MultiExpertsBlock(ParallelBlock):
-#     def __init__(
-#         self,
-#         expert_block: Union[Block, tf.keras.layers.Layer],
-#         num_experts: int,
-#         post: Optional[TabularTransformationType] = None,
-#         aggregation: Optional[TabularAggregationType] = StackFeatures(axis=1),
-#         schema: Optional[Schema] = None,
-#         name: Optional[str] = None,
-#         **kwargs,
-#     ):
-#         experts = dict([create_expert(expert_block, f"expert_{i}") for i in range(num_experts)])
-#
-#         super().__init__(
-#             experts,
-#             post=post,
-#             aggregation=aggregation,
-#             schema=schema,
-#             name=name,
-#             strict=False,
-#             **kwargs,
-#         )
-
 
 class MMOEGate(tf.keras.layers.Layer):
     def __init__(

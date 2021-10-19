@@ -44,19 +44,19 @@ def test_serialization_simple_heads(tf_tabular_features, tf_tabular_data, predic
     test_utils.assert_loss_and_metrics_are_valid(copy_head, tf_tabular_data, targets)
 
 
-@pytest.mark.parametrize("task", [tr.BinaryClassificationTask, tr.RegressionTask])
-@pytest.mark.parametrize("task_block", [None, tr.MLPBlock([32])])
-@pytest.mark.parametrize("summary", ["last", "first", "mean", "cls_index"])
-def test_simple_heads_on_sequence(
-    tf_tabular_features, tf_yoochoose_like, task, task_block, summary
-):
-    inputs = tf_tabular_features
-    targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
-
-    body = tr.SequentialBlock([inputs, tr.MLPBlock([64])])
-    head = task("target", task_block=task_block, summary_type=summary).to_head(body, inputs)
-
-    test_utils.assert_loss_and_metrics_are_valid(head, tf_yoochoose_like, targets)
+# @pytest.mark.parametrize("task", [tr.BinaryClassificationTask, tr.RegressionTask])
+# @pytest.mark.parametrize("task_block", [None, tr.MLPBlock([32])])
+# @pytest.mark.parametrize("summary", ["last", "first", "mean", "cls_index"])
+# def test_simple_heads_on_sequence(
+#     tf_tabular_features, tf_yoochoose_like, task, task_block, summary
+# ):
+#     inputs = tf_tabular_features
+#     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
+#
+#     body = tr.SequentialBlock([inputs, tr.MLPBlock([64])])
+#     head = task("target", task_block=task_block, summary_type=summary).to_head(body, inputs)
+#
+#     test_utils.assert_loss_and_metrics_are_valid(head, tf_yoochoose_like, targets)
 
 
 @pytest.mark.parametrize(

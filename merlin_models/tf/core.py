@@ -1187,6 +1187,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin):
     ) -> tf.Tensor:
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
+        if isinstance(predictions, dict) and self.target_name:
+            predictions = predictions[self.task_name]
 
         # predictions = self(inputs, training=training, **kwargs)
         loss = self.loss(y_true=targets, y_pred=predictions, sample_weight=sample_weight)
@@ -1277,6 +1279,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin):
         return config
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class MaybeCallBody(TabularTransformation):
     def __init__(self, body, **kwargs):
         super().__init__(**kwargs)
@@ -1287,6 +1290,21 @@ class MaybeCallBody(TabularTransformation):
             return self.body(inputs)
 
         return inputs
+
+    def compute_output_shape(self, input_shape):
+        if isinstance(input_shape, dict):
+            return self.body.compute_output_shape(input_shape)
+
+        return input_shape
+
+    def get_config(self):
+        return maybe_serialize_keras_objects(self, super().get_config(), ["body"])
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["body"])
+
+        return super().from_config(config)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
