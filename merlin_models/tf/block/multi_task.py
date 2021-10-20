@@ -11,17 +11,8 @@ from ..typing import TabularData
 
 
 class MMOEGate(Block):
-    def __init__(
-        self,
-        num_experts: int,
-        dim=32,
-        trainable=True,
-        name=None,
-        dtype=None,
-        dynamic=False,
-        **kwargs,
-    ):
-        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+    def __init__(self, num_experts: int, dim=32, name=None, **kwargs):
+        super().__init__(name=name, **kwargs)
         self.dim = dim
         self.num_experts = num_experts
 
@@ -30,7 +21,7 @@ class MMOEGate(Block):
             num_experts, use_bias=False, activation="softmax", name=f"gate_distribution_{name}"
         )
 
-    def call(self, inputs: TabularData, **kwargs):  # type: ignore
+    def call(self, inputs: TabularData, **kwargs):
         shortcut = inputs.pop("shortcut")
         expert_outputs = list(inputs.values())[0]
 
@@ -81,68 +72,68 @@ class MMOEGateAggregation(TabularAggregation):
         return {name: tensor_output_shape for name in self.gate_dict}
 
 
-class MultiGateMixtureOfExperts(TabularTransformation):
-    def __init__(
-        self,
-        expert_block: Union[Block, tf.keras.layers.Layer],
-        num_experts: int,
-        output_names: List[str],
-        gate_dim: int = 32,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        if not isinstance(expert_block, Block):
-            expert_block = Block.from_layer(expert_block)
-
-        self.output_names = output_names
-
-        agg = StackFeatures(axis=1)
-        experts = expert_block.repeat_in_parallel(num_experts, prefix="expert_", aggregation=agg)
-        gates = MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
-        self.mmoe = expert_block.add_with_shortcut(experts).add(gates, block_name="MMOE")
-
-        self.experts = experts
-        self.gates = gates
-
-        str(self.mmoe)
-
-        a = 5
-
-        # self.experts = expert_block.repeat_in_parallel(num_experts, prefix="expert_", residual=True)
-        # gates = ParallelBlock({task_name: MMOEGate(num_experts, dim=gate_dim)
-        #                        for task_name in output_names})
-        # self.experts.add(gates)
-        # self.gate_dict: Dict[str, MMOEGate] = {}
-        # for task_name in output_names:
-        #     self.gate_dict[task_name] = MMOEGate(num_experts, dim=gate_dim)
-
-    def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        experts = self.experts(inputs)
-        #
-        # gates_inputs = dict(experts=experts, shortcut=inputs)
-        # out = self.gates(inputs)
-        #
-        # return out
-
-
-        return self.mmoe(inputs)
-
-        # outputs = {}
-        #
-        # expert_outputs = self.experts(inputs)
-        #
-        # for name, gate in self.gate_dict.items():
-        #     outputs[name] = gate(inputs, expert_outputs)
-        #
-        # return outputs
-
-    def compute_output_shape(self, input_shape):
-        # return self.mmoe.compute_output_shape(input_shape)
-        tensor_output_shape = input_shape
-        if isinstance(input_shape, dict):
-            tensor_output_shape = list(input_shape.values())[0]
-
-        return {name: tensor_output_shape for name in self.output_names}
+# class MultiGateMixtureOfExperts(TabularTransformation):
+#     def __init__(
+#         self,
+#         expert_block: Union[Block, tf.keras.layers.Layer],
+#         num_experts: int,
+#         output_names: List[str],
+#         gate_dim: int = 32,
+#         **kwargs,
+#     ):
+#         super().__init__(**kwargs)
+#         if not isinstance(expert_block, Block):
+#             expert_block = Block.from_layer(expert_block)
+#
+#         self.output_names = output_names
+#
+#         agg = StackFeatures(axis=1)
+#         experts = expert_block.repeat_in_parallel(num_experts, prefix="expert_", aggregation=agg)
+#         gates = MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
+#         self.mmoe = expert_block.add_with_shortcut(experts).add(gates, block_name="MMOE")
+#
+#         self.experts = experts
+#         self.gates = gates
+#
+#         str(self.mmoe)
+#
+#         a = 5
+#
+#         # self.experts = expert_block.repeat_in_parallel(num_experts, prefix="expert_", residual=True)
+#         # gates = ParallelBlock({task_name: MMOEGate(num_experts, dim=gate_dim)
+#         #                        for task_name in output_names})
+#         # self.experts.add(gates)
+#         # self.gate_dict: Dict[str, MMOEGate] = {}
+#         # for task_name in output_names:
+#         #     self.gate_dict[task_name] = MMOEGate(num_experts, dim=gate_dim)
+#
+#     def call(self, inputs: TabularData, **kwargs) -> TabularData:
+#         experts = self.experts(inputs)
+#         #
+#         # gates_inputs = dict(experts=experts, shortcut=inputs)
+#         # out = self.gates(inputs)
+#         #
+#         # return out
+#
+#
+#         return self.mmoe(inputs)
+#
+#         # outputs = {}
+#         #
+#         # expert_outputs = self.experts(inputs)
+#         #
+#         # for name, gate in self.gate_dict.items():
+#         #     outputs[name] = gate(inputs, expert_outputs)
+#         #
+#         # return outputs
+#
+#     def compute_output_shape(self, input_shape):
+#         # return self.mmoe.compute_output_shape(input_shape)
+#         tensor_output_shape = input_shape
+#         if isinstance(input_shape, dict):
+#             tensor_output_shape = list(input_shape.values())[0]
+#
+#         return {name: tensor_output_shape for name in self.output_names}
 
 
 class CGCGateTransformation(TabularTransformation):

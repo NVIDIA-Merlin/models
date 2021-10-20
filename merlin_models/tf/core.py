@@ -19,7 +19,7 @@ import copy
 import sys
 from collections import defaultdict
 from functools import reduce
-from typing import Dict, List, Optional, Text, Type, Union, overload
+from typing import Dict, List, Optional, Text, Type, Union, overload, Sequence
 
 import six
 import tensorflow as tf
@@ -47,6 +47,14 @@ from .utils.tf_utils import (
 class Block(SchemaMixin, tf.keras.layers.Layer):
     @overload
     def to_model(self, prediction_task_or_head: Schema, inputs=None, **kwargs) -> "Model":
+        ...
+
+    @overload
+    def to_model(self, prediction_task_or_head: "PredictionTask", inputs=None, **kwargs) -> "Model":
+        ...
+
+    @overload
+    def to_model(self, prediction_task_or_head: "Head", inputs=None, **kwargs) -> "Model":
         ...
 
     def to_model(self, prediction_task_or_head_or_schema, inputs=None, **kwargs) -> "Model":
@@ -81,7 +89,7 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
     def repeat(self, num: int = 1) -> "SequentialBlock":
         repeated = []
         for _ in range(num):
-            repeated.append(self.from_config(self.to_config()))
+            repeated.append(self.copy())
 
         return SequentialBlock(repeated)
 
@@ -101,7 +109,7 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
         if not names and prefix:
             iterator = [f"{prefix}{num}" for num in iterator]
         for name in iterator:
-            repeated[str(name)] = self.from_config(self.get_config()) if copies else self
+            repeated[str(name)] = self.copy() if copies else self
 
         if residual:
             repeated["shortcut"] = NoOpLayer()
@@ -184,6 +192,9 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
         to_add = [{names[0]: self, names[1]: block}] if names else (self, block)
 
         return ParallelBlock(*to_add, post=post, aggregation=aggregation, **kwargs)
+
+    def copy(self):
+        return self.from_config(self.get_config())
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -792,18 +803,33 @@ class TabularBlock(Block):
 
         return super().set_schema(schema)
 
-    # def add_routes(
-    #         self, feature_names_or_schema: Union[List[str], Schema], block: Block, output_name=None
-    # ):
-    #     pass
-
     def add_routes(
             self,
-            routes: Dict[Union[List[str], Schema], Block],
-            rest=None,
-            add_rest_as_shortcut=False
-    ):
-        pass
+            routes: Dict[Union[List[str], Schema, Tag], Block],
+            rest: Optional[Block] = None,
+            add_rest=False,
+            post: Optional[TabularTransformationsType] = None,
+            aggregation: Optional[TabularAggregationType] = None,
+    ) -> "ParallelBlock":
+        blocks = []
+        all_features = []
+        for features, route_block in routes.items():
+            if isinstance(features, Tag):
+                features = self.schema.select_by_tag(features)
+            all_features.extend(features)
+            blocks.append(SequentialBlock([FilterFeatures(features), route_block]))
+
+        all_features = list(set(all_features))
+        rest_block = None
+        if rest:
+            rest_block = SequentialBlock([FilterFeatures(all_features, exclude=True), rest])
+        elif add_rest:
+            rest_block = SequentialBlock([FilterFeatures(all_features, exclude=True), NoOpLayer()])
+
+        if rest_block:
+            blocks.append(rest_block)
+
+        return ParallelBlock(*blocks, post=post, aggregation=aggregation)
 
     def set_pre(self, value: Optional[TabularTransformationsType]):
         if value and isinstance(value, SequentialTabularTransformations):
@@ -892,12 +918,18 @@ class FilterFeatures(TabularTransformation):
         Boolean indicating whether to pop the features to exclude from the inputs dictionary.
     """
 
-    def __init__(
-            self, to_include, trainable=False, name=None, dtype=None, dynamic=False, pop=False,
-            **kwargs
-    ):
-        super().__init__(trainable, name, dtype, dynamic, **kwargs)
-        self.to_include = to_include
+    @overload
+    def __init__(self, inputs: Schema, name=None, pop=False, exclude=False, **kwargs):
+        ...
+
+    @overload
+    def __init__(self, inputs: Sequence[str], name=None, pop=False, exclude=False, **kwargs):
+        ...
+
+    def __init__(self, inputs, name=None, pop=False, exclude=False, **kwargs):
+        super().__init__(name=name, **kwargs)
+        self.feature_names = list(inputs.column_names) if isinstance(inputs, Schema) else inputs
+        self.exclude = exclude
         self.pop = pop
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
@@ -914,7 +946,7 @@ class FilterFeatures(TabularTransformation):
         """
         assert isinstance(inputs, dict), "Inputs needs to be a dict"
 
-        outputs = {k: v for k, v in inputs.items() if k in self.to_include}
+        outputs = {k: v for k, v in inputs.items() if self.check_feature(k)}
         if self.pop:
             for key in outputs.keys():
                 inputs.pop(key)
@@ -923,6 +955,12 @@ class FilterFeatures(TabularTransformation):
 
     def compute_output_shape(self, input_shape):
         return {k: v for k, v in input_shape.items() if k in self.to_include}
+
+    def check_feature(self, feature_name) -> bool:
+        if self.exclude:
+            return feature_name not in self.feature_names
+
+        return feature_name in self.feature_names
 
     def get_config(self):
         config = super().get_config()

@@ -5,7 +5,7 @@ from merlin_standard_lib import Schema
 from tensorflow.python.keras.engine.base_layer import Layer
 
 from .. import PredictionTask
-from ..block.multi_task import CGCBlock, MultiGateMixtureOfExperts
+from ..block.multi_task import CGCBlock
 from ..core import Block, Head, InputBlock, SequentialBlock, TabularTransformationType
 
 
