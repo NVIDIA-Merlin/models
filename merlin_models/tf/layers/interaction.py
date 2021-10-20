@@ -107,7 +107,8 @@ class DotProductInteraction(tf.keras.layers.Layer):
             output_dim = input_shape[1] ** 2
         else:
             output_dim = input_shape[1] * (input_shape[1] - 1) // 2
-        return (input_shape[0], output_dim)
+
+        return input_shape[0], output_dim
 
     def get_config(self):
         return {

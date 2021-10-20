@@ -37,7 +37,8 @@ def dict_wrapper_repr(self):
             child = child.table
         mod_str = repr(child)
         mod_str = _addindent(mod_str, 2)
-        child_lines.append("(" + key + "): " + mod_str)
+        # child_lines.append("(" + key + "): " + mod_str)
+        child_lines.append(f"({key}): {mod_str}")
 
     main_str = "Dict("
     if child_lines:

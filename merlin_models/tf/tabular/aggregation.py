@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from typing import Union
 
 import tensorflow as tf
 from merlin_standard_lib import Schema
@@ -78,7 +79,15 @@ class StackFeatures(TabularAggregation):
 
     def compute_output_shape(self, input_shapes):
         agg_dim = list(input_shapes.values())[0][-1]
-        output_size = self._get_agg_output_size(input_shapes, agg_dim)
+        output_size = self._get_agg_output_size(input_shapes, agg_dim, axis=self.axis)
+
+        if len(output_size) == 2:
+            output_size = list(output_size)
+            if self.axis == -1:
+                output_size = [*output_size, len(input_shapes)]
+            else:
+                output_size.insert(self.axis, len(input_shapes))
+
         return output_size
 
     def get_config(self):
@@ -117,17 +126,23 @@ class Sum(TabularAggregation):
 @tabular_aggregation_registry.register("sum-residual")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SumResidual(Sum):
-    def __init__(self, activation="relu", **kwargs):
+    def __init__(self, activation="relu", shortcut_name="shortcut", **kwargs):
         super().__init__(**kwargs)
         self.activation = tf.keras.layers.Activation(activation) if activation else None
+        self.shortcut_name = shortcut_name
 
-    def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        output = tf.reduce_sum(list(inputs.values()), axis=0)
+    def call(self, inputs: TabularData, **kwargs) -> Union[tf.Tensor, TabularData]:
+        shortcut = inputs.pop(self.shortcut_name)
+        outputs = {}
+        for key, val in inputs.items():
+            outputs[key] = tf.reduce_sum([inputs[key], shortcut], axis=0)
+            if self.activation:
+                outputs[key] = self.activation(outputs[key])
 
-        if self.activation:
-            output = self.activation(output)
+        if len(outputs) == 1:
+            return list(outputs.values())[0]
 
-        return output
+        return outputs
 
     def compute_output_shape(self, input_shape):
         batch_size = calculate_batch_size_from_input_shapes(input_shape)

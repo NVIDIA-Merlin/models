@@ -90,7 +90,7 @@ class DLRMBlock(Block):
     @classmethod
     def from_schema(
         cls, schema: Schema, bottom_mlp: BlockType, top_mlp: Optional[BlockType] = None, **kwargs
-    ):
+    ) -> "DLRMBlock":
         embedding_layer = EmbeddingFeatures.from_schema(
             schema.select_by_tag(Tag.CATEGORICAL),
             infer_embedding_sizes=False,

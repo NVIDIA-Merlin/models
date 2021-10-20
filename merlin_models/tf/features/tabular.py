@@ -30,7 +30,7 @@ from ..core import (
     SequentialBlock,
     TabularAggregationType,
     TabularBlock,
-    TabularTransformationType,
+    TabularTransformationType, Block,
 )
 from ..utils import tf_utils
 from .continuous import ContinuousFeatures
@@ -99,7 +99,7 @@ class TabularFeatures(ParallelBlock, InputBlockMixin):
             self.project_continuous_features(continuous_projection)
 
     def project_continuous_features(
-        self, mlp_layers_dims: Union[List[int], int]
+        self, block_or_dims: Union[List[int], Block]
     ) -> "TabularFeatures":
         """Combine all concatenated continuous features with stacked MLP layers
 
@@ -113,15 +113,18 @@ class TabularFeatures(ParallelBlock, InputBlockMixin):
         TabularFeatures
             Returns the same ``TabularFeatures`` object with the continuous features projected
         """
-        if isinstance(mlp_layers_dims, int):
-            mlp_layers_dims = [mlp_layers_dims]
+        if not isinstance(block_or_dims, Block):
+            if isinstance(block_or_dims, int):
+                block_or_dims = [block_or_dims]
+
+            block = MLPBlock(block_or_dims)
+        else:
+            block = block_or_dims
 
         continuous = cast(tf.keras.layers.Layer, self.continuous_layer)
         continuous.set_aggregation("concat")
 
-        continuous = SequentialBlock(
-            [continuous, MLPBlock(mlp_layers_dims), AsTabular("continuous_projection")]
-        )
+        continuous = SequentialBlock([continuous, block, AsTabular("continuous_projection")])
 
         self.parallel_dict["continuous_layer"] = continuous
 

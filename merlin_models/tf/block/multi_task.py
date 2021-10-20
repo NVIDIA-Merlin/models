@@ -3,12 +3,14 @@ from typing import Dict, List, Optional, Tuple, Union
 import tensorflow as tf
 from merlin_standard_lib import Schema
 
-from ..core import Block, ParallelBlock, PredictionTask, TabularBlock, TabularTransformation
+from ..core import (
+    Block, ParallelBlock, PredictionTask, TabularBlock, TabularTransformation, TabularAggregation
+)
 from ..tabular.aggregation import StackFeatures
 from ..typing import TabularData
 
 
-class MMOEGate(tf.keras.layers.Layer):
+class MMOEGate(Block):
     def __init__(
         self,
         num_experts: int,
@@ -20,17 +22,63 @@ class MMOEGate(tf.keras.layers.Layer):
         **kwargs,
     ):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
+        self.dim = dim
+        self.num_experts = num_experts
+
         self.gate = tf.keras.layers.Dense(dim, name=f"gate_{name}")
         self.softmax = tf.keras.layers.Dense(
             num_experts, use_bias=False, activation="softmax", name=f"gate_distribution_{name}"
         )
 
-    def call(self, inputs, expert_outputs, **kwargs):  # type: ignore
-        expanded_gate_output = tf.expand_dims(self.softmax(self.gate(inputs)), axis=-1)
+    def call(self, inputs: TabularData, **kwargs):  # type: ignore
+        shortcut = inputs.pop("shortcut")
+        expert_outputs = list(inputs.values())[0]
 
+        expanded_gate_output = tf.expand_dims(self.softmax(self.gate(shortcut)), axis=-1)
         out = tf.reduce_sum(expert_outputs * expanded_gate_output, axis=1, keepdims=False)
 
         return out
+
+    def compute_output_shape(self, input_shape):
+        return input_shape["shortcut"]
+
+    def get_config(self):
+        config = super().get_config()
+        config.update(dim=self.dim, num_experts=self.num_experts)
+
+        return config
+
+
+class MMOEGateAggregation(TabularAggregation):
+    def __init__(
+        self,
+        num_experts: int,
+        dim=32,
+        name=None,
+        **kwargs,
+    ):
+        super().__init__(name=name, **kwargs)
+        self.gate = tf.keras.layers.Dense(dim, name=f"gate_{name}")
+        self.stack = StackFeatures(axis=1)
+        self.softmax = tf.keras.layers.Dense(
+            num_experts, use_bias=False, activation="softmax", name=f"gate_distribution_{name}"
+        )
+
+    def call(self, inputs, **kwargs):  # type: ignore
+        shortcut = inputs.pop("shortcut")
+        expanded_gate_output = tf.expand_dims(self.softmax(self.gate(shortcut)), axis=-1)
+
+        expert_outputs = self.stack(inputs)
+        out = tf.reduce_sum(expert_outputs * expanded_gate_output, axis=1, keepdims=False)
+
+        return out
+
+    def compute_output_shape(self, input_shape):
+        tensor_output_shape = input_shape
+        if isinstance(input_shape, dict):
+            tensor_output_shape = list(input_shape.values())[0]
+
+        return {name: tensor_output_shape for name in self.gate_dict}
 
 
 class MultiGateMixtureOfExperts(TabularTransformation):
@@ -45,29 +93,56 @@ class MultiGateMixtureOfExperts(TabularTransformation):
         super().__init__(**kwargs)
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
-        self.experts = expert_block.repeat_in_parallel(
-            num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
-        )
-        self.gate_dict: Dict[str, MMOEGate] = {}
-        for task_name in output_names:
-            self.gate_dict[task_name] = MMOEGate(num_experts, dim=gate_dim)
+
+        self.output_names = output_names
+
+        agg = StackFeatures(axis=1)
+        experts = expert_block.repeat_in_parallel(num_experts, prefix="expert_", aggregation=agg)
+        gates = MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
+        self.mmoe = expert_block.add_with_shortcut(experts).add(gates, block_name="MMOE")
+
+        self.experts = experts
+        self.gates = gates
+
+        str(self.mmoe)
+
+        a = 5
+
+        # self.experts = expert_block.repeat_in_parallel(num_experts, prefix="expert_", residual=True)
+        # gates = ParallelBlock({task_name: MMOEGate(num_experts, dim=gate_dim)
+        #                        for task_name in output_names})
+        # self.experts.add(gates)
+        # self.gate_dict: Dict[str, MMOEGate] = {}
+        # for task_name in output_names:
+        #     self.gate_dict[task_name] = MMOEGate(num_experts, dim=gate_dim)
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        outputs = {}
+        experts = self.experts(inputs)
+        #
+        # gates_inputs = dict(experts=experts, shortcut=inputs)
+        # out = self.gates(inputs)
+        #
+        # return out
 
-        expert_outputs = self.experts(inputs)
 
-        for name, gate in self.gate_dict.items():
-            outputs[name] = gate(inputs, expert_outputs)
+        return self.mmoe(inputs)
 
-        return outputs
+        # outputs = {}
+        #
+        # expert_outputs = self.experts(inputs)
+        #
+        # for name, gate in self.gate_dict.items():
+        #     outputs[name] = gate(inputs, expert_outputs)
+        #
+        # return outputs
 
     def compute_output_shape(self, input_shape):
+        # return self.mmoe.compute_output_shape(input_shape)
         tensor_output_shape = input_shape
         if isinstance(input_shape, dict):
             tensor_output_shape = list(input_shape.values())[0]
 
-        return {name: tensor_output_shape for name in self.gate_dict}
+        return {name: tensor_output_shape for name in self.output_names}
 
 
 class CGCGateTransformation(TabularTransformation):
@@ -100,8 +175,11 @@ class CGCGateTransformation(TabularTransformation):
         outputs["body_outputs"] = body_outputs
 
         for name in self.task_names:
-            experts = self.stack(self.filter_expert_outputs(expert_outputs, name))
-            outputs[name] = self.gate_dict[name](body_outputs, experts)
+            experts = dict(
+                experts=self.stack(self.filter_expert_outputs(expert_outputs, name)),
+                shortcut=body_outputs
+            )
+            outputs[name] = self.gate_dict[name](experts)
 
         return outputs
 

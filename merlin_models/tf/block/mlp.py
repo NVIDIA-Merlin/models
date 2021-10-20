@@ -126,7 +126,7 @@ class MLPResidualBlock(SequentialBlock):
                     )
 
             block = SequentialBlock(block_layers, block_name=f"Dense-{d}", copy_layers=False)
-            layers.append(ResidualBlock(block, activation=activation))
+            layers.append(ResidualBlock(block, aggregation=activation))
 
         super().__init__(layers, filter_features=filter_features, **kwargs)
 

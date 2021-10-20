@@ -1,9 +1,13 @@
+from typing import Optional
+
 import merlin_standard_lib as msl
 import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import generate_recsys_data
+from merlin_models.tf.block.dlrm import ExpandDimsAndToTabular
+from merlin_models.tf.layers import DotProductInteraction
 
 synthetic_music_recsys_data_schema = Schema(
     [
@@ -70,11 +74,11 @@ def build_two_tower(schema: Schema, target="play") -> ml.Model:
     # body = ml.Retrieval(user_tower, item_tower)
     model = ml.Retrieval.from_schema(schema, [512, 256]).to_model(schema.select_by_name(target))
 
-    inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
-    inputs.route_by_tag(Tag.ITEM, ml.MLPBlock([512, 256]), output_name="query")
-    inputs.route_by_tag(Tag.USER, ml.MLPBlock([512, 256]), output_name="user")
-
-    inputs.route_by_tag("bias", ml.MLPBlock([512, 256]), output_name="bias")
+    # inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
+    # inputs.add_route(Tag.ITEM, ml.MLPBlock([512, 256]), output_name="query")
+    # inputs.route_by_tag(Tag.USER, ml.MLPBlock([512, 256]), output_name="user")
+    #
+    # inputs.route_by_tag("bias", ml.MLPBlock([512, 256]), output_name="bias")
 
     return model
 
@@ -106,28 +110,47 @@ def build_dcn(schema: Schema) -> ml.Model:
     return deep_cross.to_model(schema)
 
 
+def MMOE(expert_block, num_experts: int, output_names, gate_dim: int = 32):
+    agg = ml.StackFeatures(axis=1)
+    experts = expert_block.repeat_in_parallel(num_experts, prefix="expert_", aggregation=agg)
+    gates = ml.MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
+    mmoe = expert_block.add_with_shortcut(experts, block_outputs_name="experts")
+    mmoe = mmoe.add(gates, block_name="MMOE")
+
+    return mmoe
+
+
 def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     # TODO: Change msl to be able to make this a single function call.
     # bias_schema = schema.select_by_tag("bias")
     schema = schema.remove_by_tag("bias")
 
-    body = ml.DLRMBlock.from_schema(
-        schema, bottom_mlp=ml.MLPBlock([512, 128]), top_mlp=ml.MLPBlock([512, 128])
-    )
+    # body = ml.DLRMBlock.from_schema(
+    #     schema, bottom_mlp=ml.MLPBlock([512, 128]), top_mlp=ml.MLPBlock([512, 128])
+    # )
+    body = DLRMBlock(schema, bottom_block=ml.MLPBlock([512, 128]), top_block=ml.MLPBlock([128, 64]))
+    body = body.add(MMOE(
+        ml.MLPBlock([64, 32]), num_experts=3, output_names=ml.Head.task_names_from_schema(schema)
+    ))
+    model = body.to_model(schema)
     # bias_block = ml.MLPBlock.from_schema(bias_schema, [64])
     # body = body.add_in_parallel(bias_block, names=["main", "bias"])
 
-    head = ml.MMOEHead.from_schema(
-        schema,
-        body,
-        task_blocks=ml.MLPBlock([64, 32]),
-        expert_block=ml.MLPBlock([64, 32]),
-        num_experts=3,
-        # bias_block=bias_block,
-    )
-    # head.add_in_parallel()
+    a = 5
 
-    return head.to_model()
+    return model
+
+    # head = ml.Head.from_schema(
+    #     schema,
+    #     body,
+    #     task_blocks=ml.MLPBlock([64, 32]),
+    #     expert_block=ml.MLPBlock([64, 32]),
+    #     num_experts=3,
+    #     # bias_block=bias_block,
+    # )
+    # # head.add_in_parallel()
+    #
+    # return head.to_model()
 
     # return ml.PLEHead.from_schema(
     #     schema,
@@ -149,6 +172,25 @@ def build_dlrm(schema: Schema) -> ml.Model:
     return model
 
 
+def DLRMBlock(schema, bottom_block: ml.Block, top_block: Optional[ml.Block] = None):
+    con, cat = schema.select_by_tag(Tag.CONTINUOUS), schema.select_by_tag(Tag.CATEGORICAL)
+    emb = ml.EmbeddingFeatures.from_schema(cat, embedding_dim_default=bottom_block.layers[-1].units)
+    continuous = ml.ContinuousFeatures.from_schema(con, aggregation="concat").add(bottom_block)
+
+    dlrm = ml.ParallelBlock(dict(embeddings=emb, continuous=continuous), aggregation="stack")
+    dlrm = dlrm.add(DotProductInteraction())
+
+    if top_block:
+        dlrm = dlrm.add(top_block)
+
+    return dlrm
+
+    # inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
+    # routes = {schema.select_by_tag(Tag.CONTINUOUS): bottom_block}
+    # inputs.add_routes(routes, add_rest_as_shortcut=True)
+    # inputs.project_continuous_features(bottom_block)
+
+
 def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
     data_df = generate_recsys_data(num_items, schema)
 
@@ -163,8 +205,8 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
-    model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
-    # model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
+    # model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
+    model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
     # model = build_dcn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
     # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
