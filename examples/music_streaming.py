@@ -1,12 +1,9 @@
-from typing import Optional
-
 import merlin_standard_lib as msl
 import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import generate_recsys_data
-from merlin_models.tf.layers import DotProductInteraction
 
 Tag.__hash__ = lambda self: hash(str(self))
 
@@ -70,21 +67,26 @@ synthetic_music_recsys_data_schema = Schema(
 
 
 def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
-    # user_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.USER), [512, 256])
-    # item_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.ITEM), [512, 256])
-    # body = ml.Retrieval(user_tower, item_tower)
+    def method_1() -> ml.Model:
+        return ml.Retrieval.from_schema(schema, dims).to_model(schema.select_by_name(target))
 
-    # model = ml.Retrieval.from_schema(schema, dims).to_model(schema.select_by_name(target))
+    def method_2() -> ml.Model:
+        user_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.USER), [512, 256])
+        item_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.ITEM), [512, 256])
 
-    inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
-    routes = {
-        Tag.USER: ml.MLPBlock(dims).as_tabular("user"),
-        Tag.ITEM: ml.MLPBlock(dims).as_tabular("item"),
-    }
-    two_tower = inputs.add_routes(routes, route_aggregation="concat", aggregation="cosine")
-    model = two_tower.to_model(schema.select_by_name(target))
+        return ml.Retrieval(user_tower, item_tower).to_model(schema)
 
-    return model
+    def method_3() -> ml.Model:
+        inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
+        routes = {
+            Tag.USER: ml.MLPBlock(dims).as_tabular("user"),
+            Tag.ITEM: ml.MLPBlock(dims).as_tabular("item"),
+        }
+        two_tower = inputs.add_routes(routes, route_aggregation="concat", aggregation="cosine")
+
+        return two_tower.to_model(schema)
+
+    return method_3()
 
 
 def build_dnn(schema: Schema, residual=False) -> ml.Model:
@@ -100,41 +102,35 @@ def build_dnn(schema: Schema, residual=False) -> ml.Model:
 
 
 def build_dcn(schema: Schema) -> ml.Model:
-    # bias_schema = schema.select_by_tag("bias")
     schema = schema.remove_by_tag("bias")
 
     cross = ml.CrossBlock.from_schema(schema, depth=3)
     deep_cross = cross.add_in_parallel(ml.MLPBlock([512, 256]), aggregation="concat")
 
-    # inputs = ml.TabularFeatures.from_schema(schema)
-    # inputs.add_route(schema.select_by_tag("bias"), ml.MLPBlock([512, 256]))
-    # deep_cross = ml.CrossBlock(3).add_in_parallel(ml.MLPBlock([512, 256]), aggregation="concat")
-    # inputs.add_route(schema.remove_by_tag("bias"), deep_cross)
-
     return deep_cross.to_model(schema)
-
-
-def MMOE(expert_block: ml.Block, num_experts: int, output_names, gate_dim: int = 32):
-    agg = ml.StackFeatures(axis=1)
-    experts = expert_block.repeat_in_parallel(num_experts, prefix="expert_", aggregation=agg)
-    gates = ml.MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
-    mmoe = expert_block.add_with_shortcut(experts, block_outputs_name="experts")
-    mmoe = mmoe.add(gates, block_name="MMOE")
-
-    return mmoe
 
 
 def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     # TODO: Change msl to be able to make this a single function call.
-    # bias_schema = schema.select_by_tag("bias")
+    bias_schema = schema.select_by_tag("bias")
     schema = schema.remove_by_tag("bias")
 
-    # body = ml.DLRMBlock.from_schema(
-    #     schema, bottom_mlp=ml.MLPBlock([512, 128]), top_mlp=ml.MLPBlock([512, 128])
-    # )
-    body = DLRMBlock(schema, bottom_block=ml.MLPBlock([512, 128]), top_block=ml.MLPBlock([128, 64]))
-    expert_block, output_names = ml.MLPBlock([64, 32]), ml.Head.task_names_from_schema(schema)
-    model = body.add(MMOE(expert_block, num_experts=3, output_names=output_names)).to_model(schema)
+    body = ml.DLRMBlock(
+        schema, bottom_block=ml.MLPBlock([512, 128]), top_block=ml.MLPBlock([128, 64])
+    )
+
+    # expert_block, output_names = ml.MLPBlock([64, 32]), ml.Head.task_names_from_schema(schema)
+    # mmoe = ml.MMOE(expert_block, num_experts=3, output_names=output_names)
+    # model = body.add(mmoe).to_model(schema)
+
+    model = ml.MMOEHead.from_schema(
+        schema,
+        body,
+        task_blocks=ml.MLPBlock([64, 32]),
+        expert_block=ml.MLPBlock([64, 32]),
+        bias_block=ml.MLPBlock.from_schema(bias_schema, [64, 32]),
+        num_experts=3,
+    ).to_model()
 
     return model
 
@@ -163,33 +159,11 @@ def build_advanced_ranking_model(schema: Schema) -> ml.Model:
 
 
 def build_dlrm(schema: Schema) -> ml.Model:
-    model: ml.Model = ml.DLRMBlock.from_schema(
-        schema, bottom_mlp=ml.MLPBlock([512, 128]), top_mlp=ml.MLPBlock([512, 128])
+    model: ml.Model = ml.DLRMBlock(
+        schema, bottom_block=ml.MLPBlock([512, 128]), top_block=ml.MLPBlock([512, 128])
     ).to_model(schema)
 
     return model
-
-
-def DLRMBlock(schema, bottom_block: ml.Block, top_block: Optional[ml.Block] = None):
-    con, cat = schema.select_by_tag(Tag.CONTINUOUS), schema.select_by_tag(Tag.CATEGORICAL)
-    emb = ml.EmbeddingFeatures.from_schema(cat, embedding_dim_default=bottom_block.layers[-1].units)
-    continuous = ml.ContinuousFeatures.from_schema(con, aggregation="concat").add(bottom_block)
-    inputs = ml.ParallelBlock(dict(embeddings=emb, continuous=continuous), aggregation="stack")
-    dlrm = inputs.add(DotProductInteraction())
-
-    if top_block:
-        dlrm = dlrm.add(top_block)
-
-    return dlrm
-
-    # routes = {schema.select_by_tag(Tag.CONTINUOUS): bottom_block.as_tabular("continuous")}
-    # Same as:
-    inp: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
-    routes = {Tag.CONTINUOUS: bottom_block.as_tabular("continuous")}
-    dlrm = inp.add_routes(routes, add_rest=True, aggregation="stack").add(DotProductInteraction())
-
-    if top_block:
-        dlrm = dlrm.add(top_block)
 
 
 def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
@@ -207,10 +181,10 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
     # model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
-    # model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
+    model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
     # model = build_dcn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
-    model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
+    # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
 
     model.compile(optimizer="adam", run_eagerly=True)
 

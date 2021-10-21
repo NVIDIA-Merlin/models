@@ -93,6 +93,16 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return SequentialBlock(repeated)
 
+    def prepare(
+        self,
+        block=None,
+        post: Optional["TabularTransformationType"] = None,
+        aggregation: Optional["TabularAggregationType"] = None,
+    ) -> "SequentialBlock":
+        block = TabularBlock(post=post, aggregation=aggregation) or block
+
+        return SequentialBlock([block, self])
+
     def repeat_in_parallel(
         self,
         num: int = 1,
@@ -194,6 +204,13 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
     def copy(self):
         return self.from_config(self.get_config())
+
+    @classmethod
+    def parse_block(cls, input: Union["Block", tf.keras.layers.Layer]) -> "Block":
+        if isinstance(input, Block):
+            return input
+
+        return cls.from_layer(input)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -444,6 +461,16 @@ class TabularAggregation(
             return batch_size, sequence_length, agg_dim
 
         return batch_size, agg_dim
+
+    def get_values(self, inputs: TabularData) -> List[tf.Tensor]:
+        values = []
+        for value in inputs.values():
+            if type(value) is dict:
+                values.extend(self.get_values(value))  # type: ignore
+            else:
+                values.append(value)
+
+        return values
 
 
 TabularTransformationType = Union[str, TabularTransformation]
@@ -826,12 +853,12 @@ class TabularBlock(Block):
                 )
             )
 
-        all_features = list(set(all_features))
+        rest_features = self.schema.remove_by_name(list(set(all_features)))
         rest_block = None
         if rest:
-            rest_block = SequentialBlock([FilterFeatures(all_features, exclude=True), rest])
+            rest_block = SequentialBlock([FilterFeatures(rest_features), rest])
         elif add_rest:
-            rest_block = SequentialBlock([FilterFeatures(all_features, exclude=True), NoOp()])
+            rest_block = SequentialBlock([FilterFeatures(rest_features)])
 
         if rest_block:
             blocks.append(rest_block)
@@ -1603,9 +1630,15 @@ class Head(ParallelBlock):
         if isinstance(inputs, dict) and not all(
             name in inputs for name in list(self.parallel_dict.keys())
         ):
+            if self.bias_block and not bias_outputs:
+                bias_outputs = self.bias_block(inputs)
             inputs = self.body(inputs)
 
         outputs = super(Head, self).call(inputs, **kwargs)
+
+        if bias_outputs is not None:
+            for key in outputs:
+                outputs[key] += bias_outputs
 
         return outputs
 

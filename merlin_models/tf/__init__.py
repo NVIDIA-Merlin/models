@@ -24,7 +24,7 @@ from .. import data
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
 from .block.mlp import MLPBlock, MLPResidualBlock
-from .block.multi_task import MMOEGate
+from .block.multi_task import MMOE, MMOEGate
 from .block.retrieval import Retrieval
 from .core import (
     AsTabular,
@@ -75,6 +75,7 @@ __all__ = [
     "DLRMBlock",
     "MLPBlock",
     "MMOEGate",
+    "MMOE",
     "MLPResidualBlock",
     "TabularBlock",
     "ContinuousFeatures",

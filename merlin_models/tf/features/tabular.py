@@ -139,6 +139,7 @@ class TabularFeatures(ParallelBlock, InputBlockMixin):
         categorical_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CATEGORICAL,),
         aggregation: Optional[str] = None,
         continuous_projection: Optional[Union[List[int], int]] = None,
+        embedding_dim_default: Optional[int] = 64,
         max_sequence_length=None,
         max_text_length=None,
         **kwargs
@@ -151,8 +152,7 @@ class TabularFeatures(ParallelBlock, InputBlockMixin):
             )
         if categorical_tags:
             maybe_categorical_layer = cls.EMBEDDING_MODULE_CLASS.from_schema(
-                schema,
-                tags=categorical_tags,
+                schema, tags=categorical_tags, embedding_dim_default=embedding_dim_default
             )
 
         output = cls(

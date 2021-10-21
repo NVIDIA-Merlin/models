@@ -3,14 +3,7 @@ from typing import Dict, List, Optional, Tuple, Union
 import tensorflow as tf
 from merlin_standard_lib import Schema
 
-from ..core import (
-    Block,
-    ParallelBlock,
-    PredictionTask,
-    TabularAggregation,
-    TabularBlock,
-    TabularTransformation,
-)
+from ..core import Block, ParallelBlock, PredictionTask, TabularBlock, TabularTransformation
 from ..tabular.aggregation import StackFeatures
 from ..typing import TabularData
 
@@ -45,36 +38,15 @@ class MMOEGate(Block):
         return config
 
 
-class MMOEGateAggregation(TabularAggregation):
-    def __init__(
-        self,
-        num_experts: int,
-        dim=32,
-        name=None,
-        **kwargs,
-    ):
-        super().__init__(name=name, **kwargs)
-        self.gate = tf.keras.layers.Dense(dim, name=f"gate_{name}")
-        self.stack = StackFeatures(axis=1)
-        self.softmax = tf.keras.layers.Dense(
-            num_experts, use_bias=False, activation="softmax", name=f"gate_distribution_{name}"
-        )
+def MMOE(expert_block: Block, num_experts: int, output_names, gate_dim: int = 32):
+    experts = expert_block.repeat_in_parallel(
+        num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
+    )
+    gates = MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
+    mmoe = expert_block.add_with_shortcut(experts, block_outputs_name="experts")
+    mmoe = mmoe.add(gates, block_name="MMOE")
 
-    def call(self, inputs, **kwargs):  # type: ignore
-        shortcut = inputs.pop("shortcut")
-        expanded_gate_output = tf.expand_dims(self.softmax(self.gate(shortcut)), axis=-1)
-
-        expert_outputs = self.stack(inputs)
-        out = tf.reduce_sum(expert_outputs * expanded_gate_output, axis=1, keepdims=False)
-
-        return out
-
-    def compute_output_shape(self, input_shape):
-        tensor_output_shape = input_shape
-        if isinstance(input_shape, dict):
-            tensor_output_shape = list(input_shape.values())[0]
-
-        return {name: tensor_output_shape for name in self.gate_dict}
+    return mmoe
 
 
 class CGCGateTransformation(TabularTransformation):
