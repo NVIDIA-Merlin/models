@@ -78,8 +78,8 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
 
     inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
     routes = {
-        Tag.USER: ml.SequentialBlock([ml.NoOp(), ml.MLPBlock(dims)]).as_tabular("user"),
-        Tag.ITEM: ml.SequentialBlock([ml.NoOp(), ml.MLPBlock(dims)]).as_tabular("item"),
+        Tag.USER: ml.MLPBlock(dims).as_tabular("user"),
+        Tag.ITEM: ml.MLPBlock(dims).as_tabular("item"),
     }
     two_tower = inputs.add_routes(routes, route_aggregation="concat", aggregation="cosine")
     model = two_tower.to_model(schema.select_by_name(target))
