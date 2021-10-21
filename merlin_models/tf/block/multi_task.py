@@ -75,13 +75,13 @@ class CGCGateTransformation(TabularTransformation):
     def call(self, expert_outputs: TabularData, **kwargs) -> TabularData:
         outputs: TabularData = {}
 
-        body_outputs = expert_outputs.pop("body_outputs")
-        outputs["body_outputs"] = body_outputs
+        shortcut = expert_outputs.pop("shortcut")
+        outputs["shortcut"] = shortcut
 
         for name in self.task_names:
             experts = dict(
                 experts=self.stack(self.filter_expert_outputs(expert_outputs, name)),
-                shortcut=body_outputs,
+                shortcut=shortcut,
             )
             outputs[name] = self.gate_dict[name](experts)
 
@@ -148,7 +148,7 @@ class CGCBlock(ParallelBlock):
 
     def call(self, inputs, **kwargs):
         if isinstance(inputs, dict):
-            outputs = dict(body_outputs=inputs["body_outputs"])
+            outputs = dict(shortcut=inputs["shortcut"])
             for name, layer in self.parallel_dict.items():
                 input_name = "/".join(name.split("/")[:-1])
                 outputs.update(layer(inputs[input_name]))
@@ -156,7 +156,7 @@ class CGCBlock(ParallelBlock):
             return outputs
         else:
             outputs = super().call(inputs, **kwargs)
-            outputs["body_outputs"] = inputs  # type: ignore
+            outputs["shortcut"] = inputs  # type: ignore
 
         return outputs
 

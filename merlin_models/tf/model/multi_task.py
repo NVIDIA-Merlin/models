@@ -6,7 +6,7 @@ from tensorflow.python.keras.engine.base_layer import Layer
 
 from .. import PredictionTask
 from ..block.multi_task import MMOE, CGCBlock
-from ..core import Block, Head, InputBlock, SequentialBlock, TabularTransformationType
+from ..core import Block, Head, InputBlock, TabularTransformationType
 
 
 class MMOEHead(Head):
@@ -92,16 +92,6 @@ class PLEHead(Head):
         inputs=None,
         **kwargs
     ):
-        super().__init__(
-            body,
-            prediction_tasks,
-            task_blocks,
-            task_weights,
-            bias_block,
-            loss_reduction,
-            inputs,
-            **kwargs,
-        )
         cgc_blocks = []
         for i in range(depth):
             cgc_blocks.append(
@@ -114,7 +104,16 @@ class PLEHead(Head):
                 )
             )
 
-        self.cgc = SequentialBlock(cgc_blocks)
+        super().__init__(
+            Block.parse_block(body).add(*cgc_blocks),
+            prediction_tasks,
+            task_blocks,
+            task_weights,
+            bias_block,
+            loss_reduction,
+            inputs,
+            **kwargs,
+        )
 
     @classmethod
     def from_schema(  # type: ignore
@@ -150,15 +149,3 @@ class PLEHead(Head):
             inputs=inputs,
             **kwargs,
         )
-
-    def call_tasks(self, body_outputs, bias=None, **kwargs):
-        outputs = {}
-        task_inputs = self.cgc(body_outputs)
-
-        for name, task in self.prediction_task_dict.items():
-            task_out = task(task_inputs[name], **kwargs)
-            if bias is not None:
-                task_out += bias
-            outputs[name] = task_out
-
-        return outputs

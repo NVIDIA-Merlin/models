@@ -110,7 +110,7 @@ def build_dcn(schema: Schema) -> ml.Model:
     return deep_cross.to_model(schema)
 
 
-def build_advanced_ranking_model(schema: Schema) -> ml.Model:
+def build_advanced_ranking_model(schema: Schema, head="ple") -> ml.Model:
     # TODO: Change msl to be able to make this a single function call.
     bias_schema = schema.select_by_tag("bias")
     schema = schema.remove_by_tag("bias")
@@ -123,39 +123,28 @@ def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     # mmoe = ml.MMOE(expert_block, num_experts=3, output_names=output_names)
     # model = body.add(mmoe).to_model(schema)
 
-    model = ml.MMOEHead.from_schema(
-        schema,
-        body,
-        task_blocks=ml.MLPBlock([64, 32]),
-        expert_block=ml.MLPBlock([64, 32]),
-        bias_block=ml.MLPBlock.from_schema(bias_schema, [64, 32]),
-        num_experts=3,
-    ).to_model()
+    if head == "mmoe":
+        return ml.MMOEHead.from_schema(
+            schema,
+            body,
+            task_blocks=ml.MLPBlock([64, 32]),
+            expert_block=ml.MLPBlock([64, 32]),
+            bias_block=ml.MLPBlock.from_schema(bias_schema, [64, 32]),
+            num_experts=3,
+        ).to_model()
+    elif head == "ple":
+        return ml.PLEHead.from_schema(
+            schema,
+            body,
+            task_blocks=ml.MLPBlock([64, 32]),
+            expert_block=ml.MLPBlock([64, 32]),
+            num_shared_experts=2,
+            num_task_experts=2,
+            depth=2,
+            bias_block=ml.MLPBlock.from_schema(bias_schema, [64, 32]),
+        ).to_model()
 
-    return model
-
-    # head = ml.Head.from_schema(
-    #     schema,
-    #     body,
-    #     task_blocks=ml.MLPBlock([64, 32]),
-    #     expert_block=ml.MLPBlock([64, 32]),
-    #     num_experts=3,
-    #     # bias_block=bias_block,
-    # )
-    # # head.add_in_parallel()
-    #
-    # return head.to_model()
-
-    # return ml.PLEHead.from_schema(
-    #     schema,
-    #     body,
-    #     task_blocks=ml.MLPBlock([64, 32]),
-    #     expert_block=ml.MLPBlock([64, 32]),
-    #     num_shared_experts=2,
-    #     num_task_experts=2,
-    #     depth=2,
-    #     bias_block=bias_block,
-    # ).to_model()
+    return body.to_model(schema)
 
 
 def build_dlrm(schema: Schema) -> ml.Model:
