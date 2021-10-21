@@ -25,12 +25,13 @@ from ..block.mlp import MLPBlock
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     AsTabular,
+    Block,
     InputBlockMixin,
     ParallelBlock,
     SequentialBlock,
     TabularAggregationType,
     TabularBlock,
-    TabularTransformationType, Block,
+    TabularTransformationType,
 )
 from ..utils import tf_utils
 from .continuous import ContinuousFeatures

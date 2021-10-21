@@ -4,7 +4,12 @@ from typing import List, Optional, Union
 import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 
-from ..core import TabularAggregation, TabularBlock, TabularTransformationType
+from ..core import (
+    TabularAggregation,
+    TabularBlock,
+    TabularTransformationType,
+    tabular_aggregation_registry,
+)
 from ..features.embedding import EmbeddingFeatures
 from ..typing import TabularData
 from .dual import DualEncoderBlock
@@ -21,6 +26,7 @@ class Distance(TabularAggregation, abc.ABC):
         raise NotImplementedError()
 
 
+@tabular_aggregation_registry.register("cosine")
 class CosineSimilarity(Distance):
     def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)

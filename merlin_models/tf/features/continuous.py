@@ -75,7 +75,7 @@ class ContinuousFeatures(InputBlock):
     def get_config(self):
         config = super().get_config()
 
-        config["features"] = self.filter_features.to_include
+        config["features"] = self.filter_features.feature_names
 
         return config
 
@@ -86,4 +86,4 @@ class ContinuousFeatures(InputBlock):
         return ["filter_features"]
 
     def repr_extra(self):
-        return ", ".join(sorted(self.filter_features.to_include))
+        return ", ".join(sorted(self.filter_features.feature_names))

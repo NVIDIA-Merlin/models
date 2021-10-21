@@ -44,7 +44,9 @@ class ConcatFeatures(TabularAggregation):
         for name in sorted(inputs.keys()):
             tensors.append(tf.cast(inputs[name], self.output_dtype))
 
-        return tf.concat(tensors, axis=-1)
+        output = tf.concat(tensors, axis=-1)
+
+        return output
 
     def compute_output_shape(self, input_shapes):
         agg_dim = sum([i[-1] for i in input_shapes.values()])

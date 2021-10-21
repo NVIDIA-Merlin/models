@@ -32,6 +32,7 @@ from .core import (
     FilterFeatures,
     Head,
     Model,
+    NoOp,
     ParallelBlock,
     PredictionTask,
     ResidualBlock,
@@ -99,5 +100,6 @@ __all__ = [
     "RegressionTask",
     "Model",
     "StochasticSwapNoise",
+    "NoOp",
     "data",
 ]

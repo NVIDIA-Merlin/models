@@ -8,6 +8,8 @@ import merlin_models.tf as ml
 from merlin_models.data.synthetic import generate_recsys_data
 from merlin_models.tf.layers import DotProductInteraction
 
+Tag.__hash__ = lambda self: hash(str(self))
+
 synthetic_music_recsys_data_schema = Schema(
     [
         # Item
@@ -75,9 +77,12 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
     # model = ml.Retrieval.from_schema(schema, dims).to_model(schema.select_by_name(target))
 
     inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
-    routes = {Tag.USER: ml.MLPBlock(dims).as_tabular("user"),
-              Tag.ITEM: ml.MLPBlock(dims).as_tabular("item")}
-    model = inputs.add_routes(routes, aggregation="cosine").to_model(schema)
+    routes = {
+        Tag.USER: ml.SequentialBlock([ml.NoOp(), ml.MLPBlock(dims)]).as_tabular("user"),
+        Tag.ITEM: ml.SequentialBlock([ml.NoOp(), ml.MLPBlock(dims)]).as_tabular("item"),
+    }
+    two_tower = inputs.add_routes(routes, route_aggregation="concat", aggregation="cosine")
+    model = two_tower.to_model(schema.select_by_name(target))
 
     return model
 
@@ -131,8 +136,6 @@ def build_advanced_ranking_model(schema: Schema) -> ml.Model:
     expert_block, output_names = ml.MLPBlock([64, 32]), ml.Head.task_names_from_schema(schema)
     model = body.add(MMOE(expert_block, num_experts=3, output_names=output_names)).to_model(schema)
 
-    a = 5
-
     return model
 
     # head = ml.Head.from_schema(
@@ -178,8 +181,6 @@ def DLRMBlock(schema, bottom_block: ml.Block, top_block: Optional[ml.Block] = No
         dlrm = dlrm.add(top_block)
 
     return dlrm
-
-
 
     # routes = {schema.select_by_tag(Tag.CONTINUOUS): bottom_block.as_tabular("continuous")}
     # Same as:
