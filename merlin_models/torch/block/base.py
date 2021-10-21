@@ -200,7 +200,7 @@ class SequentialBlock(BlockBase, torch.nn.Sequential):
 
         for child in parent:
             if getattr(child, "merge_values", None):
-                for to_merge in child.parallel_values:
+                for to_merge in child.merge_values:
                     add_if_class_name_matches(to_merge)
 
             add_if_class_name_matches(child)
