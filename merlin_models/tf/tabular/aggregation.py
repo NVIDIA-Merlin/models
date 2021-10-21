@@ -21,7 +21,7 @@ from merlin_standard_lib import Schema
 from ...config.schema import requires_schema
 from ..core import TabularAggregation, tabular_aggregation_registry
 from ..typing import TabularData
-from ..utils.tf_utils import calculate_batch_size_from_input_shapes
+from ..utils import tf_utils
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
@@ -119,7 +119,7 @@ class Sum(TabularAggregation):
         return summed
 
     def compute_output_shape(self, input_shape):
-        batch_size = calculate_batch_size_from_input_shapes(input_shape)
+        batch_size = tf_utils.calculate_batch_size_from_input_shapes(input_shape)
         last_dim = list(input_shape.values())[0][-1]
 
         return batch_size, last_dim
@@ -130,7 +130,7 @@ class Sum(TabularAggregation):
 class SumResidual(Sum):
     def __init__(self, activation="relu", shortcut_name="shortcut", **kwargs):
         super().__init__(**kwargs)
-        self.activation = tf.keras.layers.Activation(activation) if activation else None
+        self.activation = tf.keras.activations.get(activation) if activation else None
         self.shortcut_name = shortcut_name
 
     def call(self, inputs: TabularData, **kwargs) -> Union[tf.Tensor, TabularData]:
@@ -147,10 +147,17 @@ class SumResidual(Sum):
         return outputs
 
     def compute_output_shape(self, input_shape):
-        batch_size = calculate_batch_size_from_input_shapes(input_shape)
+        batch_size = tf_utils.calculate_batch_size_from_input_shapes(input_shape)
         last_dim = list(input_shape.values())[0][-1]
 
         return batch_size, last_dim
+
+    def get_config(self):
+        config = super().get_config()
+        config["shortcut_name"] = self.shortcut_name
+        config["activation"] = tf.keras.activations.serialize(self.activation)
+
+        return config
 
 
 @tabular_aggregation_registry.register("add-left")
@@ -170,7 +177,7 @@ class AddLeft(ElementwiseFeatureAggregation):
         return left + self.concat(inputs)
 
     def compute_output_shape(self, input_shape):
-        batch_size = calculate_batch_size_from_input_shapes(input_shape)
+        batch_size = tf_utils.calculate_batch_size_from_input_shapes(input_shape)
         last_dim = list(input_shape.values())[0][-1]
 
         return batch_size, last_dim
@@ -190,7 +197,7 @@ class ElementwiseSum(ElementwiseFeatureAggregation):
         return tf.reduce_sum(self.stack(inputs), axis=0)
 
     def compute_output_shape(self, input_shape):
-        batch_size = calculate_batch_size_from_input_shapes(input_shape)
+        batch_size = tf_utils.calculate_batch_size_from_input_shapes(input_shape)
         last_dim = list(input_shape.values())[0][-1]
 
         return batch_size, last_dim
@@ -223,7 +230,7 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
         return result
 
     def compute_output_shape(self, input_shape):
-        batch_size = calculate_batch_size_from_input_shapes(input_shape)
+        batch_size = tf_utils.calculate_batch_size_from_input_shapes(input_shape)
         last_dim = list(input_shape.values())[0][-1]
 
         return batch_size, last_dim

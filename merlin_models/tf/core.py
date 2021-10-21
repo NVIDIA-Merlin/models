@@ -93,6 +93,21 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return SequentialBlock(repeated)
 
+    def with_inputs(
+        self,
+        schema: Schema,
+        input_block: Optional["InputBlock"] = None,
+        post: Optional["TabularTransformationType"] = None,
+        aggregation: Optional["TabularAggregationType"] = None,
+        **kwargs,
+    ) -> "SequentialBlock":
+        from merlin_models.tf import TabularFeatures
+
+        input_block = input_block or TabularFeatures
+        inputs = input_block.from_schema(schema, post=post, aggregation=aggregation, **kwargs)
+
+        return SequentialBlock([inputs, self])
+
     def prepare(
         self,
         block=None,
@@ -1139,8 +1154,22 @@ class ParallelBlock(TabularBlock):
 
     def get_config(self):
         return maybe_serialize_keras_objects(
-            self, super(ParallelBlock, self).get_config(), ["merge_layers"]
+            self, super(ParallelBlock, self).get_config(), ["parallel_layers"]
         )
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        config = maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
+        if "schema" in config:
+            config["schema"] = Schema().from_json(config["schema"])
+
+        parallel_layers = config.pop("parallel_layers")
+        inputs = {
+            name: tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+            for name, conf in parallel_layers.items()
+        }
+
+        return cls(inputs, **config)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -1173,6 +1202,7 @@ class AsTabular(tf.keras.layers.Layer):
         return True
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class NoOp(tf.keras.layers.Layer):
     def call(self, inputs, **kwargs):
         return inputs
@@ -1181,6 +1211,7 @@ class NoOp(tf.keras.layers.Layer):
         return input_shape
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class WithShortcut(ParallelBlock):
     def __init__(
         self,
@@ -1205,7 +1236,15 @@ class WithShortcut(ParallelBlock):
             **kwargs,
         )
 
+    @classmethod
+    def from_config(cls, config):
+        output = ParallelBlock.from_config(config)
+        output.__class__ = cls
 
+        return output
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ResidualBlock(WithShortcut):
     def __init__(
         self,
@@ -1245,6 +1284,7 @@ def name_fn(name, inp):
 MetricOrMetricClass = Union[tf.keras.metrics.Metric, Type[tf.keras.metrics.Metric]]
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class PredictionTask(Layer, LossMixin, MetricsMixin):
     def __init__(
         self,

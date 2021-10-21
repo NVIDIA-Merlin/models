@@ -71,8 +71,9 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
         return ml.Retrieval.from_schema(schema, dims).to_model(schema.select_by_name(target))
 
     def method_2() -> ml.Model:
-        user_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.USER), [512, 256])
-        item_tower = ml.MLPBlock.from_schema(schema.select_by_tag(Tag.ITEM), [512, 256])
+        user_schema, item_schema = schema.select_by_tag(Tag.USER), schema.select_by_tag(Tag.ITEM)
+        user_tower = ml.MLPBlock([512, 256]).with_inputs(user_schema, aggregation="concat")
+        item_tower = ml.MLPBlock([512, 256]).with_inputs(item_schema, aggregation="concat")
 
         return ml.Retrieval(user_tower, item_tower).to_model(schema)
 
@@ -93,10 +94,9 @@ def build_dnn(schema: Schema, residual=False) -> ml.Model:
     schema = schema.remove_by_tag("bias")
 
     if residual:
-        block = ml.MLPResidualBlock.from_schema(schema, depth=2)
-
+        block = ml.DenseResidualBlock().repeat(2).with_inputs(schema, aggregation="concat")
     else:
-        block = ml.MLPBlock.from_schema(schema, [512, 256])
+        block = ml.MLPBlock([512, 256]).with_inputs(schema, aggregation="concat")
 
     return block.to_model(schema)
 
@@ -118,6 +118,7 @@ def build_advanced_ranking_model(schema: Schema, head="ple") -> ml.Model:
     body = ml.DLRMBlock(
         schema, bottom_block=ml.MLPBlock([512, 128]), top_block=ml.MLPBlock([128, 64])
     )
+    bias_block = ml.MLPBlock([512, 256]).with_inputs(bias_schema, aggregation="concat")
 
     # expert_block, output_names = ml.MLPBlock([64, 32]), ml.Head.task_names_from_schema(schema)
     # mmoe = ml.MMOE(expert_block, num_experts=3, output_names=output_names)
@@ -129,7 +130,7 @@ def build_advanced_ranking_model(schema: Schema, head="ple") -> ml.Model:
             body,
             task_blocks=ml.MLPBlock([64, 32]),
             expert_block=ml.MLPBlock([64, 32]),
-            bias_block=ml.MLPBlock.from_schema(bias_schema, [64, 32]),
+            bias_block=bias_block,
             num_experts=3,
         ).to_model()
     elif head == "ple":
@@ -141,7 +142,7 @@ def build_advanced_ranking_model(schema: Schema, head="ple") -> ml.Model:
             num_shared_experts=2,
             num_task_experts=2,
             depth=2,
-            bias_block=ml.MLPBlock.from_schema(bias_schema, [64, 32]),
+            bias_block=bias_block,
         ).to_model()
 
     return body.to_model(schema)
@@ -169,8 +170,8 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
-    # model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
-    model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
+    model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
+    # model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
     # model = build_dcn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
     # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")

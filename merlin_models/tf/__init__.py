@@ -23,7 +23,7 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 from .. import data
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
-from .block.mlp import MLPBlock, MLPResidualBlock
+from .block.mlp import DenseResidualBlock, MLPBlock, MLPResidualBlock
 from .block.multi_task import MMOE, MMOEGate
 from .block.retrieval import Retrieval
 from .core import (
@@ -77,6 +77,7 @@ __all__ = [
     "MMOEGate",
     "MMOE",
     "MLPResidualBlock",
+    "DenseResidualBlock",
     "TabularBlock",
     "ContinuousFeatures",
     "EmbeddingFeatures",

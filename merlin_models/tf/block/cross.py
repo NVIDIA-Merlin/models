@@ -11,6 +11,7 @@ InitializerType = Union[str, tf.keras.initializers.Initializer]
 RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class DenseSameDim(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -80,7 +81,7 @@ class DenseSameDim(tf.keras.layers.Layer):
         )
 
 
-@tf.keras.utils.register_keras_serializable()
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class Cross(tf.keras.layers.Layer):
     def __init__(
         self,
@@ -148,6 +149,7 @@ class Cross(tf.keras.layers.Layer):
         return maybe_serialize_keras_objects(self, config, ["dense"])
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class CrossBlock(SequentialBlock):
     def __init__(
         self,
