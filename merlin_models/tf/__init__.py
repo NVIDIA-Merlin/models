@@ -23,12 +23,13 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 from .. import data
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
-from .block.mlp import DenseResidualBlock, MLPBlock, MLPResidualBlock
+from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import MMOE, MMOEGate
 from .block.retrieval import Retrieval
 from .core import (
     AsTabular,
     Block,
+    DualEncoderBlock,
     FilterFeatures,
     Head,
     Model,
@@ -54,6 +55,8 @@ from .tabular.aggregation import (
 from .tabular.transformations import AsDenseFeatures, AsSparseFeatures, StochasticSwapNoise
 from .utils import repr_utils
 
+Tag.__hash__ = lambda self: hash(str(self))
+
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr
 
@@ -71,12 +74,12 @@ __all__ = [
     "SequentialBlock",
     "ResidualBlock",
     "right_shift_layer",
+    "DualEncoderBlock",
     "CrossBlock",
     "DLRMBlock",
     "MLPBlock",
     "MMOEGate",
     "MMOE",
-    "MLPResidualBlock",
     "DenseResidualBlock",
     "TabularBlock",
     "ContinuousFeatures",

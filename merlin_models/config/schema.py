@@ -50,7 +50,7 @@ class SchemaMixin:
         return super().__call__(*args, **kwargs)
 
     def _maybe_set_schema(self, input, schema):
-        if input and getattr(input, "set_schema"):
+        if input and getattr(input, "set_schema", None):
             input.set_schema(schema)
 
     def get_item_ids_from_inputs(self, inputs):

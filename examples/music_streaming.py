@@ -5,8 +5,6 @@ from merlin_standard_lib import Schema, Tag
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import generate_recsys_data
 
-Tag.__hash__ = lambda self: hash(str(self))
-
 synthetic_music_recsys_data_schema = Schema(
     [
         # Item

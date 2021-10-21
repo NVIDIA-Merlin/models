@@ -5,6 +5,7 @@ import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 
 from ..core import (
+    DualEncoderBlock,
     TabularAggregation,
     TabularBlock,
     TabularTransformationType,
@@ -12,7 +13,6 @@ from ..core import (
 )
 from ..features.embedding import EmbeddingFeatures
 from ..typing import TabularData
-from .dual import DualEncoderBlock
 from .mlp import MLPBlock
 
 

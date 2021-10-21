@@ -192,9 +192,20 @@ class TabularFeatures(ParallelBlock, InputBlockMixin):
         return config
 
     @classmethod
-    def from_config(cls, config):
+    def from_config(cls, config, **kwargs):
         config = tf_utils.maybe_deserialize_keras_objects(
-            config, ["continuous_layer", "categorical_layer", "text_embedding_layer"]
+            config,
+            [
+                "continuous_layer",
+                "categorical_layer",
+                "text_embedding_layer",
+                "pre",
+                "post",
+                "aggregation",
+            ],
         )
 
-        return super().from_config(config)
+        if "schema" in config:
+            config["schema"] = Schema().from_json(config["schema"])
+
+        return cls(**config)

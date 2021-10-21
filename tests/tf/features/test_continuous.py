@@ -42,7 +42,7 @@ def test_serialization_continuous_features(yoochoose_schema, tf_yoochoose_like):
 
     copy_layer = test_utils.assert_serialization(inputs)
 
-    assert inputs.filter_features.to_include == copy_layer.filter_features.to_include
+    assert inputs.filter_features.feature_names == copy_layer.filter_features.feature_names
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

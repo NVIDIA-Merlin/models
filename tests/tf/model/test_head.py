@@ -85,7 +85,7 @@ def test_head_with_multiple_tasks(tf_tabular_features, tf_tabular_data, task_blo
     ]
     head = tr.Head(body, tasks, task_blocks=task_blocks)
     model = tr.Model(head)
-    model.compile(optimizer="adam")
+    model.compile(optimizer="adam", run_eagerly=True)
 
     step = model.train_step((tf_tabular_data, targets))
 

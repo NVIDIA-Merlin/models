@@ -1016,11 +1016,19 @@ class FilterFeatures(TabularBlock):
 
     def get_config(self):
         config = super().get_config()
-        config["feature_names"] = self.feature_names
+        config["inputs"] = self.feature_names
         config["exclude"] = self.exclude
         config["pop"] = self.pop
 
         return config
+
+    # @classmethod
+    # def from_config(cls, config):
+    #     config = maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
+    #     if "schema" in config:
+    #         config["schema"] = Schema().from_json(config["schema"])
+    #
+    #     return cls(config.pop(""), **config)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -1237,8 +1245,8 @@ class WithShortcut(ParallelBlock):
         )
 
     @classmethod
-    def from_config(cls, config):
-        output = ParallelBlock.from_config(config)
+    def from_config(cls, config, **kwargs):
+        output = ParallelBlock.from_config(config, **kwargs)
         output.__class__ = cls
 
         return output
@@ -1267,6 +1275,46 @@ class ResidualBlock(WithShortcut):
             strict=strict,
             **kwargs,
         )
+
+
+class DualEncoderBlock(ParallelBlock):
+    def __init__(
+        self,
+        left: Union[TabularBlock, tf.keras.layers.Layer],
+        right: Union[TabularBlock, tf.keras.layers.Layer],
+        pre: Optional[TabularTransformationType] = None,
+        post: Optional[TabularTransformationType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        left_name: str = "left",
+        right_name: str = "right",
+        name: Optional[str] = None,
+        strict: bool = False,
+        **kwargs,
+    ):
+        if not getattr(left, "is_tabular", False):
+            left = SequentialBlock([left, AsTabular(left_name)])
+        if not getattr(right, "is_tabular", False):
+            right = SequentialBlock([right, AsTabular(right_name)])
+
+        super().__init__(
+            left,
+            right,
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+            schema=schema,
+            name=name,
+            strict=strict,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_config(cls, config, **kwargs):
+        output = ParallelBlock.from_config(config, **kwargs)
+        output.__class__ = cls
+
+        return output
 
 
 def call_parallel(self, other, aggregation=None, **kwargs):
@@ -1695,7 +1743,9 @@ class Head(ParallelBlock):
     ) -> tf.Tensor:
         losses = []
 
-        if isinstance(inputs, dict):
+        if isinstance(inputs, dict) and not all(
+            name in inputs for name in list(self.parallel_dict.keys())
+        ):
             predictions = self(inputs)
         else:
             predictions = inputs
@@ -1739,14 +1789,17 @@ class Head(ParallelBlock):
         return ["prediction_tasks", "parallel_layers"]
 
     @classmethod
-    def from_config(cls, config):
+    def from_config(cls, config, **kwargs):
         config = maybe_deserialize_keras_objects(
             config, ["body", "prediction_tasks", "task_weights"]
         )
 
+        if "schema" in config:
+            config["schema"] = Schema().from_json(config["schema"])
+
         config["loss_reduction"] = getattr(tf, config["loss_reduction"])
 
-        return super().from_config(config)
+        return cls(**config)
 
     def get_config(self):
         config = super().get_config()
