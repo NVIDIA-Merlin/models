@@ -18,8 +18,71 @@ from typing import List, Optional
 
 import tensorflow as tf
 
-from ..core import ResidualBlock, SequentialBlock, TabularBlock
+from ..core import ResidualBlock, SequentialBlock, tabular_aggregation_registry
+from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from .cross import DenseSameDim
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class Dense(tf.keras.layers.Layer):
+    def __init__(
+        self,
+        units,
+        activation=None,
+        use_bias=True,
+        kernel_initializer="glorot_uniform",
+        bias_initializer="zeros",
+        kernel_regularizer=None,
+        bias_regularizer=None,
+        activity_regularizer=None,
+        kernel_constraint=None,
+        bias_constraint=None,
+        pre_aggregation="concat",
+        dense=None,
+        **kwargs
+    ):
+        super(Dense, self).__init__(**kwargs)
+        self.dense = dense or tf.keras.layers.Dense(
+            units,
+            activation,
+            use_bias,
+            kernel_initializer,
+            bias_initializer,
+            kernel_regularizer,
+            bias_regularizer,
+            activity_regularizer,
+            kernel_constraint,
+            bias_constraint,
+            **kwargs
+        )
+        self.pre_aggregation = pre_aggregation
+        self.units = units
+
+    def call(self, inputs, **kwargs):
+        if isinstance(inputs, dict):
+            inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
+
+        return self.dense(inputs, **kwargs)
+
+    def compute_output_shape(self, input_shape):
+        if isinstance(input_shape, dict):
+            agg = tabular_aggregation_registry.parse(self.pre_aggregation)
+            input_shape = agg.compute_output_shape(input_shape)
+
+        return super(Dense, self).compute_output_shape(input_shape)
+
+    def get_config(self):
+        config = super(Dense, self).get_config()
+        config["pre_aggregation"] = self.pre_aggregation
+        config["units"] = self.units
+
+        return maybe_serialize_keras_objects(self, config, ["dense"])
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, {"dense": tf.keras.layers.deserialize})
+
+        return cls(**config)
 
 
 def MLPBlock(
@@ -28,15 +91,11 @@ def MLPBlock(
     use_bias: bool = True,
     dropout=None,
     normalization=None,
-    pre_aggregation=None,
 ) -> SequentialBlock:
     block_layers = []
 
-    if pre_aggregation:
-        block_layers.append(TabularBlock(aggregation=pre_aggregation))
-
     for dim in dimensions:
-        block_layers.append(tf.keras.layers.Dense(dim, activation=activation, use_bias=use_bias))
+        block_layers.append(Dense(dim, activation=activation, use_bias=use_bias))
         if dropout:
             block_layers.append(tf.keras.layers.Dropout(dropout))
         if normalization:

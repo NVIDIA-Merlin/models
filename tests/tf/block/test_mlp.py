@@ -38,7 +38,7 @@ def test_mlp_block_yoochoose(
 
     assert list(outputs.shape) == [100, dim]
     assert mlp.layers[0].units == dim
-    assert mlp.layers[0].activation.__name__ == activation
+    assert mlp.layers[0].dense.activation.__name__ == activation
     if dropout:
         assert mlp.layers[1].rate == dropout
     if normalization:

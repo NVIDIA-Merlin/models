@@ -32,7 +32,7 @@ def DLRMBlock(
     embedding_dim = embedding_dim or bottom_block.layers[-1].units
     input = TabularFeatures.from_schema(schema, embedding_dim_default=embedding_dim)
 
-    con = Tag.CONTINUOUS >> bottom_block.prepare(aggregation="concat").as_tabular("continuous")
+    con = Tag.CONTINUOUS >> bottom_block.as_tabular("continuous")
     dlrm = input.branch(con, add_rest=True, aggregation="stack").add(DotProductInteraction())
 
     # routes = {Tag.CONTINUOUS: bottom_block.prepare(aggregation="concat").as_tabular("continuous")}

@@ -96,8 +96,8 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
         #     ml.Match(Tag.ITEM, block.copy().as_tabular("user")),
         #     aggregation="cosine"
         # )
-        user_tower = Tag.USER >> ml.MLPBlock(dims, pre_aggregation="concat").as_tabular("user")
-        item_tower = Tag.ITEM >> ml.MLPBlock(dims, pre_aggregation="concat").as_tabular("item")
+        user_tower = Tag.USER >> ml.MLPBlock(dims).as_tabular("user")
+        item_tower = Tag.ITEM >> ml.MLPBlock(dims).as_tabular("item")
 
         inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
         two_tower = inputs.branch(user_tower, item_tower, aggregation="cosine").to_model(schema)

@@ -4,7 +4,7 @@ import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.schema.tag import TagsType
 
-from ..core import SequentialBlock, is_input_block
+from ..core import SequentialBlock, is_input_block, tabular_aggregation_registry
 from ..utils.tf_utils import maybe_serialize_keras_objects
 
 InitializerType = Union[str, tf.keras.initializers.Initializer]
@@ -22,6 +22,7 @@ class DenseSameDim(tf.keras.layers.Layer):
         bias_initializer: InitializerType = "zeros",
         kernel_regularizer: Optional[RegularizerType] = None,
         bias_regularizer: Optional[RegularizerType] = None,
+        pre_aggregation="concat",
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -32,6 +33,7 @@ class DenseSameDim(tf.keras.layers.Layer):
         self.bias_initializer = tf.keras.initializers.get(bias_initializer)
         self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
         self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
+        self.pre_aggregation = pre_aggregation
 
     def build(self, input_shape):
         last_dim = input_shape[-1]
@@ -60,17 +62,27 @@ class DenseSameDim(tf.keras.layers.Layer):
         super(DenseSameDim, self).build(input_shape)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        if isinstance(inputs, dict):
+            inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
+
         if self.projection_dim is None:
             return self.dense(inputs)
 
         return self.dense_v(self.dense_u(inputs))
 
     def compute_output_shape(self, input_shape):
+        if isinstance(input_shape, dict):
+            agg = tabular_aggregation_registry.parse(self.pre_aggregation)
+            input_shape = agg.compute_output_shape(input_shape)
+
         return input_shape
 
     def get_config(self):
         config = dict(
-            projection_dim=self.projection_dim, use_bias=self.use_bias, activation=self.activation
+            projection_dim=self.projection_dim,
+            use_bias=self.use_bias,
+            activation=self.activation,
+            pre_aggregation=self.pre_aggregation,
         )
         config.update(super(DenseSameDim, self).get_config())
 
