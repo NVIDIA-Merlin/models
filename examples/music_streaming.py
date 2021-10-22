@@ -76,14 +76,33 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
         return ml.Retrieval(user_tower, item_tower).to_model(schema)
 
     def method_3() -> ml.Model:
-        inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
-        routes = {
-            Tag.USER: ml.MLPBlock(dims).as_tabular("user"),
-            Tag.ITEM: ml.MLPBlock(dims).as_tabular("item"),
-        }
-        two_tower = inputs.add_routes(routes, route_aggregation="concat", aggregation="cosine")
+        def routes_verbose(inputs, schema: Schema):
+            user_features = schema.select_by_tag(Tag.USER).filter_columns_from_dict(inputs)
+            item_features = schema.select_by_tag(Tag.ITEM).filter_columns_from_dict(inputs)
 
-        return two_tower.to_model(schema)
+            user_tower = ml.MLPBlock(dims)(user_features)
+            item_tower = ml.MLPBlock(dims)(item_features)
+
+            return ml.ParallelBlock(dict(user=user_tower, item=item_tower), aggregation="cosine")
+
+        # routes = {
+        #     Tag.USER: block.as_tabular("user"),
+        #     Tag.ITEM: block.copy().as_tabular("item"),
+        # }
+        # two_tower = inputs.routes(routes, aggregation="cosine")
+
+        # two_tower = inputs.match_keys(
+        #     ml.Match(Tag.USER, block.as_tabular("user")),
+        #     ml.Match(Tag.ITEM, block.copy().as_tabular("user")),
+        #     aggregation="cosine"
+        # )
+        user_tower = Tag.USER >> ml.MLPBlock(dims, pre_aggregation="concat").as_tabular("user")
+        item_tower = Tag.ITEM >> ml.MLPBlock(dims, pre_aggregation="concat").as_tabular("item")
+
+        inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
+        two_tower = inputs.branch(user_tower, item_tower, aggregation="cosine").to_model(schema)
+
+        return two_tower
 
     return method_3()
 
@@ -168,11 +187,11 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
-    model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
+    # model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
     # model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
     # model = build_dcn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
-    # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
+    model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
 
     model.compile(optimizer="adam", run_eagerly=True)
 

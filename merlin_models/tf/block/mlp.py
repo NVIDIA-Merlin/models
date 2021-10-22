@@ -18,7 +18,7 @@ from typing import List, Optional
 
 import tensorflow as tf
 
-from ..core import ResidualBlock, SequentialBlock
+from ..core import ResidualBlock, SequentialBlock, TabularBlock
 from .cross import DenseSameDim
 
 
@@ -28,8 +28,13 @@ def MLPBlock(
     use_bias: bool = True,
     dropout=None,
     normalization=None,
+    pre_aggregation=None,
 ) -> SequentialBlock:
     block_layers = []
+
+    if pre_aggregation:
+        block_layers.append(TabularBlock(aggregation=pre_aggregation))
+
     for dim in dimensions:
         block_layers.append(tf.keras.layers.Dense(dim, activation=activation, use_bias=use_bias))
         if dropout:

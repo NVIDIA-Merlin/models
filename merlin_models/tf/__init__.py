@@ -32,6 +32,7 @@ from .core import (
     DualEncoderBlock,
     FilterFeatures,
     Head,
+    Match,
     Model,
     NoOp,
     ParallelBlock,
@@ -106,5 +107,6 @@ __all__ = [
     "Model",
     "StochasticSwapNoise",
     "NoOp",
+    "Match",
     "data",
 ]

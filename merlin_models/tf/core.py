@@ -18,6 +18,7 @@ import abc
 import copy
 import sys
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import reduce
 from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload
 
@@ -226,6 +227,9 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
             return input
 
         return cls.from_layer(input)
+
+    def __rrshift__(self, other):
+        return right_shift_layer(self, other)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -542,6 +546,12 @@ TABULAR_MODULE_PARAMS_DOCSTRING = """
 """
 
 
+@dataclass
+class Match:
+    selector: Union[List[str], Schema, Tag]
+    block: Block
+
+
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class TabularBlock(Block):
@@ -844,6 +854,49 @@ class TabularBlock(Block):
 
         return super().set_schema(schema)
 
+    def branch(
+        self,
+        *branches: Block,
+        add_rest=False,
+        post: Optional[TabularTransformationsType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+    ) -> "SequentialBlock":
+        branches = list(branches)
+
+        all_features = []
+        for branch in branches:
+            if isinstance(branch, SequentialBlock) and isinstance(branch.layers[0], FilterFeatures):
+                branch.layers[0].set_schema(self.schema)
+                all_features.extend(branch.layers[0].feature_names)
+
+        rest_features = self.schema.remove_by_name(list(set(all_features)))
+        rest_block = None
+        if add_rest:
+            rest_block = SequentialBlock([FilterFeatures(rest_features)])
+
+        if rest_block:
+            branches.append(rest_block)
+
+        return SequentialBlock([self, ParallelBlock(*branches, post=post, aggregation=aggregation)])
+
+    def match_keys(
+        self,
+        *matches: Match,
+        route_aggregation: Optional[TabularAggregationType] = None,
+        rest: Optional[Block] = None,
+        add_rest=False,
+        post: Optional[TabularTransformationsType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+    ) -> "SequentialBlock":
+        return self.add_routes(
+            routes={match.selector: match.block for match in matches},
+            route_aggregation=route_aggregation,
+            rest=rest,
+            add_rest=add_rest,
+            post=post,
+            aggregation=aggregation,
+        )
+
     def add_routes(
         self,
         routes: Dict[Union[List[str], Schema, Tag], Block],
@@ -975,14 +1028,29 @@ class FilterFeatures(TabularBlock):
         ...
 
     @overload
+    def __init__(self, inputs: Tag, name=None, pop=False, exclude=False, **kwargs):
+        ...
+
+    @overload
     def __init__(self, inputs: Sequence[str], name=None, pop=False, exclude=False, **kwargs):
         ...
 
     def __init__(self, inputs, name=None, pop=False, exclude=False, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.feature_names = list(inputs.column_names) if isinstance(inputs, Schema) else inputs
+        if isinstance(inputs, Tag):
+            self.feature_names = inputs
+        else:
+            self.feature_names = list(inputs.column_names) if isinstance(inputs, Schema) else inputs
         self.exclude = exclude
         self.pop = pop
+
+    def set_schema(self, schema=None):
+        out = super().set_schema(schema)
+
+        if isinstance(self.feature_names, Tag):
+            self.feature_names = self.schema.select_by_tag(self.feature_names)
+
+        return out
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         """Filter out features from inputs.
@@ -1966,7 +2034,7 @@ BlockType = Union[tf.keras.layers.Layer, Block]
 
 
 def right_shift_layer(self, other):
-    if isinstance(other, list):
+    if isinstance(other, (list, Tag)):
         left_side = [FilterFeatures(other)]
     else:
         left_side = other.layers if isinstance(other, SequentialBlock) else [other]

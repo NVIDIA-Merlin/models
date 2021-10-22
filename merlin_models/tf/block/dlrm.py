@@ -31,8 +31,12 @@ def DLRMBlock(
 ) -> SequentialBlock:
     embedding_dim = embedding_dim or bottom_block.layers[-1].units
     input = TabularFeatures.from_schema(schema, embedding_dim_default=embedding_dim)
-    routes = {Tag.CONTINUOUS: bottom_block.prepare(aggregation="concat").as_tabular("continuous")}
-    dlrm = input.add_routes(routes, add_rest=True, aggregation="stack").add(DotProductInteraction())
+
+    con = Tag.CONTINUOUS >> bottom_block.prepare(aggregation="concat").as_tabular("continuous")
+    dlrm = input.branch(con, add_rest=True, aggregation="stack").add(DotProductInteraction())
+
+    # routes = {Tag.CONTINUOUS: bottom_block.prepare(aggregation="concat").as_tabular("continuous")}
+    # dlrm=input.match_keys(routes, add_rest=True, aggregation="stack").add(DotProductInteraction())
 
     if top_block:
         dlrm = dlrm.add(top_block)
