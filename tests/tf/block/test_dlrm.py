@@ -20,12 +20,7 @@ tr = pytest.importorskip("merlin_models.tf")
 
 
 def test_dlrm_block_yoochoose(tabular_schema, tf_tabular_data):
-    all_features_schema = tabular_schema
-
-    dlrm = tr.DLRMBlock(all_features_schema, bottom_block=tr.MLPBlock([64]))
-
-    body = tr.SequentialBlock([dlrm, tr.MLPBlock([64])])
-
-    outputs = body(tf_tabular_data)
+    dlrm = tr.DLRMBlock(tabular_schema, bottom_block=tr.MLPBlock([64]), top_block=tr.MLPBlock([64]))
+    outputs = dlrm(tf_tabular_data)
 
     assert list(outputs.shape) == [100, 64]

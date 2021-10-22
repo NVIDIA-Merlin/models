@@ -860,6 +860,7 @@ class TabularBlock(Block):
         add_rest=False,
         post: Optional[TabularTransformationsType] = None,
         aggregation: Optional[TabularAggregationType] = None,
+        **kwargs,
     ) -> "SequentialBlock":
         branches = list(branches)
 
@@ -869,7 +870,7 @@ class TabularBlock(Block):
                 branch.layers[0].set_schema(self.schema)
                 all_features.extend(branch.layers[0].feature_names)
 
-        rest_features = self.schema.remove_by_name(list(set(all_features)))
+        rest_features = self.schema.remove_by_name(list(set([str(f) for f in all_features])))
         rest_block = None
         if add_rest:
             rest_block = SequentialBlock([FilterFeatures(rest_features)])
@@ -877,7 +878,9 @@ class TabularBlock(Block):
         if rest_block:
             branches.append(rest_block)
 
-        return SequentialBlock([self, ParallelBlock(*branches, post=post, aggregation=aggregation)])
+        return SequentialBlock(
+            [self, ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)]
+        )
 
     def match_keys(
         self,
@@ -1036,11 +1039,11 @@ class FilterFeatures(TabularBlock):
         ...
 
     def __init__(self, inputs, name=None, pop=False, exclude=False, **kwargs):
-        super().__init__(name=name, **kwargs)
         if isinstance(inputs, Tag):
             self.feature_names = inputs
         else:
             self.feature_names = list(inputs.column_names) if isinstance(inputs, Schema) else inputs
+        super().__init__(name=name, **kwargs)
         self.exclude = exclude
         self.pop = pop
 
@@ -1048,7 +1051,7 @@ class FilterFeatures(TabularBlock):
         out = super().set_schema(schema)
 
         if isinstance(self.feature_names, Tag):
-            self.feature_names = self.schema.select_by_tag(self.feature_names)
+            self.feature_names = self.schema.select_by_tag(self.feature_names).column_names
 
         return out
 
@@ -1074,7 +1077,9 @@ class FilterFeatures(TabularBlock):
         return outputs
 
     def compute_call_output_shape(self, input_shape):
-        return {k: v for k, v in input_shape.items() if self.check_feature(k)}
+        outputs = {k: v for k, v in input_shape.items() if self.check_feature(k)}
+
+        return outputs
 
     def check_feature(self, feature_name) -> bool:
         if self.exclude:
