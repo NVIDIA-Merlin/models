@@ -30,6 +30,8 @@ def MLPBlock(
     dropout: Optional[float] = None,
     normalization: Optional[Union[str, tf.keras.layers.Layer]] = None,
     filter: Optional[Union[Schema, Tag, List[str], "Filter"]] = None,
+    block_name: str = "MLPBlock",
+    **kwargs
 ) -> SequentialBlock:
     block_layers = []
 
@@ -45,7 +47,7 @@ def MLPBlock(
             else:
                 raise ValueError("Normalization needs to be an instance `Layer` or " "`batch_norm`")
 
-    return SequentialBlock(block_layers, filter=filter, block_name="MLPBlock")
+    return SequentialBlock(block_layers, filter=filter, block_name=block_name, **kwargs)
 
 
 def DenseResidualBlock(
