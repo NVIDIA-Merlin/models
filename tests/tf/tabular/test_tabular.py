@@ -23,7 +23,7 @@ tr = pytest.importorskip("merlin_models.tf")
 
 def test_filter_features(tf_con_features):
     features = ["a", "b"]
-    con = tr.FilterFeatures(features)(tf_con_features)
+    con = tr.Filter(features)(tf_con_features)
 
     assert list(con.keys()) == features
 

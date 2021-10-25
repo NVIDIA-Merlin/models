@@ -69,9 +69,8 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
         return ml.Retrieval.from_schema(schema, dims).to_model(schema.select_by_name(target))
 
     def method_2() -> ml.Model:
-        user_schema, item_schema = schema.select_by_tag(Tag.USER), schema.select_by_tag(Tag.ITEM)
-        user_tower = ml.MLPBlock([512, 256]).with_inputs(user_schema, aggregation="concat")
-        item_tower = ml.MLPBlock([512, 256]).with_inputs(item_schema, aggregation="concat")
+        user_tower = ml.MLPBlock([512, 256]).from_inputs(schema.select_by_tag(Tag.USER))
+        item_tower = ml.MLPBlock([512, 256]).from_inputs(schema.select_by_tag(Tag.ITEM))
 
         return ml.Retrieval(user_tower, item_tower).to_model(schema)
 
@@ -96,8 +95,8 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
         #     ml.Match(Tag.ITEM, block.copy().as_tabular("user")),
         #     aggregation="cosine"
         # )
-        user_tower = Tag.USER >> ml.MLPBlock(dims).as_tabular("user")
-        item_tower = Tag.ITEM >> ml.MLPBlock(dims).as_tabular("item")
+        user_tower = ml.MLPBlock(dims, filter=Tag.USER).as_tabular("user")
+        item_tower = ml.MLPBlock(dims, filter=Tag.ITEM).as_tabular("item")
 
         inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
         two_tower = inputs.branch(user_tower, item_tower, aggregation="cosine").to_model(schema)
@@ -108,34 +107,35 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
 
 
 def build_dnn(schema: Schema, residual=False) -> ml.Model:
+    bias_block = ml.MLPBlock([256, 128]).from_inputs(schema.select_by_tag("bias"))
     schema = schema.remove_by_tag("bias")
 
     if residual:
-        block = ml.DenseResidualBlock().repeat(2).with_inputs(schema, aggregation="concat")
+        block = ml.DenseResidualBlock(depth=2).from_inputs(schema)
     else:
-        block = ml.MLPBlock([512, 256]).with_inputs(schema, aggregation="concat")
+        block = ml.MLPBlock([512, 256]).from_inputs(schema)
 
-    return block.to_model(schema)
+    return block.to_model(schema, bias_block=bias_block)
 
 
 def build_dcn(schema: Schema) -> ml.Model:
     schema = schema.remove_by_tag("bias")
 
-    cross = ml.CrossBlock.from_schema(schema, depth=3)
-    deep_cross = cross.add_in_parallel(ml.MLPBlock([512, 256]), aggregation="concat")
+    deep_cross = ml.TabularFeatures.from_schema(schema).branch(
+        ml.CrossBlock(3), ml.MLPBlock([512, 256]), aggregation="concat"
+    )
 
     return deep_cross.to_model(schema)
 
 
 def build_advanced_ranking_model(schema: Schema, head="ple") -> ml.Model:
     # TODO: Change msl to be able to make this a single function call.
-    bias_schema = schema.select_by_tag("bias")
-    schema = schema.remove_by_tag("bias")
-
+    bias_block = ml.MLPBlock([512, 256]).from_inputs(schema.select_by_tag("bias"))
     body = ml.DLRMBlock(
-        schema, bottom_block=ml.MLPBlock([512, 128]), top_block=ml.MLPBlock([128, 64])
+        schema.remove_by_tag("bias"),
+        bottom_block=ml.MLPBlock([512, 128]),
+        top_block=ml.MLPBlock([128, 64]),
     )
-    bias_block = ml.MLPBlock([512, 256]).with_inputs(bias_schema, aggregation="concat")
 
     # expert_block, output_names = ml.MLPBlock([64, 32]), ml.Head.task_names_from_schema(schema)
     # mmoe = ml.MMOE(expert_block, num_experts=3, output_names=output_names)

@@ -94,7 +94,7 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return SequentialBlock(repeated)
 
-    def with_inputs(
+    def from_inputs(
         self,
         schema: Schema,
         input_block: Optional["InputBlock"] = None,
@@ -142,7 +142,7 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return ParallelBlock(repeated, post=post, aggregation=aggregation, **kwargs)
 
-    def add(
+    def apply(
         self, *block: tf.keras.layers.Layer, block_name: Optional[str] = None
     ) -> "SequentialBlock":
         if isinstance(self, SequentialBlock):
@@ -157,7 +157,7 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
 
-    def add_with_residual(
+    def apply_with_residual(
         self,
         block: tf.keras.layers.Layer,
         activation=None,
@@ -171,7 +171,7 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return SequentialBlock([self, residual_block], copy_layers=False)
 
-    def add_with_shortcut(
+    def apply_with_shortcut(
         self,
         block: tf.keras.layers.Layer,
         post: Optional["TabularTransformationType"] = None,
@@ -189,34 +189,62 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return SequentialBlock([self, residual_block], copy_layers=False)
 
-    def add_in_parallel(
+    # def apply_in_parallel(
+    #     self,
+    #     block: tf.keras.layers.Layer,
+    #     post: Optional["TabularTransformationType"] = None,
+    #     aggregation: Optional["TabularAggregationType"] = None,
+    #     names: Optional[List[str]] = None,
+    #     **kwargs,
+    # ) -> "Block":
+    #     if has_input_block(self) and not has_input_block(block):
+    #         inputs = self.layers.pop(0)
+    #         output = SequentialBlock(
+    #             [
+    #                 inputs,
+    #                 ParallelBlock(
+    #                     {self.name: self, block.name: block},
+    #                     post=post,
+    #                     aggregation=aggregation,
+    #                     **kwargs,
+    #                 ),
+    #             ],
+    #             copy_layers=False,
+    #         )
+    #
+    #         return output
+    #
+    #     to_add = [{names[0]: self, names[1]: block}] if names else (self, block)
+    #
+    #     return ParallelBlock(*to_add, post=post, aggregation=aggregation, **kwargs)
+
+    def branch(
         self,
-        block: tf.keras.layers.Layer,
-        post: Optional["TabularTransformationType"] = None,
+        *branches: "Block",
+        add_rest=False,
+        post: Optional["TabularTransformationsType"] = None,
         aggregation: Optional["TabularAggregationType"] = None,
-        names: Optional[List[str]] = None,
         **kwargs,
-    ) -> "Block":
-        if has_input_block(self) and not has_input_block(block):
-            inputs = self.layers.pop(0)
-            output = SequentialBlock(
-                [
-                    inputs,
-                    ParallelBlock(
-                        {self.name: self, block.name: block},
-                        post=post,
-                        aggregation=aggregation,
-                        **kwargs,
-                    ),
-                ],
-                copy_layers=False,
-            )
+    ) -> "SequentialBlock":
+        branches = list(branches)
 
-            return output
+        all_features = []
+        for branch in branches:
+            if isinstance(branch, SequentialBlock) and isinstance(branch.layers[0], Filter):
+                branch.layers[0].set_schema(self.schema)
+                all_features.extend(branch.layers[0].feature_names)
 
-        to_add = [{names[0]: self, names[1]: block}] if names else (self, block)
+        rest_features = self.schema.remove_by_name(list(set([str(f) for f in all_features])))
+        rest_block = None
+        if add_rest:
+            rest_block = SequentialBlock([Filter(rest_features)])
 
-        return ParallelBlock(*to_add, post=post, aggregation=aggregation, **kwargs)
+        if rest_block:
+            branches.append(rest_block)
+
+        return SequentialBlock(
+            [self, ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)]
+        )
 
     def copy(self):
         return self.from_config(self.get_config())
@@ -247,7 +275,14 @@ class SequentialBlock(Block):
         output = c(inputs)    # Equivalent to: output = layer3(layer2(layer1(inputs)))
     """
 
-    def __init__(self, layers, filter_features=None, block_name=None, copy_layers=False, **kwargs):
+    def __init__(
+        self,
+        layers,
+        filter: Optional[Union[Schema, Tag, List[str], "Filter"]] = None,
+        block_name: Optional[str] = None,
+        copy_layers: bool = False,
+        **kwargs,
+    ):
         """Create a composition.
 
         Parameters
@@ -272,11 +307,13 @@ class SequentialBlock(Block):
                 )
 
         super(SequentialBlock, self).__init__(**kwargs)
-        if filter_features:
-            layers = copy.copy(layers) if copy_layers else layers
-            self.layers = [FilterFeatures(filter_features), *layers]
+        layers = copy.copy(layers) if copy_layers else layers
+        if filter:
+            if not isinstance(filter, Filter):
+                filter = Filter(filter)
+            self.layers = [filter, *layers]
         else:
-            self.layers = copy.copy(layers) if copy_layers else layers
+            self.layers = layers
 
     def compute_output_shape(self, input_shape):
         output_shape = input_shape
@@ -637,7 +674,7 @@ class TabularBlock(Block):
         -------
         TabularModule
         """
-        pre = [FilterFeatures(features), pre] if pre else FilterFeatures(features)  # type: ignore
+        pre = [Filter(features), pre] if pre else Filter(features)  # type: ignore
 
         return cls(pre=pre, post=post, aggregation=aggregation, name=name, **kwargs)
 
@@ -842,7 +879,7 @@ class TabularBlock(Block):
 
     def apply_to_all(self, inputs, columns_to_filter=None):
         if columns_to_filter:
-            inputs = FilterFeatures(columns_to_filter)(inputs)
+            inputs = Filter(columns_to_filter)(inputs)
         outputs = tf.nest.map_structure(self, inputs)
 
         return outputs
@@ -853,34 +890,6 @@ class TabularBlock(Block):
         self._maybe_set_schema(self.aggregation, schema)
 
         return super().set_schema(schema)
-
-    def branch(
-        self,
-        *branches: Block,
-        add_rest=False,
-        post: Optional[TabularTransformationsType] = None,
-        aggregation: Optional[TabularAggregationType] = None,
-        **kwargs,
-    ) -> "SequentialBlock":
-        branches = list(branches)
-
-        all_features = []
-        for branch in branches:
-            if isinstance(branch, SequentialBlock) and isinstance(branch.layers[0], FilterFeatures):
-                branch.layers[0].set_schema(self.schema)
-                all_features.extend(branch.layers[0].feature_names)
-
-        rest_features = self.schema.remove_by_name(list(set([str(f) for f in all_features])))
-        rest_block = None
-        if add_rest:
-            rest_block = SequentialBlock([FilterFeatures(rest_features)])
-
-        if rest_block:
-            branches.append(rest_block)
-
-        return SequentialBlock(
-            [self, ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)]
-        )
 
     def match_keys(
         self,
@@ -919,17 +928,15 @@ class TabularBlock(Block):
             features = [str(f) for f in features]
             all_features.extend(features)
             blocks.append(
-                SequentialBlock(
-                    [FilterFeatures(features, aggregation=route_aggregation), route_block]
-                )
+                SequentialBlock([Filter(features, aggregation=route_aggregation), route_block])
             )
 
         rest_features = self.schema.remove_by_name(list(set(all_features)))
         rest_block = None
         if rest:
-            rest_block = SequentialBlock([FilterFeatures(rest_features), rest])
+            rest_block = SequentialBlock([Filter(rest_features), rest])
         elif add_rest:
-            rest_block = SequentialBlock([FilterFeatures(rest_features)])
+            rest_block = SequentialBlock([Filter(rest_features)])
 
         if rest_block:
             blocks.append(rest_block)
@@ -1015,7 +1022,7 @@ class TabularBlock(Block):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class FilterFeatures(TabularBlock):
+class Filter(TabularBlock):
     """Transformation that filters out certain features from `TabularData`."
 
     Parameters
@@ -2040,7 +2047,7 @@ BlockType = Union[tf.keras.layers.Layer, Block]
 
 def right_shift_layer(self, other):
     if isinstance(other, (list, Tag)):
-        left_side = [FilterFeatures(other)]
+        left_side = [Filter(other)]
     else:
         left_side = other.layers if isinstance(other, SequentialBlock) else [other]
     right_side = self.layers if isinstance(self, SequentialBlock) else [self]

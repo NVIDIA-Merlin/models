@@ -27,7 +27,7 @@ from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableCon
 
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
-    FilterFeatures,
+    Filter,
     InputBlock,
     TabularAggregationType,
     TabularTransformationType,
@@ -80,7 +80,7 @@ class EmbeddingFeatures(InputBlock):
             item_id = schema.select_by_tag(["item_id"]).column_names[0]
 
         if add_default_pre:
-            embedding_pre = [FilterFeatures(list(feature_config.keys())), AsSparseFeatures()]
+            embedding_pre = [Filter(list(feature_config.keys())), AsSparseFeatures()]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
         self.feature_config = feature_config
         self.item_id = item_id

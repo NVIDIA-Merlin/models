@@ -27,7 +27,7 @@ class MMOEHead(Head):
         **kwargs
     ):
         task_names = [task.task_name for task in prediction_tasks]
-        body = Block.parse_block(body).add(
+        body = Block.parse_block(body).apply(
             MMOE(expert_block, num_experts=num_experts, output_names=task_names, gate_dim=gate_dim)
         )
 
@@ -105,7 +105,7 @@ class PLEHead(Head):
             )
 
         super().__init__(
-            Block.parse_block(body).add(*cgc_blocks),
+            Block.parse_block(body).apply(*cgc_blocks),
             prediction_tasks,
             task_blocks,
             task_weights,

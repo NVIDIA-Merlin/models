@@ -22,7 +22,7 @@ from merlin_standard_lib.utils.doc_utils import docstring_parameter
 
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
-    FilterFeatures,
+    Filter,
     InputBlock,
     TabularAggregationType,
     TabularTransformationType,
@@ -54,7 +54,7 @@ class ContinuousFeatures(InputBlock):
         super().__init__(
             pre=pre, post=post, aggregation=aggregation, schema=schema, name=name, **kwargs
         )
-        self.filter_features = FilterFeatures(features)
+        self.filter_features = Filter(features)
 
     @classmethod
     def from_features(cls, features, **kwargs):

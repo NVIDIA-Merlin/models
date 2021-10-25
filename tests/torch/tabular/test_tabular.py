@@ -27,7 +27,7 @@ else:
 
 def test_filter_features(torch_con_features):
     features = ["con_a", "con_b"]
-    con = tr.FilterFeatures(features)(torch_con_features)
+    con = tr.Filter(features)(torch_con_features)
 
     assert list(con.keys()) == features
 

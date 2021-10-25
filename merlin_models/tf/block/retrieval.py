@@ -74,8 +74,8 @@ class Retrieval(DualEncoderBlock):
     ) -> "Retrieval":
         query_schema = schema.select_by_tag(query_tower_tag)
         item_schema = schema.select_by_tag(item_tower_tag)
-        query_tower = MLPBlock([512, 256]).with_inputs(query_schema, aggregation="concat")
-        item_tower = MLPBlock([512, 256]).with_inputs(item_schema, aggregation="concat")
+        query_tower = MLPBlock([512, 256]).from_inputs(query_schema, aggregation="concat")
+        item_tower = MLPBlock([512, 256]).from_inputs(item_schema, aggregation="concat")
 
         return cls(query_tower, item_tower, **kwargs)
 

@@ -1,96 +1,45 @@
-from typing import Optional, Tuple, Union
+from typing import Optional
 
 import tensorflow as tf
-from merlin_standard_lib import Schema, Tag
-from merlin_standard_lib.schema.tag import TagsType
 
-from ..core import SequentialBlock, is_input_block, tabular_aggregation_registry
+from ..core import SequentialBlock, is_input_block
 from ..utils.tf_utils import maybe_serialize_keras_objects
-
-InitializerType = Union[str, tf.keras.initializers.Initializer]
-RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
+from .mlp import DenseSameDim, InitializerType, RegularizerType
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class DenseSameDim(tf.keras.layers.Layer):
-    def __init__(
-        self,
-        projection_dim: Optional[int] = None,
-        use_bias: bool = True,
-        activation=None,
-        kernel_initializer: InitializerType = "truncated_normal",
-        bias_initializer: InitializerType = "zeros",
-        kernel_regularizer: Optional[RegularizerType] = None,
-        bias_regularizer: Optional[RegularizerType] = None,
-        pre_aggregation="concat",
-        **kwargs
-    ):
-        super().__init__(**kwargs)
-        self.projection_dim = projection_dim
-        self.use_bias = use_bias
-        self.activation = activation
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
-        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
-        self.pre_aggregation = pre_aggregation
+def CrossBlock(
+    depth: int = 1,
+    filter=None,
+    projection_dim: Optional[int] = None,
+    diagonal_scale: Optional[float] = 0.0,
+    use_bias: bool = True,
+    kernel_initializer: InitializerType = "truncated_normal",
+    bias_initializer: InitializerType = "zeros",
+    kernel_regularizer: Optional[RegularizerType] = None,
+    bias_regularizer: Optional[RegularizerType] = None,
+    inputs: Optional[tf.keras.layers.Layer] = None,
+    **kwargs
+):
+    if inputs and is_input_block(inputs) and not inputs.aggregation:
+        inputs.set_aggregation("concat")
 
-    def build(self, input_shape):
-        last_dim = input_shape[-1]
+    layers = [inputs] if inputs else []
 
-        dense = tf.keras.layers.Dense(
-            last_dim,
-            activation=self.activation,
-            kernel_initializer=self.kernel_initializer,
-            bias_initializer=self.bias_initializer,
-            kernel_regularizer=self.kernel_regularizer,
-            bias_regularizer=self.bias_regularizer,
-            use_bias=self.use_bias,
-        )
-
-        if self.projection_dim is None:
-            self.dense = dense
-        else:
-            self.dense_u = tf.keras.layers.Dense(
-                self.projection_dim,
-                activation=self.activation,
-                kernel_initializer=self.kernel_initializer,
-                kernel_regularizer=self.kernel_regularizer,
-                use_bias=False,
+    for i in range(depth):
+        layers.append(
+            Cross(
+                projection_dim=projection_dim,
+                diagonal_scale=diagonal_scale,
+                use_bias=use_bias,
+                kernel_initializer=kernel_initializer,
+                bias_initializer=bias_initializer,
+                kernel_regularizer=kernel_regularizer,
+                bias_regularizer=bias_regularizer,
+                output_x0=i < depth - 1,
             )
-            self.dense_v = dense
-        super(DenseSameDim, self).build(input_shape)
-
-    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        if isinstance(inputs, dict):
-            inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
-
-        if self.projection_dim is None:
-            return self.dense(inputs)
-
-        return self.dense_v(self.dense_u(inputs))
-
-    def compute_output_shape(self, input_shape):
-        if isinstance(input_shape, dict):
-            agg = tabular_aggregation_registry.parse(self.pre_aggregation)
-            input_shape = agg.compute_output_shape(input_shape)
-
-        return input_shape
-
-    def get_config(self):
-        config = dict(
-            projection_dim=self.projection_dim,
-            use_bias=self.use_bias,
-            activation=self.activation,
-            pre_aggregation=self.pre_aggregation,
         )
-        config.update(super(DenseSameDim, self).get_config())
 
-        return maybe_serialize_keras_objects(
-            self,
-            config,
-            ["kernel_initializer", "bias_initializer", "kernel_regularizer", "bias_regularizer"],
-        )
+    return SequentialBlock(layers, filter=filter, block_name="CrossBlock", **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -159,81 +108,3 @@ class Cross(tf.keras.layers.Layer):
         config.update(super(Cross, self).get_config())
 
         return maybe_serialize_keras_objects(self, config, ["dense"])
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class CrossBlock(SequentialBlock):
-    def __init__(
-        self,
-        depth: int = 1,
-        filter_features=None,
-        projection_dim: Optional[int] = None,
-        diagonal_scale: Optional[float] = 0.0,
-        use_bias: bool = True,
-        kernel_initializer: InitializerType = "truncated_normal",
-        bias_initializer: InitializerType = "zeros",
-        kernel_regularizer: Optional[RegularizerType] = None,
-        bias_regularizer: Optional[RegularizerType] = None,
-        inputs: Optional[tf.keras.layers.Layer] = None,
-        **kwargs
-    ):
-        if inputs and is_input_block(inputs) and not inputs.aggregation:
-            inputs.set_aggregation("concat")
-
-        layers = [inputs] if inputs else []
-
-        for i in range(depth):
-            layers.append(
-                Cross(
-                    projection_dim=projection_dim,
-                    diagonal_scale=diagonal_scale,
-                    use_bias=use_bias,
-                    kernel_initializer=kernel_initializer,
-                    bias_initializer=bias_initializer,
-                    kernel_regularizer=kernel_regularizer,
-                    bias_regularizer=bias_regularizer,
-                    output_x0=i < depth - 1,
-                )
-            )
-
-        super().__init__(layers, filter_features=filter_features, **kwargs)
-
-    @classmethod
-    def from_schema(
-        cls,
-        schema: Schema,
-        depth: int = 1,
-        filter_features=None,
-        projection_dim: Optional[int] = None,
-        diagonal_scale: Optional[float] = 0.0,
-        use_bias: bool = True,
-        kernel_initializer: InitializerType = "truncated_normal",
-        bias_initializer: InitializerType = "zeros",
-        kernel_regularizer: Optional[RegularizerType] = None,
-        bias_regularizer: Optional[RegularizerType] = None,
-        continuous_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CONTINUOUS,),
-        categorical_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CATEGORICAL,),
-        **kwargs
-    ) -> "CrossBlock":
-        from ..features.tabular import TabularFeatures
-
-        inputs = TabularFeatures.from_schema(
-            schema,
-            continuous_tags=continuous_tags,
-            categorical_tags=categorical_tags,
-            aggregation="concat",
-        )
-
-        return cls(
-            depth=depth,
-            filter_features=filter_features,
-            projection_dim=projection_dim,
-            diagonal_scale=diagonal_scale,
-            use_bias=use_bias,
-            kernel_initializer=kernel_initializer,
-            bias_initializer=bias_initializer,
-            kernel_regularizer=kernel_regularizer,
-            bias_regularizer=bias_regularizer,
-            inputs=inputs,
-            **kwargs
-        )
