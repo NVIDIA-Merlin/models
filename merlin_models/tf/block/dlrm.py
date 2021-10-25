@@ -23,19 +23,28 @@ from ..features.tabular import TabularFeatures
 from ..layers import DotProductInteraction
 
 
+def DLRMInputs(
+    schema: Schema, bottom_block: Block, embedding_dim: Optional[int] = None
+) -> SequentialBlock:
+    embedding_dim = embedding_dim or bottom_block.layers[-1].units
+
+    input = TabularFeatures.from_schema(schema, embedding_dim_default=embedding_dim)
+    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation="concat").apply(bottom_block)
+    dlrm_inputs = input.branch(
+        continuous_embedding.as_tabular("continuous"), add_rest=True, aggregation="stack"
+    )
+
+    return dlrm_inputs
+
+
 def DLRMBlock(
     schema: Schema,
     bottom_block: Block,
     top_block: Optional[Block] = None,
     embedding_dim: Optional[int] = None,
 ) -> SequentialBlock:
-    embedding_dim = embedding_dim or bottom_block.layers[-1].units
-
-    input = TabularFeatures.from_schema(schema, embedding_dim_default=embedding_dim)
-    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation="concat").apply(bottom_block)
-    dlrm = input.branch(
-        continuous_embedding.as_tabular("continuous"), add_rest=True, aggregation="stack"
-    ).apply(DotProductInteraction())
+    inputs = DLRMInputs(schema, bottom_block, embedding_dim=embedding_dim)
+    dlrm = inputs.apply(DotProductInteraction())
 
     if top_block:
         dlrm = dlrm.apply(top_block)
