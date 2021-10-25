@@ -1,15 +1,16 @@
-from typing import Optional
+from typing import List, Optional, Union
 
 import tensorflow as tf
+from merlin_standard_lib import Schema, Tag
 
-from ..core import SequentialBlock, is_input_block
+from ..core import Filter, SequentialBlock, is_input_block
 from ..utils.tf_utils import maybe_serialize_keras_objects
 from .mlp import DenseSameDim, InitializerType, RegularizerType
 
 
 def CrossBlock(
     depth: int = 1,
-    filter=None,
+    filter: Optional[Union[Schema, Tag, List[str], Filter]] = None,
     projection_dim: Optional[int] = None,
     diagonal_scale: Optional[float] = 0.0,
     use_bias: bool = True,

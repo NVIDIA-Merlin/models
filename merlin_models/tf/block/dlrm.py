@@ -18,7 +18,7 @@ from typing import Optional
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import Block, SequentialBlock
+from ..core import Block, Filter, SequentialBlock
 from ..features.tabular import TabularFeatures
 from ..layers import DotProductInteraction
 
@@ -32,11 +32,11 @@ def DLRMBlock(
     embedding_dim = embedding_dim or bottom_block.layers[-1].units
     input = TabularFeatures.from_schema(schema, embedding_dim_default=embedding_dim)
 
-    con = Tag.CONTINUOUS >> bottom_block.as_tabular("continuous")
-    dlrm = input.branch(con, add_rest=True, aggregation="stack").apply(DotProductInteraction())
-
-    # routes = {Tag.CONTINUOUS: bottom_block.prepare(aggregation="concat").as_tabular("continuous")}
-    # dlrm=input.match_keys(routes, add_rest=True, aggregation="stack").add(DotProductInteraction())
+    dlrm = input.branch(
+        Filter(Tag.USER).apply(bottom_block).as_tabular("continuous"),
+        add_rest=True,
+        aggregation="stack",
+    ).apply(DotProductInteraction())
 
     if top_block:
         dlrm = dlrm.apply(top_block)
