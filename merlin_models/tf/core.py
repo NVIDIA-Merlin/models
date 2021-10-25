@@ -154,6 +154,16 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
                 self.block_name = block_name
 
             return self
+        elif len(block) == 1 and isinstance(block[0], SequentialBlock):
+            block: SequentialBlock = block[0]  # type: ignore
+            if isinstance(self, SequentialBlock):
+                block.layers = [*self.layers, *block.layers]
+            else:
+                block.layers = [self, *block.layers]
+            if block_name:
+                self.block_name = block_name
+
+            return block
 
         return SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
 
@@ -230,9 +240,12 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         all_features = []
         for branch in branches:
-            if isinstance(branch, SequentialBlock) and isinstance(branch.layers[0], Filter):
-                branch.layers[0].set_schema(self.schema)
-                all_features.extend(branch.layers[0].feature_names)
+            if getattr(branch, "set_schema", None):
+                branch.set_schema(self.schema)
+            if isinstance(branch, SequentialBlock):
+                filter_features = branch.filter_features
+                if filter_features:
+                    all_features.extend(filter_features)
 
         rest_features = self.schema.remove_by_name(list(set([str(f) for f in all_features])))
         rest_block = None
@@ -358,6 +371,15 @@ class SequentialBlock(Block):
         first = list(self)[0]
         if is_input_block(first):
             return first
+
+    @property
+    def filter_features(self) -> List[str]:
+        if isinstance(self.layers[0], Filter):
+            return self.layers[0].feature_names
+        elif isinstance(self.layers[0], SequentialBlock):
+            return self.layers[0].filter_features
+
+        return []
 
     @property
     def trainable_weights(self):
