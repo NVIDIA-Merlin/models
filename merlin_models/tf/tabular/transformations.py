@@ -81,7 +81,7 @@ class StochasticSwapNoise(TabularTransformation):
         inputs: TensorOrTabularData,
         input_mask: Optional[tf.Tensor] = None,
         training=True,
-        **kwargs
+        **kwargs,
     ) -> TensorOrTabularData:
         def augment(input_mask):
             if self.schema:
@@ -143,10 +143,26 @@ class StochasticSwapNoise(TabularTransformation):
         return config
 
 
-class AddToAll(TabularTransformation):
-    def __init__(self, block, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
-        super().__init__(trainable, name, dtype, dynamic, **kwargs)
-        self.block = block
-
+@tabular_transformation_registry.register_with_multiple_names("add-powers")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ContinuousPowers(TabularTransformation):
+    # Trick from `Deep Neural Networks for YouTube Recommendations`
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        pass
+        outputs: TabularData = {}
+
+        for key, val in inputs.values():
+            outputs[key] = val
+            outputs[f"{key}_sqrt"] = tf.sqrt(val)
+            outputs[f"{key}_pow"] = tf.pow(val, 2)
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        output_shape = {}
+
+        for key, val in input_shape.values():
+            output_shape[key] = val
+            output_shape[f"{key}_sqrt"] = val
+            output_shape[f"{key}_squared"] = val
+
+        return output_shape

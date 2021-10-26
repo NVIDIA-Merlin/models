@@ -40,13 +40,18 @@ from .core import (
     ResidualBlock,
     SequentialBlock,
     TabularBlock,
+    block_with_inputs,
     right_shift_layer,
 )
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.tabular import TabularFeatures
 from .model.multi_task import MMOEHead, PLEHead
-from .model.prediction_task import BinaryClassificationTask, RegressionTask
+from .model.prediction_task import (
+    BinaryClassificationTask,
+    RegressionTask,
+    SampledItemPredictionTask,
+)
 from .tabular.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
@@ -104,7 +109,9 @@ __all__ = [
     "PredictionTask",
     "BinaryClassificationTask",
     "RegressionTask",
+    "SampledItemPredictionTask",
     "Model",
+    "block_with_inputs",
     "StochasticSwapNoise",
     "NoOp",
     "Match",

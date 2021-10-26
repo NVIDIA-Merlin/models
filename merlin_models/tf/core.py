@@ -273,6 +273,22 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
         return right_shift_layer(self, other)
 
 
+def block_with_inputs(
+    schema: Schema,
+    block: Block,
+    input_block_cls: Optional[Type["InputBlock"]] = None,
+    post: Optional["TabularTransformationType"] = None,
+    aggregation: Optional["TabularAggregationType"] = None,
+    **kwargs,
+) -> "SequentialBlock":
+    from merlin_models.tf import TabularFeatures
+
+    input_block = input_block_cls or TabularFeatures
+    inputs = input_block.from_schema(schema, post=post, aggregation=aggregation, **kwargs)
+
+    return SequentialBlock([inputs, block])
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SequentialBlock(Block):
     """The SequentialLayer represents a sequence of Keras layers.
@@ -1494,6 +1510,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin):
             x = self.pre(x)
 
         return x
+
+    def build_task(self, input_shape, schema: Schema, body: Block, **kwargs):
+        return super().build(input_shape)
 
     def _create_metrics(self, metrics: List[MetricOrMetricClass]) -> List[tf.keras.metrics.Metric]:
         outputs = []

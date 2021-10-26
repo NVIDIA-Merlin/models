@@ -159,7 +159,10 @@ class EmbeddingFeatures(InputBlock):
                 initializer=table.initializer,
                 shape=shape,
             )
-        super().build(input_shapes)
+        if isinstance(input_shapes, dict):
+            super().build(input_shapes)
+        else:
+            tf.keras.layers.Layer.build(self, input_shapes)
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         embedded_outputs = {}

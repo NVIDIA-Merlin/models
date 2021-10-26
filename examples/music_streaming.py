@@ -63,14 +63,23 @@ synthetic_music_recsys_data_schema = Schema(
     ]
 )
 
+# RETRIEVAL
+
+
+def build_youtube_dnn(schema: Schema) -> ml.Model:
+    dnn = ml.block_with_inputs(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
+    model = dnn.to_model(ml.SampledItemPredictionTask(schema, dim=256, num_sampled=50))
+
+    return model
+
 
 def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
     def method_1() -> ml.Model:
         return ml.Retrieval.from_schema(schema, dims).to_model(schema.select_by_name(target))
 
     def method_2() -> ml.Model:
-        user_tower = ml.MLPBlock([512, 256]).from_inputs(schema.select_by_tag(Tag.USER))
-        item_tower = ml.MLPBlock([512, 256]).from_inputs(schema.select_by_tag(Tag.ITEM))
+        user_tower = ml.block_with_inputs(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
+        item_tower = ml.block_with_inputs(schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256]))
 
         return ml.Retrieval(user_tower, item_tower).to_model(schema)
 
@@ -99,11 +108,15 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
         item_tower = ml.MLPBlock(dims, filter=Tag.ITEM).as_tabular("item")
 
         inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
-        two_tower = inputs.branch(user_tower, item_tower, aggregation="cosine").to_model(schema)
+        two_tower = inputs.branch(user_tower, item_tower, aggregation="cosine")
+        model = two_tower.to_model(schema.select_by_name(target))
 
-        return two_tower
+        return model
 
     return method_3()
+
+
+# RANKING
 
 
 def build_dnn(schema: Schema, residual=False) -> ml.Model:
@@ -173,12 +186,15 @@ def build_dlrm(schema: Schema) -> ml.Model:
     return model
 
 
-def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
+def data_from_schema(schema, num_items=1000, next_item_prediction=False) -> tf.data.Dataset:
     data_df = generate_recsys_data(num_items, schema)
 
-    targets = {}
-    for target in synthetic_music_recsys_data_schema.select_by_tag(Tag.BINARY_CLASSIFICATION):
-        targets[target.name] = data_df.pop(target.name)
+    if next_item_prediction:
+        targets = {"item_id": data_df.pop("item_id")}
+    else:
+        targets = {}
+        for target in synthetic_music_recsys_data_schema.select_by_tag(Tag.BINARY_CLASSIFICATION):
+            targets[target.name] = data_df.pop(target.name)
 
     dataset = tf.data.Dataset.from_tensor_slices((dict(data_df), targets))
 
@@ -186,18 +202,24 @@ def data_from_schema(schema, num_items=1000) -> tf.data.Dataset:
 
 
 if __name__ == "__main__":
-    dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
+    # dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
     # model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
     # model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
     # model = build_dcn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
-    model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
+    # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
+
+    dataset = data_from_schema(synthetic_music_recsys_data_schema, next_item_prediction=True).batch(
+        100
+    )
+    model = build_youtube_dnn(synthetic_music_recsys_data_schema)
 
     model.compile(optimizer="adam", run_eagerly=True)
 
-    batch = [i for i in dataset.as_numpy_iterator()][0][0]
+    inputs, targets = [i for i in dataset.as_numpy_iterator()][0]
 
     # TODO: remove this after fix in T4Rec
-    out = model(batch)
+    predictions = model(inputs)
+    loss = model.compute_loss(predictions, targets)
 
     a = 5
