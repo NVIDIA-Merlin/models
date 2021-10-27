@@ -170,7 +170,7 @@ import merlin_models.tf as ml
 
 ml.PLEHead.from_schema(
     schema,
-     body=ml.MLPBlock([512, 256]),
+    body=ml.MLPBlock([512, 256]),
     task_blocks=ml.MLPBlock([64, 32]),
     expert_block=ml.MLPBlock([64, 32]),
     num_shared_experts=2,
