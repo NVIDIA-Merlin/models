@@ -39,7 +39,7 @@ from .tabular import TABULAR_FEATURES_PARAMS_DOCSTRING, TabularFeatures
     tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING,
     embedding_features_parameters=embedding.EMBEDDING_FEATURES_PARAMS_DOCSTRING,
 )
-@tf.keras.utils.register_keras_serializable(package="transformers4rec")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SequenceEmbeddingFeatures(embedding.EmbeddingFeatures):
     """Input block for embedding-lookups for categorical features. This module produces 3-D tensors,
     this is useful for sequential models like transformers.
@@ -115,7 +115,7 @@ class SequenceEmbeddingFeatures(embedding.EmbeddingFeatures):
     tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING,
     tabular_features_parameters=TABULAR_FEATURES_PARAMS_DOCSTRING,
 )
-@tf.keras.utils.register_keras_serializable(package="transformers4rec")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class TabularSequenceFeatures(TabularFeatures):
     """Input module that combines different types of features to a sequence: continuous,
     categorical & text.
