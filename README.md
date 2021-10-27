@@ -28,9 +28,8 @@ ml.MatrixFactorizationBlock(schema, dim=256).to_model(schema)
 
 ### YouTube DNN
 
-Wang, Ruoxi, Rakesh Shivanna, Derek Z. Cheng, Sagar Jain, Dong Lin, Lichan Hong, and Ed H. Chi. “DCN V2: Improved Deep &
-Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” ArXiv:2008.13535 [Cs, Stat], October 20,
-2020. http://arxiv.org/abs/2008.13535.
+Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube Recommendations.” In Proceedings of the 10th ACM Conference on Recommender Systems, 191–98. Boston Massachusetts USA: ACM, 2016. https://doi.org/10.1145/2959100.2959190.
+
 
 ![img.png](docs/img/youtube-dnn.png)
 
