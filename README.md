@@ -126,5 +126,56 @@ b_with_shortcut = ml.inputs(schema, ml.CrossBlock(3)).apply_with_shortcut(
 ).to_model(schema)
 ```
 
-### Multi-task Learning
+## Multi-task Learning
+
+### Mixture-of-experts
+Ma, Jiaqi, Zhe Zhao, Xinyang Yi, Jilin Chen, Lichan Hong, and Ed H. Chi. “Modeling Task Relationships in Multi-Task Learning with Multi-Gate Mixture-of-Experts,” 2018, 1930–39. https://doi.org/10.1145/3219819.3220007.
+
+![MMOE](docs/img/mmoe.png)
+
+High-level API:
+```python
+import merlin_models.tf as ml
+
+ml.MMOEHead.from_schema(
+    schema,
+    body=ml.MLPBlock([512, 256]),
+    task_blocks=ml.MLPBlock([64, 32]),
+    expert_block=ml.MLPBlock([64, 32]),
+    num_experts=3,
+).to_model()
+```
+
+Low-level API:
+```python
+import merlin_models.tf as ml
+
+expert_block, num_experts = ml.MLPBlock([256, 128]), 3
+experts = expert_block.repeat_in_parallel(
+    num_experts, prefix="expert_", aggregation=ml.StackFeatures(axis=1)
+)
+gates = ml.MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
+mmoe = expert_block.apply_with_shortcut(experts, block_outputs_name="experts")
+mmoe = mmoe.apply(gates, block_name="MMOE")
+```
+
+### Progressive layered extraction
+Tang, Hongyan, Junning Liu, Ming Zhao, and Xudong Gong. “Progressive Layered Extraction (PLE): A Novel Multi-Task Learning (MTL) Model for Personalized Recommendations.” In Fourteenth ACM Conference on Recommender Systems, 269–78. Virtual Event Brazil: ACM, 2020. https://doi.org/10.1145/3383313.3412236.
+
+![Progressive layered extraction](docs/img/ple.png)
+
+High-level API:
+```python
+import merlin_models.tf as ml
+
+ml.PLEHead.from_schema(
+    schema,
+     body=ml.MLPBlock([512, 256]),
+    task_blocks=ml.MLPBlock([64, 32]),
+    expert_block=ml.MLPBlock([64, 32]),
+    num_shared_experts=2,
+    num_task_experts=2,
+    depth=2,
+).to_model()
+```
 
