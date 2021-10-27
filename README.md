@@ -54,7 +54,7 @@ High-level API:
 ```python
 import merlin_models.tf as ml
 
-ml.TwoTowerBlock(schema, ml.MLPBlock(dims)).to_model(schema.select_by_name(target))
+ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256])).to_model(schema.select_by_name(target))
 ```
 
 Low-level API:
@@ -119,7 +119,7 @@ deep_cross_b = ml.inputs(schema).branch(
     ml.CrossBlock(3), ml.MLPBlock([512, 256]), aggregation="concat"
 ).to_model(schema)
 
-deep_cross_c = ml.inputs(schema, ml.CrossBlock(3)).apply_with_shortcut(
+b_with_shortcut = ml.inputs(schema, ml.CrossBlock(3)).apply_with_shortcut(
     ml.MLPBlock([512, 256]), aggregation="concat"
 ).to_model(schema)
 ```
