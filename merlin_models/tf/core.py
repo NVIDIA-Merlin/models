@@ -259,6 +259,12 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
             [self, ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)]
         )
 
+    def select_by_name(self, name: str) -> Optional["Block"]:
+        if name == self.name:
+            return self
+
+        return None
+
     def copy(self):
         return self.from_config(self.get_config())
 
@@ -275,21 +281,31 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
 def inputs(
     schema: Schema,
-    block: Optional[Block] = None,
+    *block: Block,
     input_block_cls: Optional[Type["InputBlock"]] = None,
     post: Optional["TabularTransformationType"] = None,
     aggregation: Optional["TabularAggregationType"] = None,
+    seq: bool = False,
     **kwargs,
-) -> "SequentialBlock":
-    from merlin_models.tf import TabularFeatures
+) -> "Block":
+    from merlin_models.tf import TabularFeatures, TabularSequenceFeatures
 
-    input_block_cls = input_block_cls or TabularFeatures
+    input_block_cls = input_block_cls or (TabularSequenceFeatures if seq else TabularFeatures)
     inputs = input_block_cls.from_schema(schema, post=post, aggregation=aggregation, **kwargs)
 
     if not block:
         return inputs
 
-    return SequentialBlock([inputs, block])
+    return SequentialBlock([inputs, *block])
+
+
+def merge(
+    *branches: Union["Block", Dict[str, "Block"]],
+    post: Optional["TabularTransformationsType"] = None,
+    aggregation: Optional["TabularAggregationType"] = None,
+    **kwargs,
+) -> "ParallelBlock":
+    return ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -1420,9 +1436,10 @@ class DualEncoderBlock(ParallelBlock):
         if not getattr(right, "is_tabular", False):
             right = SequentialBlock([right, AsTabular(right_name)])
 
+        towers = {left_name: left, right_name: right}
+
         super().__init__(
-            left,
-            right,
+            towers,
             pre=pre,
             post=post,
             aggregation=aggregation,
@@ -1445,7 +1462,7 @@ def call_parallel(self, other, aggregation=None, **kwargs):
 
 
 TabularBlock.__add__ = call_parallel
-TabularBlock.merge = call_parallel
+# TabularBlock.merge = call_parallel
 
 
 def name_fn(name, inp):
@@ -1553,6 +1570,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin):
             targets = targets[self.target_name]
         if isinstance(predictions, dict) and self.target_name:
             predictions = predictions[self.task_name]
+
+        if len(targets.shape) == len(predictions.shape) - 1:
+            predictions = tf.squeeze(predictions)
 
         # predictions = self(inputs, training=training, **kwargs)
         loss = self.loss(y_true=targets, y_pred=predictions, sample_weight=sample_weight)
@@ -2047,6 +2067,17 @@ class Model(BaseModel):
             outputs = outputs[0]
 
         return outputs
+
+    def get_part_by_name(self, name: str) -> Optional[tf.keras.layers.Layer]:
+        # TODO: Implement this properly
+        for head in self.heads:
+            body = head.body
+            if isinstance(body, ParallelBlock):
+                maybe_block = body.parallel_dict.get(name)
+                if maybe_block:
+                    return maybe_block
+
+        return None
 
     @classmethod
     def from_config(cls, config, custom_objects=None):

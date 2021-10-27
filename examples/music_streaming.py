@@ -66,15 +66,15 @@ synthetic_music_recsys_data_schema = Schema(
 # RETRIEVAL
 
 
-def build_matrix_factorization(schema: Schema):
-    model = ml.MatrixFactorization.from_schema(schema)
+def build_matrix_factorization(schema: Schema, dim=128):
+    model = ml.MatrixFactorizationBlock(schema, dim).to_model(schema)
 
     return model
 
 
 def build_youtube_dnn(schema: Schema, dims=(512, 256), num_sampled=50) -> ml.Model:
-    mlp = ml.MLPBlock(dims)
-    dnn = ml.inputs(schema.select_by_tag(Tag.USER), post="continuous-powers").apply(mlp)
+    user_schema = schema.select_by_tag(Tag.USER)
+    dnn = ml.inputs(user_schema, post="continuous-powers").apply(ml.MLPBlock(dims))
     prediction_task = ml.SampledItemPredictionTask(schema, dim=dims[-1], num_sampled=num_sampled)
 
     model = dnn.to_model(prediction_task)
@@ -84,13 +84,15 @@ def build_youtube_dnn(schema: Schema, dims=(512, 256), num_sampled=50) -> ml.Mod
 
 def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
     def method_1() -> ml.Model:
-        return ml.Retrieval.from_schema(schema, dims).to_model(schema.select_by_name(target))
+        return ml.TwoTowerBlock(schema, ml.MLPBlock(dims)).to_model(schema.select_by_name(target))
 
     def method_2() -> ml.Model:
         user_tower = ml.inputs(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
         item_tower = ml.inputs(schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256]))
+        two_tower = ml.merge({"user": user_tower, "item": item_tower}, aggregation="cosine")
+        model = two_tower.to_model(schema.select_by_name(target))
 
-        return ml.Retrieval(user_tower, item_tower).to_model(schema)
+        return model
 
     def method_3() -> ml.Model:
         def routes_verbose(inputs, schema: Schema):
@@ -102,17 +104,6 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
 
             return ml.ParallelBlock(dict(user=user_tower, item=item_tower), aggregation="cosine")
 
-        # routes = {
-        #     Tag.USER: block.as_tabular("user"),
-        #     Tag.ITEM: block.copy().as_tabular("item"),
-        # }
-        # two_tower = inputs.routes(routes, aggregation="cosine")
-
-        # two_tower = inputs.match_keys(
-        #     ml.Match(Tag.USER, block.as_tabular("user")),
-        #     ml.Match(Tag.ITEM, block.copy().as_tabular("user")),
-        #     aggregation="cosine"
-        # )
         user_tower = ml.MLPBlock(dims, filter=Tag.USER).as_tabular("user")
         item_tower = ml.MLPBlock(dims, filter=Tag.ITEM).as_tabular("item")
 
@@ -121,7 +112,7 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
 
         return model
 
-    return method_3()
+    return method_2()
 
 
 # RANKING
@@ -215,17 +206,16 @@ def data_from_schema(schema, num_items=1000, next_item_prediction=False) -> tf.d
 
 
 if __name__ == "__main__":
-    # dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
+    dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
     # model = build_dnn(synthetic_music_recsys_data_schema, residual=True)
     # model = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
     # model = build_dcn(synthetic_music_recsys_data_schema)
     # model = build_dlrm(synthetic_music_recsys_data_schema)
-    # model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
+    model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
 
-    dataset = data_from_schema(synthetic_music_recsys_data_schema, next_item_prediction=True).batch(
-        100
-    )
-    model = build_youtube_dnn(synthetic_music_recsys_data_schema)
+    # dataset = data_from_schema(synthetic_music_recsys_data_schema,
+    #                            next_item_prediction=True).batch(100)
+    # model = build_youtube_dnn(synthetic_music_recsys_data_schema)
 
     model.compile(optimizer="adam", run_eagerly=True)
 
@@ -233,6 +223,8 @@ if __name__ == "__main__":
 
     # TODO: remove this after fix in T4Rec
     predictions = model(inputs)
-    loss = model.compute_loss(predictions, targets)
+    # loss = model.compute_loss(predictions, targets)
+
+    model.fit(dataset)
 
     a = 5

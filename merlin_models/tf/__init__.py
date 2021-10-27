@@ -25,7 +25,7 @@ from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
 from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import MMOE, MMOEGate
-from .block.retrieval import MatrixFactorization, Retrieval
+from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
 from .core import (
     AsTabular,
     Block,
@@ -41,10 +41,12 @@ from .core import (
     SequentialBlock,
     TabularBlock,
     inputs,
+    merge,
     right_shift_layer,
 )
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
+from .features.sequence import TabularSequenceFeatures
 from .features.tabular import TabularFeatures
 from .model.multi_task import MMOEHead, PLEHead
 from .model.prediction_task import (
@@ -93,11 +95,12 @@ __all__ = [
     "FeatureConfig",
     "TableConfig",
     "TabularFeatures",
+    "TabularSequenceFeatures",
     "Head",
     "MMOEHead",
     "PLEHead",
-    "Retrieval",
-    "MatrixFactorization",
+    "TwoTowerBlock",
+    "MatrixFactorizationBlock",
     "AsDenseFeatures",
     "AsSparseFeatures",
     "ElementwiseSum",
@@ -113,6 +116,7 @@ __all__ = [
     "SampledItemPredictionTask",
     "Model",
     "inputs",
+    "merge",
     "StochasticSwapNoise",
     "NoOp",
     "Match",

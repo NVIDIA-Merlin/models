@@ -244,11 +244,6 @@ class TabularSequenceFeatures(TabularFeatures):
         if self.projection_block:
             outputs = self.projection_block(outputs)
 
-        if self.masking:
-            outputs = self.masking(
-                outputs, item_ids=self.to_merge["categorical_layer"].item_seq, training=training
-            )
-
         return outputs
 
     def compute_call_output_shape(self, input_shape):
@@ -266,13 +261,6 @@ class TabularSequenceFeatures(TabularFeatures):
             output_shapes = self.projection_block.compute_output_shape(output_shapes)
 
         return output_shapes
-
-    @property
-    def masking(self):
-        return self._masking
-
-    def set_masking(self, value):
-        self._masking = value
 
     @property
     def item_id(self) -> Optional[str]:
