@@ -66,9 +66,18 @@ synthetic_music_recsys_data_schema = Schema(
 # RETRIEVAL
 
 
-def build_youtube_dnn(schema: Schema) -> ml.Model:
-    dnn = ml.block_with_inputs(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
-    model = dnn.to_model(ml.SampledItemPredictionTask(schema, dim=256, num_sampled=50))
+def build_matrix_factorization(schema: Schema):
+    model = ml.MatrixFactorization.from_schema(schema)
+
+    return model
+
+
+def build_youtube_dnn(schema: Schema, dims=(512, 256), num_sampled=50) -> ml.Model:
+    mlp = ml.MLPBlock(dims)
+    dnn = ml.inputs(schema.select_by_tag(Tag.USER), post="continuous-powers").apply(mlp)
+    prediction_task = ml.SampledItemPredictionTask(schema, dim=dims[-1], num_sampled=num_sampled)
+
+    model = dnn.to_model(prediction_task)
 
     return model
 
@@ -78,8 +87,8 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
         return ml.Retrieval.from_schema(schema, dims).to_model(schema.select_by_name(target))
 
     def method_2() -> ml.Model:
-        user_tower = ml.block_with_inputs(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
-        item_tower = ml.block_with_inputs(schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256]))
+        user_tower = ml.inputs(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
+        item_tower = ml.inputs(schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256]))
 
         return ml.Retrieval(user_tower, item_tower).to_model(schema)
 
@@ -107,8 +116,7 @@ def build_two_tower(schema: Schema, target="play", dims=(512, 256)) -> ml.Model:
         user_tower = ml.MLPBlock(dims, filter=Tag.USER).as_tabular("user")
         item_tower = ml.MLPBlock(dims, filter=Tag.ITEM).as_tabular("item")
 
-        inputs: ml.TabularBlock = ml.TabularFeatures.from_schema(schema)
-        two_tower = inputs.branch(user_tower, item_tower, aggregation="cosine")
+        two_tower = ml.inputs(schema).branch(user_tower, item_tower, aggregation="cosine")
         model = two_tower.to_model(schema.select_by_name(target))
 
         return model
@@ -124,9 +132,9 @@ def build_dnn(schema: Schema, residual=False) -> ml.Model:
     schema = schema.remove_by_tag("bias")
 
     if residual:
-        block = ml.DenseResidualBlock(depth=2).from_inputs(schema)
+        block = ml.inputs(schema, ml.DenseResidualBlock(depth=2))
     else:
-        block = ml.MLPBlock([512, 256]).from_inputs(schema)
+        block = ml.inputs(schema, ml.MLPBlock([512, 256]))
 
     return block.to_model(schema, bias_block=bias_block)
 
@@ -134,9 +142,14 @@ def build_dnn(schema: Schema, residual=False) -> ml.Model:
 def build_dcn(schema: Schema) -> ml.Model:
     schema = schema.remove_by_tag("bias")
 
+    # deep_cross = ml.block_with_inputs(schema, ml.CrossBlock(3)).apply(ml.MLPBlock([512, 256]))
+
     deep_cross = ml.TabularFeatures.from_schema(schema).branch(
         ml.CrossBlock(3), ml.MLPBlock([512, 256]), aggregation="concat"
     )
+
+    deep_cross = ml.inputs(schema, ml.CrossBlock(3))
+    deep_cross = deep_cross.apply_with_shortcut(ml.MLPBlock([512, 256]), aggregation="concat")
 
     return deep_cross.to_model(schema)
 

@@ -25,7 +25,7 @@ from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
 from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import MMOE, MMOEGate
-from .block.retrieval import Retrieval
+from .block.retrieval import MatrixFactorization, Retrieval
 from .core import (
     AsTabular,
     Block,
@@ -40,7 +40,7 @@ from .core import (
     ResidualBlock,
     SequentialBlock,
     TabularBlock,
-    block_with_inputs,
+    inputs,
     right_shift_layer,
 )
 from .features.continuous import ContinuousFeatures
@@ -97,6 +97,7 @@ __all__ = [
     "MMOEHead",
     "PLEHead",
     "Retrieval",
+    "MatrixFactorization",
     "AsDenseFeatures",
     "AsSparseFeatures",
     "ElementwiseSum",
@@ -111,7 +112,7 @@ __all__ = [
     "RegressionTask",
     "SampledItemPredictionTask",
     "Model",
-    "block_with_inputs",
+    "inputs",
     "StochasticSwapNoise",
     "NoOp",
     "Match",

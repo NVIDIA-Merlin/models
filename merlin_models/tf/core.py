@@ -273,9 +273,9 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
         return right_shift_layer(self, other)
 
 
-def block_with_inputs(
+def inputs(
     schema: Schema,
-    block: Block,
+    block: Optional[Block] = None,
     input_block_cls: Optional[Type["InputBlock"]] = None,
     post: Optional["TabularTransformationType"] = None,
     aggregation: Optional["TabularAggregationType"] = None,
@@ -283,8 +283,11 @@ def block_with_inputs(
 ) -> "SequentialBlock":
     from merlin_models.tf import TabularFeatures
 
-    input_block = input_block_cls or TabularFeatures
-    inputs = input_block.from_schema(schema, post=post, aggregation=aggregation, **kwargs)
+    input_block_cls = input_block_cls or TabularFeatures
+    inputs = input_block_cls.from_schema(schema, post=post, aggregation=aggregation, **kwargs)
+
+    if not block:
+        return inputs
 
     return SequentialBlock([inputs, block])
 
@@ -1017,6 +1020,8 @@ class TabularBlock(Block):
             self._post: Optional[SequentialTabularTransformations] = value
         elif value and isinstance(value, (tf.keras.layers.Layer, list)):
             self._post = SequentialTabularTransformations(value)
+        elif value and isinstance(value, str):
+            self._post = TabularTransformation.parse(value)
         else:
             self._post = None
 

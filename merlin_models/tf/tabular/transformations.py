@@ -21,6 +21,7 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
+from ...config.schema import requires_schema
 from ..core import TabularTransformation, tabular_transformation_registry
 from ..typing import TabularData, TensorOrTabularData
 
@@ -143,26 +144,31 @@ class StochasticSwapNoise(TabularTransformation):
         return config
 
 
-@tabular_transformation_registry.register_with_multiple_names("add-powers")
+@tabular_transformation_registry.register_with_multiple_names("continuous-powers")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
+@requires_schema
 class ContinuousPowers(TabularTransformation):
-    # Trick from `Deep Neural Networks for YouTube Recommendations`
+    """Trick from `Deep Neural Networks for YouTube Recommendations`"""
+
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs: TabularData = {}
 
-        for key, val in inputs.values():
+        for key, val in inputs.items():
             outputs[key] = val
-            outputs[f"{key}_sqrt"] = tf.sqrt(val)
-            outputs[f"{key}_pow"] = tf.pow(val, 2)
+            if len(val.shape) < 2 or (len(val.shape) == 2 and val.shape[1] == 1):
+                val_float = tf.cast(val, tf.float32)
+                outputs[f"{key}_sqrt"] = tf.sqrt(val_float)
+                outputs[f"{key}_pow"] = tf.pow(val_float, 2)
 
         return outputs
 
     def compute_output_shape(self, input_shape):
         output_shape = {}
 
-        for key, val in input_shape.values():
+        for key, val in input_shape.items():
             output_shape[key] = val
-            output_shape[f"{key}_sqrt"] = val
-            output_shape[f"{key}_squared"] = val
+            if len(val) < 2 or (len(val) == 2 and val[1] == 1):
+                output_shape[f"{key}_sqrt"] = val
+                output_shape[f"{key}_squared"] = val
 
         return output_shape
