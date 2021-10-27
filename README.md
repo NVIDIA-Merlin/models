@@ -1,5 +1,8 @@
 ## Merlin Models
 
+[![stability-alpha](https://img.shields.io/badge/stability-alpha-f4d03f.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#alpha)
+
+
 The Merlin Model Library will provide standard models for Recommender Systems, aiming for high quality implementations
 from classic Machine Learning models, to more advanced Deep Learning models.
 
