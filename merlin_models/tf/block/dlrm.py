@@ -16,25 +16,11 @@
 
 from typing import Optional
 
-from merlin_standard_lib import Schema, Tag
+from merlin_standard_lib import Schema
 
-from ..core import Block, Filter, SequentialBlock
-from ..features.tabular import TabularFeatures
+from ..core import Block, SequentialBlock, inputs
 from ..layers import DotProductInteraction
-
-
-def DLRMInputs(
-    schema: Schema, bottom_block: Block, embedding_dim: Optional[int] = None
-) -> SequentialBlock:
-    embedding_dim = embedding_dim or bottom_block.layers[-1].units
-
-    input = TabularFeatures.from_schema(schema, embedding_dim_default=embedding_dim)
-    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation="concat").apply(bottom_block)
-    dlrm_inputs = input.branch(
-        continuous_embedding.as_tabular("continuous"), add_rest=True, aggregation="stack"
-    )
-
-    return dlrm_inputs
+from .inputs import ContinuousEmbedding
 
 
 def DLRMBlock(
@@ -43,8 +29,13 @@ def DLRMBlock(
     top_block: Optional[Block] = None,
     embedding_dim: Optional[int] = None,
 ) -> SequentialBlock:
-    inputs = DLRMInputs(schema, bottom_block, embedding_dim=embedding_dim)
-    dlrm = inputs.apply(DotProductInteraction())
+    embedding_dim = embedding_dim or bottom_block.layers[-1].units
+    dlrm_inputs = ContinuousEmbedding(
+        inputs(schema, embedding_dim_default=embedding_dim),
+        embedding_block=bottom_block,
+        aggregation="stack",
+    )
+    dlrm = dlrm_inputs.apply(DotProductInteraction())
 
     if top_block:
         dlrm = dlrm.apply(top_block)

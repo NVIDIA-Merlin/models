@@ -23,6 +23,7 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 from .. import data
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
+from .block.inputs import ContinuousEmbedding
 from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import MMOE, MMOEGate
 from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
@@ -48,6 +49,7 @@ from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.sequence import TabularSequenceFeatures
 from .features.tabular import TabularFeatures
+from .layers import DotProductInteraction
 from .model.multi_task import MMOEHead, PLEHead
 from .model.prediction_task import (
     BinaryClassificationTask,
@@ -86,6 +88,8 @@ __all__ = [
     "CrossBlock",
     "DLRMBlock",
     "MLPBlock",
+    "ContinuousEmbedding",
+    "DotProductInteraction",
     "MMOEGate",
     "MMOE",
     "DenseResidualBlock",

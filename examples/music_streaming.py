@@ -133,14 +133,14 @@ def build_dnn(schema: Schema, residual=False) -> ml.Model:
 def build_dcn(schema: Schema) -> ml.Model:
     schema = schema.remove_by_tag("bias")
 
-    # deep_cross = ml.block_with_inputs(schema, ml.CrossBlock(3)).apply(ml.MLPBlock([512, 256]))
+    # deep_cross = ml.inputs(schema, ml.CrossBlock(3)).apply(ml.MLPBlock([512, 256]))
 
-    deep_cross = ml.TabularFeatures.from_schema(schema).branch(
+    deep_cross = ml.inputs(schema).branch(
         ml.CrossBlock(3), ml.MLPBlock([512, 256]), aggregation="concat"
     )
 
-    deep_cross = ml.inputs(schema, ml.CrossBlock(3))
-    deep_cross = deep_cross.apply_with_shortcut(ml.MLPBlock([512, 256]), aggregation="concat")
+    # deep_cross = ml.inputs(schema, ml.CrossBlock(3))
+    # deep_cross = deep_cross.apply_with_shortcut(ml.MLPBlock([512, 256]), aggregation="concat")
 
     return deep_cross.to_model(schema)
 
