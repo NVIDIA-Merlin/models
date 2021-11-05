@@ -62,13 +62,16 @@ class ContinuousFeatures(InputBlock):
 
     def call(self, inputs, *args, **kwargs):
         cont_features = self.filter_features(inputs)
-        cont_features = {k: tf.expand_dims(v, -1) for k, v in cont_features.items()}
+        cont_features = {
+            k: tf.expand_dims(v, -1) if len(v.shape) == 1 else v for k, v in cont_features.items()
+        }
         return cont_features
 
     def compute_call_output_shape(self, input_shapes):
         cont_features_sizes = self.filter_features.compute_output_shape(input_shapes)
         cont_features_sizes = {
-            k: tf.TensorShape(list(v) + [1]) for k, v in cont_features_sizes.items()
+            k: tf.TensorShape(list(v) + [1]) if len(v) == 1 else v
+            for k, v in cont_features_sizes.items()
         }
         return cont_features_sizes
 

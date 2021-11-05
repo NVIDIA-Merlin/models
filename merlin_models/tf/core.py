@@ -199,6 +199,12 @@ class Block(SchemaMixin, tf.keras.layers.Layer):
 
         return SequentialBlock([self, residual_block], copy_layers=False)
 
+    def debug(self, post=True):
+        if not post:
+            return SequentialBlock([Debug(), self])
+
+        return self.apply(Debug())
+
     # def apply_in_parallel(
     #     self,
     #     block: tf.keras.layers.Layer,
@@ -1351,6 +1357,15 @@ class AsTabular(tf.keras.layers.Layer):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class NoOp(tf.keras.layers.Layer):
+    def call(self, inputs, **kwargs):
+        return inputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class Debug(tf.keras.layers.Layer):
     def call(self, inputs, **kwargs):
         return inputs
 

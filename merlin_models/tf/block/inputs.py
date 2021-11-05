@@ -9,9 +9,16 @@ from ..features.embedding import EmbeddingFeatures
 
 
 def ContinuousEmbedding(
-    inputs: Block, embedding_block: Block, aggregation=None, **kwargs
+    inputs: Block,
+    embedding_block: Block,
+    aggregation=None,
+    continuous_aggregation="concat",
+    **kwargs
 ) -> SequentialBlock:
-    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation="concat").apply(embedding_block)
+    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation=continuous_aggregation).apply(
+        embedding_block
+    )
+
     outputs = inputs.branch(
         continuous_embedding.as_tabular("continuous"),
         add_rest=True,
