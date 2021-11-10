@@ -41,14 +41,24 @@ class CosineSimilarity(Distance):
 def TwoTowerBlock(
     schema,
     query_tower: Block,
-    right_tower: Optional[Block] = None,
+    item_tower: Optional[Block] = None,
     distance="cosine",
     query_tower_tag=Tag.USER,
     item_tower_tag=Tag.ITEM,
+    embedding_dim_default: Optional[int] = 64,
     **kwargs
 ) -> ParallelBlock:
-    query_tower = inputs(schema.select_by_tag(query_tower_tag), query_tower)
-    item_tower = inputs(schema.select_by_tag(item_tower_tag), right_tower or query_tower.copy())
+    item_tower = item_tower or query_tower.copy()
+    query_tower = inputs(
+        schema.select_by_tag(query_tower_tag),
+        query_tower,
+        embedding_dim_default=embedding_dim_default,
+    )
+    item_tower = inputs(
+        schema.select_by_tag(item_tower_tag),
+        item_tower,
+        embedding_dim_default=embedding_dim_default,
+    )
 
     two_tower = merge(
         {str(query_tower_tag): query_tower, str(item_tower_tag): item_tower},

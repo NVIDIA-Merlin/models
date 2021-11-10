@@ -1235,8 +1235,13 @@ class ParallelBlock(TabularBlock):
 
         # Merge schemas if necessary.
         if not schema and all(getattr(m, "schema", False) for m in self.parallel_values):
-            s = reduce(lambda a, b: a + b, [m.schema for m in self.parallel_values])  # type: ignore
-            self.set_schema(s)
+            if len(self.parallel_values) == 1:
+                self.set_schema(self.parallel_values[0].schema)
+            else:
+                s = reduce(
+                    lambda a, b: a + b, [m.schema for m in self.parallel_values]
+                )  # type: ignore
+                self.set_schema(s)
 
     @property
     def parallel_values(self) -> List[tf.keras.layers.Layer]:
@@ -1477,6 +1482,8 @@ def call_parallel(self, other, aggregation=None, **kwargs):
 
 
 TabularBlock.__add__ = call_parallel
+
+
 # TabularBlock.merge = call_parallel
 
 
