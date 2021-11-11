@@ -1,123 +1,44 @@
-from collections import defaultdict
-from pathlib import Path
+#
+# Copyright (c) 2021, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import pytest
+from merlin_standard_lib import Schema
 
-NUM_EXAMPLES = 1000
-NUM_ITEMS = 500
-CARDINALITY = 100
-VECTOR_DIM = 128
-N_HOT = 5
+from merlin_models.data import tabular_testing_data
 
 
 @pytest.fixture
-def tmpdir():
-    tmp = Path("./tmp")
-    tmp.mkdir(exist_ok=True)
-    return tmp
+def tabular_data_file() -> str:
+    return tabular_testing_data.path
 
 
 @pytest.fixture
-def continuous_columns():
-    tf = pytest.importorskip("tensorflow")
-    return [
-        tf.feature_column.numeric_column("scalar_continuous", (1,)),
-        tf.feature_column.numeric_column("vector_continuous", (VECTOR_DIM,)),
-    ]
+def tabular_schema_file() -> str:
+    return tabular_testing_data.schema_path
 
 
 @pytest.fixture
-def categorical_columns():
-    tf = pytest.importorskip("tensorflow")
-    return [
-        tf.feature_column.categorical_column_with_identity("one_hot_a", CARDINALITY),
-        tf.feature_column.categorical_column_with_identity("one_hot_b", CARDINALITY),
-        tf.feature_column.categorical_column_with_identity("multi_hot_a", CARDINALITY),
-    ]
+def tabular_schema() -> Schema:
+    return tabular_testing_data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
 
 
 @pytest.fixture
-def items_column():
-    tf = pytest.importorskip("tensorflow")
-    return tf.feature_column.categorical_column_with_identity("items", NUM_ITEMS)
+def yoochoose_schema() -> Schema:
+    return tabular_testing_data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
 
 
-@pytest.fixture
-def continuous_features():
-    tf = pytest.importorskip("tensorflow")
-
-    scalar_feature = tf.random.uniform((NUM_EXAMPLES, 1))
-    vector_feature = tf.random.uniform((NUM_EXAMPLES, VECTOR_DIM))
-
-    return {
-        "scalar_continuous": scalar_feature,
-        "vector_continuous__values": vector_feature,
-    }
-
-
-@pytest.fixture
-def categorical_features():
-    tf = pytest.importorskip("tensorflow")
-
-    one_hot_a = tf.random.uniform((NUM_EXAMPLES, 1), maxval=CARDINALITY, dtype=tf.dtypes.int32)
-    one_hot_b = tf.random.uniform((NUM_EXAMPLES, 1), maxval=CARDINALITY, dtype=tf.dtypes.int32)
-
-    nnzs = 5
-    multi_hot_a__nnzs = tf.fill((NUM_EXAMPLES, 1), nnzs)
-    multi_hot_a__values = tf.random.uniform(
-        (NUM_EXAMPLES, N_HOT), maxval=CARDINALITY, dtype=tf.dtypes.int32
-    )
-
-    return {
-        "one_hot_a": one_hot_a,
-        "one_hot_b": one_hot_b,
-        "multi_hot_a__nnzs": multi_hot_a__nnzs,
-        "multi_hot_a__values": multi_hot_a__values,
-    }
-
-
-@pytest.fixture
-def items_features():
-    tf = pytest.importorskip("tensorflow")
-
-    nnzs = 4
-    items__nnzs = tf.fill((NUM_EXAMPLES, 1), nnzs)
-    items__values = tf.random.uniform((NUM_EXAMPLES, nnzs), maxval=NUM_ITEMS, dtype=tf.dtypes.int32)
-
-    return {
-        "items__nnzs": items__nnzs,
-        "items__values": items__values,
-    }
-
-
-@pytest.fixture
-def labels():
-    tf = pytest.importorskip("tensorflow")
-
-    labels = tf.random.uniform((NUM_EXAMPLES, 1), maxval=2, dtype=tf.dtypes.int32)
-
-    return labels
-
-
-@pytest.fixture
-def item_labels():
-    tf = pytest.importorskip("tensorflow")
-
-    item_labels = tf.random.uniform((NUM_EXAMPLES, 1), maxval=NUM_ITEMS, dtype=tf.dtypes.int32)
-
-    return item_labels
-
-
-def transform_for_inference(training_data):
-    tf = pytest.importorskip("tensorflow")
-
-    inference_data = defaultdict(dict)
-
-    for channel_name, channel_features in training_data.items():
-        for feature_name, feature in channel_features.items():
-            if "__values" in feature_name:
-                inference_data[channel_name][feature_name] = tf.reshape(feature, (-1, 1))
-            else:
-                inference_data[channel_name][feature_name] = feature
-
-    return inference_data
+from tests.tf.conftest import *  # noqa
+from tests.torch.conftest import *  # noqa

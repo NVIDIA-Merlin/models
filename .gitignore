@@ -69,3 +69,9 @@ ipython_config.py
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# PyCharm
+.idea
+
+# Mac
+**/.DS_Store
