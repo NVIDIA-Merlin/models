@@ -40,5 +40,14 @@ def yoochoose_schema() -> Schema:
     return tabular_testing_data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
 
 
-from tests.tf.conftest import *  # noqa
-from tests.torch.conftest import *  # noqa
+try:
+    import tensorflow as tf
+    from tests.tf.conftest import *  # noqa
+except ImportError:
+    pass
+
+try:
+    import torch
+    from tests.torch.conftest import *  # noqa
+except ImportError:
+    pass

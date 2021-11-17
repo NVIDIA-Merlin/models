@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import abc
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 import tensorflow as tf
 
@@ -43,6 +43,24 @@ class LossMixin(abc.ABC):
         training: bool, default=False
         """
         raise NotImplementedError()
+
+
+class ContextMixin:
+    @property
+    def context(self) -> TabularData:
+        if not hasattr(self, "_context"):
+            self._context = {}
+
+        return self._context
+
+    def add_to_context(self, name: str, value: tf.Tensor):
+        self.context[name] = value
+
+    def get_from_context(self, name) -> Optional[tf.Tensor]:
+        return self.context.get(name)
+
+    def _set_context(self, context: TabularData):
+        self._context = context
 
 
 class MetricsMixin(abc.ABC):

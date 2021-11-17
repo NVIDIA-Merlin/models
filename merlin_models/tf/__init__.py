@@ -33,7 +33,6 @@ from .core import (
     DualEncoderBlock,
     Filter,
     Head,
-    Match,
     Model,
     NoOp,
     ParallelBlock,
@@ -123,6 +122,5 @@ __all__ = [
     "merge",
     "StochasticSwapNoise",
     "NoOp",
-    "Match",
     "data",
 ]

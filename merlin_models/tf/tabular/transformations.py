@@ -13,15 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+from collections import deque
+from queue import Queue
 from typing import Optional
 
 import tensorflow as tf
+from merlin_standard_lib import Tag
 from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
+from tensorflow.python.ops.data_flow_ops import GPUCompatibleFIFOQueue
 
-from ...config.schema import requires_schema
 from ..core import TabularTransformation, tabular_transformation_registry
 from ..typing import TabularData, TensorOrTabularData
 
@@ -78,11 +80,11 @@ class StochasticSwapNoise(TabularTransformation):
         self.replacement_prob = replacement_prob
 
     def call(
-        self,
-        inputs: TensorOrTabularData,
-        input_mask: Optional[tf.Tensor] = None,
-        training=True,
-        **kwargs,
+            self,
+            inputs: TensorOrTabularData,
+            input_mask: Optional[tf.Tensor] = None,
+            training=True,
+            **kwargs,
     ) -> TensorOrTabularData:
         def augment(input_mask):
             if self.schema:
@@ -120,7 +122,7 @@ class StochasticSwapNoise(TabularTransformation):
         sampled_values_to_replace = tf.gather(
             input_flattened_non_zero,
             tf.random.shuffle(tf.range(tf.shape(input_flattened_non_zero)[0]))[
-                :n_values_to_replace
+            :n_values_to_replace
             ],
         )
 
@@ -146,7 +148,6 @@ class StochasticSwapNoise(TabularTransformation):
 
 @tabular_transformation_registry.register_with_multiple_names("continuous-powers")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-@requires_schema
 class ContinuousPowers(TabularTransformation):
     """Trick from `Deep Neural Networks for YouTube Recommendations`"""
 
@@ -172,3 +173,27 @@ class ContinuousPowers(TabularTransformation):
                 output_shape[f"{key}_squared"] = val
 
         return output_shape
+
+
+@tabular_transformation_registry.register_with_multiple_names("item-tf-queue")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ItemTFQueue(TabularTransformation):
+    def __init__(self, capacity: int, key: str = Tag.ITEM, **kwargs):
+        super().__init__(**kwargs)
+        self.key = key
+        self.capacity = capacity
+        self.queue = GPUCompatibleFIFOQueue(capacity, dtypes=tf.float32)
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        self.queue.enqueue_many(inputs[self.key])
+
+        return inputs
+
+    def dequeue(self, n: int = 1, name: Optional[str] = None) -> tf.Tensor:
+        if n == 1:
+            return self.queue.dequeue(name=name)
+
+        return self.queue.dequeue_many(n, name=name)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
