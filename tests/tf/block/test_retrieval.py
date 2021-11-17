@@ -1,6 +1,6 @@
 import pytest
 import tensorflow as tf
-from merlin_standard_lib import Tag
+from merlin_standard_lib import Tag, Schema
 
 from merlin_models.tf.block.retrieval import RetrievalPredictionTask, MemoryBankBlock
 import merlin_models.tf as ml
@@ -46,14 +46,15 @@ def test_retrieval_task(add_targets, in_batch_negatives):
         assert loss is not None
 
 
-
-
-schema: Schema = None
+schema: Schema = Schema()
 
 # Variant (b)
 two_tower = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
-negatives = MemoryBankBlock(num_batches=10, post=two_tower["item"])
-two_tower.add_branch("negatives", negatives)
+negatives = MemoryBankBlock(num_batches=10, post=two_tower["item"], no_outputs=True)
+two_tower = two_tower.add_branch(
+    "negatives",
+    ml.Filter(schema.select_by_tag(Tag.ITEM)).apply(negatives)
+)
 two_tower.to_model(RetrievalPredictionTask(extra_negatives=negatives))
 
 # Variant (c)

@@ -1,6 +1,6 @@
 import abc
 from collections import deque
-from typing import Optional, List, Text
+from typing import Optional, List, Text, Tuple
 
 import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
@@ -20,6 +20,7 @@ from ..core import (
 )
 from ..features.embedding import EmbeddingFeatures
 from ..typing import TabularData
+from ..utils.tf_utils import ContextMixin
 
 
 class Distance(TabularAggregation, abc.ABC):
@@ -77,11 +78,59 @@ def TwoTowerBlock(
     return two_tower
 
 
+class PredictionTransformation(tf.keras.layers.Layer, ContextMixin):
+    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
+        return predictions, targets
+
+
+class SamplingBiasCorrection(PredictionTransformation):
+    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
+        popularity = self.get_from_context("popularity")
+        if popularity is not None:
+            predictions -= tf.math.log(popularity)
+
+        return predictions, targets
+
+
+class InBatchNegativeSampling(PredictionTransformation):
+    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
+        scores = tf.linalg.matmul(*list(predictions.values()), transpose_b=True)
+
+        if targets is not None:
+            if len(targets.shape) == 2:
+                targets = tf.squeeze(targets)
+            targets = tf.linalg.diag(targets)
+        else:
+            targets = tf.eye(tf.shape(scores)[0], tf.shape(scores)[1])
+
+        return scores, targets
+
+
+class NegativeSampler(abc.ABC):
+    @abc.abstractmethod
+    def retrieve(self) -> tf.Tensor:
+        raise NotImplementedError()
+
+
+class CrossBatchNegativeSampling(PredictionTransformation):
+    def __init__(self, sampler: NegativeSampler):
+        self.sampler = sampler
+
+    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
+        extra_negatives: tf.Tensor = self.sampler.retrieve()
+        extra_negatives = array_ops.stop_gradient(extra_negatives,
+                                                  name="extra_negatives_stop_gradient")
+        predictions = tf.concat([predictions, extra_negatives], axis=0)
+        targets = tf.concat([targets, tf.zeros_like(extra_negatives)], axis=0)
+
+        return predictions, targets
+
+
 class RetrievalPredictionTask(PredictionTask):
     def __init__(self,
                  loss: Optional[tf.keras.losses.Loss] = None,
                  in_batch_negatives: bool = True,
-                 extra_negatives: Optional["NegativeSamplingMixin"] = None,
+                 extra_negatives: Optional[NegativeSampler] = None,
                  target_name: Optional[str] = None,
                  task_name: Optional[str] = None,
                  metrics: Optional[List[MetricOrMetricClass]] = None, pre: Optional[Layer] = None,
@@ -172,14 +221,8 @@ def MatrixFactorizationBlock(
     return matrix_factorization
 
 
-class NegativeSamplingMixin(abc.ABC):
-    @abc.abstractmethod
-    def retrieve(self) -> tf.Tensor:
-        raise NotImplementedError()
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class MemoryBankBlock(Block, NegativeSamplingMixin):
+class MemoryBankBlock(Block, NegativeSampler):
     def __init__(
             self,
             num_batches: int = 1,
