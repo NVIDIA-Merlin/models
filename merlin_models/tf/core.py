@@ -19,7 +19,7 @@ import copy
 import sys
 from collections import defaultdict
 from functools import reduce
-from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload
+from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload, Tuple
 
 import six
 import tensorflow as tf
@@ -28,6 +28,7 @@ from merlin_standard_lib.utils.doc_utils import docstring_parameter
 from merlin_standard_lib.utils.misc_utils import filter_kwargs
 from tensorflow.keras.layers import Layer
 from tensorflow.python.framework import ops
+from tensorflow.python.keras.losses import Loss
 from tensorflow.python.keras.utils import generic_utils
 
 from merlin_models.config.schema import SchemaMixin
@@ -1030,18 +1031,22 @@ class Filter(TabularBlock):
     """
 
     @overload
-    def __init__(self, inputs: Schema, name=None, pop=False, exclude=False, **kwargs):
+    def __init__(self, inputs: Schema, name=None, pop=False, exclude=False,
+                 add_to_context: bool = False, **kwargs):
         ...
 
     @overload
-    def __init__(self, inputs: Tag, name=None, pop=False, exclude=False, **kwargs):
+    def __init__(self, inputs: Tag, name=None, pop=False, exclude=False,
+                 add_to_context: bool = False, **kwargs):
         ...
 
     @overload
-    def __init__(self, inputs: Sequence[str], name=None, pop=False, exclude=False, **kwargs):
+    def __init__(self, inputs: Sequence[str], name=None, pop=False, exclude=False,
+                 add_to_context: bool = False, **kwargs):
         ...
 
-    def __init__(self, inputs, name=None, pop=False, exclude=False, **kwargs):
+    def __init__(self, inputs, name=None, pop=False, exclude=False,
+                 add_to_context: bool = False, **kwargs):
         if isinstance(inputs, Tag):
             self.feature_names = inputs
         else:
@@ -1049,6 +1054,7 @@ class Filter(TabularBlock):
         super().__init__(name=name, **kwargs)
         self.exclude = exclude
         self.pop = pop
+        self.add_to_context = add_to_context
 
     def set_schema(self, schema=None):
         out = super().set_schema(schema)
@@ -1076,6 +1082,11 @@ class Filter(TabularBlock):
         if self.pop:
             for key in outputs.keys():
                 inputs.pop(key)
+
+        if self.add_to_context:
+            self.context.update(outputs)
+
+            return {}
 
         return outputs
 
@@ -1333,6 +1344,15 @@ class Debug(tf.keras.layers.Layer):
         return input_shape
 
 
+# @tf.keras.utils.register_keras_serializable(package="merlin_models")
+# class AddToContext(tf.keras.layers.Layer, ContextMixin):
+#     def call(self, inputs, **kwargs):
+#         return inputs
+#
+#     def compute_output_shape(self, input_shape):
+#         return input_shape
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class WithShortcut(ParallelBlock):
     def __init__(
@@ -1449,11 +1469,22 @@ def name_fn(name, inp):
 MetricOrMetricClass = Union[tf.keras.metrics.Metric, Type[tf.keras.metrics.Metric]]
 
 
+class Sampler(abc.ABC):
+    @abc.abstractmethod
+    def sample(self) -> tf.Tensor:
+        raise NotImplementedError()
+
+
+class PredictionTransformation(Layer, ContextMixin):
+    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
+        return predictions, targets
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def __init__(
             self,
-            loss: tf.keras.losses.Loss,
+            loss: Loss,
             target_name: Optional[str] = None,
             task_name: Optional[str] = None,
             metrics: Optional[List[MetricOrMetricClass]] = None,
@@ -1717,7 +1748,7 @@ class Head(ParallelBlock):
 
         tasks: List[PredictionTask] = []
         task_weights = []
-        from .model.prediction_task import BinaryClassificationTask, RegressionTask
+        from .head.prediction_task import BinaryClassificationTask, RegressionTask
 
         for binary_target in schema.select_by_tag(Tag.BINARY_CLASSIFICATION).column_names:
             tasks.append(BinaryClassificationTask(binary_target))

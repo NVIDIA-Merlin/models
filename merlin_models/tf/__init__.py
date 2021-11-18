@@ -49,8 +49,8 @@ from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.sequence import TabularSequenceFeatures
 from .features.tabular import TabularFeatures
 from .layers import DotProductInteraction
-from .model.multi_task import MMOEHead, PLEHead
-from .model.prediction_task import (
+from .head.multi_task import MMOEHead, PLEHead
+from .head.prediction_task import (
     BinaryClassificationTask,
     RegressionTask,
     SampledItemPredictionTask,

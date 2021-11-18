@@ -63,3 +63,8 @@ negatives = MemoryBankBlock(num_batches=10)
 two_tower.apply_to_branch("item", negatives)
 two_tower.to_model(RetrievalPredictionTask(extra_negatives=negatives))
 
+
+youtube_dnn = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]),
+                               item_tower=ml.EmbeddingFeatures.from_schema(schema))
+
+

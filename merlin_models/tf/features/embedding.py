@@ -152,12 +152,11 @@ class EmbeddingFeatures(InputBlock):
                 tables[table.name] = table
 
         for name, table in tables.items():
-            shape = (table.vocabulary_size, table.dim)
             self.embedding_tables[name] = self.add_weight(
                 name="{}/embedding_weights".format(name),
                 trainable=True,
                 initializer=table.initializer,
-                shape=shape,
+                shape=(table.vocabulary_size, table.dim),
             )
         if isinstance(input_shapes, dict):
             super().build(input_shapes)

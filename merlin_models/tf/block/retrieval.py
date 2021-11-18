@@ -1,12 +1,13 @@
 import abc
 from collections import deque
-from typing import Optional, List, Text, Tuple
+from typing import Optional, List, Text, Tuple, Union
 
 import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 from tensorflow.python.keras.engine.base_layer import Layer
 from tensorflow.python.ops import array_ops
 
+from .inputs import TabularFeatures
 from ..core import (
     Block,
     ParallelBlock,
@@ -16,7 +17,7 @@ from ..core import (
     tabular_aggregation_registry,
     TabularTransformationsType,
     PredictionTask,
-    MetricOrMetricClass,
+    MetricOrMetricClass, Sampler, SequentialBlock,
 )
 from ..features.embedding import EmbeddingFeatures
 from ..typing import TabularData
@@ -51,153 +52,34 @@ def TwoTowerBlock(
         item_tower: Optional[Block] = None,
         query_tower_tag=Tag.USER,
         item_tower_tag=Tag.ITEM,
+        add_to_query_context: List[Union[str, Tag]] = None,
+        add_to_item_context: List[Union[str, Tag]] = None,
         embedding_dim_default: Optional[int] = 64,
         post: Optional[TabularTransformationsType] = None,
-
         # negative_memory_bank=None,
         **kwargs
 ) -> ParallelBlock:
-    item_tower = item_tower or query_tower.copy()
+    _item_tower: Block = item_tower or query_tower.copy()
+    if not isinstance(query_tower, SequentialBlock) and not query_tower.inputs:
+        query_tower = TabularFeatures(
+            schema.select_by_tag(query_tower_tag),
+            embedding_dim_default=embedding_dim_default,
+            add_to_context=add_to_query_context
+        ).apply(query_tower)
+    if not isinstance(_item_tower, SequentialBlock) and not _item_tower.inputs:
+        _item_tower = TabularFeatures(
+            schema.select_by_tag(item_tower_tag),
+            embedding_dim_default=embedding_dim_default,
+            add_to_context=add_to_item_context
+        ).apply(item_tower)
+
     two_tower = ParallelBlock(
-        {
-            str(query_tower_tag): inputs(
-                schema.select_by_tag(query_tower_tag),
-                query_tower,
-                embedding_dim_default=embedding_dim_default,
-            ),
-            str(item_tower_tag): inputs(
-                schema.select_by_tag(item_tower_tag),
-                item_tower,
-                embedding_dim_default=embedding_dim_default,
-            )
-        },
+        {str(query_tower_tag): query_tower, str(item_tower_tag): _item_tower},
         post=post,
         **kwargs
     )
 
     return two_tower
-
-
-class PredictionTransformation(tf.keras.layers.Layer, ContextMixin):
-    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
-        return predictions, targets
-
-
-class SamplingBiasCorrection(PredictionTransformation):
-    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
-        popularity = self.get_from_context("popularity")
-        if popularity is not None:
-            predictions -= tf.math.log(popularity)
-
-        return predictions, targets
-
-
-class InBatchNegativeSampling(PredictionTransformation):
-    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
-        scores = tf.linalg.matmul(*list(predictions.values()), transpose_b=True)
-
-        if targets is not None:
-            if len(targets.shape) == 2:
-                targets = tf.squeeze(targets)
-            targets = tf.linalg.diag(targets)
-        else:
-            targets = tf.eye(tf.shape(scores)[0], tf.shape(scores)[1])
-
-        return scores, targets
-
-
-class NegativeSampler(abc.ABC):
-    @abc.abstractmethod
-    def retrieve(self) -> tf.Tensor:
-        raise NotImplementedError()
-
-
-class CrossBatchNegativeSampling(PredictionTransformation):
-    def __init__(self, sampler: NegativeSampler):
-        self.sampler = sampler
-
-    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
-        extra_negatives: tf.Tensor = self.sampler.retrieve()
-        extra_negatives = array_ops.stop_gradient(extra_negatives,
-                                                  name="extra_negatives_stop_gradient")
-        predictions = tf.concat([predictions, extra_negatives], axis=0)
-        targets = tf.concat([targets, tf.zeros_like(extra_negatives)], axis=0)
-
-        return predictions, targets
-
-
-class RetrievalPredictionTask(PredictionTask):
-    def __init__(self,
-                 loss: Optional[tf.keras.losses.Loss] = None,
-                 in_batch_negatives: bool = True,
-                 extra_negatives: Optional[NegativeSampler] = None,
-                 target_name: Optional[str] = None,
-                 task_name: Optional[str] = None,
-                 metrics: Optional[List[MetricOrMetricClass]] = None, pre: Optional[Layer] = None,
-                 prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-                 label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-                 loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-                 name: Optional[Text] = None, **kwargs) -> None:
-        loss = loss if loss is not None else tf.keras.losses.CategoricalCrossentropy(
-            from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
-        super().__init__(loss, target_name, task_name, metrics, pre, None, prediction_metrics,
-                         label_metrics, loss_metrics, name, **kwargs)
-        self.in_batch_negatives = in_batch_negatives
-        self.extra_negatives = extra_negatives
-
-    def compute_loss(
-            self,
-            predictions,
-            targets,
-            training: bool = False,
-            compute_metrics=True,
-            sample_weight: Optional[tf.Tensor] = None,
-            **kwargs
-    ) -> tf.Tensor:
-        if isinstance(targets, dict) and self.target_name:
-            targets = targets[self.target_name]
-        if isinstance(predictions, dict) and self.target_name:
-            predictions = predictions[self.task_name]
-
-        if self.in_batch_negatives:
-            norm_vecs = [tf.linalg.l2_normalize(inp, axis=1) for inp in list(predictions.values())]
-            scores = tf.linalg.matmul(*norm_vecs, transpose_b=True)
-
-            if targets is not None:
-                if len(targets.shape) == 2:
-                    targets = tf.squeeze(targets)
-                targets = tf.linalg.diag(targets)
-            else:
-                targets = tf.eye(tf.shape(scores)[0], tf.shape(scores)[1])
-        else:
-            if targets is None:
-                raise ValueError("Targets are required when in-batch negative sampling is disabled")
-            scores = tf.keras.layers.Dot(axes=1, normalize=True)(list(predictions.values()))
-
-        if self.extra_negatives:
-            extra_negatives: tf.Tensor = self.extra_negatives.retrieve()
-            extra_negatives = array_ops.stop_gradient(extra_negatives,
-                                                      name="extra_negatives_stop_gradient")
-            scores = tf.concat([scores, extra_negatives], axis=0)
-            targets = tf.concat([targets, tf.zeros_like(extra_negatives)], axis=0)
-
-        # Sampling bias correction
-        # TODO: add popularity to standard tags
-        popularity = self.get_from_context("popularity")
-        if popularity is not None:
-            scores -= tf.math.log(popularity)
-
-        loss = self.loss(y_true=targets, y_pred=scores, sample_weight=sample_weight)
-
-        if compute_metrics:
-            update_ops = self.calculate_metrics(predictions, targets, forward=False, loss=loss)
-
-            update_ops = [x for x in update_ops if x is not None]
-
-            with tf.control_dependencies(update_ops):
-                return tf.identity(loss)
-
-        return loss
 
 
 def MatrixFactorizationBlock(
@@ -222,7 +104,7 @@ def MatrixFactorizationBlock(
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class MemoryBankBlock(Block, NegativeSampler):
+class MemoryBankBlock(Block, Sampler):
     def __init__(
             self,
             num_batches: int = 1,
@@ -248,9 +130,8 @@ class MemoryBankBlock(Block, NegativeSampler):
 
         return inputs
 
-    def retrieve(self) -> tf.Tensor:
-        batches = list(self.queue)[:-1]
-        outputs = tf.concat(batches, axis=0)
+    def sample(self) -> tf.Tensor:
+        outputs = tf.concat(list(self.queue)[:-1], axis=0)
 
         if self.post is not None:
             outputs = self.post(outputs)
