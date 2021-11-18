@@ -2,7 +2,7 @@ from typing import Tuple, Optional, List, Text
 
 import tensorflow as tf
 from merlin_standard_lib import Tag, Schema
-from tensorflow.python.keras.losses import Loss
+from tensorflow.python.keras.losses import Loss, CategoricalCrossentropy
 from tensorflow.python.keras.utils import losses_utils
 from tensorflow.python.layers.base import Layer
 from tensorflow.python.ops import array_ops
@@ -13,10 +13,11 @@ from merlin_models.tf.core import (
     PredictionTask,
     Sampler,
     MetricOrMetricClass,
-    Block
+    Block, prediction_transforms_registry
 )
 
 
+@prediction_transforms_registry.register_with_multiple_names("sampling-bias-correction")
 class SamplingBiasCorrection(PredictionTransformation):
     def __init__(self, bias_feature_name: str = "popularity", **kwargs):
         super(SamplingBiasCorrection, self).__init__(**kwargs)
@@ -44,10 +45,15 @@ class _InBatchNegativeSampling(PredictionTransformation):
         return scores, targets
 
 
+@prediction_transforms_registry.register_with_multiple_names("negative-sampling")
 class NegativeSampling(PredictionTransformation):
     def __init__(self, *sampler: Sampler, in_batch=True, **kwargs):
         self.sampler = sampler
         self.in_batch_sampler = _InBatchNegativeSampling() if in_batch else None
+
+        if not in_batch and not sampler:
+            raise ValueError("Either in_batch or sampler must be set")
+
         super(NegativeSampling, self).__init__(**kwargs)
 
     def sample(self) -> tf.Tensor:
@@ -62,8 +68,8 @@ class NegativeSampling(PredictionTransformation):
 
         if self.sampler:
             extra_negatives: tf.Tensor = self.sample()
-            extra_negatives = array_ops.stop_gradient(extra_negatives,
-                                                      name="extra_negatives_stop_gradient")
+            # extra_negatives = array_ops.stop_gradient(extra_negatives,
+            #                                           name="extra_negatives_stop_gradient")
             predictions = tf.concat([predictions, extra_negatives], axis=0)
             targets = tf.concat([targets, tf.zeros_like(extra_negatives)], axis=0)
 
@@ -88,7 +94,7 @@ class RetrievalPredictionTask(PredictionTask):
                  label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
                  loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
                  name: Optional[Text] = None, **kwargs) -> None:
-        loss = loss if loss is not None else tf.keras.losses.CategoricalCrossentropy(
+        loss = loss if loss is not None else CategoricalCrossentropy(
             from_logits=True, reduction=tf.keras.losses.Reduction.SUM)
         super().__init__(loss, target_name, task_name, metrics, pre, None, prediction_metrics,
                          label_metrics, loss_metrics, name, **kwargs)

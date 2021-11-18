@@ -2,8 +2,9 @@ import pytest
 import tensorflow as tf
 from merlin_standard_lib import Tag, Schema
 
-from merlin_models.tf.block.retrieval import RetrievalPredictionTask, MemoryBankBlock
+from merlin_models.tf.block.retrieval import MemoryBankBlock
 import merlin_models.tf as ml
+# from merlin_models.tf.head.retrieval import RetrievalPredictionTask
 
 
 def _create_vectors(batch_size=100, dim=64):
@@ -13,15 +14,15 @@ def _create_vectors(batch_size=100, dim=64):
     }
 
 
-def test_negative_sampling():
-    queue = ItemQueue(num_batches=3)
-
-    for _ in range(5):
-        queue(_create_vectors())
-
-        negative_samples = queue.fetch()
-        a = 5
-    a = 5
+# def test_negative_sampling():
+#     queue = ItemQueue(num_batches=3)
+#
+#     for _ in range(5):
+#         queue(_create_vectors())
+#
+#         negative_samples = queue.fetch()
+#         a = 5
+#     a = 5
 
 
 @pytest.mark.parametrize("add_targets", [True, False])
@@ -49,22 +50,28 @@ def test_retrieval_task(add_targets, in_batch_negatives):
 schema: Schema = Schema()
 
 # Variant (b)
-two_tower = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
-negatives = MemoryBankBlock(num_batches=10, post=two_tower["item"], no_outputs=True)
-two_tower = two_tower.add_branch(
-    "negatives",
-    ml.Filter(schema.select_by_tag(Tag.ITEM)).apply(negatives)
-)
-two_tower.to_model(RetrievalPredictionTask(extra_negatives=negatives))
-
-# Variant (c)
-two_tower = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
-negatives = MemoryBankBlock(num_batches=10)
-two_tower.apply_to_branch("item", negatives)
-two_tower.to_model(RetrievalPredictionTask(extra_negatives=negatives))
-
-
-youtube_dnn = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]),
-                               item_tower=ml.EmbeddingFeatures.from_schema(schema))
+# two_tower = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
+# negatives = MemoryBankBlock(num_batches=10, post=two_tower["item"], no_outputs=True)
+# two_tower = two_tower.add_branch(
+#     "negatives",
+#     ml.Filter(schema.select_by_tag(Tag.ITEM)).apply(negatives)
+# )
+# two_tower.to_model(RetrievalPredictionTask(extra_negatives=negatives))
+#
+# # Variant (c)
+# two_tower = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
+# negatives = MemoryBankBlock(num_batches=10)
+# two_tower.apply_to_branch("item", negatives)
+# two_tower.to_model(RetrievalPredictionTask(extra_negatives=negatives))
+#
+#
+# youtube_dnn = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]),
+#                                item_tower=ml.EmbeddingFeatures.from_schema(schema))
+#
+# ml.inputs(schema, add_to_context=[Tag.ITEM_ID, Tag.USER_ID])
+# # weight_tying = ml.inputs(schema).apply_with_shortcut(
+# #     ml.MLPBlock([512, 256]),
+# #     shortcut_filter=ml.Filter(Tag.ITEM_ID)
+# # )
 
 

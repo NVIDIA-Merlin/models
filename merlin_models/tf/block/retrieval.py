@@ -21,7 +21,6 @@ from ..core import (
 )
 from ..features.embedding import EmbeddingFeatures
 from ..typing import TabularData
-from ..utils.tf_utils import ContextMixin
 
 
 class Distance(TabularAggregation, abc.ABC):

@@ -38,6 +38,7 @@ from ..tabular.transformations import AsSparseFeatures
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from ..typing import TabularData
+from ..utils.tf_utils import ModelContext
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     feature_config: Dict[str, FeatureConfig]
@@ -152,8 +153,8 @@ class EmbeddingFeatures(InputBlock):
                 tables[table.name] = table
 
         for name, table in tables.items():
-            self.embedding_tables[name] = self.add_weight(
-                name="{}/embedding_weights".format(name),
+            self.embedding_tables[name] = self._add_embedding_table(
+                name=name,
                 trainable=True,
                 initializer=table.initializer,
                 shape=(table.vocabulary_size, table.dim),

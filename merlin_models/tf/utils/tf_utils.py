@@ -45,21 +45,45 @@ class LossMixin(abc.ABC):
         raise NotImplementedError()
 
 
+class ModelContext:
+    def __init__(self):
+        self._current_batch = {}
+        self._shared_variables = {}
+
+    def register_variable(self, name, variable):
+        self._shared_variables[name] = variable
+
+    def get_variable(self, name):
+        return self._shared_variables[name]
+
+    def add_to_batch(self, name, value):
+        self._current_batch[name] = value
+
+    def get_from_batch(self, name):
+        return self._current_batch[name]
+
+    def _merge(self, other: "ModelContext"):
+        self._current_batch.update(other._current_batch)
+        self._shared_variables.update(other._shared_variables)
+
+
 class ContextMixin:
     @property
-    def context(self) -> TabularData:
+    def context(self) -> ModelContext:
         if not hasattr(self, "_context"):
-            self._context = {}
+            self._context = ModelContext()
 
         return self._context
 
-    def add_to_context(self, name: str, value: tf.Tensor):
-        self.context[name] = value
+    # def add_to_context(self, name: str, value: tf.Tensor):
+    #     self.context[name] = value
+    #
+    # def get_from_context(self, name) -> Optional[tf.Tensor]:
+    #     return self.context.get(name)
 
-    def get_from_context(self, name) -> Optional[tf.Tensor]:
-        return self.context.get(name)
-
-    def _set_context(self, context: TabularData):
+    def _set_context(self, context: ModelContext):
+        if hasattr(self, "_context"):
+            context._merge(self._context)
         self._context = context
 
 

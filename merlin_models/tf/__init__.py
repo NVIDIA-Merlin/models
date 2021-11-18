@@ -53,8 +53,8 @@ from .head.multi_task import MMOEHead, PLEHead
 from .head.prediction_task import (
     BinaryClassificationTask,
     RegressionTask,
-    SampledItemPredictionTask,
 )
+from .head.retrieval import SampledItemPredictionTask
 from .tabular.aggregation import (
     ConcatFeatures,
     ElementwiseSum,

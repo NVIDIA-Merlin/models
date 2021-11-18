@@ -26,7 +26,7 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 def test_simple_model(tabular_schema, tf_tabular_data, run_eagerly=True):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    body = tr.MLPBlock([64]).from_inputs(tabular_schema, aggregation="concat")
+    body = tr.inputs(tabular_schema, tr.MLPBlock([64]))
     model = tr.BinaryClassificationTask("target").to_model(body)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
