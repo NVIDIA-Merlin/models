@@ -73,4 +73,5 @@ def assert_model_saved(body, task, run_eagerly, data):
     with tempfile.TemporaryDirectory() as tmpdir:
         model.save(tmpdir)
         model = tf.keras.models.load_model(tmpdir)
+    assert model(batch) is not None
     return model
