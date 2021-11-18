@@ -15,6 +15,7 @@
 #
 
 import platform
+import tempfile
 
 import pytest
 
@@ -62,3 +63,14 @@ def assert_serialization(layer):
     assert isinstance(copy_layer, layer.__class__)
 
     return copy_layer
+
+
+def assert_model_saved(body, task, run_eagerly, data):
+    model = task.to_model(body)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    batch = next(iter(data))[0]
+    model._set_inputs(batch)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        model.save(tmpdir)
+        model = tf.keras.models.load_model(tmpdir)
+    return model
