@@ -4,6 +4,8 @@ from merlin_standard_lib import Tag, Schema
 
 from merlin_models.tf.block.retrieval import MemoryBankBlock
 import merlin_models.tf as ml
+
+
 # from merlin_models.tf.head.retrieval import RetrievalPredictionTask
 
 
@@ -65,13 +67,15 @@ schema: Schema = Schema()
 # two_tower.to_model(RetrievalPredictionTask(extra_negatives=negatives))
 #
 #
-# youtube_dnn = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]),
-#                                item_tower=ml.EmbeddingFeatures.from_schema(schema))
-#
-# ml.inputs(schema, add_to_context=[Tag.ITEM_ID, Tag.USER_ID])
-# # weight_tying = ml.inputs(schema).apply_with_shortcut(
-# #     ml.MLPBlock([512, 256]),
-# #     shortcut_filter=ml.Filter(Tag.ITEM_ID)
-# # )
+youtube_dnn = ml.TwoTowerBlock(
+    schema,
+    ml.MLPBlock([512, 256]),
+    item_tower=ml.EmbeddingFeatures.from_schema(schema.select_by_tag(Tag.ITEM_ID)),
+)
 
 
+ml.inputs(schema, add_to_context=[Tag.ITEM_ID, Tag.USER_ID])
+# weight_tying = ml.inputs(schema).apply_with_shortcut(
+#     ml.MLPBlock([512, 256]),
+#     shortcut_filter=ml.Filter(Tag.ITEM_ID)
+# )

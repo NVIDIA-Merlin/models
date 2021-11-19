@@ -17,6 +17,7 @@
 import abc
 import copy
 import sys
+from abc import ABC
 from collections import defaultdict
 from functools import reduce
 from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload, Tuple
@@ -297,7 +298,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
 def inputs(
         schema: Schema,
         *block: Block,
-        input_block_cls: Optional[Type["InputBlock"]] = None,
         post: Optional["TabularTransformationType"] = None,
         aggregation: Optional["TabularAggregationType"] = None,
         seq: bool = False,
@@ -492,6 +492,13 @@ class SequentialBlock(Block):
                 outputs = layer(outputs)
 
         return outputs
+
+    def compute_loss(self, inputs, targets, **kwargs):
+        outputs, targets = inputs, targets
+        for layer in self.layers:
+            outputs, targets = layer.compute_loss(outputs, targets, **kwargs)
+
+        return outputs, targets
 
     def get_config(self):
         config = {}
@@ -857,7 +864,7 @@ class TabularBlock(Block):
         """
         inputs = self.pre_call(inputs, transformations=pre)
 
-        # This will call the `forward` method implemented by the super class.
+        # This will call the `call` method implemented by the super class.
         outputs = super().__call__(inputs, *args, **kwargs)  # noqa
 
         if isinstance(outputs, dict):
@@ -1507,21 +1514,30 @@ class Sampler(abc.ABC):
 prediction_transforms_registry: Registry = Registry.class_registry("tf.prediction_transforms")
 
 
-class PredictionTransformation(Layer, ContextMixin):
-    def call(self, predictions, targets) -> Tuple[tf.Tensor, tf.Tensor]:
-        return predictions, targets
+class PredictionBlock(Block):
+    def call(self, inputs, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+        predictions, targets = inputs
+
+        return self.transform(predictions, targets, training=True, **kwargs)
+
+    @abc.abstractmethod
+    def transform(self, predictions, targets, training=True, **kwargs) -> Tuple[
+        tf.Tensor, tf.Tensor]:
+        raise NotImplementedError()
+
+
+class LossBlock(Block, LossMixin, ABC):
+    pass
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def __init__(
             self,
-            loss: Loss,
             target_name: Optional[str] = None,
             task_name: Optional[str] = None,
             metrics: Optional[List[MetricOrMetricClass]] = None,
-            pre: Optional[Layer] = None,
-            post: Optional[PredictionTransformation] = None,
+            post: Optional[PredictionBlock] = None,
             task_block: Optional[Layer] = None,
             prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
             label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
@@ -1549,10 +1565,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         super().__init__(name=name, **kwargs)
         self.target_name = target_name
-        self.pre = pre
         self.task_block = task_block
-        self.loss = loss
         self._task_name = task_name
+        self.post = post
 
         create_metrics = self._create_metrics
         self.eval_metrics = create_metrics(metrics) if metrics else []
@@ -1560,19 +1575,21 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.label_metrics = create_metrics(label_metrics) if label_metrics else []
         self.loss_metrics = create_metrics(loss_metrics) if loss_metrics else []
 
-    def call(self, inputs, training=False, **kwargs):
+    def pre_call(self, inputs, **kwargs):
         x = inputs
-
-        # if len(x.shape) == 3:
-        #     x = self.sequence_summary(x)
 
         if self.task_block:
             x = self.task_block(x)
 
-        if self.pre:
-            x = self.pre(x)
-
         return x
+
+    def __call__(self, *args, **kwargs):
+        inputs = self.pre_call(*args, **kwargs)
+
+        # This will call the `call` method implemented by the super class.
+        outputs = super().__call__(inputs, **kwargs)  # noqa
+
+        return outputs
 
     def build_task(self, input_shape, schema: Schema, body: Block, **kwargs):
         return super().build(input_shape)
@@ -1598,6 +1615,11 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def child_name(self, name):
         return name_fn(self.task_name, name)
 
+    @abc.abstractmethod
+    def _compute_loss(self, predictions, targets, sample_weight=None, training: bool = False,
+                      **kwargs) -> tf.Tensor:
+        raise NotImplementedError()
+
     def compute_loss(  # type: ignore
             self,
             predictions,
@@ -1615,8 +1637,12 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
 
+        if self.post:
+            predictions, targets = self.post(predictions, targets, training=training, **kwargs)
+
         # predictions = self(inputs, training=training, **kwargs)
-        loss = self.loss(y_true=targets, y_pred=predictions, sample_weight=sample_weight)
+        loss = self._compute_loss(predictions, targets, sample_weight=sample_weight,
+                                  training=training)
 
         if compute_metrics:
             update_ops = self.calculate_metrics(predictions, targets, forward=False, loss=loss)
@@ -1781,7 +1807,8 @@ class Head(ParallelBlock):
 
         tasks: List[PredictionTask] = []
         task_weights = []
-        from .head.prediction_task import BinaryClassificationTask, RegressionTask
+        from .head.classification import BinaryClassificationTask
+        from .head.regression import RegressionTask
 
         for binary_target in schema.select_by_tag(Tag.BINARY_CLASSIFICATION).column_names:
             tasks.append(BinaryClassificationTask(binary_target))

@@ -17,6 +17,7 @@ import abc
 from typing import Dict, Union, Optional
 
 import tensorflow as tf
+from merlin_standard_lib import Tag
 
 from ..typing import TabularData
 
@@ -47,23 +48,28 @@ class LossMixin(abc.ABC):
 
 class ModelContext:
     def __init__(self):
-        self._current_batch = {}
-        self._shared_variables = {}
+        self._shared_tensors: Dict[str, tf.Tensor] = {}
+        self._shared_variables: Dict[str, tf.Variable] = {}
 
-    def register_variable(self, name, variable):
+    def register_variable(self, name: str, variable: tf.Variable):
         self._shared_variables[name] = variable
 
-    def get_variable(self, name):
-        return self._shared_variables[name]
+    def update_tensor(self, name: str, tensor: tf.Tensor):
+        self._shared_tensors[name] = tensor
 
-    def add_to_batch(self, name, value):
-        self._current_batch[name] = value
+    @property
+    def variables(self) -> Dict[str, tf.Variable]:
+        return self._shared_variables
 
-    def get_from_batch(self, name):
-        return self._current_batch[name]
+    @property
+    def tensors(self) -> Dict[str, tf.Tensor]:
+        return self._shared_tensors
+
+    def get_embedding(self, name: Union[str, Tag]) -> tf.Tensor:
+        return self._shared_tensors[f"{name}/embedding"]
 
     def _merge(self, other: "ModelContext"):
-        self._current_batch.update(other._current_batch)
+        self._shared_tensors.update(other._shared_tensors)
         self._shared_variables.update(other._shared_variables)
 
 
@@ -74,12 +80,6 @@ class ContextMixin:
             self._context = ModelContext()
 
         return self._context
-
-    # def add_to_context(self, name: str, value: tf.Tensor):
-    #     self.context[name] = value
-    #
-    # def get_from_context(self, name) -> Optional[tf.Tensor]:
-    #     return self.context.get(name)
 
     def _set_context(self, context: ModelContext):
         if hasattr(self, "_context"):

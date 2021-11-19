@@ -1,11 +1,8 @@
 import abc
-from collections import deque
 from typing import Optional, List, Text, Tuple, Union
 
 import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
-from tensorflow.python.keras.engine.base_layer import Layer
-from tensorflow.python.ops import array_ops
 
 from .inputs import TabularFeatures
 from ..core import (
@@ -101,44 +98,6 @@ def MatrixFactorizationBlock(
 
     return matrix_factorization
 
-
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class MemoryBankBlock(Block, Sampler):
-    def __init__(
-            self,
-            num_batches: int = 1,
-            key: Optional[str] = None,
-            post: Optional[Block] = None,
-            no_outputs: bool = False,
-            **kwargs
-    ):
-        super().__init__(**kwargs)
-        self.key = key
-        self.num_batches = num_batches
-        self.queue = deque(maxlen=num_batches + 1)
-        self.no_outputs = no_outputs
-        self.post = post
-
-    def call(self, inputs: TabularData, training=True, **kwargs) -> TabularData:
-        if training:
-            to_add = inputs[self.key] if self.key else inputs
-            self.queue.append(to_add)
-
-        if self.no_outputs:
-            return {}
-
-        return inputs
-
-    def sample(self) -> tf.Tensor:
-        outputs = tf.concat(list(self.queue)[:-1], axis=0)
-
-        if self.post is not None:
-            outputs = self.post(outputs)
-
-        return outputs
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
 
 # class TwoTower(DualEncoderBlock):
 #     def __init__(

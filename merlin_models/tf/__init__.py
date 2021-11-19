@@ -50,11 +50,9 @@ from .features.sequence import TabularSequenceFeatures
 from .features.tabular import TabularFeatures
 from .layers import DotProductInteraction
 from .head.multi_task import MMOEHead, PLEHead
-from .head.prediction_task import (
-    BinaryClassificationTask,
-    RegressionTask,
-)
-from .head.retrieval import SampledItemPredictionTask
+from .head.classification import BinaryClassificationTask
+from .head.regression import RegressionTask
+from .head.item_prediction import SampledItemPredictionTask
 from .tabular.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
