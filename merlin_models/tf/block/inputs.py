@@ -60,8 +60,8 @@ def TabularFeatures(
             branches[str(item)] = Filter(item, add_to_context=True)
 
     if continuous_projection:
-        inputs = ContinuousEmbedding(ParallelBlock(branches), continuous_projection)
+        output = ContinuousEmbedding(ParallelBlock(branches), continuous_projection)
     else:
-        inputs = ParallelBlock(branches, aggregation=aggregation)
+        output = ParallelBlock(branches, aggregation=aggregation)
 
-    return inputs
+    return output

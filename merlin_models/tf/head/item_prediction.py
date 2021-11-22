@@ -13,7 +13,7 @@ from merlin_models.tf.core import (
     Sampler,
     MetricOrMetricClass,
     Block,
-    prediction_transforms_registry
+    prediction_block_registry
 )
 
 
@@ -40,6 +40,8 @@ class ItemPredictionTask(PredictionTask):
             task_block: Optional[Layer] = None,
             weight_tying: bool = False,
             softmax_temperature: float = 1,
+            pre_call: Optional[PredictionBlock] = None,
+            pre_loss: Optional[PredictionBlock] = None,
             **kwargs,
     ):
         super().__init__(
@@ -48,6 +50,8 @@ class ItemPredictionTask(PredictionTask):
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
+            pre_call=pre_call,
+            pre_loss=pre_loss,
             **kwargs,
         )
         self.weight_tying = weight_tying
@@ -113,33 +117,17 @@ class SampledItemPredictionTask(ItemPredictionTask):
                  num_sampled: int,
                  loss=ItemPredictionTask.DEFAULT_LOSS,
                  metrics=ItemPredictionTask.DEFAULT_METRICS,
-                 target_name: Optional[str] = None, task_name: Optional[str] = None,
-                 task_block: Optional[Layer] = None, weight_tying: bool = False,
-                 softmax_temperature: float = 1, **kwargs):
+                 target_name: Optional[str] = None,
+                 task_name: Optional[str] = None,
+                 task_block: Optional[Layer] = None,
+                 weight_tying: bool = False,
+                 softmax_temperature: float = 1,
+                 pre_call: Optional[PredictionBlock] = None,
+                 pre_loss: Optional[PredictionBlock] = None,
+                 **kwargs):
         super().__init__(schema, loss, metrics, target_name, task_name, task_block, weight_tying,
-                         softmax_temperature, **kwargs)
+                         softmax_temperature, pre_call=pre_call, pre_loss=pre_loss, **kwargs)
         self.num_sampled = num_sampled
-
-    def _compute_loss(self, predictions, targets, sample_weight=None, training: bool = False,
-                      **kwargs) -> tf.Tensor:
-        if training:
-            loss = tf.expand_dims(
-                tf.nn.sampled_softmax_loss(
-                    weights=self.item_embedding_table,
-                    biases=self.bias,
-                    labels=targets,
-                    inputs=predictions,
-                    num_sampled=self.num_sampled,
-                    num_classes=self.num_classes,
-                    num_true=self.num_classes,
-                ),
-                axis=1,
-            )
-        else:
-            labels = tf.one_hot(targets, self.n_classes)
-            loss = tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=predictions)
-
-        return loss
 
     def call(self, inputs, training: bool = False, **kwargs):
         if training:
@@ -151,7 +139,37 @@ class SampledItemPredictionTask(ItemPredictionTask):
         return logits
 
 
-@prediction_transforms_registry.register_with_multiple_names("sampling-bias-correction")
+@tf.keras.utils.register_keras_serializable(package="transformers4rec")
+class ItemRetrievalTask(ItemPredictionTask):
+    def __init__(self,
+                 schema: Schema,
+                 loss=ItemPredictionTask.DEFAULT_LOSS,
+                 metrics=ItemPredictionTask.DEFAULT_METRICS,
+                 target_name: Optional[str] = None,
+                 task_name: Optional[str] = None,
+                 task_block: Optional[Layer] = None,
+                 weight_tying: bool = False,
+                 softmax_temperature: float = 1,
+                 pre_call: Optional[PredictionBlock] = "negative-sampling",
+                 pre_loss: Optional[PredictionBlock] = None,
+                 normalize=True,
+                 **kwargs):
+        super().__init__(schema, loss, metrics, target_name, task_name, task_block, weight_tying,
+                         softmax_temperature, pre_call=pre_call, pre_loss=pre_loss, **kwargs)
+        self.normalize = normalize
+
+    def build(self, input_shape):
+        return Layer.build(input_shape)
+
+    def call(self, inputs, training: bool = False, **kwargs):
+        if self.normalize:
+            inputs = [tf.linalg.l2_normalize(inp, axis=1) for inp in list(inputs.values())]
+        predictions = tf.linalg.matmul(*inputs, transpose_b=True)
+
+        return predictions
+
+
+@prediction_block_registry.register_with_multiple_names("sampling-bias-correction")
 class SamplingBiasCorrection(PredictionBlock):
     def __init__(self, bias_feature_name: str = "popularity", **kwargs):
         super(SamplingBiasCorrection, self).__init__(**kwargs)
@@ -182,23 +200,23 @@ class InBatchNegativeSampling(PredictionBlock):
             training=True,
             **kwargs
     ) -> Tuple[tf.Tensor, tf.Tensor]:
-        scores = tf.linalg.matmul(*list(predictions.values()), transpose_b=True)
+        predictions = tf.linalg.matmul(*list(predictions.values()), transpose_b=True)
 
         if targets is not None:
             if len(targets.shape) == 2:
                 targets = tf.squeeze(targets)
             targets = tf.linalg.diag(targets)
         else:
-            targets = tf.eye(*scores.shape)
+            targets = tf.eye(*predictions.shape)
 
-        return scores, targets
+        return predictions, targets
 
 
-@prediction_transforms_registry.register_with_multiple_names("negative-sampling")
+@prediction_block_registry.register_with_multiple_names("negative-sampling")
 class NegativeSampling(PredictionBlock):
     def __init__(self, *sampler: Sampler, in_batch=True, **kwargs):
         self.sampler = sampler
-        self.in_batch_sampler = InBatchNegativeSampling() if in_batch else None
+        self.in_batch_neg_sampler = InBatchNegativeSampling() if in_batch else None
 
         if not in_batch and not sampler:
             raise ValueError("Either in_batch or sampler must be set")
@@ -218,8 +236,8 @@ class NegativeSampling(PredictionBlock):
             training=True,
             **kwargs
     ) -> Tuple[tf.Tensor, tf.Tensor]:
-        if self.in_batch_sampler:
-            predictions, targets = self.in_batch_sampler(predictions, targets)
+        if self.in_batch_neg_sampler:
+            predictions, targets = self.in_batch_neg_sampler(predictions, targets)
 
         if self.sampler:
             extra_negatives: tf.Tensor = self.sample()

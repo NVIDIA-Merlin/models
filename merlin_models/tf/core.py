@@ -1511,7 +1511,7 @@ class Sampler(abc.ABC):
         raise NotImplementedError()
 
 
-prediction_transforms_registry: Registry = Registry.class_registry("tf.prediction_transforms")
+prediction_block_registry: Registry = Registry.class_registry("tf.prediction_blocks")
 
 
 class PredictionBlock(Block):
