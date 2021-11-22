@@ -61,7 +61,7 @@ class ItemPredictionTask(PredictionTask):
 
     def build(self, input_shape):
         if self.weight_tying:
-            self.item_embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+            self.output_layer_kernel = self.context.get_embedding(Tag.ITEM_ID)
             self.bias = self.add_weight(
                 name="output_layer_bias",
                 shape=(self.num_classes,),
@@ -74,7 +74,7 @@ class ItemPredictionTask(PredictionTask):
                 bias_initializer="zeros",
                 name="logits",
             )
-            self.item_embedding_table = self.output_layer.kernel
+            self.output_layer_kernel = self.output_layer.kernel
             self.bias = self.output_layer.bias
         return super().build(input_shape)
 
@@ -84,7 +84,7 @@ class ItemPredictionTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         if self.weight_tying:
-            logits = tf.matmul(inputs, tf.transpose(self.item_embedding_table))
+            logits = tf.matmul(inputs, tf.transpose(self.output_layer_kernel))
             logits = tf.nn.bias_add(logits, self.bias)
         else:
             logits = self.output_layer(inputs)
