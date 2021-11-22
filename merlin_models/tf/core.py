@@ -1518,10 +1518,10 @@ class PredictionBlock(Block):
     def call(self, inputs, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
         predictions, targets = inputs
 
-        return self.transform(predictions, targets, training=True, **kwargs)
+        return self.predict(predictions, targets, training=True, **kwargs)
 
     @abc.abstractmethod
-    def transform(self, predictions, targets, training=True, **kwargs) -> Tuple[
+    def predict(self, predictions, targets, training=True, **kwargs) -> Tuple[
         tf.Tensor, tf.Tensor]:
         raise NotImplementedError()
 
@@ -1537,7 +1537,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             target_name: Optional[str] = None,
             task_name: Optional[str] = None,
             metrics: Optional[List[MetricOrMetricClass]] = None,
-            post: Optional[PredictionBlock] = None,
+            pre_call: Optional[PredictionBlock] = None,
+            pre_loss: Optional[PredictionBlock] = None,
             task_block: Optional[Layer] = None,
             prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
             label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
@@ -1567,7 +1568,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.target_name = target_name
         self.task_block = task_block
         self._task_name = task_name
-        self.post = post
+        self.pre_call_block = pre_call
+        self.pre_loss_block = pre_loss
 
         create_metrics = self._create_metrics
         self.eval_metrics = create_metrics(metrics) if metrics else []
@@ -1580,6 +1582,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         if self.task_block:
             x = self.task_block(x)
+
+        if self.pre_call_block:
+            x = self.pre_call_block(inputs, **kwargs)
 
         return x
 
@@ -1637,8 +1642,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
 
-        if self.post:
-            predictions, targets = self.post(predictions, targets, training=training, **kwargs)
+        if self.pre_loss_block:
+            predictions, targets = self.pre_loss_block(predictions, targets, training=training, **kwargs)
 
         # predictions = self(inputs, training=training, **kwargs)
         loss = self._compute_loss(predictions, targets, sample_weight=sample_weight,

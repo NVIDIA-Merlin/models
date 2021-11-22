@@ -157,7 +157,7 @@ class SamplingBiasCorrection(PredictionBlock):
         super(SamplingBiasCorrection, self).__init__(**kwargs)
         self.bias_feature_name = bias_feature_name
 
-    def transform(
+    def predict(
             self,
             predictions,
             targets,
@@ -175,7 +175,7 @@ class SamplingBiasCorrection(PredictionBlock):
 
 
 class InBatchNegativeSampling(PredictionBlock):
-    def transform(
+    def predict(
             self,
             predictions,
             targets,
@@ -211,7 +211,7 @@ class NegativeSampling(PredictionBlock):
 
         return self.sampler[0].sample()
 
-    def transform(
+    def predict(
             self,
             predictions,
             targets,
@@ -231,7 +231,7 @@ class NegativeSampling(PredictionBlock):
 
 # TODO: Implement this for the MIND model: https://arxiv.org/pdf/1904.08030.pdf
 class LabelAwareAttention(PredictionBlock):
-    def transform(
+    def predict(
             self,
             predictions,
             targets,
