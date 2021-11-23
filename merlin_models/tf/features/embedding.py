@@ -38,7 +38,6 @@ from ..tabular.transformations import AsSparseFeatures
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from ..typing import TabularData
-from ..utils.tf_utils import ModelContext
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     feature_config: Dict[str, FeatureConfig]

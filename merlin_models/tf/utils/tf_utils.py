@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import abc
-from typing import Dict, Union, Optional
+from typing import Dict, Union
 
 import tensorflow as tf
 from merlin_standard_lib import Tag

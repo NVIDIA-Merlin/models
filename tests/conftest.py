@@ -41,13 +41,15 @@ def yoochoose_schema() -> Schema:
 
 
 try:
-    import tensorflow as tf
+    import tensorflow as tf  # noqa
+
     from tests.tf.conftest import *  # noqa
 except ImportError:
     pass
 
 try:
-    import torch
+    import torch  # noqa
+
     from tests.torch.conftest import *  # noqa
 except ImportError:
     pass
