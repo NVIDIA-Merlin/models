@@ -2090,7 +2090,8 @@ class BaseModel(Model, LossMixin, abc.ABC):
         gradients = tape.gradient(total_loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
-        metrics = {metric.name: metric.result() for metric in self.metrics}
+        metrics = self.metric_results()
+        # metrics = {metric.name: metric.result() for metric in self.metrics}
         metrics["loss"] = loss
         metrics["regularization_loss"] = regularization_loss
         metrics["total_loss"] = total_loss
@@ -2112,7 +2113,8 @@ class BaseModel(Model, LossMixin, abc.ABC):
 
         total_loss = loss + regularization_loss
 
-        metrics = {metric.name: metric.result() for metric in self.metrics}
+        metrics = self.metric_results()
+        # metrics = {metric.name: metric.result() for metric in self.metrics}
         metrics["loss"] = loss
         metrics["regularization_loss"] = regularization_loss
         metrics["total_loss"] = total_loss

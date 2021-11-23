@@ -21,7 +21,6 @@ class RegressionTask(PredictionTask):
         **kwargs,
     ):
         super().__init__(
-            loss=loss,
             metrics=metrics,
             target_name=target_name,
             task_name=task_name,
@@ -31,7 +30,9 @@ class RegressionTask(PredictionTask):
         self.logit = tf.keras.layers.Dense(1, name=self.child_name("logit"))
         self.loss = loss
 
-    def _compute_loss(self, predictions, targets, sample_weight=None):
+    def _compute_loss(
+        self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
+    ) -> tf.Tensor:
         return self.loss(targets, predictions, sample_weight=sample_weight)
 
     def call(self, inputs, training=False, **kwargs):
