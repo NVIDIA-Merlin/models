@@ -1,9 +1,9 @@
-from typing import List, Optional, Sequence, Text, Type, Union
+from typing import Optional, Sequence
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from ..core import Block, LossBlock, PredictionTask, MetricOrMetricClass
+from ..core import MetricOrMetricClass, PredictionTask
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -35,10 +35,10 @@ class BinaryClassificationTask(PredictionTask):
         self.logit = tf.keras.layers.Dense(1, activation="sigmoid", name=self.child_name("logit"))
         self.loss = loss
 
-    def _compute_loss(self, predictions, targets, sample_weight=None, training: bool = False,
-                      **kwargs) -> tf.Tensor:
+    def _compute_loss(
+        self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
+    ) -> tf.Tensor:
         return self.loss(targets, predictions, sample_weight=sample_weight)
 
     def call(self, inputs, training=False, **kwargs):
         return self.logit(inputs)
-

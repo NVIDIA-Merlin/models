@@ -1,9 +1,9 @@
-from typing import List, Optional, Sequence, Text, Type, Union
+from typing import Optional
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from ..core import Block, PredictionTask, MetricOrMetricClass
+from ..core import PredictionTask
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -12,13 +12,13 @@ class RegressionTask(PredictionTask):
     DEFAULT_METRICS = (tf.keras.metrics.RootMeanSquaredError,)
 
     def __init__(
-            self,
-            target_name: Optional[str] = None,
-            task_name: Optional[str] = None,
-            task_block: Optional[Layer] = None,
-            loss=DEFAULT_LOSS,
-            metrics=DEFAULT_METRICS,
-            **kwargs,
+        self,
+        target_name: Optional[str] = None,
+        task_name: Optional[str] = None,
+        task_block: Optional[Layer] = None,
+        loss=DEFAULT_LOSS,
+        metrics=DEFAULT_METRICS,
+        **kwargs,
     ):
         super().__init__(
             loss=loss,

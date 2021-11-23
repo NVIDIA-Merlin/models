@@ -1,5 +1,5 @@
 from collections import deque
-from typing import Optional, List, Text, Tuple, Union
+from typing import Optional
 
 import tensorflow as tf
 from tensorflow.python.ops import array_ops
@@ -11,13 +11,13 @@ from ..typing import TabularData
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class MemoryBankBlock(Block, Sampler):
     def __init__(
-            self,
-            num_batches: int = 1,
-            key: Optional[str] = None,
-            post: Optional[Block] = None,
-            no_outputs: bool = False,
-            stop_gradient: bool = True,
-            **kwargs
+        self,
+        num_batches: int = 1,
+        key: Optional[str] = None,
+        post: Optional[Block] = None,
+        no_outputs: bool = False,
+        stop_gradient: bool = True,
+        **kwargs
     ):
         super().__init__(**kwargs)
         self.key = key
