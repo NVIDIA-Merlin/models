@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Type, Union, List
+from typing import Dict, List, Optional, Tuple, Type, Union
 
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.schema.tag import TagsType

@@ -48,11 +48,11 @@ from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.sequence import TabularSequenceFeatures
 from .features.tabular import TabularFeatures
-from .layers import DotProductInteraction
-from .head.multi_task import MMOEHead, PLEHead
 from .head.classification import BinaryClassificationTask
-from .head.regression import RegressionTask
 from .head.item_prediction import SampledItemPredictionTask
+from .head.multi_task import MMOEHead, PLEHead
+from .head.regression import RegressionTask
+from .layers import DotProductInteraction
 from .tabular.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
