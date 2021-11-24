@@ -1,8 +1,9 @@
 from typing import Dict, List, Optional, Union
 
 import tensorflow as tf
-from merlin_standard_lib import Schema
 from tensorflow.python.keras.engine.base_layer import Layer
+
+from merlin_standard_lib import Schema
 
 from .. import PredictionTask
 from ..block.multi_task import MMOE, CGCBlock

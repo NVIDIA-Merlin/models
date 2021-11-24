@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
+
 from merlin_standard_lib import Schema
 
 from ..core import Block, ParallelBlock, PredictionTask, TabularBlock, TabularTransformation

@@ -1,9 +1,9 @@
-import merlin_standard_lib as msl
 import tensorflow as tf
-from merlin_standard_lib import Schema, Tag
 
 import merlin_models.tf as ml
+import merlin_standard_lib as msl
 from merlin_models.data.synthetic import generate_recsys_data
+from merlin_standard_lib import Schema, Tag
 
 synthetic_music_recsys_data_schema = Schema(
     [

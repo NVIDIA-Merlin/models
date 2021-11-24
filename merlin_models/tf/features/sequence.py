@@ -17,6 +17,7 @@
 from typing import Dict, Optional, Union
 
 import tensorflow as tf
+
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 

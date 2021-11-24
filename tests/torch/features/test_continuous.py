@@ -15,6 +15,7 @@
 #
 
 import pytest
+
 from merlin_standard_lib import Tag
 
 tr = pytest.importorskip("merlin_models.torch")
