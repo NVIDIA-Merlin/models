@@ -172,16 +172,29 @@ def generate_conditional_features(
 
         else:
             if is_list_feature:
-                list_length = feature.value_count.max
-                data[feature.name] = (
-                    _array.random.uniform(
+                if max_session_length:
+                    padded_array = []
+                    for _ in range(num_interactions):
+                        list_length = randint(min_session_length, max_session_length)
+                        actual_values = _array.random.uniform(
+                            feature.float_domain.min, feature.float_domain.max, (list_length,)
+                        )
+
+                        padded_array.append(
+                            _array.pad(
+                                actual_values,
+                                [0, max_session_length - list_length],
+                                constant_values=0,
+                            )
+                        )
+                    data[feature.name] = _array.stack(padded_array, axis=0).tolist()
+                else:
+                    list_length = feature.value_count.max
+                    data[feature.name] = _array.random.uniform(
                         feature.float_domain.min,
                         feature.float_domain.max,
                         (num_interactions, list_length),
-                    )
-                    .astype(_array.int64)
-                    .tolist()
-                )
+                    ).tolist()
             else:
                 data[feature.name] = _array.random.uniform(
                     feature.float_domain.min, feature.float_domain.max, num_interactions
