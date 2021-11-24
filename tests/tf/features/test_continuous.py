@@ -29,7 +29,7 @@ def test_continuous_features(tf_con_features):
 
 
 def test_continuous_features_yoochoose(yoochoose_schema, tf_yoochoose_like):
-    schema = yoochoose_schema.select_by_tag(Tag.CONTINUOUS)
+    schema = yoochoose_schema.select_by_tag([Tag.CONTINUOUS])
 
     inputs = tr.ContinuousFeatures.from_schema(schema)
     outputs = inputs(tf_yoochoose_like)
