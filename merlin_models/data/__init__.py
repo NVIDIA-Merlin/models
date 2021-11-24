@@ -15,6 +15,6 @@
 #
 
 
-from .testing.dataset import tabular_testing_data
+from .testing.dataset import tabular_testing_data, retrieval_testing_data
 
-__all__ = ["tabular_testing_data"]
+__all__ = ["tabular_testing_data", "retrieval_testing_data"]

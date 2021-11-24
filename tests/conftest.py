@@ -17,7 +17,7 @@
 import pytest
 from merlin_standard_lib import Schema
 
-from merlin_models.data import tabular_testing_data
+from merlin_models.data import tabular_testing_data, retrieval_testing_data
 
 
 @pytest.fixture
@@ -34,6 +34,17 @@ def tabular_schema_file() -> str:
 def tabular_schema() -> Schema:
     return tabular_testing_data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
 
+@pytest.fixture
+def retrieval_data_file() -> str:
+    return retrieval_testing_data.path
+
+@pytest.fixture
+def retrieval_schema_file() -> str:
+    return retrieval_testing_data.schema_path
+
+@pytest.fixture
+def retrieval_schema() -> Schema:
+    return retrieval_testing_data.schema.remove_by_name(["session_id"])
 
 @pytest.fixture
 def yoochoose_schema() -> Schema:
