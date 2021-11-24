@@ -16,7 +16,6 @@
 import copy
 import inspect
 from collections import defaultdict
-from types import SimpleNamespace
 from typing import Callable, Dict, Iterable, List, Optional, Type, Union, cast
 
 import numpy as np
@@ -75,14 +74,8 @@ class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
         forward_to_prediction_fn: Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
         task_block: Optional[BlockType] = None,
         pre: Optional[BlockType] = None,
-        summary_type: str = "last",
     ):
         super().__init__()
-        from transformers.modeling_utils import SequenceSummary
-
-        self.sequence_summary = SequenceSummary(
-            SimpleNamespace(summary_type=summary_type)  # type: ignore
-        )  # noqa
         self.target_name = target_name
         self.forward_to_prediction_fn = forward_to_prediction_fn
         self.set_metrics(metrics)
@@ -143,8 +136,8 @@ class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
     def forward(self, inputs, **kwargs):
         x = inputs
 
-        if len(x.size()) == 3:
-            x = self.sequence_summary(x)
+        # if len(x.size()) == 3:
+        #     x = self.sequence_summary(x)
 
         if self.task_block:
             x = self.task_block(x)
