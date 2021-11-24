@@ -1,40 +1,75 @@
 import pytest
 
-from merlin_models.data.synthetic import generate_recsys_data, synthetic_retrieval_schema
-
-pd = pytest.importorskip("pandas")
+from merlin_models.data.synthetic import generate_user_item_interactions
 
 
-def test_generate_item_interactions():
-    data = generate_recsys_data(500, synthetic_retrieval_schema)
+def test_generate_item_interactions_cpu(tabular_schema):
+    pd = pytest.importorskip("pandas")
+    data = generate_user_item_interactions(500, tabular_schema)
 
     assert isinstance(data, pd.DataFrame)
     assert len(data) == 500
     assert list(data.columns) == [
-        "session_id",
-        "purchase",
-        "price",
-        "item_id",
-        "category",
-        "item_recency",
-        "genres",
         "user_id",
-        "age",
-        "sex",
+        "user_country",
+        "user_age",
+        "item_id",
+        "item_age_days_norm",
+        "event_hour_sin",
+        "event_hour_cos",
+        "event_weekday_sin",
+        "event_weekday_cos",
+        "categories",
     ]
     expected_dtypes = {
-        "session_id": "int64",
-        "item_id": "int64",
         "user_id": "int64",
-        "age": "float64",
-        "sex": "int64",
-        "genres": "int64",
-        "category": "int64",
-        "item_recency": "float64",
-        "purchase": "int64",
-        "price": "float64",
+        "user_country": "int64",
+        "user_age": "float64",
+        "item_id": "int64",
+        "item_age_days_norm": "float64",
+        "event_hour_sin": "float64",
+        "event_hour_cos": "float64",
+        "event_weekday_sin": "float64",
+        "event_weekday_cos": "float64",
+        "categories": "int64",
     }
 
     assert all(
-        val == expected_dtypes[key] for key, val in dict(data.dtypes).items() if key != "genres"
+        val == expected_dtypes[key] for key, val in dict(data.dtypes).items() if key != "categories"
+    )
+
+
+def test_generate_item_interactions_gpu(tabular_schema):
+    cudf = pytest.importorskip("cudf")
+    data = generate_user_item_interactions(500, tabular_schema, device="cuda")
+
+    assert isinstance(data, cudf.DataFrame)
+    assert len(data) == 500
+    assert list(data.columns) == [
+        "user_id",
+        "user_country",
+        "user_age",
+        "item_id",
+        "item_age_days_norm",
+        "event_hour_sin",
+        "event_hour_cos",
+        "event_weekday_sin",
+        "event_weekday_cos",
+        "categories",
+    ]
+    expected_dtypes = {
+        "user_id": "int64",
+        "user_country": "int64",
+        "user_age": "float64",
+        "item_id": "int64",
+        "item_age_days_norm": "float64",
+        "event_hour_sin": "float64",
+        "event_hour_cos": "float64",
+        "event_weekday_sin": "float64",
+        "event_weekday_cos": "float64",
+        "categories": "int64",
+    }
+
+    assert all(
+        val == expected_dtypes[key] for key, val in dict(data.dtypes).items() if key != "categories"
     )

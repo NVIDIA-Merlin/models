@@ -64,19 +64,14 @@ def tf_tabular_features(tabular_schema):
 
 @pytest.fixture
 def tf_tabular_data():
-    return tr.data.tabular_testing_data.tf_synthetic_data(num_rows=100)
+    return tr.data.tabular_testing_data.tf_synthetic_tensors(num_rows=100)
 
 
 @pytest.fixture
 def tf_yoochoose_like():
-    return tr.data.tabular_testing_data.tf_synthetic_data(
+    return tr.data.tabular_testing_data.tf_synthetic_tensors(
         num_rows=100, min_session_length=5, max_session_length=20
     )
-
-
-@pytest.fixture
-def tf_retrieval_like():
-    return tr.data.retrieval_testing_data.tf_batch_data(bs=100)
 
 
 @pytest.fixture

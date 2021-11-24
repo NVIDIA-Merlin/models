@@ -134,11 +134,11 @@ def torch_tabular_features():
 
 @pytest.fixture
 def torch_tabular_data():
-    return tr.data.tabular_testing_data.torch_synthetic_data(num_rows=100)
+    return tr.data.tabular_testing_data.torch_synthetic_tensors(num_rows=100)
 
 
 @pytest.fixture
 def torch_yoochoose_like():
-    return tr.data.tabular_testing_data.torch_synthetic_data(
+    return tr.data.tabular_testing_data.torch_synthetic_tensors(
         num_rows=100, min_session_length=5, max_session_length=20
     )

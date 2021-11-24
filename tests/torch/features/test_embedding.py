@@ -80,7 +80,7 @@ def test_embedding_features_yoochoose(yoochoose_schema, torch_yoochoose_like):
     emb_module = tr.EmbeddingFeatures.from_schema(schema)
     embeddings = emb_module(torch_yoochoose_like)
 
-    assert list(embeddings.keys()) == schema.column_names
+    assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
     assert all(emb.shape[-1] == 64 for emb in embeddings.values())
     assert emb_module.item_id == "item_id"
 
