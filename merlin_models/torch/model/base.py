@@ -23,7 +23,6 @@ import numpy as np
 import torch
 import torchmetrics as tm
 from tqdm import tqdm
-from transformers.modeling_utils import SequenceSummary
 
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.registry import camelcase_to_snakecase
@@ -79,6 +78,8 @@ class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
         summary_type: str = "last",
     ):
         super().__init__()
+        from transformers.modeling_utils import SequenceSummary
+
         self.sequence_summary = SequenceSummary(
             SimpleNamespace(summary_type=summary_type)  # type: ignore
         )  # noqa
