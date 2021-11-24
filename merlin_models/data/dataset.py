@@ -57,7 +57,7 @@ class Dataset:
         data = self.generate_synthetic_interactions(
             num_rows, min_session_length, max_session_length
         )
-        if self.device == "gpu":
+        if self.device != "cpu":
             data = data.to_pandas()
         data = data.to_dict("list")
         return {key: tf.convert_to_tensor(value) for key, value in data.items()}
@@ -73,7 +73,7 @@ class Dataset:
         data = self.generate_synthetic_interactions(
             num_rows, min_session_length, max_session_length
         )
-        if self.device == "gpu":
+        if self.device != "cpu":
             data = data.to_pandas()
         data = data.to_dict("list")
         return {key: torch.tensor(value).to(self.device) for key, value in data.items()}
