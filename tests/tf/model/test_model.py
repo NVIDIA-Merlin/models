@@ -50,3 +50,18 @@ def test_serialization_model(tf_tabular_features, tf_tabular_data, prediction_ta
 
     copy_model = test_utils.assert_serialization(model)
     test_utils.assert_loss_and_metrics_are_valid(copy_model, tf_tabular_data, targets)
+
+
+@pytest.mark.parametrize("prediction_task", [tr.BinaryClassificationTask, tr.RegressionTask])
+def test_resume_training(tabular_schema, tf_yoochoose_like, prediction_task, run_eagerly=True):
+    targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
+    body = tr.MLPBlock([64]).from_inputs(tabular_schema, aggregation="concat")
+
+    dataset = tf.data.Dataset.from_tensor_slices((tf_yoochoose_like, targets)).batch(50)
+
+    model = test_utils.assert_model_saved(body, prediction_task("target"), run_eagerly, dataset)
+
+    losses = model.fit(dataset, epochs=5)
+
+    assert len(losses.epoch) == 5
+    assert all(0 <= loss <= 1 for loss in losses.history["loss"])
