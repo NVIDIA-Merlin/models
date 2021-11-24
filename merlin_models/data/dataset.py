@@ -64,3 +64,12 @@ class ParquetDataset(Dataset):
     ):
         super(ParquetDataset, self).__init__(schema_path or os.path.join(dir, schema_file_name))
         self.path = os.path.join(dir, parquet_file_name)
+
+    def tf_batch_data(self, bs=100):
+        import pandas as pd
+        import tensorflow as tf
+
+        data = pd.read_parquet(self.path, columns=self.schema.columns_name, nrows=bs).to_dict(
+            "list"
+        )
+        return {key: tf.convert_to_tensor(value) for key, value in data.items()}

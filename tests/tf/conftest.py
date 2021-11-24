@@ -75,6 +75,11 @@ def tf_yoochoose_like():
 
 
 @pytest.fixture
+def tf_retrieval_like():
+    return tr.data.retrieval_testing_data.tf_batch_data(bs=100)
+
+
+@pytest.fixture
 def tf_masking_inputs():
     # fixed parameters for tests
     NUM_EXAMPLES = 20
