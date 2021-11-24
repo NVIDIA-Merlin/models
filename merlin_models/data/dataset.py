@@ -20,38 +20,63 @@ from typing import Optional
 
 from merlin_standard_lib import Schema
 
+from .synthetic import generate_user_item_interactions
+
 
 class Dataset:
-    def __init__(self, schema_path: str):
+    def __init__(self, schema_path: str, device: str = "cpu"):
         self.schema_path = schema_path
         if self.schema_path.endswith(".pb") or self.schema_path.endswith(".pbtxt"):
             self._schema = Schema().from_proto_text(self.schema_path)
         else:
             self._schema = Schema().from_json(self.schema_path)
+        self.device = device
 
     @property
     def schema(self) -> Schema:
         return self._schema
 
-    def torch_synthetic_data(self, num_rows=100, min_session_length=5, max_session_length=20):
-        from transformers4rec.torch.utils import schema_utils
-
-        return schema_utils.random_data_from_schema(
-            self.schema,
-            num_rows=num_rows,
-            min_session_length=min_session_length,
-            max_session_length=max_session_length,
+    def generate_synthetic_interactions(
+        self, num_rows=100, min_session_length=5, max_session_length=None, save_path=None
+    ):
+        data = generate_user_item_interactions(
+            num_rows, self.schema, min_session_length, max_session_length, self.device
         )
+        if save_path:
+            data.to_parquet(save_path)
+        return data
 
-    def tf_synthetic_data(self, num_rows=100, min_session_length=5, max_session_length=20):
-        from transformers4rec.tf.utils import schema_utils
+    def tf_synthetic_tensors(
+        self,
+        num_rows=100,
+        min_session_length=5,
+        max_session_length=None,
+    ):
+        import tensorflow as tf
 
-        return schema_utils.random_data_from_schema(
-            self.schema,
-            num_rows=num_rows,
-            min_session_length=min_session_length,
-            max_session_length=max_session_length,
+        data = self.generate_synthetic_interactions(
+            num_rows, min_session_length, max_session_length
         )
+        if self.device == "gpu":
+            data = data.to_pandas()
+        data = data.to_dict("list")
+        return {key: tf.convert_to_tensor(value) for key, value in data.items()}
+
+    def torch_synthetic_tensors(
+        self,
+        num_rows=100,
+        min_session_length=5,
+        max_session_length=None,
+    ):
+        import torch
+
+        data = self.generate_synthetic_interactions(
+            num_rows, min_session_length, max_session_length
+        )
+        if self.device == "gpu":
+            data = data.to_pandas()
+        data = data.to_dict("list")
+        return {key: torch.tensor(value).to(self.device) for key, value in data.items()}
 
 
 class ParquetDataset(Dataset):
@@ -61,15 +86,17 @@ class ParquetDataset(Dataset):
         parquet_file_name="data.parquet",
         schema_file_name="schema.json",
         schema_path: Optional[str] = None,
+        device="cpu",
     ):
-        super(ParquetDataset, self).__init__(schema_path or os.path.join(dir, schema_file_name))
+        super(ParquetDataset, self).__init__(
+            schema_path or os.path.join(dir, schema_file_name), device=device
+        )
         self.path = os.path.join(dir, parquet_file_name)
 
-    def tf_batch_data(self, bs=100):
-        import pandas as pd
-        import tensorflow as tf
+    def get_tf_dataloader(self):
+        """return tf NVTabular loader"""
+        raise NotImplementedError
 
-        data = pd.read_parquet(self.path, columns=self.schema.columns_name, nrows=bs).to_dict(
-            "list"
-        )
-        return {key: tf.convert_to_tensor(value) for key, value in data.items()}
+    def get_torch_dataloader(self):
+        """return torch NVTabular loader"""
+        raise NotImplementedError

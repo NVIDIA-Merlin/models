@@ -11,7 +11,9 @@
       },
       "annotation": {
         "tag": [
-          "categorical"
+          "categorical",
+          "user_id",
+          "user"
         ]
       }
     },
@@ -44,7 +46,8 @@
       },
       "annotation": {
         "tag": [
-          "continuous"
+          "continuous",
+          "item"
         ]
       }
     },
@@ -57,7 +60,8 @@
       },
       "annotation": {
         "tag": [
-          "continuous"
+          "continuous",
+          "item"
         ]
       }
     },
@@ -70,7 +74,8 @@
       },
       "annotation": {
         "tag": [
-          "continuous"
+          "continuous",
+          "item"
         ]
       }
     },
@@ -83,7 +88,9 @@
       },
       "annotation": {
         "tag": [
-          "continuous"
+          "continuous",
+          "item"
+
         ]
       }
     },
