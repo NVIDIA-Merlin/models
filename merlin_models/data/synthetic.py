@@ -208,8 +208,7 @@ def generate_user_item_interactions(
             max_session_length=max_session_length,
             device=device,
         )
-        processed_cols.append([f.name for f in features] + [session_id_col.name])
-
+        processed_cols += [f.name for f in features] + [session_id_col.name]
     # get USER cols
     user_id_col = schema.select_by_tag(Tag.USER_ID).feature
     if user_id_col:
@@ -228,7 +227,7 @@ def generate_user_item_interactions(
             max_session_length=max_session_length,
             device=device,
         )
-        processed_cols.append([f.name for f in features] + [user_id_col.name])
+        processed_cols += [f.name for f in features] + [user_id_col.name]
 
     # get ITEM cols
     item_id_col = schema.select_by_tag(Tag.ITEM_ID).feature[0]
@@ -246,11 +245,15 @@ def generate_user_item_interactions(
         max_session_length=max_session_length,
         device=device,
     )
-    processed_cols.append([f.name for f in features] + [item_id_col.name])
+    processed_cols += [f.name for f in features] + [item_id_col.name]
 
     # Get remaining features
     remaining = schema.remove_by_name(processed_cols)
-    for feature in remaining:
+
+    for feature in remaining.select_by_tag(Tag.BINARY_CLASSIFICATION).feature:
+        data[feature.name] = _array.random.randint(0, 2, num_interactions).astype(_array.int64)
+
+    for feature in remaining.remove_by_tag(Tag.BINARY_CLASSIFICATION).feature:
         is_int_feature = has_field(feature, "int_domain")
         is_list_feature = has_field(feature, "value_count")
         if is_list_feature:
