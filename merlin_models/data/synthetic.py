@@ -188,7 +188,7 @@ def generate_user_item_interactions(
         import cudf as _frame
         import cupy as _array
     data = _frame.DataFrame()
-
+    processed_cols = []
     # get session cols
     session_id_col = schema.select_by_tag(Tag.SESSION_ID)
     if session_id_col:
@@ -208,6 +208,7 @@ def generate_user_item_interactions(
             max_session_length=max_session_length,
             device=device,
         )
+        processed_cols.append([f.name for f in features] + [session_id_col.name])
 
     # get USER cols
     user_id_col = schema.select_by_tag(Tag.USER_ID).feature
@@ -227,6 +228,7 @@ def generate_user_item_interactions(
             max_session_length=max_session_length,
             device=device,
         )
+        processed_cols.append([f.name for f in features] + [user_id_col.name])
 
     # get ITEM cols
     item_id_col = schema.select_by_tag(Tag.ITEM_ID).feature[0]
@@ -244,6 +246,27 @@ def generate_user_item_interactions(
         max_session_length=max_session_length,
         device=device,
     )
+    processed_cols.append([f.name for f in features] + [item_id_col.name])
+
+    # Get remaining features
+    remaining = schema.remove_by_name(processed_cols)
+    for feature in remaining:
+        is_int_feature = has_field(feature, "int_domain")
+        is_list_feature = has_field(feature, "value_count")
+        if is_list_feature:
+            data[feature.name] = generate_random_list_feature(
+                feature, num_interactions, min_session_length, max_session_length, device
+            )
+
+        elif is_int_feature:
+            data[feature.name] = _array.random.randint(
+                1, feature.int_domain.max, num_interactions
+            ).astype(_array.int64)
+
+        else:
+            data[feature.name] = _array.random.uniform(
+                feature.float_domain.min, feature.float_domain.max, num_interactions
+            )
 
     return data
 
@@ -271,68 +294,84 @@ def generate_conditional_features(
         is_int_feature = has_field(feature, "int_domain")
         is_list_feature = has_field(feature, "value_count")
 
-        if is_int_feature:
-            if is_list_feature:
-                if max_session_length:
-                    padded_array = []
-                    for _ in range(num_interactions):
-                        list_length = randint(min_session_length, max_session_length)
-                        actual_values = _array.random.randint(
-                            1, feature.int_domain.max, (list_length,)
-                        ).astype(_array.int64)
+        if is_list_feature:
+            data[feature.name] = generate_random_list_feature(
+                feature, num_interactions, min_session_length, max_session_length, device
+            )
 
-                        padded_array.append(
-                            _array.pad(
-                                actual_values,
-                                [0, max_session_length - list_length],
-                                constant_values=0,
-                            )
-                        )
-                    data[feature.name] = _array.stack(padded_array, axis=0).tolist()
-                else:
-                    list_length = feature.value_count.max
-                    data[feature.name] = (
-                        _array.random.randint(
-                            1, feature.int_domain.max, (num_interactions, list_length)
-                        )
-                        .astype(_array.int64)
-                        .tolist()
-                    )
-
-            else:
-                data[feature.name] = _frame.cut(
-                    data[parent_feature.name],
-                    feature.int_domain.max - 1,
-                    labels=list(range(1, feature.int_domain.max)),
-                ).astype(_array.int64)
+        elif is_int_feature:
+            data[feature.name] = _frame.cut(
+                data[parent_feature.name],
+                feature.int_domain.max - 1,
+                labels=list(range(1, feature.int_domain.max)),
+            ).astype(_array.int64)
 
         else:
-            if is_list_feature:
-                if max_session_length:
-                    padded_array = []
-                    for _ in range(num_interactions):
-                        list_length = randint(min_session_length, max_session_length)
-                        actual_values = _array.random.uniform(
-                            feature.float_domain.min, feature.float_domain.max, (list_length,)
-                        )
+            data[feature.name] = _array.random.uniform(
+                feature.float_domain.min, feature.float_domain.max, num_interactions
+            )
 
-                        padded_array.append(
-                            _array.pad(
-                                actual_values,
-                                [0, max_session_length - list_length],
-                                constant_values=0,
-                            )
-                        )
-                    data[feature.name] = _array.stack(padded_array, axis=0).tolist()
-                else:
-                    list_length = feature.value_count.max
-                    data[feature.name] = _array.random.uniform(
-                        feature.float_domain.min,
-                        feature.float_domain.max,
-                        (num_interactions, list_length),
-                    ).tolist()
-            else:
-                data[feature.name] = _array.random.uniform(
-                    feature.float_domain.min, feature.float_domain.max, num_interactions
-                )
     return data
+
+
+def generate_random_list_feature(
+    feature,
+    num_interactions,
+    min_session_length: int = 5,
+    max_session_length: Optional[int] = None,
+    device="cpu",
+):
+    if device == "cpu":
+        import numpy as _array
+    else:
+        import cupy as _array
+
+    is_int_feature = has_field(feature, "int_domain")
+    if is_int_feature:
+        if max_session_length:
+            padded_array = []
+            for _ in range(num_interactions):
+                list_length = randint(min_session_length, max_session_length)
+                actual_values = _array.random.randint(
+                    1, feature.int_domain.max, (list_length,)
+                ).astype(_array.int64)
+
+                padded_array.append(
+                    _array.pad(
+                        actual_values,
+                        [0, max_session_length - list_length],
+                        constant_values=0,
+                    )
+                )
+            return _array.stack(padded_array, axis=0).tolist()
+        else:
+            list_length = feature.value_count.max
+            return (
+                _array.random.randint(1, feature.int_domain.max, (num_interactions, list_length))
+                .astype(_array.int64)
+                .tolist()
+            )
+    else:
+        if max_session_length:
+            padded_array = []
+            for _ in range(num_interactions):
+                list_length = randint(min_session_length, max_session_length)
+                actual_values = _array.random.uniform(
+                    feature.float_domain.min, feature.float_domain.max, (list_length,)
+                )
+
+                padded_array.append(
+                    _array.pad(
+                        actual_values,
+                        [0, max_session_length - list_length],
+                        constant_values=0,
+                    )
+                )
+            return _array.stack(padded_array, axis=0).tolist()
+        else:
+            list_length = feature.value_count.max
+            return _array.random.uniform(
+                feature.float_domain.min,
+                feature.float_domain.max,
+                (num_interactions, list_length),
+            ).tolist()
