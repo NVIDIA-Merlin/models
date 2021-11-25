@@ -5,7 +5,9 @@ from merlin_models.data.synthetic import generate_user_item_interactions
 
 def test_generate_item_interactions_cpu(tabular_schema):
     pd = pytest.importorskip("pandas")
-    data = generate_user_item_interactions(tabular_schema, num_interactions=500)
+    data = generate_user_item_interactions(
+        tabular_schema.remove_by_name("event_timestamp"), num_interactions=500
+    )
 
     assert isinstance(data, pd.DataFrame)
     assert len(data) == 500
