@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 from typing import Optional
 
 import tensorflow as tf
@@ -21,7 +20,6 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
-from ...config.schema import requires_schema
 from ..core import TabularTransformation, tabular_transformation_registry
 from ..typing import TabularData, TensorOrTabularData
 
@@ -146,7 +144,6 @@ class StochasticSwapNoise(TabularTransformation):
 
 @tabular_transformation_registry.register_with_multiple_names("continuous-powers")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-@requires_schema
 class ContinuousPowers(TabularTransformation):
     """Trick from `Deep Neural Networks for YouTube Recommendations`"""
 

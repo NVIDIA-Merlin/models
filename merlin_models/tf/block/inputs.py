@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Dict, List, Optional, Tuple, Type, Union
 
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.schema.tag import TagsType
@@ -39,6 +39,7 @@ def TabularFeatures(
     embedding_dim_default: Optional[int] = 64,
     continuous_module_cls: Type[TabularBlock] = ContinuousFeatures,
     embedding_module_cls: Type[TabularBlock] = EmbeddingFeatures,
+    add_to_context: List[Union[str, Tag]] = None,
 ) -> Block:
     branches = extra_branches or {}
     if continuous_tags:
@@ -54,10 +55,13 @@ def TabularFeatures(
         )
         if maybe_categorical_layer:
             branches["categorical"] = maybe_categorical_layer
+    if add_to_context:
+        for item in add_to_context:
+            branches[str(item)] = Filter(item, add_to_context=True)
 
     if continuous_projection:
-        inputs = ContinuousEmbedding(ParallelBlock(branches), continuous_projection)
+        output = ContinuousEmbedding(ParallelBlock(branches), continuous_projection)
     else:
-        inputs = ParallelBlock(branches, aggregation=aggregation)
+        output = ParallelBlock(branches, aggregation=aggregation)
 
-    return inputs
+    return output

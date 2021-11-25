@@ -33,7 +33,6 @@ from .core import (
     DualEncoderBlock,
     Filter,
     Head,
-    Match,
     Model,
     NoOp,
     ParallelBlock,
@@ -49,13 +48,11 @@ from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.sequence import TabularSequenceFeatures
 from .features.tabular import TabularFeatures
+from .head.classification import BinaryClassificationTask
+from .head.item_prediction import SampledItemPredictionTask
+from .head.multi_task import MMOEHead, PLEHead
+from .head.regression import RegressionTask
 from .layers import DotProductInteraction
-from .model.multi_task import MMOEHead, PLEHead
-from .model.prediction_task import (
-    BinaryClassificationTask,
-    RegressionTask,
-    SampledItemPredictionTask,
-)
 from .tabular.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
@@ -123,6 +120,5 @@ __all__ = [
     "merge",
     "StochasticSwapNoise",
     "NoOp",
-    "Match",
     "data",
 ]

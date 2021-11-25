@@ -17,6 +17,7 @@ import abc
 from typing import Dict, Union
 
 import tensorflow as tf
+from merlin_standard_lib import Tag
 
 from ..typing import TabularData
 
@@ -43,6 +44,47 @@ class LossMixin(abc.ABC):
         training: bool, default=False
         """
         raise NotImplementedError()
+
+
+class ModelContext:
+    def __init__(self):
+        self._shared_tensors: Dict[str, tf.Tensor] = {}
+        self._shared_variables: Dict[str, tf.Variable] = {}
+
+    def register_variable(self, name: str, variable: tf.Variable):
+        self._shared_variables[name] = variable
+
+    def update_tensor(self, name: str, tensor: tf.Tensor):
+        self._shared_tensors[name] = tensor
+
+    @property
+    def variables(self) -> Dict[str, tf.Variable]:
+        return self._shared_variables
+
+    @property
+    def tensors(self) -> Dict[str, tf.Tensor]:
+        return self._shared_tensors
+
+    def get_embedding(self, name: Union[str, Tag]) -> tf.Tensor:
+        return self._shared_tensors[f"{name}/embedding"]
+
+    def _merge(self, other: "ModelContext"):
+        self._shared_tensors.update(other._shared_tensors)
+        self._shared_variables.update(other._shared_variables)
+
+
+class ContextMixin:
+    @property
+    def context(self) -> ModelContext:
+        if not hasattr(self, "_context"):
+            self._context = ModelContext()
+
+        return self._context
+
+    def _set_context(self, context: ModelContext):
+        if hasattr(self, "_context"):
+            context._merge(self._context)
+        self._context = context
 
 
 class MetricsMixin(abc.ABC):
