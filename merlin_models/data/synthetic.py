@@ -113,6 +113,9 @@ class SyntheticDataset(SyntheticData):
         """
         return cls(dir=HERE / "music_streaming")
 
+    def dataframe(self) -> pd.DataFrame:
+        return pd.read_parquet(self.path)
+
     def get_tf_dataloader(self, batch_size=50):
         # TODO: return tf NVTabular loader
 
