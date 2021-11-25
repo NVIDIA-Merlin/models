@@ -1,7 +1,6 @@
 from typing import Dict, Optional, Tuple
 
 import tensorflow as tf
-from merlin_standard_lib import Schema, Tag
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.layers.base import Layer
 
@@ -11,6 +10,7 @@ from merlin_models.tf.core import (
     Sampler,
     prediction_block_registry,
 )
+from merlin_standard_lib import Schema, Tag
 
 
 @tf.keras.utils.register_keras_serializable(package="transformers4rec")
