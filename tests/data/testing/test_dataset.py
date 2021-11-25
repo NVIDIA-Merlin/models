@@ -21,6 +21,7 @@ def test_tabular_music_data():
     assert data["position"].shape == (100,)
     for val in s.select_by_tag(Tag.TARGETS):
         assert data[val.name].shape == (100,)
+        assert data[val.name].nunique() == 2
 
 
 def test_tf_tensors_generation_cpu():
