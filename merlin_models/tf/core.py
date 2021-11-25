@@ -146,7 +146,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return ParallelBlock(repeated, post=post, aggregation=aggregation, **kwargs)
 
-    def apply(
+    def connect(
         self, *block: tf.keras.layers.Layer, block_name: Optional[str] = None
     ) -> "SequentialBlock":
         if isinstance(self, SequentialBlock):
@@ -171,7 +171,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
 
-    def apply_with_residual(
+    def connect_with_residual(
         self,
         block: tf.keras.layers.Layer,
         activation=None,
@@ -185,7 +185,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return SequentialBlock([self, residual_block], copy_layers=False)
 
-    def apply_with_shortcut(
+    def connect_with_shortcut(
         self,
         block: tf.keras.layers.Layer,
         shortcut_filter: Optional["Filter"] = None,
@@ -214,7 +214,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return self.apply(Debug())
 
-    def branch(
+    def connect_branch(
         self,
         *branches: "Block",
         add_rest=False,
@@ -2019,6 +2019,13 @@ class Head(ParallelBlock):
 
         return _output_metrics(metrics)
 
+    def metric_result_dict(self, mode=None):
+        results = {}
+        for name, task in self.prediction_task_dict.items():
+            results.update(task.metric_results(mode=mode))
+
+        return results
+
     def to_model(self, **kwargs) -> "Model":
         return Model(self, **kwargs)
 
@@ -2071,59 +2078,8 @@ class Head(ParallelBlock):
         return config
 
 
-class BaseModel(Model, LossMixin, abc.ABC):
-    def train_step(self, inputs):
-        """Custom train step using the `compute_loss` method."""
-
-        with tf.GradientTape() as tape:
-            if isinstance(inputs, tuple):
-                inputs, targets = inputs
-            else:
-                targets = None
-            loss = self.compute_loss(inputs, targets, training=True)
-
-            # Handle regularization losses as well.
-            regularization_loss = sum(self.losses)
-
-            total_loss = loss + regularization_loss
-
-        gradients = tape.gradient(total_loss, self.trainable_variables)
-        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-
-        metrics = self.metric_results()
-        # metrics = {metric.name: metric.result() for metric in self.metrics}
-        metrics["loss"] = loss
-        metrics["regularization_loss"] = regularization_loss
-        metrics["total_loss"] = total_loss
-
-        return metrics
-
-    def test_step(self, inputs):
-        """Custom test step using the `compute_loss` method."""
-
-        if isinstance(inputs, tuple):
-            inputs, targets = inputs
-        else:
-            targets = None
-
-        loss = self.compute_loss(inputs, targets, training=False)
-
-        # Handle regularization losses as well.
-        regularization_loss = sum(self.losses)
-
-        total_loss = loss + regularization_loss
-
-        metrics = self.metric_results()
-        # metrics = {metric.name: metric.result() for metric in self.metrics}
-        metrics["loss"] = loss
-        metrics["regularization_loss"] = regularization_loss
-        metrics["total_loss"] = total_loss
-
-        return metrics
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class Model(BaseModel):
+class Model(Model, LossMixin, abc.ABC):
     def __init__(
         self, *head: Head, head_weights: Optional[List[float]] = None, name=None, **kwargs
     ):
@@ -2198,6 +2154,61 @@ class Model(BaseModel):
             outputs = outputs[0]
 
         return outputs
+
+    def metric_result_dict(self, mode=None):
+        outputs = {}
+
+        for head in self.heads:
+            outputs.update(head.metric_result_dict(mode=mode))
+
+        return outputs
+
+    def train_step(self, inputs):
+        """Custom train step using the `compute_loss` method."""
+
+        with tf.GradientTape() as tape:
+            if isinstance(inputs, tuple):
+                inputs, targets = inputs
+            else:
+                targets = None
+            loss = self.compute_loss(inputs, targets, training=True)
+
+            # Handle regularization losses as well.
+            regularization_loss = sum(self.losses)
+
+            total_loss = loss + regularization_loss
+
+        gradients = tape.gradient(total_loss, self.trainable_variables)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+
+        metrics = self.metric_result_dict()
+        metrics["loss"] = loss
+        metrics["regularization_loss"] = regularization_loss
+        metrics["total_loss"] = total_loss
+
+        return metrics
+
+    def test_step(self, inputs):
+        """Custom test step using the `compute_loss` method."""
+
+        if isinstance(inputs, tuple):
+            inputs, targets = inputs
+        else:
+            targets = None
+
+        loss = self.compute_loss(inputs, targets, training=False)
+
+        # Handle regularization losses as well.
+        regularization_loss = sum(self.losses)
+
+        total_loss = loss + regularization_loss
+
+        metrics = self.metric_result_dict()
+        metrics["loss"] = loss
+        metrics["regularization_loss"] = regularization_loss
+        metrics["total_loss"] = total_loss
+
+        return metrics
 
     def get_part_by_name(self, name: str) -> Optional[tf.keras.layers.Layer]:
         # TODO: Implement this properly
