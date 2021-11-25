@@ -262,7 +262,8 @@
       },
       "annotation": {
         "tag": [
-          "binary_classification"
+          "binary_classification",
+          "target"
         ]
       }
     },
@@ -274,7 +275,8 @@
       },
       "annotation": {
         "tag": [
-          "binary_classification"
+          "binary_classification",
+          "target"
         ]
       }
     },
@@ -286,7 +288,8 @@
       },
       "annotation": {
         "tag": [
-          "binary_classification"
+          "binary_classification",
+          "target"
         ]
       }
     },
@@ -298,7 +301,8 @@
       },
       "annotation": {
         "tag": [
-          "binary_classification"
+          "binary_classification",
+          "target"
         ]
       }
     },
@@ -310,7 +314,8 @@
       },
       "annotation": {
         "tag": [
-          "binary_classification"
+          "binary_classification",
+          "target"
         ]
       }
     }

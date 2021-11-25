@@ -5,6 +5,7 @@ from pathlib import Path
 from random import randint
 from typing import Optional, Union
 
+import pandas as pd
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.utils.proto_utils import has_field
 
@@ -13,12 +14,15 @@ HERE = pathlib.Path(__file__).parent
 
 
 class SyntheticData:
-    def __init__(self, schema_path: Union[str, Path], device: str = "cpu"):
-        self.schema_path = str(schema_path)
-        if self.schema_path.endswith(".pb") or self.schema_path.endswith(".pbtxt"):
-            self._schema = Schema().from_proto_text(self.schema_path)
+    def __init__(self, schema: Union[str, Path, Schema], device: str = "cpu"):
+        if isinstance(schema, Schema):
+            self._schema = schema
         else:
-            self._schema = Schema().from_json(self.schema_path)
+            self.schema_path = str(schema)
+            if self.schema_path.endswith(".pb") or self.schema_path.endswith(".pbtxt"):
+                self._schema = Schema().from_proto_text(self.schema_path)
+            else:
+                self._schema = Schema().from_json(self.schema_path)
         self.device = device
 
     @property
@@ -82,33 +86,58 @@ class SyntheticDataset(SyntheticData):
         self.path = os.path.join(str(dir), parquet_file_name)
 
     @classmethod
-    def create_ecommerce(cls) -> "SyntheticDataset":
+    def create_ecommerce_data(cls) -> "SyntheticDataset":
         """
         Create a synthetic ecommerce dataset.
         """
         return cls(dir=HERE / "ecommerce")
 
     @classmethod
-    def create_testing(cls) -> "SyntheticDataset":
+    def create_testing_data(cls) -> "SyntheticDataset":
         """
         Create a synthetic ecommerce dataset.
         """
         return cls(dir=HERE / "testing")
 
     @classmethod
-    def create_social(cls) -> "SyntheticDataset":
+    def create_social_data(cls) -> "SyntheticDataset":
         """
         Create a synthetic ecommerce dataset.
         """
         return cls(dir=HERE / "social")
 
-    def get_tf_dataloader(self):
-        """return tf NVTabular loader"""
-        raise NotImplementedError()
+    @classmethod
+    def create_music_streaming_data(cls) -> "SyntheticDataset":
+        """
+        Create a synthetic ecommerce dataset.
+        """
+        return cls(dir=HERE / "music_streaming")
+
+    def get_tf_dataloader(self, batch_size=50):
+        # TODO: return tf NVTabular loader
+
+        import tensorflow as tf
+
+        data = pd.read_parquet(self.path).to_dict("list")
+        tensors = {key: tf.convert_to_tensor(value) for key, value in data.items()}
+        dataset = tf.data.Dataset.from_tensor_slices(self._pull_out_targets(tensors)).batch(
+            batch_size=batch_size
+        )
+
+        return dataset
 
     def get_torch_dataloader(self):
         """return torch NVTabular loader"""
         raise NotImplementedError()
+
+    def _pull_out_targets(self, inputs):
+        target_names = self.schema.select_by_tag("target").column_names
+        targets = {}
+
+        for target_name in target_names:
+            targets[target_name] = inputs.pop(target_name, None)
+
+        return inputs, targets
 
 
 def generate_user_item_interactions(

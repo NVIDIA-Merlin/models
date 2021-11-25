@@ -19,7 +19,7 @@ from merlin_standard_lib import Schema
 
 from merlin_models.data import SyntheticDataset
 
-tabular_testing_data = SyntheticDataset.create_testing()
+tabular_testing_data = SyntheticDataset.create_testing_data()
 
 
 @pytest.fixture
