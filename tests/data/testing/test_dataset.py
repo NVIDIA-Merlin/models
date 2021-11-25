@@ -8,7 +8,7 @@ from merlin_models.data.testing.dataset import tabular_testing_data
 def test_tabular_sequence_testing_data():
     assert isinstance(tabular_testing_data, ParquetDataset)
 
-    assert tabular_testing_data.schema_path.endswith("merlin_models/data/testing/schema.json")
+    assert tabular_testing_data.schema_path.endswith("merlin_models/data/testing/testing.json")
     assert len(tabular_testing_data.schema) == 11
 
 

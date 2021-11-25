@@ -16,16 +16,17 @@
 
 
 import os
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
 from merlin_standard_lib import Schema
 
 from .synthetic import generate_user_item_interactions
 
 
-class Dataset:
-    def __init__(self, schema_path: str, device: str = "cpu"):
-        self.schema_path = schema_path
+class SyntheticData:
+    def __init__(self, schema_path: Union[str, Path], device: str = "cpu"):
+        self.schema_path = str(schema_path)
         if self.schema_path.endswith(".pb") or self.schema_path.endswith(".pbtxt"):
             self._schema = Schema().from_proto_text(self.schema_path)
         else:
@@ -36,17 +37,17 @@ class Dataset:
     def schema(self) -> Schema:
         return self._schema
 
-    def generate_synthetic_interactions(
+    def generate_interactions(
         self, num_rows=100, min_session_length=5, max_session_length=None, save_path=None
     ):
         data = generate_user_item_interactions(
-            num_rows, self.schema, min_session_length, max_session_length, self.device
+            self.schema, num_rows, min_session_length, max_session_length, self.device
         )
         if save_path:
             data.to_parquet(save_path)
         return data
 
-    def tf_synthetic_tensors(
+    def tf_tensors(
         self,
         num_rows=100,
         min_session_length=5,
@@ -54,15 +55,13 @@ class Dataset:
     ):
         import tensorflow as tf
 
-        data = self.generate_synthetic_interactions(
-            num_rows, min_session_length, max_session_length
-        )
+        data = self.generate_interactions(num_rows, min_session_length, max_session_length)
         if self.device != "cpu":
             data = data.to_pandas()
         data = data.to_dict("list")
         return {key: tf.convert_to_tensor(value) for key, value in data.items()}
 
-    def torch_synthetic_tensors(
+    def torch_tensors(
         self,
         num_rows=100,
         min_session_length=5,
@@ -70,16 +69,14 @@ class Dataset:
     ):
         import torch
 
-        data = self.generate_synthetic_interactions(
-            num_rows, min_session_length, max_session_length
-        )
+        data = self.generate_interactions(num_rows, min_session_length, max_session_length)
         if self.device != "cpu":
             data = data.to_pandas()
         data = data.to_dict("list")
         return {key: torch.tensor(value).to(self.device) for key, value in data.items()}
 
 
-class ParquetDataset(Dataset):
+class SyntheticDataset(SyntheticData):
     def __init__(
         self,
         dir,
@@ -88,15 +85,15 @@ class ParquetDataset(Dataset):
         schema_path: Optional[str] = None,
         device="cpu",
     ):
-        super(ParquetDataset, self).__init__(
+        super(SyntheticDataset, self).__init__(
             schema_path or os.path.join(dir, schema_file_name), device=device
         )
         self.path = os.path.join(dir, parquet_file_name)
 
     def get_tf_dataloader(self):
         """return tf NVTabular loader"""
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_torch_dataloader(self):
         """return torch NVTabular loader"""
-        raise NotImplementedError
+        raise NotImplementedError()

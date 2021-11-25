@@ -5,7 +5,7 @@ from merlin_models.data.synthetic import generate_user_item_interactions
 
 def test_generate_item_interactions_cpu(tabular_schema):
     pd = pytest.importorskip("pandas")
-    data = generate_user_item_interactions(500, tabular_schema)
+    data = generate_user_item_interactions(tabular_schema, num_interactions=500)
 
     assert isinstance(data, pd.DataFrame)
     assert len(data) == 500
@@ -41,7 +41,7 @@ def test_generate_item_interactions_cpu(tabular_schema):
 
 def test_generate_item_interactions_gpu(tabular_schema):
     cudf = pytest.importorskip("cudf")
-    data = generate_user_item_interactions(500, tabular_schema, device="cuda")
+    data = generate_user_item_interactions(tabular_schema, num_interactions=500, device="cuda")
 
     assert isinstance(data, cudf.DataFrame)
     assert len(data) == 500

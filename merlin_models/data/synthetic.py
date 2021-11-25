@@ -1,16 +1,119 @@
 import logging
+import os
+import pathlib
+from pathlib import Path
 from random import randint
-from typing import Optional
+from typing import Optional, Union
 
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.utils.proto_utils import has_field
 
-LOG = logging.getLogger("transformers4rec")
+LOG = logging.getLogger("merlin-models")
+HERE = pathlib.Path(__file__).parent
+
+
+class SyntheticData:
+    def __init__(self, schema_path: Union[str, Path], device: str = "cpu"):
+        self.schema_path = str(schema_path)
+        if self.schema_path.endswith(".pb") or self.schema_path.endswith(".pbtxt"):
+            self._schema = Schema().from_proto_text(self.schema_path)
+        else:
+            self._schema = Schema().from_json(self.schema_path)
+        self.device = device
+
+    @property
+    def schema(self) -> Schema:
+        return self._schema
+
+    def generate_interactions(
+        self, num_rows=100, min_session_length=5, max_session_length=None, save_path=None
+    ):
+        data = generate_user_item_interactions(
+            self.schema, num_rows, min_session_length, max_session_length, self.device
+        )
+        if save_path:
+            data.to_parquet(save_path)
+
+        return data
+
+    def tf_tensors(
+        self,
+        num_rows=100,
+        min_session_length=5,
+        max_session_length=None,
+    ):
+        import tensorflow as tf
+
+        data = self.generate_interactions(num_rows, min_session_length, max_session_length)
+        if self.device != "cpu":
+            data = data.to_pandas()
+        data = data.to_dict("list")
+
+        return {key: tf.convert_to_tensor(value) for key, value in data.items()}
+
+    def torch_tensors(
+        self,
+        num_rows=100,
+        min_session_length=5,
+        max_session_length=None,
+    ):
+        import torch
+
+        data = self.generate_interactions(num_rows, min_session_length, max_session_length)
+        if self.device != "cpu":
+            data = data.to_pandas()
+        data = data.to_dict("list")
+
+        return {key: torch.tensor(value).to(self.device) for key, value in data.items()}
+
+
+class SyntheticDataset(SyntheticData):
+    def __init__(
+        self,
+        dir: Union[str, Path],
+        parquet_file_name="data.parquet",
+        schema_file_name="schema.json",
+        schema_path: Optional[str] = None,
+        device="cpu",
+    ):
+        super(SyntheticDataset, self).__init__(
+            schema_path or os.path.join(str(dir), schema_file_name), device=device
+        )
+        self.path = os.path.join(str(dir), parquet_file_name)
+
+    @classmethod
+    def create_ecommerce(cls) -> "SyntheticDataset":
+        """
+        Create a synthetic ecommerce dataset.
+        """
+        return cls(dir=HERE / "ecommerce")
+
+    @classmethod
+    def create_testing(cls) -> "SyntheticDataset":
+        """
+        Create a synthetic ecommerce dataset.
+        """
+        return cls(dir=HERE / "testing")
+
+    @classmethod
+    def create_social(cls) -> "SyntheticDataset":
+        """
+        Create a synthetic ecommerce dataset.
+        """
+        return cls(dir=HERE / "social")
+
+    def get_tf_dataloader(self):
+        """return tf NVTabular loader"""
+        raise NotImplementedError()
+
+    def get_torch_dataloader(self):
+        """return torch NVTabular loader"""
+        raise NotImplementedError()
 
 
 def generate_user_item_interactions(
-    num_interactions: int,
     schema: Schema,
+    num_interactions: int,
     min_session_length: int = 5,
     max_session_length: Optional[int] = None,
     device: str = "cpu",
@@ -28,10 +131,10 @@ def generate_user_item_interactions(
 
     Parameters:
     ----------
-    num_interactions: int
-        number of interaction rows to generate.
     schema: Schema
         schema object describing the columns to generate.
+    num_interactions: int
+        number of interaction rows to generate.
     max_session_length: Optional[int]
         The maximum length of the multi-hot/sequence features
     min_session_length: int
@@ -44,7 +147,7 @@ def generate_user_item_interactions(
     data: DataFrame
        DataFrame with synthetic generated rows,
        If `cpu`, the function returns a Pandas dataframe,
-       otherwise, it retuns a cudf dataframe.
+       otherwise, it returns a cudf dataframe.
     """
     if device == "cpu":
         import numpy as _array
@@ -109,6 +212,7 @@ def generate_user_item_interactions(
         max_session_length=max_session_length,
         device=device,
     )
+
     return data
 
 

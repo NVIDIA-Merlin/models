@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from .synthetic import SyntheticData, SyntheticDataset
 
-
-from .testing.dataset import tabular_testing_data
-
-__all__ = ["tabular_testing_data"]
+__all__ = ["SyntheticData", "SyntheticDataset"]
