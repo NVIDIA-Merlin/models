@@ -4,6 +4,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
 from ..core import MetricOrMetricClass, PredictionTask
+from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -42,3 +43,24 @@ class BinaryClassificationTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         return self.logit(inputs)
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(
+            config,
+            {
+                "logit": tf.keras.layers.deserialize,
+                "loss": tf.keras.losses.deserialize,
+            },
+        )
+
+        return super().from_config(config)
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(
+            self,
+            config,
+            ["loss", "logit"],
+        )
+        return config
