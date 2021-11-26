@@ -29,7 +29,6 @@ from merlin_standard_lib.utils.doc_utils import docstring_parameter
 from merlin_standard_lib.utils.misc_utils import filter_kwargs
 from tensorflow.keras.layers import Layer
 from tensorflow.python.framework import ops
-from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.utils import generic_utils
 from tensorflow.python.ops import variables as tf_variables
 
@@ -2079,7 +2078,7 @@ class Head(ParallelBlock):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class Model(Model, LossMixin, abc.ABC):
+class Model(tf.keras.Model, LossMixin, abc.ABC):
     def __init__(
         self, *head: Head, head_weights: Optional[List[float]] = None, name=None, **kwargs
     ):
