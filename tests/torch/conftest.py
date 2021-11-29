@@ -21,8 +21,6 @@ np = pytest.importorskip("numpy")
 tr = pytest.importorskip("merlin_models.torch")
 
 
-schema_utils = pytest.importorskip("merlin_models.torch.utils.schema_utils")
-
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100
 

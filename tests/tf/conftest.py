@@ -23,8 +23,6 @@ tf = pytest.importorskip("tensorflow")
 tr = pytest.importorskip("merlin_models.tf")
 
 
-schema_utils = pytest.importorskip("merlin_models.tf.utils.schema_utils")
-
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100
 ASSETS_DIR = pathlib.Path(__file__).parent.parent / "assets"
