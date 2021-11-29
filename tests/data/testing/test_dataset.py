@@ -8,7 +8,7 @@ def test_tabular_sequence_testing_data():
     tabular_testing_data = SyntheticDataset.create_testing_data()
     assert isinstance(tabular_testing_data, SyntheticDataset)
 
-    assert tabular_testing_data.schema_path.endswith("merlin_models/data/testing/testing.json")
+    assert tabular_testing_data.schema_path.endswith("merlin_models/data/testing/schema.json")
     assert len(tabular_testing_data.schema) == 11
 
 
