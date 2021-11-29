@@ -15,9 +15,9 @@
 #
 
 import pytest
-from merlin_standard_lib import Schema
 
 from merlin_models.data import SyntheticDataset
+from merlin_standard_lib import Schema
 
 tabular_testing_data = SyntheticDataset.create_testing_data()
 

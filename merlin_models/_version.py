@@ -42,8 +42,8 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = "v"
-    cfg.parentdir_prefix = "transformers4rec-"
-    cfg.versionfile_source = "transformers4rec/_version.py"
+    cfg.parentdir_prefix = "merlin_models-"
+    cfg.versionfile_source = "merlin_models/_version.py"
     cfg.verbose = False
     return cfg
 

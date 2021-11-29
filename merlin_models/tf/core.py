@@ -24,15 +24,15 @@ from typing import Dict, List, Optional, Sequence, Text, Tuple, Type, Union, ove
 
 import six
 import tensorflow as tf
-from merlin_standard_lib import Registry, RegistryMixin, Schema, Tag
-from merlin_standard_lib.utils.doc_utils import docstring_parameter
-from merlin_standard_lib.utils.misc_utils import filter_kwargs
 from tensorflow.keras.layers import Layer
 from tensorflow.python.framework import ops
 from tensorflow.python.keras.utils import generic_utils
 from tensorflow.python.ops import variables as tf_variables
 
 from merlin_models.config.schema import SchemaMixin
+from merlin_standard_lib import Registry, RegistryMixin, Schema, Tag
+from merlin_standard_lib.utils.doc_utils import docstring_parameter
+from merlin_standard_lib.utils.misc_utils import filter_kwargs
 
 from .typing import TabularData, TensorOrTabularData
 

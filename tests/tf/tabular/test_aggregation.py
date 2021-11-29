@@ -15,6 +15,7 @@
 #
 
 import pytest
+
 from merlin_standard_lib import Tag
 
 tf = pytest.importorskip("tensorflow")

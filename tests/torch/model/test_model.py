@@ -113,7 +113,7 @@ def test_multi_head_model_wrong_weights(torch_tabular_features, torch_yoochoose_
         body = tr.SequentialBlock(inputs, tr.MLPBlock([64]))
 
         head_1 = tr.BinaryClassificationTask("classification").to_head(body, inputs)
-        head_2 = tr.RegressionTask("regression", summary_type="mean").to_head(body, inputs)
+        head_2 = tr.RegressionTask("regression").to_head(body, inputs)
 
         tr.Model(head_1, head_2, head_weights=[0.4])
 

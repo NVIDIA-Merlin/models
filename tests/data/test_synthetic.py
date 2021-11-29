@@ -58,6 +58,7 @@ def test_generate_item_interactions_gpu(tabular_schema):
         "event_weekday_sin",
         "event_weekday_cos",
         "categories",
+        "event_timestamp",
     ]
     expected_dtypes = {
         "user_id": "int64",
@@ -70,6 +71,7 @@ def test_generate_item_interactions_gpu(tabular_schema):
         "event_weekday_sin": "float64",
         "event_weekday_cos": "float64",
         "categories": "int64",
+        "event_timestamp": "float64",
     }
 
     assert all(

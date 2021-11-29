@@ -17,6 +17,7 @@ import abc
 from typing import Dict, Union
 
 import tensorflow as tf
+
 from merlin_standard_lib import Tag
 
 from ..typing import TabularData

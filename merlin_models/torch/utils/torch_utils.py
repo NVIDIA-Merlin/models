@@ -18,6 +18,7 @@ import abc
 from typing import Dict, Union
 
 import torch
+
 from merlin_standard_lib import Schema
 from merlin_standard_lib.utils.proto_utils import has_field
 

@@ -56,14 +56,12 @@ class BinaryClassificationTask(PredictionTask):
         task_block: Optional[BlockType] = None,
         loss=DEFAULT_LOSS,
         metrics=DEFAULT_METRICS,
-        summary_type="first",
     ):
         super().__init__(
             loss=loss,
             metrics=metrics,
             target_name=target_name,
             task_name=task_name,
-            summary_type=summary_type,
             task_block=task_block,
             pre=BinaryClassificationPrepareBlock(),
             forward_to_prediction_fn=lambda x: torch.round(x).int(),
@@ -92,14 +90,12 @@ class RegressionTask(PredictionTask):
         task_block: Optional[BlockType] = None,
         loss=DEFAULT_LOSS,
         metrics=DEFAULT_METRICS,
-        summary_type="first",
     ):
         super().__init__(
             loss=loss,
             metrics=metrics,
             target_name=target_name,
             task_name=task_name,
-            summary_type=summary_type,
             task_block=task_block,
             pre=RegressionPrepareBlock(),
         )

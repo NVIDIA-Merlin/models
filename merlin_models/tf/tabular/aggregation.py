@@ -16,6 +16,7 @@
 from typing import Union
 
 import tensorflow as tf
+
 from merlin_standard_lib import Schema
 
 from ...config.schema import requires_schema

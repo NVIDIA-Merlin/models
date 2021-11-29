@@ -15,8 +15,9 @@
 #
 
 import pytest
-from merlin_standard_lib import Tag
 from tensorflow.python.ops import init_ops_v2
+
+from merlin_standard_lib import Tag
 
 tr = pytest.importorskip("merlin_models.tf")
 test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")

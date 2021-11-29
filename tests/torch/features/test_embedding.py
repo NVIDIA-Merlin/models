@@ -18,6 +18,7 @@ from functools import partial
 
 import numpy as np
 import pytest
+
 from merlin_standard_lib import Tag
 
 pytorch = pytest.importorskip("torch")
