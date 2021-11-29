@@ -13,7 +13,7 @@ from merlin_models.tf.core import (
 from merlin_standard_lib import Schema, Tag
 
 
-@tf.keras.utils.register_keras_serializable(package="transformers4rec")
+@tf.keras.utils.register_keras_serializable(package="merlin-models")
 class ItemPredictionTask(PredictionTask):
     DEFAULT_LOSS = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     DEFAULT_METRICS = ()
@@ -107,7 +107,7 @@ class ItemPredictionTask(PredictionTask):
         return results
 
 
-@tf.keras.utils.register_keras_serializable(package="transformers4rec")
+@tf.keras.utils.register_keras_serializable(package="merlin-models")
 class SampledItemPredictionTask(ItemPredictionTask):
     def __init__(
         self,
@@ -149,7 +149,7 @@ class SampledItemPredictionTask(ItemPredictionTask):
         return logits
 
 
-@tf.keras.utils.register_keras_serializable(package="transformers4rec")
+@tf.keras.utils.register_keras_serializable(package="merlin-models")
 class ItemRetrievalTask(ItemPredictionTask):
     def __init__(
         self,
