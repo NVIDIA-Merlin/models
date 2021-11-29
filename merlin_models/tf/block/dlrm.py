@@ -35,9 +35,9 @@ def DLRMBlock(
         embedding_block=bottom_block,
         aggregation="stack",
     )
-    dlrm = dlrm_inputs.apply(DotProductInteraction())
+    dlrm = dlrm_inputs.connect(DotProductInteraction())
 
     if top_block:
-        dlrm = dlrm.apply(top_block)
+        dlrm = dlrm.connect(top_block)
 
     return dlrm

@@ -15,11 +15,11 @@ def ContinuousEmbedding(
     continuous_aggregation="concat",
     **kwargs
 ) -> SequentialBlock:
-    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation=continuous_aggregation).apply(
+    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation=continuous_aggregation).connect(
         embedding_block
     )
 
-    outputs = inputs.branch(
+    outputs = inputs.connect_branch(
         continuous_embedding.as_tabular("continuous"),
         add_rest=True,
         aggregation=aggregation,

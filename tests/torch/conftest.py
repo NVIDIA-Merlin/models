@@ -21,8 +21,6 @@ np = pytest.importorskip("numpy")
 tr = pytest.importorskip("merlin_models.torch")
 
 
-schema_utils = pytest.importorskip("merlin_models.torch.utils.schema_utils")
-
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100
 
@@ -123,9 +121,9 @@ def torch_seq_prediction_head_link_to_block():
 
 
 @pytest.fixture
-def torch_tabular_features():
+def torch_tabular_features(tabular_schema):
     return tr.TabularFeatures.from_schema(
-        tr.data.tabular_testing_data.schema,
+        tabular_schema,
         max_sequence_length=20,
         continuous_projection=64,
         aggregation="concat",
@@ -134,11 +132,11 @@ def torch_tabular_features():
 
 @pytest.fixture
 def torch_tabular_data():
-    return tr.data.tabular_testing_data.torch_synthetic_data(num_rows=100)
+    return tr.data.SyntheticDataset.create_testing_data().torch_tensors(num_rows=100)
 
 
 @pytest.fixture
 def torch_yoochoose_like():
-    return tr.data.tabular_testing_data.torch_synthetic_data(
+    return tr.data.SyntheticDataset.create_testing_data().torch_tensors(
         num_rows=100, min_session_length=5, max_session_length=20
     )

@@ -43,8 +43,8 @@ def MMOE(expert_block: Block, num_experts: int, output_names, gate_dim: int = 32
         num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
     )
     gates = MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
-    mmoe = expert_block.apply_with_shortcut(experts, block_outputs_name="experts")
-    mmoe = mmoe.apply(gates, block_name="MMOE")
+    mmoe = expert_block.connect_with_shortcut(experts, block_outputs_name="experts")
+    mmoe = mmoe.connect(gates, block_name="MMOE")
 
     return mmoe
 

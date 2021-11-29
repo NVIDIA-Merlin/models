@@ -91,7 +91,7 @@ def test_head_with_multiple_tasks(tf_tabular_features, tf_tabular_data, task_blo
 
     # assert 0 <= step["loss"] <= 1 # test failing with loss greater than 1
     assert step["loss"] >= 0
-    assert len(step) == 5
+    assert len(step) == 8
     if task_blocks:
         blocks = list(head.task_blocks.values())
         assert blocks[0] != blocks[1]

@@ -23,8 +23,6 @@ tf = pytest.importorskip("tensorflow")
 tr = pytest.importorskip("merlin_models.tf")
 
 
-schema_utils = pytest.importorskip("merlin_models.tf.utils.schema_utils")
-
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100
 ASSETS_DIR = pathlib.Path(__file__).parent.parent / "assets"
@@ -64,12 +62,12 @@ def tf_tabular_features(tabular_schema):
 
 @pytest.fixture
 def tf_tabular_data():
-    return tr.data.tabular_testing_data.tf_synthetic_data(num_rows=100)
+    return tr.data.SyntheticDataset.create_testing_data().tf_tensors(num_rows=100)
 
 
 @pytest.fixture
 def tf_yoochoose_like():
-    return tr.data.tabular_testing_data.tf_synthetic_data(
+    return tr.data.SyntheticDataset.create_testing_data().tf_tensors(
         num_rows=100, min_session_length=5, max_session_length=20
     )
 

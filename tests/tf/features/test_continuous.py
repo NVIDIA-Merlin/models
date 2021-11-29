@@ -34,7 +34,7 @@ def test_continuous_features_yoochoose(yoochoose_schema, tf_yoochoose_like):
     inputs = tr.ContinuousFeatures.from_schema(schema)
     outputs = inputs(tf_yoochoose_like)
 
-    assert list(outputs.keys()) == schema.column_names
+    assert sorted(list(outputs.keys())) == sorted(schema.column_names)
 
 
 def test_serialization_continuous_features(yoochoose_schema, tf_yoochoose_like):

@@ -1,0 +1,446 @@
+{
+  "feature": [
+    {
+      "name": "user_categories",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_categories",
+        "max": "6086",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"freq_threshold\": 0.0, \"cat_path\": \"/merlin/unique.user_categories.parquet\", \"max_size\": 10000000.0, \"embedding_sizes\": {\"cardinality\": 6086.0, \"dimension\": 211.0}, \"num_buckets\": null, \"start_index\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_shops",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_shops",
+        "max": "116741",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"cat_path\": \"/merlin/unique.user_shops.parquet\", \"embedding_sizes\": {\"dimension\": 512.0, \"cardinality\": 116741.0}, \"max_size\": 10000000.0, \"freq_threshold\": 0.0, \"start_index\": 0.0, \"num_buckets\": null}"
+        ]
+      }
+    },
+    {
+      "name": "user_brands",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_brands",
+        "max": "58015",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"freq_threshold\": 0.0, \"embedding_sizes\": {\"cardinality\": 58015.0, \"dimension\": 512.0}, \"max_size\": 10000000.0, \"cat_path\": \"/merlin/unique.user_brands.parquet\", \"num_buckets\": null, \"start_index\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_intentions",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_intentions",
+        "max": "33786",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"start_index\": 0.0, \"cat_path\": \"/merlin/unique.user_intentions.parquet\", \"max_size\": 10000000.0, \"freq_threshold\": 0.0, \"embedding_sizes\": {\"cardinality\": 33786.0, \"dimension\": 512.0}, \"num_buckets\": null}"
+        ]
+      }
+    },
+    {
+      "name": "user_profile",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_profile",
+        "max": "98",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"embedding_sizes\": {\"dimension\": 21.0, \"cardinality\": 98.0}, \"num_buckets\": null, \"cat_path\": \"/merlin/unique.user_profile.parquet\", \"max_size\": 10000000.0, \"start_index\": 0.0, \"freq_threshold\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_group",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_group",
+        "max": "14",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"max_size\": 10000000.0, \"num_buckets\": null, \"start_index\": 0.0, \"cat_path\": \"/merlin/unique.user_group.parquet\", \"freq_threshold\": 0.0, \"embedding_sizes\": {\"cardinality\": 14.0, \"dimension\": 16.0}}"
+        ]
+      }
+    },
+    {
+      "name": "user_gender",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_gender",
+        "max": "3",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"max_size\": 10000000.0, \"embedding_sizes\": {\"cardinality\": 3.0, \"dimension\": 16.0}, \"start_index\": 0.0, \"cat_path\": \"/merlin/unique.user_gender.parquet\", \"freq_threshold\": 0.0, \"num_buckets\": null}"
+        ]
+      }
+    },
+    {
+      "name": "user_age",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_age",
+        "max": "8",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"embedding_sizes\": {\"cardinality\": 8.0, \"dimension\": 16.0}, \"num_buckets\": null, \"cat_path\": \"/merlin/unique.user_age.parquet\", \"start_index\": 0.0, \"freq_threshold\": 0.0, \"max_size\": 10000000.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_consumption_1",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_consumption_1",
+        "max": "4",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"max_size\": 10000000.0, \"start_index\": 0.0, \"freq_threshold\": 0.0, \"embedding_sizes\": {\"dimension\": 16.0, \"cardinality\": 4.0}, \"num_buckets\": null, \"cat_path\": \"/merlin/unique.user_consumption_1.parquet\"}"
+        ]
+      }
+    },
+    {
+      "name": "user_consumption_2",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_consumption_2",
+        "max": "4",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"num_buckets\": null, \"freq_threshold\": 0.0, \"max_size\": 10000000.0, \"start_index\": 0.0, \"embedding_sizes\": {\"cardinality\": 4.0, \"dimension\": 16.0}, \"cat_path\": \"/merlin/unique.user_consumption_2.parquet\"}"
+        ]
+      }
+    },
+    {
+      "name": "user_is_occupied",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_is_occupied",
+        "max": "3",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"max_size\": 10000000.0, \"cat_path\": \"/merlin/unique.user_is_occupied.parquet\", \"embedding_sizes\": {\"cardinality\": 3.0, \"dimension\": 16.0}, \"freq_threshold\": 0.0, \"start_index\": 0.0, \"num_buckets\": null}"
+        ]
+      }
+    },
+    {
+      "name": "user_geography",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_geography",
+        "max": "5",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"num_buckets\": null, \"cat_path\": \"/merlin/unique.user_geography.parquet\", \"freq_threshold\": 0.0, \"start_index\": 0.0, \"max_size\": 10000000.0, \"embedding_sizes\": {\"cardinality\": 5.0, \"dimension\": 16.0}}"
+        ]
+      }
+    },
+    {
+      "name": "user_id",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_id",
+        "max": "294736",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical",
+          "user_id"
+        ],
+        "comment": [
+          "{\"start_index\": 0.0, \"embedding_sizes\": {\"cardinality\": 294736.0, \"dimension\": 512.0}, \"cat_path\": \"/merlin/unique.user_id.parquet\", \"num_buckets\": null, \"freq_threshold\": 0.0, \"max_size\": 10000000.0}"
+        ]
+      }
+    },
+    {
+      "name": "item_category",
+      "type": "INT",
+      "intDomain": {
+        "name": "item_category",
+        "max": "8581",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "categorical"
+        ],
+        "comment": [
+          "{\"cat_path\": \"/merlin/unique.item_category.parquet\", \"num_buckets\": null, \"embedding_sizes\": {\"dimension\": 255.0, \"cardinality\": 8581.0}, \"max_size\": 10000000.0, \"start_index\": 0.0, \"freq_threshold\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "item_shop",
+      "type": "INT",
+      "intDomain": {
+        "name": "item_shop",
+        "max": "604498",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "categorical"
+        ],
+        "comment": [
+          "{\"num_buckets\": null, \"max_size\": 10000000.0, \"cat_path\": \"/merlin/unique.item_shop.parquet\", \"embedding_sizes\": {\"cardinality\": 604498.0, \"dimension\": 512.0}, \"start_index\": 0.0, \"freq_threshold\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "item_intention",
+      "type": "INT",
+      "intDomain": {
+        "name": "item_intention",
+        "max": "96258",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "categorical"
+        ],
+        "comment": [
+          "{\"start_index\": 0.0, \"cat_path\": \"/merlin/unique.item_intention.parquet\", \"max_size\": 10000000.0, \"embedding_sizes\": {\"cardinality\": 96258.0, \"dimension\": 512.0}, \"num_buckets\": null, \"freq_threshold\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "item_brand",
+      "type": "INT",
+      "intDomain": {
+        "name": "item_brand",
+        "max": "208179",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "categorical"
+        ],
+        "comment": [
+          "{\"cat_path\": \"/merlin/unique.item_brand.parquet\", \"freq_threshold\": 0.0, \"max_size\": 10000000.0, \"num_buckets\": null, \"embedding_sizes\": {\"dimension\": 512.0, \"cardinality\": 208179.0}, \"start_index\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "item_id",
+      "type": "INT",
+      "intDomain": {
+        "name": "item_id",
+        "max": "3078306",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "item_id",
+          "categorical"
+        ],
+        "comment": [
+          "{\"num_buckets\": null, \"max_size\": 10000000.0, \"cat_path\": \"/merlin/unique.item_id.parquet\", \"start_index\": 0.0, \"embedding_sizes\": {\"dimension\": 512.0, \"cardinality\": 3078306.0}, \"freq_threshold\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_item_categories",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_item_categories",
+        "max": "7735",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "user_item"
+        ],
+        "comment": [
+          "{\"max_size\": 10000000.0, \"embedding_sizes\": {\"cardinality\": 7735.0, \"dimension\": 241.0}, \"cat_path\": \"/merlin/unique.user_item_categories.parquet\", \"num_buckets\": null, \"freq_threshold\": 0.0, \"start_index\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_item_shops",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_item_shops",
+        "max": "384343",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "user_item"
+        ],
+        "comment": [
+          "{\"start_index\": 0.0, \"max_size\": 10000000.0, \"num_buckets\": null, \"freq_threshold\": 0.0, \"embedding_sizes\": {\"dimension\": 512.0, \"cardinality\": 384343.0}, \"cat_path\": \"/merlin/unique.user_item_shops.parquet\"}"
+        ]
+      }
+    },
+    {
+      "name": "user_item_brands",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_item_brands",
+        "max": "142632",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "user_item"
+        ],
+        "comment": [
+          "{\"embedding_sizes\": {\"cardinality\": 142632.0, \"dimension\": 512.0}, \"num_buckets\": null, \"freq_threshold\": 0.0, \"start_index\": 0.0, \"cat_path\": \"/merlin/unique.user_item_brands.parquet\", \"max_size\": 10000000.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_item_intentions",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_item_intentions",
+        "max": "74317",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "user_item"
+        ],
+        "comment": [
+          "{\"start_index\": 0.0, \"max_size\": 10000000.0, \"embedding_sizes\": {\"dimension\": 512.0, \"cardinality\": 74317.0}, \"num_buckets\": null, \"freq_threshold\": 0.0, \"cat_path\": \"/merlin/unique.user_item_intentions.parquet\"}"
+        ]
+      }
+    },
+    {
+      "name": "position",
+      "type": "INT",
+      "intDomain": {
+        "name": "position",
+        "max": "4",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "context"
+        ],
+        "comment": [
+          "{\"start_index\": 0.0, \"cat_path\": \"/merlin/unique.position.parquet\", \"freq_threshold\": 0.0, \"max_size\": 10000000.0, \"num_buckets\": null, \"embedding_sizes\": {\"cardinality\": 4.0, \"dimension\": 16.0}}"
+        ]
+      }
+    },
+    {
+      "name": "click",
+      "type": "INT",
+      "intDomain": {
+        "name": "click"
+      },
+      "annotation": {
+        "tag": [
+          "binary_classification",
+          "target"
+        ]
+      }
+    },
+    {
+      "name": "conversion",
+      "type": "INT",
+      "intDomain": {
+        "name": "conversion"
+      },
+      "annotation": {
+        "tag": [
+          "binary_classification",
+          "target"
+        ]
+      }
+    }
+  ]
+}
