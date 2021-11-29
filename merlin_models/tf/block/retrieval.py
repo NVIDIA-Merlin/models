@@ -59,13 +59,13 @@ def TwoTowerBlock(
             schema.select_by_tag(item_tower_tag),
             embedding_dim_default=embedding_dim_default,
             add_to_context=add_to_item_context,
-        ).apply(item_tower)
+        ).connect(item_tower)
     if not isinstance(query_tower, SequentialBlock) and not query_tower.inputs:
         query_tower = TabularFeatures(
             schema.select_by_tag(query_tower_tag),
             embedding_dim_default=embedding_dim_default,
             add_to_context=add_to_query_context,
-        ).apply(query_tower)
+        ).connect(query_tower)
 
     two_tower = ParallelBlock(
         {str(query_tower_tag): query_tower, str(item_tower_tag): _item_tower}, post=post, **kwargs
