@@ -1,7 +1,7 @@
 import pytest
-from merlin_standard_lib import Tag
 
 from merlin_models.data.synthetic import SyntheticDataset
+from merlin_standard_lib import Tag
 
 
 def test_tabular_sequence_testing_data():
