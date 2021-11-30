@@ -17,6 +17,7 @@ from typing import Dict, Optional, Tuple
 
 import tensorflow as tf
 from tensorflow.python.keras.layers import Dense
+from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.python.layers.base import Layer
 
 from merlin_models.tf.core import (
@@ -28,9 +29,139 @@ from merlin_models.tf.core import (
 from merlin_standard_lib import Schema, Tag
 
 
+@prediction_block_registry.register_with_multiple_names("sampling-bias-correction")
+class SamplingBiasCorrection(PredictionBlock):
+    def __init__(self, bias_feature_name: str = "popularity", **kwargs):
+        super(SamplingBiasCorrection, self).__init__(**kwargs)
+        self.bias_feature_name = bias_feature_name
+
+    def predict(self, predictions, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+        sampling_bias = self.context.tensors.get(self.bias_feature_name)
+        if sampling_bias is not None:
+            predictions -= tf.math.log(sampling_bias)
+        else:
+            # TODO : add warning
+            pass
+
+        return predictions, targets
+
+
+
+class SoftmaxTemperature(PredictionBlock):
+    def __init__(self, temperature: float, **kwargs):
+        super(SoftmaxTemperature, self).__init__(**kwargs)
+        self.temperature = temperature
+
+    def predict(self, predictions, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+        return predictions / self.temperature, targets
+
+
+class ItemSoftmax(PredictionBlock):
+    def __init__(self, schema: Schema, bias_initializer="zeros", kernel_initializer="random_normal", **kwargs):
+        super(ItemSoftmax, self).__init__(**kwargs)
+        self.bias_initializer = bias_initializer
+        self.kernel_initializer = kernel_initializer
+        self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
+
+    def build(self, input_shape):
+        self.output_layer = Dense(
+            units=self.num_classes,
+            kernel_initializer=self.kernel_initializer,
+            bias_initializer=self.bias_initializer,
+            name="item-softmax",
+            activation="softmax"
+        )
+        return super().build(input_shape)
+
+    def predict(self, predictions, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+        return self.output_layer(predictions), targets
+
+
+class ItemSoftmaxWeightTying(PredictionBlock):
+    def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
+        super(ItemSoftmaxWeightTying, self).__init__(**kwargs)
+        self.bias_initializer = bias_initializer
+        self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
+
+    def build(self, input_shape):
+        self.output_layer_kernel = self.context.get_embedding(Tag.ITEM_ID)
+        self.bias = self.add_weight(
+            name="output_layer_bias",
+            shape=(self.num_classes,),
+            initializer=self.bias_initializer,
+        )
+        return super().build(input_shape)
+
+    def predict(self, predictions, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+        logits = tf.matmul(predictions, self.output_layer_kernel, transpose_b=True)
+        logits = tf.nn.bias_add(logits, self.bias)
+
+        predictions = tf.nn.log_softmax(logits, axis=-1)
+
+        return predictions
+
+
+
+@prediction_block_registry.register_with_multiple_names("in-batch-negative-sampling")
+class InBatchNegativeSampling(PredictionBlock):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.dot = tf.keras.layers.Dot(axes=1)
+
+    def predict(self, predictions, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+        if training:
+            predictions = tf.linalg.matmul(*list(predictions.values()), transpose_b=True)
+
+            if targets is not None:
+                if len(targets.shape) == 2:
+                    targets = tf.squeeze(targets)
+                targets = tf.linalg.diag(targets)
+            else:
+                targets = tf.eye(*predictions.shape)
+
+            return predictions, targets
+
+        return self.dot(list(predictions.values())), targets
+
+    def compute_output_shape(self, input_shape):
+        a = 5
+
+
+
+class ExtraNegativeSampling(PredictionBlock):
+    def __init__(self, *sampler: Sampler, **kwargs):
+        self.sampler = sampler
+        super(ExtraNegativeSampling, self).__init__(**kwargs)
+
+    def sample(self) -> tf.Tensor:
+        if len(self.sampler) > 1:
+            return tf.concat([sampler.sample() for sampler in self.sampler], axis=0)
+
+        return self.sampler[0].sample()
+
+    def predict(self, predictions, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+        if training:
+            extra_negatives: tf.Tensor = self.sample()
+            predictions = tf.concat([predictions, extra_negatives], axis=0)
+            targets = tf.concat([targets, tf.zeros_like(extra_negatives)], axis=0)
+
+        return predictions, targets
+
+
+# prediction_block = InBatchNegativeSampling().connect(ExtraNegativeSampling())
+# prediction_block = ml.SeqentialBlock([InBatchNegativeSampling(), ExtraNegativeSampling()])
+
+
+
+# TODO: Implement this for the MIND head: https://arxiv.org/pdf/1904.08030.pdf
+class LabelAwareAttention(PredictionBlock):
+    def predict(self, predictions, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+        raise NotImplementedError("TODO")
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin-models")
 class ItemPredictionTask(PredictionTask):
-    DEFAULT_LOSS = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
     DEFAULT_METRICS = ()
 
     # TODO: Move these metrics from T4Rec
@@ -56,7 +187,6 @@ class ItemPredictionTask(PredictionTask):
         **kwargs,
     ):
         super().__init__(
-            loss=loss,
             metrics=metrics,
             target_name=target_name,
             task_name=task_name,
@@ -96,13 +226,13 @@ class ItemPredictionTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         if self.weight_tying:
-            logits = tf.matmul(inputs, tf.transpose(self.output_layer_kernel))
+            logits = tf.matmul(inputs, self.output_layer_kernel, transpose_b=True)
             logits = tf.nn.bias_add(logits, self.bias)
         else:
             logits = self.output_layer(inputs)
 
         if self.softmax_temperature:
-            # Softmax temperature to reduce model overconfidence
+            # Softmax temperature to reduce head overconfidence
             # and better calibrate probs and accuracy
             logits = logits / self.softmax_temperature
 
@@ -176,7 +306,8 @@ class ItemRetrievalTask(ItemPredictionTask):
         task_block: Optional[Layer] = None,
         weight_tying: bool = False,
         softmax_temperature: float = 1,
-        pre_call: Optional[PredictionBlock] = "negative-sampling",
+        # pre_call: Optional[PredictionBlock] = "negative-sampling",
+        # pre_call: Optional[PredictionBlock] = NegativeSampling(),
         pre_loss: Optional[PredictionBlock] = None,
         normalize=True,
         **kwargs,
@@ -190,84 +321,28 @@ class ItemRetrievalTask(ItemPredictionTask):
             task_block,
             weight_tying,
             softmax_temperature,
-            pre_call=pre_call,
+            pre_call=None,
             pre_loss=pre_loss,
             **kwargs,
         )
         self.normalize = normalize
 
     def build(self, input_shape):
-        return Layer.build(input_shape)
+        if not hasattr(self.build, '_is_default'):
+            self._build_input_shape = input_shape
+        self.built = True
 
     def call(self, inputs, training: bool = False, **kwargs):
+        if isinstance(inputs, tuple) and len(inputs) == 2:
+            return inputs
+
         if self.normalize:
             inputs = [tf.linalg.l2_normalize(inp, axis=1) for inp in list(inputs.values())]
         predictions = tf.linalg.matmul(*inputs, transpose_b=True)
 
         return predictions
 
+    def compute_output_shape(self, input_shape):
+        a = 5
 
-@prediction_block_registry.register_with_multiple_names("sampling-bias-correction")
-class SamplingBiasCorrection(PredictionBlock):
-    def __init__(self, bias_feature_name: str = "popularity", **kwargs):
-        super(SamplingBiasCorrection, self).__init__(**kwargs)
-        self.bias_feature_name = bias_feature_name
-
-    def predict(self, predictions, targets, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        sampling_bias = self.context.tensors.get(self.bias_feature_name)
-        if sampling_bias is not None:
-            predictions -= tf.math.log(sampling_bias)
-        else:
-            # TODO : add warning
-            pass
-
-        return predictions, targets
-
-
-class InBatchNegativeSampling(PredictionBlock):
-    def predict(self, predictions, targets, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        predictions = tf.linalg.matmul(*list(predictions.values()), transpose_b=True)
-
-        if targets is not None:
-            if len(targets.shape) == 2:
-                targets = tf.squeeze(targets)
-            targets = tf.linalg.diag(targets)
-        else:
-            targets = tf.eye(*predictions.shape)
-
-        return predictions, targets
-
-
-@prediction_block_registry.register_with_multiple_names("negative-sampling")
-class NegativeSampling(PredictionBlock):
-    def __init__(self, *sampler: Sampler, in_batch=True, **kwargs):
-        self.sampler = sampler
-        self.in_batch_neg_sampler = InBatchNegativeSampling() if in_batch else None
-
-        if not in_batch and not sampler:
-            raise ValueError("Either in_batch or sampler must be set")
-
-        super(NegativeSampling, self).__init__(**kwargs)
-
-    def sample(self) -> tf.Tensor:
-        if len(self.sampler) > 1:
-            return tf.concat([sampler.sample() for sampler in self.sampler], axis=0)
-
-        return self.sampler[0].sample()
-
-    def predict(self, predictions, targets, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        if self.in_batch_neg_sampler:
-            predictions, targets = self.in_batch_neg_sampler(predictions, targets)
-
-        if self.sampler:
-            extra_negatives: tf.Tensor = self.sample()
-            predictions = tf.concat([predictions, extra_negatives], axis=0)
-            targets = tf.concat([targets, tf.zeros_like(extra_negatives)], axis=0)
-
-        return predictions, targets
-
-
-# TODO: Implement this for the MIND model: https://arxiv.org/pdf/1904.08030.pdf
-class LabelAwareAttention(PredictionBlock):
-    def predict(self, predictions, targets, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        raise NotImplementedError("TODO")
+        return input_shape

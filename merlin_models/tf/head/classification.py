@@ -17,8 +17,9 @@ from typing import Optional, Sequence
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
+from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 
-from ..core import MetricOrMetricClass, PredictionTask
+from ..core import MetricOrMetricClass, PredictionTask, PredictionBlock
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -57,3 +58,38 @@ class BinaryClassificationTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         return self.logit(inputs)
+
+
+class MultiClassClassificationTask(PredictionTask):
+    DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
+    DEFAULT_METRICS = ()
+
+    def __init__(
+        self,
+        target_name: Optional[str] = None,
+        task_name: Optional[str] = None,
+        task_block: Optional[Layer] = None,
+        loss=DEFAULT_LOSS,
+        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
+        pre_call: Optional[PredictionBlock] = None,
+        pre_loss: Optional[PredictionBlock] = None,
+        **kwargs,
+    ):
+        super().__init__(
+            metrics=list(metrics),
+            target_name=target_name,
+            task_name=task_name,
+            task_block=task_block,
+            pre_call=pre_call,
+            pre_loss=pre_loss,
+            **kwargs,
+        )
+        self.loss = loss
+
+    def _compute_loss(
+        self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
+    ) -> tf.Tensor:
+        return self.loss(targets, predictions, sample_weight=sample_weight)
+
+    def call(self, inputs, training=False, **kwargs):
+        return inputs

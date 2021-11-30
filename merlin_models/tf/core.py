@@ -44,7 +44,7 @@ from .utils.tf_utils import (
     ModelContext,
     calculate_batch_size_from_input_shapes,
     maybe_deserialize_keras_objects,
-    maybe_serialize_keras_objects,
+    maybe_serialize_keras_objects, ModelLikeBlock,
 )
 
 
@@ -156,7 +156,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             if block_name:
                 self.block_name = block_name
 
-            return self
+            output = self
         elif len(block) == 1 and isinstance(block[0], SequentialBlock):
             block: SequentialBlock = block[0]  # type: ignore
             if isinstance(self, SequentialBlock):
@@ -166,9 +166,14 @@ class Block(SchemaMixin, ContextMixin, Layer):
             if block_name:
                 self.block_name = block_name
 
-            return block
+            output = block
+        else:
+            output = SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
 
-        return SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
+        if isinstance(block[-1], ModelLikeBlock):
+            return _Model(output)
+
+        return output
 
     def connect_with_residual(
         self,
@@ -207,7 +212,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return SequentialBlock([self, residual_block], copy_layers=False)
 
-    def debug(self, append=True):
+    def connect_debug_block(self, append=True):
         if not append:
             return SequentialBlock([Debug(), self])
 
@@ -489,14 +494,15 @@ class SequentialBlock(Block):
             values.update(layer.regularizers)
         return list(values)
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs, training=False, **kwargs):
         outputs = inputs
         for i, layer in enumerate(self.layers):
             if i == len(self.layers) - 1:
                 filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
                 outputs = layer(outputs, **filtered_kwargs)
             else:
-                outputs = layer(outputs)
+                filtered_kwargs = filter_kwargs(dict(training=training), layer, filter_positional_or_keyword=False)
+                outputs = layer(outputs, **filtered_kwargs)
 
         return outputs
 
@@ -1545,12 +1551,15 @@ prediction_block_registry: Registry = Registry.class_registry("tf.prediction_blo
 
 class PredictionBlock(Block):
     def call(self, inputs, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        predictions, targets = inputs
+        if isinstance(inputs, (list, tuple)) and len(inputs) == 2:
+            predictions, targets = inputs
+        else:
+            predictions, targets = inputs, None
 
         return self.predict(predictions, targets, training=True, **kwargs)
 
     @abc.abstractmethod
-    def predict(self, predictions, targets, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def predict(self, predictions, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
         raise NotImplementedError()
 
 
@@ -1796,7 +1805,7 @@ class MaybeCallBody(TabularTransformation):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class Head(ParallelBlock):
+class Head(ParallelBlock, LossMixin, MetricsMixin):
     def __init__(
         self,
         body: tf.keras.layers.Layer,
@@ -1964,6 +1973,7 @@ class Head(ParallelBlock):
     def call(
         self,
         inputs: Union[TabularData, tf.Tensor],
+        training: bool = False,
         bias_outputs=None,
         **kwargs,
     ):
@@ -1998,7 +2008,8 @@ class Head(ParallelBlock):
         if isinstance(inputs, dict) and not all(
             name in inputs for name in list(self.parallel_dict.keys())
         ):
-            predictions = self(inputs)
+            filtered_kwargs = filter_kwargs(dict(training=training), self, filter_positional_or_keyword=False)
+            predictions = self(inputs, **filtered_kwargs)
         else:
             predictions = inputs
 
@@ -2075,6 +2086,110 @@ class Head(ParallelBlock):
             config["task_weights"] = self.task_weights
 
         return config
+
+
+
+class ParallelPredictionBlock(Head):
+    pass
+
+
+class _Model(tf.keras.Model, LossMixin, MetricsMixin):
+    def __init__(self, body: ModelLikeBlock, **kwargs):
+        super(_Model, self).__init__(**kwargs)
+        self.body = body
+
+    def build(self, input_shapes):
+        for head in self.heads:
+            head._set_context(self.context)
+
+        super(_Model, self).build(input_shapes)
+
+    def call(self, inputs, **kwargs):
+        outputs = self.body(inputs, **kwargs)
+        return outputs
+
+    def compute_loss(
+            self,
+            inputs: Union[tf.Tensor, TabularData],
+            targets: Union[tf.Tensor, TabularData],
+            compute_metrics=True,
+            training: bool = False,
+            **kwargs,
+    ) -> tf.Tensor:
+        return self.body.compute_loss(inputs, targets, training=training, compute_metrics=compute_metrics, **kwargs)
+
+    def metric_results(self, mode=None):
+        return self.body.metric_results(mode=mode)
+
+    def train_step(self, inputs):
+        """Custom train step using the `compute_loss` method."""
+
+        with tf.GradientTape() as tape:
+            if isinstance(inputs, tuple):
+                inputs, targets = inputs
+            else:
+                targets = None
+            loss = self.compute_loss(inputs, targets, training=True)
+
+            # Handle regularization losses as well.
+            regularization_loss = sum(self.losses)
+
+            total_loss = loss + regularization_loss
+
+        gradients = tape.gradient(total_loss, self.trainable_variables)
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+
+        metrics = self.metric_result_dict()
+        metrics["loss"] = loss
+        metrics["regularization_loss"] = regularization_loss
+        metrics["total_loss"] = total_loss
+
+        return metrics
+
+    def test_step(self, inputs):
+        """Custom test step using the `compute_loss` method."""
+
+        if isinstance(inputs, tuple):
+            inputs, targets = inputs
+        else:
+            targets = None
+
+        loss = self.compute_loss(inputs, targets, training=False)
+
+        # Handle regularization losses as well.
+        regularization_loss = sum(self.losses)
+
+        total_loss = loss + regularization_loss
+
+        metrics = self.metric_result_dict()
+        metrics["loss"] = loss
+        metrics["regularization_loss"] = regularization_loss
+        metrics["total_loss"] = total_loss
+
+        return metrics
+
+    def get_part_by_name(self, name: str) -> Optional[tf.keras.layers.Layer]:
+        # TODO: Implement this properly
+        for head in self.heads:
+            body = head.body
+            if isinstance(body, ParallelBlock):
+                maybe_block = body.parallel_dict.get(name)
+                if maybe_block:
+                    return maybe_block
+
+        return None
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        heads = [tf.keras.utils.deserialize_keras_object(h) for h in config.pop("heads")]
+
+        return cls(*heads, **config)
+
+    def get_config(self):
+        return {
+            "head_weights": self.head_weights,
+            "heads": [tf.keras.utils.serialize_keras_object(h) for h in self.heads],
+        }
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

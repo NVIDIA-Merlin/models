@@ -37,7 +37,7 @@ def name_fn(name, inp):
 
 
 class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
-    """Individual prediction-task of a model.
+    """Individual prediction-task of a head.
 
     Parameters
     ----------
@@ -94,13 +94,13 @@ class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
         pre=None,
     ):
         """
-        The method will be called when block is converted to a model,
+        The method will be called when block is converted to a head,
         i.e when linked to prediction head.
 
         Parameters
         ----------
         block:
-            the model block to link with head
+            the head block to link with head
         device:
             set the device for the metrics and layers of the task
         """
@@ -470,7 +470,7 @@ class Model(torch.nn.Module, LossMixin, MetricsMixin):
     Parameters
     ----------
     head: Head
-        One or more heads of the model.
+        One or more heads of the head.
     head_weights: List[float], optional
         Weight-value to use for each head.
     head_reduction: str, optional
@@ -478,7 +478,7 @@ class Model(torch.nn.Module, LossMixin, MetricsMixin):
     optimizer: Type[torch.optim.Optimizer]
         Optimizer-class to use during fitting
     name: str, optional
-        Name of the model.
+        Name of the head.
     """
 
     def __init__(
