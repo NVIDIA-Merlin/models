@@ -24,7 +24,6 @@ from merlin_standard_lib import Schema, Tag
 from ..core import (
     Block,
     ParallelBlock,
-    SequentialBlock,
     TabularAggregation,
     TabularTransformationsType,
     merge,

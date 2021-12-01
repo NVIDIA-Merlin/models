@@ -223,7 +223,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
     def connect_branch(
         self,
-        *branches: "Block",
+        *branches: Union["Block", "PredictionTask"],
         add_rest=False,
         post: Optional["TabularTransformationsType"] = None,
         aggregation: Optional["TabularAggregationType"] = None,

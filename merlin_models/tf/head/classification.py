@@ -19,7 +19,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 
-from ..core import MetricOrMetricClass, PredictionTask, PredictionBlock
+from ..core import MetricOrMetricClass, PredictionBlock, PredictionTask
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
