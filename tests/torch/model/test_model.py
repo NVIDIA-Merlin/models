@@ -88,14 +88,14 @@ def test_simple_model(torch_tabular_features, torch_tabular_data):
 #     ]
 #     head_2 = tr.Head(body_2, tasks_2)
 #
-#     # Final head with two heads
-#     head = tr.Model(head_1, head_2)
+#     # Final prediction with two heads
+#     prediction = tr.Model(head_1, head_2)
 #
 #     # launch training
 #     targets.update(targets_2)
 #     dataset = [(torch_yoochoose_like, targets)]
-#     losses = head.fit(dataset, num_epochs=5)
-#     metrics = head.evaluate(dataset)
+#     losses = prediction.fit(dataset, num_epochs=5)
+#     metrics = prediction.evaluate(dataset)
 #
 #     assert list(metrics.keys()) == [
 #         "eval_classification/binary_classification_task",

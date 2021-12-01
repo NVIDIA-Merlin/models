@@ -156,7 +156,7 @@ def build_advanced_ranking_model(schema: Schema, head="ple") -> ml.Model:
 
     # expert_block, output_names = ml.MLPBlock([64, 32]), ml.Head.task_names_from_schema(schema)
     # mmoe = ml.MMOE(expert_block, num_experts=3, output_names=output_names)
-    # head = body.add(mmoe).to_model(schema)
+    # prediction = body.add(mmoe).to_model(schema)
 
     if head == "mmoe":
         return ml.MMOEHead.from_schema(
@@ -207,15 +207,15 @@ def data_from_schema(schema, num_items=1000, next_item_prediction=False) -> tf.d
 
 if __name__ == "__main__":
     dataset = data_from_schema(synthetic_music_recsys_data_schema).batch(100)
-    # head = build_dnn(synthetic_music_recsys_data_schema, residual=True)
-    # head = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
-    # head = build_dcn(synthetic_music_recsys_data_schema)
-    # head = build_dlrm(synthetic_music_recsys_data_schema)
+    # prediction = build_dnn(synthetic_music_recsys_data_schema, residual=True)
+    # prediction = build_advanced_ranking_model(synthetic_music_recsys_data_schema)
+    # prediction = build_dcn(synthetic_music_recsys_data_schema)
+    # prediction = build_dlrm(synthetic_music_recsys_data_schema)
     model = build_two_tower(synthetic_music_recsys_data_schema, target="play")
 
     # dataset = data_from_schema(synthetic_music_recsys_data_schema,
     #                            next_item_prediction=True).batch(100)
-    # head = build_youtube_dnn(synthetic_music_recsys_data_schema)
+    # prediction = build_youtube_dnn(synthetic_music_recsys_data_schema)
 
     model.compile(optimizer="adam", run_eagerly=True)
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
     # TODO: remove this after fix in T4Rec
     predictions = model(inputs)
-    # loss = head.compute_loss(predictions, targets)
+    # loss = prediction.compute_loss(predictions, targets)
 
     model.fit(dataset)
 

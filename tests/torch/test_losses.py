@@ -30,7 +30,7 @@ examples_utils = pytest.importorskip("merlin_models.torch.losses")
 #     )
 #     input_module = torch_yoochoose_tabular_transformer_features
 #     body = tr.SequentialBlock(input_module, tr.MLPBlock([64]))
-#     head = tr.Head(
+#     prediction = tr.Head(
 #         body, tr.NextItemPredictionTask(weight_tying=True, loss=custom_loss), inputs=input_module
 #     )
 #
@@ -39,9 +39,9 @@ examples_utils = pytest.importorskip("merlin_models.torch.losses")
 #     trg_flat = input_module.masking.masked_targets.flatten()
 #     non_pad_mask = trg_flat != input_module.masking.padding_idx
 #     labels_all = pytorch.masked_select(trg_flat, non_pad_mask)
-#     predictions = head(body_outputs)
+#     predictions = prediction(body_outputs)
 #
-#     loss = head.prediction_task_dict["next-item"].compute_loss(
+#     loss = prediction.prediction_task_dict["next-item"].compute_loss(
 #         inputs=body_outputs,
 #         targets=labels_all,
 #     )

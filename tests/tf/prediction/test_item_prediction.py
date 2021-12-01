@@ -26,6 +26,6 @@
 #
 # body = ml.TwoTowerBlock(tabular_schema, ml.MLPBlock([64]), query_tower_tag=None,
 #                         item_tower_tag=None)
-#     head = ml.ItemRetrievalTask(tabular_schema).to_head(body)
+#     prediction = ml.ItemRetrievalTask(tabular_schema).to_head(body)
 #
-#     test_utils.assert_loss_and_metrics_are_valid(head, tf_tabular_data, targets)
+#     test_utils.assert_loss_and_metrics_are_valid(prediction, tf_tabular_data, targets)

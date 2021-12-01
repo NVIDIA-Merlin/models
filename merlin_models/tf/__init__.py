@@ -26,39 +26,41 @@ from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
 from .block.inputs import ContinuousEmbedding
 from .block.mlp import DenseResidualBlock, MLPBlock
-from .block.multi_task import MMOE, MMOEGate
+from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate
 from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
 from .core import (
     AsTabular,
     Block,
     DualEncoderBlock,
     Filter,
-    Head,
     Model,
     NoOp,
     ParallelBlock,
+    ParallelPredictionBlock,
     PredictionTask,
     ResidualBlock,
     SequentialBlock,
     TabularBlock,
     inputs,
     merge,
+    prediction_tasks,
     right_shift_layer,
 )
 from .features.continuous import ContinuousFeatures
 from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.sequence import TabularSequenceFeatures
 from .features.tabular import TabularFeatures
-from .head.classification import BinaryClassificationTask
-from .head.item_prediction import (
+from .layers import DotProductInteraction
+from .prediction.classification import BinaryClassificationTask
+from .prediction.item_prediction import (
     ExtraNegativeSampling,
     InBatchNegativeSampling,
     ItemRetrievalTask,
     SampledItemPredictionTask,
 )
-from .head.multi_task import MMOEHead, PLEHead
-from .head.regression import RegressionTask
-from .layers import DotProductInteraction
+
+# from .prediction.multi_task import MMOEHead, PLEHead
+from .prediction.regression import RegressionTask
 from .tabular.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
@@ -94,7 +96,8 @@ __all__ = [
     "ContinuousEmbedding",
     "DotProductInteraction",
     "MMOEGate",
-    "MMOE",
+    "MMOEBlock",
+    "CGCBlock",
     "DenseResidualBlock",
     "TabularBlock",
     "ContinuousFeatures",
@@ -103,9 +106,7 @@ __all__ = [
     "TableConfig",
     "TabularFeatures",
     "TabularSequenceFeatures",
-    "Head",
-    "MMOEHead",
-    "PLEHead",
+    "ParallelPredictionBlock",
     "TwoTowerBlock",
     "MatrixFactorizationBlock",
     "AsDenseFeatures",
@@ -126,6 +127,7 @@ __all__ = [
     "ExtraNegativeSampling",
     "Model",
     "inputs",
+    "prediction_tasks",
     "merge",
     "StochasticSwapNoise",
     "NoOp",

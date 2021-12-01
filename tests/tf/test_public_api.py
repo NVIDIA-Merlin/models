@@ -16,12 +16,11 @@
 
 import pytest
 
-tr = pytest.importorskip("merlin_models.tf")
+ml = pytest.importorskip("merlin_models.tf")
 
 
 def test_tf_import():
     pytest.importorskip("tensorflow")
 
-    assert tr is not None
-    assert tr.Head is not None
-    assert tr.Model is not None
+    assert ml is not None
+    assert ml.Model is not None

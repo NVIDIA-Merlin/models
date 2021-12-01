@@ -151,7 +151,7 @@ class ExtraNegativeSampling(PredictionBlock):
 # prediction_block = ml.SeqentialBlock([InBatchNegativeSampling(), ExtraNegativeSampling()])
 
 
-# TODO: Implement this for the MIND head: https://arxiv.org/pdf/1904.08030.pdf
+# TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
 class LabelAwareAttention(PredictionBlock):
     def predict(
         self, predictions, targets=None, training=True, **kwargs
@@ -232,7 +232,7 @@ class ItemPredictionTask(PredictionTask):
             logits = self.output_layer(inputs)
 
         if self.softmax_temperature:
-            # Softmax temperature to reduce head overconfidence
+            # Softmax temperature to reduce prediction overconfidence
             # and better calibrate probs and accuracy
             logits = logits / self.softmax_temperature
 

@@ -38,7 +38,7 @@ def mark_run_eagerly_modes(*args, **kwargs):
 def assert_body_works_in_model(data, inputs, body, run_eagerly):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    model = tr.BinaryClassificationTask("target").to_model(body, inputs)
+    model = body.connect(tr.BinaryClassificationTask("target"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     dataset = tf.data.Dataset.from_tensor_slices((data, targets)).batch(50)
