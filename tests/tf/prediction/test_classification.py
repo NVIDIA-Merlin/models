@@ -24,11 +24,8 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 def test_binary_classification_head(tabular_schema, tf_tabular_data):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    model = (
-        ml.inputs(tabular_schema)
-        .connect(ml.MLPBlock([64]))
-        .connect(ml.BinaryClassificationTask("target"))
-    )
+    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
+    model = body.connect(ml.BinaryClassificationTask("target"))
 
     test_utils.assert_loss_and_metrics_are_valid(model, tf_tabular_data, targets)
 
@@ -36,11 +33,8 @@ def test_binary_classification_head(tabular_schema, tf_tabular_data):
 def test_serialization_binary_classification_head(tabular_schema, tf_tabular_data):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    model = (
-        ml.inputs(tabular_schema)
-        .connect(ml.MLPBlock([64]))
-        .connect(ml.BinaryClassificationTask("target"))
-    )
+    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
+    model = body.connect(ml.BinaryClassificationTask("target"))
 
     copy_model = test_utils.assert_serialization(model)
     test_utils.assert_loss_and_metrics_are_valid(copy_model, tf_tabular_data, targets)
