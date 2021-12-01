@@ -39,6 +39,12 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -59,7 +65,31 @@ coverage.xml
 cover/
 
 # Sphinx documentation
-docs/build/
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+# Jupyter Notebook
+.ipynb_checkpoints
+# MAC
+**/.DS_Store
+**/.keras
+**/__pycache__
+**/.config
+**/.python_history
+**/*.proto.orig
+# ignore sublime stuff
+**/*.sublime-project
+**/*.sublime-workspace
+.vscode/
+#Specific of Transformers4Rec
+runs/
+wandb/
+tmp/
+# PyCharm
+.idea
+
 
 # IPython
 profile_default/
@@ -70,8 +100,4 @@ ipython_config.py
 .dmypy.json
 dmypy.json
 
-# PyCharm
-.idea
 
-# Mac
-**/.DS_Store
