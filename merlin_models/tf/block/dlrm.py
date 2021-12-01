@@ -16,7 +16,7 @@
 
 from typing import Optional
 
-from merlin_standard_lib import Schema
+from merlin_standard_lib import Schema, Tag
 
 from ..core import Block, SequentialBlock, inputs
 from ..layers import DotProductInteraction
@@ -29,12 +29,22 @@ def DLRMBlock(
     top_block: Optional[Block] = None,
     embedding_dim: Optional[int] = None,
 ) -> SequentialBlock:
+    if schema is None:
+        raise ValueError("The schema is required by DLRM")
+    if bottom_block is None:
+        raise ValueError("The bottom_block is required by DLRM")
+
     embedding_dim = embedding_dim or bottom_block.layers[-1].units
-    dlrm_inputs = ContinuousEmbedding(
-        inputs(schema, embedding_dim_default=embedding_dim),
-        embedding_block=bottom_block,
-        aggregation="stack",
-    )
+
+    if len(schema.select_by_tag(Tag.CONTINUOUS)) > 0:
+        dlrm_inputs = ContinuousEmbedding(
+            inputs(schema, embedding_dim_default=embedding_dim),
+            embedding_block=bottom_block,
+            aggregation="stack",
+        )
+    else:
+        dlrm_inputs = inputs(schema, embedding_dim_default=embedding_dim, aggregation="stack")
+
     dlrm = dlrm_inputs.connect(DotProductInteraction())
 
     if top_block:

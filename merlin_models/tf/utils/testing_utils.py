@@ -35,20 +35,65 @@ def mark_run_eagerly_modes(*args, **kwargs):
     return pytest.mark.parametrize("run_eagerly", modes)(*args, **kwargs)
 
 
-def assert_body_works_in_model(data, inputs, body, run_eagerly):
+def assert_body_works_in_model(data, inputs, body, num_epochs=5, run_eagerly=True):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
     model = body.connect(tr.BinaryClassificationTask("target"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    dataset = tf.data.Dataset.from_tensor_slices((data, targets)).batch(50)
+    losses, metrics = train_and_eval_model(data, targets, model, epochs=num_epochs, batch_size=50)
 
-    losses = model.fit(dataset, epochs=5)
+    assert_binary_classification_loss_metrics(
+        losses, metrics, target_name="target", num_epochs=num_epochs
+    )
+
+
+def train_and_eval_model(data, targets, model, epochs=5, batch_size=50):
+    dataset = tf.data.Dataset.from_tensor_slices((data, targets)).batch(batch_size)
+    losses = model.fit(dataset, epochs=epochs)
     metrics = model.evaluate(data, targets, return_dict=True)
+    return losses, metrics
 
-    assert len(metrics.keys()) == 7
-    assert len(losses.epoch) == 5
-    assert len(losses.history["loss"]) == 5
+
+def assert_binary_classification_loss_metrics(losses, metrics, target_name, num_epochs):
+    metrics_names = [
+        f"{target_name}/binary_classification_task/precision",
+        f"{target_name}/binary_classification_task/recall",
+        f"{target_name}/binary_classification_task/binary_accuracy",
+        f"{target_name}/binary_classification_task/auc",
+        "loss",
+        "regularization_loss",
+        "total_loss",
+    ]
+
+    assert len(set(metrics.keys()).intersection(set(metrics_names))) == len(metrics_names)
+
+    assert len(set(losses.history.keys()).intersection(set(metrics_names))) == len(metrics_names)
+    assert len(losses.epoch) == num_epochs
+    for metric in losses.history.keys():
+        assert type(losses.history[metric]) is list
+        assert len(losses.history[metric]) == num_epochs
+
+    assert all(0 <= measure <= 1 for metric in losses.history for measure in losses.history[metric])
+
+
+def assert_regression_loss_metrics(losses, metrics, target_name, num_epochs):
+    metrics_names = [
+        f"{target_name}/regression_task/root_mean_squared_error",
+        "loss",
+        "regularization_loss",
+        "total_loss",
+    ]
+
+    assert len(set(metrics.keys()).intersection(set(metrics_names))) == len(metrics_names)
+
+    assert len(set(losses.history.keys()).intersection(set(metrics_names))) == len(metrics_names)
+    assert len(losses.epoch) == num_epochs
+    for metric in losses.history.keys():
+        assert type(losses.history[metric]) is list
+        assert len(losses.history[metric]) == num_epochs
+
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
 
 def assert_loss_and_metrics_are_valid(
