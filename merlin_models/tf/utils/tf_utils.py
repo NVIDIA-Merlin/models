@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import abc
-from typing import Dict, Union, Protocol, runtime_checkable
+from typing import Dict, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
 
@@ -139,22 +139,22 @@ class MetricsMixin(abc.ABC):
 @runtime_checkable
 class ModelLikeBlock(Protocol):
     def compute_loss(
-            self,
-            inputs: Union[tf.Tensor, TabularData],
-            targets: Union[tf.Tensor, TabularData],
-            compute_metrics=True,
-            training: bool = False,
-            **kwargs,
+        self,
+        inputs: Union[tf.Tensor, TabularData],
+        targets: Union[tf.Tensor, TabularData],
+        compute_metrics=True,
+        training: bool = False,
+        **kwargs,
     ) -> tf.Tensor:
         ...
 
     def calculate_metrics(
-            self,
-            inputs: Union[tf.Tensor, TabularData],
-            targets: Union[tf.Tensor, TabularData],
-            mode: str = "val",
-            forward=True,
-            **kwargs,
+        self,
+        inputs: Union[tf.Tensor, TabularData],
+        targets: Union[tf.Tensor, TabularData],
+        mode: str = "val",
+        forward=True,
+        **kwargs,
     ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
         ...
 
@@ -163,6 +163,10 @@ class ModelLikeBlock(Protocol):
 
     def __call__(self, inputs, **kwargs):
         ...
+
+    def _set_context(self, context: ModelContext):
+        ...
+
 
 def get_output_sizes_from_schema(schema, batch_size=0, max_sequence_length=None):
     sizes = {}

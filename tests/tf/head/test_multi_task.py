@@ -18,19 +18,18 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
         },
     ],
 )
-def test_head_with_multiple_tasks(tf_tabular_features, tf_tabular_data, task_blocks):
+def test_model_with_multiple_tasks(tabular_schema, tf_tabular_data, task_blocks):
     targets = {
         "classification": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32),
         "regression": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32),
     }
 
-    body = ml.SequentialBlock([tf_tabular_features, ml.MLPBlock([64])])
-    tasks = [
+    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
+    model = body.connect_branch(
         ml.BinaryClassificationTask("classification"),
         ml.RegressionTask("regression"),
-    ]
-    head = ml.Head(body, tasks, task_blocks=task_blocks)
-    model = ml.Model(head)
+        task_blocks=task_blocks,
+    )
     model.compile(optimizer="adam", run_eagerly=True)
 
     step = model.train_step((tf_tabular_data, targets))
@@ -39,5 +38,5 @@ def test_head_with_multiple_tasks(tf_tabular_features, tf_tabular_data, task_blo
     assert step["loss"] >= 0
     assert len(step) == 8
     if task_blocks:
-        blocks = list(head.task_blocks.values())
+        blocks = list(model.loss_block.task_blocks.values())
         assert blocks[0] != blocks[1]

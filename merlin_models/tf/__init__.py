@@ -50,7 +50,12 @@ from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.sequence import TabularSequenceFeatures
 from .features.tabular import TabularFeatures
 from .head.classification import BinaryClassificationTask
-from .head.item_prediction import SampledItemPredictionTask, ItemRetrievalTask, NegativeSampling
+from .head.item_prediction import (
+    ExtraNegativeSampling,
+    InBatchNegativeSampling,
+    ItemRetrievalTask,
+    SampledItemPredictionTask,
+)
 from .head.multi_task import MMOEHead, PLEHead
 from .head.regression import RegressionTask
 from .layers import DotProductInteraction
@@ -117,7 +122,8 @@ __all__ = [
     "RegressionTask",
     "SampledItemPredictionTask",
     "ItemRetrievalTask",
-    "NegativeSampling",
+    "InBatchNegativeSampling",
+    "ExtraNegativeSampling",
     "Model",
     "inputs",
     "merge",

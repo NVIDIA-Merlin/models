@@ -14,17 +14,18 @@
 # limitations under the License.
 #
 
-import pytest
+# import pytest
+#
+# tf = pytest.importorskip("tensorflow")
+# ml = pytest.importorskip("merlin_models.tf")
+# test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
-tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin_models.tf")
-test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
-
-def test_retrieval_head(tabular_schema, tf_tabular_features, tf_tabular_data):
-    targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
-
-    body = ml.TwoTowerBlock(tabular_schema, ml.MLPBlock([64]), query_tower_tag=None, item_tower_tag=None)
-    head = ml.ItemRetrievalTask(tabular_schema).to_head(body)
-
-    test_utils.assert_loss_and_metrics_are_valid(head, tf_tabular_data, targets)
+# def test_retrieval_head(tabular_schema, tf_tabular_features, tf_tabular_data):
+#     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
+#
+# body = ml.TwoTowerBlock(tabular_schema, ml.MLPBlock([64]), query_tower_tag=None,
+#                         item_tower_tag=None)
+#     head = ml.ItemRetrievalTask(tabular_schema).to_head(body)
+#
+#     test_utils.assert_loss_and_metrics_are_valid(head, tf_tabular_data, targets)

@@ -17,7 +17,6 @@
 import abc
 import copy
 import sys
-from abc import ABC
 from collections import defaultdict
 from functools import reduce
 from typing import Dict, List, Optional, Sequence, Text, Tuple, Type, Union, overload
@@ -42,9 +41,10 @@ from .utils.tf_utils import (
     LossMixin,
     MetricsMixin,
     ModelContext,
+    ModelLikeBlock,
     calculate_batch_size_from_input_shapes,
     maybe_deserialize_keras_objects,
-    maybe_serialize_keras_objects, ModelLikeBlock,
+    maybe_serialize_keras_objects,
 )
 
 
@@ -166,6 +166,9 @@ class Block(SchemaMixin, ContextMixin, Layer):
             if block_name:
                 self.block_name = block_name
 
+            if not block.schema:
+                block.schema = self.schema
+
             output = block
         else:
             output = SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
@@ -242,8 +245,15 @@ class Block(SchemaMixin, ContextMixin, Layer):
         if add_rest:
             rest_block = SequentialBlock([Filter(rest_features)])
 
-        if rest_block:
-            branches.append(rest_block)
+            if rest_block:
+                branches.append(rest_block)
+
+        if all(isinstance(branch, ModelLikeBlock) for branch in branches):
+            parallel = ParallelPredictionBlock(
+                *branches, post=post, aggregation=aggregation, **kwargs
+            )
+
+            return _Model(SequentialBlock([self, parallel]))
 
         return SequentialBlock(
             [self, ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)]
@@ -430,7 +440,7 @@ class SequentialBlock(Block):
 
         return super().set_schema(schema)
 
-    def _set_context(self, context: TabularData):
+    def _set_context(self, context: ModelContext):
         for layer in self.layers:
             if hasattr(layer, "_set_context"):
                 layer._set_context(context)
@@ -443,6 +453,10 @@ class SequentialBlock(Block):
         first = list(self)[0]
         if is_input_block(first):
             return first
+
+    @property
+    def last(self):
+        return self.layers[-1]
 
     @property
     def filter_features(self) -> List[str]:
@@ -499,10 +513,11 @@ class SequentialBlock(Block):
         for i, layer in enumerate(self.layers):
             if i == len(self.layers) - 1:
                 filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
-                outputs = layer(outputs, **filtered_kwargs)
             else:
-                filtered_kwargs = filter_kwargs(dict(training=training), layer, filter_positional_or_keyword=False)
-                outputs = layer(outputs, **filtered_kwargs)
+                filtered_kwargs = filter_kwargs(
+                    dict(training=training), layer, filter_positional_or_keyword=False
+                )
+            outputs = layer(outputs, **filtered_kwargs)
 
         return outputs
 
@@ -1559,12 +1574,8 @@ class PredictionBlock(Block):
         return self.predict(predictions, targets, training=True, **kwargs)
 
     @abc.abstractmethod
-    def predict(self, predictions, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
         raise NotImplementedError()
-
-
-class LossBlock(Block, LossMixin, ABC):
-    pass
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -1732,6 +1743,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
     def metric_results(self, mode: str = None):
         return {metric.name: metric.result() for metric in self.metrics}
+
+    def metric_result_dict(self, mode=None):
+        return self.metric_results(mode=mode)
 
     def reset_metrics(self):
         for metric in self.metrics:
@@ -2008,7 +2022,9 @@ class Head(ParallelBlock, LossMixin, MetricsMixin):
         if isinstance(inputs, dict) and not all(
             name in inputs for name in list(self.parallel_dict.keys())
         ):
-            filtered_kwargs = filter_kwargs(dict(training=training), self, filter_positional_or_keyword=False)
+            filtered_kwargs = filter_kwargs(
+                dict(training=training), self, filter_positional_or_keyword=False
+            )
             predictions = self(inputs, **filtered_kwargs)
         else:
             predictions = inputs
@@ -2088,19 +2104,280 @@ class Head(ParallelBlock, LossMixin, MetricsMixin):
         return config
 
 
-
 class ParallelPredictionBlock(Head):
-    pass
+    def __init__(
+        self,
+        *prediction_tasks: PredictionTask,
+        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+        task_weights: Optional[List[float]] = None,
+        bias_block: Optional[Layer] = None,
+        loss_reduction=tf.reduce_mean,
+        pre: Optional[TabularTransformationType] = None,
+        post: Optional[TabularTransformationType] = None,
+        **kwargs,
+    ):
+        self.loss_reduction = loss_reduction
+
+        self.prediction_tasks = prediction_tasks
+        self.task_weights = task_weights
+
+        self.bias_block = bias_block
+        self.bias_logit = tf.keras.layers.Dense(1)
+
+        # pre = [pre, MaybeCallBody(body)] if pre else MaybeCallBody(body)
+
+        self.prediction_task_dict = {}
+        if prediction_tasks:
+            for task in prediction_tasks:
+                self.prediction_task_dict[task.task_name] = task
+
+        super(Head, self).__init__(self.prediction_task_dict, pre=pre, post=post)
+
+        self._task_weight_dict = defaultdict(lambda: 1.0)
+        if task_weights:
+            for task, val in zip(prediction_tasks, task_weights):
+                self._task_weight_dict[task.task_name] = val
+
+        self._set_task_blocks(task_blocks)
+
+    @classmethod
+    def get_tasks_from_schema(cls, schema, task_weight_dict=None):
+        task_weight_dict = task_weight_dict or {}
+
+        tasks: List[PredictionTask] = []
+        task_weights = []
+        from .head.classification import BinaryClassificationTask
+        from .head.regression import RegressionTask
+
+        for binary_target in schema.select_by_tag(Tag.BINARY_CLASSIFICATION).column_names:
+            tasks.append(BinaryClassificationTask(binary_target))
+            task_weights.append(task_weight_dict.get(binary_target, 1.0))
+        for regression_target in schema.select_by_tag(Tag.REGRESSION).column_names:
+            tasks.append(RegressionTask(regression_target))
+            task_weights.append(task_weight_dict.get(regression_target, 1.0))
+        # TODO: Add multi-class classification here. Figure out how to get number of classes
+
+        return task_weights, tasks
+
+    @classmethod
+    def from_schema(  # type: ignore
+        cls,
+        schema: Schema,
+        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+        task_weight_dict: Optional[Dict[str, float]] = None,
+        bias_block: Optional[Layer] = None,
+        loss_reduction=tf.reduce_mean,
+        inputs=None,
+        **kwargs,
+    ) -> "Head":
+        task_weight_dict = task_weight_dict or {}
+
+        task_weights, tasks = cls.get_tasks_from_schema(schema, task_weight_dict)
+
+        return cls(
+            *tasks,
+            task_blocks=task_blocks,
+            task_weights=task_weights,
+            bias_block=bias_block,
+            loss_reduction=loss_reduction,
+            inputs=inputs,
+            **kwargs,
+        )
+
+    @classmethod
+    def task_names_from_schema(cls, schema: Schema) -> List[str]:
+        _, tasks = cls.get_tasks_from_schema(schema)
+
+        return [task.task_name for task in tasks]
+
+    def _set_task_blocks(self, task_blocks):
+        if not task_blocks:
+            return
+
+        if isinstance(task_blocks, dict):
+            tasks_multi_names = self._prediction_tasks_multi_names()
+            for key, task_block in task_blocks.items():
+                if key in tasks_multi_names:
+                    tasks = tasks_multi_names[key]
+                    if len(tasks) == 1:
+                        self.prediction_task_dict[tasks[0].task_name].task_block = task_block
+                    else:
+                        raise ValueError(
+                            f"Ambiguous name: {key}, can't resolve it to a task "
+                            "because there are multiple tasks that contain the key: "
+                            f"{', '.join([task.task_name for task in tasks])}"
+                        )
+                else:
+                    raise ValueError(
+                        f"Couldn't find {key} in prediction_tasks, "
+                        f"only found: {', '.join(list(self.prediction_task_dict.keys()))}"
+                    )
+        elif isinstance(task_blocks, Layer):
+            for key, val in self.prediction_task_dict.items():
+                task_block = task_blocks.from_config(task_blocks.get_config())
+                val.task_block = task_block
+        else:
+            raise ValueError("`task_blocks` must be a Layer or a Dict[str, Layer]")
+
+    def _prediction_tasks_multi_names(self) -> Dict[str, List[PredictionTask]]:
+        prediction_tasks_multi_names = {
+            name: [val] for name, val in self.prediction_task_dict.items()
+        }
+        for name, value in self.prediction_task_dict.items():
+            name_parts = name.split("/")
+            for name_part in name_parts:
+                if name_part in prediction_tasks_multi_names:
+                    prediction_tasks_multi_names[name_part].append(value)
+                else:
+                    prediction_tasks_multi_names[name_part] = [value]
+
+        return prediction_tasks_multi_names
+
+    def add_task(self, task: PredictionTask, task_weight=1):
+        key = task.target_name
+        self.parallel_dict[key] = task
+        if task_weight:
+            self._task_weight_dict[key] = task_weight
+
+        return self
+
+    def pop_labels(self, inputs: Dict[Text, tf.Tensor]):
+        outputs = {}
+        for name in self.parallel_dict.keys():
+            outputs[name] = inputs.pop(name)
+
+        return outputs
+
+    def call(
+        self,
+        inputs: Union[TabularData, tf.Tensor],
+        training: bool = False,
+        bias_outputs=None,
+        **kwargs,
+    ):
+        if isinstance(inputs, dict) and not all(
+            name in inputs for name in list(self.parallel_dict.keys())
+        ):
+            if self.bias_block and not bias_outputs:
+                bias_outputs = self.bias_block(inputs)
+            inputs = self.body(inputs)
+
+        outputs = super(Head, self).call(inputs, **kwargs)
+
+        if bias_outputs is not None:
+            for key in outputs:
+                outputs[key] += bias_outputs
+
+        return outputs
+
+    def compute_call_output_shape(self, input_shape):
+        if isinstance(input_shape, dict) and not all(
+            name in input_shape for name in list(self.parallel_dict.keys())
+        ):
+            input_shape = self.body.compute_output_shape(input_shape)
+
+        return super().compute_call_output_shape(input_shape)
+
+    def compute_loss(
+        self, inputs: Union[tf.Tensor, TabularData], targets, training=False, **kwargs
+    ) -> tf.Tensor:
+        losses = []
+
+        if isinstance(inputs, dict) and not all(
+            name in inputs for name in list(self.parallel_dict.keys())
+        ):
+            filtered_kwargs = filter_kwargs(
+                dict(training=training), self, filter_positional_or_keyword=False
+            )
+            predictions = self(inputs, **filtered_kwargs)
+        else:
+            predictions = inputs
+
+        for name, task in self.prediction_task_dict.items():
+            loss = task.compute_loss(predictions, targets, training=training, **kwargs)
+            losses.append(loss * self._task_weight_dict[name])
+
+        return self.loss_reduction(losses)
+
+    def metric_results(self, mode=None):
+        def name_fn(x):
+            return "_".join([mode, x]) if mode else x
+
+        metrics = {
+            name_fn(name): task.metric_results() for name, task in self.prediction_task_dict.items()
+        }
+
+        return _output_metrics(metrics)
+
+    def metric_result_dict(self, mode=None):
+        results = {}
+        for name, task in self.prediction_task_dict.items():
+            results.update(task.metric_results(mode=mode))
+
+        return results
+
+    def to_model(self, **kwargs) -> "Model":
+        return Model(self, **kwargs)
+
+    def reset_metrics(self):
+        for task in self.prediction_task_dict.values():
+            task.reset_metrics()
+
+    @property
+    def task_blocks(self) -> Dict[str, Optional[Layer]]:
+        return {name: task.task_block for name, task in self.prediction_task_dict.items()}
+
+    @property
+    def metrics(self) -> Dict[str, tf.keras.metrics.Metric]:
+        outputs = {}
+        for name, task in self.parallel_dict.items():
+            outputs.update({metric.name: metric for metric in task.metrics})
+
+        return outputs
+
+    def repr_ignore(self) -> List[str]:
+        return ["prediction_tasks", "parallel_layers"]
+
+    def _set_context(self, context: "ModelContext"):
+        for task in self.prediction_task_dict.values():
+            task._set_context(context)
+        super(Head, self)._set_context(context)
+
+    @classmethod
+    def from_config(cls, config, **kwargs):
+        config = maybe_deserialize_keras_objects(
+            config, ["body", "prediction_tasks", "task_weights"]
+        )
+
+        if "schema" in config:
+            config["schema"] = Schema().from_json(config["schema"])
+
+        config["loss_reduction"] = getattr(tf, config["loss_reduction"])
+
+        return cls(**config)
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(
+            self, config, ["body", "loss_reduction", "prediction_tasks"]
+        )
+        if self.task_weights:
+            config["task_weights"] = self.task_weights
+
+        return config
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class _Model(tf.keras.Model, LossMixin, MetricsMixin):
-    def __init__(self, body: ModelLikeBlock, **kwargs):
+    def __init__(self, body: Union[ModelLikeBlock, SequentialBlock], **kwargs):
         super(_Model, self).__init__(**kwargs)
+        if isinstance(body, SequentialBlock) and not isinstance(body.last, ModelLikeBlock):
+            raise ValueError("SequentialBlock must have a ModelLikeBlock as last layer")
         self.body = body
+        self.context = ModelContext()
 
     def build(self, input_shapes):
-        for head in self.heads:
-            head._set_context(self.context)
+        self.body._set_context(self.context)
 
         super(_Model, self).build(input_shapes)
 
@@ -2108,18 +2385,24 @@ class _Model(tf.keras.Model, LossMixin, MetricsMixin):
         outputs = self.body(inputs, **kwargs)
         return outputs
 
+    @property
+    def loss_block(self) -> ModelLikeBlock:
+        return self.body.last if isinstance(self.body, SequentialBlock) else self.body
+
     def compute_loss(
-            self,
-            inputs: Union[tf.Tensor, TabularData],
-            targets: Union[tf.Tensor, TabularData],
-            compute_metrics=True,
-            training: bool = False,
-            **kwargs,
+        self,
+        inputs: Union[tf.Tensor, TabularData],
+        targets: Union[tf.Tensor, TabularData],
+        compute_metrics=True,
+        training: bool = False,
+        **kwargs,
     ) -> tf.Tensor:
-        return self.body.compute_loss(inputs, targets, training=training, compute_metrics=compute_metrics, **kwargs)
+        return self.loss_block.compute_loss(
+            inputs, targets, training=training, compute_metrics=compute_metrics, **kwargs
+        )
 
     def metric_results(self, mode=None):
-        return self.body.metric_results(mode=mode)
+        return self.loss_block.metric_results(mode=mode)
 
     def train_step(self, inputs):
         """Custom train step using the `compute_loss` method."""
@@ -2129,7 +2412,9 @@ class _Model(tf.keras.Model, LossMixin, MetricsMixin):
                 inputs, targets = inputs
             else:
                 targets = None
-            loss = self.compute_loss(inputs, targets, training=True)
+
+            predictions = self(inputs, training=True)
+            loss = self.compute_loss(predictions, targets, training=True)
 
             # Handle regularization losses as well.
             regularization_loss = sum(self.losses)
@@ -2139,7 +2424,7 @@ class _Model(tf.keras.Model, LossMixin, MetricsMixin):
         gradients = tape.gradient(total_loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
-        metrics = self.metric_result_dict()
+        metrics = self.loss_block.metric_result_dict()
         metrics["loss"] = loss
         metrics["regularization_loss"] = regularization_loss
         metrics["total_loss"] = total_loss
@@ -2154,42 +2439,29 @@ class _Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             targets = None
 
-        loss = self.compute_loss(inputs, targets, training=False)
+        predictions = self(inputs, training=True)
+        loss = self.compute_loss(predictions, targets, training=False)
 
         # Handle regularization losses as well.
         regularization_loss = sum(self.losses)
 
         total_loss = loss + regularization_loss
 
-        metrics = self.metric_result_dict()
+        metrics = self.loss_block.metric_result_dict()
         metrics["loss"] = loss
         metrics["regularization_loss"] = regularization_loss
         metrics["total_loss"] = total_loss
 
         return metrics
 
-    def get_part_by_name(self, name: str) -> Optional[tf.keras.layers.Layer]:
-        # TODO: Implement this properly
-        for head in self.heads:
-            body = head.body
-            if isinstance(body, ParallelBlock):
-                maybe_block = body.parallel_dict.get(name)
-                if maybe_block:
-                    return maybe_block
-
-        return None
-
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        heads = [tf.keras.utils.deserialize_keras_object(h) for h in config.pop("heads")]
+        body = tf.keras.utils.deserialize_keras_object(config.pop("body"))
 
-        return cls(*heads, **config)
+        return cls(body, **config)
 
     def get_config(self):
-        return {
-            "head_weights": self.head_weights,
-            "heads": [tf.keras.utils.serialize_keras_object(h) for h in self.heads],
-        }
+        return {"body": tf.keras.utils.serialize_keras_object(self.body)}
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

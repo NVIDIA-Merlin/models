@@ -24,19 +24,19 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 def test_regression_head(tf_tabular_features, tf_tabular_data):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    body = ml.SequentialBlock([tf_tabular_features, ml.MLPBlock([64])])
+    body = tf_tabular_features.connect(ml.MLPBlock([64]))
     task = ml.RegressionTask("target")
-    head = task.to_head(body, tf_tabular_features)
+    model = body.connect(task)
 
-    test_utils.assert_loss_and_metrics_are_valid(head, tf_tabular_data, targets)
+    test_utils.assert_loss_and_metrics_are_valid(model, tf_tabular_data, targets)
 
 
 def test_serialization_regression_head(tf_tabular_features, tf_tabular_data):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    body = ml.SequentialBlock([tf_tabular_features, ml.MLPBlock([64])])
+    body = tf_tabular_features.connect(ml.MLPBlock([64]))
     task = ml.RegressionTask("target")
-    head = task.to_head(body, tf_tabular_features)
+    model = body.connect(task)
 
-    copy_head = test_utils.assert_serialization(head)
-    test_utils.assert_loss_and_metrics_are_valid(copy_head, tf_tabular_data, targets)
+    copy_model = test_utils.assert_serialization(model)
+    test_utils.assert_loss_and_metrics_are_valid(copy_model, tf_tabular_data, targets)

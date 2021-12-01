@@ -25,39 +25,18 @@ def test_binary_classification_head(tf_tabular_features, tf_tabular_data):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
     body = tf_tabular_features.connect(ml.MLPBlock([64]))
-    body_2  = body.connect(ml.MLPBlock([64]))
-
-    # simple case
     task = ml.BinaryClassificationTask("target")
-    model = body.connect(task)  # model
+    model = body.connect(task)
 
-    # head case
-    task_2 = ml.BinaryClassificationTask("target_2", task_block=None)
-    model = body.connect_branch(task, task_2)   # model
-
-    tasks = ml.ParallelPredictionBlock.from_schema()
-    model = body.connect_branch(*tasks)   # model
-    model_2 = body_2.connect_branch(*tasks)   # model
-
-    advanced_model = ml.ParallelPredictionBlock(model, model_2)
-
-
-    # MMOE
-    mmoe = ml.MMOEBlock.from_schema(schema, expert_block=ml.MLPBlock([64]))
-    model = body.connect(mmoe)
-
-
-    head = ml.BinaryClassificationTask("target").to_head(body=tf_tabular_features.connect(ml.MLPBlock([64])))
-
-    test_utils.assert_loss_and_metrics_are_valid(head, tf_tabular_data, targets)
+    test_utils.assert_loss_and_metrics_are_valid(model, tf_tabular_data, targets)
 
 
 def test_serialization_binary_classification_head(tf_tabular_features, tf_tabular_data):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    body = ml.SequentialBlock([tf_tabular_features, ml.MLPBlock([64])])
+    body = tf_tabular_features.connect(ml.MLPBlock([64]))
     task = ml.BinaryClassificationTask("target")
-    head = task.to_head(body, tf_tabular_features)
+    model = body.connect(task)
 
-    copy_head = test_utils.assert_serialization(head)
-    test_utils.assert_loss_and_metrics_are_valid(copy_head, tf_tabular_data, targets)
+    copy_model = test_utils.assert_serialization(model)
+    test_utils.assert_loss_and_metrics_are_valid(copy_model, tf_tabular_data, targets)
