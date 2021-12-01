@@ -115,13 +115,13 @@ class _Schema(betterproto.Message):
     int_domain: List["IntDomain"] = betterproto.message_field(10)
     # Default environments for each feature. An environment represents both a
     # type of location (e.g. a server or phone) and a time (e.g. right before
-    # prediction X is run). In the standard scenario, 99% of the features should be in
+    # model X is run). In the standard scenario, 99% of the features should be in
     # the default environments TRAINING, SERVING, and the LABEL (or labels) AND
     # WEIGHT is only available at TRAINING (not at serving). Other possible
     # variations: 1. There may be TRAINING_MOBILE, SERVING_MOBILE,
     # TRAINING_SERVICE,    and SERVING_SERVICE. 2. If one is ensembling three
-    # models, where the predictions of the first    three models are available
-    # for the ensemble prediction, there may be    TRAINING, SERVING_INITIAL,
+    # models, where the models of the first    three models are available
+    # for the ensemble model, there may be    TRAINING, SERVING_INITIAL,
     # SERVING_ENSEMBLE. See FeatureProto::not_in_environment and
     # FeatureProto::in_environment.
     default_environment: List[str] = betterproto.string_field(5)
@@ -540,7 +540,7 @@ class NaturalLanguageDomain(betterproto.Message):
     # will match any token that has not been specified in token_constraints.
     # Parenthesis, +, and * are supported. _ will be escapable with a \ for
     # tokens containing it (e.g. FOO\_BAR). For example, a two-sequence BERT
-    # prediction may look as follows: S_(CLS)_ A_T_+ S_(SEP)_ A_T_+ S_(SEP)_ S_(PAD)_*
+    # model may look as follows: S_(CLS)_ A_T_+ S_(SEP)_ A_T_+ S_(SEP)_ S_(PAD)_*
     # Note: Support for this field is not yet implemented. Please do not use.
     # TODO(b/188095987): Remove warning once field is implemented.
     location_constraint_regex: str = betterproto.string_field(4)

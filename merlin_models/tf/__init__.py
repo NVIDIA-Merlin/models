@@ -51,7 +51,7 @@ from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
 from .features.sequence import TabularSequenceFeatures
 from .features.tabular import TabularFeatures
 from .layers import DotProductInteraction
-from .prediction.classification import BinaryClassificationTask
+from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
 from .prediction.item_prediction import (
     ExtraNegativeSampling,
     InBatchNegativeSampling,
@@ -120,6 +120,7 @@ __all__ = [
     "StackFeatures",
     "PredictionTask",
     "BinaryClassificationTask",
+    "MultiClassClassificationTask",
     "RegressionTask",
     "SampledItemPredictionTask",
     "ItemRetrievalTask",
