@@ -55,29 +55,6 @@ class SoftmaxTemperature(PredictionBlock):
         return inputs / self.temperature, targets
 
 
-class ItemSoftmax(PredictionBlock):
-    def __init__(
-        self, schema: Schema, bias_initializer="zeros", kernel_initializer="random_normal", **kwargs
-    ):
-        super(ItemSoftmax, self).__init__(**kwargs)
-        self.bias_initializer = bias_initializer
-        self.kernel_initializer = kernel_initializer
-        self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
-
-    def build(self, input_shape):
-        self.output_layer = Dense(
-            units=self.num_classes,
-            kernel_initializer=self.kernel_initializer,
-            bias_initializer=self.bias_initializer,
-            name="item-softmax",
-            activation="softmax",
-        )
-        return super().build(input_shape)
-
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        return self.output_layer(inputs), targets
-
-
 class ItemSoftmaxWeightTying(PredictionBlock):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemSoftmaxWeightTying, self).__init__(**kwargs)
@@ -145,10 +122,6 @@ class ExtraNegativeSampling(PredictionBlock):
             targets = tf.concat([targets, tf.zeros_like(extra_negatives)], axis=0)
 
         return inputs, targets
-
-
-# prediction_block = InBatchNegativeSampling().connect(ExtraNegativeSampling())
-# prediction_block = ml.SeqentialBlock([InBatchNegativeSampling(), ExtraNegativeSampling()])
 
 
 # TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
