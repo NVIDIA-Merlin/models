@@ -143,8 +143,3 @@ def torch_tabular_features(tabular_schema):
 @pytest.fixture
 def torch_tabular_data():
     return SyntheticData("testing", num_rows=100).torch_tensor_dict
-
-
-@pytest.fixture
-def torch_yoochoose_like():
-    return SyntheticData("testing", num_rows=100).torch_tensor_dict

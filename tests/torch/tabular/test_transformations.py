@@ -79,14 +79,14 @@ def test_stochastic_swap_noise(replacement_prob):
 
 
 @pytest.mark.parametrize("layer_norm", ["layer-norm", tr.TabularLayerNorm()])
-def test_layer_norm(yoochoose_schema, torch_yoochoose_like, layer_norm):
-    schema = yoochoose_schema.select_by_tag(Tag.CATEGORICAL)
+def test_layer_norm(tabular_schema, torch_tabular_data, layer_norm):
+    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
 
     emb_module = tr.EmbeddingFeatures.from_schema(
         schema, embedding_dims={"item_id": 100}, embedding_dim_default=64, post=layer_norm
     )
 
-    out = emb_module(torch_yoochoose_like)
+    out = emb_module(torch_tabular_data)
 
     assert list(out["item_id"].shape) == [100, 100]
     assert list(out["categories"].shape) == [100, 64]

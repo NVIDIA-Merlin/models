@@ -107,7 +107,7 @@ def test_simple_model(torch_tabular_features, torch_tabular_data):
 #     assert all(loss is not None for loss in losses)
 
 
-def test_multi_head_model_wrong_weights(torch_tabular_features, torch_yoochoose_like):
+def test_multi_head_model_wrong_weights(torch_tabular_features):
     with pytest.raises(ValueError) as excinfo:
         inputs = torch_tabular_features
         body = tr.SequentialBlock(inputs, tr.MLPBlock([64]))
