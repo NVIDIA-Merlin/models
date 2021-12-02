@@ -37,7 +37,7 @@ def name_fn(name, inp):
 
 
 class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
-    """Individual prediction-task of a model.
+    """Individual prediction-task of a prediction.
 
     Parameters
     ----------
@@ -62,7 +62,7 @@ class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
             - `"first"` -- Take the first token hidden state (like Bert)
             - `"mean"` -- Take the mean of all tokens hidden states
             - `"cls_index"` -- Supply a Tensor of classification token position (GPT/GPT-2)
-            - `"attn"` -- Not implemented now, use multi-head attention
+            - `"attn"` -- Not implemented now, use multi-prediction attention
     """
 
     def __init__(
@@ -94,13 +94,13 @@ class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
         pre=None,
     ):
         """
-        The method will be called when block is converted to a model,
-        i.e when linked to prediction head.
+        The method will be called when block is converted to a prediction,
+        i.e when linked to prediction prediction.
 
         Parameters
         ----------
         block:
-            the model block to link with head
+            the prediction block to link with prediction
         device:
             set the device for the metrics and layers of the task
         """
@@ -226,7 +226,7 @@ class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
 
 
 class Head(torch.nn.Module, LossMixin, MetricsMixin):
-    """Head of a Model, a head has a single body but could have multiple prediction-tasks.
+    """Head of a Model, a prediction has a single body but could have multiple prediction-tasks.
 
     Parameters
     ----------
@@ -271,7 +271,7 @@ class Head(torch.nn.Module, LossMixin, MetricsMixin):
         self.build(inputs=inputs, task_blocks=task_blocks)
 
     def build(self, inputs=None, device=None, task_blocks=None):
-        """Build each prediction task that's part of the head.
+        """Build each prediction task that's part of the prediction.
 
         Parameters
         ----------
@@ -454,7 +454,7 @@ class Head(torch.nn.Module, LossMixin, MetricsMixin):
         return {name: task.task_block for name, task in self.prediction_task_dict.items()}
 
     def to_model(self, **kwargs) -> "Model":
-        """Convert the head to a Model.
+        """Convert the prediction to a Model.
 
         Returns
         -------
@@ -470,15 +470,15 @@ class Model(torch.nn.Module, LossMixin, MetricsMixin):
     Parameters
     ----------
     head: Head
-        One or more heads of the model.
+        One or more heads of the prediction.
     head_weights: List[float], optional
-        Weight-value to use for each head.
+        Weight-value to use for each prediction.
     head_reduction: str, optional
         How to reduce the losses into a single tensor when multiple heads are used.
     optimizer: Type[torch.optim.Optimizer]
         Optimizer-class to use during fitting
     name: str, optional
-        Name of the model.
+        Name of the prediction.
     """
 
     def __init__(

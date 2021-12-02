@@ -1,3 +1,18 @@
+#
+# Copyright (c) 2021, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 from typing import Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
@@ -39,7 +54,17 @@ class MMOEGate(Block):
         return config
 
 
-def MMOE(expert_block: Block, num_experts: int, output_names, gate_dim: int = 32):
+def MMOEBlock(
+    outputs: Union[List[str], List[PredictionTask]],
+    expert_block: Block,
+    num_experts: int,
+    gate_dim: int = 32,
+):
+    if all(isinstance(x, PredictionTask) for x in outputs):
+        output_names = [o.task_name for o in outputs]
+    else:
+        output_names = outputs
+
     experts = expert_block.repeat_in_parallel(
         num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
     )
@@ -108,8 +133,8 @@ class CGCGateTransformation(TabularTransformation):
 class CGCBlock(ParallelBlock):
     def __init__(
         self,
+        outputs: Union[List[str], List[PredictionTask]],
         expert_block: Union[Block, tf.keras.layers.Layer],
-        prediction_tasks: List[PredictionTask],
         num_task_experts: int = 1,
         num_shared_experts: int = 1,
         add_shared_gate: bool = True,
@@ -120,11 +145,14 @@ class CGCBlock(ParallelBlock):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
 
-        task_names: List[str] = [task.task_name for task in prediction_tasks]
+        if all(isinstance(x, PredictionTask) for x in outputs):
+            output_names = [o.task_name for o in outputs]
+        else:
+            output_names = outputs
         task_experts = dict(
             [
                 create_expert(expert_block, f"{task}/expert_{i}")
-                for task in task_names
+                for task in output_names
                 for i in range(num_task_experts)
             ]
         )
@@ -134,7 +162,7 @@ class CGCBlock(ParallelBlock):
         )
 
         post = CGCGateTransformation(
-            task_names, num_task_experts, num_shared_experts, add_shared_gate=add_shared_gate
+            output_names, num_task_experts, num_shared_experts, add_shared_gate=add_shared_gate
         )
         super().__init__(
             task_experts,

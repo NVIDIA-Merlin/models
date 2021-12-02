@@ -17,7 +17,7 @@
 import pytest
 
 tf = pytest.importorskip("tensorflow")
-tr = pytest.importorskip("merlin_models.tf")
+ml = pytest.importorskip("merlin_models.tf")
 test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
@@ -26,8 +26,8 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 def test_simple_model(tabular_schema, tf_tabular_data, run_eagerly=True):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    body = tr.inputs(tabular_schema, tr.MLPBlock([64]))
-    model = tr.BinaryClassificationTask("target").to_model(body)
+    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
+    model = body.connect(ml.BinaryClassificationTask("target"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     dataset = tf.data.Dataset.from_tensor_slices((tf_tabular_data, targets)).batch(50)
@@ -40,22 +40,21 @@ def test_simple_model(tabular_schema, tf_tabular_data, run_eagerly=True):
     assert all(0 <= loss <= 1 for loss in losses.history["loss"])
 
 
-@pytest.mark.parametrize("prediction_task", [tr.BinaryClassificationTask, tr.RegressionTask])
-def test_serialization_model(tf_tabular_features, tf_tabular_data, prediction_task):
+@pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
+def test_serialization_model(tabular_schema, tf_tabular_data, prediction_task):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    body = tr.SequentialBlock([tf_tabular_features, tr.MLPBlock([64])])
-    task = prediction_task("target")
-    model = task.to_model(body, tf_tabular_features)
+    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
+    model = body.connect(prediction_task("target"))
 
     copy_model = test_utils.assert_serialization(model)
     test_utils.assert_loss_and_metrics_are_valid(copy_model, tf_tabular_data, targets)
 
 
-@pytest.mark.parametrize("prediction_task", [tr.BinaryClassificationTask, tr.RegressionTask])
+@pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
 def test_resume_training(tabular_schema, tf_yoochoose_like, prediction_task, run_eagerly=True):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
-    body = tr.MLPBlock([64]).from_inputs(tabular_schema, aggregation="concat")
+    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
 
     dataset = tf.data.Dataset.from_tensor_slices((tf_yoochoose_like, targets)).batch(50)
 

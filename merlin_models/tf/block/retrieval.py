@@ -1,14 +1,29 @@
+#
+# Copyright (c) 2021, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import abc
 from typing import List, Optional, Union
 
 import tensorflow as tf
+from tensorflow.python.keras.layers import Dot
 
 from merlin_standard_lib import Schema, Tag
 
 from ..core import (
     Block,
     ParallelBlock,
-    SequentialBlock,
     TabularAggregation,
     TabularTransformationsType,
     merge,
@@ -33,7 +48,7 @@ class Distance(TabularAggregation, abc.ABC):
 class CosineSimilarity(Distance):
     def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
-        self.dot = tf.keras.layers.Dot(axes=1, normalize=True)
+        self.dot = Dot(axes=1, normalize=True)
 
     def distance(self, inputs: TabularData, **kwargs) -> tf.Tensor:
         out = self.dot(list(inputs.values()))
@@ -55,22 +70,22 @@ def TwoTowerBlock(
     **kwargs
 ) -> ParallelBlock:
     _item_tower: Block = item_tower or query_tower.copy()
-    if not isinstance(_item_tower, SequentialBlock) and not _item_tower.inputs:
+    if not getattr(_item_tower, "inputs", None):
+        item_schema = schema.select_by_tag(item_tower_tag) if item_tower_tag else schema
         _item_tower = TabularFeatures(
-            schema.select_by_tag(item_tower_tag),
+            item_schema,
             embedding_dim_default=embedding_dim_default,
             add_to_context=add_to_item_context,
-        ).connect(item_tower)
-    if not isinstance(query_tower, SequentialBlock) and not query_tower.inputs:
+        ).connect(_item_tower)
+    if not getattr(query_tower, "inputs", None):
+        query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
         query_tower = TabularFeatures(
-            schema.select_by_tag(query_tower_tag),
+            query_schema,
             embedding_dim_default=embedding_dim_default,
             add_to_context=add_to_query_context,
         ).connect(query_tower)
 
-    two_tower = ParallelBlock(
-        {str(query_tower_tag): query_tower, str(item_tower_tag): _item_tower}, post=post, **kwargs
-    )
+    two_tower = ParallelBlock({"query": query_tower, "item": _item_tower}, post=post, **kwargs)
 
     return two_tower
 

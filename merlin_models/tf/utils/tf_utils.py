@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import abc
-from typing import Dict, Union
+from typing import Dict, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
 
@@ -66,8 +66,8 @@ class ModelContext:
     def tensors(self) -> Dict[str, tf.Tensor]:
         return self._shared_tensors
 
-    def get_embedding(self, name: Union[str, Tag]) -> tf.Tensor:
-        return self._shared_tensors[f"{name}/embedding"]
+    def get_embedding(self, name: Union[str, Tag]) -> tf.Variable:
+        return self._shared_variables[f"{name}/embedding"]
 
     def _merge(self, other: "ModelContext"):
         self._shared_tensors.update(other._shared_tensors)
@@ -134,6 +134,38 @@ class MetricsMixin(abc.ABC):
     def reset_metrics(self):
         """Reset all metrics."""
         raise NotImplementedError()
+
+
+@runtime_checkable
+class ModelLikeBlock(Protocol):
+    def compute_loss(
+        self,
+        inputs: Union[tf.Tensor, TabularData],
+        targets: Union[tf.Tensor, TabularData],
+        compute_metrics=True,
+        training: bool = False,
+        **kwargs,
+    ) -> tf.Tensor:
+        ...
+
+    def calculate_metrics(
+        self,
+        inputs: Union[tf.Tensor, TabularData],
+        targets: Union[tf.Tensor, TabularData],
+        mode: str = "val",
+        forward=True,
+        **kwargs,
+    ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
+        ...
+
+    def metric_results(self, mode: str = None) -> Dict[str, Union[float, tf.Tensor]]:
+        ...
+
+    def __call__(self, inputs, **kwargs):
+        ...
+
+    def _set_context(self, context: ModelContext):
+        ...
 
 
 def get_output_sizes_from_schema(schema, batch_size=0, max_sequence_length=None):

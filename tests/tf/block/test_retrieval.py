@@ -5,7 +5,7 @@
 # import merlin_models.tf as ml
 # from merlin_models.tf.block.sampling import MemoryBankBlock
 #
-# # from merlin_models.tf.head.retrieval import RetrievalPredictionTask
+# # from merlin_models.tf.prediction.retrieval import RetrievalPredictionTask
 #
 #
 # def _create_vectors(batch_size=100, dim=64):
