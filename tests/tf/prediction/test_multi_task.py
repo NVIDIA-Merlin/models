@@ -22,8 +22,9 @@ ml = pytest.importorskip("merlin_models.tf")
 def test_model_with_multiple_tasks(music_streaming_data: SyntheticData, task_blocks):
     music_streaming_data._schema = music_streaming_data.schema.remove_by_name("like")
 
-    body = ml.inputs(music_streaming_data.schema).connect(ml.MLPBlock([64]))
-    model = body.connect(ml.prediction_tasks(music_streaming_data.schema, task_blocks=task_blocks))
+    inputs = ml.inputs(music_streaming_data.schema)
+    prediction_tasks = ml.prediction_tasks(music_streaming_data.schema, task_blocks=task_blocks)
+    model = inputs.connect(ml.MLPBlock([64]), prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
 
     step = model.train_step(music_streaming_data.tf_features_and_targets)
