@@ -18,31 +18,31 @@ import pytest
 
 from merlin_models.tf.utils.testing_utils import assert_serialization
 
-tr = pytest.importorskip("merlin_models.tf")
+ml = pytest.importorskip("merlin_models.tf")
 
 
 def test_filter_features(tf_con_features):
     features = ["a", "b"]
-    con = tr.Filter(features)(tf_con_features)
+    con = ml.Filter(features)(tf_con_features)
 
     assert list(con.keys()) == features
 
 
 def test_as_tabular(tf_con_features):
     name = "tabular"
-    con = tr.AsTabular(name)(tf_con_features)
+    con = ml.AsTabular(name)(tf_con_features)
 
     assert list(con.keys()) == [name]
 
 
 def test_tabular_module(tf_con_features):
-    _DummyTabular = tr.TabularBlock
+    _DummyTabular = ml.TabularBlock
 
     tabular = _DummyTabular()
 
     assert tabular(tf_con_features) == tf_con_features
     assert tabular(tf_con_features, aggregation="concat").shape[1] == 6
-    assert tabular(tf_con_features, aggregation=tr.ConcatFeatures()).shape[1] == 6
+    assert tabular(tf_con_features, aggregation=ml.ConcatFeatures()).shape[1] == 6
 
     tabular_concat = _DummyTabular(aggregation="concat")
     assert tabular_concat(tf_con_features).shape[1] == 6
@@ -64,7 +64,7 @@ def test_serialization_continuous_features(
     if include_schema:
         schema = tabular_schema
 
-    inputs = tr.TabularBlock(pre=pre, post=post, aggregation=aggregation, schema=schema)
+    inputs = ml.TabularBlock(pre=pre, post=post, aggregation=aggregation, schema=schema)
 
     copy_layer = assert_serialization(inputs)
 

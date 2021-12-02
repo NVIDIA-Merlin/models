@@ -18,12 +18,12 @@ import pytest
 
 from merlin_standard_lib import Tag
 
-tr = pytest.importorskip("merlin_models.tf")
+ml = pytest.importorskip("merlin_models.tf")
 test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
 def test_tabular_features(tabular_schema, tf_tabular_data):
-    tab_module = tr.TabularFeatures.from_schema(tabular_schema)
+    tab_module = ml.TabularFeatures.from_schema(tabular_schema)
 
     outputs = tab_module(tf_tabular_data)
 
@@ -34,7 +34,7 @@ def test_tabular_features(tabular_schema, tf_tabular_data):
 
 
 def test_serialization_tabular_features(tabular_schema):
-    inputs = tr.TabularFeatures.from_schema(tabular_schema)
+    inputs = ml.TabularFeatures.from_schema(tabular_schema)
 
     copy_layer = test_utils.assert_serialization(inputs)
 
@@ -43,7 +43,7 @@ def test_serialization_tabular_features(tabular_schema):
 
 def test_tabular_features_with_projection(tabular_schema, tf_tabular_data):
     schema = tabular_schema
-    tab_module = tr.TabularFeatures.from_schema(tabular_schema, continuous_projection=64)
+    tab_module = ml.TabularFeatures.from_schema(tabular_schema, continuous_projection=64)
 
     outputs = tab_module(tf_tabular_data)
     continuous_feature_names = schema.select_by_tag(Tag.CONTINUOUS).column_names
@@ -58,10 +58,10 @@ def test_tabular_features_with_projection(tabular_schema, tf_tabular_data):
 def test_tabular_features_yoochoose_model(
     tabular_schema, tf_tabular_data, run_eagerly, continuous_projection
 ):
-    inputs = tr.TabularFeatures.from_schema(
+    inputs = ml.TabularFeatures.from_schema(
         tabular_schema, continuous_projection=continuous_projection, aggregation="concat"
     )
 
-    body = tr.SequentialBlock([inputs, tr.MLPBlock([64])])
+    body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
     test_utils.assert_body_works_in_model(tf_tabular_data, inputs, body, run_eagerly)

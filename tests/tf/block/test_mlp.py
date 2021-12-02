@@ -17,7 +17,7 @@
 import pytest
 
 tf = pytest.importorskip("tensorflow")
-tr = pytest.importorskip("merlin_models.tf")
+ml = pytest.importorskip("merlin_models.tf")
 
 
 @pytest.mark.parametrize("dim", [32, 64])
@@ -29,10 +29,10 @@ tr = pytest.importorskip("merlin_models.tf")
 def test_mlp_block_yoochoose(
     tabular_schema, tf_tabular_data, dim, activation, dropout, normalization
 ):
-    inputs = tr.TabularFeatures.from_schema(tabular_schema, aggregation="concat")
+    inputs = ml.inputs(tabular_schema)
 
-    mlp = tr.MLPBlock([dim], activation=activation, dropout=dropout, normalization=normalization)
-    body = tr.SequentialBlock([inputs, mlp])
+    mlp = ml.MLPBlock([dim], activation=activation, dropout=dropout, normalization=normalization)
+    body = ml.SequentialBlock([inputs, mlp])
 
     outputs = body(tf_tabular_data)
 

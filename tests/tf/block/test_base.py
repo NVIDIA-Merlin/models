@@ -16,25 +16,12 @@
 
 import pytest
 
-tr = pytest.importorskip("merlin_models.tf")
+ml = pytest.importorskip("merlin_models.tf")
 
 
 def test_sequential_block_yoochoose(tabular_schema, tf_tabular_data):
-    inputs = tr.TabularFeatures.from_schema(tabular_schema, aggregation="concat")
-
-    body = tr.SequentialBlock([inputs, tr.MLPBlock([64])])
+    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
 
     outputs = body(tf_tabular_data)
 
     assert list(outputs.shape) == [100, 64]
-
-
-# def test_sequential_block_yoochoose_without_aggregation(tabular_schema, tf_tabular_data):
-#     inputs = tr.TabularFeatures.from_schema(tabular_schema)
-#
-#     with pytest.raises(TypeError) as excinfo:
-#         body = tr.SequentialBlock([inputs, tr.MLPBlock([64])])
-#
-#         body(tf_tabular_data)
-#
-#         assert "did you forget to add aggregation to TabularFeatures" in str(excinfo.value)
