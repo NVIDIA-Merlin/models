@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from functools import lru_cache
+# from functools import lru_cache
 
 import pytest
 
 from merlin_models.data.synthetic import SyntheticData, _read_data
 
-read_data = lru_cache()(_read_data)
+read_data = _read_data
 
 
 @pytest.fixture
