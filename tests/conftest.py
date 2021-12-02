@@ -17,30 +17,29 @@ from functools import lru_cache
 
 import pytest
 
-from merlin_models.data import synthetic
+from merlin_models.data.synthetic import SyntheticData, _read_data
 
-# LRU-cache for reading data from disk
-synthetic._read_data = lru_cache(synthetic._read_data)
-
-
-@pytest.fixture
-def ecommerce_data() -> synthetic.SyntheticData:
-    return synthetic.SyntheticData("e-commerce", num_rows=100)
+read_data = lru_cache()(_read_data)
 
 
 @pytest.fixture
-def music_streaming_data() -> synthetic.SyntheticData:
-    return synthetic.SyntheticData("music_streaming", num_rows=100)
+def ecommerce_data() -> SyntheticData:
+    return SyntheticData("e-commerce", num_rows=100, read_data_fn=read_data)
 
 
 @pytest.fixture
-def social_data() -> synthetic.SyntheticData:
-    return synthetic.SyntheticData("social", num_rows=100)
+def music_streaming_data() -> SyntheticData:
+    return SyntheticData("music_streaming", num_rows=100, read_data_fn=read_data)
 
 
 @pytest.fixture
-def testing_data() -> synthetic.SyntheticData:
-    data = synthetic.SyntheticData("testing", num_rows=100)
+def social_data() -> SyntheticData:
+    return SyntheticData("social", num_rows=100, read_data_fn=read_data)
+
+
+@pytest.fixture
+def testing_data() -> SyntheticData:
+    data = SyntheticData("testing", num_rows=100, read_data_fn=read_data)
     data._schema = data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
 
     return data

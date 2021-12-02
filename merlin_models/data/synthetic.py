@@ -30,6 +30,15 @@ LOG = logging.getLogger("merlin-models")
 HERE = pathlib.Path(__file__).parent
 
 
+def _read_data(path: str, num_rows: Optional[int] = None) -> pd.DataFrame:
+    df = pd.read_parquet(path)
+
+    if num_rows:
+        df = df.iloc[:num_rows]
+
+    return df
+
+
 class SyntheticData:
     DATASETS = {
         "ecommerce": HERE / "ecommerce",
@@ -47,6 +56,7 @@ class SyntheticData:
         device: str = "cpu",
         schema_file_name="schema.json",
         num_rows=None,
+        read_data_fn=_read_data,
     ):
         if not os.path.isdir(data):
             data = self.DATASETS[data]
@@ -57,6 +67,7 @@ class SyntheticData:
         self._schema = self.read_schema(self.schema_path)
         self.device = device
         self._num_rows = num_rows
+        self._read_data_fn = read_data_fn
 
     @classmethod
     def from_schema(
@@ -130,7 +141,7 @@ class SyntheticData:
 
     @property
     def dataframe(self) -> pd.DataFrame:
-        return _read_data(self.data_path, num_rows=self._num_rows)
+        return self._read_data_fn(self.data_path, num_rows=self._num_rows)
 
     def tf_dataloader(self, batch_size=50):
         # TODO: return tf NVTabular loader
@@ -394,12 +405,3 @@ def generate_random_list_feature(
                 feature.float_domain.max,
                 (num_interactions, list_length),
             ).tolist()
-
-
-def _read_data(path: str, num_rows: Optional[int] = None) -> pd.DataFrame:
-    df = pd.read_parquet(path)
-
-    if num_rows:
-        df = df.iloc[:num_rows]
-
-    return df
