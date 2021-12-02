@@ -35,7 +35,7 @@ def mark_run_eagerly_modes(*args, **kwargs):
     return pytest.mark.parametrize("run_eagerly", modes)(*args, **kwargs)
 
 
-def assert_body_works_in_model(data, inputs, body, num_epochs=5, run_eagerly=True):
+def assert_body_works_in_model(data, body, num_epochs=5, run_eagerly=True):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
     model = body.connect(tr.BinaryClassificationTask("target"))

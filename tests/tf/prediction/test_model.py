@@ -16,8 +16,11 @@
 #
 import pytest
 
+<<<<<<< HEAD
 from merlin_models.data.synthetic import SyntheticData
 
+=======
+>>>>>>> Fixed test utils and updated tests to use the new way to connect model body with the prediction tasks
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
 test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
