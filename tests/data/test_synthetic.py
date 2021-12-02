@@ -15,13 +15,13 @@
 #
 import pytest
 
-from merlin_models.data.synthetic import generate_user_item_interactions
+from merlin_models.data.synthetic import SyntheticData, generate_user_item_interactions
 
 
-def test_generate_item_interactions_cpu(tabular_schema):
+def test_generate_item_interactions_cpu(testing_data: SyntheticData):
     pd = pytest.importorskip("pandas")
     data = generate_user_item_interactions(
-        tabular_schema.remove_by_name("event_timestamp"), num_interactions=500
+        testing_data.schema.remove_by_name("event_timestamp"), num_interactions=500
     )
 
     assert isinstance(data, pd.DataFrame)
@@ -56,9 +56,9 @@ def test_generate_item_interactions_cpu(tabular_schema):
     )
 
 
-def test_generate_item_interactions_gpu(tabular_schema):
+def test_generate_item_interactions_gpu(testing_data: SyntheticData):
     cudf = pytest.importorskip("cudf")
-    data = generate_user_item_interactions(tabular_schema, num_interactions=500, device="cuda")
+    data = generate_user_item_interactions(testing_data.schema, num_interactions=500, device="cuda")
 
     assert isinstance(data, cudf.DataFrame)
     assert len(data) == 500

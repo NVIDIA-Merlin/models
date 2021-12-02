@@ -16,6 +16,7 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
 from merlin_models.tf.utils.testing_utils import assert_serialization
 
 ml = pytest.importorskip("merlin_models.tf")
@@ -58,17 +59,18 @@ def test_tabular_module(tf_con_features):
 @pytest.mark.parametrize("aggregation", [None, "concat"])
 @pytest.mark.parametrize("include_schema", [True, False])
 def test_serialization_continuous_features(
-    tabular_schema, tf_tabular_data, pre, post, aggregation, include_schema
+    testing_data: SyntheticData, pre, post, aggregation, include_schema
 ):
     schema = None
     if include_schema:
-        schema = tabular_schema
+        schema = testing_data.schema
 
     inputs = ml.TabularBlock(pre=pre, post=post, aggregation=aggregation, schema=schema)
 
     copy_layer = assert_serialization(inputs)
 
     keep_cols = ["user_id", "item_id", "event_hour_sin", "event_hour_cos"]
+    tf_tabular_data = testing_data.tf_tensor_dict
     for k in list(tf_tabular_data.keys()):
         if k not in keep_cols:
             del tf_tabular_data[k]

@@ -16,30 +16,29 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
 from merlin_standard_lib import Tag
 
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
 
 
-def test_concat_aggregation_yoochoose(tabular_schema, tf_tabular_data):
-    schema = tabular_schema
-    tab_module = ml.TabularFeatures.from_schema(schema)
+def test_concat_aggregation_yoochoose(testing_data: SyntheticData):
+    tab_module = ml.TabularFeatures.from_schema(testing_data.schema)
 
     block = tab_module >> ml.ConcatFeatures()
 
-    out = block(tf_tabular_data)
+    out = block(testing_data.tf_tensor_dict)
 
     assert out.shape[-1] == 262
 
 
-def test_stack_aggregation_yoochoose(tabular_schema, tf_tabular_data):
-    schema = tabular_schema
-    tab_module = ml.EmbeddingFeatures.from_schema(schema)
+def test_stack_aggregation_yoochoose(testing_data: SyntheticData):
+    tab_module = ml.EmbeddingFeatures.from_schema(testing_data.schema)
 
     block = tab_module >> ml.StackFeatures()
 
-    out = block(tf_tabular_data)
+    out = block(testing_data.tf_tensor_dict)
 
     assert out.shape[1] == 64
     assert out.shape[2] == 4
@@ -56,13 +55,12 @@ def test_element_wise_sum_features_different_shapes():
     assert "shapes of all input features are not equal" in str(excinfo.value)
 
 
-def test_element_wise_sum_aggregation_yoochoose(tabular_schema, tf_tabular_data):
-    schema = tabular_schema
-    tab_module = ml.EmbeddingFeatures.from_schema(schema)
+def test_element_wise_sum_aggregation_yoochoose(testing_data: SyntheticData):
+    tab_module = ml.EmbeddingFeatures.from_schema(testing_data.schema)
 
     block = tab_module >> ml.ElementwiseSum()
 
-    out = block(tf_tabular_data)
+    out = block(testing_data.tf_tensor_dict)
 
     assert out.shape[-1] == 64
 
@@ -74,9 +72,9 @@ def test_element_wise_sum_item_multi_no_col_group():
     assert "requires a schema." in str(excinfo.value)
 
 
-def test_element_wise_sum_item_multi_col_group_no_item_id(tabular_schema):
+def test_element_wise_sum_item_multi_col_group_no_item_id(testing_data: SyntheticData):
     with pytest.raises(ValueError) as excinfo:
-        categ_schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
+        categ_schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
         # Remove the item id from col_group
         categ_schema = categ_schema.remove_by_name("item_id")
         element_wise_op = ml.ElementwiseSumItemMulti(categ_schema)
@@ -84,9 +82,9 @@ def test_element_wise_sum_item_multi_col_group_no_item_id(tabular_schema):
     assert "no column tagged as item id" in str(excinfo.value)
 
 
-def test_element_wise_sum_item_multi_features_different_shapes(yoochoose_schema):
+def test_element_wise_sum_item_multi_features_different_shapes(testing_data: SyntheticData):
     with pytest.raises(ValueError) as excinfo:
-        categ_schema = yoochoose_schema.select_by_tag(Tag.CATEGORICAL)
+        categ_schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
         element_wise_op = ml.ElementwiseSumItemMulti(categ_schema)
         input = {
             "item_id": tf.random.uniform((10, 20)),
@@ -96,13 +94,12 @@ def test_element_wise_sum_item_multi_features_different_shapes(yoochoose_schema)
     assert "shapes of all input features are not equal" in str(excinfo.value)
 
 
-def test_element_wise_sum_item_multi_aggregation_yoochoose(yoochoose_schema, tf_yoochoose_like):
-    schema = yoochoose_schema
-    tab_module = ml.EmbeddingFeatures.from_schema(schema)
+def test_element_wise_sum_item_multi_aggregation_yoochoose(testing_data: SyntheticData):
+    tab_module = ml.EmbeddingFeatures.from_schema(testing_data.schema)
 
-    block = tab_module >> ml.ElementwiseSumItemMulti(schema)
+    block = tab_module >> ml.ElementwiseSumItemMulti(testing_data.schema)
 
-    out = block(tf_yoochoose_like)
+    out = block(testing_data.tf_tensor_dict)
 
     assert out.shape[-1] == 64
 
