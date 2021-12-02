@@ -120,7 +120,7 @@ class _Schema(betterproto.Message):
     # WEIGHT is only available at TRAINING (not at serving). Other possible
     # variations: 1. There may be TRAINING_MOBILE, SERVING_MOBILE,
     # TRAINING_SERVICE,    and SERVING_SERVICE. 2. If one is ensembling three
-    # models, where the predictions of the first    three models are available
+    # models, where the models of the first    three models are available
     # for the ensemble model, there may be    TRAINING, SERVING_INITIAL,
     # SERVING_ENSEMBLE. See FeatureProto::not_in_environment and
     # FeatureProto::in_environment.
@@ -479,7 +479,7 @@ class FloatDomain(betterproto.Message):
     disallow_inf: bool = betterproto.bool_field(6)
     # If True, this indicates that the feature is semantically an embedding. This
     # can be useful for distinguishing fixed dimensional numeric features that
-    # should be fed to a model unmodified.
+    # should be fed to a prediction unmodified.
     is_embedding: bool = betterproto.bool_field(7)
 
 

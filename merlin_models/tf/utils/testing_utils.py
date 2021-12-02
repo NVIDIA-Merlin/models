@@ -19,6 +19,8 @@ import tempfile
 
 import pytest
 
+from merlin_models.tf.core import Block, PredictionTask
+
 tf = pytest.importorskip("tensorflow")
 tr = pytest.importorskip("merlin_models.tf")
 
@@ -36,7 +38,7 @@ def mark_run_eagerly_modes(*args, **kwargs):
 def assert_body_works_in_model(data, inputs, body, run_eagerly):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    model = tr.BinaryClassificationTask("target").to_model(body, inputs)
+    model = body.connect(tr.BinaryClassificationTask("target"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     dataset = tf.data.Dataset.from_tensor_slices((data, targets)).batch(50)
@@ -49,8 +51,9 @@ def assert_body_works_in_model(data, inputs, body, run_eagerly):
     assert len(losses.history["loss"]) == 5
 
 
-def assert_loss_and_metrics_are_valid(input, inputs, targets, call_body=True):
-    loss = input.compute_loss(inputs, targets, call_body=call_body)
+def assert_loss_and_metrics_are_valid(input, inputs, targets, call_body=True, training=True):
+    predictions = input(inputs, training=training)
+    loss = input.compute_loss(predictions, targets, call_body=call_body, training=training)
     # metrics = input.metric_results()
 
     assert loss is not None
@@ -65,13 +68,14 @@ def assert_serialization(layer):
     return copy_layer
 
 
-def assert_model_saved(body, task, run_eagerly, data):
-    model = task.to_model(body)
+def assert_model_saved(body: Block, task: PredictionTask, run_eagerly: bool, data):
+    model = body.connect(task)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     batch = next(iter(data))[0]
     model._set_inputs(batch)
     with tempfile.TemporaryDirectory() as tmpdir:
         model.save(tmpdir)
-        model = tf.keras.models.load_model(tmpdir)
-    assert model(batch) is not None
-    return model
+        loaded_model = tf.keras.models.load_model(tmpdir)
+    assert loaded_model(batch) is not None
+
+    return loaded_model

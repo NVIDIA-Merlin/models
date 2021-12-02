@@ -54,7 +54,17 @@ class MMOEGate(Block):
         return config
 
 
-def MMOE(expert_block: Block, num_experts: int, output_names, gate_dim: int = 32):
+def MMOEBlock(
+    outputs: Union[List[str], List[PredictionTask]],
+    expert_block: Block,
+    num_experts: int,
+    gate_dim: int = 32,
+):
+    if all(isinstance(x, PredictionTask) for x in outputs):
+        output_names = [o.task_name for o in outputs]
+    else:
+        output_names = outputs
+
     experts = expert_block.repeat_in_parallel(
         num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
     )
@@ -123,8 +133,8 @@ class CGCGateTransformation(TabularTransformation):
 class CGCBlock(ParallelBlock):
     def __init__(
         self,
+        outputs: Union[List[str], List[PredictionTask]],
         expert_block: Union[Block, tf.keras.layers.Layer],
-        prediction_tasks: List[PredictionTask],
         num_task_experts: int = 1,
         num_shared_experts: int = 1,
         add_shared_gate: bool = True,
@@ -135,11 +145,14 @@ class CGCBlock(ParallelBlock):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
 
-        task_names: List[str] = [task.task_name for task in prediction_tasks]
+        if all(isinstance(x, PredictionTask) for x in outputs):
+            output_names = [o.task_name for o in outputs]
+        else:
+            output_names = outputs
         task_experts = dict(
             [
                 create_expert(expert_block, f"{task}/expert_{i}")
-                for task in task_names
+                for task in output_names
                 for i in range(num_task_experts)
             ]
         )
@@ -149,7 +162,7 @@ class CGCBlock(ParallelBlock):
         )
 
         post = CGCGateTransformation(
-            task_names, num_task_experts, num_shared_experts, add_shared_gate=add_shared_gate
+            output_names, num_task_experts, num_shared_experts, add_shared_gate=add_shared_gate
         )
         super().__init__(
             task_experts,
