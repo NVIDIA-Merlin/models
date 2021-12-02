@@ -64,4 +64,4 @@ def test_tabular_features_yoochoose_model(
 
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
-    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)
+    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, body, run_eagerly)

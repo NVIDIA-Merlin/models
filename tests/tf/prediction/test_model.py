@@ -65,7 +65,7 @@ def test_dlrm_model_single_head_multiple_tasks(
     prediction_tasks = ml.prediction_tasks(
         music_streaming_data.schema,
         task_blocks=tasks_blocks,
-        task_weight_dict={"click": 1.0, "play_percentage": 2.0},
+        task_weight_dict={"click": 2.0, "play_percentage": 1.0},
     )
 
     model = dlrm_body.connect(ml.MLPBlock([64]), prediction_tasks)
