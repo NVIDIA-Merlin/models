@@ -16,6 +16,7 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
 from merlin_standard_lib import Tag
 
 ml = pytest.importorskip("merlin_models.tf")
@@ -29,17 +30,17 @@ def test_continuous_features(tf_con_features):
     assert list(con.keys()) == features
 
 
-def test_continuous_features_yoochoose(yoochoose_schema, tf_yoochoose_like):
-    schema = yoochoose_schema.select_by_tag(Tag.CONTINUOUS)
+def test_continuous_features_yoochoose(testing_data: SyntheticData):
+    schema = testing_data.schema.select_by_tag(Tag.CONTINUOUS)
 
     inputs = ml.ContinuousFeatures.from_schema(schema)
-    outputs = inputs(tf_yoochoose_like)
+    outputs = inputs(testing_data.tf_tensor_dict)
 
     assert sorted(list(outputs.keys())) == sorted(schema.column_names)
 
 
-def test_serialization_continuous_features(yoochoose_schema, tf_yoochoose_like):
-    inputs = ml.ContinuousFeatures.from_schema(yoochoose_schema)
+def test_serialization_continuous_features(testing_data: SyntheticData):
+    inputs = ml.ContinuousFeatures.from_schema(testing_data.schema)
 
     copy_layer = test_utils.assert_serialization(inputs)
 
@@ -47,10 +48,10 @@ def test_serialization_continuous_features(yoochoose_schema, tf_yoochoose_like):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_continuous_features_yoochoose_model(yoochoose_schema, tf_yoochoose_like, run_eagerly):
-    schema = yoochoose_schema.select_by_tag(Tag.CONTINUOUS)
+def test_continuous_features_yoochoose_model(testing_data: SyntheticData, run_eagerly):
+    schema = testing_data.schema.select_by_tag(Tag.CONTINUOUS)
 
     inputs = ml.ContinuousFeatures.from_schema(schema, aggregation="concat")
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
-    test_utils.assert_body_works_in_model(tf_yoochoose_like, inputs, body, run_eagerly)
+    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)

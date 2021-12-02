@@ -16,25 +16,30 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
+
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
-test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
+
+targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
 
-def test_binary_classification_head(tabular_schema, tf_tabular_data):
-    targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
+def test_binary_classification_head(testing_data: SyntheticData):
+    from merlin_models.tf.utils import testing_utils
 
-    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
+    body = ml.inputs(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("target"))
 
-    test_utils.assert_loss_and_metrics_are_valid(model, tf_tabular_data, targets)
+    testing_utils.assert_loss_and_metrics_are_valid(model, (testing_data.tf_tensor_dict, targets))
 
 
-def test_serialization_binary_classification_head(tabular_schema, tf_tabular_data):
-    targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
+def test_serialization_binary_classification_head(testing_data: SyntheticData):
+    from merlin_models.tf.utils import testing_utils
 
-    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
+    body = ml.inputs(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("target"))
 
-    copy_model = test_utils.assert_serialization(model)
-    test_utils.assert_loss_and_metrics_are_valid(copy_model, tf_tabular_data, targets)
+    copy_model = testing_utils.assert_serialization(model)
+    testing_utils.assert_loss_and_metrics_are_valid(
+        copy_model, (testing_data.tf_tensor_dict, targets)
+    )

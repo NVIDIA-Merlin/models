@@ -16,24 +16,21 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
+
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
-test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
 # TODO: Fix this test when `run_eagerly=False`
 # @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_simple_model(tabular_schema, tf_tabular_data, run_eagerly=True):
-    targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
-
-    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
-    model = body.connect(ml.BinaryClassificationTask("target"))
+def test_simple_model(ecommerce_data: SyntheticData, run_eagerly=True):
+    body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    model = body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    dataset = tf.data.Dataset.from_tensor_slices((tf_tabular_data, targets)).batch(50)
-
-    losses = model.fit(dataset, epochs=5)
-    metrics = model.evaluate(tf_tabular_data, targets, return_dict=True)
+    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=5)
+    metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
 
     assert len(metrics.keys()) == 7
     assert len(losses.epoch) == 5
@@ -41,24 +38,26 @@ def test_simple_model(tabular_schema, tf_tabular_data, run_eagerly=True):
 
 
 @pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
-def test_serialization_model(tabular_schema, tf_tabular_data, prediction_task):
-    targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
+def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
+    from merlin_models.tf.utils import testing_utils
 
-    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
-    model = body.connect(prediction_task("target"))
+    body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    model = body.connect(prediction_task("click"))
 
-    copy_model = test_utils.assert_serialization(model)
-    test_utils.assert_loss_and_metrics_are_valid(copy_model, tf_tabular_data, targets)
+    copy_model = testing_utils.assert_serialization(model)
+    testing_utils.assert_loss_and_metrics_are_valid(
+        copy_model, ecommerce_data.tf_features_and_targets
+    )
 
 
 @pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
-def test_resume_training(tabular_schema, tf_yoochoose_like, prediction_task, run_eagerly=True):
-    targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
-    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
+def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly=True):
+    from merlin_models.tf.utils import testing_utils
 
-    dataset = tf.data.Dataset.from_tensor_slices((tf_yoochoose_like, targets)).batch(50)
+    body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
 
-    model = test_utils.assert_model_saved(body, prediction_task("target"), run_eagerly, dataset)
+    dataset = ecommerce_data.tf_dataloader(batch_size=50)
+    model = testing_utils.assert_model_saved(body, prediction_task("click"), run_eagerly, dataset)
 
     losses = model.fit(dataset, epochs=5)
 

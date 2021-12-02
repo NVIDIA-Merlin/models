@@ -16,6 +16,7 @@
 import logging
 import os
 import pathlib
+import tempfile
 from pathlib import Path
 from random import randint
 from typing import Optional, Union
@@ -30,114 +31,118 @@ HERE = pathlib.Path(__file__).parent
 
 
 class SyntheticData:
-    def __init__(self, schema: Union[str, Path, Schema], device: str = "cpu"):
-        if isinstance(schema, Schema):
-            self._schema = schema
-        else:
-            self.schema_path = str(schema)
-            if self.schema_path.endswith(".pb") or self.schema_path.endswith(".pbtxt"):
-                self._schema = Schema().from_proto_text(self.schema_path)
-            else:
-                self._schema = Schema().from_json(self.schema_path)
+    DATASETS = {
+        "ecommerce": HERE / "ecommerce",
+        "e-commerce": HERE / "ecommerce",
+        "music_streaming": HERE / "music_streaming",
+        "music-streaming": HERE / "music_streaming",
+        "social": HERE / "social",
+        "testing": HERE / "testing",
+    }
+    FILE_NAME = "data.parquet"
+
+    def __init__(
+        self,
+        data: Union[str, Path],
+        device: str = "cpu",
+        schema_file_name="schema.json",
+        num_rows=None,
+    ):
+        if not os.path.isdir(data):
+            data = self.DATASETS[data]
+
+        self._dir = str(data)
+        self.data_path = os.path.join(self._dir, self.FILE_NAME)
+        self.schema_path = os.path.join(self._dir, schema_file_name)
+        self._schema = self.read_schema(self.schema_path)
         self.device = device
+        self._num_rows = num_rows
+
+    @classmethod
+    def from_schema(
+        cls,
+        schema: Schema,
+        output_dir: Optional[Union[str, Path]] = None,
+        device: str = "cpu",
+        num_rows=100,
+        min_session_length=5,
+        max_session_length=None,
+    ) -> "SyntheticData":
+        if not output_dir:
+            output_dir = tempfile.mkdtemp()
+
+        if not os.path.exists(os.path.join(output_dir, "schema.json")):
+            schema.to_json(os.path.join(output_dir, "schema.json"))
+
+        output = cls(output_dir, device=device)
+        output.generate_interactions(num_rows, min_session_length, max_session_length)
+
+        return output
+
+    @classmethod
+    def read_schema(cls, path: Union[str, Path]) -> Schema:
+        _schema_path = (
+            os.path.join(str(path), "schema.json") if os.path.isdir(str(path)) else str(path)
+        )
+        if _schema_path.endswith(".pb") or _schema_path.endswith(".pbtxt"):
+            return Schema().from_proto_text(_schema_path)
+
+        return Schema().from_json(_schema_path)
 
     @property
     def schema(self) -> Schema:
         return self._schema
 
     def generate_interactions(
-        self, num_rows=100, min_session_length=5, max_session_length=None, save_path=None
+        self, num_rows=100, min_session_length=5, max_session_length=None, save=True
     ):
         data = generate_user_item_interactions(
             self.schema, num_rows, min_session_length, max_session_length, self.device
         )
-        if save_path:
-            data.to_parquet(save_path)
+        if save:
+            data.to_parquet(os.path.join(self._dir, self.FILE_NAME))
 
         return data
 
-    def tf_tensors(
-        self,
-        num_rows=100,
-        min_session_length=5,
-        max_session_length=None,
-    ):
+    @property
+    def tf_tensor_dict(self):
         import tensorflow as tf
 
-        data = self.generate_interactions(num_rows, min_session_length, max_session_length)
-        if self.device != "cpu":
-            data = data.to_pandas()
-        data = data.to_dict("list")
+        data = self.dataframe.to_dict("list")
 
         return {key: tf.convert_to_tensor(value) for key, value in data.items()}
 
-    def torch_tensors(
-        self,
-        num_rows=100,
-        min_session_length=5,
-        max_session_length=None,
-    ):
+    @property
+    def tf_features_and_targets(self):
+        return self._pull_out_targets(self.tf_tensor_dict)
+
+    @property
+    def torch_tensor_dict(self):
         import torch
 
-        data = self.generate_interactions(num_rows, min_session_length, max_session_length)
-        if self.device != "cpu":
-            data = data.to_pandas()
-        data = data.to_dict("list")
+        data = self.dataframe.to_dict("list")
 
         return {key: torch.tensor(value).to(self.device) for key, value in data.items()}
 
+    @property
+    def torch_features_and_targets(self):
+        return self._pull_out_targets(self.torch_tensor_dict)
 
-class SyntheticDataset(SyntheticData):
-    def __init__(
-        self,
-        dir: Union[str, Path],
-        parquet_file_name="data.parquet",
-        schema_file_name="schema.json",
-        schema_path: Optional[str] = None,
-        device="cpu",
-    ):
-        super(SyntheticDataset, self).__init__(
-            schema_path or os.path.join(str(dir), schema_file_name), device=device
-        )
-        self.path = os.path.join(str(dir), parquet_file_name)
-
-    @classmethod
-    def create_ecommerce_data(cls) -> "SyntheticDataset":
-        """
-        Create a synthetic ecommerce dataset.
-        """
-        return cls(dir=HERE / "ecommerce")
-
-    @classmethod
-    def create_testing_data(cls) -> "SyntheticDataset":
-        """
-        Create a synthetic ecommerce dataset.
-        """
-        return cls(dir=HERE / "testing")
-
-    @classmethod
-    def create_social_data(cls) -> "SyntheticDataset":
-        """
-        Create a synthetic ecommerce dataset.
-        """
-        return cls(dir=HERE / "social")
-
-    @classmethod
-    def create_music_streaming_data(cls) -> "SyntheticDataset":
-        """
-        Create a synthetic ecommerce dataset.
-        """
-        return cls(dir=HERE / "music_streaming")
-
+    @property
     def dataframe(self) -> pd.DataFrame:
-        return pd.read_parquet(self.path)
+        df = pd.read_parquet(self.data_path)
 
-    def get_tf_dataloader(self, batch_size=50):
+        if self._num_rows:
+            df = df.iloc[: self._num_rows]
+
+        return df
+
+    def tf_dataloader(self, batch_size=50):
         # TODO: return tf NVTabular loader
 
         import tensorflow as tf
 
-        data = pd.read_parquet(self.path).to_dict("list")
+        data = self.dataframe.to_dict("list")
         tensors = {key: tf.convert_to_tensor(value) for key, value in data.items()}
         dataset = tf.data.Dataset.from_tensor_slices(self._pull_out_targets(tensors)).batch(
             batch_size=batch_size
@@ -145,7 +150,7 @@ class SyntheticDataset(SyntheticData):
 
         return dataset
 
-    def get_torch_dataloader(self):
+    def torch_dataloader(self, batch_size=50):
         """return torch NVTabular loader"""
         raise NotImplementedError()
 

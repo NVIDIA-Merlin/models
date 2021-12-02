@@ -16,6 +16,8 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
+
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
 
@@ -26,15 +28,13 @@ ml = pytest.importorskip("merlin_models.tf")
 @pytest.mark.parametrize(
     "normalization", [None, "batch_norm", tf.keras.layers.BatchNormalization()]
 )
-def test_mlp_block_yoochoose(
-    tabular_schema, tf_tabular_data, dim, activation, dropout, normalization
-):
-    inputs = ml.inputs(tabular_schema)
+def test_mlp_block_yoochoose(testing_data: SyntheticData, dim, activation, dropout, normalization):
+    inputs = ml.inputs(testing_data.schema)
 
     mlp = ml.MLPBlock([dim], activation=activation, dropout=dropout, normalization=normalization)
     body = ml.SequentialBlock([inputs, mlp])
 
-    outputs = body(tf_tabular_data)
+    outputs = body(testing_data.tf_tensor_dict)
 
     assert list(outputs.shape) == [100, dim]
     assert mlp.layers[0].units == dim

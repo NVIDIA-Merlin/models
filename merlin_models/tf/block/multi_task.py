@@ -19,7 +19,14 @@ import tensorflow as tf
 
 from merlin_standard_lib import Schema
 
-from ..core import Block, ParallelBlock, PredictionTask, TabularBlock, TabularTransformation
+from ..core import (
+    Block,
+    ParallelBlock,
+    ParallelPredictionBlock,
+    PredictionTask,
+    TabularBlock,
+    TabularTransformation,
+)
 from ..tabular.aggregation import StackFeatures
 from ..typing import TabularData
 
@@ -55,12 +62,14 @@ class MMOEGate(Block):
 
 
 def MMOEBlock(
-    outputs: Union[List[str], List[PredictionTask]],
+    outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
     expert_block: Block,
     num_experts: int,
     gate_dim: int = 32,
 ):
-    if all(isinstance(x, PredictionTask) for x in outputs):
+    if isinstance(outputs, ParallelPredictionBlock):
+        output_names = outputs.task_names
+    elif all(isinstance(x, PredictionTask) for x in outputs):
         output_names = [o.task_name for o in outputs]
     else:
         output_names = outputs
@@ -133,7 +142,7 @@ class CGCGateTransformation(TabularTransformation):
 class CGCBlock(ParallelBlock):
     def __init__(
         self,
-        outputs: Union[List[str], List[PredictionTask]],
+        outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
         expert_block: Union[Block, tf.keras.layers.Layer],
         num_task_experts: int = 1,
         num_shared_experts: int = 1,
@@ -145,7 +154,9 @@ class CGCBlock(ParallelBlock):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
 
-        if all(isinstance(x, PredictionTask) for x in outputs):
+        if isinstance(outputs, ParallelPredictionBlock):
+            output_names = outputs.task_names
+        elif all(isinstance(x, PredictionTask) for x in outputs):
             output_names = [o.task_name for o in outputs]
         else:
             output_names = outputs

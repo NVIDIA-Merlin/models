@@ -16,12 +16,14 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
+
 ml = pytest.importorskip("merlin_models.tf")
 
 
-def test_sequential_block_yoochoose(tabular_schema, tf_tabular_data):
-    body = ml.inputs(tabular_schema).connect(ml.MLPBlock([64]))
+def test_sequential_block_yoochoose(testing_data: SyntheticData):
+    body = ml.inputs(testing_data.schema).connect(ml.MLPBlock([64]))
 
-    outputs = body(tf_tabular_data)
+    outputs = body(testing_data.tf_tensor_dict)
 
     assert list(outputs.shape) == [100, 64]
