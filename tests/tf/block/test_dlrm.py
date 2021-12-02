@@ -58,10 +58,10 @@ def test_dlrm_block_single_categ_feature(testing_data):
 
 def test_dlrm_block_single_continuous_feature(testing_data):
     schema = testing_data.schema.select_by_name("event_hour_sin")
-    dlrm = tr.DLRMBlock(schema, bottom_block=tr.MLPBlock([64]), top_block=tr.MLPBlock([32]))
+    dlrm = tr.DLRMBlock(schema, bottom_block=tr.MLPBlock([64]), top_block=tr.MLPBlock([16]))
     outputs = dlrm(testing_data.tf_tensor_dict)
 
-    assert list(outputs.shape) == [100, 32]
+    assert list(outputs.shape) == [100, 16]
 
 
 def test_dlrm_block_no_schema():
