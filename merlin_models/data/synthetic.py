@@ -130,12 +130,7 @@ class SyntheticData:
 
     @property
     def dataframe(self) -> pd.DataFrame:
-        df = pd.read_parquet(self.data_path)
-
-        if self._num_rows:
-            df = df.iloc[: self._num_rows]
-
-        return df
+        return _read_data(self.data_path, num_rows=self._num_rows)
 
     def tf_dataloader(self, batch_size=50):
         # TODO: return tf NVTabular loader
@@ -399,3 +394,12 @@ def generate_random_list_feature(
                 feature.float_domain.max,
                 (num_interactions, list_length),
             ).tolist()
+
+
+def _read_data(path: str, num_rows: Optional[int] = None) -> pd.DataFrame:
+    df = pd.read_parquet(path)
+
+    if num_rows:
+        df = df.iloc[:num_rows]
+
+    return df

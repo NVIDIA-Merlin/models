@@ -13,30 +13,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from functools import lru_cache
 
 import pytest
 
-from merlin_models.data.synthetic import SyntheticData
+from merlin_models.data import synthetic
+
+# LRU-cache for reading data from disk
+synthetic._read_data = lru_cache(synthetic._read_data)
 
 
 @pytest.fixture
-def ecommerce_data() -> SyntheticData:
-    return SyntheticData("e-commerce", num_rows=100)
+def ecommerce_data() -> synthetic.SyntheticData:
+    return synthetic.SyntheticData("e-commerce", num_rows=100)
 
 
 @pytest.fixture
-def music_streaming_data() -> SyntheticData:
-    return SyntheticData("music_streaming", num_rows=100)
+def music_streaming_data() -> synthetic.SyntheticData:
+    return synthetic.SyntheticData("music_streaming", num_rows=100)
 
 
 @pytest.fixture
-def social_data() -> SyntheticData:
-    return SyntheticData("social", num_rows=100)
+def social_data() -> synthetic.SyntheticData:
+    return synthetic.SyntheticData("social", num_rows=100)
 
 
 @pytest.fixture
-def testing_data() -> SyntheticData:
-    data = SyntheticData("testing", num_rows=100)
+def testing_data() -> synthetic.SyntheticData:
+    data = synthetic.SyntheticData("testing", num_rows=100)
     data._schema = data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
 
     return data
