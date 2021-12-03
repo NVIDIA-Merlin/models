@@ -34,13 +34,8 @@ from merlin_standard_lib.utils.misc_utils import filter_kwargs
 
 from .typing import TabularData, TensorOrTabularData
 
-# from ..features.base import InputBlock
+from .utils.mixins import ContextMixin, LossMixin, MetricsMixin, ModelContext, ModelLikeBlock
 from .utils.tf_utils import (
-    ContextMixin,
-    LossMixin,
-    MetricsMixin,
-    ModelContext,
-    ModelLikeBlock,
     calculate_batch_size_from_input_shapes,
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
@@ -118,30 +113,39 @@ class Block(SchemaMixin, ContextMixin, Layer):
     def connect(
         self, *block: tf.keras.layers.Layer, block_name: Optional[str] = None
     ) -> "SequentialBlock":
-        if isinstance(self, SequentialBlock):
-            if isinstance(block, (list, tuple)):
-                self.layers.extend(block)
-            else:
-                self.layers.append(block)
-            if block_name:
-                self.block_name = block_name
+        for b in block:
+            if isinstance(b, Block):
+                b._set_context(self.context)
+                if not b.schema:
+                    b.schema = self.schema
 
-            output = self
-        elif len(block) == 1 and isinstance(block[0], SequentialBlock):
-            block: SequentialBlock = block[0]  # type: ignore
-            if isinstance(self, SequentialBlock):
-                block.layers = [*self.layers, *block.layers]
-            else:
-                block.layers = [self, *block.layers]
-            if block_name:
-                self.block_name = block_name
+        output = SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
 
-            if not block.schema:
-                block.schema = self.schema
 
-            output = block
-        else:
-            output = SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
+        # if isinstance(self, SequentialBlock):
+        #     if isinstance(block, (list, tuple)):
+        #         self.layers.extend(block)
+        #     else:
+        #         self.layers.append(block)
+        #     if block_name:
+        #         self.block_name = block_name
+        #
+        #     output = self
+        # elif len(block) == 1 and isinstance(block[0], SequentialBlock):
+        #     block: SequentialBlock = block[0]  # type: ignore
+        #     if isinstance(self, SequentialBlock):
+        #         block.layers = [*self.layers, *block.layers]
+        #     else:
+        #         block.layers = [self, *block.layers]
+        #     if block_name:
+        #         self.block_name = block_name
+        #
+        #     if not block.schema:
+        #         block.schema = self.schema
+        #
+        #     output = block
+        # else:
+        #     output = SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
 
         if isinstance(block[-1], ModelLikeBlock):
             return Model(output)
@@ -549,6 +553,19 @@ class SequentialBlock(Block):
 
 tabular_transformation_registry: Registry = Registry.class_registry("tf.tabular_transformations")
 tabular_aggregation_registry: Registry = Registry.class_registry("tf.tabular_aggregations")
+
+
+class FeaturesBlock(Block):
+    def build(self, input_shape):
+        self.context._feature_blocks.append(self)
+        return super().build(input_shape)
+
+    def compute_output_shape(self, input_shape):
+        return super().compute_output_shape(input_shape)
+
+    @abc.abstractmethod
+    def call_features(self, features: TabularData, training=None, **kwargs):
+        raise NotImplementedError()
 
 
 class TabularTransformation(
@@ -1162,6 +1179,9 @@ class Filter(TabularBlock):
         return outputs
 
     def compute_call_output_shape(self, input_shape):
+        if self.add_to_context:
+            return {}
+
         outputs = {k: v for k, v in input_shape.items() if self.check_feature(k)}
 
         return outputs
@@ -1246,6 +1266,9 @@ class ParallelBlock(TabularBlock):
                 f"dictionaries of layer. got: {inputs}"
             )
 
+        for block in self.parallel_values:
+            block._set_context(self.context)
+
         # Merge schemas if necessary.
         if not schema and all(getattr(m, "schema", False) for m in self.parallel_values):
             if len(self.parallel_values) == 1:
@@ -1272,7 +1295,7 @@ class ParallelBlock(TabularBlock):
 
     def _set_context(self, context: "ModelContext"):
         for layer in self.parallel_values:
-            if hasattr(self, "_set_context"):
+            if hasattr(layer, "_set_context"):
                 layer._set_context(context)
         super(ParallelBlock, self)._set_context(context)
 
@@ -1312,7 +1335,9 @@ class ParallelBlock(TabularBlock):
         else:
             for name, layer in self.parallel_dict.items():
                 out = layer(inputs)
-                if isinstance(out, dict):
+                if out == {}:
+                    continue
+                elif isinstance(out, dict):
                     outputs.update(out)
                 else:
                     outputs[name] = out
