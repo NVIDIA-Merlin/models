@@ -32,6 +32,7 @@ from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
 from .core import (
     AsTabular,
     Block,
+    FeaturesBlock,
     DualEncoderBlock,
     Filter,
     Model,
@@ -92,6 +93,7 @@ __all__ = [
     "Schema",
     "Tag",
     "Block",
+    "FeaturesBlock",
     "SequentialBlock",
     "ResidualBlock",
     "right_shift_layer",

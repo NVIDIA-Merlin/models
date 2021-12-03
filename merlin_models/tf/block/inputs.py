@@ -57,6 +57,7 @@ def TabularFeatures(
     add_to_context: List[Union[str, Tag]] = None,
 ) -> Block:
     branches = extra_branches or {}
+
     if continuous_tags:
         maybe_continuous_layer = continuous_module_cls.from_schema(
             schema,
@@ -72,11 +73,15 @@ def TabularFeatures(
             branches["categorical"] = maybe_categorical_layer
     if add_to_context:
         for item in add_to_context:
-            branches[str(item)] = Filter(item, add_to_context=True)
+            to_add = Filter(item, add_to_context=True)
+            if not isinstance(item, Schema):
+                to_add.set_schema(schema)
+            branches[str(item)] = to_add
 
     if continuous_projection:
         output = ContinuousEmbedding(ParallelBlock(branches), continuous_projection)
     else:
         output = ParallelBlock(branches, aggregation=aggregation)
+        output.add_branch("context", output.context)
 
     return output
