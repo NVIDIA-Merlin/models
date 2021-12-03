@@ -174,10 +174,32 @@ class ContinuousPowers(TabularTransformation):
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ExpandDims(TabularTransformation):
     """
-    Expand dims of selected input tensors
+    Expand dims of selected input tensors.
+    Example::
+
+        inputs = {
+            "cont_feat1": tf.random.uniform((NUM_ROWS,)),
+            "cont_feat2": tf.random.uniform((NUM_ROWS,)),
+            "multi_hot_categ_feat": tf.random.uniform(
+                (NUM_ROWS, 4), minval=1, maxval=100, dtype=tf.int32
+            ),
+        }
+
+        expand_dims_op = tr.ExpandDims(expand_dims={"cont_feat2": 0, "multi_hot_categ_feat": 1})
+        expanded_inputs = expand_dims_op(inputs)
     """
 
     def __init__(self, expand_dims: Union[int, Dict[str, int]] = -1, **kwargs):
+        """Instantiates the `ExpandDims` transformation, which allows to expand dims
+        of the input tensors
+
+        Parameters
+        ----------
+        expand_dims : Union[int, Dict[str, int]], optional, by default -1
+            Defines which dimensions should be expanded. If an `int` is provided, all input tensors
+            will have the same dimension expanded. If a `dict` is passed, only features matching
+            the dict keys will be expanded, in the dimension specified as the dict values.
+        """
         super().__init__(**kwargs)
         self.inputs_expand_dims = expand_dims
 
