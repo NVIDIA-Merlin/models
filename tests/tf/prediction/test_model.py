@@ -50,18 +50,16 @@ def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
     )
 
 
-#
-#
-# @pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
-# def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly=True):
-#     from merlin_models.tf.utils import testing_utils
-#
-#     body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
-#
-#     dataset = ecommerce_data.tf_dataloader(batch_size=50)
-#     model = testing_utils.assert_model_saved(body, prediction_task("click"), run_eagerly, dataset)
-#
-#     losses = model.fit(dataset, epochs=1)
-#
-#     assert len(losses.epoch) == 1
-#     assert all(0 <= loss <= 1 for loss in losses.history["loss"])
+@pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
+def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly=True):
+    from merlin_models.tf.utils import testing_utils
+
+    body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+
+    dataset = ecommerce_data.tf_dataloader(batch_size=50)
+    model = testing_utils.assert_model_saved(body, prediction_task("click"), run_eagerly, dataset)
+
+    losses = model.fit(dataset, epochs=1)
+
+    assert len(losses.epoch) == 1
+    assert all(0 <= loss <= 1 for loss in losses.history["loss"])

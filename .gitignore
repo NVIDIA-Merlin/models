@@ -6,9 +6,6 @@
 
 cache/*
 data*/*
-*.parquet
-*.orc
-*.csv
 
 
 # Byte-compiled / optimized / DLL files

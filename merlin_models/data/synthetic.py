@@ -41,8 +41,10 @@ def _read_data(path: str, num_rows: Optional[int] = None) -> pd.DataFrame:
 
 class SyntheticData:
     DATASETS = {
-        "ecommerce": HERE / "ecommerce",
-        "e-commerce": HERE / "ecommerce",
+        "ecommerce": HERE / "ecommerce/small",
+        "e-commerce": HERE / "ecommerce/small",
+        "ecommerce-large": HERE / "ecommerce/large",
+        "e-commerce-large": HERE / "ecommerce/large",
         "music_streaming": HERE / "music_streaming",
         "music-streaming": HERE / "music_streaming",
         "social": HERE / "social",
