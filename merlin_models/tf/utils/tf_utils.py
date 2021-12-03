@@ -13,11 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Union
-
 import tensorflow as tf
-
-from merlin_models.tf.typing import TabularData
 
 
 def get_output_sizes_from_schema(schema, batch_size=0, max_sequence_length=None):
@@ -107,17 +103,3 @@ def gather_torch_like(labels, indices, max_k):
         )
     all_indices = tf.concat(gather_indices, 0)
     return tf.reshape(tf.gather_nd(labels, all_indices), indices.shape)
-
-
-def batch_ref(inputs: Union[tf.Tensor, TabularData]):
-    """Get hash-code of a tensor or a dictionary of tensors."""
-
-    if isinstance(inputs, tf.Tensor):
-        return hash(inputs.ref())
-
-    refs = []
-    keys = sorted(inputs.keys())
-    for key in keys:
-        refs.append(inputs[key].ref())
-
-    return hash(tuple(refs))
