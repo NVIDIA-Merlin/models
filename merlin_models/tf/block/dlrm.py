@@ -18,10 +18,10 @@ from typing import Optional
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import Block, Filter, ParallelBlock, SequentialBlock, TabularBlock, inputs
+from ..core import Block, Filter, SequentialBlock, TabularBlock, merge
+from ..features.continuous import ContinuousFeatures
+from ..features.embedding import EmbeddingFeatures
 from ..layers import DotProductInteraction
-from ..tabular.transformations import ExpandDims
-from .inputs import ContinuousEmbedding
 
 
 def DLRMBlock(
@@ -40,35 +40,29 @@ def DLRMBlock(
             "last layer of bottom MLP ({bottom_block.layers[-1].units})"
         )
 
-    embedding_dim = embedding_dim or bottom_block.layers[-1].units
-
-    embeddings_by_type = {}
-    categ_features_schema = schema.select_by_tag(Tag.CATEGORICAL)
-    if len(categ_features_schema) > 0:
-        categ_embeddings = inputs(
-            categ_features_schema, embedding_dim_default=embedding_dim, aggregation="stack"
-        )
-        embeddings_by_type["categorical"] = categ_embeddings
-
-    continuous_features_schema = schema.select_by_tag(Tag.CONTINUOUS)
-    if len(continuous_features_schema) > 0:
-
-        continuous_embedding = ContinuousEmbedding(
-            inputs(continuous_features_schema), embedding_block=bottom_block
-        )
-        embeddings_by_type["continuous"] = continuous_embedding
-
-    embeddings_by_type_block = ParallelBlock(embeddings_by_type)
-
-    fm_interaction_layer = TabularBlock(
-        pre=ExpandDims(expand_dims={"continuous": -1}), aggregation="concat"
-    ).connect(DotProductInteraction())
-
-    dlrm = embeddings_by_type_block.connect_with_shortcut(
-        fm_interaction_layer, shortcut_filter=Filter("continuous"), aggregation="concat"
+    con_schema, cat_schema = schema.select_by_tag(Tag.CONTINUOUS), schema.select_by_tag(
+        Tag.CATEGORICAL
     )
 
-    if top_block:
-        dlrm = dlrm.connect(top_block)
+    inputs = {}
+    if len(con_schema) > 0:
+        inputs["continuous"] = ContinuousFeatures.from_schema(con_schema).connect(bottom_block)
 
-    return dlrm
+    if len(cat_schema) > 0:
+        embedding_dim = embedding_dim or bottom_block.layers[-1].units
+        inputs["categorical"] = EmbeddingFeatures.from_schema(
+            cat_schema, embedding_dim_default=embedding_dim
+        )
+
+    if not top_block:
+        return merge(inputs, aggregation="stack").connect(DotProductInteraction())
+
+    dot_product = TabularBlock(aggregation="stack").connect(DotProductInteraction())
+    top_block_inputs = (
+        merge(inputs)
+        .connect_with_shortcut(
+            dot_product, shortcut_filter=Filter("continuous"), aggregation="concat"
+        )
+        .connect(top_block)
+    )
+    return top_block_inputs
