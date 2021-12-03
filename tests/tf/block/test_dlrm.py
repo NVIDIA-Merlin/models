@@ -74,3 +74,9 @@ def test_dlrm_block_no_bottom_block(tabular_schema):
     with pytest.raises(ValueError) as excinfo:
         tr.DLRMBlock(schema=tabular_schema, bottom_block=None)
     assert "The bottom_block is required by DLRM" in str(excinfo.value)
+
+
+def test_dlrm_emb_dim_do_not_match_bottom_mlp(tabular_schema):
+    with pytest.raises(ValueError) as excinfo:
+        tr.DLRMBlock(schema=tabular_schema, bottom_block=tr.MLPBlock([64]), embedding_dim=75)
+    assert "needs to match the last layer of bottom MLP" in str(excinfo.value)

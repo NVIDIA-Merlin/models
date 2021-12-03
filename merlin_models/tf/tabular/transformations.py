@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
+from typing import Dict, Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
@@ -169,3 +169,33 @@ class ContinuousPowers(TabularTransformation):
                 output_shape[f"{key}_squared"] = val
 
         return output_shape
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ExpandDims(TabularTransformation):
+    """
+    Expand dims of selected input tensors
+    """
+
+    def __init__(self, expand_dims: Union[int, Dict[str, int]] = -1, **kwargs):
+        super().__init__(**kwargs)
+        self.inputs_expand_dims = expand_dims
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+
+        for k, v in inputs.items():
+            if isinstance(self.inputs_expand_dims, int):
+                outputs[k] = tf.expand_dims(v, self.inputs_expand_dims)
+            elif isinstance(self.inputs_expand_dims, dict) and k in self.inputs_expand_dims:
+                expand_dim = self.inputs_expand_dims[k]
+                outputs[k] = tf.expand_dims(v, expand_dim)
+            elif self.inputs_expand_dims:
+                outputs[k] = v
+            else:
+                raise ValueError("The expand_dims argument is not valid")
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
