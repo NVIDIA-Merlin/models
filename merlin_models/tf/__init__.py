@@ -71,8 +71,8 @@ from .prediction.classification import BinaryClassificationTask, MultiClassClass
 from .prediction.item_prediction import (
     ExtraNegativeSampling,
     InBatchNegativeSampling,
-    ItemRetrievalTask,
     SampledItemPredictionTask,
+    item_retrieval_task,
 )
 
 # from .prediction.multi_task import MMOEHead, PLEHead
@@ -133,7 +133,7 @@ __all__ = [
     "MultiClassClassificationTask",
     "RegressionTask",
     "SampledItemPredictionTask",
-    "ItemRetrievalTask",
+    "item_retrieval_task",
     "InBatchNegativeSampling",
     "ExtraNegativeSampling",
     "Model",
