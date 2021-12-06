@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import abc
-from typing import List, Optional, Union
+from typing import Optional
 
 import tensorflow as tf
 from tensorflow.python.keras.layers import Dot
@@ -62,8 +62,6 @@ def TwoTowerBlock(
     item_tower: Optional[Block] = None,
     query_tower_tag=Tag.USER,
     item_tower_tag=Tag.ITEM,
-    add_to_query_context: List[Union[str, Tag]] = None,
-    add_to_item_context: List[Union[str, Tag]] = None,
     embedding_dim_default: Optional[int] = 64,
     post: Optional[TabularTransformationsType] = None,
     # negative_memory_bank=None,
@@ -75,14 +73,12 @@ def TwoTowerBlock(
         _item_tower = TabularFeatures(
             item_schema,
             embedding_dim_default=embedding_dim_default,
-            add_to_context=add_to_item_context,
         ).connect(_item_tower)
     if not getattr(query_tower, "inputs", None):
         query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
         query_tower = TabularFeatures(
             query_schema,
             embedding_dim_default=embedding_dim_default,
-            add_to_context=add_to_query_context,
         ).connect(query_tower)
 
     two_tower = ParallelBlock({"query": query_tower, "item": _item_tower}, post=post, **kwargs)
