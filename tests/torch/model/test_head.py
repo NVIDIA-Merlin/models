@@ -36,14 +36,14 @@ def test_simple_heads(torch_tabular_features, torch_tabular_data, task):
 @pytest.mark.parametrize("task", [tr.BinaryClassificationTask, tr.RegressionTask])
 @pytest.mark.parametrize("task_block", [None, tr.MLPBlock([32]), tr.MLPBlock([32]).build([-1, 64])])
 # @pytest.mark.parametrize("summary", ["last", "first", "mean", "cls_index"])
-def test_simple_heads_on_sequence(torch_tabular_features, torch_yoochoose_like, task, task_block):
+def test_simple_heads_on_sequence(torch_tabular_features, torch_tabular_data, task, task_block):
     inputs = torch_tabular_features
     targets = {"target": pytorch.randint(2, (100,)).float()}
 
     body = tr.SequentialBlock(inputs, tr.MLPBlock([64]))
     head = task("target", task_block=task_block).to_head(body, inputs)
 
-    body_out = body(torch_yoochoose_like)
+    body_out = body(torch_tabular_data)
     loss = head.compute_loss(body_out, targets)
 
     assert loss.min() >= 0 and loss.max() <= 1

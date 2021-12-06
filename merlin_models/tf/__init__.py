@@ -22,6 +22,7 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 from merlin_standard_lib import Schema, Tag
 
 from .. import data
+from ..data.synthetic import SyntheticData
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
 from .block.inputs import ContinuousEmbedding
@@ -133,4 +134,5 @@ __all__ = [
     "StochasticSwapNoise",
     "NoOp",
     "data",
+    "SyntheticData",
 ]

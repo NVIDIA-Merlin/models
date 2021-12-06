@@ -13,33 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# from functools import lru_cache
 
 import pytest
 
-from merlin_models.data import SyntheticDataset
-from merlin_standard_lib import Schema
+from merlin_models.data.synthetic import SyntheticData, _read_data
 
-tabular_testing_data = SyntheticDataset.create_testing_data()
-
-
-@pytest.fixture
-def tabular_data_file() -> str:
-    return tabular_testing_data.path
+read_data = _read_data
 
 
 @pytest.fixture
-def tabular_schema_file() -> str:
-    return tabular_testing_data.schema_path
+def ecommerce_data() -> SyntheticData:
+    return SyntheticData("e-commerce", num_rows=100, read_data_fn=read_data)
 
 
 @pytest.fixture
-def tabular_schema() -> Schema:
-    return tabular_testing_data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
+def music_streaming_data() -> SyntheticData:
+    return SyntheticData("music_streaming", num_rows=100, read_data_fn=read_data)
 
 
 @pytest.fixture
-def yoochoose_schema() -> Schema:
-    return tabular_testing_data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
+def social_data() -> SyntheticData:
+    return SyntheticData("social", num_rows=100, read_data_fn=read_data)
+
+
+@pytest.fixture
+def testing_data() -> SyntheticData:
+    data = SyntheticData("testing", num_rows=100, read_data_fn=read_data)
+    data._schema = data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
+
+    return data
 
 
 try:
