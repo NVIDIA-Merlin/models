@@ -71,7 +71,7 @@ def test_embedding_features_yoochoose_model(testing_data: SyntheticData, run_eag
     inputs = ml.EmbeddingFeatures.from_schema(schema, aggregation="concat")
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
-    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, body, run_eagerly)
+    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)
 
 
 def test_embedding_features_yoochoose_custom_dims(testing_data: SyntheticData):

@@ -54,4 +54,4 @@ def test_continuous_features_yoochoose_model(testing_data: SyntheticData, run_ea
     inputs = ml.ContinuousFeatures.from_schema(schema, aggregation="concat")
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
-    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, body, run_eagerly)
+    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)

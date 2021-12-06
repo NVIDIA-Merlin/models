@@ -35,24 +35,20 @@ def mark_run_eagerly_modes(*args, **kwargs):
     return pytest.mark.parametrize("run_eagerly", modes)(*args, **kwargs)
 
 
-def assert_body_works_in_model(data, body, num_epochs=2, run_eagerly=True):
+def assert_body_works_in_model(data, inputs, body, run_eagerly, num_epochs=5):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
     model = body.connect(tr.BinaryClassificationTask("target"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses, metrics = train_and_eval_model(data, targets, model, epochs=num_epochs, batch_size=50)
+    dataset = tf.data.Dataset.from_tensor_slices((data, targets)).batch(50)
+
+    losses = model.fit(dataset, epochs=num_epochs)
+    metrics = model.evaluate(data, targets, return_dict=True)
 
     assert_binary_classification_loss_metrics(
         losses, metrics, target_name="target", num_epochs=num_epochs
     )
-
-
-def train_and_eval_model(data, targets, model, epochs=5, batch_size=50):
-    dataset = tf.data.Dataset.from_tensor_slices((data, targets)).batch(batch_size)
-    losses = model.fit(dataset, epochs=epochs)
-    metrics = model.evaluate(data, targets, return_dict=True)
-    return losses, metrics
 
 
 def assert_binary_classification_loss_metrics(losses, metrics, target_name, num_epochs):
@@ -74,7 +70,7 @@ def assert_binary_classification_loss_metrics(losses, metrics, target_name, num_
         assert type(losses.history[metric]) is list
         assert len(losses.history[metric]) == num_epochs
 
-    assert all(0 <= measure <= 1 for metric in losses.history for measure in losses.history[metric])
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
 
 def assert_regression_loss_metrics(losses, metrics, target_name, num_epochs):
