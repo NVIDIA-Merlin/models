@@ -90,7 +90,9 @@ class Softmax(PredictionBlock):
         return super().build(input_shape)
 
     def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        return self.output_layer(inputs), targets
+        logits = self.output_layer(inputs)
+        predictions = tf.nn.log_softmax(logits, axis=-1)
+        return predictions, targets
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.num_classes,)
@@ -98,7 +100,7 @@ class Softmax(PredictionBlock):
 
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
-    DEFAULT_METRICS = ()
+    DEFAULT_METRICS = {"ranking": (), "multi-class": ()}
 
     def __init__(
         self,
@@ -106,11 +108,12 @@ class MultiClassClassificationTask(PredictionTask):
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         loss=DEFAULT_LOSS,
-        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
+        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS["multi-class"],
         pre_call: Optional[PredictionBlock] = None,
         pre_loss: Optional[PredictionBlock] = None,
         **kwargs,
     ):
+
         super().__init__(
             metrics=list(metrics),
             target_name=target_name,
