@@ -35,6 +35,7 @@ from merlin_standard_lib.utils.misc_utils import filter_kwargs
 from .typing import TabularData, TensorOrTabularData
 from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from .utils.tf_utils import (
+    batch_ref,
     calculate_batch_size_from_input_shapes,
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
@@ -47,26 +48,16 @@ class BlockContext(Layer):
         super().__init__(**kwargs)
         self._shared_variables: Dict[str, tf.Variable] = {}
         self._feature_blocks = []
-        self._current_batch = None
+        self._current_batch_ref = None
 
     def call(self, inputs, training=None, **kwargs):
-        if self.batch_ref(inputs) != self._current_batch:
+        ref = batch_ref(inputs)
+        if ref != self._current_batch_ref:
             for block in self._feature_blocks:
                 block.call_features(inputs, training=training)
-            self._current_batch = self.batch_ref(inputs)
+            self._current_batch_ref = ref
 
         return {}
-
-    def batch_ref(self, inputs):
-        if isinstance(inputs, tf.Tensor):
-            return hash(inputs.ref())
-
-        refs = []
-        keys = sorted(inputs.keys())
-        for key in keys:
-            refs.append(inputs[key].ref())
-
-        return hash(tuple(refs))
 
     def add_features_block(self, block):
         self._feature_blocks.append(block)
