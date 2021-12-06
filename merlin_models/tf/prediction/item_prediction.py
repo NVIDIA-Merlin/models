@@ -160,29 +160,39 @@ def item_retrieval_task(
     task_name: Optional[str] = None,
     task_block: Optional[Layer] = None,
     softmax_temperature: float = 1,
-    normalize=True,
+    normalize: bool = True,
 ):
     """
-    Function to create ItemRetrieval task with the right parameters.
+    Function to create the ItemRetrieval task with the right parameters.
 
-    Args:
-        loss ([type], optional): [description].
-        Defaults to tf.keras.losses.CategoricalCrossentropy().
-        metrics ([type], optional): [description].
-        Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
-        target_name (Optional[str], optional): [description].
-        Defaults to None.
-        task_name (Optional[str], optional): [description].
-        Defaults to None.
-        task_block (Optional[Layer], optional): [description].
-        Defaults to None.
-        softmax_temperature (float, optional): [description].
-        Defaults to 1.
-        normalize (bool, optional): [description].
-        Defaults to True.
+    Parameters
+    ----------
+        loss: tf.keras.losses.Loss
+            Loss function.
+            Defaults to `tf.keras.losses.CategoricalCrossentropy()`.
+        metrics: Sequence[MetricOrMetricClass]
+            List of top-k ranking metrics.
+            Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
+        target_name: Optional[str]
+            If specified, name of the target tensor to retrieve from dataloader.
+            Defaults to None.
+        task_name: Optional[str]
+            name of the task.
+            Defaults to None.
+        task_block: Block
+            The `Block` that applies additional layers op to inputs.
+            Defaults to None.
+        softmax_temperature: float
+            Parameter used to reduce model overconfidence, so that softmax(logits / T).
+            Defaults to 1.
+        normalize: bool
+            Apply L2 normalization before computing dot interactions.
+            Defaults to True.
 
-    Returns:
-        [type]: [description]
+    Returns
+    -------
+        PredictionTask
+            The item retrieval prediction task
     """
     pre_call = InBatchNegativeSampling()
 
