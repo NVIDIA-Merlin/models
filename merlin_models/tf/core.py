@@ -71,9 +71,6 @@ class BlockContext(Layer):
     def add_features_block(self, block):
         self._feature_blocks.append(block)
 
-    def features_block_callback(self, block):
-        self._feature_blocks_needs_features[block] = True
-
     def register_variable(self, name: str, variable: tf.Variable):
         self._shared_variables[name] = variable
 
@@ -371,7 +368,6 @@ def inputs(
     post: Optional["TabularTransformationType"] = None,
     aggregation: Optional["TabularAggregationType"] = None,
     seq: bool = False,
-    add_to_context: List[Union[str, Tag]] = None,
     **kwargs,
 ) -> "Block":
     if seq:
@@ -383,9 +379,7 @@ def inputs(
     else:
         from merlin_models.tf.block.inputs import TabularFeatures
 
-        inp_block = TabularFeatures(
-            schema, aggregation=aggregation, add_to_context=add_to_context, **kwargs
-        )
+        inp_block = TabularFeatures(schema, aggregation=aggregation, **kwargs)
 
     if not block:
         return inp_block
