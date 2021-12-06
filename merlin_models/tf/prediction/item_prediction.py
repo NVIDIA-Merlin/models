@@ -198,7 +198,7 @@ def item_retrieval_task(
     )
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin-models")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemPredictionTask(PredictionTask):
     DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
     DEFAULT_METRICS = ()
@@ -291,7 +291,7 @@ class ItemPredictionTask(PredictionTask):
         return results
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin-models")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SampledItemPredictionTask(ItemPredictionTask):
     def __init__(
         self,
