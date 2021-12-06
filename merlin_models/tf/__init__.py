@@ -68,7 +68,12 @@ from .tabular.aggregation import (
     ElementwiseSumItemMulti,
     StackFeatures,
 )
-from .tabular.transformations import AsDenseFeatures, AsSparseFeatures, StochasticSwapNoise
+from .tabular.transformations import (
+    AsDenseFeatures,
+    AsSparseFeatures,
+    ExpandDims,
+    StochasticSwapNoise,
+)
 from .utils import repr_utils
 
 Tag.__hash__ = lambda self: hash(str(self))
@@ -132,6 +137,7 @@ __all__ = [
     "prediction_tasks",
     "merge",
     "StochasticSwapNoise",
+    "ExpandDims",
     "NoOp",
     "data",
     "SyntheticData",
