@@ -36,7 +36,7 @@ from merlin_models.loader.dispatch import (
     _pull_apart_list,
     annotate,
 )
-from merlin_models.loader.tags import Tags
+from merlin_standard_lib.schema.tag import Tag as Tags
 from merlin_models.loader.dataframe_iter import DataFrameIter
 from merlin_models.loader.shuffle import _shuffle_df
 
