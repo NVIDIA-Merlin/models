@@ -1,7 +1,6 @@
 import pytest
 
 from merlin_models.data.synthetic import SyntheticData
-from merlin_standard_lib import Tag
 
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
@@ -20,11 +19,7 @@ class DummyFeaturesBlock(ml.FeaturesBlock):
         return input_shape
 
 
-@pytest.mark.parametrize("add_to_context", [
-    ["position"],
-    # [Tag.ITEM_ID, "position"]
-])
-def test_model_context(ecommerce_data: SyntheticData, add_to_context):
+def test_block_context(ecommerce_data: SyntheticData):
     inputs = ml.inputs(ecommerce_data.schema)
     model = inputs.connect(ml.MLPBlock([64]), DummyFeaturesBlock())
 
