@@ -78,7 +78,7 @@ class BlockContext(Layer):
         self._shared_variables[name] = variable
 
     @property
-    def variables(self) -> Dict[str, tf.Variable]:
+    def shared_variables(self) -> Dict[str, tf.Variable]:
         return self._shared_variables
 
     @property
@@ -1409,9 +1409,7 @@ class ParallelBlock(TabularBlock):
         else:
             for name, layer in self.parallel_dict.items():
                 out = layer(inputs)
-                if out == {}:
-                    continue
-                elif isinstance(out, dict):
+                if isinstance(out, dict):
                     outputs.update(out)
                 else:
                     outputs[name] = out
