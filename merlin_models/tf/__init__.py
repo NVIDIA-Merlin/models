@@ -32,7 +32,6 @@ from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
 from .core import (
     AsTabular,
     Block,
-    FeaturesBlock,
     DualEncoderBlock,
     FeaturesBlock,
     Filter,
