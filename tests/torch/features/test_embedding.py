@@ -75,11 +75,11 @@ def test_table_config_invalid_embedding_initializer():
     assert "initializer must be callable if specified" in str(excinfo.value)
 
 
-def test_embedding_features_yoochoose(yoochoose_schema, torch_yoochoose_like):
-    schema = yoochoose_schema.select_by_tag(Tag.CATEGORICAL)
+def test_embedding_features_yoochoose(tabular_schema, torch_tabular_data):
+    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
 
     emb_module = tr.EmbeddingFeatures.from_schema(schema)
-    embeddings = emb_module(torch_yoochoose_like)
+    embeddings = emb_module(torch_tabular_data)
 
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
     assert all(emb.shape[-1] == 64 for emb in embeddings.values())
@@ -89,8 +89,8 @@ def test_embedding_features_yoochoose(yoochoose_schema, torch_yoochoose_like):
     assert emb_module.item_embedding_table.num_embeddings == max_value + 1
 
 
-def test_embedding_features_yoochoose_custom_dims(yoochoose_schema, torch_yoochoose_like):
-    schema = yoochoose_schema.select_by_tag(Tag.CATEGORICAL)
+def test_embedding_features_yoochoose_custom_dims(tabular_schema, torch_tabular_data):
+    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
 
     emb_module = tr.EmbeddingFeatures.from_schema(
         schema, embedding_dims={"item_id": 100}, embedding_dim_default=64
@@ -99,14 +99,14 @@ def test_embedding_features_yoochoose_custom_dims(yoochoose_schema, torch_yoocho
     assert emb_module.embedding_tables["item_id"].weight.shape[1] == 100
     assert emb_module.embedding_tables["categories"].weight.shape[1] == 64
 
-    embeddings = emb_module(torch_yoochoose_like)
+    embeddings = emb_module(torch_tabular_data)
 
     assert embeddings["item_id"].shape[1] == 100
     assert embeddings["categories"].shape[1] == 64
 
 
-def test_embedding_features_yoochoose_infer_embedding_sizes(yoochoose_schema, torch_yoochoose_like):
-    schema = yoochoose_schema.select_by_tag(Tag.CATEGORICAL)
+def test_embedding_features_yoochoose_infer_embedding_sizes(tabular_schema, torch_tabular_data):
+    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
 
     emb_module = tr.EmbeddingFeatures.from_schema(
         schema, infer_embedding_sizes=True, infer_embedding_sizes_multiplier=3.0
@@ -115,20 +115,20 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(yoochoose_schema, to
     assert emb_module.embedding_tables["item_id"].weight.shape[1] == 46
     assert emb_module.embedding_tables["categories"].weight.shape[1] == 13
 
-    embeddings = emb_module(torch_yoochoose_like)
+    embeddings = emb_module(torch_tabular_data)
 
     assert embeddings["item_id"].shape[1] == 46
     assert embeddings["categories"].shape[1] == 13
 
 
-def test_embedding_features_yoochoose_custom_initializers(yoochoose_schema, torch_yoochoose_like):
+def test_embedding_features_yoochoose_custom_initializers(tabular_schema, torch_tabular_data):
     ITEM_MEAN = 1.0
     ITEM_STD = 0.05
 
     CATEGORY_MEAN = 2.0
     CATEGORY_STD = 0.1
 
-    schema = yoochoose_schema.select_by_tag(Tag.CATEGORICAL)
+    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
     emb_module = tr.EmbeddingFeatures.from_schema(
         schema,
         layer_norm=False,
@@ -138,7 +138,7 @@ def test_embedding_features_yoochoose_custom_initializers(yoochoose_schema, torc
         },
     )
 
-    embeddings = emb_module(torch_yoochoose_like)
+    embeddings = emb_module(torch_tabular_data)
 
     assert embeddings["item_id"].detach().numpy().mean() == pytest.approx(ITEM_MEAN, abs=0.1)
     assert embeddings["item_id"].detach().numpy().std() == pytest.approx(ITEM_STD, abs=0.1)

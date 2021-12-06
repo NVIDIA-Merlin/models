@@ -388,7 +388,7 @@ class Schema(_Schema):
 
     def from_json(self, value: Union[str, bytes]) -> "Schema":
         if os.path.isfile(value):
-            with open(value, "rb") as f:
+            with open(value, "r") as f:
                 value = f.read()
 
         return super().from_json(value)

@@ -16,11 +16,15 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
+
 tr = pytest.importorskip("merlin_models.tf")
 
 
-def test_dlrm_block_yoochoose(tabular_schema, tf_tabular_data):
-    dlrm = tr.DLRMBlock(tabular_schema, bottom_block=tr.MLPBlock([64]), top_block=tr.MLPBlock([64]))
-    outputs = dlrm(tf_tabular_data)
+def test_dlrm_block_yoochoose(testing_data: SyntheticData):
+    dlrm = tr.DLRMBlock(
+        testing_data.schema, bottom_block=tr.MLPBlock([64]), top_block=tr.MLPBlock([64])
+    )
+    outputs = dlrm(testing_data.tf_tensor_dict)
 
     assert list(outputs.shape) == [100, 64]

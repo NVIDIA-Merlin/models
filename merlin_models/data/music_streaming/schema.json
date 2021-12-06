@@ -167,10 +167,10 @@
       }
     },
     {
-      "name": "play",
+      "name": "play_percentage",
       "annotation": {
         "tag": [
-          "binary_classification",
+          "regression",
           "target"
         ]
       }

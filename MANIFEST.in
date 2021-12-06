@@ -1,0 +1,33 @@
+
+
+include *.md
+include *.yaml
+include *.ini
+
+recursive-include _images *.png
+recursive-exclude docs *
+recursive-exclude docs *.ipynb
+exclude docs/source/_images
+
+recursive-include requirements *.txt
+
+recursive-exclude tests *.coveragerc
+recursive-include tests *.parquet
+recursive-include tests *.pbtxt
+recursive-include tests *.py
+
+recursive-include merlin_models *.parquet *.json *.py *.typed
+
+
+# Ignore notebooks & examples
+recursive-exclude examples *
+exclude examples
+
+# Ignore build related things
+recursive-exclude .github *
+exclude .github
+recursive-exclude ci *
+exclude ci
+exclude .pylintrc
+include merlin_models/_version.py
+include versioneer.py

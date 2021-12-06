@@ -51,9 +51,12 @@ def assert_body_works_in_model(data, inputs, body, run_eagerly):
     assert len(losses.history["loss"]) == 5
 
 
-def assert_loss_and_metrics_are_valid(input, inputs, targets, call_body=True, training=True):
-    predictions = input(inputs, training=training)
-    loss = input.compute_loss(predictions, targets, call_body=call_body, training=training)
+def assert_loss_and_metrics_are_valid(
+    loss_block, features_and_targets, call_body=True, training=True
+):
+    features, targets = features_and_targets
+    predictions = loss_block(features, training=training)
+    loss = loss_block.compute_loss(predictions, targets, call_body=call_body, training=training)
     # metrics = input.metric_results()
 
     assert loss is not None
