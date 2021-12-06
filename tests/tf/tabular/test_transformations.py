@@ -121,7 +121,7 @@ def test_expand_dims_same_axis():
         ),
     }
 
-    expand_dims_op = tr.ExpandDims(expand_dims=-1)
+    expand_dims_op = ml.ExpandDims(expand_dims=-1)
     expanded_inputs = expand_dims_op(inputs)
 
     assert inputs.keys() == expanded_inputs.keys()
@@ -142,7 +142,7 @@ def test_expand_dims_axis_as_dict():
         ),
     }
 
-    expand_dims_op = tr.ExpandDims(expand_dims={"cont_feat2": 0, "multi_hot_categ_feat": 1})
+    expand_dims_op = ml.ExpandDims(expand_dims={"cont_feat2": 0, "multi_hot_categ_feat": 1})
     expanded_inputs = expand_dims_op(inputs)
 
     assert inputs.keys() == expanded_inputs.keys()
