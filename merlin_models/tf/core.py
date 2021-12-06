@@ -2082,6 +2082,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 targets = None
 
             predictions = self(inputs, training=True)
+            if isinstance(predictions, tuple):
+                predictions, targets = predictions
             loss = self.compute_loss(predictions, targets, training=True)
 
             # Handle regularization losses as well.
@@ -2108,6 +2110,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             targets = None
 
         predictions = self(inputs, training=True)
+        if isinstance(predictions, tuple):
+            predictions, targets = predictions
         loss = self.compute_loss(predictions, targets, training=False)
 
         # Handle regularization losses as well.

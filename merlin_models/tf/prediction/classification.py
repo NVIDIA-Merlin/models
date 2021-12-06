@@ -98,7 +98,7 @@ class Softmax(Block):
 
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
-    DEFAULT_METRICS = ()
+    DEFAULT_METRICS = {"ranking": (), "multi-class": ()}
 
     def __init__(
         self,
@@ -110,6 +110,7 @@ class MultiClassClassificationTask(PredictionTask):
         pre: Optional[Block] = None,
         **kwargs,
     ):
+
         super().__init__(
             metrics=list(metrics),
             target_name=target_name,

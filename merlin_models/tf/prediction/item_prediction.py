@@ -23,6 +23,8 @@ from tensorflow.python.layers.base import Layer
 from merlin_models.tf.core import Block, PredictionTask, Sampler
 from merlin_standard_lib import Schema, Tag
 
+from .classification import MultiClassClassificationTask
+
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
 class SamplingBiasCorrection(Block):
@@ -58,7 +60,6 @@ class ItemSoftmaxWeightTying(Block):
         self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
 
     def build(self, input_shape):
-        self.output_layer_kernel = self.context.get_embedding(Tag.ITEM_ID)
         self.bias = self.add_weight(
             name="output_layer_bias",
             shape=(self.num_classes,),
@@ -67,7 +68,8 @@ class ItemSoftmaxWeightTying(Block):
         return super().build(input_shape)
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        logits = tf.matmul(inputs, self.output_layer_kernel, transpose_b=True)
+        embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+        logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
         predictions = tf.nn.log_softmax(logits, axis=-1)
@@ -128,12 +130,76 @@ class ExtraNegativeSampling(Block):
         return targets
 
 
+class RetrieavalL2Norm(Block):
+    def __init__(self, **kwargs):
+        super(RetrieavalL2Norm, self).__init__(**kwargs)
+
+    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+        inputs = {key: tf.linalg.l2_normalize(inp, axis=1) for key, inp in inputs.items()}
+
+        return inputs, targets
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
 # TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
 class LabelAwareAttention(Block):
     def predict(
         self, predictions, targets=None, training=True, **kwargs
     ) -> Tuple[tf.Tensor, tf.Tensor]:
         raise NotImplementedError("TODO")
+
+
+def item_retrieval_task(
+    loss=tf.keras.losses.CategoricalCrossentropy(
+        from_logits=True, reduction=tf.keras.losses.Reduction.SUM
+    ),
+    metrics=MultiClassClassificationTask.DEFAULT_METRICS["ranking"],
+    target_name: Optional[str] = None,
+    task_name: Optional[str] = None,
+    task_block: Optional[Layer] = None,
+    softmax_temperature: float = 1,
+    normalize=True,
+):
+    """
+    Function to create ItemRetrieval task with the right parameters.
+
+    Args:
+        loss ([type], optional): [description].
+        Defaults to tf.keras.losses.CategoricalCrossentropy().
+        metrics ([type], optional): [description].
+        Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
+        target_name (Optional[str], optional): [description].
+        Defaults to None.
+        task_name (Optional[str], optional): [description].
+        Defaults to None.
+        task_block (Optional[Layer], optional): [description].
+        Defaults to None.
+        softmax_temperature (float, optional): [description].
+        Defaults to 1.
+        normalize (bool, optional): [description].
+        Defaults to True.
+
+    Returns:
+        [type]: [description]
+    """
+    pre_call = InBatchNegativeSampling()
+
+    if normalize:
+        pre_call = RetrieavalL2Norm().connect(pre_call)
+
+    if softmax_temperature != 1:
+        pre_call.connect(SoftmaxTemperature(softmax_temperature))
+
+    return MultiClassClassificationTask(
+        target_name,
+        task_name,
+        task_block,
+        loss=loss,
+        metrics=metrics,
+        pre_call=pre_call,
+    )
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin-models")
@@ -265,52 +331,3 @@ class SampledItemPredictionTask(ItemPredictionTask):
         logits = tf.nn.bias_add(logits, self.bias)
 
         return logits
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin-models")
-class ItemRetrievalTask(ItemPredictionTask):
-    def __init__(
-        self,
-        schema: Schema,
-        loss=ItemPredictionTask.DEFAULT_LOSS,
-        metrics=ItemPredictionTask.DEFAULT_METRICS,
-        target_name: Optional[str] = None,
-        task_name: Optional[str] = None,
-        task_block: Optional[Layer] = None,
-        weight_tying: bool = False,
-        softmax_temperature: float = 1,
-        pre: Optional[Block] = None,
-        normalize=True,
-        **kwargs,
-    ):
-        super().__init__(
-            schema,
-            loss,
-            metrics,
-            target_name,
-            task_name,
-            task_block,
-            weight_tying,
-            softmax_temperature,
-            pre=pre,
-            **kwargs,
-        )
-        self.normalize = normalize
-
-    def build(self, input_shape):
-        if not hasattr(self.build, "_is_default"):
-            self._build_input_shape = input_shape
-        self.built = True
-
-    def call(self, inputs, training: bool = False, **kwargs):
-        if isinstance(inputs, tuple) and len(inputs) == 2:
-            return inputs
-
-        if self.normalize:
-            inputs = [tf.linalg.l2_normalize(inp, axis=1) for inp in list(inputs.values())]
-        predictions = tf.linalg.matmul(*inputs, transpose_b=True)
-
-        return predictions
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
