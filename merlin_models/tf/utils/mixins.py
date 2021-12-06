@@ -17,9 +17,6 @@ import abc
 from typing import Dict, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
-from tensorflow.keras.layers import Layer
-
-from merlin_standard_lib import Tag
 
 from ..typing import TabularData
 
@@ -46,57 +43,6 @@ class LossMixin(abc.ABC):
         training: bool, default=False
         """
         raise NotImplementedError()
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ModelContext(Layer):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._shared_variables: Dict[str, tf.Variable] = {}
-        self._feature_blocks = []
-
-    def call(self, inputs, training=None, **kwargs):
-        for block in self._feature_blocks:
-            block.call_features(inputs, training=training)
-
-        return {}
-
-    def register_variable(self, name: str, variable: tf.Variable):
-        self._shared_variables[name] = variable
-
-    @property
-    def variables(self) -> Dict[str, tf.Variable]:
-        return self._shared_variables
-
-    @property
-    def feature_shapes(self):
-        return self._feature_shapes
-
-    def get_embedding(self, name: Union[str, Tag]) -> tf.Variable:
-        return self._shared_variables[f"{name}/embedding"]
-
-    def _merge(self, other: "ModelContext"):
-        self._shared_variables.update(other._shared_variables)
-        self._feature_blocks = list(set(self._feature_blocks + other._feature_blocks))
-
-    def compute_output_shape(self, input_shape):
-        self._feature_shapes = input_shape
-
-        return {}
-
-
-class ContextMixin:
-    @property
-    def context(self) -> ModelContext:
-        if not hasattr(self, "_context"):
-            self._context = ModelContext()
-
-        return self._context
-
-    def _set_context(self, context: ModelContext):
-        if hasattr(self, "_context"):
-            context._merge(self._context)
-        self._context = context
 
 
 class MetricsMixin(abc.ABC):
@@ -175,5 +121,5 @@ class ModelLikeBlock(Protocol):
     def __call__(self, inputs, **kwargs):
         ...
 
-    def _set_context(self, context: ModelContext):
+    def _set_context(self, context):
         ...

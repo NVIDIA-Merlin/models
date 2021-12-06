@@ -79,9 +79,6 @@ def TabularFeatures(
             branches[str(item)] = to_add
 
     if continuous_projection:
-        output = ContinuousEmbedding(ParallelBlock(branches), continuous_projection)
-    else:
-        output = ParallelBlock(branches, aggregation=aggregation)
-        output.add_branch("context", output.context)
+        return ContinuousEmbedding(ParallelBlock(branches), continuous_projection)
 
-    return output
+    return ParallelBlock(branches, aggregation=aggregation)
