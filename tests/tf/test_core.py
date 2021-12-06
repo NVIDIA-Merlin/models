@@ -1,19 +1,21 @@
 import pytest
 
 from merlin_models.data.synthetic import SyntheticData
+from merlin_standard_lib import Tag
 
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
 
 
-class DummyFeaturesBlock(ml.FeaturesBlock):
+class DummyFeaturesBlock(ml.Block):
     def call_features(self, features, **kwargs):
-        self.position = features["position"]
+        self.items = features[str(Tag.ITEM_ID)]
 
     def call(self, inputs, **kwargs):
-        position = self.position
+        item_embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+        item_embeddings = tf.gather(item_embedding_table, tf.cast(self.items, tf.int32))
 
-        return inputs * tf.cast(tf.reduce_mean(position), tf.float32)
+        return inputs * item_embeddings
 
     def compute_output_shape(self, input_shape):
         return input_shape
