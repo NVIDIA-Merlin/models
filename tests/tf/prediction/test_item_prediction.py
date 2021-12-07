@@ -35,11 +35,12 @@ def test_retrieval_task(music_streaming_data: SyntheticData, num_epochs=5, run_e
 
     two_tower = ml.merge({"user": user_tower, "item": item_tower})
 
-    prediction = ml.item_retrieval_task()
+    prediction = ml.item_retrieval_task(softmax_temperature=2)
     model = two_tower.connect(prediction)
 
     output = model(music_streaming_data.tf_tensor_dict)
     assert output is not None
-    model.compile(optimizer="adam", run_eagerly=True)
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=4)
-    assert len(losses.epoch) == 4
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+    assert len(losses.epoch) == num_epochs

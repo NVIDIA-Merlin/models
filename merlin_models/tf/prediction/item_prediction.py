@@ -52,6 +52,9 @@ class SoftmaxTemperature(Block):
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
         return inputs / self.temperature
 
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
 
 class ItemSoftmaxWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
