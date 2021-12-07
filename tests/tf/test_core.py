@@ -12,8 +12,8 @@ class DummyFeaturesBlock(ml.Block):
         self.items = features[str(Tag.ITEM_ID)]
 
     def call(self, inputs, **kwargs):
-        item_embedding_table = self.context.get_embedding(Tag.ITEM_ID)
-        item_embeddings = tf.gather(item_embedding_table, tf.cast(self.items, tf.int32))
+        self.item_embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+        item_embeddings = tf.gather(self.item_embedding_table, tf.cast(self.items, tf.int32))
 
         return inputs * item_embeddings
 
@@ -23,8 +23,12 @@ class DummyFeaturesBlock(ml.Block):
 
 def test_block_context(ecommerce_data: SyntheticData):
     inputs = ml.inputs(ecommerce_data.schema)
-    model = inputs.connect(ml.MLPBlock([64]), DummyFeaturesBlock())
+    dummy = DummyFeaturesBlock()
+    model = inputs.connect(ml.MLPBlock([64]), dummy)
 
     out = model(ecommerce_data.tf_tensor_dict)
+
+    embeddings = inputs.select_by_name(str(Tag.CATEGORICAL))
+    assert dummy.item_embedding_table.shape == embeddings.embedding_tables[str(Tag.ITEM_ID)].shape
 
     assert out.shape[-1] == 64
