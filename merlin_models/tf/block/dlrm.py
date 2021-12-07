@@ -77,7 +77,7 @@ def DLRMBlock(
     ):
         raise ValueError(
             f"The embedding_dim ({embedding_dim}) needs to match the "
-            "last layer of bottom MLP ({bottom_block.layers[-1].units})"
+            "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
         )
 
     con_schema = schema.select_by_tag(Tag.CONTINUOUS)

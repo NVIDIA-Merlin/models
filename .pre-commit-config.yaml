@@ -12,7 +12,7 @@ repos:
     rev: 3.8.4
     hooks:
       - id: flake8
-
+        args: ["--extend-ignore=E203,W503"]
   # yaml formatting
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v2.3.0
