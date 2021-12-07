@@ -35,15 +35,16 @@ class SamplingBiasCorrection(PredictionBlock):
         super(SamplingBiasCorrection, self).__init__(**kwargs)
         self.bias_feature_name = bias_feature_name
 
+    def call_features(self, features, **kwargs):
+        self.bias = features[self.bias_feature_name]
+
     def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        sampling_bias = self.context.tensors.get(self.bias_feature_name)
-        if sampling_bias is not None:
-            inputs -= tf.math.log(sampling_bias)
-        else:
-            # TODO : add warning
-            pass
+        inputs -= tf.math.log(self.bias)
 
         return inputs, targets
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 
 class SoftmaxTemperature(PredictionBlock):

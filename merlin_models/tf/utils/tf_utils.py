@@ -13,159 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import abc
-from typing import Dict, Protocol, Union, runtime_checkable
+from typing import Union
 
 import tensorflow as tf
 
-from merlin_standard_lib import Tag
-
-from ..typing import TabularData
-
-
-class LossMixin(abc.ABC):
-    """Mixin to use for Keras Layers that can calculate a loss."""
-
-    def compute_loss(
-        self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
-        compute_metrics=True,
-        training: bool = False,
-        **kwargs,
-    ) -> tf.Tensor:
-        """Compute the loss on a batch of data.
-
-        Parameters
-        ----------
-        inputs: Union[torch.Tensor, TabularData]
-            TODO
-        targets: Union[torch.Tensor, TabularData]
-            TODO
-        training: bool, default=False
-        """
-        raise NotImplementedError()
-
-
-class ModelContext:
-    def __init__(self):
-        self._shared_tensors: Dict[str, tf.Tensor] = {}
-        self._shared_variables: Dict[str, tf.Variable] = {}
-
-    def register_variable(self, name: str, variable: tf.Variable):
-        self._shared_variables[name] = variable
-
-    def update_tensor(self, name: str, tensor: tf.Tensor):
-        self._shared_tensors[name] = tensor
-
-    @property
-    def variables(self) -> Dict[str, tf.Variable]:
-        return self._shared_variables
-
-    @property
-    def tensors(self) -> Dict[str, tf.Tensor]:
-        return self._shared_tensors
-
-    def get_embedding(self, name: Union[str, Tag]) -> tf.Variable:
-        return self._shared_variables[f"{name}/embedding"]
-
-    def _merge(self, other: "ModelContext"):
-        self._shared_tensors.update(other._shared_tensors)
-        self._shared_variables.update(other._shared_variables)
-
-
-class ContextMixin:
-    @property
-    def context(self) -> ModelContext:
-        if not hasattr(self, "_context"):
-            self._context = ModelContext()
-
-        return self._context
-
-    def _set_context(self, context: ModelContext):
-        if hasattr(self, "_context"):
-            context._merge(self._context)
-        self._context = context
-
-
-class MetricsMixin(abc.ABC):
-    """Mixin to use for Keras Layers that can calculate metrics."""
-
-    def calculate_metrics(
-        self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
-        mode: str = "val",
-        forward=True,
-        **kwargs,
-    ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
-        """Calculate metrics on a batch of data, each metric is stateful and this updates the state.
-
-        The state of each metric can be retrieved by calling the `metric_results` method.
-
-        Parameters
-        ----------
-        inputs: Union[tf.Tensor, TabularData]
-            TODO
-        targets: Union[tf.Tensor, TabularData]
-            TODO
-        forward: bool, default True
-
-        mode: str, default="val"
-
-        """
-        raise NotImplementedError()
-
-    def metric_results(self, mode: str = None) -> Dict[str, Union[float, tf.Tensor]]:
-        """Returns the current state of each metric.
-
-        The state is typically updated each batch by calling the `calculate_metrics` method.
-
-        Parameters
-        ----------
-        mode: str, default="val"
-
-        Returns
-        -------
-        Dict[str, Union[float, tf.Tensor]]
-        """
-        raise NotImplementedError()
-
-    def reset_metrics(self):
-        """Reset all metrics."""
-        raise NotImplementedError()
-
-
-@runtime_checkable
-class ModelLikeBlock(Protocol):
-    def compute_loss(
-        self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
-        compute_metrics=True,
-        training: bool = False,
-        **kwargs,
-    ) -> tf.Tensor:
-        ...
-
-    def calculate_metrics(
-        self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
-        mode: str = "val",
-        forward=True,
-        **kwargs,
-    ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
-        ...
-
-    def metric_results(self, mode: str = None) -> Dict[str, Union[float, tf.Tensor]]:
-        ...
-
-    def __call__(self, inputs, **kwargs):
-        ...
-
-    def _set_context(self, context: ModelContext):
-        ...
+from merlin_models.tf.typing import TabularData
 
 
 def get_output_sizes_from_schema(schema, batch_size=0, max_sequence_length=None):
@@ -255,3 +107,17 @@ def gather_torch_like(labels, indices, max_k):
         )
     all_indices = tf.concat(gather_indices, 0)
     return tf.reshape(tf.gather_nd(labels, all_indices), indices.shape)
+
+
+def batch_ref(inputs: Union[tf.Tensor, TabularData]):
+    """Get hash-code of a tensor or a dictionary of tensors."""
+
+    if isinstance(inputs, tf.Tensor):
+        return hash(inputs.ref())
+
+    refs = []
+    keys = sorted(inputs.keys())
+    for key in keys:
+        refs.append(inputs[key].ref())
+
+    return hash(tuple(refs))

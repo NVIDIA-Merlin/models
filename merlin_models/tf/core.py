@@ -33,18 +33,71 @@ from merlin_standard_lib.utils.doc_utils import docstring_parameter
 from merlin_standard_lib.utils.misc_utils import filter_kwargs
 
 from .typing import TabularData, TensorOrTabularData
-
-# from ..features.base import InputBlock
+from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from .utils.tf_utils import (
-    ContextMixin,
-    LossMixin,
-    MetricsMixin,
-    ModelContext,
-    ModelLikeBlock,
+    batch_ref,
     calculate_batch_size_from_input_shapes,
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class BlockContext(Layer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._shared_variables: Dict[str, tf.Variable] = {}
+        self._feature_blocks = []
+        self._current_batch_ref = None
+
+    def call(self, inputs, training=None, **kwargs):
+        ref = batch_ref(inputs)
+        if ref != self._current_batch_ref:
+            for block in self._feature_blocks:
+                block.call_features(inputs, training=training)
+            self._current_batch_ref = ref
+
+        return {}
+
+    def add_features_block(self, block):
+        self._feature_blocks.append(block)
+
+    def register_variable(self, name: str, variable: tf.Variable):
+        self._shared_variables[name] = variable
+
+    @property
+    def shared_variables(self) -> Dict[str, tf.Variable]:
+        return self._shared_variables
+
+    @property
+    def feature_shapes(self):
+        return self._feature_shapes
+
+    def get_embedding(self, name: Union[str, Tag]) -> tf.Variable:
+        return self._shared_variables[f"{name}/embedding"]
+
+    def _merge(self, other: "BlockContext"):
+        self._shared_variables.update(other._shared_variables)
+        self._feature_blocks = list(set(self._feature_blocks + other._feature_blocks))
+
+    def compute_output_shape(self, input_shape):
+        self._feature_shapes = input_shape
+
+        return {}
+
+
+class ContextMixin:
+    @property
+    def context(self) -> BlockContext:
+        if not hasattr(self, "_context"):
+            self._context = BlockContext()
+
+        return self._context
+
+    def _set_context(self, context: BlockContext):
+        if hasattr(self, "_context"):
+            context._merge(self._context)
+        self._context = context
 
 
 class Block(SchemaMixin, ContextMixin, Layer):
@@ -118,30 +171,38 @@ class Block(SchemaMixin, ContextMixin, Layer):
     def connect(
         self, *block: tf.keras.layers.Layer, block_name: Optional[str] = None
     ) -> "SequentialBlock":
-        if isinstance(self, SequentialBlock):
-            if isinstance(block, (list, tuple)):
-                self.layers.extend(block)
-            else:
-                self.layers.append(block)
-            if block_name:
-                self.block_name = block_name
+        for b in block:
+            if isinstance(b, Block):
+                b._set_context(self.context)
+                if not b.schema:
+                    b.schema = self.schema
 
-            output = self
-        elif len(block) == 1 and isinstance(block[0], SequentialBlock):
-            block: SequentialBlock = block[0]  # type: ignore
-            if isinstance(self, SequentialBlock):
-                block.layers = [*self.layers, *block.layers]
-            else:
-                block.layers = [self, *block.layers]
-            if block_name:
-                self.block_name = block_name
+        output = SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
 
-            if not block.schema:
-                block.schema = self.schema
-
-            output = block
-        else:
-            output = SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
+        # if isinstance(self, SequentialBlock):
+        #     if isinstance(block, (list, tuple)):
+        #         self.layers.extend(block)
+        #     else:
+        #         self.layers.append(block)
+        #     if block_name:
+        #         self.block_name = block_name
+        #
+        #     output = self
+        # elif len(block) == 1 and isinstance(block[0], SequentialBlock):
+        #     block: SequentialBlock = block[0]  # type: ignore
+        #     if isinstance(self, SequentialBlock):
+        #         block.layers = [*self.layers, *block.layers]
+        #     else:
+        #         block.layers = [self, *block.layers]
+        #     if block_name:
+        #         self.block_name = block_name
+        #
+        #     if not block.schema:
+        #         block.schema = self.schema
+        #
+        #     output = block
+        # else:
+        #     output = SequentialBlock([self, *block], copy_layers=False, block_name=block_name)
 
         if isinstance(block[-1], ModelLikeBlock):
             return Model(output)
@@ -266,6 +327,18 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return None
 
+    def __call__(self, *args, **kwargs):
+        if getattr(self, "is_input", False):
+            self.context(*args, **kwargs)
+
+        return super().__call__(*args, **kwargs)
+
+    def build(self, input_shape):
+        if hasattr(self, "call_features"):
+            self.context.add_features_block(self)
+
+        return super().build(input_shape)
+
     def copy(self):
         return self.from_config(self.get_config())
 
@@ -286,7 +359,6 @@ def inputs(
     post: Optional["TabularTransformationType"] = None,
     aggregation: Optional["TabularAggregationType"] = None,
     seq: bool = False,
-    add_to_context: List[Union[str, Tag]] = None,
     **kwargs,
 ) -> "Block":
     if seq:
@@ -298,9 +370,7 @@ def inputs(
     else:
         from merlin_models.tf.block.inputs import TabularFeatures
 
-        inp_block = TabularFeatures(
-            schema, aggregation=aggregation, add_to_context=add_to_context, **kwargs
-        )
+        inp_block = TabularFeatures(schema, aggregation=aggregation, **kwargs)
 
     if not block:
         return inp_block
@@ -425,7 +495,7 @@ class SequentialBlock(Block):
 
         return super().set_schema(schema)
 
-    def _set_context(self, context: ModelContext):
+    def _set_context(self, context: BlockContext):
         for layer in self.layers:
             if hasattr(layer, "_set_context"):
                 layer._set_context(context)
@@ -546,6 +616,15 @@ class SequentialBlock(Block):
 
 tabular_transformation_registry: Registry = Registry.class_registry("tf.tabular_transformations")
 tabular_aggregation_registry: Registry = Registry.class_registry("tf.tabular_aggregations")
+
+
+class FeaturesBlock(Block):
+    def compute_output_shape(self, input_shape):
+        return super().compute_output_shape(input_shape)
+
+    @abc.abstractmethod
+    def call_features(self, features: TabularData, training=None, **kwargs):
+        raise NotImplementedError()
 
 
 class TabularTransformation(
@@ -1159,6 +1238,9 @@ class Filter(TabularBlock):
         return outputs
 
     def compute_call_output_shape(self, input_shape):
+        if self.add_to_context:
+            return {}
+
         outputs = {k: v for k, v in input_shape.items() if self.check_feature(k)}
 
         return outputs
@@ -1243,6 +1325,9 @@ class ParallelBlock(TabularBlock):
                 f"dictionaries of layer. got: {inputs}"
             )
 
+        for block in self.parallel_values:
+            block._set_context(self.context)
+
         # Merge schemas if necessary.
         if not schema and all(getattr(m, "schema", False) for m in self.parallel_values):
             if len(self.parallel_values) == 1:
@@ -1267,9 +1352,9 @@ class ParallelBlock(TabularBlock):
 
         return {str(i): m for i, m in enumerate(self.parallel_layers)}
 
-    def _set_context(self, context: "ModelContext"):
+    def _set_context(self, context: "BlockContext"):
         for layer in self.parallel_values:
-            if hasattr(self, "_set_context"):
+            if hasattr(layer, "_set_context"):
                 layer._set_context(context)
         super(ParallelBlock, self)._set_context(context)
 
@@ -2002,7 +2087,7 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
     def repr_ignore(self) -> List[str]:
         return ["prediction_tasks", "parallel_layers"]
 
-    def _set_context(self, context: "ModelContext"):
+    def _set_context(self, context: "BlockContext"):
         for task in self.prediction_task_dict.values():
             task._set_context(context)
         super(ParallelPredictionBlock, self)._set_context(context)
@@ -2038,7 +2123,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if isinstance(body, SequentialBlock) and not isinstance(body.last, ModelLikeBlock):
             raise ValueError("SequentialBlock must have a ModelLikeBlock as last layer")
         self.body = body
-        self.context = ModelContext()
+        self.context = BlockContext()
 
     def build(self, input_shapes):
         self.body._set_context(self.context)
