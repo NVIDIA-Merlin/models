@@ -82,6 +82,7 @@ class InBatchNegativeSampling(Block):
         self.dot = tf.keras.layers.Dot(axes=1)
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        assert len(inputs) == 2
         if training:
             return tf.linalg.matmul(*list(inputs.values()), transpose_b=True)
 
