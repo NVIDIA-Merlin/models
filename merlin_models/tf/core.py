@@ -1611,8 +1611,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return x
 
     def pre_loss(self, predictions, targets, **kwargs):
-        if self.pre and hasattr(self.pre, "call_targets"):
-            targets = self.pre.call_targets(predictions, targets, **kwargs)
+        targets = self.pre.call_targets(predictions, targets, **kwargs)
 
         return targets
 
@@ -1672,7 +1671,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions = tf.squeeze(predictions)
 
         if self.pre:
-            predictions = self.pre(predictions, training=training, **kwargs)
+            predictions = self.pre_call(predictions, training=training, **kwargs)
             targets = self.pre_loss(predictions, targets, **kwargs)
 
         loss = self._compute_loss(
