@@ -19,7 +19,7 @@ import copy
 import sys
 from collections import defaultdict
 from functools import reduce
-from typing import Dict, List, Optional, Sequence, Text, Tuple, Type, Union, overload
+from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload
 
 import six
 import tensorflow as tf
@@ -315,6 +315,9 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return super().__call__(*args, **kwargs)
 
+    def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
+        return targets
+
     def build(self, input_shape):
         if hasattr(self, "call_features"):
             self.context.add_features_block(self)
@@ -561,9 +564,16 @@ class SequentialBlock(Block):
     def compute_loss(self, inputs, targets, **kwargs):
         outputs, targets = inputs, targets
         for layer in self.layers:
-            outputs, targets = layer.compute_loss(outputs, targets, **kwargs)
+            outputs, targets = layer.compute_loss(outputs, targets=targets, **kwargs)
 
         return outputs, targets
+
+    def call_targets(self, predictions, targets, training=None, **kwargs):
+        outputs = targets
+        for layer in self.layers:
+            targets = layer.call_targets(predictions, outputs, training=training, **kwargs)
+
+        return outputs
 
     def get_config(self):
         config = {}
@@ -1420,15 +1430,6 @@ class Debug(tf.keras.layers.Layer):
         return input_shape
 
 
-# @tf.keras.utils.register_keras_serializable(package="merlin_models")
-# class AddToContext(tf.keras.layers.Layer, ContextMixin):
-#     def call(self, inputs, **kwargs):
-#         return inputs
-#
-#     def compute_output_shape(self, input_shape):
-#         return input_shape
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class WithShortcut(ParallelBlock):
     def __init__(
@@ -1553,23 +1554,6 @@ class Sampler(abc.ABC):
         raise NotImplementedError()
 
 
-prediction_block_registry: Registry = Registry.class_registry("tf.prediction_blocks")
-
-
-class PredictionBlock(Block):
-    def call(self, inputs, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        if isinstance(inputs, (list, tuple)) and len(inputs) == 2:
-            predictions, targets = inputs
-        else:
-            predictions, targets = inputs, None
-
-        return self.predict(predictions, targets, training=True, **kwargs)
-
-    @abc.abstractmethod
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        raise NotImplementedError()
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def __init__(
@@ -1577,8 +1561,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         metrics: Optional[List[MetricOrMetricClass]] = None,
-        pre_call: Optional[PredictionBlock] = None,
-        pre_loss: Optional[PredictionBlock] = None,
+        pre: Optional[Block] = None,
         task_block: Optional[Layer] = None,
         prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
@@ -1608,8 +1591,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.target_name = target_name
         self.task_block = task_block
         self._task_name = task_name
-        self.pre_call_block = pre_call
-        self.pre_loss_block = pre_loss
+        self.pre = pre
 
         create_metrics = self._create_metrics
         self.eval_metrics = create_metrics(metrics) if metrics else []
@@ -1623,10 +1605,16 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if self.task_block:
             x = self.task_block(x)
 
-        if self.pre_call_block:
-            x = self.pre_call_block(inputs, **kwargs)
+        if self.pre:
+            x = self.pre(inputs, **kwargs)
 
         return x
+
+    def pre_loss(self, predictions, targets, **kwargs):
+        if self.pre and hasattr(self.pre, "call_targets"):
+            targets = self.pre.call_targets(predictions, targets, **kwargs)
+
+        return targets
 
     def __call__(self, *args, **kwargs):
         inputs = self.pre_call(*args, **kwargs)
@@ -1683,14 +1671,12 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
 
-        if self.pre_loss_block:
-            predictions, targets = self.pre_loss_block(
-                predictions, targets, training=training, **kwargs
-            )
+        if self.pre:
+            predictions = self.pre(predictions, training=training, **kwargs)
+            targets = self.pre_loss(predictions, targets, **kwargs)
 
-        # predictions = self(inputs, training=training, **kwargs)
         loss = self._compute_loss(
-            predictions, targets, sample_weight=sample_weight, training=training
+            predictions, targets=targets, sample_weight=sample_weight, training=training
         )
 
         if compute_metrics:
