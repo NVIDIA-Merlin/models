@@ -57,8 +57,8 @@ from .prediction.classification import BinaryClassificationTask, MultiClassClass
 from .prediction.item_prediction import (
     ExtraNegativeSampling,
     InBatchNegativeSampling,
+    ItemRetrievalTask,
     SampledItemPredictionTask,
-    item_retrieval_task,
 )
 from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
 
@@ -134,7 +134,7 @@ __all__ = [
     "SampledItemPredictionTask",
     "InBatchNegativeSampling",
     "ExtraNegativeSampling",
-    "item_retrieval_task",
+    "ItemRetrievalTask",
     "NDCGAt",
     "AvgPrecisionAt",
     "RecallAt",
