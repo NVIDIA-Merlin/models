@@ -27,7 +27,7 @@ from ..layers import DotProductInteraction
 
 def DLRMBlock(
     schema: Schema,
-    bottom_block: Block,
+    bottom_block: Block = None,
     top_block: Optional[Block] = None,
     embedding_dim: Optional[int] = None,
 ) -> SequentialBlock:
@@ -43,7 +43,7 @@ def DLRMBlock(
     schema : Schema
         The `Schema` with the input features
     bottom_block : Block
-        The `Block` that combines the continuous features (tipically a number of stacked MLP layers)
+        The `Block` that combines the continuous features (tipically a `MLPBlock`)
     top_block : Optional[Block], optional
         The optional `Block` that combines the outputs of bottom layer and of
         the factorization machine layer, by default None
@@ -66,9 +66,15 @@ def DLRMBlock(
     """
     if schema is None:
         raise ValueError("The schema is required by DLRM")
-    if bottom_block is None:
-        raise ValueError("The bottom_block is required by DLRM")
-    if embedding_dim is not None and embedding_dim != bottom_block.layers[-1].units:
+
+    if embedding_dim is None:
+        raise ValueError("The embedding_dim is required")
+
+    if (
+        embedding_dim is not None
+        and bottom_block is not None
+        and embedding_dim != bottom_block.layers[-1].units
+    ):
         raise ValueError(
             f"The embedding_dim ({embedding_dim}) needs to match the "
             "last layer of bottom MLP ({bottom_block.layers[-1].units})"
@@ -79,12 +85,17 @@ def DLRMBlock(
 
     top_block_inputs = {}
     if len(con_schema) > 0:
+        if bottom_block is None:
+            raise ValueError(
+                "The bottom_block is required by DLRM when "
+                "continuous features are available in the schema"
+            )
         top_block_inputs["continuous"] = ContinuousFeatures.from_schema(con_schema).connect(
             bottom_block
         )
 
     if len(cat_schema) > 0:
-        embedding_dim = embedding_dim or bottom_block.layers[-1].units
+
         top_block_inputs["categorical"] = EmbeddingFeatures.from_schema(
             cat_schema, options=EmbeddingOptions(embedding_dim_default=embedding_dim)
         )
