@@ -210,13 +210,10 @@ class Block(SchemaMixin, ContextMixin, Layer):
                 if filter_features:
                     all_features.extend(filter_features)
 
-        rest_features = self.schema.remove_by_name(list(set([str(f) for f in all_features])))
-        rest_block = None
         if add_rest:
+            rest_features = self.schema.remove_by_name(list(set([str(f) for f in all_features])))
             rest_block = SequentialBlock([Filter(rest_features)])
-
-            if rest_block:
-                branches.append(rest_block)
+            branches.append(rest_block)
 
         if all(isinstance(branch, ModelLikeBlock) for branch in branches):
             parallel = ParallelPredictionBlock(

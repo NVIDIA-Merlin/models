@@ -20,21 +20,66 @@ from merlin_models.data.synthetic import SyntheticData
 
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
+test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
-# # TODO: Fix this test when `run_eagerly=False`
-# # @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_simple_model(ecommerce_data: SyntheticData, run_eagerly=True):
+# TODO: Fix this test when `run_eagerly=False`
+# @pytest.mark.parametrize("run_eagerly", [True, False])
+def test_simple_model(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=True):
+
     body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=1)
+    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=num_epochs)
     metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
+    test_utils.assert_binary_classification_loss_metrics(
+        losses, metrics, target_name="click", num_epochs=num_epochs
+    )
 
-    assert len(metrics.keys()) == 7
-    assert len(losses.epoch) == 1
-    assert all(0 <= loss <= 1 for loss in losses.history["loss"])
+
+def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
+    dlrm_body = ml.DLRMBlock(
+        ecommerce_data.schema, bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([32])
+    )
+    model = dlrm_body.connect(ml.BinaryClassificationTask("click"))
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+    metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
+    test_utils.assert_binary_classification_loss_metrics(
+        losses, metrics, target_name="click", num_epochs=num_epochs
+    )
+
+
+def test_dlrm_model_single_head_multiple_tasks(
+    music_streaming_data, num_epochs=5, run_eagerly=True
+):
+
+    dlrm_body = ml.DLRMBlock(
+        music_streaming_data.schema, bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([32])
+    )
+
+    tasks_blocks = dict(click=ml.MLPBlock([16]), play_percentage=ml.MLPBlock([20]))
+
+    prediction_tasks = ml.prediction_tasks(
+        music_streaming_data.schema,
+        task_blocks=tasks_blocks,
+        task_weight_dict={"click": 2.0, "play_percentage": 1.0},
+    )
+
+    model = dlrm_body.connect(ml.MLPBlock([64]), prediction_tasks)
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+    metrics = model.evaluate(*music_streaming_data.tf_features_and_targets, return_dict=True)
+    test_utils.assert_binary_classification_loss_metrics(
+        losses, metrics, target_name="click", num_epochs=num_epochs
+    )
+    test_utils.assert_regression_loss_metrics(
+        losses, metrics, target_name="play_percentage", num_epochs=num_epochs
+    )
 
 
 @pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
