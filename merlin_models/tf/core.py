@@ -1273,8 +1273,12 @@ class ParallelBlock(TabularBlock):
                 layer._set_context(context)
         super(ParallelBlock, self)._set_context(context)
 
-    def select_by_name(self, name: str) -> Optional["Block"]:
-        return self.parallel_dict.get(name)
+    def select_by_name(self, name: str, tabular_output: bool = False) -> Optional["Block"]:
+        block = self.parallel_dict.get(name)
+        if not tabular_output and isinstance(block[-1], AsTabular):
+            return block[0]
+
+        return block
 
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]

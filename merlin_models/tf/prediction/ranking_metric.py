@@ -16,7 +16,7 @@
 
 # Adapted from source code: https://github.com/karlhigley/ranking-metrics-torch
 from abc import abstractmethod
-from typing import List
+from typing import List, Sequence
 
 import numpy as np
 import tensorflow as tf
@@ -49,9 +49,9 @@ class RankingMetric(tf.keras.metrics.Metric):
 
     def __init__(
         self,
+        top_ks: Sequence[int],
         name=None,
         dtype=None,
-        top_ks: List[int] = [2, 5],
         labels_onehot: bool = False,
         **kwargs,
     ):
@@ -157,7 +157,7 @@ class PrecisionAt(RankingMetric):
 @ranking_metrics_registry.register_with_multiple_names("recall_at", "recall")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class RecallAt(RankingMetric):
-    def __init__(self, top_ks=None, labels_onehot=False, **kwargs):
+    def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
         super(RecallAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
 
     def _metric(self, scores: tf.Tensor, labels: tf.Tensor, **kwargs) -> tf.Tensor:
@@ -209,7 +209,7 @@ class RecallAt(RankingMetric):
 @ranking_metrics_registry.register_with_multiple_names("avg_precision_at", "avg_precision", "map")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class AvgPrecisionAt(RankingMetric):
-    def __init__(self, top_ks=None, labels_onehot=False, **kwargs):
+    def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
         super(AvgPrecisionAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
         max_k = tf.reduce_max(self.top_ks)
         self.precision_at = PrecisionAt(top_ks=1 + np.array((range(max_k)))).metric_fn
@@ -252,13 +252,12 @@ class AvgPrecisionAt(RankingMetric):
 @ranking_metrics_registry.register_with_multiple_names("dcg_at", "dcg")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class DCGAt(RankingMetric):
-    def __init__(self, top_ks=None, labels_onehot=False, **kwargs):
+    def __init__(self, top_ks, labels_onehot=False, **kwargs):
         super(DCGAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
 
     def _metric(
         self, scores: tf.Tensor, labels: tf.Tensor, log_base: int = 2, **kwargs
     ) -> tf.Tensor:
-
         """
         Compute discounted cumulative gain @K for each provided cutoff in ks
         (ignoring ties)
@@ -301,14 +300,13 @@ class DCGAt(RankingMetric):
 @ranking_metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class NDCGAt(RankingMetric):
-    def __init__(self, top_ks=None, labels_onehot=False, **kwargs):
+    def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
         super(NDCGAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
         self.dcg_at = DCGAt(top_ks).metric_fn
 
     def _metric(
         self, scores: tf.Tensor, labels: tf.Tensor, log_base: int = 2, **kwargs
     ) -> tf.Tensor:
-
         """
         Compute normalized discounted cumulative gain @K for each provided cutoffs in ks
         (ignoring ties)
@@ -356,10 +354,14 @@ def process_metrics(metrics, prefix=""):
         results = metric.result()
         if getattr(metric, "top_ks", None):
             for i, ks in enumerate(metric.top_ks):
-
                 metrics_proc.update(
                     {f"{prefix}{metric.name.split('_')[0]}@{ks}": tf.gather(results, i)}
                 )
         else:
             metrics_proc[metric.name] = results
+
     return metrics_proc
+
+
+def ranking_metrics(top_ks: Sequence[int], **kwargs) -> Sequence[RankingMetric]:
+    return NDCGAt(top_ks, **kwargs), RecallAt(top_ks, **kwargs), AvgPrecisionAt(top_ks, **kwargs)

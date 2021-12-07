@@ -24,7 +24,7 @@ from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 from merlin_standard_lib import Schema, Tag
 
 from ..core import MetricOrMetricClass, PredictionBlock, PredictionTask
-from .ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
+from .ranking_metric import ranking_metrics
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -102,7 +102,7 @@ class Softmax(PredictionBlock):
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
     DEFAULT_METRICS = {
-        "ranking": (NDCGAt([10, 20]), RecallAt([10, 20]), AvgPrecisionAt([10, 20])),
+        "ranking": ranking_metrics(top_ks=[10, 20]),
         "multi-class": (),
     }
 
