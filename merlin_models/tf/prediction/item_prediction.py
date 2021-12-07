@@ -56,6 +56,9 @@ class SoftmaxTemperature(PredictionBlock):
     def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
         return inputs / self.temperature, targets
 
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
 
 class ItemSoftmaxWeightTying(PredictionBlock):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
