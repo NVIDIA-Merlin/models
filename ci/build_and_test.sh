@@ -13,7 +13,7 @@ pip install -e .
 echo "Running black --check"
 black --check .
 echo "Running flake8"
-flake8 .
+flake8 --extend-ignore=E203,W503 . #Ignoring some rules to make it compatible with black autoformatting
 echo "Running isort"
 isort -c .
 echo "Running bandit"
