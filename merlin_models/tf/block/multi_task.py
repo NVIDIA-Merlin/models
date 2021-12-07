@@ -19,14 +19,7 @@ import tensorflow as tf
 
 from merlin_standard_lib import Schema
 
-from ..core import (
-    Block,
-    ParallelBlock,
-    ParallelPredictionBlock,
-    PredictionTask,
-    TabularBlock,
-    TabularTransformation,
-)
+from ..core import Block, ParallelBlock, ParallelPredictionBlock, PredictionTask, TabularBlock
 from ..tabular.aggregation import StackFeatures
 from ..typing import TabularData
 
@@ -84,7 +77,7 @@ def MMOEBlock(
     return mmoe
 
 
-class CGCGateTransformation(TabularTransformation):
+class CGCGateTransformation(TabularBlock):
     def __init__(
         self,
         task_names: List[str],

@@ -28,10 +28,10 @@ from merlin_standard_lib.utils.embedding_utils import get_embedding_sizes_from_s
 
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
+    BlockType,
     Filter,
     InputBlock,
     TabularAggregationType,
-    TabularTransformationType,
 )
 from ..tabular.transformations import AsSparseFeatures
 
@@ -68,8 +68,8 @@ class EmbeddingFeatures(InputBlock):
     def __init__(
         self,
         feature_config: Dict[str, "FeatureConfig"],
-        pre: Optional[TabularTransformationType] = None,
-        post: Optional[TabularTransformationType] = None,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
         name=None,

@@ -23,9 +23,9 @@ from merlin_standard_lib import Schema, Tag
 
 from ..core import (
     Block,
+    BlockType,
     ParallelBlock,
     TabularAggregation,
-    TabularTransformationsType,
     merge,
     tabular_aggregation_registry,
 )
@@ -63,7 +63,7 @@ def TwoTowerBlock(
     query_tower_tag=Tag.USER,
     item_tower_tag=Tag.ITEM,
     embedding_dim_default: Optional[int] = 64,
-    post: Optional[TabularTransformationsType] = None,
+    post: Optional[BlockType] = None,
     # negative_memory_bank=None,
     **kwargs
 ) -> ParallelBlock:
