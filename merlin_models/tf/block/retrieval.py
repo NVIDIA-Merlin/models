@@ -13,47 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import abc
 from typing import List, Optional, Union
-
-import tensorflow as tf
-from tensorflow.python.keras.layers import Dot
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import (
-    Block,
-    ParallelBlock,
-    TabularAggregation,
-    TabularTransformationsType,
-    merge,
-    tabular_aggregation_registry,
-)
+from ..core import Block, ParallelBlock, TabularTransformationsType, merge
 from ..features.embedding import EmbeddingFeatures
-from ..typing import TabularData
 from .inputs import TabularFeatures
-
-
-class Distance(TabularAggregation, abc.ABC):
-    def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        assert len(inputs) == 2
-
-        return self.distance(inputs, **kwargs)
-
-    def distance(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        raise NotImplementedError()
-
-
-@tabular_aggregation_registry.register("cosine")
-class CosineSimilarity(Distance):
-    def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
-        super().__init__(trainable, name, dtype, dynamic, **kwargs)
-        self.dot = Dot(axes=1, normalize=True)
-
-    def distance(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        out = self.dot(list(inputs.values()))
-
-        return out
 
 
 def TwoTowerBlock(
@@ -66,7 +32,6 @@ def TwoTowerBlock(
     add_to_item_context: List[Union[str, Tag]] = None,
     embedding_dim_default: Optional[int] = 64,
     post: Optional[TabularTransformationsType] = None,
-    # negative_memory_bank=None,
     **kwargs
 ) -> ParallelBlock:
     _item_tower: Block = item_tower or query_tower.copy()
