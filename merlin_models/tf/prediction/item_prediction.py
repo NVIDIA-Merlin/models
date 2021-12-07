@@ -24,6 +24,7 @@ from merlin_models.tf.core import Block, PredictionTask, Sampler
 from merlin_standard_lib import Schema, Tag
 
 from .classification import MultiClassClassificationTask
+from .ranking_metric import ranking_metrics
 
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
@@ -133,12 +134,17 @@ class ExtraNegativeSampling(Block):
         return targets
 
 
-class RetrieavalL2Norm(Block):
+class L2Norm(Block):
+    # TODO: Make this a TabularTransformation
+    #  & allow for standard blocks to be used in the prediction-path.
     def __init__(self, **kwargs):
-        super(RetrieavalL2Norm, self).__init__(**kwargs)
+        super(L2Norm, self).__init__(**kwargs)
 
     def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        inputs = {key: tf.linalg.l2_normalize(inp, axis=1) for key, inp in inputs.items()}
+        if isinstance(inputs, dict):
+            inputs = {key: tf.linalg.l2_normalize(inp, axis=1) for key, inp in inputs.items()}
+        else:
+            inputs = tf.linalg.l2_normalize(inputs, axis=1)
 
         return inputs, targets
 
@@ -154,17 +160,18 @@ class LabelAwareAttention(Block):
         raise NotImplementedError("TODO")
 
 
-def item_retrieval_task(
+def ItemRetrievalTask(
     loss=tf.keras.losses.CategoricalCrossentropy(
         from_logits=True, reduction=tf.keras.losses.Reduction.SUM
     ),
-    metrics=MultiClassClassificationTask.DEFAULT_METRICS["ranking"],
+    metrics=ranking_metrics(top_ks=[10, 20]),
+    extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
     task_name: Optional[str] = None,
     task_block: Optional[Layer] = None,
     softmax_temperature: float = 1,
     normalize: bool = True,
-):
+) -> MultiClassClassificationTask:
     """
     Function to create the ItemRetrieval task with the right parameters.
 
@@ -176,6 +183,8 @@ def item_retrieval_task(
         metrics: Sequence[MetricOrMetricClass]
             List of top-k ranking metrics.
             Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
+        extra_pre_call: Optional[PredictionBlock]
+            Optional extra pre-call block. Defaults to None.
         target_name: Optional[str]
             If specified, name of the target tensor to retrieve from dataloader.
             Defaults to None.
@@ -200,10 +209,13 @@ def item_retrieval_task(
     pre_call = InBatchNegativeSampling()
 
     if normalize:
-        pre_call = RetrieavalL2Norm().connect(pre_call)
+        pre_call = L2Norm().connect(pre_call)
 
     if softmax_temperature != 1:
-        pre_call.connect(SoftmaxTemperature(softmax_temperature))
+        pre_call = pre_call.connect(SoftmaxTemperature(softmax_temperature))
+
+    if extra_pre_call is not None:
+        pre_call = pre_call.connect(extra_pre_call)
 
     return MultiClassClassificationTask(
         target_name,
