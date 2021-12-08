@@ -21,17 +21,10 @@ from tensorflow.python.keras.layers import Dot
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import (
-    Block,
-    BlockType,
-    ParallelBlock,
-    TabularAggregation,
-    merge,
-    tabular_aggregation_registry,
-)
+from ..api import inputs, merge
+from ..core import Block, BlockType, ParallelBlock, TabularAggregation, tabular_aggregation_registry
 from ..features.embedding import EmbeddingFeatures
 from ..typing import TabularData
-from .inputs import TabularFeatures
 
 
 class Distance(TabularAggregation, abc.ABC):
@@ -70,13 +63,13 @@ def TwoTowerBlock(
     _item_tower: Block = item_tower or query_tower.copy()
     if not getattr(_item_tower, "inputs", None):
         item_schema = schema.select_by_tag(item_tower_tag) if item_tower_tag else schema
-        _item_tower = TabularFeatures(
+        _item_tower = inputs(
             item_schema,
             embedding_dim_default=embedding_dim_default,
         ).connect(_item_tower)
     if not getattr(query_tower, "inputs", None):
         query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
-        query_tower = TabularFeatures(
+        query_tower = inputs(
             query_schema,
             embedding_dim_default=embedding_dim_default,
         ).connect(query_tower)

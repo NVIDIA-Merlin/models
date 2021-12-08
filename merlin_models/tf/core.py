@@ -338,58 +338,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return right_shift_layer(self, other)
 
 
-def inputs(
-    schema: Schema,
-    *block: Block,
-    post: Optional[BlockType] = None,
-    aggregation: Optional["TabularAggregationType"] = None,
-    seq: bool = False,
-    **kwargs,
-) -> "Block":
-    if seq:
-        from merlin_models.tf import TabularSequenceFeatures
-
-        inp_block = TabularSequenceFeatures.from_schema(
-            schema, post=post, aggregation=aggregation, **kwargs
-        )
-    else:
-        from merlin_models.tf.block.inputs import TabularFeatures
-
-        inp_block = TabularFeatures(schema, aggregation=aggregation, **kwargs)
-
-    if not block:
-        return inp_block
-
-    return SequentialBlock([inp_block, *block])
-
-
-def prediction_tasks(
-    schema: Schema,
-    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-    task_weight_dict: Optional[Dict[str, float]] = None,
-    bias_block: Optional[Layer] = None,
-    loss_reduction=tf.reduce_mean,
-    **kwargs,
-) -> "ParallelPredictionBlock":
-    return ParallelPredictionBlock.from_schema(
-        schema,
-        task_blocks=task_blocks,
-        task_weight_dict=task_weight_dict,
-        bias_block=bias_block,
-        loss_reduction=loss_reduction,
-        **kwargs,
-    )
-
-
-def merge(
-    *branches: Union["Block", Dict[str, "Block"]],
-    post: Optional[BlockType] = None,
-    aggregation: Optional["TabularAggregationType"] = None,
-    **kwargs,
-) -> "ParallelBlock":
-    return ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SequentialBlock(Block):
     """The SequentialLayer represents a sequence of Keras layers.
@@ -1477,7 +1425,7 @@ class ResidualBlock(WithShortcut):
         strict: bool = False,
         **kwargs,
     ):
-        from merlin_models.tf.tabular.aggregation import SumResidual
+        from merlin_models.tf.block.aggregation import SumResidual
 
         super().__init__(
             block,

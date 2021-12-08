@@ -20,8 +20,8 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
-from ..core import Block, TabularBlock
-from ..typing import TabularData, TensorOrTabularData
+from merlin_models.tf.core import Block, TabularBlock
+from merlin_models.tf.typing import TabularData, TensorOrTabularData
 
 
 @Block.registry.register("as-sparse")

@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 
 tf = pytest.importorskip("tensorflow")
-tr = pytest.importorskip("merlin_models.tf")
+ml = pytest.importorskip("merlin_models.tf")
 
 
 NUM_EXAMPLES = 1000
