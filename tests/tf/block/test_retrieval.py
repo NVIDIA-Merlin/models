@@ -19,6 +19,8 @@ def test_matrix_factorization_block(music_streaming_data: SyntheticData):
 
 
 def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
+    import pandas as pd
+
     from merlin_models.tf.block.retrieval import CosineSimilarity
 
     mf = ml.MatrixFactorizationBlock(
@@ -31,6 +33,10 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
 
     item_embedding_parquet = str(tmp_path / "items.parquet")
     mf.export_embedding_table(Tag.ITEM_ID, item_embedding_parquet, gpu=False)
+
+    df = mf.embedding_table_df(Tag.ITEM_ID, gpu=False)
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 10001
     assert os.path.exists(item_embedding_parquet)
 
     # Test GPU export if available
@@ -40,5 +46,8 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
         user_embedding_parquet = str(tmp_path / "users.parquet")
         mf.export_embedding_table(Tag.USER_ID, user_embedding_parquet, gpu=True)
         assert os.path.exists(user_embedding_parquet)
+        df = mf.embedding_table_df(Tag.USER_ID, gpu=True)
+        assert isinstance(df, cudf.DataFrame)
+        assert len(df) == 10001
     except ImportError:
         pass
