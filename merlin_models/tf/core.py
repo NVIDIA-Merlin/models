@@ -1604,17 +1604,15 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def compute_loss(  # type: ignore
         self,
         predictions,
-        targets={},
+        targets,
         training: bool = False,
         compute_metrics=True,
         sample_weight: Optional[tf.Tensor] = None,
         **kwargs,
     ) -> tf.Tensor:
-        if isinstance(targets, dict):
-            if len(targets) == 0:
-                targets = None
-            if self.target_name:
-                targets = targets[self.target_name]
+        if isinstance(targets, dict) and self.target_name:
+            targets = targets[self.target_name]
+
         if isinstance(predictions, dict) and self.target_name:
             predictions = predictions[self.task_name]
 
