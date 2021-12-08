@@ -24,7 +24,8 @@ ml = pytest.importorskip("merlin_models.tf")
 test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
-def test_retrieval_task(music_streaming_data: SyntheticData, num_epochs=5, run_eagerly=True):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_retrieval_task(music_streaming_data: SyntheticData, run_eagerly, num_epochs=2):
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
     user_tower = ml.inputs(
         music_streaming_data.schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256])
