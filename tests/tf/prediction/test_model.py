@@ -38,10 +38,14 @@ def test_simple_model(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=T
     )
 
 
-def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
+def test_dlrm_model_single_task_from_pred_task(
+    ecommerce_data, num_epochs=5, run_eagerly=True
+):
     dlrm_body = ml.DLRMBlock(
-        ecommerce_data.schema, embedding_dim=64, bottom_block=ml.MLPBlock([64]),
-        top_block=ml.MLPBlock([32])
+        ecommerce_data.schema,
+        embedding_dim=64,
+        bottom_block=ml.MLPBlock([64]),
+        top_block=ml.MLPBlock([32]),
     )
     model = dlrm_body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -58,8 +62,10 @@ def test_dlrm_model_single_head_multiple_tasks(
 ):
 
     dlrm_body = ml.DLRMBlock(
-        music_streaming_data.schema, embedding_dim=64, bottom_block=ml.MLPBlock([64]),
-        top_block=ml.MLPBlock([32])
+        music_streaming_data.schema,
+        embedding_dim=64,
+        bottom_block=ml.MLPBlock([64]),
+        top_block=ml.MLPBlock([32]),
     )
 
     tasks_blocks = dict(click=ml.MLPBlock([16]), play_percentage=ml.MLPBlock([20]))
@@ -74,8 +80,12 @@ def test_dlrm_model_single_head_multiple_tasks(
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
-    metrics = model.evaluate(*music_streaming_data.tf_features_and_targets, return_dict=True)
+    losses = model.fit(
+        music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs
+    )
+    metrics = model.evaluate(
+        *music_streaming_data.tf_features_and_targets, return_dict=True
+    )
     test_utils.assert_binary_classification_loss_metrics(
         losses, metrics, target_name="click", num_epochs=num_epochs
     )
@@ -84,7 +94,9 @@ def test_dlrm_model_single_head_multiple_tasks(
     )
 
 
-@pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
+@pytest.mark.parametrize(
+    "prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask]
+)
 def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
     from merlin_models.tf.utils import testing_utils
 
@@ -97,14 +109,20 @@ def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
     )
 
 
-@pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
-def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly=True):
+@pytest.mark.parametrize(
+    "prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask]
+)
+def test_resume_training(
+    ecommerce_data: SyntheticData, prediction_task, run_eagerly=True
+):
     from merlin_models.tf.utils import testing_utils
 
     body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
 
     dataset = ecommerce_data.tf_dataloader(batch_size=50)
-    model = testing_utils.assert_model_saved(body, prediction_task("click"), run_eagerly, dataset)
+    model = testing_utils.assert_model_saved(
+        body, prediction_task("click"), run_eagerly, dataset
+    )
 
     losses = model.fit(dataset, epochs=1)
 
