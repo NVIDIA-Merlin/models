@@ -1662,12 +1662,14 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         sample_weight: Optional[tf.Tensor] = None,
         **kwargs,
     ) -> tf.Tensor:
-        if isinstance(targets, dict) and self.target_name:
-            targets = targets[self.target_name]
+        if isinstance(targets, dict):
+            if len(targets) == 0:
+                targets = None
+            if self.target_name:
+                targets = targets[self.target_name]
         if isinstance(predictions, dict) and self.target_name:
             predictions = predictions[self.task_name]
-
-        if targets:
+        if targets is not None:
             if len(targets.shape) == len(predictions.shape) - 1:
                 predictions = tf.squeeze(predictions)
 
