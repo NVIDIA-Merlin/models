@@ -40,7 +40,8 @@ def test_simple_model(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=T
 
 def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
     dlrm_body = ml.DLRMBlock(
-        ecommerce_data.schema, embedding_dim=64, bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([32])
+        ecommerce_data.schema, embedding_dim=64, 
+        bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([32])
     )
     model = dlrm_body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -57,7 +58,8 @@ def test_dlrm_model_single_head_multiple_tasks(
 ):
 
     dlrm_body = ml.DLRMBlock(
-        music_streaming_data.schema, embedding_dim=64, bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([32])
+        music_streaming_data.schema, embedding_dim=64, 
+        bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([32])
     )
 
     tasks_blocks = dict(click=ml.MLPBlock([16]), play_percentage=ml.MLPBlock([20]))
