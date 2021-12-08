@@ -23,12 +23,24 @@ from merlin_standard_lib import Schema, Tag
 
 from .. import data
 from ..data.synthetic import SyntheticData
+from .api import inputs, merge, prediction_tasks, sequential
+from .block.aggregation import (
+    ConcatFeatures,
+    ElementwiseSum,
+    ElementwiseSumItemMulti,
+    StackFeatures,
+)
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
-from .block.inputs import ContinuousEmbedding
 from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate
 from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
+from .block.transformations import (
+    AsDenseFeatures,
+    AsSparseFeatures,
+    ExpandDims,
+    StochasticSwapNoise,
+)
 from .core import (
     AsTabular,
     Block,
@@ -43,15 +55,17 @@ from .core import (
     ResidualBlock,
     SequentialBlock,
     TabularBlock,
-    inputs,
-    merge,
-    prediction_tasks,
     right_shift_layer,
 )
 from .features.continuous import ContinuousFeatures
-from .features.embedding import EmbeddingFeatures, FeatureConfig, TableConfig
-from .features.sequence import TabularSequenceFeatures
-from .features.tabular import TabularFeatures
+from .features.embedding import (
+    ContinuousEmbedding,
+    EmbeddingFeatures,
+    EmbeddingOptions,
+    FeatureConfig,
+    SequenceEmbeddingFeatures,
+    TableConfig,
+)
 from .layers import DotProductInteraction
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
 from .prediction.item_prediction import (
@@ -63,18 +77,6 @@ from .prediction.item_prediction import (
 
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
-from .tabular.aggregation import (
-    ConcatFeatures,
-    ElementwiseSum,
-    ElementwiseSumItemMulti,
-    StackFeatures,
-)
-from .tabular.transformations import (
-    AsDenseFeatures,
-    AsSparseFeatures,
-    ExpandDims,
-    StochasticSwapNoise,
-)
 from .utils import repr_utils
 
 Tag.__hash__ = lambda self: hash(str(self))
@@ -110,10 +112,10 @@ __all__ = [
     "TabularBlock",
     "ContinuousFeatures",
     "EmbeddingFeatures",
+    "SequenceEmbeddingFeatures",
+    "EmbeddingOptions",
     "FeatureConfig",
     "TableConfig",
-    "TabularFeatures",
-    "TabularSequenceFeatures",
     "ParallelPredictionBlock",
     "TwoTowerBlock",
     "MatrixFactorizationBlock",
@@ -138,6 +140,7 @@ __all__ = [
     "inputs",
     "prediction_tasks",
     "merge",
+    "sequential",
     "StochasticSwapNoise",
     "ExpandDims",
     "NoOp",

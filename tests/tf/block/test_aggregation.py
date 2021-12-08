@@ -24,7 +24,7 @@ ml = pytest.importorskip("merlin_models.tf")
 
 
 def test_concat_aggregation_yoochoose(testing_data: SyntheticData):
-    tab_module = ml.TabularFeatures.from_schema(testing_data.schema)
+    tab_module = ml.inputs(testing_data.schema)
 
     block = tab_module >> ml.ConcatFeatures()
 

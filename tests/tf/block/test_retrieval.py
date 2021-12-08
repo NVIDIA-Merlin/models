@@ -1,80 +1,53 @@
-# import pytest
-# import tensorflow as tf
-# from merlin_standard_lib import Schema, Tag
-#
-# import merlin_models.tf as ml
-# from merlin_models.tf.block.sampling import MemoryBankBlock
-#
-# # from merlin_models.tf.prediction.retrieval import RetrievalPredictionTask
-#
-#
-# def _create_vectors(batch_size=100, dim=64):
-#     return {
-#         str(Tag.ITEM): tf.random.uniform((batch_size, dim)),
-#         str(Tag.USER): tf.random.uniform((batch_size, dim)),
-#     }
-#
-#
-# # def test_negative_sampling():
-# #     queue = ItemQueue(num_batches=3)
-# #
-# #     for _ in range(5):
-# #         queue(_create_vectors())
-# #
-# #         negative_samples = queue.fetch()
-# #         a = 5
-# #     a = 5
-#
-#
-# @pytest.mark.parametrize("add_targets", [True, False])
-# @pytest.mark.parametrize("in_batch_negatives", [True, False])
-# def test_retrieval_task(add_targets, in_batch_negatives):
-#     vectors = _create_vectors()
-#     if add_targets:
-#         targets = tf.cast(tf.random.uniform((100, 1), maxval=2, dtype=tf.int32), tf.float32)
-#     else:
-#         targets = None
-#
-#     task = RetrievalPredictionTask(in_batch_negatives=in_batch_negatives)
-#
-#     if not add_targets and not in_batch_negatives:
-#         with pytest.raises(ValueError) as excinfo:
-#             loss = task.compute_loss(vectors, targets)
-#         err_message = "Targets are required when in-batch negative sampling is disabled"
-#         assert err_message in str(excinfo.value)
-#     else:
-#         loss = task.compute_loss(vectors, targets)
-#
-#         assert loss is not None
-#
-#
-# schema: Schema = Schema()
-#
-# # Variant (b)
-# # two_tower = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
-# # negatives = MemoryBankBlock(num_batches=10, post=two_tower["item"], no_outputs=True)
-# # two_tower = two_tower.add_branch(
-# #     "negatives",
-# #     ml.Filter(schema.select_by_tag(Tag.ITEM)).apply(negatives)
-# # )
-# # two_tower.to_model(RetrievalPredictionTask(extra_negatives=negatives))
-# #
-# # # Variant (c)
-# # two_tower = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
-# # negatives = MemoryBankBlock(num_batches=10)
-# # two_tower.apply_to_branch("item", negatives)
-# # two_tower.to_model(RetrievalPredictionTask(extra_negatives=negatives))
-# #
-# #
-# youtube_dnn = ml.TwoTowerBlock(
-#     schema,
-#     ml.MLPBlock([512, 256]),
-#     item_tower=ml.EmbeddingFeatures.from_schema(schema.select_by_tag(Tag.ITEM_ID)),
-# )
-#
-#
-# ml.inputs(schema, add_to_context=[Tag.ITEM_ID, Tag.USER_ID])
-# # weight_tying = ml.inputs(schema).apply_with_shortcut(
-# #     ml.MLPBlock([512, 256]),
-# #     shortcut_filter=ml.Filter(Tag.ITEM_ID)
-# # )
+import os.path
+
+import pytest
+
+from merlin_models.data.synthetic import SyntheticData
+from merlin_standard_lib import Tag
+
+tf = pytest.importorskip("tensorflow")
+ml = pytest.importorskip("merlin_models.tf")
+
+
+def test_matrix_factorization_block(music_streaming_data: SyntheticData):
+    mf = ml.MatrixFactorizationBlock(music_streaming_data.schema, dim=128)
+
+    outputs = mf(music_streaming_data.tf_tensor_dict)
+
+    assert "user_id" in outputs
+    assert "item_id" in outputs
+
+
+def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
+    import pandas as pd
+
+    from merlin_models.tf.block.retrieval import CosineSimilarity
+
+    mf = ml.MatrixFactorizationBlock(
+        music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
+    )
+    model = mf.connect(ml.BinaryClassificationTask("like"))
+    model.compile(optimizer="adam")
+
+    model.fit(music_streaming_data.tf_dataloader(), epochs=5)
+
+    item_embedding_parquet = str(tmp_path / "items.parquet")
+    mf.export_embedding_table(Tag.ITEM_ID, item_embedding_parquet, gpu=False)
+
+    df = mf.embedding_table_df(Tag.ITEM_ID, gpu=False)
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 10001
+    assert os.path.exists(item_embedding_parquet)
+
+    # Test GPU export if available
+    try:
+        import cudf  # noqa: F401
+
+        user_embedding_parquet = str(tmp_path / "users.parquet")
+        mf.export_embedding_table(Tag.USER_ID, user_embedding_parquet, gpu=True)
+        assert os.path.exists(user_embedding_parquet)
+        df = mf.embedding_table_df(Tag.USER_ID, gpu=True)
+        assert isinstance(df, cudf.DataFrame)
+        assert len(df) == 10001
+    except ImportError:
+        pass

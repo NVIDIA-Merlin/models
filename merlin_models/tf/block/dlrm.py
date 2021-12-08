@@ -18,9 +18,10 @@ from typing import Optional
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import Block, Filter, SequentialBlock, TabularBlock, merge
+from ..api import merge
+from ..core import Block, Filter, SequentialBlock, TabularBlock
 from ..features.continuous import ContinuousFeatures
-from ..features.embedding import EmbeddingFeatures
+from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from ..layers import DotProductInteraction
 
 
@@ -85,7 +86,7 @@ def DLRMBlock(
     if len(cat_schema) > 0:
         embedding_dim = embedding_dim or bottom_block.layers[-1].units
         top_block_inputs["categorical"] = EmbeddingFeatures.from_schema(
-            cat_schema, embedding_dim_default=embedding_dim
+            cat_schema, options=EmbeddingOptions(embedding_dim_default=embedding_dim)
         )
 
     if not top_block:

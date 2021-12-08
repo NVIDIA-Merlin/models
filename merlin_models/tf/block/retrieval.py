@@ -21,17 +21,10 @@ from tensorflow.python.keras.layers import Dot
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import (
-    Block,
-    BlockType,
-    ParallelBlock,
-    TabularAggregation,
-    merge,
-    tabular_aggregation_registry,
-)
-from ..features.embedding import EmbeddingFeatures
+from ..api import inputs
+from ..core import Block, BlockType, ParallelBlock, TabularAggregation, tabular_aggregation_registry
+from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from ..typing import TabularData
-from .inputs import TabularFeatures
 
 
 class Distance(TabularAggregation, abc.ABC):
@@ -70,13 +63,13 @@ def TwoTowerBlock(
     _item_tower: Block = item_tower or query_tower.copy()
     if not getattr(_item_tower, "inputs", None):
         item_schema = schema.select_by_tag(item_tower_tag) if item_tower_tag else schema
-        _item_tower = TabularFeatures(
+        _item_tower = inputs(
             item_schema,
             embedding_dim_default=embedding_dim_default,
         ).connect(_item_tower)
     if not getattr(query_tower, "inputs", None):
         query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
-        query_tower = TabularFeatures(
+        query_tower = inputs(
             query_schema,
             embedding_dim_default=embedding_dim_default,
         ).connect(query_tower)
@@ -87,21 +80,13 @@ def TwoTowerBlock(
 
 
 def MatrixFactorizationBlock(
-    schema: Schema,
-    dim: int,
-    query_id_tag=Tag.USER_ID,
-    item_id_tag=Tag.ITEM_ID,
-    distance="cosine",
-    **kwargs
+    schema: Schema, dim: int, query_id_tag=Tag.USER_ID, item_id_tag=Tag.ITEM_ID, **kwargs
 ):
-    query_id, item_id = schema.select_by_tag(query_id_tag), schema.select_by_tag(item_id_tag)
-    matrix_factorization = merge(
-        {
-            str(query_id_tag): EmbeddingFeatures.from_schema(query_id, embedding_dim_default=dim),
-            str(item_id_tag): EmbeddingFeatures.from_schema(item_id, embedding_dim_default=dim),
-        },
-        aggregation=distance,
-        **kwargs
+    query_item_schema = schema.select_by_tag(
+        lambda tags: query_id_tag in tags or item_id_tag in tags
+    )
+    matrix_factorization = EmbeddingFeatures.from_schema(
+        query_item_schema, options=EmbeddingOptions(embedding_dim_default=dim), **kwargs
     )
 
     return matrix_factorization
