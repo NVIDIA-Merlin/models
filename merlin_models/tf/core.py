@@ -519,7 +519,7 @@ class SequentialBlock(Block):
     def call_targets(self, predictions, targets, training=None, **kwargs):
         outputs = targets
         for layer in self.layers:
-            targets = layer.call_targets(predictions, outputs, training=training, **kwargs)
+            outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
 
         return outputs
 
@@ -1238,12 +1238,8 @@ class ParallelBlock(TabularBlock):
                 layer._set_context(context)
         super(ParallelBlock, self)._set_context(context)
 
-    def select_by_name(self, name: str, tabular_output: bool = False) -> Optional["Block"]:
-        block = self.parallel_dict.get(name)
-        if not tabular_output and isinstance(block[-1], AsTabular):
-            return block[0]
-
-        return block
+    def select_by_name(self, name: str) -> Optional["Block"]:
+        return self.parallel_dict.get(name)
 
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]
@@ -1608,7 +1604,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def compute_loss(  # type: ignore
         self,
         predictions,
-        targets,
+        targets={},
         training: bool = False,
         compute_metrics=True,
         sample_weight: Optional[tf.Tensor] = None,
@@ -1619,11 +1615,11 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if isinstance(predictions, dict) and self.target_name:
             predictions = predictions[self.task_name]
 
-        if len(targets.shape) == len(predictions.shape) - 1:
-            predictions = tf.squeeze(predictions)
+        if targets:
+            if len(targets.shape) == len(predictions.shape) - 1:
+                predictions = tf.squeeze(predictions)
 
         if self.pre:
-            predictions = self.pre_call(predictions, training=training, **kwargs)
             targets = self.pre_loss(predictions, targets, **kwargs)
 
         loss = self._compute_loss(
@@ -2034,8 +2030,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 targets = None
 
             predictions = self(inputs, training=True)
-            if isinstance(predictions, tuple):
-                predictions, targets = predictions
             loss = self.compute_loss(predictions, targets, training=True)
 
             # Handle regularization losses as well.
@@ -2062,8 +2056,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             targets = None
 
         predictions = self(inputs, training=True)
-        if isinstance(predictions, tuple):
-            predictions, targets = predictions
         loss = self.compute_loss(predictions, targets, training=False)
 
         # Handle regularization losses as well.

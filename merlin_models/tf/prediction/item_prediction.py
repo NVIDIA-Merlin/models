@@ -95,7 +95,7 @@ class InBatchNegativeSampling(Block):
         return self.dot(list(inputs.values()))
 
     def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
-        if targets is not None:
+        if targets:
             if len(targets.shape) == 2:
                 targets = tf.squeeze(targets)
             targets = tf.linalg.diag(targets)
@@ -127,7 +127,7 @@ class ExtraNegativeSampling(Block):
 
         return inputs
 
-    def call_targets(self, inputs, targets, training=True, **kwargs) -> tf.Tensor:
+    def call_targets(self, predictions, targets, training=True, **kwargs):
         if training:
             targets = tf.concat([targets, tf.zeros(self.extra_negatives_shape)], axis=0)
 
@@ -140,13 +140,13 @@ class L2Norm(Block):
     def __init__(self, **kwargs):
         super(L2Norm, self).__init__(**kwargs)
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(self, inputs, training=True, **kwargs):
         if isinstance(inputs, dict):
             inputs = {key: tf.linalg.l2_normalize(inp, axis=1) for key, inp in inputs.items()}
         else:
             inputs = tf.linalg.l2_normalize(inputs, axis=1)
 
-        return inputs, targets
+        return inputs
 
     def compute_output_shape(self, input_shape):
         return input_shape
@@ -206,16 +206,16 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
-    pre_call = InBatchNegativeSampling()
+    prediction_call = InBatchNegativeSampling()
 
     if normalize:
-        pre_call = L2Norm().connect(pre_call)
+        prediction_call = L2Norm().connect(prediction_call)
 
     if softmax_temperature != 1:
-        pre_call = pre_call.connect(SoftmaxTemperature(softmax_temperature))
+        prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
 
     if extra_pre_call is not None:
-        pre_call = pre_call.connect(extra_pre_call)
+        prediction_call = prediction_call.connect(extra_pre_call)
 
     return MultiClassClassificationTask(
         target_name,
@@ -223,7 +223,7 @@ def ItemRetrievalTask(
         task_block,
         loss=loss,
         metrics=metrics,
-        pre_call=pre_call,
+        pre=prediction_call,
     )
 
 
