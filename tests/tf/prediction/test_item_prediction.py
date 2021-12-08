@@ -41,7 +41,4 @@ def test_retrieval_task(music_streaming_data: SyntheticData, num_epochs=5, run_e
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
-
-    user_tower = two_tower.select_by_name("user")
-    user_embeddings = user_tower(music_streaming_data.tf_tensor_dict)
-    assert list(user_embeddings["user"].shape) == [100, 256]
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
