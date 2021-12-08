@@ -35,7 +35,7 @@ def test_dlrm_block(testing_data: SyntheticData):
     assert list(outputs.shape) == [100, 32]
 
 
-def test_dlrm_block_no_top_blocl(testing_data: SyntheticData):
+def test_dlrm_block_no_top_block(testing_data: SyntheticData):
     dlrm = tr.DLRMBlock(
         testing_data.schema,
         embedding_dim=64,
