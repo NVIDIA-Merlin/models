@@ -20,13 +20,13 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
-from ..core import TabularTransformation, tabular_transformation_registry
+from ..core import Block, TabularBlock
 from ..typing import TabularData, TensorOrTabularData
 
 
-@tabular_transformation_registry.register("as-sparse")
+@Block.registry.register("as-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class AsSparseFeatures(TabularTransformation):
+class AsSparseFeatures(TabularBlock):
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
@@ -43,9 +43,9 @@ class AsSparseFeatures(TabularTransformation):
         return input_shape
 
 
-@tabular_transformation_registry.register("as-dense")
+@Block.registry.register("as-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class AsDenseFeatures(TabularTransformation):
+class AsDenseFeatures(TabularBlock):
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
@@ -62,9 +62,9 @@ class AsDenseFeatures(TabularTransformation):
         return input_shape
 
 
-@tabular_transformation_registry.register_with_multiple_names("stochastic-swap-noise", "ssn")
+@Block.registry.register_with_multiple_names("stochastic-swap-noise", "ssn")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class StochasticSwapNoise(TabularTransformation):
+class StochasticSwapNoise(TabularBlock):
     """
     Applies Stochastic replacement of sequence features
     """
@@ -142,9 +142,9 @@ class StochasticSwapNoise(TabularTransformation):
         return config
 
 
-@tabular_transformation_registry.register_with_multiple_names("continuous-powers")
+@Block.registry.register_with_multiple_names("continuous-powers")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ContinuousPowers(TabularTransformation):
+class ContinuousPowers(TabularBlock):
     """Trick from `Deep Neural Networks for YouTube Recommendations`"""
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
@@ -172,7 +172,7 @@ class ContinuousPowers(TabularTransformation):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ExpandDims(TabularTransformation):
+class ExpandDims(TabularBlock):
     """
     Expand dims of selected input tensors.
     Example::

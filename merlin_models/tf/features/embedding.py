@@ -28,10 +28,10 @@ from merlin_standard_lib.utils.embedding_utils import get_embedding_sizes_from_s
 
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
+    BlockType,
     Filter,
     InputBlock,
     TabularAggregationType,
-    TabularTransformationType,
 )
 from ..tabular.transformations import AsSparseFeatures
 
@@ -68,23 +68,18 @@ class EmbeddingFeatures(InputBlock):
     def __init__(
         self,
         feature_config: Dict[str, "FeatureConfig"],
-        item_id: Optional[str] = None,
-        pre: Optional[TabularTransformationType] = None,
-        post: Optional[TabularTransformationType] = None,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
         name=None,
         add_default_pre=True,
         **kwargs,
     ):
-        if not item_id and schema and schema.select_by_tag(["item_id"]).column_names:
-            item_id = schema.select_by_tag(["item_id"]).column_names[0]
-
         if add_default_pre:
             embedding_pre = [Filter(list(feature_config.keys())), AsSparseFeatures()]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
         self.feature_config = feature_config
-        self.item_id = item_id
 
         super().__init__(
             pre=pre, post=post, aggregation=aggregation, name=name, schema=schema, **kwargs
@@ -101,7 +96,6 @@ class EmbeddingFeatures(InputBlock):
         embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
         combiner: Optional[str] = "mean",
         tags: Optional[TagsType] = None,
-        item_id: Optional[str] = None,
         max_sequence_length: Optional[int] = None,
         **kwargs,
     ) -> Optional["EmbeddingFeatures"]:
@@ -140,7 +134,7 @@ class EmbeddingFeatures(InputBlock):
         if not feature_config:
             return None
 
-        output = cls(feature_config, item_id=item_id, schema=schema_copy, **kwargs)
+        output = cls(feature_config, schema=schema_copy, **kwargs)
 
         return output
 
@@ -169,11 +163,6 @@ class EmbeddingFeatures(InputBlock):
         for name, val in inputs.items():
             embedded_outputs[name] = self.lookup_feature(name, val)
 
-        # Store raw item ids for masking and/or negative sampling
-        # This makes this module stateful.
-        if self.item_id:
-            self.item_seq = self.item_ids(inputs)
-
         return embedded_outputs
 
     def compute_call_output_shape(self, input_shapes):
@@ -184,15 +173,6 @@ class EmbeddingFeatures(InputBlock):
             output_shapes[name] = tf.TensorShape([batch_size, self.feature_config[name].table.dim])
 
         return output_shapes
-
-    @property
-    def item_embedding_table(self):
-        assert self.item_id is not None
-
-        return self.embedding_tables[self.item_id]
-
-    def item_ids(self, inputs) -> tf.Tensor:
-        return inputs[self.item_id]
 
     def lookup_feature(self, name, val, output_sequence=False):
         dtype = backend.dtype(val)
@@ -233,8 +213,6 @@ class EmbeddingFeatures(InputBlock):
             feature_configs[key] = feature_config_dict
 
         config["feature_config"] = feature_configs
-        if self.item_id:
-            config["item_id"] = self.item_id
 
         return config
 

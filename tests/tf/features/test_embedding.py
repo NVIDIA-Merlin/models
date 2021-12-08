@@ -44,9 +44,8 @@ def test_embedding_features_yoochoose(testing_data: SyntheticData):
 
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
     assert all(emb.shape[-1] == 64 for emb in embeddings.values())
-    assert emb_module.item_id == "item_id"
     max_value = schema.select_by_name("item_id").feature[0].int_domain.max
-    assert emb_module.item_embedding_table.shape[0] == max_value + 1
+    assert emb_module.embedding_tables["item_id"].shape[0] == max_value + 1
 
 
 def test_serialization_embedding_features(testing_data: SyntheticData):
