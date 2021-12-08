@@ -16,9 +16,10 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Union
 
 import tensorflow as tf
+from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
@@ -214,8 +215,30 @@ class EmbeddingFeatures(InputBlock):
 
         return out
 
-    def table_config(self, feature_name):
+    def table_config(self, feature_name: str):
         return self.feature_config[feature_name].table
+
+    def embedding_table_df(self, table_name: Union[str, Tag], gpu=True):
+        embeddings = self.embedding_tables[str(table_name)]
+
+        if gpu:
+            import cudf
+
+            df = cudf.from_dlpack(to_dlpack(tf.convert_to_tensor(embeddings)))
+            df.columns = [str(col) for col in list(df.columns)]
+            df.set_index(cudf.RangeIndex(0, embeddings.shape[0]))
+        else:
+            import pandas as pd
+
+            df = pd.DataFrame(embeddings.numpy())
+            df.columns = [str(col) for col in list(df.columns)]
+            df.set_index(pd.RangeIndex(0, embeddings.shape[0]))
+
+        return df
+
+    def export_embedding_table(self, table_name: Union[str, Tag], export_path: str, gpu=True):
+        df = self.embedding_table_df(table_name, gpu=gpu)
+        df.to_parquet(export_path)
 
     def get_config(self):
         config = super().get_config()
