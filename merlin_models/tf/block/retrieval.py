@@ -108,7 +108,7 @@ def TwoTowerBlock(
             )
         _item_tower = inputs(
             item_schema,
-            embedding_dim_default=embedding_dim_default,
+            embedding_options=EmbeddingOptions(embedding_dim_default=embedding_dim_default),
         ).connect(_item_tower)
     if not getattr(query_tower, "inputs", None):
         query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
@@ -119,7 +119,7 @@ def TwoTowerBlock(
             )
         query_tower = inputs(
             query_schema,
-            embedding_dim_default=embedding_dim_default,
+            embedding_options=EmbeddingOptions(embedding_dim_default=embedding_dim_default),
         ).connect(query_tower)
 
     two_tower = ParallelBlock({"query": query_tower, "item": _item_tower}, post=post, **kwargs)

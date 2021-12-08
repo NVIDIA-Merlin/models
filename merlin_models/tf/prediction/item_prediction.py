@@ -18,8 +18,8 @@ from typing import Optional, Tuple
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
+from merlin_models.tf.block.transformations import L2Norm
 from merlin_models.tf.core import Block, Sampler
-from merlin_models.tf.tabular.transformations import L2Norm
 from merlin_standard_lib import Schema, Tag
 
 from .classification import MultiClassClassificationTask

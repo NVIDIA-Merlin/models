@@ -27,13 +27,7 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_retrieval_task(music_streaming_data: SyntheticData, run_eagerly, num_epochs=2):
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
-    user_tower = ml.inputs(
-        music_streaming_data.schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256])
-    )
-    item_tower = ml.inputs(
-        music_streaming_data.schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256])
-    )
-    two_tower = ml.merge({"user": user_tower, "item": item_tower})
+    two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
     model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2))
 
     output = model(music_streaming_data.tf_tensor_dict)
