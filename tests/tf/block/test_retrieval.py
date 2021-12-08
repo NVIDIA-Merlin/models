@@ -66,6 +66,8 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
         assert len(df) == 10001
     except ImportError:
         pass
+
+
 test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
