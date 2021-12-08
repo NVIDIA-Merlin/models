@@ -100,7 +100,8 @@ class InBatchNegativeSampling(Block):
                 targets = tf.squeeze(targets)
             targets = tf.linalg.diag(targets)
         else:
-            targets = tf.eye(*predictions.shape)
+            num_rows, num_columns = tf.shape(predictions)[0], tf.shape(predictions)[1]
+            targets = tf.eye(num_rows, num_columns)
 
         return targets
 
