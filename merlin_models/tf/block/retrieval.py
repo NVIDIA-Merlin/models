@@ -37,7 +37,7 @@ class Distance(TabularAggregation, abc.ABC):
         raise NotImplementedError()
 
 
-@ tabular_aggregation_registry.register("cosine")
+@tabular_aggregation_registry.register("cosine")
 class CosineSimilarity(Distance):
     def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
