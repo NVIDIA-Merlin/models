@@ -27,12 +27,12 @@ from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     AsTabular,
     Block,
+    BlockType,
     InputBlockMixin,
     ParallelBlock,
     SequentialBlock,
     TabularAggregationType,
     TabularBlock,
-    TabularTransformationType,
 )
 from ..utils import tf_utils
 from .continuous import ContinuousFeatures
@@ -71,8 +71,8 @@ class TabularFeatures(ParallelBlock, InputBlockMixin):
         categorical_layer: Optional[TabularBlock] = None,
         text_embedding_layer: Optional[TabularBlock] = None,
         continuous_projection: Optional[Union[List[int], int]] = None,
-        pre: Optional[TabularTransformationType] = None,
-        post: Optional[TabularTransformationType] = None,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
         name: Optional[str] = None,

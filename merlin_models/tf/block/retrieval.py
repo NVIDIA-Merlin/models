@@ -13,13 +13,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional, Union
+import abc
+from typing import Optional
+
+import tensorflow as tf
+from tensorflow.python.keras.layers import Dot
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import Block, ParallelBlock, TabularTransformationsType, merge
+from ..core import (
+    Block,
+    BlockType,
+    ParallelBlock,
+    TabularAggregation,
+    merge,
+    tabular_aggregation_registry,
+)
 from ..features.embedding import EmbeddingFeatures
+from ..typing import TabularData
 from .inputs import TabularFeatures
+
+
+class Distance(TabularAggregation, abc.ABC):
+    def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
+        assert len(inputs) == 2
+
+        return self.distance(inputs, **kwargs)
+
+    def distance(self, inputs: TabularData, **kwargs) -> tf.Tensor:
+        raise NotImplementedError()
+
+
+@tabular_aggregation_registry.register("cosine")
+class CosineSimilarity(Distance):
+    def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
+        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+        self.dot = Dot(axes=1, normalize=True)
+
+    def distance(self, inputs: TabularData, **kwargs) -> tf.Tensor:
+        out = self.dot(list(inputs.values()))
+
+        return out
 
 
 def TwoTowerBlock(
@@ -28,10 +62,9 @@ def TwoTowerBlock(
     item_tower: Optional[Block] = None,
     query_tower_tag=Tag.USER,
     item_tower_tag=Tag.ITEM,
-    add_to_query_context: List[Union[str, Tag]] = None,
-    add_to_item_context: List[Union[str, Tag]] = None,
     embedding_dim_default: Optional[int] = 64,
-    post: Optional[TabularTransformationsType] = None,
+    post: Optional[BlockType] = None,
+    # negative_memory_bank=None,
     **kwargs
 ) -> ParallelBlock:
     _item_tower: Block = item_tower or query_tower.copy()
@@ -40,14 +73,12 @@ def TwoTowerBlock(
         _item_tower = TabularFeatures(
             item_schema,
             embedding_dim_default=embedding_dim_default,
-            add_to_context=add_to_item_context,
         ).connect(_item_tower)
     if not getattr(query_tower, "inputs", None):
         query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
         query_tower = TabularFeatures(
             query_schema,
             embedding_dim_default=embedding_dim_default,
-            add_to_context=add_to_query_context,
         ).connect(query_tower)
 
     two_tower = ParallelBlock({"query": query_tower, "item": _item_tower}, post=post, **kwargs)

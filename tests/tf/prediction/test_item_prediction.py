@@ -25,13 +25,13 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
 def test_retrieval_task(music_streaming_data: SyntheticData, num_epochs=5, run_eagerly=True):
+    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
     user_tower = ml.inputs(
         music_streaming_data.schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256])
     )
     item_tower = ml.inputs(
         music_streaming_data.schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256])
     )
-
     two_tower = ml.merge({"user": user_tower, "item": item_tower})
     model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2))
 
@@ -41,7 +41,4 @@ def test_retrieval_task(music_streaming_data: SyntheticData, num_epochs=5, run_e
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
-
-    user_tower = two_tower.select_by_name("user")
-    user_embeddings = user_tower(music_streaming_data.tf_tensor_dict)
-    assert list(user_embeddings.shape) == [100, 256]
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])

@@ -26,10 +26,10 @@ from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     AsTabular,
     Block,
+    BlockType,
     SequentialBlock,
     TabularAggregationType,
     TabularBlock,
-    TabularTransformationType,
 )
 from ..utils import tf_utils
 from . import embedding
@@ -58,8 +58,8 @@ class SequenceEmbeddingFeatures(embedding.EmbeddingFeatures):
         item_id: Optional[str] = None,
         mask_zero: bool = True,
         padding_idx: int = 0,
-        pre: Optional[TabularTransformationType] = None,
-        post: Optional[TabularTransformationType] = None,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
@@ -138,8 +138,8 @@ class TabularSequenceFeatures(TabularFeatures):
         categorical_layer: Optional[TabularBlock] = None,
         text_embedding_layer: Optional[TabularBlock] = None,
         projection_block: Optional[Block] = None,
-        pre: Optional[TabularTransformationType] = None,
-        post: Optional[TabularTransformationType] = None,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
         name=None,
         **kwargs

@@ -20,48 +20,44 @@ from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.python.layers.base import Layer
 
-from merlin_models.tf.core import (
-    PredictionBlock,
-    PredictionTask,
-    Sampler,
-    prediction_block_registry,
-)
+from merlin_models.tf.core import Block, PredictionTask, Sampler
 from merlin_standard_lib import Schema, Tag
 
 from .classification import MultiClassClassificationTask
 from .ranking_metric import ranking_metrics
 
 
-@prediction_block_registry.register_with_multiple_names("sampling-bias-correction")
-class SamplingBiasCorrection(PredictionBlock):
+@Block.registry.register_with_multiple_names("sampling-bias-correction")
+class SamplingBiasCorrection(Block):
     def __init__(self, bias_feature_name: str = "popularity", **kwargs):
         super(SamplingBiasCorrection, self).__init__(**kwargs)
         self.bias_feature_name = bias_feature_name
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        sampling_bias = self.context.tensors.get(self.bias_feature_name)
-        if sampling_bias is not None:
-            inputs -= tf.math.log(sampling_bias)
-        else:
-            # TODO : add warning
-            pass
+    def call_features(self, features, **kwargs):
+        self.bias = features[self.bias_feature_name]
 
-        return inputs, targets
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        inputs -= tf.math.log(self.bias)
 
-
-class SoftmaxTemperature(PredictionBlock):
-    def __init__(self, temperature: float, **kwargs):
-        super(SoftmaxTemperature, self).__init__(**kwargs)
-        self.temperature = temperature
-
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        return inputs / self.temperature, targets
+        return inputs
 
     def compute_output_shape(self, input_shape):
         return input_shape
 
 
-class ItemSoftmaxWeightTying(PredictionBlock):
+class SoftmaxTemperature(Block):
+    def __init__(self, temperature: float, **kwargs):
+        super(SoftmaxTemperature, self).__init__(**kwargs)
+        self.temperature = temperature
+
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        return inputs / self.temperature
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
+class ItemSoftmaxWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemSoftmaxWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
@@ -75,42 +71,44 @@ class ItemSoftmaxWeightTying(PredictionBlock):
         )
         return super().build(input_shape)
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
         embedding_table = self.context.get_embedding(Tag.ITEM_ID)
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
         predictions = tf.nn.log_softmax(logits, axis=-1)
 
-        return predictions, targets
+        return predictions
 
 
-@prediction_block_registry.register_with_multiple_names("in-batch-negative-sampling")
-class InBatchNegativeSampling(PredictionBlock):
+@Block.registry.register_with_multiple_names("in-batch-negative-sampling")
+class InBatchNegativeSampling(Block):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.dot = tf.keras.layers.Dot(axes=1)
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        assert len(inputs) == 2
         if training:
-            predictions = tf.linalg.matmul(*list(inputs.values()), transpose_b=True)
+            return tf.linalg.matmul(*list(inputs.values()), transpose_b=True)
 
-            if targets is not None:
-                if len(targets.shape) == 2:
-                    targets = tf.squeeze(targets)
-                targets = tf.linalg.diag(targets)
-            else:
-                targets = tf.eye(*predictions.shape)
+        return self.dot(list(inputs.values()))
 
-            return predictions, targets
+    def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
+        if targets:
+            if len(targets.shape) == 2:
+                targets = tf.squeeze(targets)
+            targets = tf.linalg.diag(targets)
+        else:
+            targets = tf.eye(*predictions.shape)
 
-        return self.dot(list(inputs.values())), targets
+        return targets
 
     def compute_output_shape(self, input_shape):
         return input_shape
 
 
-class ExtraNegativeSampling(PredictionBlock):
+class ExtraNegativeSampling(Block):
     def __init__(self, *sampler: Sampler, **kwargs):
         self.sampler = sampler
         super(ExtraNegativeSampling, self).__init__(**kwargs)
@@ -121,35 +119,41 @@ class ExtraNegativeSampling(PredictionBlock):
 
         return self.sampler[0].sample()
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(self, inputs, training=True, **kwargs):
         if training:
             extra_negatives: tf.Tensor = self.sample()
+            self.extra_negatives_shape = extra_negatives.shape
             inputs = tf.concat([inputs, extra_negatives], axis=0)
-            targets = tf.concat([targets, tf.zeros_like(extra_negatives)], axis=0)
 
-        return inputs, targets
+        return inputs
+
+    def call_targets(self, predictions, targets, training=True, **kwargs):
+        if training:
+            targets = tf.concat([targets, tf.zeros(self.extra_negatives_shape)], axis=0)
+
+        return targets
 
 
-# TODO: Make this a TabularTransformation
-#  & allow for standard blocks to be used in the prediction-path.
-class L2Norm(PredictionBlock):
+class L2Norm(Block):
+    # TODO: Make this a TabularTransformation
+    #  & allow for standard blocks to be used in the prediction-path.
     def __init__(self, **kwargs):
         super(L2Norm, self).__init__(**kwargs)
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(self, inputs, training=True, **kwargs):
         if isinstance(inputs, dict):
             inputs = {key: tf.linalg.l2_normalize(inp, axis=1) for key, inp in inputs.items()}
         else:
             inputs = tf.linalg.l2_normalize(inputs, axis=1)
 
-        return inputs, targets
+        return inputs
 
     def compute_output_shape(self, input_shape):
         return input_shape
 
 
 # TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
-class LabelAwareAttention(PredictionBlock):
+class LabelAwareAttention(Block):
     def predict(
         self, predictions, targets=None, training=True, **kwargs
     ) -> Tuple[tf.Tensor, tf.Tensor]:
@@ -161,7 +165,7 @@ def ItemRetrievalTask(
         from_logits=True, reduction=tf.keras.losses.Reduction.SUM
     ),
     metrics=ranking_metrics(top_ks=[10, 20]),
-    extra_pre_call: Optional[PredictionBlock] = None,
+    extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
     task_name: Optional[str] = None,
     task_block: Optional[Layer] = None,
@@ -202,16 +206,16 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
-    pre_call = InBatchNegativeSampling()
+    prediction_call = InBatchNegativeSampling()
 
     if normalize:
-        pre_call = L2Norm().connect(pre_call)
+        prediction_call = L2Norm().connect(prediction_call)
 
     if softmax_temperature != 1:
-        pre_call = pre_call.connect(SoftmaxTemperature(softmax_temperature))
+        prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
 
     if extra_pre_call is not None:
-        pre_call = pre_call.connect(extra_pre_call)
+        prediction_call = prediction_call.connect(extra_pre_call)
 
     return MultiClassClassificationTask(
         target_name,
@@ -219,7 +223,7 @@ def ItemRetrievalTask(
         task_block,
         loss=loss,
         metrics=metrics,
-        pre_call=pre_call,
+        pre=prediction_call,
     )
 
 
@@ -246,8 +250,7 @@ class ItemPredictionTask(PredictionTask):
         task_block: Optional[Layer] = None,
         weight_tying: bool = False,
         softmax_temperature: float = 1,
-        pre_call: Optional[PredictionBlock] = None,
-        pre_loss: Optional[PredictionBlock] = None,
+        pre: Optional[Block] = None,
         **kwargs,
     ):
         super().__init__(
@@ -255,8 +258,7 @@ class ItemPredictionTask(PredictionTask):
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
-            pre_call=pre_call,
-            pre_loss=pre_loss,
+            pre=pre,
             **kwargs,
         )
         self.weight_tying = weight_tying
@@ -329,8 +331,7 @@ class SampledItemPredictionTask(ItemPredictionTask):
         task_block: Optional[Layer] = None,
         weight_tying: bool = False,
         softmax_temperature: float = 1,
-        pre_call: Optional[PredictionBlock] = None,
-        pre_loss: Optional[PredictionBlock] = None,
+        pre: Optional[Block] = None,
         **kwargs,
     ):
         super().__init__(
@@ -342,8 +343,7 @@ class SampledItemPredictionTask(ItemPredictionTask):
             task_block,
             weight_tying,
             softmax_temperature,
-            pre_call=pre_call,
-            pre_loss=pre_loss,
+            pre=pre,
             **kwargs,
         )
         self.num_sampled = num_sampled
