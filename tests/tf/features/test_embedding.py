@@ -135,3 +135,11 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Syntheti
 
     assert embeddings["categories"].numpy().mean() == pytest.approx(CATEGORY_MEAN, abs=0.1)
     assert embeddings["categories"].numpy().std() == pytest.approx(CATEGORY_STD, abs=0.1)
+
+
+def test_shared_embeddings(music_streaming_data: SyntheticData):
+    inputs = ml.inputs(music_streaming_data.schema)
+
+    embeddings = inputs.select_by_name(Tag.CATEGORICAL)
+
+    assert embeddings.table_config("item_genres") == embeddings.table_config("user_genres")

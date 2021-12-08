@@ -301,8 +301,12 @@ class Schema(_Schema):
         if not isinstance(to_select, (list, tuple)) and not callable(to_select):
             to_select = [to_select]
 
-        def collection_filter_fn(column_tags):
-            return all(x in column_tags for x in to_select)
+        if callable(to_select):
+            collection_filter_fn = to_select
+        else:
+
+            def collection_filter_fn(column_tags):
+                return all(x in column_tags for x in to_select)
 
         output: Schema = self._filter_column_schemas(
             to_select, collection_filter_fn, lambda x: x.tags
@@ -367,6 +371,14 @@ class Schema(_Schema):
         for col in self:
             if col.int_domain and col.int_domain.is_categorical:
                 outputs[col.name] = col.int_domain.max + 1
+
+        return outputs
+
+    def categorical_domains(self) -> Dict[str, str]:
+        outputs = {}
+        for col in self:
+            if col.int_domain and col.int_domain.is_categorical:
+                outputs[col.name] = col.int_domain.name
 
         return outputs
 

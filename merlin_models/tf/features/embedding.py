@@ -122,22 +122,27 @@ class EmbeddingFeatures(InputBlock):
 
         emb_config = {}
         cardinalities = schema.categorical_cardinalities()
+        domains = schema.categorical_domains()
         for key, cardinality in cardinalities.items():
             embedding_size = embedding_dims.get(key, options.embedding_dim_default)
             embedding_initializer = embeddings_initializers.get(key, None)
             emb_config[key] = (cardinality, embedding_size, embedding_initializer)
 
         feature_config: Dict[str, FeatureConfig] = {}
+        tables: Dict[str, TableConfig] = {}
         for name, (vocab_size, dim, emb_initilizer) in emb_config.items():
-            feature_config[name] = FeatureConfig(
-                TableConfig(
+            table_name = domains[name]
+            table = tables.get(table_name, None)
+            if not table:
+                table = TableConfig(
                     vocabulary_size=vocab_size,
                     dim=dim,
-                    name=name,
+                    name=table_name,
                     combiner=options.combiner,
                     initializer=emb_initilizer,
                 )
-            )
+                tables[table_name] = table
+            feature_config[name] = FeatureConfig(table)
 
         if not feature_config:
             return None
@@ -208,6 +213,9 @@ class EmbeddingFeatures(InputBlock):
             out = tf.cast(out, self._dtype_policy.compute_dtype)
 
         return out
+
+    def table_config(self, feature_name):
+        return self.feature_config[feature_name].table
 
     def get_config(self):
         config = super().get_config()
