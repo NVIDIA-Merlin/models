@@ -25,13 +25,13 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
 def test_retrieval_task(music_streaming_data: SyntheticData, num_epochs=5, run_eagerly=True):
+    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
     user_tower = ml.inputs(
         music_streaming_data.schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256])
     )
     item_tower = ml.inputs(
         music_streaming_data.schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256])
     )
-
     two_tower = ml.merge({"user": user_tower, "item": item_tower})
     model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2))
 
@@ -44,4 +44,4 @@ def test_retrieval_task(music_streaming_data: SyntheticData, num_epochs=5, run_e
 
     user_tower = two_tower.select_by_name("user")
     user_embeddings = user_tower(music_streaming_data.tf_tensor_dict)
-    assert list(user_embeddings.shape) == [100, 256]
+    assert list(user_embeddings["user"].shape) == [100, 256]
