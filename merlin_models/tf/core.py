@@ -1617,12 +1617,12 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
                 targets = targets[self.target_name]
         if isinstance(predictions, dict) and self.target_name:
             predictions = predictions[self.task_name]
-        if targets is not None:
-            if len(targets.shape) == len(predictions.shape) - 1:
-                predictions = tf.squeeze(predictions)
 
         if self.pre:
             targets = self.pre_loss(predictions, targets, **kwargs)
+
+        if len(targets.shape) == len(predictions.shape) - 1:
+            predictions = tf.squeeze(predictions)
 
         loss = self._compute_loss(
             predictions, targets=targets, sample_weight=sample_weight, training=training
