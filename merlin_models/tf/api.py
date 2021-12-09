@@ -31,6 +31,7 @@ from .core import (
     ParallelPredictionBlock,
     SequentialBlock,
     TabularAggregationType,
+    TabularBlock,
 )
 from .features.continuous import ContinuousFeatures
 from .features.embedding import (
@@ -104,8 +105,12 @@ def sequential(
     filter: Optional[Union[Schema, Tag, List[str], Filter]] = None,
     block_name: Optional[str] = None,
     copy_layers: bool = False,
+    pre_aggregation: Optional[TabularAggregationType] = None,
     **kwargs,
 ) -> SequentialBlock:
+    if pre_aggregation:
+        blocks = [TabularBlock(aggregation=pre_aggregation), *blocks]
+
     return SequentialBlock(
         blocks, filter=filter, block_name=block_name, copy_layers=copy_layers, **kwargs
     )

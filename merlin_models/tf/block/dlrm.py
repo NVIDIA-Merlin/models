@@ -18,8 +18,8 @@ from typing import Optional
 
 from merlin_standard_lib import Schema, Tag
 
-from ..api import merge
-from ..core import Block, Filter, SequentialBlock, TabularBlock
+from ..api import merge, sequential
+from ..core import Block, Filter, SequentialBlock
 from ..features.continuous import ContinuousFeatures
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from ..layers import DotProductInteraction
@@ -27,9 +27,9 @@ from ..layers import DotProductInteraction
 
 def DLRMBlock(
     schema: Schema,
-    bottom_block: Block,
+    embedding_dim: int,
+    bottom_block: Block = None,
     top_block: Optional[Block] = None,
-    embedding_dim: Optional[int] = None,
 ) -> SequentialBlock:
     """Builds the DLRM archicture, as proposed in the following
     `paper https://arxiv.org/pdf/1906.00091.pdf`_ [Naumov19].
@@ -43,7 +43,7 @@ def DLRMBlock(
     schema : Schema
         The `Schema` with the input features
     bottom_block : Block
-        The `Block` that combines the continuous features (tipically a number of stacked MLP layers)
+        The `Block` that combines the continuous features (tipically a `MLPBlock`)
     top_block : Optional[Block], optional
         The optional `Block` that combines the outputs of bottom layer and of
         the factorization machine layer, by default None
@@ -66,38 +66,51 @@ def DLRMBlock(
     """
     if schema is None:
         raise ValueError("The schema is required by DLRM")
-    if bottom_block is None:
-        raise ValueError("The bottom_block is required by DLRM")
-    if embedding_dim is not None and embedding_dim != bottom_block.layers[-1].units:
-        raise ValueError(
-            f"The embedding_dim ({embedding_dim}) needs to match the "
-            "last layer of bottom MLP ({bottom_block.layers[-1].units})"
-        )
+
+    if embedding_dim is None:
+        raise ValueError("The embedding_dim is required")
 
     con_schema = schema.select_by_tag(Tag.CONTINUOUS)
     cat_schema = schema.select_by_tag(Tag.CATEGORICAL)
 
-    top_block_inputs = {}
-    if len(con_schema) > 0:
-        top_block_inputs["continuous"] = ContinuousFeatures.from_schema(con_schema).connect(
-            bottom_block
+    if not len(cat_schema) > 0:
+        raise ValueError("DLRM requires categorical features")
+
+    if (
+        embedding_dim is not None
+        and bottom_block is not None
+        and embedding_dim != bottom_block.layers[-1].units
+    ):
+        raise ValueError(
+            f"The embedding_dim ({embedding_dim}) needs to match the "
+            "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
         )
 
-    if len(cat_schema) > 0:
-        embedding_dim = embedding_dim or bottom_block.layers[-1].units
-        top_block_inputs["categorical"] = EmbeddingFeatures.from_schema(
-            cat_schema, options=EmbeddingOptions(embedding_dim_default=embedding_dim)
-        )
+    embeddings = EmbeddingFeatures.from_schema(
+        cat_schema, options=EmbeddingOptions(embedding_dim_default=embedding_dim)
+    )
+
+    if len(con_schema) > 0:
+        if bottom_block is None:
+            raise ValueError(
+                "The bottom_block is required by DLRM when "
+                "continuous features are available in the schema"
+            )
+        bottom_block = ContinuousFeatures.from_schema(con_schema).connect(bottom_block)
+        interaction_inputs = merge({"embeddings": embeddings, "bottom_block": bottom_block})
+    else:
+        interaction_inputs = embeddings
 
     if not top_block:
-        return merge(top_block_inputs, aggregation="stack").connect(DotProductInteraction())
+        return interaction_inputs.connect(DotProductInteractionBlock())
 
-    dot_product = TabularBlock(aggregation="stack").connect(DotProductInteraction())
-    top_block_outputs = (
-        merge(top_block_inputs)
-        .connect_with_shortcut(
-            dot_product, shortcut_filter=Filter("continuous"), aggregation="concat"
-        )
-        .connect(top_block)
+    top_block_inputs = interaction_inputs.connect_with_shortcut(
+        DotProductInteractionBlock(), shortcut_filter=Filter("continuous"), aggregation="concat"
     )
+    top_block_outputs = top_block_inputs.connect(top_block)
+
     return top_block_outputs
+
+
+def DotProductInteractionBlock():
+    return sequential(DotProductInteraction(), pre_aggregation="stack")
