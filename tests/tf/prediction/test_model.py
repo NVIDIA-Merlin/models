@@ -27,7 +27,7 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 # @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_simple_model(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=True):
 
-    body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
@@ -40,7 +40,10 @@ def test_simple_model(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=T
 
 def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
     dlrm_body = ml.DLRMBlock(
-        ecommerce_data.schema, bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([32])
+        ecommerce_data.schema,
+        embedding_dim=64,
+        bottom_block=ml.MLPBlock([64]),
+        top_block=ml.MLPBlock([32]),
     )
     model = dlrm_body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -57,12 +60,15 @@ def test_dlrm_model_single_head_multiple_tasks(
 ):
 
     dlrm_body = ml.DLRMBlock(
-        music_streaming_data.schema, bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([32])
+        music_streaming_data.schema,
+        embedding_dim=64,
+        bottom_block=ml.MLPBlock([64]),
+        top_block=ml.MLPBlock([32]),
     )
 
     tasks_blocks = dict(click=ml.MLPBlock([16]), play_percentage=ml.MLPBlock([20]))
 
-    prediction_tasks = ml.prediction_tasks(
+    prediction_tasks = ml.PredictionTasks(
         music_streaming_data.schema,
         task_blocks=tasks_blocks,
         task_weight_dict={"click": 2.0, "play_percentage": 1.0},
@@ -86,7 +92,7 @@ def test_dlrm_model_single_head_multiple_tasks(
 def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
     from merlin_models.tf.utils import testing_utils
 
-    body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(prediction_task("click"))
 
     copy_model = testing_utils.assert_serialization(model)
@@ -99,7 +105,7 @@ def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
 def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly=True):
     from merlin_models.tf.utils import testing_utils
 
-    body = ml.inputs(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
 
     dataset = ecommerce_data.tf_dataloader(batch_size=50)
     model = testing_utils.assert_model_saved(body, prediction_task("click"), run_eagerly, dataset)

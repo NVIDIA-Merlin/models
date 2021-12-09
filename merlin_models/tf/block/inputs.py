@@ -13,65 +13,58 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Dict, Optional, Tuple, Type, Union
+
+
+from typing import Dict, Optional, Tuple, Union
 
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.schema.tag import TagsType
 
-from ..core import Block, Filter, ParallelBlock, SequentialBlock, TabularBlock
+from ..core import Block, BlockType, ParallelBlock, TabularAggregationType
 from ..features.continuous import ContinuousFeatures
-from ..features.embedding import EmbeddingFeatures
+from ..features.embedding import (
+    ContinuousEmbedding,
+    EmbeddingFeatures,
+    EmbeddingOptions,
+    SequenceEmbeddingFeatures,
+)
 
 
-def ContinuousEmbedding(
-    inputs: Block,
-    embedding_block: Block,
-    aggregation=None,
-    continuous_aggregation="concat",
-    **kwargs
-) -> SequentialBlock:
-    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation=continuous_aggregation).connect(
-        embedding_block
-    )
-
-    outputs = inputs.connect_branch(
-        continuous_embedding.as_tabular("continuous"),
-        add_rest=True,
-        aggregation=aggregation,
-        **kwargs
-    )
-
-    return outputs
-
-
-def TabularFeatures(
+def InputBlock(
     schema: Schema,
-    extra_branches: Optional[Dict[str, Block]] = None,
+    branches: Optional[Dict[str, Block]] = None,
+    post: Optional[BlockType] = None,
+    aggregation: Optional[TabularAggregationType] = None,
+    seq: bool = False,
+    add_continuous_branch: bool = True,
     continuous_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CONTINUOUS,),
-    categorical_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CATEGORICAL,),
-    aggregation: Optional[str] = None,
     continuous_projection: Optional[Block] = None,
-    embedding_dim_default: Optional[int] = 64,
-    continuous_module_cls: Type[TabularBlock] = ContinuousFeatures,
-    embedding_module_cls: Type[TabularBlock] = EmbeddingFeatures,
+    add_embedding_branch: bool = True,
+    embedding_options: EmbeddingOptions = EmbeddingOptions(),
+    categorical_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CATEGORICAL,),
+    **kwargs,
 ) -> Block:
-    branches = extra_branches or {}
+    branches = branches or {}
 
-    if continuous_tags:
-        maybe_continuous_layer = continuous_module_cls.from_schema(
+    if add_continuous_branch and schema.select_by_tag(continuous_tags).column_schemas:
+        branches["continuous"] = ContinuousFeatures.from_schema(
             schema,
             tags=continuous_tags,
         )
-        if maybe_continuous_layer:
-            branches["continuous"] = maybe_continuous_layer
-    if categorical_tags:
-        maybe_categorical_layer = embedding_module_cls.from_schema(
-            schema, tags=categorical_tags, embedding_dim_default=embedding_dim_default
+    if add_embedding_branch and schema.select_by_tag(categorical_tags).column_schemas:
+        emb_cls = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
+
+        branches["categorical"] = emb_cls.from_schema(
+            schema, tags=categorical_tags, options=embedding_options
         )
-        if maybe_categorical_layer:
-            branches["categorical"] = maybe_categorical_layer
 
     if continuous_projection:
-        return ContinuousEmbedding(ParallelBlock(branches), continuous_projection)
+        return ContinuousEmbedding(
+            ParallelBlock(branches),
+            continuous_projection,
+            aggregation=aggregation,
+            post=post,
+            name="continuous_projection",
+        )
 
-    return ParallelBlock(branches, aggregation=aggregation)
+    return ParallelBlock(branches, aggregation=aggregation, post=post, **kwargs)

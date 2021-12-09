@@ -29,7 +29,7 @@ ml = pytest.importorskip("merlin_models.tf")
     "normalization", [None, "batch_norm", tf.keras.layers.BatchNormalization()]
 )
 def test_mlp_block_yoochoose(testing_data: SyntheticData, dim, activation, dropout, normalization):
-    inputs = ml.inputs(testing_data.schema)
+    inputs = ml.InputBlock(testing_data.schema)
 
     mlp = ml.MLPBlock([dim], activation=activation, dropout=dropout, normalization=normalization)
     body = ml.SequentialBlock([inputs, mlp])

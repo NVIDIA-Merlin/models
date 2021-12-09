@@ -24,7 +24,7 @@ test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
 def test_tabular_features(testing_data: SyntheticData):
-    tab_module = ml.TabularFeatures.from_schema(testing_data.schema)
+    tab_module = ml.InputBlock(testing_data.schema)
 
     outputs = tab_module(testing_data.tf_tensor_dict)
 
@@ -35,7 +35,7 @@ def test_tabular_features(testing_data: SyntheticData):
 
 
 def test_serialization_tabular_features(testing_data: SyntheticData):
-    inputs = ml.TabularFeatures.from_schema(testing_data.schema)
+    inputs = ml.InputBlock(testing_data.schema)
 
     copy_layer = test_utils.assert_serialization(inputs)
 
@@ -43,7 +43,7 @@ def test_serialization_tabular_features(testing_data: SyntheticData):
 
 
 def test_tabular_features_with_projection(testing_data: SyntheticData):
-    tab_module = ml.TabularFeatures.from_schema(testing_data.schema, continuous_projection=64)
+    tab_module = ml.InputBlock(testing_data.schema, continuous_projection=ml.MLPBlock([64]))
 
     outputs = tab_module(testing_data.tf_tensor_dict)
     continuous_feature_names = testing_data.schema.select_by_tag(Tag.CONTINUOUS).column_names
@@ -58,7 +58,9 @@ def test_tabular_features_with_projection(testing_data: SyntheticData):
 def test_tabular_features_yoochoose_model(
     testing_data: SyntheticData, run_eagerly, continuous_projection
 ):
-    inputs = ml.TabularFeatures.from_schema(
+    if continuous_projection:
+        continuous_projection = ml.MLPBlock([continuous_projection])
+    inputs = ml.InputBlock(
         testing_data.schema, continuous_projection=continuous_projection, aggregation="concat"
     )
 

@@ -15,25 +15,29 @@
 #
 
 from copy import deepcopy
-from typing import Any, Callable, Dict, Optional
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Optional, Union
 
 import tensorflow as tf
+from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
+from merlin_models.tf.block.transformations import AsSparseFeatures
 from merlin_standard_lib import Schema
-from merlin_standard_lib.schema.tag import TagsType
+from merlin_standard_lib.schema.tag import Tag, TagsType
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 from merlin_standard_lib.utils.embedding_utils import get_embedding_sizes_from_schema
 
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
+    Block,
     BlockType,
     Filter,
-    InputBlock,
+    SequentialBlock,
     TabularAggregationType,
+    TabularInputBlock,
 )
-from ..tabular.transformations import AsSparseFeatures
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
@@ -49,12 +53,21 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
 """
 
 
+@dataclass
+class EmbeddingOptions:
+    embedding_dim_default: Optional[int] = 64
+    infer_embedding_sizes: bool = False
+    infer_embedding_sizes_multiplier: float = 2.0
+    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None
+    combiner: Optional[str] = "mean"
+
+
 @docstring_parameter(
     tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING,
     embedding_features_parameters=EMBEDDING_FEATURES_PARAMS_DOCSTRING,
 )
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class EmbeddingFeatures(InputBlock):
+class EmbeddingFeatures(TabularInputBlock):
     """Input block for embedding-lookups for categorical features.
 
     For multi-hot features, the embeddings will be aggregated into a single tensor using the mean.
@@ -90,11 +103,7 @@ class EmbeddingFeatures(InputBlock):
         cls,
         schema: Schema,
         embedding_dims: Optional[Dict[str, int]] = None,
-        embedding_dim_default: Optional[int] = 64,
-        infer_embedding_sizes: bool = False,
-        infer_embedding_sizes_multiplier: float = 2.0,
-        embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
-        combiner: Optional[str] = "mean",
+        options: EmbeddingOptions = EmbeddingOptions(),
         tags: Optional[TagsType] = None,
         max_sequence_length: Optional[int] = None,
         **kwargs,
@@ -104,32 +113,37 @@ class EmbeddingFeatures(InputBlock):
         if tags:
             schema_copy = schema_copy.select_by_tag(tags)
 
-        if infer_embedding_sizes:
+        if options.infer_embedding_sizes:
             embedding_dims = get_embedding_sizes_from_schema(
-                schema, infer_embedding_sizes_multiplier
+                schema, options.infer_embedding_sizes_multiplier
             )
 
         embedding_dims = embedding_dims or {}
-        embeddings_initializers = embeddings_initializers or {}
+        embeddings_initializers = options.embeddings_initializers or {}
 
         emb_config = {}
         cardinalities = schema.categorical_cardinalities()
+        domains = schema.categorical_domains()
         for key, cardinality in cardinalities.items():
-            embedding_size = embedding_dims.get(key, embedding_dim_default)
+            embedding_size = embedding_dims.get(key, options.embedding_dim_default)
             embedding_initializer = embeddings_initializers.get(key, None)
             emb_config[key] = (cardinality, embedding_size, embedding_initializer)
 
         feature_config: Dict[str, FeatureConfig] = {}
+        tables: Dict[str, TableConfig] = {}
         for name, (vocab_size, dim, emb_initilizer) in emb_config.items():
-            feature_config[name] = FeatureConfig(
-                TableConfig(
+            table_name = domains[name]
+            table = tables.get(table_name, None)
+            if not table:
+                table = TableConfig(
                     vocabulary_size=vocab_size,
                     dim=dim,
-                    name=name,
-                    combiner=combiner,
+                    name=table_name,
+                    combiner=options.combiner,
                     initializer=emb_initilizer,
                 )
-            )
+                tables[table_name] = table
+            feature_config[name] = FeatureConfig(table)
 
         if not feature_config:
             return None
@@ -201,6 +215,31 @@ class EmbeddingFeatures(InputBlock):
 
         return out
 
+    def table_config(self, feature_name: str):
+        return self.feature_config[feature_name].table
+
+    def embedding_table_df(self, table_name: Union[str, Tag], gpu=True):
+        embeddings = self.embedding_tables[str(table_name)]
+
+        if gpu:
+            import cudf
+
+            df = cudf.from_dlpack(to_dlpack(tf.convert_to_tensor(embeddings)))
+            df.columns = [str(col) for col in list(df.columns)]
+            df.set_index(cudf.RangeIndex(0, embeddings.shape[0]))
+        else:
+            import pandas as pd
+
+            df = pd.DataFrame(embeddings.numpy())
+            df.columns = [str(col) for col in list(df.columns)]
+            df.set_index(pd.RangeIndex(0, embeddings.shape[0]))
+
+        return df
+
+    def export_embedding_table(self, table_name: Union[str, Tag], export_path: str, gpu=True):
+        df = self.embedding_table_df(table_name, gpu=gpu)
+        df.to_parquet(export_path)
+
     def get_config(self):
         config = super().get_config()
 
@@ -237,6 +276,99 @@ class EmbeddingFeatures(InputBlock):
         config["add_default_pre"] = False
 
         return super().from_config(config)
+
+
+@docstring_parameter(
+    tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING,
+    embedding_features_parameters=EMBEDDING_FEATURES_PARAMS_DOCSTRING,
+)
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class SequenceEmbeddingFeatures(EmbeddingFeatures):
+    """Input block for embedding-lookups for categorical features. This module produces 3-D tensors,
+    this is useful for sequential models like transformers.
+    Parameters
+    ----------
+    {embedding_features_parameters}
+    padding_idx: int
+        The symbol to use for padding.
+    {tabular_module_parameters}
+    """
+
+    def __init__(
+        self,
+        feature_config: Dict[str, FeatureConfig],
+        mask_zero: bool = True,
+        padding_idx: int = 0,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        **kwargs,
+    ):
+        super().__init__(
+            feature_config,
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+            schema=schema,
+            name=name,
+            **kwargs,
+        )
+        self.padding_idx = padding_idx
+        self.mask_zero = mask_zero
+
+    def lookup_feature(self, name, val, **kwargs):
+        return super(SequenceEmbeddingFeatures, self).lookup_feature(
+            name, val, output_sequence=True
+        )
+
+    def compute_call_output_shape(self, input_shapes):
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
+        sequence_length = input_shapes[list(self.feature_config.keys())[0]][1]
+
+        output_shapes = {}
+        for name, val in input_shapes.items():
+            output_shapes[name] = tf.TensorShape(
+                [batch_size, sequence_length, self.feature_config[name].table.dim]
+            )
+
+        return output_shapes
+
+    def compute_mask(self, inputs, mask=None):
+        if not self.mask_zero:
+            return None
+        outputs = {}
+        for key, val in inputs.items():
+            outputs[key] = tf.not_equal(val, self.padding_idx)
+
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config["mask_zero"] = self.mask_zero
+        config["padding_idx"] = self.padding_idx
+
+        return config
+
+
+def ContinuousEmbedding(
+    inputs: Block,
+    embedding_block: Block,
+    aggregation=None,
+    continuous_aggregation="concat",
+    name: str = "continuous",
+    **kwargs,
+) -> SequentialBlock:
+    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation=continuous_aggregation).connect(
+        embedding_block
+    )
+
+    outputs = inputs.connect_branch(
+        continuous_embedding.as_tabular(name), add_rest=True, aggregation=aggregation, **kwargs
+    )
+
+    return outputs
 
 
 def serialize_table_config(table_config: TableConfig) -> Dict[str, Any]:

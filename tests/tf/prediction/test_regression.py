@@ -28,7 +28,7 @@ targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32)
 def test_regression_head(testing_data: SyntheticData):
     from merlin_models.tf.utils import testing_utils
 
-    body = ml.inputs(testing_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.RegressionTask("target"))
 
     testing_utils.assert_loss_and_metrics_are_valid(model, (testing_data.tf_tensor_dict, targets))
@@ -37,7 +37,7 @@ def test_regression_head(testing_data: SyntheticData):
 def test_serialization_regression_head(testing_data: SyntheticData):
     from merlin_models.tf.utils import testing_utils
 
-    body = ml.inputs(testing_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.RegressionTask("target"))
 
     copy_model = test_utils.assert_serialization(model)

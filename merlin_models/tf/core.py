@@ -338,58 +338,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return right_shift_layer(self, other)
 
 
-def inputs(
-    schema: Schema,
-    *block: Block,
-    post: Optional[BlockType] = None,
-    aggregation: Optional["TabularAggregationType"] = None,
-    seq: bool = False,
-    **kwargs,
-) -> "Block":
-    if seq:
-        from merlin_models.tf import TabularSequenceFeatures
-
-        inp_block = TabularSequenceFeatures.from_schema(
-            schema, post=post, aggregation=aggregation, **kwargs
-        )
-    else:
-        from merlin_models.tf.block.inputs import TabularFeatures
-
-        inp_block = TabularFeatures(schema, aggregation=aggregation, **kwargs)
-
-    if not block:
-        return inp_block
-
-    return SequentialBlock([inp_block, *block])
-
-
-def prediction_tasks(
-    schema: Schema,
-    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-    task_weight_dict: Optional[Dict[str, float]] = None,
-    bias_block: Optional[Layer] = None,
-    loss_reduction=tf.reduce_mean,
-    **kwargs,
-) -> "ParallelPredictionBlock":
-    return ParallelPredictionBlock.from_schema(
-        schema,
-        task_blocks=task_blocks,
-        task_weight_dict=task_weight_dict,
-        bias_block=bias_block,
-        loss_reduction=loss_reduction,
-        **kwargs,
-    )
-
-
-def merge(
-    *branches: Union["Block", Dict[str, "Block"]],
-    post: Optional[BlockType] = None,
-    aggregation: Optional["TabularAggregationType"] = None,
-    **kwargs,
-) -> "ParallelBlock":
-    return ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SequentialBlock(Block):
     """The SequentialLayer represents a sequence of Keras layers.
@@ -407,8 +355,9 @@ class SequentialBlock(Block):
 
     def __init__(
         self,
-        layers,
+        *layers,
         filter: Optional[Union[Schema, Tag, List[str], "Filter"]] = None,
+        pre_aggregation: Optional["TabularAggregationType"] = None,
         block_name: Optional[str] = None,
         copy_layers: bool = False,
         **kwargs,
@@ -427,7 +376,14 @@ class SequentialBlock(Block):
         TypeError:
             If any of the layers are not instances of keras `Layer`.
         """
+        if len(layers) == 1 and isinstance(layers[0], (list, tuple)):
+            layers = layers[0]
+
         self.block_name = block_name
+
+        if pre_aggregation:
+            layers = [TabularBlock(aggregation=pre_aggregation), *layers]
+
         for layer in layers:
             if not isinstance(layer, tf.keras.layers.Layer):
                 raise TypeError(
@@ -571,7 +527,7 @@ class SequentialBlock(Block):
     def call_targets(self, predictions, targets, training=None, **kwargs):
         outputs = targets
         for layer in self.layers:
-            targets = layer.call_targets(predictions, outputs, training=training, **kwargs)
+            outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
 
         return outputs
 
@@ -1477,7 +1433,7 @@ class ResidualBlock(WithShortcut):
         strict: bool = False,
         **kwargs,
     ):
-        from merlin_models.tf.tabular.aggregation import SumResidual
+        from merlin_models.tf.block.aggregation import SumResidual
 
         super().__init__(
             block,
@@ -1664,15 +1620,15 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     ) -> tf.Tensor:
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
+
         if isinstance(predictions, dict) and self.target_name:
             predictions = predictions[self.task_name]
 
+        if self.pre:
+            targets = self.pre_loss(predictions, targets, **kwargs)
+
         if len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
-
-        if self.pre:
-            predictions = self.pre_call(predictions, training=training, **kwargs)
-            targets = self.pre_loss(predictions, targets, **kwargs)
 
         loss = self._compute_loss(
             predictions, targets=targets, sample_weight=sample_weight, training=training
@@ -2148,7 +2104,7 @@ class InputBlockMixin:
         return True
 
 
-class InputBlock(TabularBlock, InputBlockMixin):
+class TabularInputBlock(TabularBlock, InputBlockMixin):
     pass
 
 

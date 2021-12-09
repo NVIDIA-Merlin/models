@@ -22,8 +22,8 @@ ml = pytest.importorskip("merlin_models.tf")
 def test_model_with_multiple_tasks(music_streaming_data: SyntheticData, task_blocks):
     music_streaming_data._schema = music_streaming_data.schema.remove_by_name("like")
 
-    inputs = ml.inputs(music_streaming_data.schema)
-    prediction_tasks = ml.prediction_tasks(music_streaming_data.schema, task_blocks=task_blocks)
+    inputs = ml.InputBlock(music_streaming_data.schema)
+    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema, task_blocks=task_blocks)
     model = inputs.connect(ml.MLPBlock([64]), prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
 
@@ -38,8 +38,8 @@ def test_model_with_multiple_tasks(music_streaming_data: SyntheticData, task_blo
 
 
 def test_mmoe_head(music_streaming_data: SyntheticData):
-    inputs = ml.inputs(music_streaming_data.schema)
-    prediction_tasks = ml.prediction_tasks(music_streaming_data.schema)
+    inputs = ml.InputBlock(music_streaming_data.schema)
+    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
     mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
     model = inputs.connect(ml.MLPBlock([64]), mmoe, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
@@ -51,8 +51,8 @@ def test_mmoe_head(music_streaming_data: SyntheticData):
 
 
 def test_ple_head(music_streaming_data: SyntheticData):
-    inputs = ml.inputs(music_streaming_data.schema)
-    prediction_tasks = ml.prediction_tasks(music_streaming_data.schema)
+    inputs = ml.InputBlock(music_streaming_data.schema)
+    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
     cgc = ml.CGCBlock(
         prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=2
     )
