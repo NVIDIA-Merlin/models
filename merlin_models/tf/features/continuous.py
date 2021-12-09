@@ -25,14 +25,14 @@ from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     BlockType,
     Filter,
-    InputBlock,
     TabularAggregationType,
+    TabularInputBlock,
 )
 
 
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ContinuousFeatures(InputBlock):
+class ContinuousFeatures(TabularInputBlock):
     """Input block for continuous features.
 
     Parameters

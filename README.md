@@ -37,7 +37,7 @@ Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube
 import merlin_models.tf as ml
 
 dims = [512, 256]
-dnn = ml.inputs(schema, post="continuous-powers").apply(ml.MLPBlock(dims))
+dnn = ml.InputBlock(schema, post="continuous-powers").apply(ml.MLPBlock(dims))
 prediction_task = ml.SampledItemPredictionTask(schema, dim=dims[-1], num_sampled=500)
 
 model = dnn.to_model(prediction_task)
@@ -64,8 +64,8 @@ Low-level API:
 ```python
 import merlin_models.tf as ml
 
-user_tower = ml.inputs(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
-item_tower = ml.inputs(schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256]))
+user_tower = ml.InputBlock(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
+item_tower = ml.InputBlock(schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256]))
 two_tower = ml.merge({"user": user_tower, "item": item_tower}, aggregation="cosine")
 model = two_tower.to_model(schema.select_by_name(TARGET_NAME))
 ```
@@ -96,8 +96,8 @@ Low-level API:
 import merlin_models.tf as ml
 
 dlrm_inputs = ml.ContinuousEmbedding(
-    ml.inputs(schema, embedding_dim_default=128),
-    embedding_block=ml.MLPBlock([512, 128]), 
+    ml.InputBlock(schema, embedding_dim_default=128),
+    embedding_block=ml.MLPBlock([512, 128]),
     aggregation="stack"
 )
 dlrm = dlrm_inputs.apply(ml.DotProductInteraction(), ml.MLPBlock([512, 128]))
@@ -113,15 +113,15 @@ Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” A
 ```python
 import merlin_models.tf as ml
 
-deep_cross_a = ml.inputs(schema, ml.CrossBlock(3)).apply(
+deep_cross_a = ml.InputBlock(schema, ml.CrossBlock(3)).apply(
     ml.MLPBlock([512, 256])
 ).to_model(schema)
 
-deep_cross_b = ml.inputs(schema).branch(
+deep_cross_b = ml.InputBlock(schema).branch(
     ml.CrossBlock(3), ml.MLPBlock([512, 256]), aggregation="concat"
 ).to_model(schema)
 
-b_with_shortcut = ml.inputs(schema, ml.CrossBlock(3)).apply_with_shortcut(
+b_with_shortcut = ml.InputBlock(schema, ml.CrossBlock(3)).apply_with_shortcut(
     ml.MLPBlock([512, 256]), aggregation="concat"
 ).to_model(schema)
 ```

@@ -15,26 +15,14 @@
 #
 
 
-from typing import Dict, List, Optional, Tuple, Union
-
-import tensorflow as tf
-from tensorflow.keras.layers import Layer
+from typing import Dict, Optional, Tuple, Union
 
 from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.schema.tag import TagsType
 
-from .core import (
-    Block,
-    BlockType,
-    Filter,
-    ParallelBlock,
-    ParallelPredictionBlock,
-    SequentialBlock,
-    TabularAggregationType,
-    TabularBlock,
-)
-from .features.continuous import ContinuousFeatures
-from .features.embedding import (
+from ..core import Block, BlockType, ParallelBlock, TabularAggregationType
+from ..features.continuous import ContinuousFeatures
+from ..features.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
@@ -42,7 +30,7 @@ from .features.embedding import (
 )
 
 
-def inputs(
+def InputBlock(
     schema: Schema,
     branches: Optional[Dict[str, Block]] = None,
     post: Optional[BlockType] = None,
@@ -80,46 +68,3 @@ def inputs(
         )
 
     return ParallelBlock(branches, aggregation=aggregation, post=post, **kwargs)
-
-
-def prediction_tasks(
-    schema: Schema,
-    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-    task_weight_dict: Optional[Dict[str, float]] = None,
-    bias_block: Optional[Layer] = None,
-    loss_reduction=tf.reduce_mean,
-    **kwargs,
-) -> ParallelPredictionBlock:
-    return ParallelPredictionBlock.from_schema(
-        schema,
-        task_blocks=task_blocks,
-        task_weight_dict=task_weight_dict,
-        bias_block=bias_block,
-        loss_reduction=loss_reduction,
-        **kwargs,
-    )
-
-
-def sequential(
-    *blocks,
-    filter: Optional[Union[Schema, Tag, List[str], Filter]] = None,
-    block_name: Optional[str] = None,
-    copy_layers: bool = False,
-    pre_aggregation: Optional[TabularAggregationType] = None,
-    **kwargs,
-) -> SequentialBlock:
-    if pre_aggregation:
-        blocks = [TabularBlock(aggregation=pre_aggregation), *blocks]
-
-    return SequentialBlock(
-        blocks, filter=filter, block_name=block_name, copy_layers=copy_layers, **kwargs
-    )
-
-
-def merge(
-    *branches: Union[Block, Dict[str, Block]],
-    post: Optional[BlockType] = None,
-    aggregation: Optional[TabularAggregationType] = None,
-    **kwargs,
-) -> ParallelBlock:
-    return ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)

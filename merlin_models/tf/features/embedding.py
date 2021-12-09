@@ -34,9 +34,9 @@ from ..core import (
     Block,
     BlockType,
     Filter,
-    InputBlock,
     SequentialBlock,
     TabularAggregationType,
+    TabularInputBlock,
 )
 
 # pylint has issues with TF array ops, so disable checks until fixed:
@@ -67,7 +67,7 @@ class EmbeddingOptions:
     embedding_features_parameters=EMBEDDING_FEATURES_PARAMS_DOCSTRING,
 )
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class EmbeddingFeatures(InputBlock):
+class EmbeddingFeatures(TabularInputBlock):
     """Input block for embedding-lookups for categorical features.
 
     For multi-hot features, the embeddings will be aggregated into a single tensor using the mean.

@@ -23,7 +23,6 @@ from merlin_standard_lib import Schema, Tag
 
 from .. import data
 from ..data.synthetic import SyntheticData
-from .api import inputs, merge, prediction_tasks, sequential
 from .block.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
@@ -32,8 +31,9 @@ from .block.aggregation import (
 )
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
+from .block.inputs import InputBlock
 from .block.mlp import DenseResidualBlock, MLPBlock
-from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate
+from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
 from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
 from .block.transformations import (
     AsDenseFeatures,
@@ -137,10 +137,8 @@ __all__ = [
     "InBatchNegativeSampling",
     "ExtraNegativeSampling",
     "Model",
-    "inputs",
-    "prediction_tasks",
-    "merge",
-    "sequential",
+    "InputBlock",
+    "PredictionTasks",
     "StochasticSwapNoise",
     "ExpandDims",
     "NoOp",

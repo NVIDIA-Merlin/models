@@ -27,7 +27,7 @@ targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32)
 def test_binary_classification_head(testing_data: SyntheticData):
     from merlin_models.tf.utils import testing_utils
 
-    body = ml.inputs(testing_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("target"))
 
     testing_utils.assert_loss_and_metrics_are_valid(model, (testing_data.tf_tensor_dict, targets))
@@ -36,7 +36,7 @@ def test_binary_classification_head(testing_data: SyntheticData):
 def test_serialization_binary_classification_head(testing_data: SyntheticData):
     from merlin_models.tf.utils import testing_utils
 
-    body = ml.inputs(testing_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("target"))
 
     copy_model = testing_utils.assert_serialization(model)

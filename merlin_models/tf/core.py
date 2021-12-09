@@ -355,8 +355,9 @@ class SequentialBlock(Block):
 
     def __init__(
         self,
-        layers,
+        *layers,
         filter: Optional[Union[Schema, Tag, List[str], "Filter"]] = None,
+        pre_aggregation: Optional["TabularAggregationType"] = None,
         block_name: Optional[str] = None,
         copy_layers: bool = False,
         **kwargs,
@@ -375,7 +376,14 @@ class SequentialBlock(Block):
         TypeError:
             If any of the layers are not instances of keras `Layer`.
         """
+        if len(layers) == 1 and isinstance(layers[0], (list, tuple)):
+            layers = layers[0]
+
         self.block_name = block_name
+
+        if pre_aggregation:
+            layers = [TabularBlock(aggregation=pre_aggregation), *layers]
+
         for layer in layers:
             if not isinstance(layer, tf.keras.layers.Layer):
                 raise TypeError(
@@ -2096,7 +2104,7 @@ class InputBlockMixin:
         return True
 
 
-class InputBlock(TabularBlock, InputBlockMixin):
+class TabularInputBlock(TabularBlock, InputBlockMixin):
     pass
 
 
