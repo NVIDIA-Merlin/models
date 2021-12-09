@@ -72,8 +72,8 @@ from .prediction.item_prediction import (
     ExtraNegativeSampling,
     InBatchNegativeSampling,
     ItemRetrievalTask,
-    SampledItemPredictionTask,
 )
+from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
 
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
@@ -132,15 +132,18 @@ __all__ = [
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",
-    "SampledItemPredictionTask",
-    "ItemRetrievalTask",
     "InBatchNegativeSampling",
     "ExtraNegativeSampling",
+    "ItemRetrievalTask",
+    "NDCGAt",
+    "AvgPrecisionAt",
+    "RecallAt",
     "Model",
     "InputBlock",
     "PredictionTasks",
     "StochasticSwapNoise",
     "ExpandDims",
+    "L2Norm",
     "NoOp",
     "data",
     "SyntheticData",

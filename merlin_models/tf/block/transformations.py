@@ -221,3 +221,21 @@ class ExpandDims(TabularBlock):
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+
+@Block.registry.register_with_multiple_names("l2-norm")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class L2Norm(TabularBlock):
+    def __init__(self, **kwargs):
+        super(L2Norm, self).__init__(**kwargs)
+
+    def call(self, inputs: Union[tf.Tensor, TabularData], axis: int = -1, **kwargs):
+        if isinstance(inputs, dict):
+            inputs = {key: tf.linalg.l2_normalize(inp, axis=axis) for key, inp in inputs.items()}
+        else:
+            inputs = tf.linalg.l2_normalize(inputs, axis=axis)
+
+        return inputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape

@@ -24,6 +24,7 @@ from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 from merlin_standard_lib import Schema, Tag
 
 from ..core import Block, MetricOrMetricClass, PredictionTask
+from .ranking_metric import ranking_metrics
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -98,7 +99,10 @@ class Softmax(Block):
 
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
-    DEFAULT_METRICS = ()
+    DEFAULT_METRICS = {
+        "ranking": ranking_metrics(top_ks=[10, 20]),
+        "multi-class": (),
+    }
 
     def __init__(
         self,
@@ -110,6 +114,7 @@ class MultiClassClassificationTask(PredictionTask):
         pre: Optional[Block] = None,
         **kwargs,
     ):
+
         super().__init__(
             metrics=list(metrics),
             target_name=target_name,
@@ -153,3 +158,16 @@ class MultiClassClassificationTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         return inputs
+
+    def metric_results(self, mode: str = None):
+        dict_results = {}
+        for metric in self.metrics:
+            if hasattr(metric, "top_ks"):
+                topks = metric.top_ks
+                results = metric.result()
+                for i, k in enumerate(topks):
+                    dict_results[f"{metric.name}_{k}"] = results[i]
+            else:
+                dict_results.update({metric.name: metric.result()})
+
+        return dict_results

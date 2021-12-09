@@ -527,7 +527,7 @@ class SequentialBlock(Block):
     def call_targets(self, predictions, targets, training=None, **kwargs):
         outputs = targets
         for layer in self.layers:
-            targets = layer.call_targets(predictions, outputs, training=training, **kwargs)
+            outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
 
         return outputs
 
@@ -1620,15 +1620,15 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     ) -> tf.Tensor:
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
+
         if isinstance(predictions, dict) and self.target_name:
             predictions = predictions[self.task_name]
 
+        if self.pre:
+            targets = self.pre_loss(predictions, targets, **kwargs)
+
         if len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
-
-        if self.pre:
-            predictions = self.pre_call(predictions, training=training, **kwargs)
-            targets = self.pre_loss(predictions, targets, **kwargs)
 
         loss = self._compute_loss(
             predictions, targets=targets, sample_weight=sample_weight, training=training

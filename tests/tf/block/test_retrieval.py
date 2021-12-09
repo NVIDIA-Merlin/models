@@ -1,3 +1,18 @@
+#
+# Copyright (c) 2021, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import os.path
 
 import pytest
@@ -51,3 +66,52 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
         assert len(df) == 10001
     except ImportError:
         pass
+
+
+test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
+
+
+def test_two_tower_block(testing_data: SyntheticData):
+    two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
+    outputs = two_tower(testing_data.tf_tensor_dict)
+
+    assert len(outputs) == 2
+    for key in ["item", "query"]:
+        assert list(outputs[key].shape) == [100, 128]
+
+
+def test_two_tower_block_serialization(testing_data: SyntheticData):
+    two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
+    copy_two_tower = test_utils.assert_serialization(two_tower)
+
+    outputs = copy_two_tower(testing_data.tf_tensor_dict)
+
+    assert len(outputs) == 2
+    for key in ["item", "query"]:
+        assert list(outputs[key].shape) == [100, 128]
+
+
+def test_two_tower_block_no_item_features(testing_data: SyntheticData):
+    with pytest.raises(ValueError) as excinfo:
+        schema = testing_data.schema.remove_by_tag(Tag.ITEM)
+        ml.TwoTowerBlock(schema, query_tower=ml.MLPBlock([64]))
+        assert "The schema should contain features with the tag `item`" in str(excinfo.value)
+
+
+def test_two_tower_block_no_user_features(testing_data: SyntheticData):
+    with pytest.raises(ValueError) as excinfo:
+        schema = testing_data.schema.remove_by_tag(Tag.USER)
+        ml.TwoTowerBlock(schema, query_tower=ml.MLPBlock([64]))
+        assert "The schema should contain features with the tag `user`" in str(excinfo.value)
+
+
+def test_two_tower_block_no_schema():
+    with pytest.raises(ValueError) as excinfo:
+        ml.TwoTowerBlock(schema=None, query_tower=ml.MLPBlock([64]))
+    assert "The schema is required by TwoTower" in str(excinfo.value)
+
+
+def test_two_tower_block_no_bottom_block(testing_data: SyntheticData):
+    with pytest.raises(ValueError) as excinfo:
+        ml.TwoTowerBlock(schema=testing_data.schema, query_tower=None)
+    assert "The query_tower is required by TwoTower" in str(excinfo.value)
