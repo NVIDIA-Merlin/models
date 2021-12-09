@@ -84,7 +84,7 @@ class DummyFeaturesBlock(ml.Block):
 
 
 def test_block_context(ecommerce_data: SyntheticData):
-    inputs = ml.inputs(ecommerce_data.schema)
+    inputs = ml.InputBlock(ecommerce_data.schema)
     dummy = DummyFeaturesBlock()
     model = inputs.connect(ml.MLPBlock([64]), dummy)
 
