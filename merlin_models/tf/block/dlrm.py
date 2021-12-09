@@ -70,6 +70,12 @@ def DLRMBlock(
     if embedding_dim is None:
         raise ValueError("The embedding_dim is required")
 
+    con_schema = schema.select_by_tag(Tag.CONTINUOUS)
+    cat_schema = schema.select_by_tag(Tag.CATEGORICAL)
+
+    if not len(cat_schema) > 0:
+        raise ValueError("DLRM requires categorical features")
+
     if (
         embedding_dim is not None
         and bottom_block is not None
@@ -80,26 +86,20 @@ def DLRMBlock(
             "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
         )
 
-    con_schema = schema.select_by_tag(Tag.CONTINUOUS)
-    cat_schema = schema.select_by_tag(Tag.CATEGORICAL)
+    embeddings = EmbeddingFeatures.from_schema(
+        cat_schema, options=EmbeddingOptions(embedding_dim_default=embedding_dim)
+    )
 
-    input_branches = {}
     if len(con_schema) > 0:
         if bottom_block is None:
             raise ValueError(
                 "The bottom_block is required by DLRM when "
                 "continuous features are available in the schema"
             )
-        input_branches["bottom_block"] = ContinuousFeatures.from_schema(con_schema).connect(
-            bottom_block
-        )
-
-    if len(cat_schema) > 0:
-        input_branches["embeddings"] = EmbeddingFeatures.from_schema(
-            cat_schema, options=EmbeddingOptions(embedding_dim_default=embedding_dim)
-        )
-
-    interaction_inputs = merge(input_branches)
+        bottom_block = ContinuousFeatures.from_schema(con_schema).connect(bottom_block)
+        interaction_inputs = merge({"embeddings": embeddings, "bottom_block": bottom_block})
+    else:
+        interaction_inputs = embeddings
 
     if not top_block:
         return interaction_inputs.connect(DotProductInteractionBlock())
