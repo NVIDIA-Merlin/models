@@ -229,11 +229,11 @@ class L2Norm(TabularBlock):
     def __init__(self, **kwargs):
         super(L2Norm, self).__init__(**kwargs)
 
-    def call(self, inputs, training=True, **kwargs):
+    def call(self, inputs: Union[tf.Tensor, TabularData], axis: int = -1, **kwargs):
         if isinstance(inputs, dict):
-            inputs = {key: tf.linalg.l2_normalize(inp, axis=1) for key, inp in inputs.items()}
+            inputs = {key: tf.linalg.l2_normalize(inp, axis=axis) for key, inp in inputs.items()}
         else:
-            inputs = tf.linalg.l2_normalize(inputs, axis=1)
+            inputs = tf.linalg.l2_normalize(inputs, axis=axis)
 
         return inputs
 
