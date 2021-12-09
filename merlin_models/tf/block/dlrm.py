@@ -18,8 +18,8 @@ from typing import Optional
 
 from merlin_standard_lib import Schema, Tag
 
-from ..api import merge
-from ..core import Block, Filter, SequentialBlock, TabularBlock
+from ..api import merge, sequential
+from ..core import Block, Filter, SequentialBlock
 from ..features.continuous import ContinuousFeatures
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from ..layers import DotProductInteraction
@@ -27,9 +27,9 @@ from ..layers import DotProductInteraction
 
 def DLRMBlock(
     schema: Schema,
+    embedding_dim: int,
     bottom_block: Block = None,
     top_block: Optional[Block] = None,
-    embedding_dim: Optional[int] = None,
 ) -> SequentialBlock:
     """Builds the DLRM archicture, as proposed in the following
     `paper https://arxiv.org/pdf/1906.00091.pdf`_ [Naumov19].
@@ -83,32 +83,34 @@ def DLRMBlock(
     con_schema = schema.select_by_tag(Tag.CONTINUOUS)
     cat_schema = schema.select_by_tag(Tag.CATEGORICAL)
 
-    top_block_inputs = {}
+    input_branches = {}
     if len(con_schema) > 0:
         if bottom_block is None:
             raise ValueError(
                 "The bottom_block is required by DLRM when "
                 "continuous features are available in the schema"
             )
-        top_block_inputs["continuous"] = ContinuousFeatures.from_schema(con_schema).connect(
+        input_branches["bottom_block"] = ContinuousFeatures.from_schema(con_schema).connect(
             bottom_block
         )
 
     if len(cat_schema) > 0:
-
-        top_block_inputs["categorical"] = EmbeddingFeatures.from_schema(
+        input_branches["embeddings"] = EmbeddingFeatures.from_schema(
             cat_schema, options=EmbeddingOptions(embedding_dim_default=embedding_dim)
         )
 
-    if not top_block:
-        return merge(top_block_inputs, aggregation="stack").connect(DotProductInteraction())
+    interaction_inputs = merge(input_branches)
 
-    dot_product = TabularBlock(aggregation="stack").connect(DotProductInteraction())
-    top_block_outputs = (
-        merge(top_block_inputs)
-        .connect_with_shortcut(
-            dot_product, shortcut_filter=Filter("continuous"), aggregation="concat"
-        )
-        .connect(top_block)
+    if not top_block:
+        return interaction_inputs.connect(DotProductInteractionBlock())
+
+    top_block_inputs = interaction_inputs.connect_with_shortcut(
+        DotProductInteractionBlock(), shortcut_filter=Filter("continuous"), aggregation="concat"
     )
+    top_block_outputs = top_block_inputs.connect(top_block)
+
     return top_block_outputs
+
+
+def DotProductInteractionBlock():
+    return sequential(DotProductInteraction(), pre_aggregation="stack")

@@ -93,12 +93,6 @@ def test_dlrm_block_no_schema():
     assert "The schema is required by DLRM" in str(excinfo.value)
 
 
-def test_dlrm_no_emb_dim(testing_data: SyntheticData):
-    with pytest.raises(ValueError) as excinfo:
-        tr.DLRMBlock(schema=testing_data.schema)
-    assert "The embedding_dim is required" in str(excinfo.value)
-
-
 def test_dlrm_block_no_bottom_block(testing_data: SyntheticData):
     with pytest.raises(ValueError) as excinfo:
         tr.DLRMBlock(schema=testing_data.schema, embedding_dim=64, bottom_block=None)
