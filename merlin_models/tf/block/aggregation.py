@@ -17,12 +17,11 @@ from typing import Union
 
 import tensorflow as tf
 
+from merlin_models.config.schema import requires_schema
+from merlin_models.tf.core import TabularAggregation
+from merlin_models.tf.typing import TabularData
+from merlin_models.tf.utils import tf_utils
 from merlin_standard_lib import Schema
-
-from ...config.schema import requires_schema
-from ..core import TabularAggregation
-from ..typing import TabularData
-from ..utils import tf_utils
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613

@@ -19,8 +19,8 @@ import tensorflow as tf
 
 from merlin_standard_lib import Schema
 
+from ..block.aggregation import StackFeatures
 from ..core import Block, ParallelBlock, ParallelPredictionBlock, PredictionTask, TabularBlock
-from ..tabular.aggregation import StackFeatures
 from ..typing import TabularData
 
 

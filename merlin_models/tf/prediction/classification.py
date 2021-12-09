@@ -165,8 +165,8 @@ class MultiClassClassificationTask(PredictionTask):
             if hasattr(metric, "top_ks"):
                 topks = metric.top_ks
                 results = metric.result()
-                for measure, k in zip(results, topks):
-                    dict_results[f"{metric.name}_{k}"] = measure
+                for i, k in enumerate(topks):
+                    dict_results[f"{metric.name}_{k}"] = results[i]
             else:
                 dict_results.update({metric.name: metric.result()})
 

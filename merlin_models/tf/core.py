@@ -338,58 +338,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return right_shift_layer(self, other)
 
 
-def inputs(
-    schema: Schema,
-    *block: Block,
-    post: Optional[BlockType] = None,
-    aggregation: Optional["TabularAggregationType"] = None,
-    seq: bool = False,
-    **kwargs,
-) -> "Block":
-    if seq:
-        from merlin_models.tf import TabularSequenceFeatures
-
-        inp_block = TabularSequenceFeatures.from_schema(
-            schema, post=post, aggregation=aggregation, **kwargs
-        )
-    else:
-        from merlin_models.tf.block.inputs import TabularFeatures
-
-        inp_block = TabularFeatures(schema, aggregation=aggregation, **kwargs)
-
-    if not block:
-        return inp_block
-
-    return SequentialBlock([inp_block, *block])
-
-
-def prediction_tasks(
-    schema: Schema,
-    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-    task_weight_dict: Optional[Dict[str, float]] = None,
-    bias_block: Optional[Layer] = None,
-    loss_reduction=tf.reduce_mean,
-    **kwargs,
-) -> "ParallelPredictionBlock":
-    return ParallelPredictionBlock.from_schema(
-        schema,
-        task_blocks=task_blocks,
-        task_weight_dict=task_weight_dict,
-        bias_block=bias_block,
-        loss_reduction=loss_reduction,
-        **kwargs,
-    )
-
-
-def merge(
-    *branches: Union["Block", Dict[str, "Block"]],
-    post: Optional[BlockType] = None,
-    aggregation: Optional["TabularAggregationType"] = None,
-    **kwargs,
-) -> "ParallelBlock":
-    return ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SequentialBlock(Block):
     """The SequentialLayer represents a sequence of Keras layers.
@@ -1290,12 +1238,8 @@ class ParallelBlock(TabularBlock):
                 layer._set_context(context)
         super(ParallelBlock, self)._set_context(context)
 
-    def select_by_name(self, name: str, tabular_output: bool = False) -> Optional["Block"]:
-        block = self.parallel_dict.get(name)
-        if not tabular_output and isinstance(block[-1], AsTabular):
-            return block[0]
-
-        return block
+    def select_by_name(self, name: str) -> Optional["Block"]:
+        return self.parallel_dict.get(name)
 
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]
@@ -1481,7 +1425,7 @@ class ResidualBlock(WithShortcut):
         strict: bool = False,
         **kwargs,
     ):
-        from merlin_models.tf.tabular.aggregation import SumResidual
+        from merlin_models.tf.block.aggregation import SumResidual
 
         super().__init__(
             block,
@@ -1660,25 +1604,23 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def compute_loss(  # type: ignore
         self,
         predictions,
-        targets={},
+        targets,
         training: bool = False,
         compute_metrics=True,
         sample_weight: Optional[tf.Tensor] = None,
         **kwargs,
     ) -> tf.Tensor:
-        if isinstance(targets, dict):
-            if len(targets) == 0:
-                targets = None
-            if self.target_name:
-                targets = targets[self.target_name]
+        if isinstance(targets, dict) and self.target_name:
+            targets = targets[self.target_name]
+
         if isinstance(predictions, dict) and self.target_name:
             predictions = predictions[self.task_name]
-        if targets is not None:
-            if len(targets.shape) == len(predictions.shape) - 1:
-                predictions = tf.squeeze(predictions)
 
         if self.pre:
             targets = self.pre_loss(predictions, targets, **kwargs)
+
+        if len(targets.shape) == len(predictions.shape) - 1:
+            predictions = tf.squeeze(predictions)
 
         loss = self._compute_loss(
             predictions, targets=targets, sample_weight=sample_weight, training=training
@@ -2088,8 +2030,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 targets = None
 
             predictions = self(inputs, training=True)
-            if isinstance(predictions, tuple):
-                predictions, targets = predictions
             loss = self.compute_loss(predictions, targets, training=True)
 
             # Handle regularization losses as well.
@@ -2116,8 +2056,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             targets = None
 
         predictions = self(inputs, training=True)
-        if isinstance(predictions, tuple):
-            predictions, targets = predictions
         loss = self.compute_loss(predictions, targets, training=False)
 
         # Handle regularization losses as well.

@@ -20,8 +20,8 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
-from ..core import Block, TabularBlock
-from ..typing import TabularData, TensorOrTabularData
+from merlin_models.tf.core import Block, TabularBlock
+from merlin_models.tf.typing import TabularData, TensorOrTabularData
 
 
 @Block.registry.register("as-sparse")
@@ -218,6 +218,24 @@ class ExpandDims(TabularBlock):
                 raise ValueError("The expand_dims argument is not valid")
 
         return outputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
+@Block.registry.register_with_multiple_names("l2-norm")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class L2Norm(TabularBlock):
+    def __init__(self, **kwargs):
+        super(L2Norm, self).__init__(**kwargs)
+
+    def call(self, inputs, training=True, **kwargs):
+        if isinstance(inputs, dict):
+            inputs = {key: tf.linalg.l2_normalize(inp, axis=1) for key, inp in inputs.items()}
+        else:
+            inputs = tf.linalg.l2_normalize(inputs, axis=1)
+
+        return inputs
 
     def compute_output_shape(self, input_shape):
         return input_shape

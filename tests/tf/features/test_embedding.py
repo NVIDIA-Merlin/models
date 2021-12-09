@@ -77,7 +77,9 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: SyntheticData):
     schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
-        schema, embedding_dims={"item_id": 100}, embedding_dim_default=64
+        schema,
+        embedding_dims={"item_id": 100},
+        options=ml.EmbeddingOptions(embedding_dim_default=64),
     )
 
     embeddings = emb_module(testing_data.tf_tensor_dict)
@@ -93,7 +95,10 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Synthe
     schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
-        schema, infer_embedding_sizes=True, infer_embedding_sizes_multiplier=3.0
+        schema,
+        options=ml.EmbeddingOptions(
+            infer_embedding_sizes=True, infer_embedding_sizes_multiplier=3.0
+        ),
     )
 
     embeddings = emb_module(testing_data.tf_tensor_dict)
@@ -115,10 +120,12 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Syntheti
     schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema,
-        embeddings_initializers={
-            "item_id": init_ops_v2.TruncatedNormal(mean=ITEM_MEAN, stddev=ITEM_STD),
-            "categories": init_ops_v2.TruncatedNormal(mean=CATEGORY_MEAN, stddev=CATEGORY_STD),
-        },
+        options=ml.EmbeddingOptions(
+            embeddings_initializers={
+                "item_id": init_ops_v2.TruncatedNormal(mean=ITEM_MEAN, stddev=ITEM_STD),
+                "categories": init_ops_v2.TruncatedNormal(mean=CATEGORY_MEAN, stddev=CATEGORY_STD),
+            },
+        ),
     )
 
     embeddings = emb_module(testing_data.tf_tensor_dict)
@@ -128,3 +135,11 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Syntheti
 
     assert embeddings["categories"].numpy().mean() == pytest.approx(CATEGORY_MEAN, abs=0.1)
     assert embeddings["categories"].numpy().std() == pytest.approx(CATEGORY_STD, abs=0.1)
+
+
+def test_shared_embeddings(music_streaming_data: SyntheticData):
+    inputs = ml.inputs(music_streaming_data.schema)
+
+    embeddings = inputs.select_by_name(Tag.CATEGORICAL)
+
+    assert embeddings.table_config("item_genres") == embeddings.table_config("user_genres")
