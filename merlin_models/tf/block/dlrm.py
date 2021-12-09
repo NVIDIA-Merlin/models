@@ -18,8 +18,7 @@ from typing import Optional
 
 from merlin_standard_lib import Schema, Tag
 
-from ..api import merge, sequential
-from ..core import Block, Filter, SequentialBlock
+from ..core import Block, Filter, ParallelBlock, SequentialBlock
 from ..features.continuous import ContinuousFeatures
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from ..layers import DotProductInteraction
@@ -97,7 +96,7 @@ def DLRMBlock(
                 "continuous features are available in the schema"
             )
         bottom_block = ContinuousFeatures.from_schema(con_schema).connect(bottom_block)
-        interaction_inputs = merge({"embeddings": embeddings, "bottom_block": bottom_block})
+        interaction_inputs = ParallelBlock({"embeddings": embeddings, "bottom_block": bottom_block})
     else:
         interaction_inputs = embeddings
 
@@ -113,4 +112,4 @@ def DLRMBlock(
 
 
 def DotProductInteractionBlock():
-    return sequential(DotProductInteraction(), pre_aggregation="stack")
+    return SequentialBlock(DotProductInteraction(), pre_aggregation="stack")

@@ -138,7 +138,7 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Syntheti
 
 
 def test_shared_embeddings(music_streaming_data: SyntheticData):
-    inputs = ml.inputs(music_streaming_data.schema)
+    inputs = ml.InputBlock(music_streaming_data.schema)
 
     embeddings = inputs.select_by_name(Tag.CATEGORICAL)
 

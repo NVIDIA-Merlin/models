@@ -22,7 +22,7 @@ ml = pytest.importorskip("merlin_models.tf")
 
 
 def test_sequential_block_yoochoose(testing_data: SyntheticData):
-    body = ml.inputs(testing_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
 
     outputs = body(testing_data.tf_tensor_dict)
 
