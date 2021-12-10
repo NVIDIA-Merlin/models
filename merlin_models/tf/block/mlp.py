@@ -52,7 +52,7 @@ def MLPBlock(
 
 
 def DenseResidualBlock(
-    projection_dim: Optional[int] = None,
+    low_rank_dim: Optional[int] = None,
     activation="relu",
     use_bias: bool = True,
     dropout: Optional[float] = None,
@@ -60,7 +60,7 @@ def DenseResidualBlock(
     depth: int = 1,
 ) -> Block:
     block_layers = []
-    block_layers.append(DenseSameDim(projection_dim, activation=None, use_bias=use_bias))
+    block_layers.append(DenseMaybeLowRank(low_rank_dim, activation=None, use_bias=use_bias))
     if dropout:
         block_layers.append(tf.keras.layers.Dropout(dropout))
     if normalization:
@@ -148,10 +148,10 @@ RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class DenseSameDim(tf.keras.layers.Layer):
+class DenseMaybeLowRank(tf.keras.layers.Layer):
     def __init__(
         self,
-        projection_dim: Optional[int] = None,
+        low_rank_dim: Optional[int] = None,
         use_bias: bool = True,
         activation=None,
         kernel_initializer: InitializerType = "truncated_normal",
@@ -162,7 +162,7 @@ class DenseSameDim(tf.keras.layers.Layer):
         **kwargs
     ):
         super().__init__(**kwargs)
-        self.projection_dim = projection_dim
+        self.low_rank_dim = low_rank_dim
         self.use_bias = use_bias
         self.activation = activation
         self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
@@ -184,24 +184,24 @@ class DenseSameDim(tf.keras.layers.Layer):
             use_bias=self.use_bias,
         )
 
-        if self.projection_dim is None:
+        if self.low_rank_dim is None:
             self.dense = dense
         else:
             self.dense_u = tf.keras.layers.Dense(
-                self.projection_dim,
+                self.low_rank_dim,
                 activation=self.activation,
                 kernel_initializer=self.kernel_initializer,
                 kernel_regularizer=self.kernel_regularizer,
                 use_bias=False,
             )
             self.dense_v = dense
-        super(DenseSameDim, self).build(input_shape)
+        super(DenseMaybeLowRank, self).build(input_shape)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         if isinstance(inputs, dict):
             inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
 
-        if self.projection_dim is None:
+        if self.low_rank_dim is None:
             return self.dense(inputs)
 
         return self.dense_v(self.dense_u(inputs))
@@ -215,12 +215,12 @@ class DenseSameDim(tf.keras.layers.Layer):
 
     def get_config(self):
         config = dict(
-            projection_dim=self.projection_dim,
+            low_rank_dim=self.low_rank_dim,
             use_bias=self.use_bias,
             activation=self.activation,
             pre_aggregation=self.pre_aggregation,
         )
-        config.update(super(DenseSameDim, self).get_config())
+        config.update(super(DenseMaybeLowRank, self).get_config())
 
         return maybe_serialize_keras_objects(
             self,
