@@ -686,6 +686,7 @@ class TabularBlock(Block):
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
+        is_input: bool = False,
         **kwargs,
     ):
         super().__init__(name=name, **kwargs)
@@ -693,9 +694,14 @@ class TabularBlock(Block):
         self.set_pre(pre)
         self.set_post(post)
         self.set_aggregation(aggregation)
+        self._is_input = is_input
 
         if schema:
             self.set_schema(schema)
+
+    @property
+    def is_input(self) -> bool:
+        return self._is_input
 
     @classmethod
     def from_schema(
@@ -2089,23 +2095,13 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
 
 def is_input_block(block) -> bool:
-    return getattr(block, "is_input", False)
+    return block and isinstance(block, TabularBlock) and block.is_input
 
 
 def has_input_block(block) -> bool:
     if isinstance(block, SequentialBlock):
-        return block.inputs is not None
-    return getattr(block, "is_input", False)
-
-
-class InputBlockMixin:
-    @property
-    def is_input(self) -> bool:
-        return True
-
-
-class TabularInputBlock(TabularBlock, InputBlockMixin):
-    pass
+        return block.inputs is not None and is_input_block(block.inputs)
+    return is_input_block(block.inputs)
 
 
 def _output_metrics(metrics):

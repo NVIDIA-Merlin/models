@@ -65,16 +65,15 @@ def test_cross_0_layers():
     assert "Number of cross layers (depth) should be positive but is" in str(excinfo.value)
 
 
-# def test_cross_with_inputs_to_be_concat(testing_data: SyntheticData):
-#    inputs = ml.InputBlock(
-#        testing_data.schema,
-#        embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
-#    )
-#    inputs_out = inputs(testing_data.tf_tensor_dict)
-#    cross = ml.CrossBlock(depth=1, inputs=inputs)
-#    output = cross(inputs_out)
+def test_cross_with_inputs_to_be_concat(testing_data: SyntheticData):
+    inputs = ml.InputBlock(
+        testing_data.schema,
+        embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
+    )
+    cross = ml.CrossBlock(depth=1, inputs=inputs)
+    output = cross(testing_data.tf_tensor_dict)
 
-#    assert list(output.shape) == [100, 256]
+    assert list(output.shape) == [100, 518]
 
 
 def test_dcn_v2_stacked(testing_data: SyntheticData):

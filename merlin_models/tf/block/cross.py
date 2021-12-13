@@ -75,17 +75,17 @@ def CrossBlock(
 
     Returns
     -------
-    [type]
-        [description]
+    SequentialBlock
+        A `SequentialBlock` with a number of stacked Cross layers
 
     Raises
     ------
     ValueError
-        [description]
+        Number of cross layers (depth) should be positive
     """
+
     if inputs and is_input_block(inputs) and not inputs.aggregation:
         inputs.set_aggregation("concat")
-
     layers = [inputs] if inputs else []
 
     if depth <= 0:
