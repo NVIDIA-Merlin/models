@@ -109,3 +109,12 @@ def test_simple_model(ecommerce_data: SyntheticData):
     testing_utils.assert_loss_and_metrics_are_valid(
         copy_model, ecommerce_data.tf_features_and_targets
     )
+
+
+def test_wrong_model(ecommerce_data: SyntheticData):
+    with pytest.raises(ValueError) as excinfo:
+        ml.Model(
+            ml.InputBlock(ecommerce_data.schema),
+            ml.MLPBlock([64]),
+        )
+    assert "Last block must be able to calculate loss & metrics." in str(excinfo.value)
