@@ -19,7 +19,7 @@ import tensorflow as tf
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import Filter, SequentialBlock, is_input_block
+from ..core import Filter, SequentialBlock, TabularBlock
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from .mlp import DenseMaybeLowRank, InitializerType, RegularizerType
 
@@ -84,9 +84,7 @@ def CrossBlock(
         Number of cross layers (depth) should be positive
     """
 
-    if inputs and is_input_block(inputs) and not inputs.aggregation:
-        inputs.set_aggregation("concat")
-    layers = [inputs] if inputs else []
+    layers = [inputs, TabularBlock(aggregation="concat")] if inputs else []
 
     if depth <= 0:
         raise ValueError(f"Number of cross layers (depth) should be positive but is {depth}.")
@@ -164,19 +162,19 @@ class Cross(tf.keras.layers.Layer):
         output_x0: bool = False,
         **kwargs,
     ):
-        super(Cross, self).__init__(**kwargs)
-        self.output_x0 = output_x0
-        self.dense = kwargs.get(
-            "dense",
-            DenseMaybeLowRank(
+        dense = kwargs.pop("dense", None)
+        if not dense:
+            dense = DenseMaybeLowRank(
                 low_rank_dim=low_rank_dim,
                 use_bias=use_bias,
                 kernel_initializer=kernel_initializer,
                 bias_initializer=bias_initializer,
                 kernel_regularizer=kernel_regularizer,
                 bias_regularizer=bias_regularizer,
-            ),
-        )
+            )
+        super(Cross, self).__init__(**kwargs)
+        self.dense = dense
+        self.output_x0 = output_x0
 
     def compute_output_shape(self, input_shape):
         return input_shape
@@ -209,6 +207,6 @@ class Cross(tf.keras.layers.Layer):
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, {"dense": tf.keras.layers.deserialize})
+        config = maybe_deserialize_keras_objects(config, ["dense"])
 
         return cls(**config)

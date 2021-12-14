@@ -159,8 +159,8 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         kernel_regularizer: Optional[RegularizerType] = None,
         bias_regularizer: Optional[RegularizerType] = None,
         pre_aggregation="concat",
-        dense=None,
-        dense_u=None,
+        dense: Optional[tf.keras.layers.Dense] = None,
+        dense_u: Optional[tf.keras.layers.Dense] = None,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -178,18 +178,19 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
     def build(self, input_shape):
         last_dim = input_shape[-1]
 
-        self.dense = self.dense or tf.keras.layers.Dense(
-            last_dim,
-            activation=self.activation,
-            kernel_initializer=self.kernel_initializer,
-            bias_initializer=self.bias_initializer,
-            kernel_regularizer=self.kernel_regularizer,
-            bias_regularizer=self.bias_regularizer,
-            use_bias=self.use_bias,
-        )
+        if self.dense is None:
+            self.dense = Dense(
+                last_dim,
+                activation=self.activation,
+                kernel_initializer=self.kernel_initializer,
+                bias_initializer=self.bias_initializer,
+                kernel_regularizer=self.kernel_regularizer,
+                bias_regularizer=self.bias_regularizer,
+                use_bias=self.use_bias,
+            )
 
-        if self.low_rank_dim is not None:
-            self.dense_u = self.dense_u or tf.keras.layers.Dense(
+        if self.low_rank_dim is not None and self.dense_u is None:
+            self.dense_u = Dense(
                 self.low_rank_dim,
                 activation=self.activation,
                 kernel_initializer=self.kernel_initializer,
@@ -238,8 +239,6 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(
-            config, {"dense": tf.keras.layers.deserialize, "dense_u": tf.keras.layers.deserialize}
-        )
+        config = maybe_deserialize_keras_objects(config, ["dense", "dense_u"])
 
         return cls(**config)

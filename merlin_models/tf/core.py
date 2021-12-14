@@ -2094,11 +2094,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         return {"body": tf.keras.utils.serialize_keras_object(self.body)}
 
 
-def is_input_block(block) -> bool:
-    return block and isinstance(block, TabularBlock) and block.is_input
+def is_input_block(block: Block) -> bool:
+    return block and getattr(block, "is_input", None)
 
 
-def has_input_block(block) -> bool:
+def has_input_block(block: Block) -> bool:
     if isinstance(block, SequentialBlock):
         return block.inputs is not None and is_input_block(block.inputs)
     return is_input_block(block.inputs)
