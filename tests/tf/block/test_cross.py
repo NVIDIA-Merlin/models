@@ -20,6 +20,7 @@ from merlin_models.data.synthetic import SyntheticData
 
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
+test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
 @pytest.mark.parametrize("cross_layers", [1, 2, 3])
@@ -126,3 +127,41 @@ def test_dcn_v2_parallel(testing_data: SyntheticData):
     output = dcn_body(testing_data.tf_tensor_dict)
 
     assert list(output.shape) == [100, concat_input_dim + mlp_layers[-1]]
+
+
+def test_dcn_v2_train_eval(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=True):
+    dcn_body = (
+        ml.InputBlock(
+            ecommerce_data.schema,
+            embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
+            aggregation="concat",
+        )
+        .connect(ml.CrossBlock(3, low_rank_dim=64))
+        .connect(ml.MLPBlock([512, 256]))
+    )
+    model = dcn_body.connect(ml.BinaryClassificationTask("click"))
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+    metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
+    test_utils.assert_binary_classification_loss_metrics(
+        losses, metrics, target_name="click", num_epochs=num_epochs
+    )
+
+
+def test_dcn_v2_serialization(ecommerce_data: SyntheticData, run_eagerly=True):
+    dcn_body = (
+        ml.InputBlock(
+            ecommerce_data.schema,
+            embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
+            aggregation="concat",
+        )
+        .connect(ml.CrossBlock(3, low_rank_dim=64))
+        .connect(ml.MLPBlock([512, 256]))
+    )
+    model = dcn_body.connect(ml.BinaryClassificationTask("click"))
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=1)
+
+    copy_model = test_utils.assert_serialization(model)
+    test_utils.assert_loss_and_metrics_are_valid(copy_model, ecommerce_data.tf_features_and_targets)

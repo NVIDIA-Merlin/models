@@ -159,6 +159,8 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         kernel_regularizer: Optional[RegularizerType] = None,
         bias_regularizer: Optional[RegularizerType] = None,
         pre_aggregation="concat",
+        dense=None,
+        dense_u=None,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -170,11 +172,13 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
         self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
         self.pre_aggregation = pre_aggregation
+        self.dense = dense
+        self.dense_u = dense_u
 
     def build(self, input_shape):
         last_dim = input_shape[-1]
 
-        dense = tf.keras.layers.Dense(
+        self.dense = self.dense or tf.keras.layers.Dense(
             last_dim,
             activation=self.activation,
             kernel_initializer=self.kernel_initializer,
@@ -184,17 +188,14 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
             use_bias=self.use_bias,
         )
 
-        if self.low_rank_dim is None:
-            self.dense = dense
-        else:
-            self.dense_u = tf.keras.layers.Dense(
+        if self.low_rank_dim is not None:
+            self.dense_u = self.dense_u or tf.keras.layers.Dense(
                 self.low_rank_dim,
                 activation=self.activation,
                 kernel_initializer=self.kernel_initializer,
                 kernel_regularizer=self.kernel_regularizer,
                 use_bias=False,
             )
-            self.dense_v = dense
         super(DenseMaybeLowRank, self).build(input_shape)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
@@ -204,7 +205,7 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         if self.low_rank_dim is None:
             return self.dense(inputs)
 
-        return self.dense_v(self.dense_u(inputs))
+        return self.dense(self.dense_u(inputs))
 
     def compute_output_shape(self, input_shape):
         if isinstance(input_shape, dict):
@@ -225,5 +226,20 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         return maybe_serialize_keras_objects(
             self,
             config,
-            ["kernel_initializer", "bias_initializer", "kernel_regularizer", "bias_regularizer"],
+            [
+                "dense",
+                "dense_u",
+                "kernel_initializer",
+                "bias_initializer",
+                "kernel_regularizer",
+                "bias_regularizer",
+            ],
         )
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(
+            config, {"dense": tf.keras.layers.deserialize, "dense_u": tf.keras.layers.deserialize}
+        )
+
+        return cls(**config)

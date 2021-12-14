@@ -20,7 +20,7 @@ import tensorflow as tf
 from merlin_standard_lib import Schema, Tag
 
 from ..core import Filter, SequentialBlock, is_input_block
-from ..utils.tf_utils import maybe_serialize_keras_objects
+from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from .mlp import DenseMaybeLowRank, InitializerType, RegularizerType
 
 
@@ -206,3 +206,9 @@ class Cross(tf.keras.layers.Layer):
         config.update(super(Cross, self).get_config())
 
         return maybe_serialize_keras_objects(self, config, ["dense"])
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, {"dense": tf.keras.layers.deserialize})
+
+        return cls(**config)

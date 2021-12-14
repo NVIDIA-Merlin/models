@@ -105,7 +105,8 @@ def assert_loss_and_metrics_are_valid(
 
 
 def assert_serialization(layer):
-    copy_layer = layer.from_config(layer.get_config())
+    serialized = layer.get_config()
+    copy_layer = layer.from_config(serialized)
 
     assert isinstance(copy_layer, layer.__class__)
 
