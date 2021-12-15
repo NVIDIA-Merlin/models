@@ -21,7 +21,7 @@ def test_as_tabular(tf_con_features):
     assert list(con.keys()) == [name]
 
 
-def test_tabular_module(tf_con_features):
+def test_tabular_block(tf_con_features):
     _DummyTabular = ml.TabularBlock
 
     tabular = _DummyTabular()
@@ -94,3 +94,27 @@ def test_block_context(ecommerce_data: SyntheticData):
     assert dummy.item_embedding_table.shape == embeddings.embedding_tables[str(Tag.ITEM_ID)].shape
 
     assert out.shape[-1] == 64
+
+
+def test_simple_model(ecommerce_data: SyntheticData):
+    from merlin_models.tf.utils import testing_utils
+
+    model = ml.Model(
+        ml.InputBlock(ecommerce_data.schema),
+        ml.MLPBlock([64]),
+        ml.BinaryClassificationTask("click"),
+    )
+
+    copy_model = testing_utils.assert_serialization(model)
+    testing_utils.assert_loss_and_metrics_are_valid(
+        copy_model, ecommerce_data.tf_features_and_targets
+    )
+
+
+def test_wrong_model(ecommerce_data: SyntheticData):
+    with pytest.raises(ValueError) as excinfo:
+        ml.Model(
+            ml.InputBlock(ecommerce_data.schema),
+            ml.MLPBlock([64]),
+        )
+    assert "Last block must be able to calculate loss & metrics." in str(excinfo.value)

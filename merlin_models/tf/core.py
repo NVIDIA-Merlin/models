@@ -644,7 +644,6 @@ class TabularAggregation(
 
 TabularAggregationType = Union[str, TabularAggregation]
 
-
 TABULAR_MODULE_PARAMS_DOCSTRING = """
     pre: Union[str, TabularTransformation, List[str], List[TabularTransformation]], optional
         Transformations to apply on the inputs when the module is called (so **before** `call`).
@@ -1981,11 +1980,18 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class Model(tf.keras.Model, LossMixin, MetricsMixin):
-    def __init__(self, body: Union[ModelLikeBlock, SequentialBlock], **kwargs):
+    def __init__(self, *blocks: Union[Block, ModelLikeBlock], **kwargs):
         super(Model, self).__init__(**kwargs)
-        if isinstance(body, SequentialBlock) and not isinstance(body.last, ModelLikeBlock):
-            raise ValueError("SequentialBlock must have a ModelLikeBlock as last layer")
-        self.body = body
+        if (
+            len(blocks) == 1
+            and isinstance(blocks[0], SequentialBlock)
+            and isinstance(blocks[0].layers[-1], ModelLikeBlock)
+        ):
+            self.body = blocks[0]
+        else:
+            if not isinstance(blocks[-1], ModelLikeBlock):
+                raise ValueError("Last block must be able to calculate loss & metrics.")
+            self.body = SequentialBlock(blocks)
         self.context = BlockContext()
 
     def build(self, input_shapes):
