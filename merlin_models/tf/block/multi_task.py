@@ -16,12 +16,31 @@
 from typing import Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
+from tensorflow.keras.layers import Layer
 
 from merlin_standard_lib import Schema
 
-from ..core import Block, ParallelBlock, PredictionTask, TabularBlock, TabularTransformation
-from ..tabular.aggregation import StackFeatures
+from ..block.aggregation import StackFeatures
+from ..core import Block, ParallelBlock, ParallelPredictionBlock, PredictionTask, TabularBlock
 from ..typing import TabularData
+
+
+def PredictionTasks(
+    schema: Schema,
+    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+    task_weight_dict: Optional[Dict[str, float]] = None,
+    bias_block: Optional[Layer] = None,
+    loss_reduction=tf.reduce_mean,
+    **kwargs,
+) -> ParallelPredictionBlock:
+    return ParallelPredictionBlock.from_schema(
+        schema,
+        task_blocks=task_blocks,
+        task_weight_dict=task_weight_dict,
+        bias_block=bias_block,
+        loss_reduction=loss_reduction,
+        **kwargs,
+    )
 
 
 class MMOEGate(Block):
@@ -55,12 +74,14 @@ class MMOEGate(Block):
 
 
 def MMOEBlock(
-    outputs: Union[List[str], List[PredictionTask]],
+    outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
     expert_block: Block,
     num_experts: int,
     gate_dim: int = 32,
 ):
-    if all(isinstance(x, PredictionTask) for x in outputs):
+    if isinstance(outputs, ParallelPredictionBlock):
+        output_names = outputs.task_names
+    elif all(isinstance(x, PredictionTask) for x in outputs):
         output_names = [o.task_name for o in outputs]
     else:
         output_names = outputs
@@ -75,7 +96,7 @@ def MMOEBlock(
     return mmoe
 
 
-class CGCGateTransformation(TabularTransformation):
+class CGCGateTransformation(TabularBlock):
     def __init__(
         self,
         task_names: List[str],
@@ -133,7 +154,7 @@ class CGCGateTransformation(TabularTransformation):
 class CGCBlock(ParallelBlock):
     def __init__(
         self,
-        outputs: Union[List[str], List[PredictionTask]],
+        outputs: Union[List[str], List[PredictionTask], ParallelPredictionBlock],
         expert_block: Union[Block, tf.keras.layers.Layer],
         num_task_experts: int = 1,
         num_shared_experts: int = 1,
@@ -145,7 +166,9 @@ class CGCBlock(ParallelBlock):
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
 
-        if all(isinstance(x, PredictionTask) for x in outputs):
+        if isinstance(outputs, ParallelPredictionBlock):
+            output_names = outputs.task_names
+        elif all(isinstance(x, PredictionTask) for x in outputs):
             output_names = [o.task_name for o in outputs]
         else:
             output_names = outputs

@@ -17,19 +17,18 @@ from typing import Union
 
 import tensorflow as tf
 
+from merlin_models.config.schema import requires_schema
+from merlin_models.tf.core import TabularAggregation
+from merlin_models.tf.typing import TabularData
+from merlin_models.tf.utils import tf_utils
 from merlin_standard_lib import Schema
-
-from ...config.schema import requires_schema
-from ..core import TabularAggregation, tabular_aggregation_registry
-from ..typing import TabularData
-from ..utils import tf_utils
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 
 
-@tabular_aggregation_registry.register("concat")
+@TabularAggregation.registry.register("concat")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ConcatFeatures(TabularAggregation):
     def __init__(self, axis=-1, output_dtype=tf.float32, **kwargs):
@@ -62,7 +61,7 @@ class ConcatFeatures(TabularAggregation):
         return config
 
 
-@tabular_aggregation_registry.register("stack")
+@TabularAggregation.registry.register("stack")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class StackFeatures(TabularAggregation):
     def __init__(self, axis=-1, output_dtype=tf.float32, **kwargs):
@@ -111,7 +110,7 @@ class ElementwiseFeatureAggregation(TabularAggregation):
             )
 
 
-@tabular_aggregation_registry.register("sum")
+@TabularAggregation.registry.register("sum")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class Sum(TabularAggregation):
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
@@ -126,7 +125,7 @@ class Sum(TabularAggregation):
         return batch_size, last_dim
 
 
-@tabular_aggregation_registry.register("sum-residual")
+@TabularAggregation.registry.register("sum-residual")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SumResidual(Sum):
     def __init__(self, activation="relu", shortcut_name="shortcut", **kwargs):
@@ -161,7 +160,7 @@ class SumResidual(Sum):
         return config
 
 
-@tabular_aggregation_registry.register("add-left")
+@TabularAggregation.registry.register("add-left")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class AddLeft(ElementwiseFeatureAggregation):
     def __init__(self, left_name="bias", **kwargs):
@@ -184,7 +183,7 @@ class AddLeft(ElementwiseFeatureAggregation):
         return batch_size, last_dim
 
 
-@tabular_aggregation_registry.register("element-wise-sum")
+@TabularAggregation.registry.register("element-wise-sum")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ElementwiseSum(ElementwiseFeatureAggregation):
     def __init__(self, **kwargs):
@@ -204,7 +203,7 @@ class ElementwiseSum(ElementwiseFeatureAggregation):
         return batch_size, last_dim
 
 
-@tabular_aggregation_registry.register("element-wise-sum-item-multi")
+@TabularAggregation.registry.register("element-wise-sum-item-multi")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 @requires_schema
 class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):

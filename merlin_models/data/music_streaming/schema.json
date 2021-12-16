@@ -67,7 +67,7 @@
       },
       "type": "INT",
       "intDomain": {
-        "name": "item_genres",
+        "name": "genres",
         "max": "100",
         "isCategorical": true
       },
@@ -131,7 +131,7 @@
       },
       "type": "INT",
       "intDomain": {
-        "name": "user_genres",
+        "name": "genres",
         "max": "100",
         "isCategorical": true
       },
@@ -167,10 +167,10 @@
       }
     },
     {
-      "name": "play",
+      "name": "play_percentage",
       "annotation": {
         "tag": [
-          "binary_classification",
+          "regression",
           "target"
         ]
       }

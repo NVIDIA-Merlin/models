@@ -23,16 +23,16 @@ from merlin_standard_lib.utils.doc_utils import docstring_parameter
 
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
+    BlockType,
     Filter,
-    InputBlock,
     TabularAggregationType,
-    TabularTransformationType,
+    TabularInputBlock,
 )
 
 
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ContinuousFeatures(InputBlock):
+class ContinuousFeatures(TabularInputBlock):
     """Input block for continuous features.
 
     Parameters
@@ -45,8 +45,8 @@ class ContinuousFeatures(InputBlock):
     def __init__(
         self,
         features: List[str],
-        pre: Optional[TabularTransformationType] = None,
-        post: Optional[TabularTransformationType] = None,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
         name: Optional[str] = None,

@@ -14,24 +14,17 @@
 # limitations under the License.
 #
 import abc
-from typing import List, Optional, Union
+from typing import Any, Callable, Dict, Optional
 
 import tensorflow as tf
 from tensorflow.python.keras.layers import Dot
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import (
-    Block,
-    ParallelBlock,
-    TabularAggregation,
-    TabularTransformationsType,
-    merge,
-    tabular_aggregation_registry,
-)
-from ..features.embedding import EmbeddingFeatures
+from ..core import Block, BlockType, ParallelBlock, TabularAggregation, tabular_aggregation_registry
+from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from ..typing import TabularData
-from .inputs import TabularFeatures
+from .inputs import InputBlock
 
 
 class Distance(TabularAggregation, abc.ABC):
@@ -62,28 +55,69 @@ def TwoTowerBlock(
     item_tower: Optional[Block] = None,
     query_tower_tag=Tag.USER,
     item_tower_tag=Tag.ITEM,
-    add_to_query_context: List[Union[str, Tag]] = None,
-    add_to_item_context: List[Union[str, Tag]] = None,
     embedding_dim_default: Optional[int] = 64,
-    post: Optional[TabularTransformationsType] = None,
-    # negative_memory_bank=None,
-    **kwargs
+    post: Optional[BlockType] = None,
+    **kwargs,
 ) -> ParallelBlock:
+    """
+    Builds the Two-tower architecture, as proposed in the following
+    `paper https://doi.org/10.1145/3298689.3346996`_ [Xinyang19].
+
+    Parameters
+    ----------
+    schema : Schema
+        The `Schema` with the input features
+    query_tower : Block
+        The `Block` that combines user features
+    item_tower : Optional[Block], optional
+        The optional `Block` that combines items features.
+        If not provided, a copy of the query_tower is used.
+    query_tower_tag : Tag
+        The tag to select query features, by default `Tag.USER`
+    item_tower_tag : Tag
+        The tag to select item features, by default `Tag.ITEM`
+    embedding_dim_default : Optional[int], optional
+        Dimension of the embeddings, by default 64
+    post: Optional[Block], optional
+        The optional `Block` to apply on both outputs of Two-tower model
+
+    Returns
+    -------
+    ParallelBlock
+        The Two-tower block
+
+    Raises
+    ------
+    ValueError
+        The schema is required by TwoTower
+    ValueError
+        The query_tower is required by TwoTower
+    """
+    if schema is None:
+        raise ValueError("The schema is required by TwoTower")
+    if query_tower is None:
+        raise ValueError("The query_tower is required by TwoTower")
+
     _item_tower: Block = item_tower or query_tower.copy()
+    embedding_options = EmbeddingOptions(embedding_dim_default=embedding_dim_default)
     if not getattr(_item_tower, "inputs", None):
         item_schema = schema.select_by_tag(item_tower_tag) if item_tower_tag else schema
-        _item_tower = TabularFeatures(
-            item_schema,
-            embedding_dim_default=embedding_dim_default,
-            add_to_context=add_to_item_context,
-        ).connect(_item_tower)
+        if not item_schema:
+            raise ValueError(
+                f"The schema should contain features with the tag `{item_tower_tag}`,"
+                "required by item-tower"
+            )
+        item_tower_inputs = InputBlock(item_schema, embedding_options=embedding_options)
+        _item_tower = item_tower_inputs.connect(_item_tower)
     if not getattr(query_tower, "inputs", None):
         query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
-        query_tower = TabularFeatures(
-            query_schema,
-            embedding_dim_default=embedding_dim_default,
-            add_to_context=add_to_query_context,
-        ).connect(query_tower)
+        if not query_schema:
+            raise ValueError(
+                f"The schema should contain features with the tag `{query_schema}`,"
+                "required by query-tower"
+            )
+        query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
+        query_tower = query_inputs.connect(query_tower)
 
     two_tower = ParallelBlock({"query": query_tower, "item": _item_tower}, post=post, **kwargs)
 
@@ -95,17 +129,17 @@ def MatrixFactorizationBlock(
     dim: int,
     query_id_tag=Tag.USER_ID,
     item_id_tag=Tag.ITEM_ID,
-    distance="cosine",
-    **kwargs
+    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
+    **kwargs,
 ):
-    query_id, item_id = schema.select_by_tag(query_id_tag), schema.select_by_tag(item_id_tag)
-    matrix_factorization = merge(
-        {
-            str(query_id_tag): EmbeddingFeatures.from_schema(query_id, embedding_dim_default=dim),
-            str(item_id_tag): EmbeddingFeatures.from_schema(item_id, embedding_dim_default=dim),
-        },
-        aggregation=distance,
-        **kwargs
+    query_item_schema = schema.select_by_tag(
+        lambda tags: query_id_tag in tags or item_id_tag in tags
+    )
+    embedding_options = EmbeddingOptions(
+        embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
+    )
+    matrix_factorization = EmbeddingFeatures.from_schema(
+        query_item_schema, options=embedding_options, **kwargs
     )
 
     return matrix_factorization

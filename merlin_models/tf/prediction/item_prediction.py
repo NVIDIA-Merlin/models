@@ -13,56 +13,56 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 import tensorflow as tf
-from tensorflow.python.keras.layers import Dense
-from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 from tensorflow.python.layers.base import Layer
 
-from merlin_models.tf.core import (
-    PredictionBlock,
-    PredictionTask,
-    Sampler,
-    prediction_block_registry,
-)
+from merlin_models.tf.block.transformations import L2Norm
+from merlin_models.tf.core import Block, Sampler
 from merlin_standard_lib import Schema, Tag
 
+from .classification import MultiClassClassificationTask
+from .ranking_metric import ranking_metrics
 
-@prediction_block_registry.register_with_multiple_names("sampling-bias-correction")
-class SamplingBiasCorrection(PredictionBlock):
+
+@Block.registry.register_with_multiple_names("sampling-bias-correction")
+class SamplingBiasCorrection(Block):
     def __init__(self, bias_feature_name: str = "popularity", **kwargs):
         super(SamplingBiasCorrection, self).__init__(**kwargs)
         self.bias_feature_name = bias_feature_name
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        sampling_bias = self.context.tensors.get(self.bias_feature_name)
-        if sampling_bias is not None:
-            inputs -= tf.math.log(sampling_bias)
-        else:
-            # TODO : add warning
-            pass
+    def call_features(self, features, **kwargs):
+        self.bias = features[self.bias_feature_name]
 
-        return inputs, targets
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        inputs -= tf.math.log(self.bias)
+
+        return inputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 
-class SoftmaxTemperature(PredictionBlock):
+class SoftmaxTemperature(Block):
     def __init__(self, temperature: float, **kwargs):
         super(SoftmaxTemperature, self).__init__(**kwargs)
         self.temperature = temperature
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        return inputs / self.temperature, targets
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        return inputs / self.temperature
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 
-class ItemSoftmaxWeightTying(PredictionBlock):
+class ItemSoftmaxWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemSoftmaxWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
 
     def build(self, input_shape):
-        self.output_layer_kernel = self.context.get_embedding(Tag.ITEM_ID)
         self.bias = self.add_weight(
             name="output_layer_bias",
             shape=(self.num_classes,),
@@ -70,8 +70,9 @@ class ItemSoftmaxWeightTying(PredictionBlock):
         )
         return super().build(input_shape)
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        logits = tf.matmul(inputs, self.output_layer_kernel, transpose_b=True)
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+        logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
         predictions = tf.nn.log_softmax(logits, axis=-1)
@@ -79,32 +80,35 @@ class ItemSoftmaxWeightTying(PredictionBlock):
         return predictions
 
 
-@prediction_block_registry.register_with_multiple_names("in-batch-negative-sampling")
-class InBatchNegativeSampling(PredictionBlock):
+@Block.registry.register_with_multiple_names("in-batch-negative-sampling")
+class InBatchNegativeSampling(Block):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.dot = tf.keras.layers.Dot(axes=1)
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        assert len(inputs) == 2
         if training:
-            predictions = tf.linalg.matmul(*list(inputs.values()), transpose_b=True)
+            return tf.linalg.matmul(*list(inputs.values()), transpose_b=True)
 
-            if targets is not None:
-                if len(targets.shape) == 2:
-                    targets = tf.squeeze(targets)
-                targets = tf.linalg.diag(targets)
-            else:
-                targets = tf.eye(*predictions.shape)
+        return self.dot(list(inputs.values()))
 
-            return predictions, targets
+    def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
+        if targets:
+            if len(targets.shape) == 2:
+                targets = tf.squeeze(targets)
+            targets = tf.linalg.diag(targets)
+        else:
+            num_rows, num_columns = tf.shape(predictions)[0], tf.shape(predictions)[1]
+            targets = tf.eye(num_rows, num_columns)
 
-        return self.dot(list(inputs.values())), targets
+        return targets
 
     def compute_output_shape(self, input_shape):
         return input_shape
 
 
-class ExtraNegativeSampling(PredictionBlock):
+class ExtraNegativeSampling(Block):
     def __init__(self, *sampler: Sampler, **kwargs):
         self.sampler = sampler
         super(ExtraNegativeSampling, self).__init__(**kwargs)
@@ -115,205 +119,91 @@ class ExtraNegativeSampling(PredictionBlock):
 
         return self.sampler[0].sample()
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(self, inputs, training=True, **kwargs):
         if training:
             extra_negatives: tf.Tensor = self.sample()
+            self.extra_negatives_shape = extra_negatives.shape
             inputs = tf.concat([inputs, extra_negatives], axis=0)
-            targets = tf.concat([targets, tf.zeros_like(extra_negatives)], axis=0)
 
-        return inputs, targets
+        return inputs
+
+    def call_targets(self, predictions, targets, training=True, **kwargs):
+        if training:
+            targets = tf.concat([targets, tf.zeros(self.extra_negatives_shape)], axis=0)
+
+        return targets
 
 
 # TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
-class LabelAwareAttention(PredictionBlock):
+class LabelAwareAttention(Block):
     def predict(
         self, predictions, targets=None, training=True, **kwargs
     ) -> Tuple[tf.Tensor, tf.Tensor]:
         raise NotImplementedError("TODO")
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin-models")
-class ItemPredictionTask(PredictionTask):
-    DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
-    DEFAULT_METRICS = ()
+def ItemRetrievalTask(
+    loss=tf.keras.losses.CategoricalCrossentropy(
+        from_logits=True, reduction=tf.keras.losses.Reduction.SUM
+    ),
+    metrics=ranking_metrics(top_ks=[10, 20]),
+    extra_pre_call: Optional[Block] = None,
+    target_name: Optional[str] = None,
+    task_name: Optional[str] = None,
+    task_block: Optional[Layer] = None,
+    softmax_temperature: float = 1,
+    normalize: bool = True,
+) -> MultiClassClassificationTask:
+    """
+    Function to create the ItemRetrieval task with the right parameters.
 
-    # TODO: Move these metrics from T4Rec
-    # DEFAULT_METRICS = (
-    #     # default metrics suppose labels are int encoded
-    #     NDCGAt(top_ks=[10, 20], labels_onehot=True),
-    #     AvgPrecisionAt(top_ks=[10, 20], labels_onehot=True),
-    #     RecallAt(top_ks=[10, 20], labels_onehot=True),
-    # )
+    Parameters
+    ----------
+        loss: tf.keras.losses.Loss
+            Loss function.
+            Defaults to `tf.keras.losses.CategoricalCrossentropy()`.
+        metrics: Sequence[MetricOrMetricClass]
+            List of top-k ranking metrics.
+            Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
+        extra_pre_call: Optional[PredictionBlock]
+            Optional extra pre-call block. Defaults to None.
+        target_name: Optional[str]
+            If specified, name of the target tensor to retrieve from dataloader.
+            Defaults to None.
+        task_name: Optional[str]
+            name of the task.
+            Defaults to None.
+        task_block: Block
+            The `Block` that applies additional layers op to inputs.
+            Defaults to None.
+        softmax_temperature: float
+            Parameter used to reduce model overconfidence, so that softmax(logits / T).
+            Defaults to 1.
+        normalize: bool
+            Apply L2 normalization before computing dot interactions.
+            Defaults to True.
 
-    def __init__(
-        self,
-        schema: Schema,
-        loss=DEFAULT_LOSS,
-        metrics=DEFAULT_METRICS,
-        target_name: Optional[str] = None,
-        task_name: Optional[str] = None,
-        task_block: Optional[Layer] = None,
-        weight_tying: bool = False,
-        softmax_temperature: float = 1,
-        pre_call: Optional[PredictionBlock] = None,
-        pre_loss: Optional[PredictionBlock] = None,
-        **kwargs,
-    ):
-        super().__init__(
-            metrics=metrics,
-            target_name=target_name,
-            task_name=task_name,
-            task_block=task_block,
-            pre_call=pre_call,
-            pre_loss=pre_loss,
-            **kwargs,
-        )
-        self.weight_tying = weight_tying
-        self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
-        self.softmax_temperature = softmax_temperature
-        self.loss = loss
+    Returns
+    -------
+        PredictionTask
+            The item retrieval prediction task
+    """
+    prediction_call = InBatchNegativeSampling()
 
-    def build(self, input_shape):
-        if self.weight_tying:
-            self.output_layer_kernel = self.context.get_embedding(Tag.ITEM_ID)
-            self.bias = self.add_weight(
-                name="output_layer_bias",
-                shape=(self.num_classes,),
-                initializer=tf.keras.initializers.Zeros(),
-            )
-        else:
-            self.output_layer = Dense(
-                units=self.num_classes,
-                kernel_initializer="random_normal",
-                bias_initializer="zeros",
-                name="logits",
-            )
-            self.output_layer_kernel = self.output_layer.kernel
-            self.bias = self.output_layer.bias
-        return super().build(input_shape)
+    if normalize:
+        prediction_call = L2Norm().connect(prediction_call)
 
-    def _compute_loss(
-        self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
-    ) -> tf.Tensor:
-        return self.loss(targets, predictions, sample_weight=sample_weight)
+    if softmax_temperature != 1:
+        prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
 
-    def call(self, inputs, training=False, **kwargs):
-        if self.weight_tying:
-            logits = tf.matmul(inputs, self.output_layer_kernel, transpose_b=True)
-            logits = tf.nn.bias_add(logits, self.bias)
-        else:
-            logits = self.output_layer(inputs)
+    if extra_pre_call is not None:
+        prediction_call = prediction_call.connect(extra_pre_call)
 
-        if self.softmax_temperature:
-            # Softmax temperature to reduce prediction overconfidence
-            # and better calibrate probs and accuracy
-            logits = logits / self.softmax_temperature
-
-        predictions = tf.nn.log_softmax(logits, axis=-1)
-
-        return predictions
-
-    def metric_results(self, mode: str = None) -> Dict[str, tf.Tensor]:
-        metrics = {metric.name: metric.result() for metric in self.eval_metrics}
-        topks = {metric.name: metric.top_ks for metric in self.eval_metrics}
-        # explode metrics for each cut-off in top_ks
-        results = {}
-        for name, metric in metrics.items():
-            for measure, k in zip(metric, topks[name]):
-                results[f"{name}_{k}"] = measure
-
-        return results
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin-models")
-class SampledItemPredictionTask(ItemPredictionTask):
-    def __init__(
-        self,
-        schema: Schema,
-        num_sampled: int,
-        loss=ItemPredictionTask.DEFAULT_LOSS,
-        metrics=ItemPredictionTask.DEFAULT_METRICS,
-        target_name: Optional[str] = None,
-        task_name: Optional[str] = None,
-        task_block: Optional[Layer] = None,
-        weight_tying: bool = False,
-        softmax_temperature: float = 1,
-        pre_call: Optional[PredictionBlock] = None,
-        pre_loss: Optional[PredictionBlock] = None,
-        **kwargs,
-    ):
-        super().__init__(
-            schema,
-            loss,
-            metrics,
-            target_name,
-            task_name,
-            task_block,
-            weight_tying,
-            softmax_temperature,
-            pre_call=pre_call,
-            pre_loss=pre_loss,
-            **kwargs,
-        )
-        self.num_sampled = num_sampled
-
-    def call(self, inputs, training: bool = False, **kwargs):
-        if training:
-            return inputs
-
-        logits = tf.matmul(inputs, tf.transpose(self.item_embedding_table))
-        logits = tf.nn.bias_add(logits, self.bias)
-
-        return logits
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin-models")
-class ItemRetrievalTask(ItemPredictionTask):
-    def __init__(
-        self,
-        schema: Schema,
-        loss=ItemPredictionTask.DEFAULT_LOSS,
-        metrics=ItemPredictionTask.DEFAULT_METRICS,
-        target_name: Optional[str] = None,
-        task_name: Optional[str] = None,
-        task_block: Optional[Layer] = None,
-        weight_tying: bool = False,
-        softmax_temperature: float = 1,
-        # pre_call: Optional[PredictionBlock] = "negative-sampling",
-        # pre_call: Optional[PredictionBlock] = NegativeSampling(),
-        pre_loss: Optional[PredictionBlock] = None,
-        normalize=True,
-        **kwargs,
-    ):
-        super().__init__(
-            schema,
-            loss,
-            metrics,
-            target_name,
-            task_name,
-            task_block,
-            weight_tying,
-            softmax_temperature,
-            pre_call=None,
-            pre_loss=pre_loss,
-            **kwargs,
-        )
-        self.normalize = normalize
-
-    def build(self, input_shape):
-        if not hasattr(self.build, "_is_default"):
-            self._build_input_shape = input_shape
-        self.built = True
-
-    def call(self, inputs, training: bool = False, **kwargs):
-        if isinstance(inputs, tuple) and len(inputs) == 2:
-            return inputs
-
-        if self.normalize:
-            inputs = [tf.linalg.l2_normalize(inp, axis=1) for inp in list(inputs.values())]
-        predictions = tf.linalg.matmul(*inputs, transpose_b=True)
-
-        return predictions
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
+    return MultiClassClassificationTask(
+        target_name,
+        task_name,
+        task_block,
+        loss=loss,
+        metrics=metrics,
+        pre=prediction_call,
+    )

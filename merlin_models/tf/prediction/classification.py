@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -23,7 +23,8 @@ from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import MetricOrMetricClass, PredictionBlock, PredictionTask
+from ..core import Block, MetricOrMetricClass, PredictionTask
+from .ranking_metric import ranking_metrics
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -64,7 +65,7 @@ class BinaryClassificationTask(PredictionTask):
         return self.logit(inputs)
 
 
-class Softmax(PredictionBlock):
+class Softmax(Block):
     def __init__(
         self,
         schema: Schema,
@@ -89,8 +90,8 @@ class Softmax(PredictionBlock):
         )
         return super().build(input_shape)
 
-    def predict(self, inputs, targets=None, training=True, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
-        return self.output_layer(inputs), targets
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        return self.output_layer(inputs)
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.num_classes,)
@@ -98,7 +99,10 @@ class Softmax(PredictionBlock):
 
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
-    DEFAULT_METRICS = ()
+    DEFAULT_METRICS = {
+        "ranking": ranking_metrics(top_ks=[10, 20]),
+        "multi-class": (),
+    }
 
     def __init__(
         self,
@@ -107,17 +111,16 @@ class MultiClassClassificationTask(PredictionTask):
         task_block: Optional[Layer] = None,
         loss=DEFAULT_LOSS,
         metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
-        pre_call: Optional[PredictionBlock] = None,
-        pre_loss: Optional[PredictionBlock] = None,
+        pre: Optional[Block] = None,
         **kwargs,
     ):
+
         super().__init__(
             metrics=list(metrics),
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
-            pre_call=pre_call,
-            pre_loss=pre_loss,
+            pre=pre,
             **kwargs,
         )
         self.loss = loss
@@ -130,22 +133,20 @@ class MultiClassClassificationTask(PredictionTask):
         loss=DEFAULT_LOSS,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
-        extra_pre_call: Optional[PredictionBlock] = None,
-        pre_loss: Optional[PredictionBlock] = None,
+        extra_pre: Optional[Block] = None,
         **kwargs,
     ) -> "MultiClassClassificationTask":
-        pre_call = Softmax(
+        pre = Softmax(
             schema,
             feature_name,
             bias_initializer=bias_initializer,
             kernel_initializer=kernel_initializer,
         )
-        if extra_pre_call:
-            pre_call = pre_call.connect(extra_pre_call)
+        if extra_pre:
+            pre = pre.connect(extra_pre)
 
         return cls(
-            pre_call=pre_call,
-            pre_loss=pre_loss,
+            pre=pre,
             loss=loss,
             **kwargs,
         )
@@ -157,3 +158,16 @@ class MultiClassClassificationTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         return inputs
+
+    def metric_results(self, mode: str = None):
+        dict_results = {}
+        for metric in self.metrics:
+            if hasattr(metric, "top_ks"):
+                topks = metric.top_ks
+                results = metric.result()
+                for i, k in enumerate(topks):
+                    dict_results[f"{metric.name}_{k}"] = results[i]
+            else:
+                dict_results.update({metric.name: metric.result()})
+
+        return dict_results

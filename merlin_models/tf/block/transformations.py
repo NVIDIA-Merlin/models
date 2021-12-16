@@ -13,20 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
+from typing import Dict, Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
-from ..core import TabularTransformation, tabular_transformation_registry
-from ..typing import TabularData, TensorOrTabularData
+from merlin_models.tf.core import Block, TabularBlock
+from merlin_models.tf.typing import TabularData, TensorOrTabularData
 
 
-@tabular_transformation_registry.register("as-sparse")
+@Block.registry.register("as-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class AsSparseFeatures(TabularTransformation):
+class AsSparseFeatures(TabularBlock):
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
@@ -43,9 +43,9 @@ class AsSparseFeatures(TabularTransformation):
         return input_shape
 
 
-@tabular_transformation_registry.register("as-dense")
+@Block.registry.register("as-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class AsDenseFeatures(TabularTransformation):
+class AsDenseFeatures(TabularBlock):
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
@@ -62,9 +62,9 @@ class AsDenseFeatures(TabularTransformation):
         return input_shape
 
 
-@tabular_transformation_registry.register_with_multiple_names("stochastic-swap-noise", "ssn")
+@Block.registry.register_with_multiple_names("stochastic-swap-noise", "ssn")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class StochasticSwapNoise(TabularTransformation):
+class StochasticSwapNoise(TabularBlock):
     """
     Applies Stochastic replacement of sequence features
     """
@@ -142,9 +142,9 @@ class StochasticSwapNoise(TabularTransformation):
         return config
 
 
-@tabular_transformation_registry.register_with_multiple_names("continuous-powers")
+@Block.registry.register_with_multiple_names("continuous-powers")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ContinuousPowers(TabularTransformation):
+class ContinuousPowers(TabularBlock):
     """Trick from `Deep Neural Networks for YouTube Recommendations`"""
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
@@ -169,3 +169,73 @@ class ContinuousPowers(TabularTransformation):
                 output_shape[f"{key}_squared"] = val
 
         return output_shape
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ExpandDims(TabularBlock):
+    """
+    Expand dims of selected input tensors.
+    Example::
+
+        inputs = {
+            "cont_feat1": tf.random.uniform((NUM_ROWS,)),
+            "cont_feat2": tf.random.uniform((NUM_ROWS,)),
+            "multi_hot_categ_feat": tf.random.uniform(
+                (NUM_ROWS, 4), minval=1, maxval=100, dtype=tf.int32
+            ),
+        }
+
+        expand_dims_op = tr.ExpandDims(expand_dims={"cont_feat2": 0, "multi_hot_categ_feat": 1})
+        expanded_inputs = expand_dims_op(inputs)
+    """
+
+    def __init__(self, expand_dims: Union[int, Dict[str, int]] = -1, **kwargs):
+        """Instantiates the `ExpandDims` transformation, which allows to expand dims
+        of the input tensors
+
+        Parameters
+        ----------
+        expand_dims : Union[int, Dict[str, int]], optional, by default -1
+            Defines which dimensions should be expanded. If an `int` is provided, all input tensors
+            will have the same dimension expanded. If a `dict` is passed, only features matching
+            the dict keys will be expanded, in the dimension specified as the dict values.
+        """
+        super().__init__(**kwargs)
+        self.inputs_expand_dims = expand_dims
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+
+        for k, v in inputs.items():
+            if isinstance(self.inputs_expand_dims, int):
+                outputs[k] = tf.expand_dims(v, self.inputs_expand_dims)
+            elif isinstance(self.inputs_expand_dims, dict) and k in self.inputs_expand_dims:
+                expand_dim = self.inputs_expand_dims[k]
+                outputs[k] = tf.expand_dims(v, expand_dim)
+            elif self.inputs_expand_dims:
+                outputs[k] = v
+            else:
+                raise ValueError("The expand_dims argument is not valid")
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
+@Block.registry.register_with_multiple_names("l2-norm")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class L2Norm(TabularBlock):
+    def __init__(self, **kwargs):
+        super(L2Norm, self).__init__(**kwargs)
+
+    def call(self, inputs: Union[tf.Tensor, TabularData], axis: int = -1, **kwargs):
+        if isinstance(inputs, dict):
+            inputs = {key: tf.linalg.l2_normalize(inp, axis=axis) for key, inp in inputs.items()}
+        else:
+            inputs = tf.linalg.l2_normalize(inputs, axis=axis)
+
+        return inputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape

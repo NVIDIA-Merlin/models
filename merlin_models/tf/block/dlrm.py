@@ -16,28 +16,100 @@
 
 from typing import Optional
 
-from merlin_standard_lib import Schema
+from merlin_standard_lib import Schema, Tag
 
-from ..core import Block, SequentialBlock, inputs
+from ..core import Block, Filter, ParallelBlock, SequentialBlock
+from ..features.continuous import ContinuousFeatures
+from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from ..layers import DotProductInteraction
-from .inputs import ContinuousEmbedding
 
 
 def DLRMBlock(
     schema: Schema,
-    bottom_block: Block,
+    embedding_dim: int,
+    bottom_block: Block = None,
     top_block: Optional[Block] = None,
-    embedding_dim: Optional[int] = None,
 ) -> SequentialBlock:
-    embedding_dim = embedding_dim or bottom_block.layers[-1].units
-    dlrm_inputs = ContinuousEmbedding(
-        inputs(schema, embedding_dim_default=embedding_dim),
-        embedding_block=bottom_block,
-        aggregation="stack",
+    """Builds the DLRM archicture, as proposed in the following
+    `paper https://arxiv.org/pdf/1906.00091.pdf`_ [Naumov19].
+
+    REFERENCES:
+        - [Naumov19] Naumov, Maxim, et al. "Deep learning recommendation model for
+          personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
+
+    Parameters
+    ----------
+    schema : Schema
+        The `Schema` with the input features
+    bottom_block : Block
+        The `Block` that combines the continuous features (tipically a `MLPBlock`)
+    top_block : Optional[Block], optional
+        The optional `Block` that combines the outputs of bottom layer and of
+        the factorization machine layer, by default None
+    embedding_dim : Optional[int], optional
+        Dimension of the embeddings, by default None
+
+    Returns
+    -------
+    SequentialBlock
+        The DLRM block
+
+    Raises
+    ------
+    ValueError
+        The schema is required by DLRM
+    ValueError
+        The bottom_block is required by DLRM
+    ValueError
+        The embedding_dim (X) needs to match the last layer of bottom MLP (Y).
+    """
+    if schema is None:
+        raise ValueError("The schema is required by DLRM")
+
+    if embedding_dim is None:
+        raise ValueError("The embedding_dim is required")
+
+    con_schema = schema.select_by_tag(Tag.CONTINUOUS)
+    cat_schema = schema.select_by_tag(Tag.CATEGORICAL)
+
+    if not len(cat_schema) > 0:
+        raise ValueError("DLRM requires categorical features")
+
+    if (
+        embedding_dim is not None
+        and bottom_block is not None
+        and embedding_dim != bottom_block.layers[-1].units
+    ):
+        raise ValueError(
+            f"The embedding_dim ({embedding_dim}) needs to match the "
+            "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
+        )
+
+    embeddings = EmbeddingFeatures.from_schema(
+        cat_schema, options=EmbeddingOptions(embedding_dim_default=embedding_dim)
     )
-    dlrm = dlrm_inputs.connect(DotProductInteraction())
 
-    if top_block:
-        dlrm = dlrm.connect(top_block)
+    if len(con_schema) > 0:
+        if bottom_block is None:
+            raise ValueError(
+                "The bottom_block is required by DLRM when "
+                "continuous features are available in the schema"
+            )
+        bottom_block = ContinuousFeatures.from_schema(con_schema).connect(bottom_block)
+        interaction_inputs = ParallelBlock({"embeddings": embeddings, "bottom_block": bottom_block})
+    else:
+        interaction_inputs = embeddings
 
-    return dlrm
+    if not top_block:
+        return interaction_inputs.connect(DotProductInteractionBlock())
+
+    top_block_inputs = interaction_inputs.connect_with_shortcut(
+        DotProductInteractionBlock(), shortcut_filter=Filter("continuous"), aggregation="concat"
+    )
+    top_block_outputs = top_block_inputs.connect(top_block)
+
+    return top_block_outputs
+
+
+def DotProductInteractionBlock():
+    return SequentialBlock(DotProductInteraction(), pre_aggregation="stack")

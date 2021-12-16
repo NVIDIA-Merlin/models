@@ -13,7 +13,7 @@ pip install -e .
 echo "Running black --check"
 black --check .
 echo "Running flake8"
-flake8 .
+flake8 . #Ignoring some rules to make it compatible with black autoformatting
 echo "Running isort"
 isort -c .
 echo "Running bandit"

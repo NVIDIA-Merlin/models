@@ -14,18 +14,26 @@
 # limitations under the License.
 #
 
-# import pytest
-#
-# tf = pytest.importorskip("tensorflow")
-# ml = pytest.importorskip("merlin_models.tf")
-# test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
+import pytest
+
+from merlin_models.data.synthetic import SyntheticData
+from merlin_standard_lib import Tag
+
+tf = pytest.importorskip("tensorflow")
+ml = pytest.importorskip("merlin_models.tf")
+test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
-# def test_retrieval_head(tabular_schema, tf_tabular_features, tf_tabular_data):
-#     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
-#
-# body = ml.TwoTowerBlock(tabular_schema, ml.MLPBlock([64]), query_tower_tag=None,
-#                         item_tower_tag=None)
-#     prediction = ml.ItemRetrievalTask(tabular_schema).to_head(body)
-#
-#     test_utils.assert_loss_and_metrics_are_valid(prediction, tf_tabular_data, targets)
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_retrieval_task(music_streaming_data: SyntheticData, run_eagerly, num_epochs=2):
+    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
+    two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
+    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2))
+
+    output = model(music_streaming_data.tf_tensor_dict)
+    assert output is not None
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+    assert len(losses.epoch) == num_epochs
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])

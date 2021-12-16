@@ -16,37 +16,37 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
 from merlin_standard_lib import Tag
 
-tr = pytest.importorskip("merlin_models.tf")
+ml = pytest.importorskip("merlin_models.tf")
 test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
-def test_tabular_features(tabular_schema, tf_tabular_data):
-    tab_module = tr.TabularFeatures.from_schema(tabular_schema)
+def test_tabular_features(testing_data: SyntheticData):
+    tab_module = ml.InputBlock(testing_data.schema)
 
-    outputs = tab_module(tf_tabular_data)
+    outputs = tab_module(testing_data.tf_tensor_dict)
 
-    con = tabular_schema.select_by_tag(Tag.CONTINUOUS).column_names
-    cat = tabular_schema.select_by_tag(Tag.CATEGORICAL).column_names
+    con = testing_data.schema.select_by_tag(Tag.CONTINUOUS).column_names
+    cat = testing_data.schema.select_by_tag(Tag.CATEGORICAL).column_names
 
     assert set(outputs.keys()) == set(con + cat)
 
 
-def test_serialization_tabular_features(tabular_schema):
-    inputs = tr.TabularFeatures.from_schema(tabular_schema)
+def test_serialization_tabular_features(testing_data: SyntheticData):
+    inputs = ml.InputBlock(testing_data.schema)
 
     copy_layer = test_utils.assert_serialization(inputs)
 
     assert list(inputs.parallel_layers.keys()) == list(copy_layer.parallel_layers.keys())
 
 
-def test_tabular_features_with_projection(tabular_schema, tf_tabular_data):
-    schema = tabular_schema
-    tab_module = tr.TabularFeatures.from_schema(tabular_schema, continuous_projection=64)
+def test_tabular_features_with_projection(testing_data: SyntheticData):
+    tab_module = ml.InputBlock(testing_data.schema, continuous_projection=ml.MLPBlock([64]))
 
-    outputs = tab_module(tf_tabular_data)
-    continuous_feature_names = schema.select_by_tag(Tag.CONTINUOUS).column_names
+    outputs = tab_module(testing_data.tf_tensor_dict)
+    continuous_feature_names = testing_data.schema.select_by_tag(Tag.CONTINUOUS).column_names
 
     assert len(set(continuous_feature_names).intersection(set(outputs.keys()))) == 0
     assert "continuous_projection" in outputs
@@ -56,12 +56,14 @@ def test_tabular_features_with_projection(tabular_schema, tf_tabular_data):
 @test_utils.mark_run_eagerly_modes
 @pytest.mark.parametrize("continuous_projection", [None, 128])
 def test_tabular_features_yoochoose_model(
-    tabular_schema, tf_tabular_data, run_eagerly, continuous_projection
+    testing_data: SyntheticData, run_eagerly, continuous_projection
 ):
-    inputs = tr.TabularFeatures.from_schema(
-        tabular_schema, continuous_projection=continuous_projection, aggregation="concat"
+    if continuous_projection:
+        continuous_projection = ml.MLPBlock([continuous_projection])
+    inputs = ml.InputBlock(
+        testing_data.schema, continuous_projection=continuous_projection, aggregation="concat"
     )
 
-    body = tr.SequentialBlock([inputs, tr.MLPBlock([64])])
+    body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
-    test_utils.assert_body_works_in_model(tf_tabular_data, inputs, body, run_eagerly)
+    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)

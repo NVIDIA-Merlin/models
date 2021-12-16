@@ -271,15 +271,13 @@ RegistryClassT = TypeVar("RegistryClassT")
 
 
 class RegistryMixin(Generic[RegistryClassT], abc.ABC):
+    registry = None
+
     @classmethod
     def parse(cls, class_or_str) -> RegistryClassT:
-        output: RegistryClassT = cls.registry().parse(class_or_str)
+        output: RegistryClassT = cls.registry.parse(class_or_str)
 
         return output
-
-    @classmethod
-    def registry(cls) -> Registry:
-        raise NotImplementedError
 
 
 def display_list_by_prefix(names_list, starting_spaces=0):

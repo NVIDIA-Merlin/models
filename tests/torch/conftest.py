@@ -16,6 +16,8 @@
 
 import pytest
 
+from merlin_models.data.synthetic import SyntheticData
+
 pytorch = pytest.importorskip("torch")
 np = pytest.importorskip("numpy")
 tr = pytest.importorskip("merlin_models.torch")
@@ -23,6 +25,14 @@ tr = pytest.importorskip("merlin_models.torch")
 
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100
+
+
+# TODO: Remove this
+
+
+@pytest.fixture
+def tabular_schema():
+    return SyntheticData("testing").schema
 
 
 @pytest.fixture
@@ -132,11 +142,4 @@ def torch_tabular_features(tabular_schema):
 
 @pytest.fixture
 def torch_tabular_data():
-    return tr.data.SyntheticDataset.create_testing_data().torch_tensors(num_rows=100)
-
-
-@pytest.fixture
-def torch_yoochoose_like():
-    return tr.data.SyntheticDataset.create_testing_data().torch_tensors(
-        num_rows=100, min_session_length=5, max_session_length=20
-    )
+    return SyntheticData("testing", num_rows=100).torch_tensor_dict
