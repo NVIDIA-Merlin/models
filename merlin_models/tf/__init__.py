@@ -44,8 +44,8 @@ from .block.transformations import (
 from .core import (
     AsTabular,
     Block,
+    BlockContext,
     DualEncoderBlock,
-    FeaturesBlock,
     Filter,
     Model,
     NoOp,
@@ -95,7 +95,7 @@ __all__ = [
     "Schema",
     "Tag",
     "Block",
-    "FeaturesBlock",
+    "BlockContext",
     "SequentialBlock",
     "ResidualBlock",
     "right_shift_layer",
