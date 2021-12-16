@@ -18,8 +18,7 @@ import pathlib
 
 import numpy as np
 import pytest
-
-from merlin_models.testing.tf import tf
+import tensorflow as tf
 
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100
