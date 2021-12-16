@@ -72,7 +72,7 @@ def test_serialization_continuous_features(
 
 
 class DummyFeaturesBlock(ml.Block):
-    def register_features(self, feature_shapes) -> List[str]:
+    def add_features_to_context(self, feature_shapes) -> List[str]:
         return [str(Tag.ITEM_ID)]
 
     def call(self, inputs, **kwargs):

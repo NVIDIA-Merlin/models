@@ -353,10 +353,10 @@ class Block(SchemaMixin, ContextMixin, Layer):
             for module in self.submodules:
                 if hasattr(module, "_set_context") and not getattr(module, "context", False):
                     module._set_context(self.context)
-                if hasattr(module, "register_features") and not getattr(
+                if hasattr(module, "add_features_to_context") and not getattr(
                     module, "_features_registered", False
                 ):
-                    feature_names = module.register_features(input_shapes)
+                    feature_names = module.add_features_to_context(input_shapes)
                     module._features_registered = True
                     if feature_names:
                         self.context.add_features(*feature_names)
