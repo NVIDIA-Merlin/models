@@ -161,7 +161,10 @@ class EmbeddingFeatures(TabularInputBlock):
                 tables[table.name] = table
 
         for name, table in tables.items():
-            self.embedding_tables[name] = self._add_embedding_table(
+            add_fn = (
+                self.context.add_embedding_weight if hasattr(self, "_context") else self.add_weight
+            )
+            self.embedding_tables[name] = add_fn(
                 name=name,
                 trainable=True,
                 initializer=table.initializer,

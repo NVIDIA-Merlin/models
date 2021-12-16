@@ -1,3 +1,5 @@
+from typing import List
+
 import pytest
 
 from merlin_models.data.synthetic import SyntheticData
@@ -70,30 +72,59 @@ def test_serialization_continuous_features(
 
 
 class DummyFeaturesBlock(ml.Block):
-    def call_features(self, features, **kwargs):
-        self.items = features[str(Tag.ITEM_ID)]
+    def register_features(self, feature_shapes) -> List[str]:
+        return [str(Tag.ITEM_ID)]
 
     def call(self, inputs, **kwargs):
-        self.item_embedding_table = self.context.get_embedding(Tag.ITEM_ID)
-        item_embeddings = tf.gather(self.item_embedding_table, tf.cast(self.items, tf.int32))
+        items = self.context[Tag.ITEM_ID]
+        emb_table = self.context.get_embedding(Tag.ITEM_ID)
+        item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
 
         return inputs * item_embeddings
 
-    def compute_output_shape(self, input_shape):
-        return input_shape
+    @property
+    def item_embedding_table(self):
+        return self.context.get_embedding(Tag.ITEM_ID)
 
 
 def test_block_context(ecommerce_data: SyntheticData):
     inputs = ml.InputBlock(ecommerce_data.schema)
     dummy = DummyFeaturesBlock()
-    model = inputs.connect(ml.MLPBlock([64]), dummy)
+    model = inputs.connect(ml.MLPBlock([64]), dummy, context=ml.BlockContext())
 
     out = model(ecommerce_data.tf_tensor_dict)
 
     embeddings = inputs.select_by_name(str(Tag.CATEGORICAL))
-    assert dummy.item_embedding_table.shape == embeddings.embedding_tables[str(Tag.ITEM_ID)].shape
+    assert (
+        dummy.context.get_embedding(Tag.ITEM_ID).shape
+        == embeddings.embedding_tables[str(Tag.ITEM_ID)].shape
+    )
 
     assert out.shape[-1] == 64
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, tmp_path):
+    dummy = DummyFeaturesBlock()
+    model = ml.Model(
+        ml.InputBlock(ecommerce_data.schema),
+        ml.MLPBlock([64]),
+        dummy,
+        ml.BinaryClassificationTask("click"),
+    )
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    model.fit(ecommerce_data.tf_dataloader(), epochs=1)
+    model.save(str(tmp_path))
+
+    copy_model = tf.keras.models.load_model(str(tmp_path))
+    assert copy_model.context == copy_model.body.layers[0].context
+    assert list(copy_model.context._feature_names) == ["item_id"]
+    assert len(dict(copy_model.context._feature_dtypes)) == 23
+
+    copy_model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    # TODO: Fix prediction-task output name so that we can retrain a model after saving
+    # copy_model.fit(ecommerce_data.tf_dataloader(), epochs=1)
 
 
 def test_simple_model(ecommerce_data: SyntheticData):
