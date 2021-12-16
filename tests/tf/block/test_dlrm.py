@@ -16,8 +16,8 @@
 
 import pytest
 
+import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_models.testing.tf import ml
 from merlin_standard_lib import Tag
 
 

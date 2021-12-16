@@ -18,19 +18,18 @@ from functools import partial
 
 import numpy as np
 import pytest
+import torch
 
+import merlin_models.torch as ml
 from merlin_standard_lib import Tag
-
-pytorch = pytest.importorskip("torch")
-tr = pytest.importorskip("merlin_models.torch")
 
 
 def test_embedding_features(torch_cat_features):
     dim = 15
     feature_config = {
-        f: tr.FeatureConfig(tr.TableConfig(100, dim, name=f)) for f in torch_cat_features.keys()
+        f: ml.FeatureConfig(ml.TableConfig(100, dim, name=f)) for f in torch_cat_features.keys()
     }
-    embeddings = tr.EmbeddingFeatures(feature_config)(torch_cat_features)
+    embeddings = ml.EmbeddingFeatures(feature_config)(torch_cat_features)
 
     assert list(embeddings.keys()) == list(feature_config.keys())
     assert all([emb.shape[-1] == dim for emb in embeddings.values()])
@@ -39,11 +38,11 @@ def test_embedding_features(torch_cat_features):
 def test_embedding_features_layernorm(torch_cat_features):
     dim = 15
     feature_config = {
-        f: tr.FeatureConfig(tr.TableConfig(100, dim, name=f)) for f in torch_cat_features.keys()
+        f: ml.FeatureConfig(ml.TableConfig(100, dim, name=f)) for f in torch_cat_features.keys()
     }
 
-    layer_norm = tr.TabularLayerNorm.from_feature_config(feature_config)
-    embeddings = tr.EmbeddingFeatures(feature_config, post=layer_norm)(torch_cat_features)
+    layer_norm = ml.TabularLayerNorm.from_feature_config(feature_config)
+    embeddings = ml.EmbeddingFeatures(feature_config, post=layer_norm)(torch_cat_features)
     assert all(
         [emb.detach().numpy().mean() == pytest.approx(0.0, abs=0.1) for emb in embeddings.values()]
     )
@@ -53,12 +52,12 @@ def test_embedding_features_layernorm(torch_cat_features):
 def test_embedding_features_custom_init(torch_cat_features):
     MEAN = 1.0
     STD = 0.05
-    emb_initializer = partial(pytorch.nn.init.normal_, mean=MEAN, std=STD)
+    emb_initializer = partial(torch.nn.init.normal_, mean=MEAN, std=STD)
     feature_config = {
-        f: tr.FeatureConfig(tr.TableConfig(100, dim=15, name=f, initializer=emb_initializer))
+        f: ml.FeatureConfig(ml.TableConfig(100, dim=15, name=f, initializer=emb_initializer))
         for f in torch_cat_features.keys()
     }
-    embeddings = tr.EmbeddingFeatures(feature_config)(torch_cat_features)
+    embeddings = ml.EmbeddingFeatures(feature_config)(torch_cat_features)
 
     assert list(embeddings.keys()) == list(feature_config.keys())
     assert all(
@@ -71,14 +70,14 @@ def test_embedding_features_custom_init(torch_cat_features):
 
 def test_table_config_invalid_embedding_initializer():
     with pytest.raises(ValueError) as excinfo:
-        tr.TableConfig(100, dim=15, initializer="INVALID INITIALIZER")
+        ml.TableConfig(100, dim=15, initializer="INVALID INITIALIZER")
     assert "initializer must be callable if specified" in str(excinfo.value)
 
 
 def test_embedding_features_yoochoose(tabular_schema, torch_tabular_data):
     schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
 
-    emb_module = tr.EmbeddingFeatures.from_schema(schema)
+    emb_module = ml.EmbeddingFeatures.from_schema(schema)
     embeddings = emb_module(torch_tabular_data)
 
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
@@ -92,7 +91,7 @@ def test_embedding_features_yoochoose(tabular_schema, torch_tabular_data):
 def test_embedding_features_yoochoose_custom_dims(tabular_schema, torch_tabular_data):
     schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
 
-    emb_module = tr.EmbeddingFeatures.from_schema(
+    emb_module = ml.EmbeddingFeatures.from_schema(
         schema, embedding_dims={"item_id": 100}, embedding_dim_default=64
     )
 
@@ -108,7 +107,7 @@ def test_embedding_features_yoochoose_custom_dims(tabular_schema, torch_tabular_
 def test_embedding_features_yoochoose_infer_embedding_sizes(tabular_schema, torch_tabular_data):
     schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
 
-    emb_module = tr.EmbeddingFeatures.from_schema(
+    emb_module = ml.EmbeddingFeatures.from_schema(
         schema, infer_embedding_sizes=True, infer_embedding_sizes_multiplier=3.0
     )
 
@@ -129,12 +128,12 @@ def test_embedding_features_yoochoose_custom_initializers(tabular_schema, torch_
     CATEGORY_STD = 0.1
 
     schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
-    emb_module = tr.EmbeddingFeatures.from_schema(
+    emb_module = ml.EmbeddingFeatures.from_schema(
         schema,
         layer_norm=False,
         embeddings_initializers={
-            "item_id": partial(pytorch.nn.init.normal_, mean=ITEM_MEAN, std=ITEM_STD),
-            "categories": partial(pytorch.nn.init.normal_, mean=CATEGORY_MEAN, std=CATEGORY_STD),
+            "item_id": partial(torch.nn.init.normal_, mean=ITEM_MEAN, std=ITEM_STD),
+            "categories": partial(torch.nn.init.normal_, mean=CATEGORY_MEAN, std=CATEGORY_STD),
         },
     )
 
@@ -149,7 +148,7 @@ def test_embedding_features_yoochoose_custom_initializers(tabular_schema, torch_
 
 def test_soft_embedding_invalid_num_embeddings():
     with pytest.raises(AssertionError) as excinfo:
-        tr.SoftEmbedding(num_embeddings=0, embeddings_dim=16)
+        ml.SoftEmbedding(num_embeddings=0, embeddings_dim=16)
     assert "number of embeddings for soft embeddings needs to be greater than 0" in str(
         excinfo.value
     )
@@ -157,7 +156,7 @@ def test_soft_embedding_invalid_num_embeddings():
 
 def test_soft_embedding_invalid_embeddings_dim():
     with pytest.raises(AssertionError) as excinfo:
-        tr.SoftEmbedding(num_embeddings=10, embeddings_dim=0)
+        ml.SoftEmbedding(num_embeddings=10, embeddings_dim=0)
     assert "embeddings dim for soft embeddings needs to be greater than 0" in str(excinfo.value)
 
 
@@ -165,17 +164,17 @@ def test_soft_embedding():
     embeddings_dim = 16
     num_embeddings = 64
 
-    soft_embedding = tr.SoftEmbedding(num_embeddings, embeddings_dim)
-    assert soft_embedding.embedding_table.weight.shape == pytorch.Size(
+    soft_embedding = ml.SoftEmbedding(num_embeddings, embeddings_dim)
+    assert soft_embedding.embedding_table.weight.shape == torch.Size(
         [num_embeddings, embeddings_dim]
     ), "Internal soft embedding table does not have the expected shape"
 
     batch_size = 10
     seq_length = 20
-    cont_feature_inputs = pytorch.rand((batch_size, seq_length))
+    cont_feature_inputs = torch.rand((batch_size, seq_length))
     output = soft_embedding(cont_feature_inputs)
 
-    assert output.shape == pytorch.Size(
+    assert output.shape == torch.Size(
         [batch_size, seq_length, embeddings_dim]
     ), "Soft embedding output has not the expected shape"
 
@@ -190,20 +189,20 @@ def test_soft_embedding_with_custom_init():
 
     INIT_MEAN = 1.0
     INIT_STD = 0.05
-    emb_initializer = partial(pytorch.nn.init.normal_, mean=INIT_MEAN, std=INIT_STD)
-    soft_embedding = tr.SoftEmbedding(
+    emb_initializer = partial(torch.nn.init.normal_, mean=INIT_MEAN, std=INIT_STD)
+    soft_embedding = ml.SoftEmbedding(
         num_embeddings, embeddings_dim, emb_initializer=emb_initializer
     )
-    assert soft_embedding.embedding_table.weight.shape == pytorch.Size(
+    assert soft_embedding.embedding_table.weight.shape == torch.Size(
         [num_embeddings, embeddings_dim]
     ), "Internal soft embedding table does not have the expected shape"
 
     batch_size = 10
     seq_length = 20
-    cont_feature_inputs = pytorch.rand((batch_size, seq_length))
+    cont_feature_inputs = torch.rand((batch_size, seq_length))
     output = soft_embedding(cont_feature_inputs)
 
-    assert output.shape == pytorch.Size(
+    assert output.shape == torch.Size(
         [batch_size, seq_length, embeddings_dim]
     ), "Soft embedding output has not the expected shape"
 
@@ -215,16 +214,16 @@ def test_soft_continuous_features(torch_con_features):
     dim = 16
     num_embeddings = 64
 
-    emb_initializer = partial(pytorch.nn.init.normal_, mean=1.0, std=0.05)
+    emb_initializer = partial(torch.nn.init.normal_, mean=1.0, std=0.05)
 
     feature_config = {
-        f: tr.FeatureConfig(
-            tr.TableConfig(num_embeddings, dim, initializer=emb_initializer, name=f)
+        f: ml.FeatureConfig(
+            ml.TableConfig(num_embeddings, dim, initializer=emb_initializer, name=f)
         )
         for f in torch_con_features.keys()
     }
 
-    soft_embeddings = tr.SoftEmbeddingFeatures(feature_config)
+    soft_embeddings = ml.SoftEmbeddingFeatures(feature_config)
     output = soft_embeddings(torch_con_features)
 
     assert list(output.keys()) == list(feature_config.keys())
@@ -234,10 +233,10 @@ def test_soft_continuous_features(torch_con_features):
 
 
 def test_layer_norm_features():
-    ln = tr.TabularLayerNorm(features_dim={"a": 100, "b": 200})
+    ln = ml.TabularLayerNorm(features_dim={"a": 100, "b": 200})
     inputs = {
-        "a": pytorch.tensor(np.random.uniform(1.0, 4.0, (500, 100)), dtype=pytorch.float32),
-        "b": pytorch.tensor(np.random.uniform(2.0, 10.0, (500, 200)), dtype=pytorch.float32),
+        "a": torch.tensor(np.random.uniform(1.0, 4.0, (500, 100)), dtype=torch.float32),
+        "b": torch.tensor(np.random.uniform(2.0, 10.0, (500, 200)), dtype=torch.float32),
     }
 
     outputs = ln(inputs)

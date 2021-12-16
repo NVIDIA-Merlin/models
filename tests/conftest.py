@@ -50,13 +50,13 @@ def testing_data() -> SyntheticData:
 try:
     import tensorflow as tf  # noqa
 
-    from tests.tf.conftest import *  # noqa
+    from tests.tf._conftest import *  # noqa
 except ImportError:
     pass
 
 try:
     import torchmetrics  # noqa
 
-    from tests.torch.conftest import *  # noqa
-except ImportError:
+    from tests.torch._conftest import *  # noqa
+except ModuleNotFoundError:
     pass

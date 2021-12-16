@@ -16,12 +16,12 @@
 
 import pytest
 
-tr = pytest.importorskip("merlin_models.torch")
+import merlin_models.torch as ml
 
 
 def test_torch_import():
     pytest.importorskip("torch")
 
-    assert tr is not None
-    assert tr.Head is not None
-    assert tr.Model is not None
+    assert ml is not None
+    assert ml.Head is not None
+    assert ml.Model is not None

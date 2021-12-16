@@ -14,8 +14,8 @@
 # limitations under the License.
 #
 
+import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_models.testing.tf import ml
 
 
 def test_sequential_block_yoochoose(testing_data: SyntheticData):

@@ -16,15 +16,15 @@
 
 import pytest
 
+import merlin_models.torch as ml
 from merlin_standard_lib import Tag
 
-tr = pytest.importorskip("merlin_models.torch")
 torch_utils = pytest.importorskip("merlin_models.torch.utils.torch_utils")
 
 
 def test_tabular_features(tabular_schema, torch_tabular_data):
     schema = tabular_schema
-    tab_module = tr.TabularFeatures.from_schema(schema)
+    tab_module = ml.TabularFeatures.from_schema(schema)
 
     outputs = tab_module(torch_tabular_data)
 
@@ -38,7 +38,7 @@ def test_tabular_features_embeddings_options(tabular_schema, torch_tabular_data)
     schema = tabular_schema
 
     EMB_DIM = 100
-    tab_module = tr.TabularFeatures.from_schema(schema, embedding_dim_default=EMB_DIM)
+    tab_module = ml.TabularFeatures.from_schema(schema, embedding_dim_default=EMB_DIM)
 
     outputs = tab_module(torch_tabular_data)
 
@@ -48,7 +48,7 @@ def test_tabular_features_embeddings_options(tabular_schema, torch_tabular_data)
 
 def test_tabular_features_with_projection(tabular_schema, torch_tabular_data):
     schema = tabular_schema
-    tab_module = tr.TabularFeatures.from_schema(schema, continuous_projection=64)
+    tab_module = ml.TabularFeatures.from_schema(schema, continuous_projection=64)
 
     outputs = tab_module(torch_tabular_data)
 
@@ -64,7 +64,7 @@ def test_tabular_features_soft_encoding(tabular_schema, torch_tabular_data):
 
     emb_cardinality = 10
     emb_dim = 8
-    tab_module = tr.TabularFeatures.from_schema(
+    tab_module = ml.TabularFeatures.from_schema(
         schema,
         continuous_soft_embeddings=True,
         soft_embedding_cardinality_default=emb_cardinality,
