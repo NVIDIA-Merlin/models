@@ -45,6 +45,12 @@ BlockType = Union["Block", str, Sequence[str]]
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class BlockContext(Layer):
+    """BlockContext is part of each block.
+
+    It is used to store/retrieve public variables, and can be used to retrieve features.
+
+    """
+
     def __init__(self, **kwargs):
         feature_names = kwargs.pop("feature_names", [])
         feature_dtypes = kwargs.pop("feature_dtypes", {})
@@ -102,7 +108,7 @@ class BlockContext(Layer):
                         var,
                         name=feature_name,
                         trainable=False,
-                        dtype=self._feature_dtypes.get(feature_name, tf.float32),
+                        dtype=dtype,
                         shape=shape,
                     ),
                 )
