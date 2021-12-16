@@ -15,6 +15,8 @@
 #
 # from functools import lru_cache
 
+from __future__ import absolute_import
+
 import pytest
 
 from merlin_models.data.synthetic import SyntheticData, _read_data
@@ -53,7 +55,7 @@ except ImportError:
     pass
 
 try:
-    import torch  # noqa
+    import torchmetrics  # noqa
 
     from tests.torch.conftest import *  # noqa
 except ImportError:

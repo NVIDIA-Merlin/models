@@ -14,11 +14,8 @@
 # limitations under the License.
 #
 
-import pytest
-
 from merlin_models.data.synthetic import SyntheticData
-
-ml = pytest.importorskip("merlin_models.tf")
+from merlin_models.testing.tf import ml
 
 
 def test_sequential_block_yoochoose(testing_data: SyntheticData):
