@@ -1,4 +1,4 @@
-name: Test
+name: pytorch
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  tensorflow-tests:
+  tests:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -33,4 +33,4 @@ jobs:
           python setup.py develop
       - name: Run unittests
         run: |
-          make tests-tf
+          make tests-torch
