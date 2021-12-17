@@ -101,16 +101,21 @@ def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
     )
 
 
-@pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
-def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly=True):
+@pytest.mark.parametrize("prediction_task", [None, ml.BinaryClassificationTask, ml.RegressionTask])
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly):
     from merlin_models.tf.utils import testing_utils
 
+    if prediction_task:
+        prediction_task = prediction_task("click")
+    else:
+        # Do multi-task learning if no prediction task is provided
+        prediction_task = ml.PredictionTasks(ecommerce_data.schema)
+
     body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    model = body.connect(prediction_task)
 
     dataset = ecommerce_data.tf_dataloader(batch_size=50)
-    model = testing_utils.assert_model_saved(body, prediction_task("click"), run_eagerly, dataset)
+    copy_model = testing_utils.assert_model_is_retrainable(model, dataset, run_eagerly=run_eagerly)
 
-    losses = model.fit(dataset, epochs=1)
-
-    assert len(losses.epoch) == 1
-    assert all(0 <= loss <= 1 for loss in losses.history["loss"])
+    assert copy_model is not None
