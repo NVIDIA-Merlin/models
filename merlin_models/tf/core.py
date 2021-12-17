@@ -242,7 +242,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         *block: Union[tf.keras.layers.Layer, str],
         block_name: Optional[str] = None,
         context: Optional[BlockContext] = None,
-    ) -> "SequentialBlock":
+    ) -> Union["SequentialBlock", "Model"]:
         blocks = [self.parse(b) for b in block]
 
         for b in blocks:
@@ -311,7 +311,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         post: Optional[BlockType] = None,
         aggregation: Optional["TabularAggregationType"] = None,
         **kwargs,
-    ) -> "SequentialBlock":
+    ) -> Union["SequentialBlock", "Model"]:
         branches = [self.parse(b) for b in branches]
 
         all_features = []
