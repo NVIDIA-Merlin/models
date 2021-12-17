@@ -102,7 +102,8 @@ def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
 
 
 @pytest.mark.parametrize("prediction_task", [None, ml.BinaryClassificationTask, ml.RegressionTask])
-def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly=True):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly):
     from merlin_models.tf.utils import testing_utils
 
     if prediction_task:
