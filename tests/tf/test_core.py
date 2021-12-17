@@ -1,12 +1,11 @@
 from typing import List
 
 import pytest
+import tensorflow as tf
 
+import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_standard_lib import Tag
-
-tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin_models.tf")
 
 
 def test_filter_features(tf_con_features):

@@ -14,14 +14,12 @@
 # limitations under the License.
 #
 
+import numpy as np
 import pytest
+import torch
 
+import merlin_models.torch as ml
 from merlin_models.data.synthetic import SyntheticData
-
-pytorch = pytest.importorskip("torch")
-np = pytest.importorskip("numpy")
-tr = pytest.importorskip("merlin_models.torch")
-
 
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100
@@ -41,7 +39,7 @@ def torch_con_features():
     keys = [f"con_{f}" for f in "abcdef"]
 
     for key in keys:
-        features[key] = pytorch.rand((NUM_EXAMPLES, 1))
+        features[key] = torch.rand((NUM_EXAMPLES, 1))
 
     return features
 
@@ -52,7 +50,7 @@ def torch_cat_features():
     keys = [f"cat_{f}" for f in "abcdef"]
 
     for key in keys:
-        features[key] = pytorch.randint(MAX_CARDINALITY, (NUM_EXAMPLES,))
+        features[key] = torch.randint(MAX_CARDINALITY, (NUM_EXAMPLES,))
 
     return features
 
@@ -66,11 +64,11 @@ def torch_masking_inputs():
     hidden_dim = 16
     features = {}
     # generate random tensors for test
-    features["input_tensor"] = pytorch.tensor(
+    features["input_tensor"] = torch.tensor(
         np.random.uniform(0, 1, (NUM_EXAMPLES, MAX_LEN, hidden_dim))
     )
     # create sequences
-    labels = pytorch.tensor(np.random.randint(1, MAX_CARDINALITY, (NUM_EXAMPLES, MAX_LEN)))
+    labels = torch.tensor(np.random.randint(1, MAX_CARDINALITY, (NUM_EXAMPLES, MAX_LEN)))
     # replace last 2 items by zeros to mimic padding
     labels[:, MAX_LEN - 2 :] = 0
     features["labels"] = labels
@@ -85,9 +83,9 @@ def torch_seq_prediction_head_inputs():
     ITEM_DIM = 128
     POS_EXAMPLE = 25
     features = {}
-    features["seq_model_output"] = pytorch.tensor(np.random.uniform(0, 1, (POS_EXAMPLE, ITEM_DIM)))
-    features["item_embedding_table"] = pytorch.nn.Embedding(MAX_CARDINALITY, ITEM_DIM)
-    features["labels_all"] = pytorch.tensor(np.random.randint(1, MAX_CARDINALITY, (POS_EXAMPLE,)))
+    features["seq_model_output"] = torch.tensor(np.random.uniform(0, 1, (POS_EXAMPLE, ITEM_DIM)))
+    features["item_embedding_table"] = torch.nn.Embedding(MAX_CARDINALITY, ITEM_DIM)
+    features["labels_all"] = torch.tensor(np.random.randint(1, MAX_CARDINALITY, (POS_EXAMPLE,)))
     features["vocab_size"] = MAX_CARDINALITY
     features["item_dim"] = ITEM_DIM
     return features
@@ -98,13 +96,13 @@ def torch_ranking_metrics_inputs():
     POS_EXAMPLE = 30
     VOCAB_SIZE = 40
     features = {}
-    features["scores"] = pytorch.tensor(np.random.uniform(0, 1, (POS_EXAMPLE, VOCAB_SIZE)))
-    features["ks"] = pytorch.LongTensor([1, 2, 3, 5, 10, 20])
-    features["labels_one_hot"] = pytorch.LongTensor(
+    features["scores"] = torch.tensor(np.random.uniform(0, 1, (POS_EXAMPLE, VOCAB_SIZE)))
+    features["ks"] = torch.LongTensor([1, 2, 3, 5, 10, 20])
+    features["labels_one_hot"] = torch.LongTensor(
         np.random.choice(a=[0, 1], size=(POS_EXAMPLE, VOCAB_SIZE))
     )
 
-    features["labels"] = pytorch.tensor(np.random.randint(1, VOCAB_SIZE, (POS_EXAMPLE,)))
+    features["labels"] = torch.tensor(np.random.randint(1, VOCAB_SIZE, (POS_EXAMPLE,)))
     return features
 
 
@@ -113,9 +111,9 @@ def torch_seq_prediction_head_link_to_block():
     ITEM_DIM = 64
     POS_EXAMPLE = 25
     features = {}
-    features["seq_model_output"] = pytorch.tensor(np.random.uniform(0, 1, (POS_EXAMPLE, ITEM_DIM)))
-    features["item_embedding_table"] = pytorch.nn.Embedding(MAX_CARDINALITY, ITEM_DIM)
-    features["labels_all"] = pytorch.tensor(np.random.randint(1, MAX_CARDINALITY, (POS_EXAMPLE,)))
+    features["seq_model_output"] = torch.tensor(np.random.uniform(0, 1, (POS_EXAMPLE, ITEM_DIM)))
+    features["item_embedding_table"] = torch.nn.Embedding(MAX_CARDINALITY, ITEM_DIM)
+    features["labels_all"] = torch.tensor(np.random.randint(1, MAX_CARDINALITY, (POS_EXAMPLE,)))
     features["vocab_size"] = MAX_CARDINALITY
     features["item_dim"] = ITEM_DIM
     features["config"] = {
@@ -132,7 +130,7 @@ def torch_seq_prediction_head_link_to_block():
 
 @pytest.fixture
 def torch_tabular_features(tabular_schema):
-    return tr.TabularFeatures.from_schema(
+    return ml.TabularFeatures.from_schema(
         tabular_schema,
         max_sequence_length=20,
         continuous_projection=64,

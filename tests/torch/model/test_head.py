@@ -15,16 +15,16 @@
 #
 
 import pytest
+import torch
 
-pytorch = pytest.importorskip("torch")
-tr = pytest.importorskip("merlin_models.torch")
+import merlin_models.torch as ml
 
 
-@pytest.mark.parametrize("task", [tr.BinaryClassificationTask, tr.RegressionTask])
+@pytest.mark.parametrize("task", [ml.BinaryClassificationTask, ml.RegressionTask])
 def test_simple_heads(torch_tabular_features, torch_tabular_data, task):
-    targets = {"target": pytorch.randint(2, (100,)).float()}
+    targets = {"target": torch.randint(2, (100,)).float()}
 
-    body = tr.SequentialBlock(torch_tabular_features, tr.MLPBlock([64]))
+    body = ml.SequentialBlock(torch_tabular_features, ml.MLPBlock([64]))
     head = task("target").to_head(body, torch_tabular_features)
 
     body_out = body(torch_tabular_data)
@@ -33,14 +33,14 @@ def test_simple_heads(torch_tabular_features, torch_tabular_data, task):
     assert loss.min() >= 0 and loss.max() <= 1
 
 
-@pytest.mark.parametrize("task", [tr.BinaryClassificationTask, tr.RegressionTask])
-@pytest.mark.parametrize("task_block", [None, tr.MLPBlock([32]), tr.MLPBlock([32]).build([-1, 64])])
+@pytest.mark.parametrize("task", [ml.BinaryClassificationTask, ml.RegressionTask])
+@pytest.mark.parametrize("task_block", [None, ml.MLPBlock([32]), ml.MLPBlock([32]).build([-1, 64])])
 # @pytest.mark.parametrize("summary", ["last", "first", "mean", "cls_index"])
 def test_simple_heads_on_sequence(torch_tabular_features, torch_tabular_data, task, task_block):
     inputs = torch_tabular_features
-    targets = {"target": pytorch.randint(2, (100,)).float()}
+    targets = {"target": torch.randint(2, (100,)).float()}
 
-    body = tr.SequentialBlock(inputs, tr.MLPBlock([64]))
+    body = ml.SequentialBlock(inputs, ml.MLPBlock([64]))
     head = task("target", task_block=task_block).to_head(body, inputs)
 
     body_out = body(torch_tabular_data)
@@ -53,26 +53,26 @@ def test_simple_heads_on_sequence(torch_tabular_features, torch_tabular_data, ta
     "task_blocks",
     [
         None,
-        tr.MLPBlock([32]),
-        tr.MLPBlock([32]).build([-1, 64]),
-        dict(classification=tr.MLPBlock([16]), regression=tr.MLPBlock([20])),
+        ml.MLPBlock([32]),
+        ml.MLPBlock([32]).build([-1, 64]),
+        dict(classification=ml.MLPBlock([16]), regression=ml.MLPBlock([20])),
     ],
 )
 def test_head_with_multiple_tasks(torch_tabular_features, torch_tabular_data, task_blocks):
     targets = {
-        "classification": pytorch.randint(2, (100,)).float(),
-        "regression": pytorch.randint(2, (100,)).float(),
+        "classification": torch.randint(2, (100,)).float(),
+        "regression": torch.randint(2, (100,)).float(),
     }
 
-    body = tr.SequentialBlock(torch_tabular_features, tr.MLPBlock([64]))
+    body = ml.SequentialBlock(torch_tabular_features, ml.MLPBlock([64]))
     tasks = [
-        tr.BinaryClassificationTask("classification", task_name="classification"),
-        tr.RegressionTask("regression", task_name="regression"),
+        ml.BinaryClassificationTask("classification", task_name="classification"),
+        ml.RegressionTask("regression", task_name="regression"),
     ]
-    head = tr.Head(body, tasks, task_blocks=task_blocks)
-    optimizer = pytorch.optim.Adam(head.parameters())
+    head = ml.Head(body, tasks, task_blocks=task_blocks)
+    optimizer = torch.optim.Adam(head.parameters())
 
-    with pytorch.set_grad_enabled(mode=True):
+    with torch.set_grad_enabled(mode=True):
         body_out = body(torch_tabular_data)
         loss = head.compute_loss(body_out, targets)
         metrics = head.calculate_metrics(body_out, targets, call_body=False)
@@ -86,7 +86,7 @@ def test_head_with_multiple_tasks(torch_tabular_features, torch_tabular_data, ta
     if task_blocks:
         assert head.task_blocks["classification"][0] != head.task_blocks["regression"][0]
 
-        assert not pytorch.equal(
+        assert not torch.equal(
             head.task_blocks["classification"][0][0].weight,
             head.task_blocks["regression"][0][0].weight,
         )
