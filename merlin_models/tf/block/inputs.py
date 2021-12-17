@@ -67,4 +67,4 @@ def InputBlock(
             name="continuous_projection",
         )
 
-    return ParallelBlock(branches, aggregation=aggregation, post=post, **kwargs)
+    return ParallelBlock(branches, aggregation=aggregation, post=post, is_input=True, **kwargs)
