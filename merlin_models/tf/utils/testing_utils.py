@@ -19,7 +19,7 @@ import tempfile
 
 import pytest
 
-from merlin_models.tf.core import Block, PredictionTask
+from merlin_models.tf.core import Model
 
 tf = pytest.importorskip("tensorflow")
 tr = pytest.importorskip("merlin_models.tf")
@@ -113,14 +113,26 @@ def assert_serialization(layer):
     return copy_layer
 
 
-def assert_model_saved(body: Block, task: PredictionTask, run_eagerly: bool, data):
-    model = body.connect(task)
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    batch = next(iter(data))[0]
-    model._set_inputs(batch)
+def assert_model_is_retrainable(
+    model: Model, data, run_eagerly: bool = True, optimizer="adam", **kwargs
+):
+    model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
+    losses = model.fit(data, epochs=1)
+
+    assert len(losses.epoch) == 1
+    assert all(0 <= loss <= 1 for loss in losses.history["loss"])
+
+    assert model.from_config(model.get_config()) is not None
+
     with tempfile.TemporaryDirectory() as tmpdir:
         model.save(tmpdir)
         loaded_model = tf.keras.models.load_model(tmpdir)
-    assert loaded_model(batch) is not None
+
+    assert isinstance(loaded_model, Model)
+    loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
+    losses = loaded_model.fit(data, epochs=1)
+
+    assert len(losses.epoch) == 1
+    assert all(0 <= loss <= 1 for loss in losses.history["loss"])
 
     return loaded_model
