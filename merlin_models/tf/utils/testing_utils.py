@@ -18,11 +18,10 @@ import platform
 import tempfile
 
 import pytest
+import tensorflow as tf
 
-from merlin_models.tf.core import Model
-
-tf = pytest.importorskip("tensorflow")
-tr = pytest.importorskip("merlin_models.tf")
+from ..core import Model
+from ..prediction.classification import BinaryClassificationTask
 
 
 def mark_run_eagerly_modes(*args, **kwargs):
@@ -38,7 +37,7 @@ def mark_run_eagerly_modes(*args, **kwargs):
 def assert_body_works_in_model(data, inputs, body, run_eagerly, num_epochs=5):
     targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
-    model = body.connect(tr.BinaryClassificationTask("target"))
+    model = body.connect(BinaryClassificationTask("target"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     dataset = tf.data.Dataset.from_tensor_slices((data, targets)).batch(50)
