@@ -14,13 +14,10 @@
 # limitations under the License.
 #
 
-import pytest
+import tensorflow as tf
 
+import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-
-tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin_models.tf")
-test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
@@ -40,7 +37,7 @@ def test_serialization_regression_head(testing_data: SyntheticData):
     body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.RegressionTask("target"))
 
-    copy_model = test_utils.assert_serialization(model)
+    copy_model = testing_utils.assert_serialization(model)
     testing_utils.assert_loss_and_metrics_are_valid(
         copy_model, (testing_data.tf_tensor_dict, targets)
     )

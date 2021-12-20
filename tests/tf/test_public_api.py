@@ -16,7 +16,7 @@
 
 import pytest
 
-ml = pytest.importorskip("merlin_models.tf")
+import merlin_models.tf as ml
 
 
 def test_tf_import():

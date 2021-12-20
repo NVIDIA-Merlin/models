@@ -14,17 +14,16 @@
 # limitations under the License.
 #
 
-import pytest
+# import pytest
 
-torch = pytest.importorskip("torch")
-tr = pytest.importorskip("merlin_models.torch")
-
+# torch = pytest.importorskip("torch")
+# import merlin_models.torch as ml
 
 # def test_pyarrow_load(yoochoose_schema, tabular_data_file):
 #     pytest.importorskip("pyarrow")
 #     max_sequence_length = 20
 #     batch_size = 16
-#     loader = tr.utils.data_utils.PyarrowDataLoader.from_schema(
+#     loader = ml.utils.data_utils.PyarrowDataLoader.from_schema(
 #         yoochoose_schema,
 #         tabular_data_file,
 #         batch_size,
@@ -54,7 +53,7 @@ tr = pytest.importorskip("merlin_models.torch")
 #     pytest.importorskip("pyarrow")
 #     max_sequence_length = 20
 #     batch_size = 16
-#     loader = tr.utils.data_utils.PyarrowDataLoader.from_schema(
+#     loader = ml.utils.data_utils.PyarrowDataLoader.from_schema(
 #         yoochoose_schema,
 #         tabular_data_file,
 #         batch_size=batch_size,
@@ -73,7 +72,7 @@ tr = pytest.importorskip("merlin_models.torch")
 #     pytest.importorskip("pyarrow")
 #     max_sequence_length = 70
 #     batch_size = 8
-#     loader = tr.utils.data_utils.T4RecDataLoader.parse("pyarrow").from_schema(
+#     loader = ml.utils.data_utils.T4RecDataLoader.parse("pyarrow").from_schema(
 #         yoochoose_schema,
 #         str(yoochoose_path_file),
 #         batch_size=batch_size,

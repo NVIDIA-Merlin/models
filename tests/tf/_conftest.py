@@ -18,10 +18,7 @@ import pathlib
 
 import numpy as np
 import pytest
-
-tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin_models.tf")
-
+import tensorflow as tf
 
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100

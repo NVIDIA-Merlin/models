@@ -41,7 +41,6 @@ def test_shuffling():
     )
 
     batch = next(iter(train_Dataset))
-
     first_batch = batch[0]["a"].cpu()
     in_order = torch.arange(0, batch_size)
 

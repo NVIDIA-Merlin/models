@@ -55,7 +55,7 @@ def maybe_serialize_keras_objects(
                 config[key] = {
                     k: tf.keras.utils.serialize_keras_object(v) for k, v in maybe_value.items()
                 }
-            elif isinstance(maybe_value, list):
+            elif isinstance(maybe_value, (list, tuple)):
                 config[key] = [tf.keras.utils.serialize_keras_object(v) for v in maybe_value]
             else:
                 config[key] = tf.keras.utils.serialize_keras_object(maybe_value)

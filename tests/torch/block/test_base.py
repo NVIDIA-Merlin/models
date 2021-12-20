@@ -14,39 +14,38 @@
 # limitations under the License.
 #
 
-import pytest
+import torch
 
-pytorch = pytest.importorskip("torch")
-tr = pytest.importorskip("merlin_models.torch")
+import merlin_models.torch as ml
 
 
 def test_base_block(torch_tabular_features):
-    block = torch_tabular_features >> tr.MLPBlock([64, 32])
+    block = torch_tabular_features >> ml.MLPBlock([64, 32])
 
     embedding_block = block.get_children_by_class_name(list(block), "EmbeddingFeatures")[0]
 
-    assert isinstance(embedding_block, tr.EmbeddingFeatures)
+    assert isinstance(embedding_block, ml.EmbeddingFeatures)
 
 
 def test_sequential_block(torch_tabular_features):
-    block = tr.SequentialBlock(
+    block = ml.SequentialBlock(
         torch_tabular_features,
-        tr.MLPBlock([64, 32]),
-        tr.Block(pytorch.nn.Dropout(0.5), [None, 32]),
+        ml.MLPBlock([64, 32]),
+        ml.Block(torch.nn.Dropout(0.5), [None, 32]),
     )
 
     output_size = block.output_size()
     assert list(output_size) == [-1, 32]
 
     embedding_block = block.get_children_by_class_name(list(block), "EmbeddingFeatures")[0]
-    assert isinstance(embedding_block, tr.EmbeddingFeatures)
+    assert isinstance(embedding_block, ml.EmbeddingFeatures)
 
 
 def test_sequential_block_with_output_size(torch_tabular_features):
-    block = tr.SequentialBlock(
+    block = ml.SequentialBlock(
         torch_tabular_features,
-        tr.MLPBlock([64, 32]),
-        pytorch.nn.Dropout(0.5),
+        ml.MLPBlock([64, 32]),
+        torch.nn.Dropout(0.5),
         output_size=[None, 32],
     )
 
@@ -56,8 +55,8 @@ def test_sequential_block_with_output_size(torch_tabular_features):
 
 def test_sequential(torch_tabular_features):
     inputs = torch_tabular_features
-    block = pytorch.nn.Sequential(*tr.build_blocks(inputs, tr.MLPBlock([64, 32])))
-    block2 = pytorch.nn.Sequential(inputs, tr.MLPBlock([64, 32]).to_module(inputs))
+    block = torch.nn.Sequential(*ml.build_blocks(inputs, ml.MLPBlock([64, 32])))
+    block2 = torch.nn.Sequential(inputs, ml.MLPBlock([64, 32]).to_module(inputs))
 
-    assert isinstance(block, pytorch.nn.Sequential)
-    assert isinstance(block2, pytorch.nn.Sequential)
+    assert isinstance(block, torch.nn.Sequential)
+    assert isinstance(block2, torch.nn.Sequential)

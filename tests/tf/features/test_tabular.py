@@ -16,11 +16,10 @@
 
 import pytest
 
+import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
+from merlin_models.tf.utils import testing_utils
 from merlin_standard_lib import Tag
-
-ml = pytest.importorskip("merlin_models.tf")
-test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
 def test_tabular_features(testing_data: SyntheticData):
@@ -37,7 +36,7 @@ def test_tabular_features(testing_data: SyntheticData):
 def test_serialization_tabular_features(testing_data: SyntheticData):
     inputs = ml.InputBlock(testing_data.schema)
 
-    copy_layer = test_utils.assert_serialization(inputs)
+    copy_layer = testing_utils.assert_serialization(inputs)
 
     assert list(inputs.parallel_layers.keys()) == list(copy_layer.parallel_layers.keys())
 
@@ -53,7 +52,7 @@ def test_tabular_features_with_projection(testing_data: SyntheticData):
     assert list(outputs["continuous_projection"].shape)[1] == 64
 
 
-@test_utils.mark_run_eagerly_modes
+@testing_utils.mark_run_eagerly_modes
 @pytest.mark.parametrize("continuous_projection", [None, 128])
 def test_tabular_features_yoochoose_model(
     testing_data: SyntheticData, run_eagerly, continuous_projection
@@ -66,4 +65,4 @@ def test_tabular_features_yoochoose_model(
 
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
-    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)
+    testing_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)

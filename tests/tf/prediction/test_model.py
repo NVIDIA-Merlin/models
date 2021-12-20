@@ -16,11 +16,9 @@
 #
 import pytest
 
+import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-
-tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin_models.tf")
-test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
+from merlin_models.tf.utils import testing_utils
 
 
 # TODO: Fix this test when `run_eagerly=False`
@@ -33,7 +31,7 @@ def test_simple_model(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=T
 
     losses = model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=num_epochs)
     metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
-    test_utils.assert_binary_classification_loss_metrics(
+    testing_utils.assert_binary_classification_loss_metrics(
         losses, metrics, target_name="click", num_epochs=num_epochs
     )
 
@@ -50,7 +48,7 @@ def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run
 
     losses = model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=num_epochs)
     metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
-    test_utils.assert_binary_classification_loss_metrics(
+    testing_utils.assert_binary_classification_loss_metrics(
         losses, metrics, target_name="click", num_epochs=num_epochs
     )
 
@@ -80,17 +78,16 @@ def test_dlrm_model_single_head_multiple_tasks(
 
     losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
     metrics = model.evaluate(*music_streaming_data.tf_features_and_targets, return_dict=True)
-    test_utils.assert_binary_classification_loss_metrics(
+    testing_utils.assert_binary_classification_loss_metrics(
         losses, metrics, target_name="click", num_epochs=num_epochs
     )
-    test_utils.assert_regression_loss_metrics(
+    testing_utils.assert_regression_loss_metrics(
         losses, metrics, target_name="play_percentage", num_epochs=num_epochs
     )
 
 
 @pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
 def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
-    from merlin_models.tf.utils import testing_utils
 
     body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(prediction_task("click"))
@@ -101,16 +98,21 @@ def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
     )
 
 
-@pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
-def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly=True):
+@pytest.mark.parametrize("prediction_task", [None, ml.BinaryClassificationTask, ml.RegressionTask])
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly):
     from merlin_models.tf.utils import testing_utils
 
+    if prediction_task:
+        prediction_task = prediction_task("click")
+    else:
+        # Do multi-task learning if no prediction task is provided
+        prediction_task = ml.PredictionTasks(ecommerce_data.schema)
+
     body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    model = body.connect(prediction_task)
 
     dataset = ecommerce_data.tf_dataloader(batch_size=50)
-    model = testing_utils.assert_model_saved(body, prediction_task("click"), run_eagerly, dataset)
+    copy_model = testing_utils.assert_model_is_retrainable(model, dataset, run_eagerly=run_eagerly)
 
-    losses = model.fit(dataset, epochs=1)
-
-    assert len(losses.epoch) == 1
-    assert all(0 <= loss <= 1 for loss in losses.history["loss"])
+    assert copy_model is not None

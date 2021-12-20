@@ -14,10 +14,9 @@
 # limitations under the License.
 #
 
-import pytest
 import torch
 
-tr = pytest.importorskip("merlin_models.torch")
+import merlin_models.torch as ml
 
 if torch.cuda.is_available():
     devices = ["cpu", "cuda"]
@@ -27,20 +26,20 @@ else:
 
 def test_filter_features(torch_con_features):
     features = ["con_a", "con_b"]
-    con = tr.FilterFeatures(features)(torch_con_features)
+    con = ml.FilterFeatures(features)(torch_con_features)
 
     assert list(con.keys()) == features
 
 
 def test_as_tabular(torch_con_features):
     name = "tabular"
-    con = tr.AsTabular(name)(torch_con_features)
+    con = ml.AsTabular(name)(torch_con_features)
 
     assert list(con.keys()) == [name]
 
 
 def test_tabular_module(torch_con_features):
-    class _DummyTabular(tr.TabularModule):
+    class _DummyTabular(ml.TabularModule):
         def forward(self, inputs):
             return inputs
 
@@ -48,13 +47,13 @@ def test_tabular_module(torch_con_features):
 
     assert tabular(torch_con_features) == torch_con_features
     assert tabular(torch_con_features, aggregation="concat").size()[1] == 6
-    assert tabular(torch_con_features, aggregation=tr.ConcatFeatures()).size()[1] == 6
+    assert tabular(torch_con_features, aggregation=ml.ConcatFeatures()).size()[1] == 6
 
     tabular_concat = _DummyTabular(aggregation="concat", pre="ssn")
     assert tabular_concat(torch_con_features).size()[1] == 6
 
     tab_a = ["con_a"] >> _DummyTabular()
-    tab_b = tr.SequentialBlock(["con_b"], _DummyTabular())
+    tab_b = ml.SequentialBlock(["con_b"], _DummyTabular())
 
     assert tab_a(torch_con_features, merge_with=tab_b, aggregation="stack").size()[1] == 1
     assert (tab_a + tab_b)(torch_con_features, aggregation="concat").size()[1] == 2
@@ -63,7 +62,7 @@ def test_tabular_module(torch_con_features):
 # @pytest.mark.parametrize("device", devices)
 # def test_tabular_module_to_device(yoochoose_schema, device):
 #     schema = yoochoose_schema
-#     tab_module = tr.TabularSequenceFeatures.from_schema(
+#     tab_module = ml.TabularSequenceFeatures.from_schema(
 #         schema, max_sequence_length=20, aggregation="concat"
 #     )
 #     tab_module.to(device)

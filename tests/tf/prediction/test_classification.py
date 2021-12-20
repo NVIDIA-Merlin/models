@@ -14,12 +14,10 @@
 # limitations under the License.
 #
 
-import pytest
+import tensorflow as tf
 
+import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-
-tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin_models.tf")
 
 targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 

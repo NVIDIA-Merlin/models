@@ -26,13 +26,13 @@ from ..core import (
     BlockType,
     Filter,
     TabularAggregationType,
-    TabularInputBlock,
+    TabularBlock,
 )
 
 
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ContinuousFeatures(TabularInputBlock):
+class ContinuousFeatures(TabularBlock):
     """Input block for continuous features.
 
     Parameters
@@ -53,7 +53,13 @@ class ContinuousFeatures(TabularInputBlock):
         **kwargs
     ):
         super().__init__(
-            pre=pre, post=post, aggregation=aggregation, schema=schema, name=name, **kwargs
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+            schema=schema,
+            name=name,
+            is_input=True,
+            **kwargs
         )
         self.filter_features = Filter(features)
 
