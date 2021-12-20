@@ -18,7 +18,7 @@ import os
 
 import dask.dataframe as dd
 import numpy as np
-import tensorflow as tf
+import merlin_models.tf.tensorflow as tf
 
 from merlin_models.loader.dispatch import HAS_GPU
 from merlin_standard_lib.schema.tag import Tag as Tags
@@ -26,6 +26,8 @@ from merlin_models.loader.backend import DataLoader
 from merlin_models.loader.tf_utils import configure_tensorflow, get_dataset_schema_from_feature_columns
 
 from_dlpack = configure_tensorflow()
+
+import tensorflow as tf
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
@@ -104,7 +106,7 @@ def _get_schema(dataset):
     return None
 
 
-class KerasSequenceLoader(tf.keras.utils.Sequence, DataLoader):
+class Dataset(tf.keras.utils.Sequence, DataLoader):
     """
     Infinite generator used to asynchronously iterate through CSV or Parquet
     dataframes on GPU by leveraging an NVTabular `Dataset`. Applies preprocessing
@@ -435,7 +437,7 @@ class KerasSequenceLoader(tf.keras.utils.Sequence, DataLoader):
         return to_return
 
 
-class KerasSequenceValidater(tf.keras.callbacks.Callback):
+class DatasetValidator(tf.keras.callbacks.Callback):
     # TODO: document
     _supports_tf_logs = True
 

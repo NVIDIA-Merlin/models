@@ -92,3 +92,6 @@ __all__ = [
     "SoftEmbedding",
     "data",
 ]
+
+
+from .torch import Dataset

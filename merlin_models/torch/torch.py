@@ -15,7 +15,7 @@
 #
 import numpy as np
 import pandas as pd
-import torch
+import torch 
 from torch.utils.dlpack import from_dlpack
 import dask.dataframe as dd
 
@@ -40,7 +40,7 @@ class IterDL(torch.utils.data.IterableDataset):
                 yield df
 
 
-class TorchAsyncItr(torch.utils.data.IterableDataset, DataLoader):
+class Dataset(torch.utils.data.IterableDataset, DataLoader):
     """This class creates batches of tensor. Each batch size is specified by the user.
     The data input requires an NVTabular dataset. Handles spillover to ensure all
     batches are the specified size until the final batch.

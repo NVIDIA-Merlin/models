@@ -27,7 +27,7 @@ import dask.dataframe as dd
 tf = pytest.importorskip("tensorflow")
 # If tensorflow isn't installed skip these tests. Note that the
 # tf_dataloader import needs to happen after this line
-import merlin_models.loader.tensorflow as tf_dataloader
+import merlin_models.tf.tensorflow as tf_dataloader
 
 
 def test_nested_list():
@@ -44,7 +44,7 @@ def test_nested_list():
         }
     )
 
-    train_dataset = tf_dataloader.KerasSequenceLoader(
+    train_Dataset = tf_dataloader.Dataset(
         _dd_from_df(df),
         cont_names=["data", "data2"],
         label_names=["label"],
@@ -52,7 +52,7 @@ def test_nested_list():
         shuffle=False,
     )
 
-    batch = next(iter(train_dataset))
+    batch = next(iter(train_Dataset))
     # [[1,2,3],[3,1],[...],[]]
     nested_data_col = tf.RaggedTensor.from_row_lengths(
         batch[0]["data"][0][:, 0], tf.cast(batch[0]["data"][1][:, 0], tf.int32)
@@ -79,11 +79,11 @@ def test_shuffling():
 
     df = pd.DataFrame({"a": np.asarray(range(num_rows)), "b": np.asarray([0] * num_rows)})
 
-    train_dataset = tf_dataloader.KerasSequenceLoader(
+    train_Dataset = tf_dataloader.Dataset(
         _dd_from_df(df), cont_names=["a"], label_names=["b"], batch_size=batch_size, shuffle=True
     )
 
-    batch = next(iter(train_dataset))
+    batch = next(iter(train_Dataset))
 
     first_batch = tf.reshape(tf.cast(batch[0]["a"].cpu(), tf.int32), (batch_size,))
     in_order = tf.range(0, batch_size, dtype=tf.int32)
@@ -107,13 +107,13 @@ def test_tf_drp_reset(tmpdir, batch_size, drop_last, num_rows):
             "cont1": [1.0] * num_rows,
         }
     )
-    path = os.path.join(tmpdir, "dataset.parquet")
+    path = os.path.join(tmpdir, "Dataset.parquet")
     df.to_parquet(path)
     cat_names = ["cat3", "cat2", "cat1"]
     cont_names = ["cont3", "cont2", "cont1"]
     label_name = ["label"]
 
-    data_itr = tf_dataloader.KerasSequenceLoader(
+    data_itr = tf_dataloader.Dataset(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -153,13 +153,13 @@ def test_tf_catname_ordering(tmpdir):
             "cont1": [1.0] * 100,
         }
     )
-    path = os.path.join(tmpdir, "dataset.parquet")
+    path = os.path.join(tmpdir, "Dataset.parquet")
     df.to_parquet(path)
     cat_names = ["cat3", "cat2", "cat1"]
     cont_names = ["cont3", "cont2", "cont1"]
     label_name = ["label"]
 
-    data_itr = tf_dataloader.KerasSequenceLoader(
+    data_itr = tf_dataloader.Dataset(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -189,7 +189,7 @@ def test_tf_map(tmpdir):
             "cont1": [1.0] * 100,
         }
     )
-    path = os.path.join(tmpdir, "dataset.parquet")
+    path = os.path.join(tmpdir, "Dataset.parquet")
     df.to_parquet(path)
     cat_names = ["cat3", "cat2", "cat1"]
     cont_names = ["sample_weight", "cont2", "cont1"]
@@ -200,7 +200,7 @@ def test_tf_map(tmpdir):
 
         return features, labels, sample_weight
 
-    data_itr = tf_dataloader.KerasSequenceLoader(
+    data_itr = tf_dataloader.Dataset(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -229,7 +229,7 @@ def test_validater( batch_size):
         {"a": rand.randn(n_samples), "label": rand.randint(2, size=n_samples)}
     )
 
-    dataloader = tf_dataloader.KerasSequenceLoader(
+    dataloader = tf_dataloader.Dataset(
         _dd_from_df(gdf),
         batch_size=batch_size,
         cat_names=[],
@@ -245,7 +245,7 @@ def test_validater( batch_size):
     model = tf.keras.Model(inputs=input_, outputs=x)
     model.compile("sgd", "binary_crossentropy", metrics=["accuracy", tf.keras.metrics.AUC()])
 
-    validater = tf_dataloader.KerasSequenceValidater(dataloader)
+    validater = tf_dataloader.DatasetValidator(dataloader)
     model.fit(dataloader, epochs=2, verbose=0, callbacks=[validater])
 
     predictions, labels = [], []

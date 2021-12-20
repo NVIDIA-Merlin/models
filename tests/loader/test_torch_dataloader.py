@@ -27,7 +27,7 @@ import dask.dataframe as dd
 # torch_dataloader import needs to happen after this line
 torch = pytest.importorskip("torch")
 
-import merlin_models.loader.torch as torch_dataloader  # noqa isort:skip
+import merlin_models.torch as torch_dataloader  # noqa isort:skip
 
 
 def test_shuffling():
@@ -36,11 +36,11 @@ def test_shuffling():
 
     df = pd.DataFrame({"a": np.asarray(range(num_rows)), "b": np.asarray([0] * num_rows)})
 
-    train_dataset = torch_dataloader.TorchAsyncItr(
+    train_Dataset = torch_dataloader.Dataset(
         _dd_from_df(df), conts=["a"], labels=["b"], batch_size=batch_size, shuffle=True
     )
 
-    batch = next(iter(train_dataset))
+    batch = next(iter(train_Dataset))
 
     first_batch = batch[0]["a"].cpu()
     in_order = torch.arange(0, batch_size)
@@ -68,7 +68,7 @@ def test_torch_drp_reset(tmpdir, batch_size, drop_last, num_rows):
     cont_names = ["cont3", "cont2", "cont1"]
     label_name = ["label"]
 
-    data_itr = torch_dataloader.TorchAsyncItr(
+    data_itr = torch_dataloader.Dataset(
         _dd_from_df(df),
         cats=cat_names,
         conts=cont_names,
@@ -99,7 +99,7 @@ def test_torch_drp_reset(tmpdir, batch_size, drop_last, num_rows):
 
 @pytest.mark.parametrize("sparse_dense", [False, True])
 def test_sparse_tensors(sparse_dense):
-    # create small dataset, add values to sparse_list
+    # create small Dataset, add values to sparse_list
     df = _make_df(
         {
             "spar1": [[1, 2, 3, 4], [4, 2, 4, 4], [1, 3, 4, 3], [1, 1, 3, 3]],
@@ -109,7 +109,7 @@ def test_sparse_tensors(sparse_dense):
     spa_lst = ["spar1", "spar2"]
     spa_mx = {"spar1": 5, "spar2": 6}
     batch_size = 2
-    data_itr = torch_dataloader.TorchAsyncItr(
+    data_itr = torch_dataloader.Dataset(
         _dd_from_df(df),
         cats=spa_lst,
         conts=[],
