@@ -22,7 +22,7 @@ from merlin_models.tf.block.transformations import L2Norm
 from merlin_models.tf.core import Block, Sampler
 from merlin_standard_lib import Schema, Tag
 
-from .classification import MultiClassClassificationTask
+from .classification import MultiClassClassificationTask, Softmax
 from .ranking_metric import ranking_metrics
 
 
@@ -140,6 +140,88 @@ class LabelAwareAttention(Block):
         self, predictions, targets=None, training=True, **kwargs
     ) -> Tuple[tf.Tensor, tf.Tensor]:
         raise NotImplementedError("TODO")
+
+
+class RemovePad3D(Block):
+    """Remove non-targets predictons
+
+    Args:
+        padding_idx: id of padded item
+
+    Returns:
+        targets: targets positions from the sequence of item-ids
+    """
+
+    def __init__(self, padding_idx: int = 0, **kwargs):
+        super().__init__(**kwargs)
+        self.padding_idx = padding_idx
+
+    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+        targets = tf.reshape(targets, (-1,))
+        non_pad_mask = targets != self.padding_idx
+        targets = tf.boolean_mask(targets, non_pad_mask)
+        return targets
+
+
+class MaskingHead(Block):
+    """Masking class to transform targets based on the
+    masking schema store in the model context
+
+    Args:
+        Block ([type]): [description]
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.padding_idx = 0
+
+    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+        targets = self.context[Tag.ITEM_ID]
+        mask = self.context["MASKING_SCHEMA"]
+        targets = tf.where(mask, targets, self.padding_idx)
+        return targets
+
+
+def NextItemPredictionTask(
+    schema,
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(
+        from_logits=True,
+    ),
+    metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=True),
+    weight_tying: bool = True,
+    softmax_temperature: float = 1,
+    normalize: bool = True,
+    masking: bool = True,
+    extra_pre_call: Optional[Block] = None,
+    target_name: Optional[str] = None,
+    task_name: Optional[str] = None,
+    task_block: Optional[Layer] = None,
+) -> MultiClassClassificationTask:
+    if normalize:
+        prediction_call = L2Norm()
+
+    if weight_tying:
+        prediction_call = prediction_call.connect(ItemSoftmaxWeightTying(schema))
+    else:
+        prediction_call = prediction_call.connect(Softmax(schema))
+    if softmax_temperature != 1:
+        prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
+
+    if masking:
+        prediction_call = prediction_call.connect(MaskingHead())
+        prediction_call = prediction_call.connect(RemovePad3D())
+
+    if extra_pre_call is not None:
+        prediction_call = prediction_call.connect(extra_pre_call)
+
+    return MultiClassClassificationTask(
+        target_name,
+        task_name,
+        task_block,
+        loss=loss,
+        metrics=metrics,
+        pre=prediction_call,
+    )
 
 
 def ItemRetrievalTask(
