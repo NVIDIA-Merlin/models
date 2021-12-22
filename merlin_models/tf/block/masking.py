@@ -1,0 +1,221 @@
+#
+# Copyright (c) 2021, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+from typing import List
+
+import tensorflow as tf
+
+from merlin_models.tf.core import Block
+from merlin_standard_lib import Registry, Tag
+from merlin_standard_lib.utils.doc_utils import docstring_parameter
+
+masking_registry = Registry("tf.masking")
+
+MASK_SEQUENCE_PARAMETERS_DOCSTRING = """
+    hidden_size: int
+        The hidden dimension of input embeddings, needed to initialize
+        the trainable vector used to replace masked positions.
+    padding_idx: int, default = 0
+        Index of padding item, used for masking and for getting batch of sequences
+        with the same length.
+    eval_on_last_item_seq_only: bool, default = True
+        When set to True, predict only the last non-padded item during evaluation
+    combiner: str, default = None
+        The aggregation method to use to merge the sequence of input embeddings.
+        If specified, It transforms the 3-D tensor of shape (bs, seq_length, hidden_size)
+        to a 2-D tensor of shape (bs, hidden_size)
+        supported values are: `mean`, `None`
+"""
+
+
+@docstring_parameter(mask_sequence_parameters=MASK_SEQUENCE_PARAMETERS_DOCSTRING)
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class MaskingBlock(Block):
+    """Base class to prepare masked items inputs/labels for item prediction task.
+    The masking schema sets the items to be predicted (labels) and masks (hides)
+    their positions in the sequence so that they are not used by the model
+    for prediction.
+
+    We currently provide 2 different masking schemes out of the box:
+        - Causal LM (clm):
+        - Masked LM (mlm):
+
+    This class can be extended to add different a masking scheme.
+
+    Parameters:
+    ----------
+        {mask_sequence_parameters}
+
+
+    Returns:
+    -------
+        Transformed inputs where masked positions are ignored or replaced by
+        a trainable embedding mask.
+    """
+
+    def __init__(
+        self,
+        padding_idx: int = 0,
+        eval_on_last_item_seq_only: bool = True,
+        combiner: str = None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.padding_idx = padding_idx
+        self.eval_on_last_item_seq_only = eval_on_last_item_seq_only
+        self.combiner = combiner
+
+    def build(self, input_shapes):
+        if input_shapes[0] is not None:
+            bs = input_shapes[0]
+        else:
+            bs = 1
+        self.masked_schema = self.context.add_weight(
+            name="MASKING_SCHEMA",
+            trainable=False,
+            initializer="zeros",
+            dtype=tf.bool,
+            shape=tf.TensorShape((bs, input_shapes[1])),
+        )
+
+        self.masked_item_embedding = self.add_weight(
+            name="mask_embedding",
+            trainable=True,
+            initializer=tf.random_normal_initializer(mean=0.0, stddev=0.001),
+            shape=[input_shapes[-1]],
+            dtype=tf.float32,
+        )
+
+        super().build(input_shapes)
+
+    def add_features_to_context(self, feature_shapes) -> List[str]:
+        return [str(Tag.ITEM_ID)]
+
+    def compute_mask_schema(self, items) -> tf.Tensor:
+        raise NotImplementedError
+
+    def apply_mask_to_inputs(self, inputs, mask_schema) -> tf.Tensor:
+        raise NotImplementedError
+
+    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+        items = self.context[Tag.ITEM_ID]
+        mask_schema = self.compute_mask_schema(items, training=training)
+        inputs = self.apply_mask_to_inputs(inputs, mask_schema)
+        if self.combiner == "mean":
+            return tf.reduce_mean(inputs, axis=1)
+        return inputs
+
+    def get_config(self):
+        config = super(MaskingBlock, self).get_config()
+        config.update(
+            {
+                "padding_idx": self.padding_idx,
+                "eval_on_last_item_seq_only": self.eval_on_last_item_seq_only,
+            }
+        )
+        return config
+
+
+@masking_registry.register_with_multiple_names("clm", "causal")
+@docstring_parameter(mask_sequence_parameters=MASK_SEQUENCE_PARAMETERS_DOCSTRING)
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class CausalLanguageModeling(MaskingBlock):
+    """
+    In Causal Language Modeling (clm) you predict the next item based on past positions of the
+    sequence. Future positions are masked.
+    Parameters
+    ----------
+    {mask_sequence_parameters}
+    train_on_last_item_seq_only: predict only the last item during training
+    """
+
+    def __init__(
+        self,
+        padding_idx: int = 0,
+        eval_on_last_item_seq_only: bool = True,
+        train_on_last_item_seq_only: bool = False,
+        **kwargs
+    ):
+        super(CausalLanguageModeling, self).__init__(
+            padding_idx=padding_idx, eval_on_last_item_seq_only=eval_on_last_item_seq_only, **kwargs
+        )
+        self.train_on_last_item_seq_only = train_on_last_item_seq_only
+        self.label_seq_trg_eval = tf.Variable(
+            tf.zeros(shape=[1, 1], dtype=tf.int32),
+            dtype=tf.int32,
+            trainable=False,
+            shape=tf.TensorShape([None, None]),
+        )
+
+    def get_config(self):
+        config = super(CausalLanguageModeling, self).get_config()
+        config.update(
+            {
+                "train_on_last_item_seq_only": self.train_on_last_item_seq_only,
+            }
+        )
+        return config
+
+    def compute_mask_schema(self, items: tf.Tensor, training=False) -> tf.Tensor:
+        labels = items[:, 1:]
+        # pad shifted sequence to original length
+        labels = tf.concat(
+            [labels, tf.zeros((tf.shape(items)[0], 1), dtype=labels.dtype)],
+            axis=-1,
+        )
+        mask_labels = labels != self.padding_idx
+
+        if (self.eval_on_last_item_seq_only and not training) or (
+            self.train_on_last_item_seq_only and training
+        ):
+            last_item_sessions = tf.reduce_sum(tf.cast(mask_labels, labels.dtype), axis=1) - 1
+
+            rows_ids = tf.range(tf.shape(items)[0], dtype=labels.dtype)
+            self.label_seq_trg_eval.assign(tf.zeros(tf.shape(items), dtype=tf.int32))
+
+            indices = tf.concat(
+                [tf.expand_dims(rows_ids, 1), tf.expand_dims(last_item_sessions, 1)], axis=1
+            )
+            self.label_seq_trg_eval.scatter_nd_update(
+                indices=indices, updates=tf.gather_nd(labels, indices)
+            )
+            # Updating labels and mask
+            mask_labels = self.label_seq_trg_eval != self.padding_idx
+
+        # store boolean tensor related to masked targets
+        self.masked_schema.assign(mask_labels)
+        return mask_labels
+
+    def apply_mask_to_inputs(self, inputs: tf.Tensor, mask_schema: tf.Tensor) -> tf.Tensor:
+        pos_emb_inp = inputs[:, :-1]
+        # Adding a masked item in the sequence to return to the initial sequence.
+        pos_emb_inp = tf.concat(
+            [
+                pos_emb_inp,
+                tf.zeros(
+                    (tf.shape(pos_emb_inp)[0], 1, pos_emb_inp.shape[2]), dtype=pos_emb_inp.dtype
+                ),
+            ],
+            axis=1,
+        )
+
+        pos_emb_inp = tf.where(
+            tf.cast(tf.expand_dims(mask_schema, -1), tf.bool),
+            pos_emb_inp,
+            tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
+        )
+
+        return pos_emb_inp

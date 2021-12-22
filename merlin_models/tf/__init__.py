@@ -40,6 +40,7 @@ from .block.aggregation import (
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
 from .block.inputs import InputBlock
+from .block.masking import CausalLanguageModeling
 from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
 from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
@@ -111,6 +112,7 @@ __all__ = [
     "CrossBlock",
     "DLRMBlock",
     "MLPBlock",
+    "CausalLanguageModeling",
     "ContinuousEmbedding",
     "DotProductInteraction",
     "MMOEGate",
