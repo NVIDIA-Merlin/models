@@ -97,10 +97,14 @@ class BlockContext(Layer):
             if feature_name not in self.named_variables:
                 shape = input_shape[feature_name]
                 dtype = self._feature_dtypes.get(feature_name, tf.float32)
-                if tuple(shape) != (None,):
-                    var = tf.zeros(shape, dtype=dtype)
+
+                if len(tuple(shape)) == 2 and None in tuple(shape):
+                    var = tf.zeros([1, shape[-1]], dtype=dtype)
+                elif tuple(shape) != (None,):
+                    var = tf.zeros((shape), dtype=dtype)
                 else:
                     var = tf.zeros([1], dtype=dtype)
+
                 setattr(
                     self,
                     feature_name,
