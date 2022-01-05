@@ -13,22 +13,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-import merlin_models.torch as ml
-from merlin_standard_lib import Tag
-
-
-def test_continuous_features(torch_con_features):
-    features = ["con_a", "con_b"]
-    con = ml.ContinuousFeatures(features)(torch_con_features)
-
-    assert list(con.keys()) == features
-
-
-def test_continuous_features_yoochoose(tabular_schema, torch_tabular_data):
-    cont_cols = tabular_schema.select_by_tag(Tag.CONTINUOUS)
-
-    con = ml.ContinuousFeatures.from_schema(cont_cols)
-    outputs = con(torch_tabular_data)
-
-    assert set(outputs.keys()) == set(cont_cols.column_names)

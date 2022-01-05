@@ -24,6 +24,7 @@ from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 from merlin_standard_lib import Schema, Tag
 
 from ..core import Block, MetricOrMetricClass, PredictionTask
+from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from .ranking_metric import ranking_metrics
 
 
@@ -46,6 +47,7 @@ class BinaryClassificationTask(PredictionTask):
         metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
         **kwargs,
     ):
+        logit = kwargs.pop("logit", None)
         super().__init__(
             metrics=list(metrics),
             target_name=target_name,
@@ -53,7 +55,9 @@ class BinaryClassificationTask(PredictionTask):
             task_block=task_block,
             **kwargs,
         )
-        self.logit = tf.keras.layers.Dense(1, activation="sigmoid", name=self.child_name("logit"))
+        self.logit = logit or tf.keras.layers.Dense(
+            1, activation="sigmoid", name=self.child_name("logit")
+        )
         self.loss = loss
 
     def _compute_loss(
@@ -63,6 +67,21 @@ class BinaryClassificationTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         return self.logit(inputs)
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(
+            self, config, {"logit": tf.keras.layers.serialize, "loss": tf.keras.losses.serialize}
+        )
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["loss"], tf.keras.losses.deserialize)
+        config = maybe_deserialize_keras_objects(config, ["logit"], tf.keras.layers.deserialize)
+
+        return super().from_config(config)
 
 
 class Softmax(Block):

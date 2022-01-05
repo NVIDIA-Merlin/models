@@ -19,6 +19,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
 from ..core import PredictionTask
+from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -35,6 +36,7 @@ class RegressionTask(PredictionTask):
         metrics=DEFAULT_METRICS,
         **kwargs,
     ):
+        logit = kwargs.pop("logit", None)
         super().__init__(
             metrics=metrics,
             target_name=target_name,
@@ -42,7 +44,7 @@ class RegressionTask(PredictionTask):
             task_block=task_block,
             **kwargs,
         )
-        self.logit = tf.keras.layers.Dense(1, name=self.child_name("logit"))
+        self.logit = logit or tf.keras.layers.Dense(1, name=self.child_name("logit"))
         self.loss = loss
 
     def _compute_loss(
@@ -52,3 +54,18 @@ class RegressionTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         return self.logit(inputs)
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(
+            self, config, {"logit": tf.keras.layers.serialize, "loss": tf.keras.losses.serialize}
+        )
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["loss"], tf.keras.losses.deserialize)
+        config = maybe_deserialize_keras_objects(config, ["logit"], tf.keras.layers.deserialize)
+
+        return super().from_config(config)

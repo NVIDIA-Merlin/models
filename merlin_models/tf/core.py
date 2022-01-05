@@ -242,7 +242,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         *block: Union[tf.keras.layers.Layer, str],
         block_name: Optional[str] = None,
         context: Optional[BlockContext] = None,
-    ) -> "SequentialBlock":
+    ) -> Union["SequentialBlock", "Model"]:
         blocks = [self.parse(b) for b in block]
 
         for b in blocks:
@@ -311,7 +311,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         post: Optional[BlockType] = None,
         aggregation: Optional["TabularAggregationType"] = None,
         **kwargs,
-    ) -> "SequentialBlock":
+    ) -> Union["SequentialBlock", "Model"]:
         branches = [self.parse(b) for b in branches]
 
         all_features = []
@@ -1708,7 +1708,6 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             config,
             {
                 "pre": tf.keras.layers.deserialize,
-                "loss": tf.keras.losses.deserialize,
                 "metrics": tf.keras.metrics.deserialize,
                 "prediction_metrics": tf.keras.metrics.deserialize,
                 "label_metrics": tf.keras.metrics.deserialize,
@@ -1723,7 +1722,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         config = maybe_serialize_keras_objects(
             self,
             config,
-            ["metrics", "prediction_metrics", "label_metrics", "loss_metrics", "loss", "pre"],
+            ["metrics", "prediction_metrics", "label_metrics", "loss_metrics", "pre"],
         )
 
         # config["summary_type"] = self.sequence_summary.summary_type
@@ -1735,6 +1734,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return config
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
     def __init__(
         self,
@@ -1754,8 +1754,6 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
         self.bias_block = bias_block
         self.bias_logit = tf.keras.layers.Dense(1)
-
-        # pre = [pre, MaybeCallBody(body)] if pre else MaybeCallBody(body)
 
         self.prediction_task_dict = {}
         if prediction_tasks:
@@ -1975,16 +1973,16 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
     @classmethod
     def from_config(cls, config, **kwargs):
-        config = maybe_deserialize_keras_objects(
-            config, ["body", "prediction_tasks", "task_weights"]
-        )
+        config = maybe_deserialize_keras_objects(config, ["body", "prediction_tasks"])
 
         if "schema" in config:
             config["schema"] = Schema().from_json(config["schema"])
 
         config["loss_reduction"] = getattr(tf, config["loss_reduction"])
 
-        return cls(**config)
+        prediction_tasks = config.pop("prediction_tasks", [])
+
+        return cls(*prediction_tasks, **config)
 
     def get_config(self):
         config = super().get_config()

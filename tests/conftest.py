@@ -15,6 +15,8 @@
 #
 # from functools import lru_cache
 
+from __future__ import absolute_import
+
 import pytest
 
 from merlin_models.data.synthetic import SyntheticData, _read_data
@@ -48,13 +50,13 @@ def testing_data() -> SyntheticData:
 try:
     import tensorflow as tf  # noqa
 
-    from tests.tf.conftest import *  # noqa
+    from tests.tf._conftest import *  # noqa
 except ImportError:
     pass
 
 try:
-    import torch  # noqa
+    import torchmetrics  # noqa
 
-    from tests.torch.conftest import *  # noqa
-except ImportError:
+    from tests.torch._conftest import *  # noqa
+except ModuleNotFoundError:
     pass

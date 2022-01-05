@@ -1,9 +1,7 @@
 import pytest
 
+import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-
-tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin_models.tf")
 
 
 @pytest.mark.parametrize(

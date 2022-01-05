@@ -15,11 +15,10 @@
 #
 
 import pytest
+import tensorflow as tf
 
+import merlin_models.tf as ml
 from merlin_standard_lib import Tag, schema
-
-tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin_models.tf")
 
 
 @pytest.mark.parametrize("replacement_prob", [0.1, 0.3, 0.5, 0.7])

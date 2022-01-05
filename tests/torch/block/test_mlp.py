@@ -14,17 +14,15 @@
 # limitations under the License.
 #
 
-import pytest
-
-tr = pytest.importorskip("merlin_models.torch")
+import merlin_models.torch as ml
 
 
 def test_mlp_block(tabular_schema, torch_tabular_data):
-    tab_module = tr.TabularFeatures.from_schema(
+    tab_module = ml.TabularFeatures.from_schema(
         tabular_schema, max_sequence_length=20, aggregation="concat"
     )
 
-    block = tab_module >> tr.MLPBlock([64, 32])
+    block = tab_module >> ml.MLPBlock([64, 32])
 
     outputs = block(torch_tabular_data)
 

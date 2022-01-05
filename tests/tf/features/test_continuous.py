@@ -16,11 +16,10 @@
 
 import pytest
 
+import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
+from merlin_models.tf.utils import testing_utils
 from merlin_standard_lib import Tag
-
-ml = pytest.importorskip("merlin_models.tf")
-test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 
 
 def test_continuous_features(tf_con_features):
@@ -42,7 +41,7 @@ def test_continuous_features_yoochoose(testing_data: SyntheticData):
 def test_serialization_continuous_features(testing_data: SyntheticData):
     inputs = ml.ContinuousFeatures.from_schema(testing_data.schema)
 
-    copy_layer = test_utils.assert_serialization(inputs)
+    copy_layer = testing_utils.assert_serialization(inputs)
 
     assert inputs.filter_features.feature_names == copy_layer.filter_features.feature_names
 
@@ -54,4 +53,4 @@ def test_continuous_features_yoochoose_model(testing_data: SyntheticData, run_ea
     inputs = ml.ContinuousFeatures.from_schema(schema, aggregation="concat")
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
-    test_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)
+    testing_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)

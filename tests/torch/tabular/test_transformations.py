@@ -15,11 +15,10 @@
 #
 
 import pytest
+import torch
 
+import merlin_models.torch as ml
 from merlin_standard_lib import Tag, schema
-
-pytorch = pytest.importorskip("torch")
-tr = pytest.importorskip("merlin_models.torch")
 
 
 @pytest.mark.parametrize("replacement_prob", [0.1, 0.3, 0.5, 0.7])
@@ -31,19 +30,19 @@ def test_stochastic_swap_noise(replacement_prob):
     # Creating some input sequences with padding in the end
     # (to emulate sessions with different lengths)
     seq_inputs = {
-        "categ_seq_feat": pytorch.tril(
-            pytorch.randint(low=1, high=100, size=(NUM_SEQS, SEQ_LENGTH)), 1
+        "categ_seq_feat": torch.tril(
+            torch.randint(low=1, high=100, size=(NUM_SEQS, SEQ_LENGTH)), 1
         ),
-        "cont_seq_feat": pytorch.tril(pytorch.rand((NUM_SEQS, SEQ_LENGTH)), 1),
-        "categ_non_seq_feat": pytorch.randint(low=1, high=100, size=(NUM_SEQS,)),
+        "cont_seq_feat": torch.tril(torch.rand((NUM_SEQS, SEQ_LENGTH)), 1),
+        "categ_non_seq_feat": torch.randint(low=1, high=100, size=(NUM_SEQS,)),
     }
 
-    ssn = tr.StochasticSwapNoise(pad_token=PAD_TOKEN, replacement_prob=replacement_prob)
+    ssn = ml.StochasticSwapNoise(pad_token=PAD_TOKEN, replacement_prob=replacement_prob)
     out_features_ssn = ssn(seq_inputs, input_mask=seq_inputs["categ_seq_feat"] != PAD_TOKEN)
 
     for fname in seq_inputs:
         replaced_mask = out_features_ssn[fname] != seq_inputs[fname]
-        replaced_mask_non_padded = pytorch.masked_select(
+        replaced_mask_non_padded = torch.masked_select(
             replaced_mask, seq_inputs[fname] != PAD_TOKEN
         )
         replacement_rate = replaced_mask_non_padded.float().mean()
@@ -57,10 +56,10 @@ def test_stochastic_swap_noise(replacement_prob):
 #     PAD_TOKEN = 0
 #
 #     inputs = torch_yoochoose_like
-#     tab_module = tr.TabularSequenceFeatures.from_schema(yoochoose_schema)
+#     tab_module = ml.TabularSequenceFeatures.from_schema(yoochoose_schema)
 #     out_features = tab_module(inputs)
 #
-#     ssn = tr.StochasticSwapNoise(
+#     ssn = ml.StochasticSwapNoise(
 #         pad_token=PAD_TOKEN, replacement_prob=replacement_prob, schema=yoochoose_schema
 #     )
 #     out_features_ssn = tab_module(inputs, pre=ssn)
@@ -73,16 +72,16 @@ def test_stochastic_swap_noise(replacement_prob):
 #         # For embedding features it is necessary to expand the mask
 #         if len(replaced_mask.shape) > len(feat_non_padding_mask.shape):
 #             feat_non_padding_mask = feat_non_padding_mask.unsqueeze(-1)
-#         replaced_mask_non_padded = pytorch.masked_select(replaced_mask, feat_non_padding_mask)
+#         replaced_mask_non_padded = torch.masked_select(replaced_mask, feat_non_padding_mask)
 #         replacement_rate = replaced_mask_non_padded.float().mean()
 #         assert replacement_rate == pytest.approx(replacement_prob, abs=0.15)
 
 
-@pytest.mark.parametrize("layer_norm", ["layer-norm", tr.TabularLayerNorm()])
+@pytest.mark.parametrize("layer_norm", ["layer-norm", ml.TabularLayerNorm()])
 def test_layer_norm(tabular_schema, torch_tabular_data, layer_norm):
     schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
 
-    emb_module = tr.EmbeddingFeatures.from_schema(
+    emb_module = ml.EmbeddingFeatures.from_schema(
         schema, embedding_dims={"item_id": 100}, embedding_dim_default=64, post=layer_norm
     )
 
@@ -107,12 +106,12 @@ def test_stochastic_swap_noise_raise_exception_not_2d_item_id():
     PAD_TOKEN = 0
 
     seq_inputs = {
-        "item_id_feat": pytorch.tril(
-            pytorch.randint(low=1, high=100, size=(NUM_SEQS, SEQ_LENGTH, 64)), 1
+        "item_id_feat": torch.tril(
+            torch.randint(low=1, high=100, size=(NUM_SEQS, SEQ_LENGTH, 64)), 1
         ),
     }
 
-    ssn = tr.StochasticSwapNoise(pad_token=PAD_TOKEN, replacement_prob=0.3, schema=s)
+    ssn = ml.StochasticSwapNoise(pad_token=PAD_TOKEN, replacement_prob=0.3, schema=s)
 
     with pytest.raises(ValueError) as excinfo:
         ssn(seq_inputs)
