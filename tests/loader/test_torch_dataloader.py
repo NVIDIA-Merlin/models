@@ -27,7 +27,7 @@ import dask.dataframe as dd
 # torch_dataloader import needs to happen after this line
 torch = pytest.importorskip("torch")
 
-import merlin_models.torch as torch_dataloader  # noqa isort:skip
+import merlin_models.torch.dataset as torch_dataloader  # noqa isort:skip
 
 
 def test_shuffling():

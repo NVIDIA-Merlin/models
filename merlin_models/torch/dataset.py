@@ -15,29 +15,13 @@
 #
 import numpy as np
 import pandas as pd
-import torch 
+import torch
 from torch.utils.dlpack import from_dlpack
 import dask.dataframe as dd
 
 from merlin_models.loader.dispatch import HAS_GPU
 
 from merlin_models.loader.backend import DataLoader
-
-
-class IterDL(torch.utils.data.IterableDataset):
-    def __init__(self, file_paths, batch_size=1, shuffle=False):
-        self.file_paths = file_paths
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-
-    def __iter__(self):
-        for file_path in self.file_paths:
-            pdf = pd.read_parquet(file_path)
-            for start in range(0, pdf.shape[0], self.batch_size):
-                df = pdf[start : start + self.batch_size]
-                if self.shuffle:
-                    df = df.sample(frac=1).reset_index(drop=True)
-                yield df
 
 
 class Dataset(torch.utils.data.IterableDataset, DataLoader):
@@ -190,17 +174,3 @@ class Dataset(torch.utils.data.IterableDataset, DataLoader):
     def _build_sparse_tensor(self, values, offsets, diff_offsets, num_rows, seq_limit):
         indices = self._get_indices(offsets, diff_offsets)
         return self._get_sparse_tensor(values, indices, num_rows, seq_limit)
-
-
-class DLDataLoader(torch.utils.data.DataLoader):
-    """
-    This class is an extension of the torch dataloader.
-    It is required to support the FastAI framework.
-    """
-
-    @property
-    def device(self):
-        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    def __len__(self):
-        return len(self.dataset)
