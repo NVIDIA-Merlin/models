@@ -27,7 +27,7 @@ import dask.dataframe as dd
 tf = pytest.importorskip("tensorflow")
 # If tensorflow isn't installed skip these tests. Note that the
 # tf_dataloader import needs to happen after this line
-import merlin_models.tf.tensorflow as tf_dataloader
+import merlin_models.tf.dataset as tf_dataloader
 
 
 def test_nested_list():

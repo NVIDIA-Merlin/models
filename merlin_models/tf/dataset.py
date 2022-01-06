@@ -18,7 +18,7 @@ import os
 
 import dask.dataframe as dd
 import numpy as np
-import merlin_models.tf.tensorflow as tf
+import tensorflow as tf
 
 from merlin_models.loader.dispatch import HAS_GPU
 from merlin_standard_lib.schema.tag import Tag as Tags
@@ -27,7 +27,6 @@ from merlin_models.loader.tf_utils import configure_tensorflow, get_dataset_sche
 
 from_dlpack = configure_tensorflow()
 
-import tensorflow as tf
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613

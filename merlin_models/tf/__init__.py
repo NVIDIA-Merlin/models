@@ -152,5 +152,3 @@ __all__ = [
     "data",
     "SyntheticData",
 ]
-
-from .tensorflow import Dataset
