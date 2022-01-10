@@ -94,7 +94,7 @@ class InBatchNegativeSampling(Block):
         return self.dot(list(inputs.values()))
 
     def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
-        if targets:
+        if targets is not None:
             if len(targets.shape) == 2:
                 targets = tf.squeeze(targets)
             targets = tf.linalg.diag(targets)
