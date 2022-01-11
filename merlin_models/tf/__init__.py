@@ -13,6 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+# flake8: noqa
+
+# Must happen before any importing of tensorflow to curtail mem usage
+from merlin_models.loader.tf_utils import configure_tensorflow
+
+configure_tensorflow()
+
 from tensorflow.keras.layers import Dense, Layer
 from tensorflow.python.keras.losses import Loss
 from tensorflow.python.keras.metrics import Metric
@@ -143,7 +151,6 @@ __all__ = [
     "PredictionTasks",
     "StochasticSwapNoise",
     "ExpandDims",
-    "L2Norm",
     "NoOp",
     "data",
     "SyntheticData",
