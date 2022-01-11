@@ -13,19 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os
-
-from merlin_models.loader.dispatch import HAS_GPU, _make_df, _dd_from_df
-
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
-import dask.dataframe as dd
-
-# If pytorch isn't installed skip these tests. Note that the
-# torch_dataloader import needs to happen after this line
-torch = pytest.importorskip("torch")
+from merlin_models.loader.dispatch import HAS_GPU, _dd_from_df, _make_df
 
 import merlin_models.torch.dataset as torch_dataloader  # noqa isort:skip
 

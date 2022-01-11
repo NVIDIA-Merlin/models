@@ -15,19 +15,14 @@
 #
 import os
 
-from merlin_models.loader.dispatch import _make_df, _dd_from_df
-
 import numpy as np
 import pandas as pd
 import pytest
+import tensorflow as tf
 from sklearn.metrics import roc_auc_score
-import dask.dataframe as dd
 
-
-tf = pytest.importorskip("tensorflow")
-# If tensorflow isn't installed skip these tests. Note that the
-# tf_dataloader import needs to happen after this line
 import merlin_models.tf.dataset as tf_dataloader
+from merlin_models.loader.dispatch import _dd_from_df, _make_df
 
 
 def test_nested_list():
@@ -219,15 +214,12 @@ def test_tf_map(tmpdir):
         assert list(sample_weight.numpy()) == [1.0] * 10
 
 
-
 @pytest.mark.parametrize("batch_size", [1, 2, 4])
-def test_validater( batch_size):
+def test_validater(batch_size):
     n_samples = 9
     rand = np.random.RandomState(0)
 
-    gdf = _make_df(
-        {"a": rand.randn(n_samples), "label": rand.randint(2, size=n_samples)}
-    )
+    gdf = _make_df({"a": rand.randn(n_samples), "label": rand.randint(2, size=n_samples)})
 
     dataloader = tf_dataloader.Dataset(
         _dd_from_df(gdf),
@@ -267,5 +259,3 @@ def test_validater( batch_size):
     true_auc = roc_auc_score(labels, predictions)
     estimated_auc = logs[auc_key]
     assert np.isclose(true_auc, estimated_auc, rtol=1e-6)
-
-
