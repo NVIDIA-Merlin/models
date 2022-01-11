@@ -117,6 +117,7 @@ def _dd_from_df(like_df, partitions=2):
         return dd.from_pandas(like_df, npartitions=partitions)
     return dask_cudf.from_cudf(like_df, npartitions=partitions)
 
+
 def _read_parquet_metadata(path):
     if HAS_GPU:
         return cudf.io.read_parquet_metadata(path)
@@ -574,8 +575,9 @@ def create_multihot_col(offsets, elements):
     """
     if isinstance(elements, pd.Series):
         col = pd.Series()
-        lh, rh = pd.Series(offsets[1:]).reset_index(drop=True), pd.Series(offsets[:-1]).reset_index(
-            drop=True
+        lh, rh = (
+            pd.Series(offsets[1:]).reset_index(drop=True),
+            pd.Series(offsets[:-1]).reset_index(drop=True),
         )
         vals_per_entry = lh - rh
         vals_used = 0
