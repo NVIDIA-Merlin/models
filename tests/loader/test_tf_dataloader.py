@@ -44,7 +44,7 @@ def test_nested_list():
         }
     )
 
-    train_Dataset = tf_dataloader.Dataset(
+    train_dataset = tf_dataloader.Dataset(
         _dd_from_df(df),
         cont_names=["data", "data2"],
         label_names=["label"],
@@ -52,7 +52,7 @@ def test_nested_list():
         shuffle=False,
     )
 
-    batch = next(iter(train_Dataset))
+    batch = next(iter(train_dataset))
     # [[1,2,3],[3,1],[...],[]]
     nested_data_col = tf.RaggedTensor.from_row_lengths(
         batch[0]["data"][0][:, 0], tf.cast(batch[0]["data"][1][:, 0], tf.int32)
@@ -79,11 +79,11 @@ def test_shuffling():
 
     df = pd.DataFrame({"a": np.asarray(range(num_rows)), "b": np.asarray([0] * num_rows)})
 
-    train_Dataset = tf_dataloader.Dataset(
+    train_dataset = tf_dataloader.Dataset(
         _dd_from_df(df), cont_names=["a"], label_names=["b"], batch_size=batch_size, shuffle=True
     )
 
-    batch = next(iter(train_Dataset))
+    batch = next(iter(train_dataset))
 
     first_batch = tf.reshape(tf.cast(batch[0]["a"].cpu(), tf.int32), (batch_size,))
     in_order = tf.range(0, batch_size, dtype=tf.int32)

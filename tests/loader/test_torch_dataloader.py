@@ -36,11 +36,11 @@ def test_shuffling():
 
     df = pd.DataFrame({"a": np.asarray(range(num_rows)), "b": np.asarray([0] * num_rows)})
 
-    train_Dataset = torch_dataloader.Dataset(
+    train_dataset = torch_dataloader.Dataset(
         _dd_from_df(df), conts=["a"], labels=["b"], batch_size=batch_size, shuffle=True
     )
 
-    batch = next(iter(train_Dataset))
+    batch = next(iter(train_dataset))
     first_batch = batch[0]["a"].cpu()
     in_order = torch.arange(0, batch_size)
 
