@@ -17,11 +17,9 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.dlpack import from_dlpack
-import dask.dataframe as dd
-
-from merlin_models.loader.dispatch import HAS_GPU
 
 from merlin_models.loader.backend import DataLoader
+from merlin_models.loader.dispatch import HAS_GPU
 
 
 class Dataset(torch.utils.data.IterableDataset, DataLoader):
