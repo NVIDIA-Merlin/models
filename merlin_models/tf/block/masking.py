@@ -17,6 +17,8 @@
 from typing import List
 
 import tensorflow as tf
+from tensorflow.keras import backend
+from tensorflow.python.ops import array_ops
 
 from merlin_models.tf.core import Block
 from merlin_standard_lib import Registry, Tag
@@ -79,16 +81,16 @@ class MaskingBlock(Block):
         self.combiner = combiner
 
     def build(self, input_shapes):
-        if input_shapes[0] is not None:
-            bs = input_shapes[0]
-        else:
-            bs = 1
-        self.masked_schema = self.context.add_weight(
-            name="MASKING_SCHEMA",
-            trainable=False,
-            initializer="zeros",
-            dtype=tf.bool,
-            shape=tf.TensorShape((bs, input_shapes[1])),
+        setattr(
+            self.context,
+            "MASKING_SCHEMA",
+            tf.Variable(
+                initial_value=tf.zeros([1, input_shapes[1]], dtype=tf.bool),
+                name="MASKING_SCHEMA",
+                trainable=False,
+                validate_shape=False,
+                shape=tf.TensorShape([None, input_shapes[1]]),
+            ),
         )
 
         self.masked_item_embedding = self.add_weight(
@@ -104,11 +106,16 @@ class MaskingBlock(Block):
     def add_features_to_context(self, feature_shapes) -> List[str]:
         return [str(Tag.ITEM_ID)]
 
-    def compute_mask_schema(self, items) -> tf.Tensor:
+    def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
         raise NotImplementedError
 
-    def apply_mask_to_inputs(self, inputs, mask_schema) -> tf.Tensor:
-        raise NotImplementedError
+    def apply_mask_to_inputs(self, inputs: tf.Tensor, schema: tf.Tensor) -> tf.Tensor:
+        inputs = tf.where(
+            tf.cast(tf.expand_dims(schema, -1), tf.bool),
+            inputs,
+            tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
+        )
+        return inputs
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
         items = self.context[Tag.ITEM_ID]
@@ -155,6 +162,7 @@ class CausalLanguageModeling(MaskingBlock):
         self.train_on_last_item_seq_only = train_on_last_item_seq_only
         self.label_seq_trg_eval = tf.Variable(
             tf.zeros(shape=[1, 1], dtype=tf.int32),
+            name="target_labels",
             dtype=tf.int32,
             trainable=False,
             shape=tf.TensorShape([None, None]),
@@ -169,7 +177,7 @@ class CausalLanguageModeling(MaskingBlock):
         )
         return config
 
-    def compute_mask_schema(self, items: tf.Tensor, training=False) -> tf.Tensor:
+    def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
         labels = items[:, 1:]
         # pad shifted sequence to original length
         labels = tf.concat(
@@ -196,12 +204,12 @@ class CausalLanguageModeling(MaskingBlock):
             mask_labels = self.label_seq_trg_eval != self.padding_idx
 
         # store boolean tensor related to masked targets
-        self.masked_schema.assign(mask_labels)
+        self.context["MASKING_SCHEMA"].assign(mask_labels)
         return mask_labels
 
     def apply_mask_to_inputs(self, inputs: tf.Tensor, mask_schema: tf.Tensor) -> tf.Tensor:
         pos_emb_inp = inputs[:, :-1]
-        # Adding a masked item in the sequence to return to the initial sequence.
+        # Adding a masked item in the sequence to return to the initial sequence length.
         pos_emb_inp = tf.concat(
             [
                 pos_emb_inp,
@@ -217,5 +225,130 @@ class CausalLanguageModeling(MaskingBlock):
             pos_emb_inp,
             tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
         )
-
         return pos_emb_inp
+
+
+@masking_registry.register_with_multiple_names("mlm", "masked")
+@tf.keras.utils.register_keras_serializable(package="transformers4rec")
+class MaskedLanguageModeling(MaskingBlock):
+    """
+    In Masked Language Modeling (mlm) you randomly select some positions of the sequence to be
+    predicted, which are masked.
+    During training, the Transformer layer is allowed to use positions on the right (future info).
+    During inference, all past items are visible for the Transformer layer, which tries to predict
+    the next item.
+    Parameters
+    ----------
+    {mask_sequence_parameters}
+    mlm_probability: Optional[float], default = 0.15
+        Probability of an item to be selected (masked) as a label of the given sequence.
+        p.s. We enforce that at least one item is masked for each sequence, so that the network can
+        learn something with it.
+    """
+
+    def __init__(
+        self,
+        padding_idx: int = 0,
+        eval_on_last_item_seq_only: bool = True,
+        mlm_probability: float = 0.15,
+        **kwargs
+    ):
+        super(MaskedLanguageModeling, self).__init__(
+            padding_idx=padding_idx, eval_on_last_item_seq_only=eval_on_last_item_seq_only, **kwargs
+        )
+        self.mlm_probability = mlm_probability
+        self.labels = tf.Variable(
+            tf.zeros(shape=[1, 1], dtype=tf.int32),
+            name="target_labels",
+            dtype=tf.int32,
+            trainable=False,
+            shape=tf.TensorShape([None, None]),
+        )
+
+    def get_config(self):
+        config = super(MaskedLanguageModeling, self).get_config()
+        config.update(
+            {
+                "mlm_probability": self.mlm_probability,
+            }
+        )
+        return config
+
+    def compute_mask_schema(self, item_ids: tf.Tensor, training: bool = False) -> tf.Tensor:
+        """
+        Compute the mask schema for masked language modeling task
+        the function is based on HuggingFace's transformers/data/data_collator.py
+        """
+        item_ids = tf.cast(item_ids, dtype=tf.int32)
+        self.labels.assign(tf.fill(tf.shape(item_ids), self.padding_idx))
+        non_padded_mask = tf.cast(item_ids != self.padding_idx, self.labels.dtype)
+        rows_ids = tf.range(tf.shape(item_ids)[0], dtype=tf.int64)
+
+        # During training, masks labels to be predicted according to a probability, ensuring that
+        # each session has at least one label to predict
+        if training:
+            probability_matrix = tf.cast(
+                backend.random_bernoulli(array_ops.shape(item_ids), p=self.mlm_probability),
+                self.labels.dtype,
+            )
+            mask_labels = probability_matrix * non_padded_mask
+            self.labels.assign(
+                tf.where(
+                    tf.cast(mask_labels, tf.bool),
+                    item_ids,
+                    tf.cast(tf.fill(tf.shape(item_ids), self.padding_idx), dtype=item_ids.dtype),
+                )
+            )
+
+            # Set at least one item in the sequence to mask, so that the network
+            # can learn something with this session
+            one_random_index_by_session = tf.random.categorical(
+                tf.math.log(tf.cast(non_padded_mask, tf.float32)), num_samples=1
+            )
+            indices = tf.concat([tf.expand_dims(rows_ids, 1), one_random_index_by_session], axis=1)
+            self.labels.scatter_nd_update(indices=indices, updates=tf.gather_nd(item_ids, indices))
+            mask_labels = tf.cast(self.labels != self.padding_idx, self.labels.dtype)
+
+            # If a sequence has only masked labels, unmask one of the labels
+            sequences_with_only_labels = tf.reduce_sum(mask_labels, axis=1) == tf.reduce_sum(
+                non_padded_mask, axis=1
+            )
+            sampled_labels_to_unmask = tf.random.categorical(
+                tf.math.log(tf.cast(mask_labels, tf.float32)), num_samples=1
+            )
+
+            labels_to_unmask = tf.boolean_mask(sampled_labels_to_unmask, sequences_with_only_labels)
+            rows_to_unmask = tf.boolean_mask(rows_ids, sequences_with_only_labels)
+            indices = tf.concat([tf.expand_dims(rows_to_unmask, 1), labels_to_unmask], axis=1)
+            num_updates = tf.shape(indices)[0]
+            self.labels.scatter_nd_update(
+                indices, tf.cast(tf.fill((num_updates,), self.padding_idx), self.labels.dtype)
+            )
+            mask_labels = self.labels != self.padding_idx
+
+        elif self.eval_on_last_item_seq_only:
+            last_item_sessions = tf.reduce_sum(non_padded_mask, axis=1) - 1
+
+            indices = tf.concat(
+                [
+                    tf.expand_dims(rows_ids, 1),
+                    tf.cast(tf.expand_dims(last_item_sessions, 1), tf.int64),
+                ],
+                axis=1,
+            )
+            self.labels.scatter_nd_update(indices=indices, updates=tf.gather_nd(item_ids, indices))
+            mask_labels = self.labels != self.padding_idx
+        else:
+            labels = item_ids[:, 1:]
+            labels = tf.concat(
+                [
+                    labels,
+                    tf.zeros((tf.shape(labels)[0], 1), dtype=labels.dtype),
+                ],
+                axis=-1,
+            )
+            mask_labels = labels != self.padding_idx
+
+        # Store boolean tensor related to masked targets
+        self.context["MASKING_SCHEMA"].assign(mask_labels)
+        return mask_labels

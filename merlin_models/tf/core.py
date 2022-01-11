@@ -98,8 +98,9 @@ class BlockContext(Layer):
                 shape = input_shape[feature_name]
                 dtype = self._feature_dtypes.get(feature_name, tf.float32)
 
-                if len(tuple(shape)) == 2 and None in tuple(shape):
+                if len(tuple(shape)) == 2:
                     var = tf.zeros([1, shape[-1]], dtype=dtype)
+                    shape = tf.TensorShape([None, shape[-1]])
                 elif tuple(shape) != (None,):
                     var = tf.zeros((shape), dtype=dtype)
                 else:
@@ -560,7 +561,8 @@ class SequentialBlock(Block):
         outputs = targets
         for layer in self.layers:
             outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
-
+            if isinstance(outputs, tuple):
+                outputs, predictions = outputs
         return outputs
 
     def get_config(self):
@@ -1648,6 +1650,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         if self.pre:
             targets = self.pre_loss(predictions, targets, **kwargs)
+            if isinstance(targets, tuple):
+                targets, predictions = targets
 
         if len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)

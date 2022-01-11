@@ -149,7 +149,7 @@ class RemovePad3D(Block):
         padding_idx: id of padded item
 
     Returns:
-        targets: targets positions from the sequence of item-ids
+        targets: flattened targets positions
     """
 
     def __init__(self, padding_idx: int = 0, **kwargs):
@@ -160,12 +160,19 @@ class RemovePad3D(Block):
         targets = tf.reshape(targets, (-1,))
         non_pad_mask = targets != self.padding_idx
         targets = tf.boolean_mask(targets, non_pad_mask)
+
+        if len(tuple(predictions.get_shape())) == 3:
+            predictions = tf.reshape(predictions, (-1, predictions.shape[-1]))
+            flatten_predictions = tf.boolean_mask(
+                predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
+            )
+            return targets, flatten_predictions
         return targets
 
 
 class MaskingHead(Block):
     """Masking class to transform targets based on the
-    masking schema store in the model context
+    boolean masking schema stored in the model context
 
     Args:
         Block ([type]): [description]
@@ -189,14 +196,55 @@ def NextItemPredictionTask(
     ),
     metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=True),
     weight_tying: bool = True,
-    softmax_temperature: float = 1,
-    normalize: bool = True,
     masking: bool = True,
     extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
     task_name: Optional[str] = None,
     task_block: Optional[Layer] = None,
+    softmax_temperature: float = 1,
+    normalize: bool = True,
 ) -> MultiClassClassificationTask:
+    """
+    Function to create the NextItemPrediction task with the right parameters.
+
+    Parameters
+    ----------
+        schema:
+        loss: tf.keras.losses.Loss
+            Loss function.
+            Defaults to `tf.keras.losses.SparseCategoricalCrossentropy()`.
+        metrics: Sequence[MetricOrMetricClass]
+            List of top-k ranking metrics.
+            Defaults to ranking_metrics(top_ks=[10, 20], labels_onehot=True).
+        weight_tying: bool
+            The item id embedding table weights are shared with the prediction network layer.
+            Defaults to True
+        masking: bool
+            Whether masking is used to transform inputs and targets or not
+            Defaults to True
+        extra_pre_call: Optional[PredictionBlock]
+            Optional extra pre-call block. Defaults to None.
+        target_name: Optional[str]
+            If specified, name of the target tensor to retrieve from dataloader.
+            Defaults to None.
+        task_name: Optional[str]
+            name of the task.
+            Defaults to None.
+        task_block: Block
+            The `Block` that applies additional layers op to inputs.
+            Defaults to None.
+        softmax_temperature: float
+            Parameter used to reduce model overconfidence, so that softmax(logits / T).
+            Defaults to 1.
+        normalize: bool
+            Apply L2 normalization before computing dot interactions.
+            Defaults to True.
+
+    Returns
+    -------
+        PredictionTask
+            The item retrieval prediction task
+    """
     if normalize:
         prediction_call = L2Norm()
 
@@ -204,6 +252,7 @@ def NextItemPredictionTask(
         prediction_call = prediction_call.connect(ItemSoftmaxWeightTying(schema))
     else:
         prediction_call = prediction_call.connect(Softmax(schema))
+
     if softmax_temperature != 1:
         prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
 
