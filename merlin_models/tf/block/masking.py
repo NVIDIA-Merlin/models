@@ -35,11 +35,6 @@ MASK_SEQUENCE_PARAMETERS_DOCSTRING = """
         with the same length.
     eval_on_last_item_seq_only: bool, default = True
         When set to True, predict only the last non-padded item during evaluation
-    combiner: str, default = None
-        The aggregation method to use to merge the sequence of input embeddings.
-        If specified, It transforms the 3-D tensor of shape (bs, seq_length, hidden_size)
-        to a 2-D tensor of shape (bs, hidden_size)
-        supported values are: `mean`, `None`
 """
 
 
@@ -68,17 +63,10 @@ class MaskingBlock(Block):
         a trainable embedding mask.
     """
 
-    def __init__(
-        self,
-        padding_idx: int = 0,
-        eval_on_last_item_seq_only: bool = True,
-        combiner: str = None,
-        **kwargs
-    ):
+    def __init__(self, padding_idx: int = 0, eval_on_last_item_seq_only: bool = True, **kwargs):
         super().__init__(**kwargs)
         self.padding_idx = padding_idx
         self.eval_on_last_item_seq_only = eval_on_last_item_seq_only
-        self.combiner = combiner
 
     def build(self, input_shapes):
         setattr(
@@ -121,8 +109,6 @@ class MaskingBlock(Block):
         items = self.context[Tag.ITEM_ID]
         mask_schema = self.compute_mask_schema(items, training=training)
         inputs = self.apply_mask_to_inputs(inputs, mask_schema)
-        if self.combiner == "mean":
-            return tf.reduce_mean(inputs, axis=1)
         return inputs
 
     def get_config(self):
