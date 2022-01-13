@@ -18,7 +18,7 @@ from typing import Union
 import tensorflow as tf
 
 from merlin_models.config.schema import requires_schema
-from merlin_models.tf.core import TabularAggregation
+from merlin_models.tf.core import Block, TabularAggregation
 from merlin_models.tf.typing import TabularData
 from merlin_models.tf.utils import tf_utils
 from merlin_standard_lib import Schema
@@ -241,3 +241,37 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
             config["schema"] = self.schema.to_json()
 
         return config
+
+
+class SequenceAggregator(Block):
+    """Compute the average of a 3-D tensor along
+        the sequence-length dimension
+    Args:
+        combiner: str:
+            Defaults to 'mean'
+        axis: int
+            Defaults to 1
+    """
+
+    def __init__(self, combiner="mean", axis: int = 1, **kwargs):
+        super().__init__(**kwargs)
+        self.axis = axis
+        self.combiner = combiner
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        if self.combiner == "mean":
+            agg = tf.reduce_mean(inputs, axis=self.axis)
+        elif self.combiner == "sum":
+            agg = tf.reduce_sum(inputs, axis=self.axis)
+        elif self.combiner == "max":
+            agg = tf.reduce_max(inputs, axis=self.axis)
+        elif self.combiner == "min":
+            agg = tf.reduce_max(inputs, axis=self.axis)
+        else:
+            "Method %s is not supported, please chose one"
+            "of ['sum', 'mean', 'min', 'max']" % self.combiner
+        return agg
+
+    def compute_output_shape(self, input_shape):
+        batch_size, _, last_dim = input_shape
+        return batch_size, last_dim

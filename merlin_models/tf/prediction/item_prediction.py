@@ -143,13 +143,22 @@ class LabelAwareAttention(Block):
 
 
 class RemovePad3D(Block):
-    """Remove non-targets predictons
+    """
+    Flatten sequence of labels and filter out non-targets positions
 
-    Args:
-        padding_idx: id of padded item
+    Parameters
+    ----------
+        padding_idx: int
+            The padding index value.
+            Defaults to 0.
 
-    Returns:
-        targets: flattened targets positions
+    Returns
+    -------
+        targets: tf.Tensor
+            The flattened vector of true targets positions
+        flatten_predictions: tf.Tensor
+            If the predicions are 3-D vectors (sequential task),
+            flatten the predictions vectors to keep only the ones related to target positions.
     """
 
     def __init__(self, padding_idx: int = 0, **kwargs):
@@ -171,11 +180,20 @@ class RemovePad3D(Block):
 
 
 class MaskingHead(Block):
-    """Masking class to transform targets based on the
-    boolean masking schema stored in the model context
+    """
+    Masking class to transform targets based on the
+    boolean masking schema stored in the model's context
 
-    Args:
-        Block ([type]): [description]
+    Parameters
+    ----------
+        padding_idx: int
+            The padding index value.
+            Defaults to 0.
+
+    Returns
+    -------
+        targets: tf.Tensor
+            Tensor of masked labels.
     """
 
     def __init__(self, **kwargs):

@@ -153,7 +153,7 @@ class CausalLanguageModeling(MaskingBlock):
         self,
         padding_idx: int = 0,
         eval_on_last_item_seq_only: bool = True,
-        train_on_last_item_seq_only: bool = False,
+        train_on_last_item_seq_only: bool = True,
         **kwargs
     ):
         super(CausalLanguageModeling, self).__init__(
