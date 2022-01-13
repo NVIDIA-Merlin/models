@@ -37,3 +37,4 @@ def test_masking_block(sequence_testing_data: SyntheticData, mask_block):
     batch = sequence_testing_data.tf_tensor_dict
     masked_input = model(batch)
     assert masked_input.shape[-1] == 148
+    assert masked_input.shape[1] == 4

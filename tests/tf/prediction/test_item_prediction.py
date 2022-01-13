@@ -19,7 +19,6 @@ import pytest
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_standard_lib import Tag
-from merlin_standard_lib.utils.proto_utils import has_field
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -39,16 +38,12 @@ def test_retrieval_task(music_streaming_data: SyntheticData, run_eagerly, num_ep
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_youtube_dnn(sequence_testing_data: SyntheticData, run_eagerly: bool):
-    list_features = [
-        f.name for f in sequence_testing_data.schema.feature if has_field(f, "value_count")
-    ]
-    schema_list = sequence_testing_data.schema.select_by_name(list_features)
+    inputs = ml.MixedInputBlock(
+        sequence_testing_data.schema, aggregation="concat", seq=False, masking="clm"
+    )
+    task = ml.NextItemPredictionTask(sequence_testing_data.schema, masking=True)
+    model = inputs.connect(ml.MLPBlock([64]), task, context=ml.BlockContext())
 
-    embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
-    mask_block = ml.CausalLanguageModeling(train_on_last_item_seq_only=True, combiner="mean")
-    task = ml.NextItemPredictionTask(sequence_testing_data.schema)
-
-    model = embedding_block.connect(mask_block, ml.MLPBlock([64]), task, context=ml.BlockContext())
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     losses = model.fit(sequence_testing_data.tf_dataloader(batch_size=50), epochs=2)
 
