@@ -35,6 +35,7 @@ from .block.inputs import InputBlock
 from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
 from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
+from .block.sampling import CachedBatchesSampler, InBatchSampler
 from .block.transformations import (
     AsDenseFeatures,
     AsSparseFeatures,
@@ -72,6 +73,7 @@ from .prediction.item_prediction import (
     ExtraNegativeSampling,
     InBatchNegativeSampling,
     ItemRetrievalTask,
+    ItemRetrievalTaskV2,
 )
 from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
 
@@ -135,6 +137,7 @@ __all__ = [
     "InBatchNegativeSampling",
     "ExtraNegativeSampling",
     "ItemRetrievalTask",
+    "ItemRetrievalTaskV2",
     "NDCGAt",
     "AvgPrecisionAt",
     "RecallAt",
@@ -147,4 +150,6 @@ __all__ = [
     "NoOp",
     "data",
     "SyntheticData",
+    "CachedBatchesSampler",
+    "InBatchSampler",
 ]

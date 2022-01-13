@@ -1528,6 +1528,20 @@ class Sampler(abc.ABC):
         raise NotImplementedError()
 
 
+class ItemSampler(abc.ABC):
+    @abc.abstractmethod
+    def add(self, items_embeddings: tf.Tensor, items_metadata: TabularData, training=True):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def sample(self) -> TabularData:
+        raise NotImplementedError()
+
+    @property
+    def required_features(self) -> List[str]:
+        return []
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def __init__(
