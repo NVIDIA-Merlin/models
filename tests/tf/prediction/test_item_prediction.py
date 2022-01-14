@@ -54,7 +54,7 @@ def test_retrieval_task_v2(music_streaming_data: SyntheticData, run_eagerly, num
 
     model = two_tower.connect(ml.ItemRetrievalTaskV2(softmax_temperature=2, samplers=samplers))
 
-    # NOTE: This test works with graph mode (run_eagerly=False) if these lines are uncommented
+    # TODO: This test works with graph mode (run_eagerly=False) if these lines are uncommented
     # and if line 176 of tf_utils.py ("num_vals = 100" hardcoded within FIFOQueue.enqueue_many())
 
     # output = model(music_streaming_data.tf_tensor_dict)

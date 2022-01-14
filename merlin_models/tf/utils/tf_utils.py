@@ -173,7 +173,11 @@ class FIFOQueue:
 
         # if values are larger than the queue capacity N, enqueueing only the last N items
         vals = vals[-self.capacity :]
-        num_vals = 100  # vals.shape[0] or int(tf.shape(vals)[0])
+
+        # TODO: Having num_vals hardcoded (rather than infering from the vals tensor shape
+        # makes it work for graph mode! Needs better investigation
+        num_vals = 100
+        # num_vals = vals.shape[0] or int(tf.shape(vals)[0])
 
         next_pos_start = self.next_available_pointer
         next_pos_end = next_pos_start + num_vals
