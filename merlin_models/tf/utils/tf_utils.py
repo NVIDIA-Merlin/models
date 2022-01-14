@@ -124,3 +124,140 @@ def batch_ref(inputs: Union[tf.Tensor, TabularData]):
         refs.append(inputs[key].ref())
 
     return hash(tuple(refs))
+
+
+class FIFOQueue:
+    def __init__(
+        self,
+        capacity: int,
+        example_dim: int,
+        dtype,
+        name: str = "",
+        initialize_tensor: tf.Tensor = None,
+    ):
+        self.capacity: int = capacity
+        self.example_dim: int = example_dim
+
+        self.first_pointer: int = 0
+        self.next_available_pointer: int = 0
+        self.at_full_capacity: bool = False
+
+        if initialize_tensor is None:
+            initialize_tensor = tf.zeros([capacity, example_dim], dtype=dtype)
+
+        self.storage = tf.Variable(
+            initial_value=initialize_tensor,
+            name=f"fifo_queue_storage_{name}",
+            trainable=False,
+            validate_shape=False,
+            shape=tf.TensorShape([capacity, example_dim]),
+        )
+
+    def enqueue(self, val: tf.Tensor):
+        assert len(val.shape) == 1
+        assert val.shape[0] == self.example_dim
+
+        self.storage[self.next_available_pointer].assign(val)
+
+        self.next_available_pointer += 1
+        if self.next_available_pointer >= self.capacity:
+            self.next_available_pointer = 0
+
+        if self.at_full_capacity or self.next_available_pointer == self.first_pointer:
+            self.first_pointer = self.next_available_pointer
+            self.at_full_capacity = True
+
+    def enqueue_many(self, vals: tf.Tensor):
+        assert len(vals.shape) == 2
+        assert vals.shape[1] == self.example_dim
+        # if values are larger than the queue capacity N, enqueueing only the last N items
+        vals = vals[-self.capacity :]
+        num_vals = vals.shape[0]
+
+        next_pos_start = self.next_available_pointer
+        next_pos_end = next_pos_start + num_vals
+        if next_pos_end < self.capacity:
+            self.storage[next_pos_start:next_pos_end].assign(vals)
+
+            if self.at_full_capacity or (
+                next_pos_start < self.first_pointer and next_pos_end >= self.first_pointer
+            ):
+                self.first_pointer = next_pos_end
+                self.at_full_capacity = True
+        else:
+            num_overplus_items = next_pos_end - self.capacity
+            next_pos_end = self.capacity
+            self.storage[next_pos_start:next_pos_end].assign(vals[: num_vals - num_overplus_items])
+
+            next_pos_start = 0
+            next_pos_end = num_overplus_items
+            self.storage[next_pos_start:next_pos_end].assign(vals[num_vals - num_overplus_items :])
+
+            if self.at_full_capacity or next_pos_end >= self.first_pointer:
+                self.first_pointer = next_pos_end
+                self.at_full_capacity = True
+
+        self.next_available_pointer = next_pos_end
+
+    def dequeue(self):
+        if self.first_pointer == self.next_available_pointer:
+            raise IndexError("The queue is empty")
+        self.at_full_capacity = False
+        val = self.storage[self.first_pointer]
+        self.first_pointer += 1
+        if self.first_pointer >= self.capacity:
+            self.first_pointer = 0
+        return val
+
+    def dequeue_many(self, n: int):
+        if self.first_pointer == self.next_available_pointer:
+            raise IndexError("The queue is empty")
+        if n <= 0:
+            raise ValueError("The number of elements to dequeue must be greater than 0.")
+        self.at_full_capacity = False
+        next_pos_start = self.first_pointer
+        next_pos_end = next_pos_start + n
+
+        if self.next_available_pointer > self.first_pointer:
+            next_pos_end = min(next_pos_end, self.next_available_pointer)
+
+        if next_pos_end < self.capacity:
+            vals = self.storage[next_pos_start:next_pos_end]
+        else:
+            num_missing_items = next_pos_end - self.capacity
+            next_pos_end = self.capacity
+            vals1 = self.storage[next_pos_start:next_pos_end]
+
+            next_pos_start = 0
+            next_pos_end = min(num_missing_items, self.next_available_pointer)
+            vals2 = self.storage[next_pos_start:next_pos_end]
+
+            vals = tf.concat([vals1, vals2], axis=0)
+
+        self.first_pointer = next_pos_end
+        return vals
+
+    def list_all(self):
+        if self.first_pointer < self.next_available_pointer:
+            return self.storage[self.first_pointer : self.next_available_pointer]
+        elif self.first_pointer == self.next_available_pointer and not self.at_full_capacity:
+            return self.storage[0:0]  # Returns empty Tensor when queue is empty
+        else:
+            return tf.concat(
+                [self.storage[self.first_pointer :], self.storage[: self.next_available_pointer]],
+                axis=0,
+            )
+
+    def count(self):
+        if self.first_pointer < self.next_available_pointer:
+            return self.next_available_pointer - self.first_pointer
+        elif self.at_full_capacity:
+            return self.capacity
+        elif self.first_pointer == self.next_available_pointer:
+            return 0
+        else:
+            return self.capacity - self.first_pointer + self.next_available_pointer
+
+    def clear(self):
+        self.first_pointer = self.next_available_pointer = 0
+        self.at_full_capacity = False

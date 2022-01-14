@@ -80,6 +80,7 @@ from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
 from .utils import repr_utils
+from .utils.tf_utils import FIFOQueue
 
 Tag.__hash__ = lambda self: hash(str(self))
 
@@ -152,4 +153,5 @@ __all__ = [
     "SyntheticData",
     "CachedBatchesSampler",
     "InBatchSampler",
+    "FIFOQueue",
 ]

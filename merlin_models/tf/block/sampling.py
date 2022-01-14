@@ -32,7 +32,7 @@ class MemoryBankBlock(Block, Sampler):
         post: Optional[Block] = None,
         no_outputs: bool = False,
         stop_gradient: bool = True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.key = key
@@ -75,7 +75,7 @@ class CachedBatchesSampler(ItemSampler):
         key: Optional[str] = None,
         post: Optional[Block] = None,
         stop_gradient: bool = True,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.key = key
