@@ -24,7 +24,6 @@ from merlin_models.tf.block.transformations import L2Norm
 from merlin_models.tf.core import Block, ItemSampler, Sampler
 from merlin_standard_lib import Schema, Tag
 
-from ..block.sampling import InBatchSampler
 from .classification import MultiClassClassificationTask
 from .ranking_metric import ranking_metrics
 
@@ -222,10 +221,6 @@ class ItemRetrievalScorer(Block):
 
             neg_items = sampler.sample()
 
-            # items_embeddings_sampled = tf.keras.Input(
-            #    shape=(None, tf.shape(batch_items_embeddings)[-1]), dtype=tf.float32
-            # )
-
             if neg_items is not None:
                 # Accumulates sampled negative items from all samplers
                 neg_items_embeddings_list.append(neg_items.items_embeddings)
@@ -413,7 +408,11 @@ def ItemRetrievalTaskV2(
     """
 
     if samplers is None or (isinstance(samplers, list) and len(samplers) == 0):
-        samplers = [InBatchSampler()]
+        # samplers = [InBatchSampler(batch_size=batch_size)]
+        raise ValueError(
+            "You must provide at least one sampler "
+            + "(e.g. `samplers = [InBatchSampler(), CachedBatchesSampler()]`) for ItemRetrievalTask"
+        )
 
     prediction_call = ItemRetrievalScorer(
         samplers=samplers,

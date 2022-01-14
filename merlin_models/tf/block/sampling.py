@@ -111,11 +111,12 @@ class CachedBatchesSampler(ItemSampler):
     ):
         if training:
             self.item_embeddings_queue.enqueue_many(items_embeddings)
+
             for feat_name in items_metadata:
                 if feat_name not in self.items_metadata_queue:
                     self.items_metadata_queue[feat_name] = FIFOQueue(
                         capacity=self.max_num_samples,
-                        dims=[],
+                        dims=list(items_metadata[feat_name].shape)[1:],
                         dtype=items_metadata[feat_name].dtype,
                     )
                 self.items_metadata_queue[feat_name].enqueue_many(items_metadata[feat_name])
