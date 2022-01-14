@@ -157,7 +157,6 @@ class InBatchSampler(ItemSampler):
     def __init__(self, batch_size: int, stop_gradient: bool = False, **kwargs):
         super().__init__(max_num_samples=batch_size, **kwargs)
         self.batch_size = batch_size
-        self.stop_gradient = stop_gradient
         self._last_batch_items_embeddings: tf.Tensor = None
         self._last_batch_items_metadata: TabularData = None
 
@@ -167,13 +166,7 @@ class InBatchSampler(ItemSampler):
             self._last_batch_items_metadata = items_metadata
 
     def sample(self) -> TabularData:
-        last_batch_items_embeddings = self._last_batch_items_embeddings
-        if self.stop_gradient:
-            last_batch_items_embeddings = array_ops.stop_gradient(
-                last_batch_items_embeddings, name="in_batch_sampler_stop_gradient"
-            )
-
-        return SamplingOutput(last_batch_items_embeddings, self._last_batch_items_metadata)
+        return SamplingOutput(self._last_batch_items_embeddings, self._last_batch_items_metadata)
 
 
 class UniformSampler(ItemSampler):
