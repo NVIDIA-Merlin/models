@@ -41,7 +41,14 @@ def test_retrieval_task_v2(music_streaming_data: SyntheticData, run_eagerly, num
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
-    samplers = [ml.InBatchSampler(), ml.CachedBatchesSampler(num_batches=3)]
+    samplers = [
+        ml.InBatchSampler(),
+        ml.CachedBatchesSampler(
+            num_batches=3,
+            batch_size=100,
+            example_dim=256,
+        ),
+    ]
     model = two_tower.connect(ml.ItemRetrievalTaskV2(softmax_temperature=2, samplers=samplers))
 
     output = model(music_streaming_data.tf_tensor_dict)

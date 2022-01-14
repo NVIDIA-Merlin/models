@@ -25,7 +25,7 @@ tf = pytest.importorskip("tensorflow")
 def fifo_queue_fixture():
     queue = ml.FIFOQueue(
         capacity=10,
-        example_dim=5,
+        dims=[5],
         dtype=tf.float32,
         name="fifo_queue",
     )

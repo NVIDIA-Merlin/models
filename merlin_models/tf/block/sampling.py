@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from collections import defaultdict, deque
+from collections import deque
 from typing import Optional
 
 import tensorflow as tf
@@ -21,6 +21,7 @@ from tensorflow.python.ops import array_ops
 
 from ..core import Block, ItemSampler, Sampler
 from ..typing import TabularData
+from ..utils.tf_utils import FIFOQueue
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -70,21 +71,24 @@ class MemoryBankBlock(Block, Sampler):
 class CachedBatchesSampler(ItemSampler):
     def __init__(
         self,
-        # batch_size: int,
+        batch_size: int,
+        example_dim: int,
         num_batches: int = 1,
-        key: Optional[str] = None,
         post: Optional[Block] = None,
         stop_gradient: bool = True,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.key = key
         # Adds one batch to account for the current batch
         # (assuming calls in this order each batch sampler.add(), sampler.sample())
+        self.batch_size = batch_size
         self._num_batches = num_batches + 1
-        self.item_embeddings_queue = deque(maxlen=self._num_batches)
-        self.items_metadata_queue = defaultdict(lambda: deque(maxlen=self._num_batches))
-        # self.num_negatives = batch_size * num_batches
+        self.num_negatives = batch_size * num_batches
+        self.item_embeddings_queue = FIFOQueue(
+            capacity=self.num_negatives, dims=[example_dim], dtype=tf.float32, name="item_emb"
+        )
+        self.items_metadata_queue = dict()
+
         self.post = post
         self.stop_gradient = stop_gradient
 
@@ -95,34 +99,26 @@ class CachedBatchesSampler(ItemSampler):
         training=True,
     ):
         if training:
-            self.item_embeddings_queue.append(items_embeddings)
+            self.item_embeddings_queue.enqueue_many(items_embeddings)
             for feat_name in items_metadata:
-                self.items_metadata_queue[feat_name].append(items_metadata[feat_name])
+                if feat_name not in self.items_metadata_queue:
+                    self.items_metadata_queue[feat_name] = FIFOQueue(
+                        capacity=self.num_negatives, dims=[], dtype=items_metadata[feat_name].dtype
+                    )
+                self.items_metadata_queue[feat_name].enqueue_many(items_metadata[feat_name])
 
     def sample(self) -> TabularData:
         # P.s. Always ignores the last batch, assuming the current batch was already added
         # to the sampler queue and that InBatchSampler(stop_gradients=False) will
         # take care of the current batch negatives
-        if len(list(self.item_embeddings_queue)[:-1]) == 0:
+        if self.item_embeddings_queue.count() == self.batch_size:
             return {}
-        elif len(list(self.item_embeddings_queue)[:-1]) == 1:
-            items_embeddings = list(self.item_embeddings_queue)[0]
+        else:
+            items_embeddings = self.item_embeddings_queue.list_all()
             items_metadata = {
-                feat_name: list(self.items_metadata_queue[feat_name])[0]
+                feat_name: self.items_metadata_queue[feat_name].list_all()
                 for feat_name in self.items_metadata_queue
             }
-        else:
-            items_embeddings = tf.concat(list(self.item_embeddings_queue)[:-1], axis=0)
-            # Concatenating item metadata features from all cached batches
-            items_metadata = {}
-            for feat_name in self.items_metadata_queue:
-                items_metadata[feat_name] = tf.concat(
-                    [
-                        batch_feat_metadata
-                        for batch_feat_metadata in list(self.items_metadata_queue[feat_name])[:-1]
-                    ],
-                    axis=0,
-                )
 
         if self.post is not None:
             items_embeddings = self.post(items_embeddings)

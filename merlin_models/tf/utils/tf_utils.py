@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Union
+from typing import List, Union
 
 import tensorflow as tf
 
@@ -130,32 +130,32 @@ class FIFOQueue:
     def __init__(
         self,
         capacity: int,
-        example_dim: int,
-        dtype,
+        dtype: tf.DType,
+        dims: List[int] = [],
         name: str = "",
         initialize_tensor: tf.Tensor = None,
     ):
         self.capacity: int = capacity
-        self.example_dim: int = example_dim
+        self.dims = dims
 
         self.first_pointer: int = 0
         self.next_available_pointer: int = 0
         self.at_full_capacity: bool = False
 
         if initialize_tensor is None:
-            initialize_tensor = tf.zeros([capacity, example_dim], dtype=dtype)
+            initialize_tensor = tf.Variable(lambda: tf.zeros([capacity] + self.dims, dtype=dtype))
 
         self.storage = tf.Variable(
             initial_value=initialize_tensor,
             name=f"fifo_queue_storage_{name}",
             trainable=False,
             validate_shape=False,
-            shape=tf.TensorShape([capacity, example_dim]),
+            shape=tf.TensorShape([capacity] + self.dims),
         )
 
     def enqueue(self, val: tf.Tensor):
-        assert len(val.shape) == 1
-        assert val.shape[0] == self.example_dim
+        assert len(val.shape) == len(self.dims)
+        assert list(val.shape) == self.dims
 
         self.storage[self.next_available_pointer].assign(val)
 
@@ -168,8 +168,8 @@ class FIFOQueue:
             self.at_full_capacity = True
 
     def enqueue_many(self, vals: tf.Tensor):
-        assert len(vals.shape) == 2
-        assert vals.shape[1] == self.example_dim
+        assert len(vals.shape) == len(self.dims) + 1
+        assert list(vals.shape)[1:] == self.dims
         # if values are larger than the queue capacity N, enqueueing only the last N items
         vals = vals[-self.capacity :]
         num_vals = vals.shape[0]
