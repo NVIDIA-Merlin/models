@@ -166,9 +166,9 @@ class ItemRetrievalScorer(Block):
 
         self.set_required_features()
 
-        # self.num_negatives = batch_size
-        # for sampler in self.samplers:
-        #    self.num_negatives += sampler.num_negatives
+        self.max_num_samples = 0
+        for sampler in self.samplers:
+            self.max_num_samples += sampler.max_num_samples
 
     def set_required_features(self):
         required_features = set()
@@ -222,11 +222,15 @@ class ItemRetrievalScorer(Block):
 
             neg_items = sampler.sample()
 
-            if len(neg_items) > 0:
+            # items_embeddings_sampled = tf.keras.Input(
+            #    shape=(None, tf.shape(batch_items_embeddings)[-1]), dtype=tf.float32
+            # )
+
+            if neg_items is not None:
                 # Accumulates sampled negative items from all samplers
-                neg_items_embeddings_list.append(neg_items["items_embeddings"])
+                neg_items_embeddings_list.append(neg_items.items_embeddings)
                 if self.ignore_false_negatives:
-                    neg_items_ids_list.append(neg_items["items_metadata"][str(Tag.ITEM_ID)])
+                    neg_items_ids_list.append(neg_items.items_metadata[str(Tag.ITEM_ID)])
             else:
                 LOG.warn(
                     f"The sampler {type(sampler).__name__} returned no samples for this batch."
@@ -248,6 +252,10 @@ class ItemRetrievalScorer(Block):
             negative_scores = self.downscore_false_negatives(
                 positive_item_ids, neg_items_ids, negative_scores
             )
+
+        # num_negatives = tf.shape(negative_scores)[1]
+        # self.context["batch_num_negatives"] = num_negatives
+        # negative_scores_completed = tf.concat([negative_scores, ?], axis=1)
 
         all_scores = tf.concat([positive_scores, negative_scores], axis=-1)
         return all_scores
@@ -275,6 +283,7 @@ class ItemRetrievalScorer(Block):
         # Setting a very small value for false negatives (accidental hits) so that it has
         # negligicle effect on the loss functions
         negative_scores = tf.add(negative_scores, false_negatives_mask * MIN_FLOAT)
+        # negative_scores[false_negatives_mask] = MIN_FLOAT
 
         return negative_scores
 

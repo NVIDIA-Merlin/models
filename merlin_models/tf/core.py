@@ -1529,6 +1529,13 @@ class Sampler(abc.ABC):
 
 
 class ItemSampler(abc.ABC):
+    def __init__(
+        self,
+        max_num_samples: int,
+        **kwargs,
+    ):
+        self._max_num_samples: int = max_num_samples
+
     @abc.abstractmethod
     def add(self, items_embeddings: tf.Tensor, items_metadata: TabularData, training=True):
         raise NotImplementedError()
@@ -1540,6 +1547,10 @@ class ItemSampler(abc.ABC):
     @property
     def required_features(self) -> List[str]:
         return []
+
+    @property
+    def max_num_samples(self) -> int:
+        return self._max_num_samples
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

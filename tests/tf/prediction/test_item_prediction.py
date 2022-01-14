@@ -41,11 +41,12 @@ def test_retrieval_task_v2(music_streaming_data: SyntheticData, run_eagerly, num
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
+    batch_size = 100
     samplers = [
-        ml.InBatchSampler(),
+        ml.InBatchSampler(batch_size=batch_size),
         ml.CachedBatchesSampler(
             num_batches=3,
-            batch_size=100,
+            batch_size=batch_size,
             example_dim=256,
         ),
     ]
@@ -55,6 +56,6 @@ def test_retrieval_task_v2(music_streaming_data: SyntheticData, run_eagerly, num
     assert output is not None
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=100), epochs=num_epochs)
+    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])

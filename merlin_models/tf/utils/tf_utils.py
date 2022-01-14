@@ -168,14 +168,17 @@ class FIFOQueue:
             self.at_full_capacity = True
 
     def enqueue_many(self, vals: tf.Tensor):
-        assert len(vals.shape) == len(self.dims) + 1
-        assert list(vals.shape)[1:] == self.dims
+        assert len(tf.shape(vals)) == len(self.dims) + 1
+        # assert list(tf.shape(vals))[1:] == self.dims
+
         # if values are larger than the queue capacity N, enqueueing only the last N items
         vals = vals[-self.capacity :]
-        num_vals = vals.shape[0]
+        num_vals = vals.shape[0] or tf.shape(vals)[0]
 
         next_pos_start = self.next_available_pointer
         next_pos_end = next_pos_start + num_vals
+        # if vals.shape[0] != int(tf.shape(vals)[0]):
+        #    assert Exception(str(vals.shape[0]) + " TRRTWEWRETW  " + str(tf.shape(vals)[0]))
         if next_pos_end < self.capacity:
             self.storage[next_pos_start:next_pos_end].assign(vals)
 
