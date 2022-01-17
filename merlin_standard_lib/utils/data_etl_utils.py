@@ -3,6 +3,7 @@ import shutil
 from os import path
 
 import nvtabular as nvt
+from numba import config
 from nvtabular import ops
 
 # Get dataframe library - cudf or pandas
@@ -11,7 +12,7 @@ from nvtabular.dispatch import get_lib
 df_lib = get_lib()
 
 
-def convert_etl(local_filename):
+def movielens_convert_etl(local_filename):
     """this funct does the preliminary preprocessing on movielens dataset
     and converts the csv files to parquet files and saves to disk. Then,
     using NVTabular, it does feature engineering on the parquet files
@@ -21,7 +22,6 @@ def convert_etl(local_filename):
     movies["genres"] = movies["genres"].str.split("|")
     movies.to_parquet(os.path.join(local_filename, "movies_converted.parquet"))
     ratings = df_lib.read_csv(os.path.join(local_filename, "ml-25m", "ratings.csv"))
-    print(ratings.head())
     # shuffle the dataset
     ratings = ratings.sample(len(ratings), replace=False)
     # split the train_df as training and validation data sets.
@@ -31,7 +31,10 @@ def convert_etl(local_filename):
     train.to_parquet(os.path.join(local_filename, "train.parquet"))
     valid.to_parquet(os.path.join(local_filename, "valid.parquet"))
 
-    local_filename = os.path.abspath(local_filename)
+    # Avoid Numba warnings
+    config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
+
+    # NVTabular pipeline
     movies = df_lib.read_parquet(os.path.join(local_filename, "movies_converted.parquet"))
     joined = ["userId", "movieId"] >> ops.JoinExternal(movies, on=["movieId"])
     cat_features = joined >> ops.Categorify()
@@ -58,7 +61,11 @@ def convert_etl(local_filename):
         >> ops.AddMetadata(tags=["binary_classification", "target"])
         >> nvt.ops.Rename(name="rating_binary")
     )
-    target_orig = ["rating"] >> ops.AddMetadata(tags=["regression", "target"])
+    target_orig = (
+        ["rating"]
+        >> ops.LambdaOp(lambda col: col.astype("float32"))
+        >> ops.AddMetadata(tags=["regression", "target"])
+    )
     workflow = nvt.Workflow(
         feats_item
         + feats_user
@@ -87,4 +94,5 @@ def convert_etl(local_filename):
         out_files_per_proc=1,
         shuffle=False,
     )
+    # Save the workflow
     workflow.save(os.path.join(local_filename, "workflow"))
