@@ -38,8 +38,12 @@ def test_retrieval_task(music_streaming_data: SyntheticData, run_eagerly, num_ep
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_youtube_dnn(sequence_testing_data: SyntheticData, run_eagerly: bool):
-    inputs = ml.MixedInputBlock(
-        sequence_testing_data.schema, aggregation="concat", seq=False, masking="clm"
+    inputs = ml.InputBlock(
+        sequence_testing_data.schema,
+        aggregation="concat",
+        seq=False,
+        masking="clm",
+        split_sparse=True,
     )
     task = ml.NextItemPredictionTask(sequence_testing_data.schema, masking=True)
     model = inputs.connect(ml.MLPBlock([64]), task, context=ml.BlockContext())

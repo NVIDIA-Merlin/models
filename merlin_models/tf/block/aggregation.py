@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from enum import Enum
 from typing import Union
 
 import tensorflow as tf
@@ -243,34 +244,37 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
         return config
 
 
+class SequenceAggregation(Enum):
+    MEAN = tf.reduce_mean
+    SUM = tf.reduce_sum
+    MAX = tf.reduce_max
+    MIN = tf.reduce_min
+
+    def __str__(self):
+        return self.value
+
+    def __eq__(self, o: object) -> bool:
+        return str(o) == str(self)
+
+
 class SequenceAggregator(Block):
-    """Compute the average of a 3-D tensor along
-        the sequence-length dimension
+    """Computes the aggregation of elements across dimensions of a 3-D tensor.
     Args:
-        combiner: str:
-            Defaults to 'mean'
+        combiner:
+            tensorflow method to use for aggregation
+            Defaults to SequenceAggregation.MEAN
         axis: int
+            The dimensions to reduce.
             Defaults to 1
     """
 
-    def __init__(self, combiner="mean", axis: int = 1, **kwargs):
+    def __init__(self, combiner=SequenceAggregation.MEAN, axis: int = 1, **kwargs):
         super().__init__(**kwargs)
         self.axis = axis
         self.combiner = combiner
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        if self.combiner == "mean":
-            agg = tf.reduce_mean(inputs, axis=self.axis)
-        elif self.combiner == "sum":
-            agg = tf.reduce_sum(inputs, axis=self.axis)
-        elif self.combiner == "max":
-            agg = tf.reduce_max(inputs, axis=self.axis)
-        elif self.combiner == "min":
-            agg = tf.reduce_max(inputs, axis=self.axis)
-        else:
-            "Method %s is not supported, please chose one"
-            "of ['sum', 'mean', 'min', 'max']" % self.combiner
-        return agg
+        return self.combiner(inputs, axis=self.axis)
 
     def compute_output_shape(self, input_shape):
         batch_size, _, last_dim = input_shape

@@ -37,7 +37,8 @@
       "annotation": {
         "tag": [
           "continuous",
-          "item"
+          "item", 
+          "sequence"
         ]
       }
     },
@@ -55,7 +56,8 @@
       "annotation": {
         "tag": [
           "continuous",
-          "item"
+          "item",
+          "sequence"
         ]
       }
     },
@@ -73,7 +75,8 @@
       "annotation": {
         "tag": [
           "continuous",
-          "item"
+          "item",
+          "sequence"
         ]
       }
     },
@@ -91,7 +94,8 @@
       "annotation": {
         "tag": [
           "continuous",
-          "item"
+          "item",
+          "sequence"
         ]
       }
     },
@@ -109,7 +113,8 @@
       "annotation": {
         "tag": [
           "continuous",
-          "item"
+          "item",
+          "sequence"
 
         ]
       }
@@ -131,7 +136,8 @@
         "tag": [
           "item_id",
           "categorical",
-          "item"
+          "item",
+          "sequence"
         ]
       }
     },
@@ -152,7 +158,8 @@
         "tag": [
           "list",
           "categorical",
-          "item"
+          "item",
+          "sequence"
         ]
       }
     },

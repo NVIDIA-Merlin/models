@@ -27,14 +27,13 @@ from merlin_standard_lib.utils.doc_utils import docstring_parameter
 masking_registry = Registry("tf.masking")
 
 MASK_SEQUENCE_PARAMETERS_DOCSTRING = """
-    hidden_size: int
-        The hidden dimension of input embeddings, needed to initialize
-        the trainable vector used to replace masked positions.
-    padding_idx: int, default = 0
+    padding_idx: int
         Index of padding item, used for masking and for getting batch of sequences
         with the same length.
-    eval_on_last_item_seq_only: bool, default = True
+        Defaults to 0
+    eval_on_last_item_seq_only: bool
         When set to True, predict only the last non-padded item during evaluation
+        Defaults to True
 """
 
 
@@ -47,20 +46,19 @@ class MaskingBlock(Block):
     for prediction.
 
     We currently provide 2 different masking schemes out of the box:
-        - Causal LM (clm):
-        - Masked LM (mlm):
+        - Causal LM (clm)
+        - Masked LM (mlm)
 
-    This class can be extended to add different a masking scheme.
+    This class can be extended to add custom masking scheme.
 
     Parameters:
     ----------
         {mask_sequence_parameters}
 
-
     Returns:
     -------
-        Transformed inputs where masked positions are ignored or replaced by
-        a trainable embedding mask.
+        Transformed inputs where masked positions are replaced by
+        a trainable mask embedding.
     """
 
     def __init__(self, padding_idx: int = 0, eval_on_last_item_seq_only: bool = True, **kwargs):
@@ -69,16 +67,14 @@ class MaskingBlock(Block):
         self.eval_on_last_item_seq_only = eval_on_last_item_seq_only
 
     def build(self, input_shapes):
-        setattr(
-            self.context,
-            "MASKING_SCHEMA",
+        self.context.add_variable(
             tf.Variable(
                 initial_value=tf.zeros([1, input_shapes[1]], dtype=tf.bool),
                 name="MASKING_SCHEMA",
                 trainable=False,
                 validate_shape=False,
                 shape=tf.TensorShape([None, input_shapes[1]]),
-            ),
+            )
         )
 
         self.masked_item_embedding = self.add_weight(
@@ -132,7 +128,9 @@ class CausalLanguageModeling(MaskingBlock):
     Parameters
     ----------
     {mask_sequence_parameters}
-    train_on_last_item_seq_only: predict only the last item during training
+    train_on_last_item_seq_only: Optional[bool]
+        predict only the last item during training.
+        Defaults to True.
     """
 
     def __init__(
@@ -226,10 +224,11 @@ class MaskedLanguageModeling(MaskingBlock):
     Parameters
     ----------
     {mask_sequence_parameters}
-    mlm_probability: Optional[float], default = 0.15
+    mlm_probability: Optional[float]
         Probability of an item to be selected (masked) as a label of the given sequence.
         p.s. We enforce that at least one item is masked for each sequence, so that the network can
         learn something with it.
+        Defaults to 0.15
     """
 
     def __init__(

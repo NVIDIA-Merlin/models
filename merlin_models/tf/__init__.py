@@ -39,7 +39,7 @@ from .block.aggregation import (
 )
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
-from .block.inputs import InputBlock, MixedInputBlock
+from .block.inputs import InputBlock
 from .block.masking import CausalLanguageModeling, MaskedLanguageModeling
 from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
@@ -153,7 +153,6 @@ __all__ = [
     "RecallAt",
     "Model",
     "InputBlock",
-    "MixedInputBlock",
     "PredictionTasks",
     "StochasticSwapNoise",
     "ExpandDims",

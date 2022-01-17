@@ -66,6 +66,9 @@ class BlockContext(Layer):
     def add_features(self, *name):
         self._feature_names = list({*self._feature_names, *name})
 
+    def add_variable(self, variable):
+        setattr(self, variable.name, variable)
+
     def set_dtypes(self, features):
         for feature_name in features:
             self._feature_dtypes[feature_name] = features[feature_name].dtype
