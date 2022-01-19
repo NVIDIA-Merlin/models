@@ -17,6 +17,7 @@ from typing import Optional, Tuple
 
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
+from tensorflow.python.ops.nn_impl import _compute_sampled_logits
 
 from merlin_models.tf.block.transformations import L2Norm
 from merlin_models.tf.core import Block, Sampler
@@ -78,6 +79,136 @@ class ItemSoftmaxWeightTying(Block):
         predictions = tf.nn.log_softmax(logits, axis=-1)
 
         return predictions
+
+
+class SampledSoftmax(Block):
+    """
+        Compute the softmax scores on a subset of sampled candidates to optimize
+        training. During inference, the scores are computed over the whole
+        items catalog.
+
+        Reference of the method can be found at [Jean et al., 2014](http://arxiv.org/abs/1412.2007)
+
+        We use the default log-uniform sampler given by tensorflow:
+        [log_uniform_candidate_sampler](https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)
+
+        We note that this sampler requires that item-ids are encoded based
+        on a decreasing order of count frequency and the classes' expected counts
+        are approximated based on their index order.
+
+    Parameters:
+    -----------
+        schema:
+        sampler:
+            The function to sample a subset of classes based on a given distribution,
+            it returns a tuple of
+            (sampled ids, expected_count of true classes, expected_count of negative ones)
+            Defaults to tf.random.log_uniform_candidate_sampler
+        num_sampled: int
+            The number of candidates to sample during training
+        num_true: int
+            The number of target classes per training example
+            Defaults to 1
+        remove_accidental_hits: bool
+            Ignore sampled items that are equal to the target classes
+            Defaults to True
+        weight_tying: bool
+            The item id embedding table weights are shared with the prediction output layer.
+            Defaults to True
+        bias_initializer: str
+            Initializer for setting the initial random biases
+            Defaults to 'zeros'
+
+    Returns:
+    -------
+        targets, logits: tf.Tensor, tf.Tensor
+            During training, return the concatenated tensor of true class
+            and sampled negatives of shape (bs, num_sampled+1), and the related logits.
+            During evaluation, returns the input tensor of true class, and the related logits.
+    """
+
+    def __init__(
+        self,
+        schema,
+        num_sampled: int,
+        sampler=tf.random.log_uniform_candidate_sampler,
+        num_true: int = 1,
+        remove_accidental_hits: bool = True,
+        weight_tying: bool = True,
+        bias_initializer: str = "zeros",
+        seed: int = None,
+        items_weights: tf.Tensor = None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.num_sampled = num_sampled
+        self.num_true = num_true
+        self.weight_tying = weight_tying
+        self.bias_initializer = bias_initializer
+        self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
+        self.remove_accidental_hits = remove_accidental_hits
+        self.sampler = sampler
+        self.seed = seed
+
+    def build(self, input_shape):
+        self.bias = self.add_weight(
+            name="output_layer_bias",
+            shape=(self.num_classes,),
+            initializer=self.bias_initializer,
+        )
+        if not self.weight_tying:
+            self.item_embedding_weights = self.add_weight(
+                name="output_layer_weights",
+                shape=(self.num_classes, input_shape[-1]),
+                initializer=self.bias_initializer,
+            )
+        return super().build(input_shape)
+
+    def call(self, inputs, training: bool = False, **kwargs):
+        if training:
+            return inputs
+
+        if self.weight_tying:
+            weights = self.context.get_embedding(Tag.ITEM_ID)
+        else:
+            weights = self.item_embedding_weights
+        logits = tf.matmul(inputs, tf.transpose(weights))
+        logits = tf.nn.bias_add(logits, self.bias)
+
+        return logits
+
+    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+        if self.weight_tying:
+            weights = self.context.get_embedding(Tag.ITEM_ID)
+        else:
+            weights = self.item_embedding_weights
+
+        if training:
+            if targets.dtype != tf.int64:
+                targets = tf.cast(targets, tf.int64)
+
+            sampled_values = self.sampler(
+                true_classes=tf.reshape(targets, (-1, 1)),
+                num_true=self.num_true,
+                num_sampled=self.num_sampled,
+                unique=True,
+                range_max=self.num_classes,
+                seed=self.seed,
+            )
+
+            logits, targets = _compute_sampled_logits(
+                weights=weights,
+                biases=self.bias,
+                labels=tf.reshape(targets, (-1, 1)),
+                inputs=predictions,
+                num_sampled=self.num_sampled,
+                num_classes=self.num_classes,
+                num_true=self.num_true,
+                sampled_values=sampled_values,
+                subtract_log_q=True,
+                remove_accidental_hits=self.remove_accidental_hits,
+            )
+        return targets, logits
 
 
 @Block.registry.register_with_multiple_names("in-batch-negative-sampling")
@@ -221,6 +352,8 @@ def NextItemPredictionTask(
     task_block: Optional[Layer] = None,
     softmax_temperature: float = 1,
     normalize: bool = True,
+    sampled_softmax: bool = False,
+    num_sampled: int = 100,
 ) -> MultiClassClassificationTask:
     """
     Function to create the NextItemPrediction task with the right parameters.
@@ -257,6 +390,16 @@ def NextItemPredictionTask(
         normalize: bool
             Apply L2 normalization before computing dot interactions.
             Defaults to True.
+        sampled_softmax: bool
+            Compute the logits scores over all items of the catalog or
+            generate a subset of candidates
+            When set to True, loss should be set to `tf.nn.softmax_cross_entropy_with_logits`
+            and metrics to `ranking_metrics(top_ks=..., labels_onehot=False)`
+            Defaults to False
+        num_sampled: int
+            When sampled_softmax is enabled, specify the number of
+            negative candidates to generate at each batch
+            Defaults to 100
 
     Returns
     -------
@@ -266,17 +409,23 @@ def NextItemPredictionTask(
     if normalize:
         prediction_call = L2Norm()
 
-    if weight_tying:
+    if masking:
+        prediction_call = prediction_call.connect(MaskingHead())
+        prediction_call = prediction_call.connect(RemovePad3D())
+
+    if sampled_softmax:
+        prediction_call = prediction_call.connect(
+            SampledSoftmax(schema, num_sampled=num_sampled, weight_tying=weight_tying)
+        )
+
+    elif weight_tying:
         prediction_call = prediction_call.connect(ItemSoftmaxWeightTying(schema))
+
     else:
         prediction_call = prediction_call.connect(Softmax(schema))
 
     if softmax_temperature != 1:
         prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
-
-    if masking:
-        prediction_call = prediction_call.connect(MaskingHead())
-        prediction_call = prediction_call.connect(RemovePad3D())
 
     if extra_pre_call is not None:
         prediction_call = prediction_call.connect(extra_pre_call)

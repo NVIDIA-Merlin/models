@@ -83,7 +83,7 @@ from .prediction.item_prediction import (
     ItemRetrievalTask,
     NextItemPredictionTask,
 )
-from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
+from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
@@ -151,6 +151,7 @@ __all__ = [
     "NDCGAt",
     "AvgPrecisionAt",
     "RecallAt",
+    "ranking_metrics",
     "Model",
     "InputBlock",
     "PredictionTasks",

@@ -20,6 +20,8 @@ import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_standard_lib import Tag
 
+tf = pytest.importorskip("tensorflow")
+
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_retrieval_task(music_streaming_data: SyntheticData, run_eagerly, num_epochs=2):
@@ -37,7 +39,14 @@ def test_retrieval_task(music_streaming_data: SyntheticData, run_eagerly, num_ep
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_youtube_dnn(sequence_testing_data: SyntheticData, run_eagerly: bool):
+@pytest.mark.parametrize("weight_tying", [True, False])
+@pytest.mark.parametrize("sampled_softmax", [True, False])
+def test_last_item_prediction_task(
+    sequence_testing_data: SyntheticData,
+    run_eagerly: bool,
+    weight_tying: bool,
+    sampled_softmax: bool,
+):
     inputs = ml.InputBlock(
         sequence_testing_data.schema,
         aggregation="concat",
@@ -45,16 +54,28 @@ def test_youtube_dnn(sequence_testing_data: SyntheticData, run_eagerly: bool):
         masking="clm",
         split_sparse=True,
     )
-    task = ml.NextItemPredictionTask(sequence_testing_data.schema, masking=True)
-    model = inputs.connect(ml.MLPBlock([64]), task, context=ml.BlockContext())
+    if sampled_softmax:
+        loss = tf.nn.softmax_cross_entropy_with_logits
+        metrics = ml.ranking_metrics(top_ks=[10, 20], labels_onehot=False)
+    else:
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+        metrics = ml.ranking_metrics(top_ks=[10, 20], labels_onehot=True)
+    task = ml.NextItemPredictionTask(
+        schema=sequence_testing_data.schema,
+        loss=loss,
+        metrics=metrics,
+        masking=True,
+        weight_tying=weight_tying,
+        sampled_softmax=sampled_softmax,
+    )
 
+    model = inputs.connect(ml.MLPBlock([64]), task, context=ml.BlockContext())
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     losses = model.fit(sequence_testing_data.tf_dataloader(batch_size=50), epochs=2)
 
     assert len(losses.epoch) == 2
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
-    assert len(losses.history[metric]) == 2
 
     out = model(sequence_testing_data.tf_tensor_dict)
     assert out.shape[-1] == 51997

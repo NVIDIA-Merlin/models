@@ -193,7 +193,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         super()._maybe_build(inputs)
 
-    def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
+    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
         return targets
 
     def register_features(self, feature_shapes) -> List[str]:
@@ -560,12 +560,13 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(self, predictions, targets, training=None, **kwargs):
+    def call_targets(self, predictions, targets, training=True, **kwargs):
         outputs = targets
         for layer in self.layers:
-            outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
             if isinstance(outputs, tuple):
                 outputs, predictions = outputs
+            outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
+
         return outputs
 
     def get_config(self):
@@ -1595,7 +1596,6 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
     def pre_loss(self, predictions, targets, **kwargs):
         targets = self.pre.call_targets(predictions, targets, **kwargs)
-
         return targets
 
     def __call__(self, *args, **kwargs):
@@ -2100,7 +2100,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             targets = None
 
-        predictions = self(inputs, training=True)
+        predictions = self(inputs, training=False)
         loss = self.compute_loss(predictions, targets, training=False)
 
         # Handle regularization losses as well.
