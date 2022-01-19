@@ -16,6 +16,7 @@
 from typing import List, Union
 
 import tensorflow as tf
+from tensorflow.python.layers.base import Layer
 
 from merlin_models.tf.typing import TabularData
 
@@ -126,31 +127,49 @@ def batch_ref(inputs: Union[tf.Tensor, TabularData]):
     return hash(tuple(refs))
 
 
-class FIFOQueue:
+class FIFOQueue(Layer):
     def __init__(
         self,
         capacity: int,
         dtype: tf.DType,
         dims: List[int] = [],
-        name: str = "",
+        queue_name: str = "",
         initialize_tensor: tf.Tensor = None,
+        **kwargs,
     ):
-        self.capacity: int = capacity
+        super(FIFOQueue, self).__init__(**kwargs)
+        self.capacity = capacity
+        self.queue_dtype = dtype
         self.dims = dims
+        self.queue_name = queue_name
+        self.initialize_tensor = initialize_tensor
 
-        self.first_pointer: int = 0
-        self.next_available_pointer: int = 0
-        self.at_full_capacity: bool = False
+        self.first_pointer = tf.Variable(
+            initial_value=tf.Variable(lambda: tf.zeros((), dtype=tf.int32)),
+            trainable=False,
+            dtype=tf.int32,
+        )
+        self.next_available_pointer = tf.Variable(
+            initial_value=tf.Variable(lambda: tf.zeros((), dtype=tf.int32)),
+            trainable=False,
+            dtype=tf.int32,
+        )
+        self.at_full_capacity = tf.Variable(
+            initial_value=tf.Variable(lambda: tf.zeros((), dtype=tf.bool)),
+            trainable=False,
+            dtype=tf.bool,
+        )
 
         if initialize_tensor is None:
             initialize_tensor = tf.Variable(lambda: tf.zeros([capacity] + self.dims, dtype=dtype))
 
         self.storage = tf.Variable(
             initial_value=initialize_tensor,
-            name=f"fifo_queue_storage_{name}",
+            name=f"{self.queue_name}/fifo_queue_storage",
             trainable=False,
             validate_shape=False,
-            shape=tf.TensorShape([capacity] + self.dims),
+            shape=tf.TensorShape([self.capacity] + self.dims),
+            dtype=self.queue_dtype,
         )
 
     def enqueue(self, val: tf.Tensor):
@@ -159,38 +178,34 @@ class FIFOQueue:
 
         self.storage[self.next_available_pointer].assign(val)
 
-        self.next_available_pointer += 1
+        self.next_available_pointer.assign_add(1)
         if self.next_available_pointer >= self.capacity:
-            self.next_available_pointer = 0
+            self.next_available_pointer.assign(0)
 
         if self.at_full_capacity or self.next_available_pointer == self.first_pointer:
-            self.first_pointer = self.next_available_pointer
-            self.at_full_capacity = True
+            self.first_pointer.assign(self.next_available_pointer)
+            self.at_full_capacity.assign(True)
 
     def enqueue_many(self, vals: tf.Tensor):
         assert len(tf.shape(vals)) == len(self.dims) + 1
-        # assert list(tf.shape(vals))[1:] == self.dims
+        assert list(vals.shape[1:]) == self.dims
 
         # if values are larger than the queue capacity N, enqueueing only the last N items
         vals = vals[-self.capacity :]
-
-        # TODO: Having num_vals hardcoded (rather than infering from the vals tensor shape
-        # makes it work for graph mode! Needs better investigation
-        num_vals = 100
-        # num_vals = vals.shape[0] or int(tf.shape(vals)[0])
+        num_vals = int(tf.shape(vals)[0])
 
         next_pos_start = self.next_available_pointer
         next_pos_end = next_pos_start + num_vals
-        # if vals.shape[0] != int(tf.shape(vals)[0]):
-        #    assert Exception(str(vals.shape[0]) + " TRRTWEWRETW  " + str(tf.shape(vals)[0]))
+
         if next_pos_end < self.capacity:
+
             self.storage[next_pos_start:next_pos_end].assign(vals)
 
             if self.at_full_capacity or (
                 next_pos_start < self.first_pointer and next_pos_end >= self.first_pointer
             ):
-                self.first_pointer = next_pos_end
-                self.at_full_capacity = True
+                self.first_pointer.assign(next_pos_end)
+                self.at_full_capacity.assign(True)
         else:
             num_overplus_items = next_pos_end - self.capacity
             next_pos_end = self.capacity
@@ -201,19 +216,19 @@ class FIFOQueue:
             self.storage[next_pos_start:next_pos_end].assign(vals[num_vals - num_overplus_items :])
 
             if self.at_full_capacity or next_pos_end >= self.first_pointer:
-                self.first_pointer = next_pos_end
-                self.at_full_capacity = True
+                self.first_pointer.assign(next_pos_end)
+                self.at_full_capacity.assign(True)
 
-        self.next_available_pointer = next_pos_end
+        self.next_available_pointer.assign(next_pos_end)
 
     def dequeue(self):
         if self.first_pointer == self.next_available_pointer:
             raise IndexError("The queue is empty")
-        self.at_full_capacity = False
+        self.at_full_capacity.assign(False)
         val = self.storage[self.first_pointer]
-        self.first_pointer += 1
+        self.first_pointer.assign_add(1)
         if self.first_pointer >= self.capacity:
-            self.first_pointer = 0
+            self.first_pointer.assign(0)
         return val
 
     def dequeue_many(self, n: int):
@@ -221,7 +236,7 @@ class FIFOQueue:
             raise IndexError("The queue is empty")
         if n <= 0:
             raise ValueError("The number of elements to dequeue must be greater than 0.")
-        self.at_full_capacity = False
+        self.at_full_capacity.assign(False)
         next_pos_start = self.first_pointer
         next_pos_end = next_pos_start + n
 
@@ -241,7 +256,7 @@ class FIFOQueue:
 
             vals = tf.concat([vals1, vals2], axis=0)
 
-        self.first_pointer = next_pos_end
+        self.first_pointer.assign(next_pos_end)
         return vals
 
     def list_all(self):
@@ -266,5 +281,6 @@ class FIFOQueue:
             return self.capacity - self.first_pointer + self.next_available_pointer
 
     def clear(self):
-        self.first_pointer = self.next_available_pointer = 0
-        self.at_full_capacity = False
+        self.first_pointer.assign(0)
+        self.next_available_pointer.assign(0)
+        self.at_full_capacity.assign(False)

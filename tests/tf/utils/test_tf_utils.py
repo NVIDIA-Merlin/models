@@ -27,13 +27,12 @@ def fifo_queue_fixture():
         capacity=10,
         dims=[5],
         dtype=tf.float32,
-        name="fifo_queue",
     )
 
     return queue
 
 
-def test_single_enqueue_dequeue(fifo_queue_fixture):
+def test_queue_single_enqueue_dequeue(fifo_queue_fixture):
     queue = fifo_queue_fixture
 
     input = tf.random.uniform((5,))
@@ -44,7 +43,7 @@ def test_single_enqueue_dequeue(fifo_queue_fixture):
     assert tf.reduce_all(input == output)
 
 
-def test_multiple_single_enqueue_dequeue(fifo_queue_fixture):
+def test_queue_multiple_single_enqueue_dequeue(fifo_queue_fixture):
     queue = fifo_queue_fixture
 
     inputs = [tf.random.uniform((5,)) for _ in range(4)]
@@ -56,7 +55,7 @@ def test_multiple_single_enqueue_dequeue(fifo_queue_fixture):
         assert tf.reduce_all(input == output)
 
 
-def test_dequeue_error_when_fully_emptied(fifo_queue_fixture):
+def test_queue_dequeue_error_when_fully_emptied(fifo_queue_fixture):
     queue = fifo_queue_fixture
 
     input = tf.random.uniform((5,))
@@ -73,7 +72,7 @@ def test_dequeue_error_when_fully_emptied(fifo_queue_fixture):
     assert "The queue is empty" in str(excinfo.value)
 
 
-def test_dequeue_error_when_nothing_added(fifo_queue_fixture):
+def test_queue_dequeue_error_when_nothing_added(fifo_queue_fixture):
     queue = fifo_queue_fixture
 
     with pytest.raises(IndexError) as excinfo:
@@ -85,7 +84,7 @@ def test_dequeue_error_when_nothing_added(fifo_queue_fixture):
     assert "The queue is empty" in str(excinfo.value)
 
 
-def test_enqueue_dequeue_many(fifo_queue_fixture):
+def test_queue_enqueue_dequeue_many(fifo_queue_fixture):
     queue = fifo_queue_fixture
 
     input = tf.random.uniform((3, 5))
@@ -97,7 +96,7 @@ def test_enqueue_dequeue_many(fifo_queue_fixture):
     assert tf.reduce_all(input == output)
 
 
-def test_enqueue_last_dequeue_many_smaller(fifo_queue_fixture):
+def test_queue_enqueue_last_dequeue_many_smaller(fifo_queue_fixture):
     queue = fifo_queue_fixture
 
     input = tf.random.uniform((3, 5))
@@ -121,7 +120,7 @@ def test_enqueue_last_dequeue_many_smaller(fifo_queue_fixture):
     assert tf.shape(outputs_current)[0] == 0
 
 
-def test_enqueue_until_exceeds_capacity(fifo_queue_fixture):
+def test_queue_enqueue_until_exceeds_capacity(fifo_queue_fixture):
     queue = fifo_queue_fixture
 
     inputs = list([tf.random.uniform((3, 5)) for _ in range(4)])
@@ -133,7 +132,7 @@ def test_enqueue_until_exceeds_capacity(fifo_queue_fixture):
     assert tf.reduce_all(outputs_list == tf.concat(inputs, axis=0)[2:])
 
 
-def test_enqueue_dequeue_consistent_size_and_list(fifo_queue_fixture):
+def test_queue_enqueue_dequeue_consistent_size_and_list(fifo_queue_fixture):
     queue = fifo_queue_fixture
 
     for i in range(1, 12):

@@ -1528,12 +1528,13 @@ class Sampler(abc.ABC):
         raise NotImplementedError()
 
 
-class ItemSampler(abc.ABC):
+class ItemSampler(abc.ABC, Layer):
     def __init__(
         self,
         max_num_samples: int,
         **kwargs,
     ):
+        super(ItemSampler, self).__init__(**kwargs)
         self._max_num_samples: int = max_num_samples
 
     @abc.abstractmethod

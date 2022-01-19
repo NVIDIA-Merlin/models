@@ -210,6 +210,7 @@ class ItemRetrievalScorer(Block):
         )
 
         batch_items_embeddings = inputs["item"]
+
         batch_items_metadata = self.get_batch_items_metadata()
 
         neg_items_embeddings_list = []
@@ -217,9 +218,9 @@ class ItemRetrievalScorer(Block):
 
         # Adds items from the current batch into samplers and sample a number of negatives
         for sampler in self.samplers:
-            sampler.add(batch_items_embeddings, batch_items_metadata)
-
-            neg_items = sampler.sample()
+            neg_items = sampler(
+                {"items_embeddings": batch_items_embeddings, "items_metadata": batch_items_metadata}
+            )
 
             if neg_items is not None:
                 # Accumulates sampled negative items from all samplers
@@ -247,10 +248,6 @@ class ItemRetrievalScorer(Block):
             negative_scores = self.downscore_false_negatives(
                 positive_item_ids, neg_items_ids, negative_scores
             )
-
-        # num_negatives = tf.shape(negative_scores)[1]
-        # self.context["batch_num_negatives"] = num_negatives
-        # negative_scores_completed = tf.concat([negative_scores, ?], axis=1)
 
         all_scores = tf.concat([positive_scores, negative_scores], axis=-1)
         return all_scores
@@ -282,12 +279,10 @@ class ItemRetrievalScorer(Block):
 
         return negative_scores
 
+    """
     def compute_output_shape(self, input_shape):
-        # The number of negatives depends on batch size for in-batch and on the size of
-        # MemoryBankSampler, which should be known upfront to build the model.
-        # But it seems the compute_output_shape() is not needed for this block
-        # return (input_shape["item"][0], self.num_negatives + 1)
-        return input_shape
+        return (100, 401)
+    """
 
 
 def ItemRetrievalTask(

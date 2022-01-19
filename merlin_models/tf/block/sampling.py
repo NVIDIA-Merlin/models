@@ -79,7 +79,6 @@ class CachedBatchesSampler(ItemSampler):
     def __init__(
         self,
         batch_size: int,
-        example_dim: int,
         num_batches: int = 1,
         post: Optional[Block] = None,
         stop_gradient: bool = True,
@@ -87,50 +86,70 @@ class CachedBatchesSampler(ItemSampler):
         **kwargs,
     ):
         # Reserving space for the current batch
-        num_batches += 1
         max_num_samples = batch_size * (num_batches + 1)
         super().__init__(max_num_samples, **kwargs)
-        self.ignore_last_batch_on_sample = ignore_last_batch_on_sample
-        # Adds one batch to account for the current batch
-        # (assuming calls in this order each batch sampler.add(), sampler.sample())
+
         self.batch_size = batch_size
-
-        self.item_embeddings_queue = FIFOQueue(
-            capacity=self.max_num_samples, dims=[example_dim], dtype=tf.float32, name="item_emb"
-        )
-        self.items_metadata_queue = dict()
-
         self.post = post
         self.stop_gradient = stop_gradient
+        self.ignore_last_batch_on_sample = ignore_last_batch_on_sample
+        self.item_metadata_dtypes = None
+
+    def _maybe_build(self, inputs):
+        items_metadata = inputs["items_metadata"]
+        if self.item_metadata_dtypes is None:
+            self.item_metadata_dtypes = {
+                feat_name: items_metadata[feat_name].dtype for feat_name in items_metadata
+            }
+        super()._maybe_build(inputs)
+
+    def build(self, input_shapes):
+        item_embeddings_dims = list(input_shapes["items_embeddings"][1:])
+        self.item_embeddings_queue = FIFOQueue(
+            capacity=self.max_num_samples,
+            dims=item_embeddings_dims,
+            dtype=tf.float32,
+            name="item_emb",
+        )
+
+        self.items_metadata_queue = dict()
+        items_metadata = input_shapes["items_metadata"]
+        for feat_name in items_metadata:
+            self.items_metadata_queue[feat_name] = FIFOQueue(
+                capacity=self.max_num_samples,
+                dims=list(items_metadata[feat_name][1:]),
+                dtype=self.item_metadata_dtypes[feat_name],
+                name=f"item_metadata_{feat_name}",
+            )
+
+    def call(self, inputs: TabularData, training=True):
+        self.add(inputs, training)
+        items_embeddings = self.sample()
+        return items_embeddings
 
     def add(
         self,
-        items_embeddings: tf.Tensor,
-        items_metadata: TabularData,
-        training=True,
+        inputs: TabularData,
+        training: bool = True,
     ):
+        items_embeddings = inputs["items_embeddings"]
+        items_metadata = inputs["items_metadata"]
+
         if training:
             self.item_embeddings_queue.enqueue_many(items_embeddings)
-
             for feat_name in items_metadata:
-                if feat_name not in self.items_metadata_queue:
-                    self.items_metadata_queue[feat_name] = FIFOQueue(
-                        capacity=self.max_num_samples,
-                        dims=list(items_metadata[feat_name].shape)[1:],
-                        dtype=items_metadata[feat_name].dtype,
-                    )
                 self.items_metadata_queue[feat_name].enqueue_many(items_metadata[feat_name])
 
     def sample(self) -> TabularData:
-        # P.s. Always ignores the last batch, assuming the current batch was already added
-        # to the sampler queue and that InBatchSampler(stop_gradients=False) will
-        # take care of the current batch negatives
         items_embeddings = self.item_embeddings_queue.list_all()
         items_metadata = {
             feat_name: self.items_metadata_queue[feat_name].list_all()
             for feat_name in self.items_metadata_queue
         }
 
+        # P.s. Checks if should ignore the last batch, assuming the current batch was already added
+        # to the sampler queue and that InBatchSampler(stop_gradients=False) will
+        # take care of the current batch negatives
         if self.ignore_last_batch_on_sample:
             items_embeddings = items_embeddings[: -self.batch_size]
             items_metadata = {
@@ -142,7 +161,6 @@ class CachedBatchesSampler(ItemSampler):
             items_embeddings = self.post(items_embeddings)
 
         if self.stop_gradient:
-            # ERROR: This stop_gradient() is causing an error on embeddings cached from past batches
             items_embeddings = array_ops.stop_gradient(
                 items_embeddings, name="memory_bank_stop_gradient"
             )
@@ -154,16 +172,20 @@ class CachedBatchesSampler(ItemSampler):
 
 
 class InBatchSampler(ItemSampler):
-    def __init__(self, batch_size: int, stop_gradient: bool = False, **kwargs):
+    def __init__(self, batch_size: int, **kwargs):
         super().__init__(max_num_samples=batch_size, **kwargs)
         self.batch_size = batch_size
         self._last_batch_items_embeddings: tf.Tensor = None
         self._last_batch_items_metadata: TabularData = None
 
-    def add(self, items_embeddings: tf.Tensor, items_metadata: TabularData, training=True):
-        if training:
-            self._last_batch_items_embeddings = items_embeddings
-            self._last_batch_items_metadata = items_metadata
+    def call(self, inputs: TabularData, training=True):
+        self.add(inputs, training)
+        items_embeddings = self.sample()
+        return items_embeddings
+
+    def add(self, inputs: TabularData, training=True):
+        self._last_batch_items_embeddings = inputs["items_embeddings"]
+        self._last_batch_items_metadata = inputs["items_metadata"]
 
     def sample(self) -> TabularData:
         return SamplingOutput(self._last_batch_items_embeddings, self._last_batch_items_metadata)
