@@ -23,6 +23,10 @@ from merlin_models.tf.block.transformations import L2Norm
 from merlin_models.tf.core import Block, Sampler
 from merlin_standard_lib import Schema, Tag
 
+from ..block.aggregation import SequenceAggregation, SequenceAggregator
+from ..block.inputs import InputBlock
+from ..block.mlp import MLPBlock
+from ..core import BlockContext
 from .classification import MultiClassClassificationTask, Softmax
 from .ranking_metric import ranking_metrics
 
@@ -331,7 +335,9 @@ class MaskingHead(Block):
         super().__init__(**kwargs)
         self.padding_idx = 0
 
-    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+    def call_targets(
+        self, predictions: tf.Tensor, targets: tf.Tensor, training: bool = True, **kwargs
+    ) -> tf.Tensor:
         targets = self.context[Tag.ITEM_ID]
         mask = self.context["MASKING_SCHEMA"]
         targets = tf.where(mask, targets, self.padding_idx)
@@ -404,7 +410,7 @@ def NextItemPredictionTask(
     Returns
     -------
         PredictionTask
-            The item retrieval prediction task
+            The next item prediction task
     """
     if normalize:
         prediction_call = L2Norm()
@@ -505,3 +511,51 @@ def ItemRetrievalTask(
         metrics=metrics,
         pre=prediction_call,
     )
+
+
+def YoutubeDNN(
+    schema,
+    aggregation: str = "concat",
+    top_layer: Optional[Block] = MLPBlock([64]),
+    sampled_softmax: Optional[Block] = True,
+    loss=tf.nn.softmax_cross_entropy_with_logits,
+    metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=False),
+    weight_tying: bool = True,
+    num_sampled: int = 100,
+    normalize: bool = True,
+    extra_pre_call: Optional[Block] = None,
+    task_block: Optional[Layer] = None,
+    softmax_temperature: float = 1,
+    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+):
+
+    """
+    Build the Youtube-DNN model architecture.
+    More details of the model can be found at
+    [Covington et al., 2016](https://dl.acm.org/doi/10.1145/2959100.2959190Covington)
+    """
+
+    inputs = InputBlock(
+        schema,
+        aggregation=aggregation,
+        seq=False,
+        masking="clm",
+        split_sparse=True,
+        seq_aggregator=seq_aggregator,
+    )
+
+    task = NextItemPredictionTask(
+        schema=schema,
+        loss=loss,
+        metrics=metrics,
+        masking=True,
+        weight_tying=weight_tying,
+        sampled_softmax=sampled_softmax,
+        extra_pre_call=extra_pre_call,
+        task_block=task_block,
+        softmax_temperature=softmax_temperature,
+        normalize=normalize,
+        num_sampled=num_sampled,
+    )
+
+    return inputs.connect(top_layer, task, context=BlockContext())
