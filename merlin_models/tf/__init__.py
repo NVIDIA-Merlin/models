@@ -35,7 +35,6 @@ from .block.inputs import InputBlock
 from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
 from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
-from .block.sampling import CachedBatchesSampler, InBatchSampler
 from .block.transformations import (
     AsDenseFeatures,
     AsSparseFeatures,
@@ -69,16 +68,12 @@ from .features.embedding import (
 )
 from .layers import DotProductInteraction
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
-from .prediction.item_prediction import (
-    ExtraNegativeSampling,
-    InBatchNegativeSampling,
-    ItemRetrievalTask,
-    ItemRetrievalTaskV2,
-)
+from .prediction.item_prediction import ItemRetrievalTask
 from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
 
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
+from .prediction.sampling import CachedBatchesSampler, InBatchSampler
 from .utils import repr_utils
 from .utils.tf_utils import FIFOQueue
 
@@ -135,10 +130,7 @@ __all__ = [
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",
-    "InBatchNegativeSampling",
-    "ExtraNegativeSampling",
     "ItemRetrievalTask",
-    "ItemRetrievalTaskV2",
     "NDCGAt",
     "AvgPrecisionAt",
     "RecallAt",

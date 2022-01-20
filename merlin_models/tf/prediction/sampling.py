@@ -13,66 +13,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Optional
 
 import tensorflow as tf
 from tensorflow.python.ops import array_ops
 
-from ..core import Block, ItemSampler, Sampler
+from ..core import Block, ItemSampler
 from ..typing import TabularData
 from ..utils.tf_utils import FIFOQueue
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class MemoryBankBlock(Block, Sampler):
-    def __init__(
-        self,
-        num_batches: int = 1,
-        key: Optional[str] = None,
-        post: Optional[Block] = None,
-        no_outputs: bool = False,
-        stop_gradient: bool = True,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        self.key = key
-        self.num_batches = num_batches
-        self.queue = deque(maxlen=num_batches + 1)
-        self.no_outputs = no_outputs
-        self.post = post
-        self.stop_gradient = stop_gradient
-
-    def call(self, inputs: TabularData, training=True, **kwargs) -> TabularData:
-        if training:
-            to_add = inputs[self.key] if self.key else inputs
-            self.queue.append(to_add)
-
-        if self.no_outputs:
-            return {}
-
-        return inputs
-
-    def sample(self) -> tf.Tensor:
-        outputs = tf.concat(list(self.queue)[:-1], axis=0)
-
-        if self.post is not None:
-            outputs = self.post(outputs)
-
-        if self.stop_gradient:
-            outputs = array_ops.stop_gradient(outputs, name="memory_bank_stop_gradient")
-
-        return outputs
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
 
 
 @dataclass
 class SamplingOutput:
     items_embeddings: tf.Tensor
     items_metadata: Dict[str, tf.Tensor]
+
+
+class InBatchSampler(ItemSampler):
+    def __init__(self, batch_size: int, **kwargs):
+        super().__init__(max_num_samples=batch_size, **kwargs)
+        self.batch_size = batch_size
+        self._last_batch_items_embeddings: tf.Tensor = None
+        self._last_batch_items_metadata: TabularData = None
+
+    def call(self, inputs: TabularData, training=True):
+        self.add(inputs, training)
+        items_embeddings = self.sample()
+        return items_embeddings
+
+    def add(self, inputs: TabularData, training=True):
+        self._last_batch_items_embeddings = inputs["items_embeddings"]
+        self._last_batch_items_metadata = inputs["items_metadata"]
+
+    def sample(self) -> TabularData:
+        return SamplingOutput(self._last_batch_items_embeddings, self._last_batch_items_metadata)
 
 
 class CachedBatchesSampler(ItemSampler):
@@ -169,26 +144,6 @@ class CachedBatchesSampler(ItemSampler):
             items_embeddings,
             items_metadata,
         )
-
-
-class InBatchSampler(ItemSampler):
-    def __init__(self, batch_size: int, **kwargs):
-        super().__init__(max_num_samples=batch_size, **kwargs)
-        self.batch_size = batch_size
-        self._last_batch_items_embeddings: tf.Tensor = None
-        self._last_batch_items_metadata: TabularData = None
-
-    def call(self, inputs: TabularData, training=True):
-        self.add(inputs, training)
-        items_embeddings = self.sample()
-        return items_embeddings
-
-    def add(self, inputs: TabularData, training=True):
-        self._last_batch_items_embeddings = inputs["items_embeddings"]
-        self._last_batch_items_metadata = inputs["items_metadata"]
-
-    def sample(self) -> TabularData:
-        return SamplingOutput(self._last_batch_items_embeddings, self._last_batch_items_metadata)
 
 
 class UniformSampler(ItemSampler):

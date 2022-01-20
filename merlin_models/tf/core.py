@@ -1522,12 +1522,6 @@ def name_fn(name, inp):
 MetricOrMetricClass = Union[tf.keras.metrics.Metric, Type[tf.keras.metrics.Metric]]
 
 
-class Sampler(abc.ABC):
-    @abc.abstractmethod
-    def sample(self) -> tf.Tensor:
-        raise NotImplementedError()
-
-
 class ItemSampler(abc.ABC, Layer):
     def __init__(
         self,

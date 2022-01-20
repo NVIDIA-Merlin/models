@@ -25,21 +25,6 @@ from merlin_standard_lib import Tag
 def test_retrieval_task(music_streaming_data: SyntheticData, run_eagerly, num_epochs=2):
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
-    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2))
-
-    output = model(music_streaming_data.tf_tensor_dict)
-    assert output is not None
-
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
-    assert len(losses.epoch) == num_epochs
-    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
-
-
-@pytest.mark.parametrize("run_eagerly", [True, False])
-def test_retrieval_task_v2(music_streaming_data: SyntheticData, run_eagerly, num_epochs=2):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
-    two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
     batch_size = 100
 
@@ -52,7 +37,7 @@ def test_retrieval_task_v2(music_streaming_data: SyntheticData, run_eagerly, num
         ml.InBatchSampler(batch_size=batch_size),
     ]
 
-    model = two_tower.connect(ml.ItemRetrievalTaskV2(softmax_temperature=2, samplers=samplers))
+    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 

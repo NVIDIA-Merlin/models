@@ -21,7 +21,7 @@ import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
 from merlin_models.tf.block.transformations import L2Norm
-from merlin_models.tf.core import Block, ItemSampler, Sampler
+from merlin_models.tf.core import Block, ItemSampler
 from merlin_standard_lib import Schema, Tag
 
 from .classification import MultiClassClassificationTask
@@ -86,60 +86,6 @@ class ItemSoftmaxWeightTying(Block):
         return predictions
 
 
-@Block.registry.register_with_multiple_names("in-batch-negative-sampling")
-class InBatchNegativeSampling(Block):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.dot = tf.keras.layers.Dot(axes=1)
-
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        assert len(inputs) == 2
-        if training:
-            return tf.linalg.matmul(*list(inputs.values()), transpose_b=True)
-
-        return self.dot(list(inputs.values()))
-
-    def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
-        if targets:
-            if len(targets.shape) == 2:
-                targets = tf.squeeze(targets)
-            targets = tf.linalg.diag(targets)
-        else:
-            num_rows, num_columns = tf.shape(predictions)[0], tf.shape(predictions)[1]
-            targets = tf.eye(num_rows, num_columns)
-
-        return targets
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-
-class ExtraNegativeSampling(Block):
-    def __init__(self, *sampler: Sampler, **kwargs):
-        self.sampler = sampler
-        super(ExtraNegativeSampling, self).__init__(**kwargs)
-
-    def sample(self) -> tf.Tensor:
-        if len(self.sampler) > 1:
-            return tf.concat([sampler.sample() for sampler in self.sampler], axis=0)
-
-        return self.sampler[0].sample()
-
-    def call(self, inputs, training=True, **kwargs):
-        if training:
-            extra_negatives: tf.Tensor = self.sample()
-            self.extra_negatives_shape = extra_negatives.shape
-            inputs = tf.concat([inputs, extra_negatives], axis=0)
-
-        return inputs
-
-    def call_targets(self, predictions, targets, training=True, **kwargs):
-        if training:
-            targets = tf.concat([targets, tf.zeros(self.extra_negatives_shape)], axis=0)
-
-        return targets
-
-
 # TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
 class LabelAwareAttention(Block):
     def predict(
@@ -150,7 +96,7 @@ class LabelAwareAttention(Block):
 
 @Block.registry.register_with_multiple_names("item_retrieval_scorer")
 class ItemRetrievalScorer(Block):
-    def __init__(self, samplers: List[Sampler] = [], ignore_false_negatives=True, **kwargs):
+    def __init__(self, samplers: List[ItemSampler] = [], ignore_false_negatives=True, **kwargs):
         super().__init__(**kwargs)
 
         assert (
@@ -286,73 +232,6 @@ class ItemRetrievalScorer(Block):
 
 
 def ItemRetrievalTask(
-    loss=tf.keras.losses.CategoricalCrossentropy(
-        from_logits=True, reduction=tf.keras.losses.Reduction.SUM
-    ),
-    metrics=ranking_metrics(top_ks=[10, 20]),
-    extra_pre_call: Optional[Block] = None,
-    target_name: Optional[str] = None,
-    task_name: Optional[str] = None,
-    task_block: Optional[Layer] = None,
-    softmax_temperature: float = 1,
-    normalize: bool = True,
-) -> MultiClassClassificationTask:
-    """
-    Function to create the ItemRetrieval task with the right parameters.
-
-    Parameters
-    ----------
-        loss: tf.keras.losses.Loss
-            Loss function.
-            Defaults to `tf.keras.losses.CategoricalCrossentropy()`.
-        metrics: Sequence[MetricOrMetricClass]
-            List of top-k ranking metrics.
-            Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
-        extra_pre_call: Optional[PredictionBlock]
-            Optional extra pre-call block. Defaults to None.
-        target_name: Optional[str]
-            If specified, name of the target tensor to retrieve from dataloader.
-            Defaults to None.
-        task_name: Optional[str]
-            name of the task.
-            Defaults to None.
-        task_block: Block
-            The `Block` that applies additional layers op to inputs.
-            Defaults to None.
-        softmax_temperature: float
-            Parameter used to reduce model overconfidence, so that softmax(logits / T).
-            Defaults to 1.
-        normalize: bool
-            Apply L2 normalization before computing dot interactions.
-            Defaults to True.
-
-    Returns
-    -------
-        PredictionTask
-            The item retrieval prediction task
-    """
-    prediction_call = InBatchNegativeSampling()
-
-    if normalize:
-        prediction_call = L2Norm().connect(prediction_call)
-
-    if softmax_temperature != 1:
-        prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
-
-    if extra_pre_call is not None:
-        prediction_call = prediction_call.connect(extra_pre_call)
-
-    return MultiClassClassificationTask(
-        target_name,
-        task_name,
-        task_block,
-        loss=loss,
-        metrics=metrics,
-        pre=prediction_call,
-    )
-
-
-def ItemRetrievalTaskV2(
     loss=tf.keras.losses.CategoricalCrossentropy(
         from_logits=True, reduction=tf.keras.losses.Reduction.SUM
     ),
