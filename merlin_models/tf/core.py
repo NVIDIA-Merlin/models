@@ -18,6 +18,7 @@ import abc
 import copy
 import sys
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import reduce
 from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload
 
@@ -1522,6 +1523,12 @@ def name_fn(name, inp):
 MetricOrMetricClass = Union[tf.keras.metrics.Metric, Type[tf.keras.metrics.Metric]]
 
 
+@dataclass
+class ItemSamplerData:
+    items_embeddings: tf.Tensor
+    items_metadata: Dict[str, tf.Tensor]
+
+
 class ItemSampler(abc.ABC, Layer):
     def __init__(
         self,
@@ -1536,8 +1543,21 @@ class ItemSampler(abc.ABC, Layer):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def sample(self) -> TabularData:
+    def sample(self) -> ItemSamplerData:
         raise NotImplementedError()
+
+    def _check_inputs_batch_sizes(self, inputs: TabularData) -> bool:
+        item_embeddings_batch_size = tf.shape(inputs["items_embeddings"])[0]
+        for feat_name in inputs["items_metadata"]:
+            items_metadata_feat_batch_size = tf.shape(inputs["items_metadata"][feat_name])[0]
+
+            tf.assert_equal(
+                item_embeddings_batch_size,
+                items_metadata_feat_batch_size,
+                "The batch size (first dim) of items_embeddings "
+                f"({int(item_embeddings_batch_size)}) and items_metadata "
+                f"features ({int(items_metadata_feat_batch_size)}) must match.",
+            )
 
     @property
     def required_features(self) -> List[str]:

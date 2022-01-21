@@ -137,6 +137,8 @@ class FIFOQueue(Layer):
         initialize_tensor: tf.Tensor = None,
         **kwargs,
     ):
+        assert capacity > 0
+
         super(FIFOQueue, self).__init__(**kwargs)
         self.capacity = capacity
         self.queue_dtype = dtype
@@ -167,12 +169,11 @@ class FIFOQueue(Layer):
             initial_value=initialize_tensor,
             name=f"{self.queue_name}/fifo_queue_storage",
             trainable=False,
-            validate_shape=False,
             shape=tf.TensorShape([self.capacity] + self.dims),
             dtype=self.queue_dtype,
         )
 
-    def enqueue(self, val: tf.Tensor):
+    def enqueue(self, val: tf.Tensor) -> None:
         assert len(val.shape) == len(self.dims)
         assert list(val.shape) == self.dims
 
@@ -186,7 +187,7 @@ class FIFOQueue(Layer):
             self.first_pointer.assign(self.next_available_pointer)
             self.at_full_capacity.assign(True)
 
-    def enqueue_many(self, vals: tf.Tensor):
+    def enqueue_many(self, vals: tf.Tensor) -> None:
         assert len(tf.shape(vals)) == len(self.dims) + 1
         assert list(vals.shape[1:]) == self.dims
 
@@ -221,7 +222,7 @@ class FIFOQueue(Layer):
 
         self.next_available_pointer.assign(next_pos_end)
 
-    def dequeue(self):
+    def dequeue(self) -> tf.Tensor:
         if self.first_pointer == self.next_available_pointer:
             raise IndexError("The queue is empty")
         self.at_full_capacity.assign(False)
@@ -231,7 +232,7 @@ class FIFOQueue(Layer):
             self.first_pointer.assign(0)
         return val
 
-    def dequeue_many(self, n: int):
+    def dequeue_many(self, n: int) -> tf.Tensor:
         if self.first_pointer == self.next_available_pointer:
             raise IndexError("The queue is empty")
         if n <= 0:
@@ -259,7 +260,7 @@ class FIFOQueue(Layer):
         self.first_pointer.assign(next_pos_end)
         return vals
 
-    def list_all(self):
+    def list_all(self) -> tf.Tensor:
         if self.first_pointer < self.next_available_pointer:
             return self.storage[self.first_pointer : self.next_available_pointer]
         elif self.first_pointer == self.next_available_pointer and not self.at_full_capacity:
@@ -270,7 +271,7 @@ class FIFOQueue(Layer):
                 axis=0,
             )
 
-    def count(self):
+    def count(self) -> int:
         if self.first_pointer < self.next_available_pointer:
             return self.next_available_pointer - self.first_pointer
         elif self.at_full_capacity:
@@ -280,7 +281,7 @@ class FIFOQueue(Layer):
         else:
             return self.capacity - self.first_pointer + self.next_available_pointer
 
-    def clear(self):
+    def clear(self) -> None:
         self.first_pointer.assign(0)
         self.next_available_pointer.assign(0)
         self.at_full_capacity.assign(False)

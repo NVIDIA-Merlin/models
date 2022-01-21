@@ -47,6 +47,8 @@ from .core import (
     BlockContext,
     DualEncoderBlock,
     Filter,
+    ItemSampler,
+    ItemSamplerData,
     Model,
     NoOp,
     ParallelBlock,
@@ -68,7 +70,7 @@ from .features.embedding import (
 )
 from .layers import DotProductInteraction
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
-from .prediction.item_prediction import ItemRetrievalTask
+from .prediction.item_prediction import ItemRetrievalScorer, ItemRetrievalTask
 from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
 
 # from .prediction.multi_task import MMOEHead, PLEHead
@@ -131,6 +133,7 @@ __all__ = [
     "MultiClassClassificationTask",
     "RegressionTask",
     "ItemRetrievalTask",
+    "ItemRetrievalScorer",
     "NDCGAt",
     "AvgPrecisionAt",
     "RecallAt",
@@ -143,6 +146,8 @@ __all__ = [
     "NoOp",
     "data",
     "SyntheticData",
+    "ItemSampler",
+    "ItemSamplerData",
     "CachedBatchesSampler",
     "InBatchSampler",
     "FIFOQueue",

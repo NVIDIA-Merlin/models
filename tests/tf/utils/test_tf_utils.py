@@ -99,6 +99,9 @@ def test_queue_enqueue_dequeue_many(fifo_queue_fixture):
 def test_queue_enqueue_last_dequeue_many_smaller(fifo_queue_fixture):
     queue = fifo_queue_fixture
 
+    outputs_current = queue.list_all()
+    assert tf.shape(outputs_current)[0] == 0
+
     input = tf.random.uniform((3, 5))
     queue.enqueue_many(input)
 

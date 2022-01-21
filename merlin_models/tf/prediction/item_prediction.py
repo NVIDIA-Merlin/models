@@ -21,7 +21,7 @@ import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
 from merlin_models.tf.block.transformations import L2Norm
-from merlin_models.tf.core import Block, ItemSampler
+from merlin_models.tf.core import Block, ItemSampler, ItemSamplerData
 from merlin_standard_lib import Schema, Tag
 
 from .classification import MultiClassClassificationTask
@@ -164,11 +164,10 @@ class ItemRetrievalScorer(Block):
 
         # Adds items from the current batch into samplers and sample a number of negatives
         for sampler in self.samplers:
-            neg_items = sampler(
-                {"items_embeddings": batch_items_embeddings, "items_metadata": batch_items_metadata}
-            )
+            input_data = ItemSamplerData(batch_items_embeddings, batch_items_metadata)
+            neg_items = sampler(input_data.__dict__)
 
-            if neg_items is not None:
+            if tf.shape(neg_items.items_embeddings)[0] > 0:
                 # Accumulates sampled negative items from all samplers
                 neg_items_embeddings_list.append(neg_items.items_embeddings)
                 if self.ignore_false_negatives:
@@ -182,14 +181,17 @@ class ItemRetrievalScorer(Block):
             raise Exception(f"No negative items where sampled from samplers {self.samplers}")
         elif len(neg_items_embeddings_list) == 1:
             neg_items_embeddings = neg_items_embeddings_list[0]
-            neg_items_ids = neg_items_ids_list[0]
         else:
             neg_items_embeddings = tf.concat(neg_items_embeddings_list, axis=0)
-            neg_items_ids = tf.concat(neg_items_ids_list, axis=0)
 
         negative_scores = tf.linalg.matmul(inputs["query"], neg_items_embeddings, transpose_b=True)
 
         if self.ignore_false_negatives:
+            if len(neg_items_ids_list) == 1:
+                neg_items_ids = neg_items_ids_list[0]
+            else:
+                neg_items_ids = tf.concat(neg_items_ids_list, axis=0)
+
             positive_item_ids = self.context[Tag.ITEM_ID]
             negative_scores = self.downscore_false_negatives(
                 positive_item_ids, neg_items_ids, negative_scores
