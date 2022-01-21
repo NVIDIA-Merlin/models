@@ -162,33 +162,36 @@ class CausalLanguageModeling(MaskingBlock):
         return config
 
     def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
-        labels = items[:, 1:]
-        # pad shifted sequence to original length
-        labels = tf.concat(
-            [labels, tf.zeros((tf.shape(items)[0], 1), dtype=labels.dtype)],
-            axis=-1,
-        )
-        mask_labels = labels != self.padding_idx
-
         if (self.eval_on_last_item_seq_only and not training) or (
             self.train_on_last_item_seq_only and training
         ):
-            last_item_sessions = tf.reduce_sum(tf.cast(mask_labels, labels.dtype), axis=1) - 1
+            mask_labels = items != self.padding_idx
+            last_item_sessions = tf.reduce_sum(tf.cast(mask_labels, items.dtype), axis=1) - 1
 
-            rows_ids = tf.range(tf.shape(items)[0], dtype=labels.dtype)
+            rows_ids = tf.range(tf.shape(items)[0], dtype=items.dtype)
             self.label_seq_trg_eval.assign(tf.zeros(tf.shape(items), dtype=tf.int32))
 
             indices = tf.concat(
                 [tf.expand_dims(rows_ids, 1), tf.expand_dims(last_item_sessions, 1)], axis=1
             )
             self.label_seq_trg_eval.scatter_nd_update(
-                indices=indices, updates=tf.gather_nd(labels, indices)
+                indices=indices, updates=tf.gather_nd(items, indices)
             )
             # Updating labels and mask
             mask_labels = self.label_seq_trg_eval != self.padding_idx
 
+        else:
+            labels = items[:, 1:]
+            # pad shifted sequence to original length
+            labels = tf.concat(
+                [labels, tf.zeros((tf.shape(items)[0], 1), dtype=labels.dtype)],
+                axis=-1,
+            )
+            mask_labels = labels != self.padding_idx
+
         # store boolean tensor related to masked targets
         self.context["MASKING_SCHEMA"].assign(mask_labels)
+
         return mask_labels
 
     def apply_mask_to_inputs(self, inputs: tf.Tensor, mask_schema: tf.Tensor) -> tf.Tensor:

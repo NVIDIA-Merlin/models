@@ -96,20 +96,20 @@ class SampledSoftmax(Block):
         We use the default log-uniform sampler given by tensorflow:
         [log_uniform_candidate_sampler](https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)
 
-        We note that this sampler requires that item-ids are encoded based
-        on a decreasing order of count frequency and the classes' expected counts
+        We note that this default sampler requires that item-ids are encoded based
+        on a decreasing order of their count frequency and that the classes' expected counts
         are approximated based on their index order.
 
     Parameters:
     -----------
-        schema:
-        sampler:
+        schema: Schema
+        num_sampled: int
+            The number of candidates to sample during training
+        sampler
             The function to sample a subset of classes based on a given distribution,
             it returns a tuple of
             (sampled ids, expected_count of true classes, expected_count of negative ones)
             Defaults to tf.random.log_uniform_candidate_sampler
-        num_sampled: int
-            The number of candidates to sample during training
         num_true: int
             The number of target classes per training example
             Defaults to 1
@@ -122,36 +122,44 @@ class SampledSoftmax(Block):
         bias_initializer: str
             Initializer for setting the initial random biases
             Defaults to 'zeros'
+        kernel_initializer: str
+            Initializer for setting the initial random weights of output layer if
+            `weight_tying=False`
+            Defaults to 'glorot_uniform'
+        seed: int
+            Fix the random values returned by the sampler to ensure reproducibility
+            Defaults to None
 
     Returns:
     -------
         targets, logits: tf.Tensor, tf.Tensor
             During training, return the concatenated tensor of true class
-            and sampled negatives of shape (bs, num_sampled+1), and the related logits.
+            and sampled negatives of shape (bs, num_sampled+1), as well as the related logits.
             During evaluation, returns the input tensor of true class, and the related logits.
     """
 
     def __init__(
         self,
-        schema,
+        schema: Schema,
         num_sampled: int,
         sampler=tf.random.log_uniform_candidate_sampler,
         num_true: int = 1,
         remove_accidental_hits: bool = True,
         weight_tying: bool = True,
         bias_initializer: str = "zeros",
+        kernel_initializer: str = "glorot_uniform",
         seed: int = None,
-        items_weights: tf.Tensor = None,
         **kwargs
     ):
         super().__init__(**kwargs)
         self.num_sampled = num_sampled
+        self.sampler = sampler
         self.num_true = num_true
+        self.remove_accidental_hits = remove_accidental_hits
         self.weight_tying = weight_tying
         self.bias_initializer = bias_initializer
+        self.kernel_initializer = kernel_initializer
         self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
-        self.remove_accidental_hits = remove_accidental_hits
-        self.sampler = sampler
         self.seed = seed
 
     def build(self, input_shape):
@@ -164,7 +172,7 @@ class SampledSoftmax(Block):
             self.item_embedding_weights = self.add_weight(
                 name="output_layer_weights",
                 shape=(self.num_classes, input_shape[-1]),
-                initializer=self.bias_initializer,
+                initializer=self.kernel_initializer,
             )
         return super().build(input_shape)
 
@@ -182,12 +190,12 @@ class SampledSoftmax(Block):
         return logits
 
     def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
-        if self.weight_tying:
-            weights = self.context.get_embedding(Tag.ITEM_ID)
-        else:
-            weights = self.item_embedding_weights
-
         if training:
+            if self.weight_tying:
+                weights = self.context.get_embedding(Tag.ITEM_ID)
+            else:
+                weights = self.item_embedding_weights
+
             if targets.dtype != tf.int64:
                 targets = tf.cast(targets, tf.int64)
 
@@ -339,7 +347,7 @@ class MaskingHead(Block):
         self, predictions: tf.Tensor, targets: tf.Tensor, training: bool = True, **kwargs
     ) -> tf.Tensor:
         targets = self.context[Tag.ITEM_ID]
-        mask = self.context["MASKING_SCHEMA"]
+        mask = self.context.get_mask()
         targets = tf.where(mask, targets, self.padding_idx)
         return targets
 
@@ -517,7 +525,7 @@ def YoutubeDNN(
     schema,
     aggregation: str = "concat",
     top_layer: Optional[Block] = MLPBlock([64]),
-    sampled_softmax: Optional[Block] = True,
+    sampled_softmax: Optional[bool] = True,
     loss=tf.nn.softmax_cross_entropy_with_logits,
     metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=False),
     weight_tying: bool = True,

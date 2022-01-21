@@ -79,6 +79,14 @@ class BlockContext(Layer):
     def get_embedding(self, item):
         return self.named_variables[f"{str(item)}/embedding"]
 
+    def get_mask(self):
+        mask_schema = self.named_variables.get("MASKING_SCHEMA", None)
+        if mask_schema is None:
+            raise ValueError(
+                "The mask schema is not stored, " "please make sure that a MaskingBlock was set"
+            )
+        return mask_schema
+
     @property
     def named_variables(self) -> Dict[str, tf.Variable]:
         outputs = {}
