@@ -200,6 +200,4 @@ def test_cached_batches_sampler_max_num_samples(ignore_last_batch_on_sample):
         num_batches_to_cache=num_batches_to_cache,
         ignore_last_batch_on_sample=ignore_last_batch_on_sample,
     )
-    assert cached_batches_sampler.max_num_samples == batch_size * (
-        num_batches_to_cache + 1 if ignore_last_batch_on_sample else num_batches_to_cache
-    )
+    assert cached_batches_sampler.max_num_samples == batch_size * num_batches_to_cache

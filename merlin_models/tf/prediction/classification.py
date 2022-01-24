@@ -191,7 +191,5 @@ class MultiClassClassificationTask(PredictionTask):
 
         return dict_results
 
-    """
-    def compute_output_shape(self, input_shape):
-        return (100, 401)
-    """
+    # def compute_output_shape(self, input_shape):
+    #    return (100, 401)

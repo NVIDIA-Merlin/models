@@ -34,7 +34,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     inbatch_sampler = ml.InBatchSampler(batch_size=batch_size)
 
     item_retrieval_scorer = ml.ItemRetrievalScorer(
-        samplers=[cached_batches_sampler, inbatch_sampler], ignore_false_negatives=False
+        samplers=[cached_batches_sampler, inbatch_sampler], sampling_downscore_false_negatives=False
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
@@ -72,7 +72,7 @@ def test_item_retrieval_scorer_cached_sampler_no_result_first_batch():
     )
 
     item_retrieval_scorer = ml.ItemRetrievalScorer(
-        samplers=[cached_batches_sampler], ignore_false_negatives=False
+        samplers=[cached_batches_sampler], sampling_downscore_false_negatives=False
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
@@ -85,20 +85,97 @@ def test_item_retrieval_scorer_cached_sampler_no_result_first_batch():
 
 def test_item_retrieval_scorer_no_sampler():
     with pytest.raises(Exception) as excinfo:
-        _ = ml.ItemRetrievalScorer(samplers=[], ignore_false_negatives=False)
+        users_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
+        items_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
+        item_retrieval_scorer = ml.ItemRetrievalScorer(
+            samplers=[], sampling_downscore_false_negatives=False
+        )
+        item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
     assert "At least one sampler is required by ItemRetrievalScorer for negative sampling" in str(
         excinfo.value
     )
 
 
-# TODO: Add test checking if an exception is raised if ItemRetrievalScorer(...,
-# ignore_false_negatives=True) but "item_id" feature is not available in the context
+def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_id_context():
+    batch_size = 100
+
+    # CachedBatchesSampler is the only sampler here and with ignore_last_batch_on_sample=True
+    # for the first batch no sample will be returned, which should raise an exception
+    cached_batches_sampler = ml.CachedBatchesSampler(
+        num_batches_to_cache=2,
+        batch_size=batch_size,
+        ignore_last_batch_on_sample=False,
+    )
+
+    item_retrieval_scorer = ml.ItemRetrievalScorer(
+        samplers=[cached_batches_sampler], sampling_downscore_false_negatives=True
+    )
+
+    users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+    items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+
+    with pytest.raises(Exception) as excinfo:
+        _ = item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
+    assert "The following required context features should be available for the samplers" in str(
+        excinfo.value
+    )
 
 
-# TODO: Add a test for ItemRetrievalScorer(ignore_false_negatives=True)
-# (downscoring false negatives)
+def test_item_retrieval_scorer_downscore_false_negatives():
+    batch_size = 100
 
-# TODO: Add a test for ItemRetrievalScorer(ignore_false_negatives=True) when training=False / True
+    cached_batches_sampler = ml.InBatchSampler(batch_size=batch_size)
+
+    # Adding item id to the context
+    item_ids = tf.random.uniform(shape=(batch_size,), minval=1, maxval=10000, dtype=tf.int32)
+    context = ml.BlockContext(feature_names=["item_id"], feature_dtypes={"item_id": tf.int32})
+    _ = context({"item_id": item_ids})
+
+    FALSE_NEGATIVE_SCORE = -100_000_000.0
+    item_retrieval_scorer = ml.ItemRetrievalScorer(
+        samplers=[cached_batches_sampler],
+        sampling_downscore_false_negatives=True,
+        sampling_downscore_false_negatives_value=FALSE_NEGATIVE_SCORE,
+        context=context,
+    )
+
+    users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+    items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+
+    output_scores = item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
+    output_neg_scores = output_scores[:, 1:]
+
+    diag_mask = tf.eye(tf.shape(output_scores)[0], dtype=tf.bool)
+    tf.assert_equal(output_neg_scores[diag_mask], FALSE_NEGATIVE_SCORE)
+    tf.assert_equal(
+        tf.reduce_all(
+            tf.not_equal(
+                output_neg_scores[tf.math.logical_not(diag_mask)],
+                tf.constant(FALSE_NEGATIVE_SCORE, dtype=output_neg_scores.dtype),
+            )
+        ),
+        True,
+    )
+
+
+def test_item_retrieval_scorer_only_positive_when_not_training():
+    batch_size = 100
+
+    item_retrieval_scorer = ml.ItemRetrievalScorer(
+        samplers=[ml.InBatchSampler(batch_size=batch_size)],
+        sampling_downscore_false_negatives=False,
+    )
+
+    users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+    items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+
+    # Calls with training=False, so that only the positive item is scored
+    output_scores = item_retrieval_scorer(
+        {"query": users_embeddings, "item": items_embeddings}, training=False
+    )
+    tf.assert_equal(
+        (int(tf.shape(output_scores)[0]), int(tf.shape(output_scores)[1])), (batch_size, 1)
+    )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
