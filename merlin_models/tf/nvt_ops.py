@@ -33,12 +33,12 @@ class TFModelEncode(_ModelEncode):
         self.schema = schema or model.schema
 
         super().__init__(
-            model,
+            save_path,
             output_names,
-            data_iterator_func(self.schema, batch_size=batch_size),
-            model_load_func,
-            model_encode,
-            output_concat_func,
+            data_iterator_func=data_iterator_func(self.schema, batch_size=batch_size),
+            model_load_func=model_load_func,
+            model_encode_func=model_encode,
+            output_concat_func=output_concat_func,
         )
 
     def fit_transform(self, data) -> nvt.Dataset:
@@ -51,26 +51,42 @@ class TFModelEncode(_ModelEncode):
         return output
 
 
-# class ItemEmbeddings(TFModelEncode):
-#     def __init__(self,
-#                  model: Model,
-#                  batch_size: int = 512,
-#                  save_path: tp.Optional[str] = None,
-#                  output_concat_func=None):
-#         save_path = save_path or tempfile.mkdtemp()
-#         model.save(save_path)
-#
-#
-#         self.schema = schema or model.schema
-#
-#         super().__init__(
-#             model,
-#             output_names,
-#             data_iterator_func(self.schema, batch_size=batch_size),
-#             model_load_func,
-#             tower_embedding_encode,
-#             output_concat_func
-#         )
+class ItemEmbeddings(TFModelEncode):
+    def __init__(
+        self, model: Model, dim: int, batch_size: int = 512, save_path: tp.Optional[str] = None
+    ):
+        block_load_func = model.block.first.load_item_block
+        item_block = model.block.first.item_block()
+        schema = item_block.schema
+        output_names = [str(i) for i in range(dim)]
+
+        super().__init__(
+            model,
+            output_names,
+            save_path=save_path,
+            batch_size=batch_size,
+            block_load_func=block_load_func,
+            schema=schema,
+        )
+
+
+class UserEmbeddings(TFModelEncode):
+    def __init__(
+        self, model: Model, dim: int, batch_size: int = 512, save_path: tp.Optional[str] = None
+    ):
+        block_load_func = model.block.first.load_user_block
+        user_block = model.block.first.user_block()
+        schema = user_block.schema
+        output_names = [str(i) for i in range(dim)]
+
+        super().__init__(
+            model,
+            output_names,
+            save_path=save_path,
+            batch_size=batch_size,
+            block_load_func=block_load_func,
+            schema=schema,
+        )
 
 
 def model_encode(model, batch):

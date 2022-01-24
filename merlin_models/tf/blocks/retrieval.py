@@ -52,14 +52,14 @@ class RetrievalMixin:
     @classmethod
     def load_query_block(cls, model_path: str) -> Block:
         model = tf.keras.models.load_model(model_path)
-        tower = model.model[0].query_block()
+        tower = model.block[0].query_block()
 
         return tower
 
     @classmethod
     def load_item_block(cls, model_path: str) -> Block:
         model = tf.keras.models.load_model(model_path)
-        tower = model.model[0].item_block()
+        tower = model.block[0].item_block()
 
         return tower
 
@@ -141,10 +141,12 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
         super().__init__({"query": query_tower, "item": _item_tower}, post=post, **kwargs)
 
     def query_block(self) -> SequentialBlock:
-        return self.select_by_name("query")[0]
+        return self.select_by_name("query")[:-1]
 
     def item_block(self) -> SequentialBlock:
-        return self.select_by_name("item")[0]
+        item_block = self.select_by_name("item")
+
+        return item_block[0]
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
