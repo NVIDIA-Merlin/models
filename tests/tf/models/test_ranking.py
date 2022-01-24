@@ -119,7 +119,8 @@ def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
 
 @pytest.mark.parametrize("prediction_task", [None, ml.BinaryClassificationTask, ml.RegressionTask])
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly):
+@pytest.mark.parametrize("model_name", ["mlp", "dlrm"])
+def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly, model_name):
     from merlin_models.tf.utils import testing_utils
 
     if prediction_task:
@@ -128,7 +129,10 @@ def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eag
         # Do multi-task learning if no prediction task is provided
         prediction_task = ml.PredictionTasks(ecommerce_data.schema)
 
-    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    if model_name == "dlrm":
+        body = ml.DLRMBlock(ecommerce_data.schema, embedding_dim=64, bottom_block=ml.MLPBlock([64]))
+    else:
+        body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(prediction_task)
 
     dataset = ecommerce_data.tf_dataloader(batch_size=50)

@@ -19,6 +19,7 @@ import tensorflow as tf
 _INTERACTION_TYPES = (None, "field_all", "field_each", "field_interaction")
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class DotProductInteraction(tf.keras.layers.Layer):
     """
     Layer implementing the factorization machine style feature

@@ -66,7 +66,7 @@ def list_wrapper_repr(self):
     return main_str
 
 
-def _layer_repr(self, track_children=True):
+def _layer_repr(self, track_children=True, hide_context=True):
     extra_lines = []
     extra_repr = self.repr_extra() if getattr(self, "repr_extra", None) else None
     # empty string will be split into list ['']
@@ -76,6 +76,8 @@ def _layer_repr(self, track_children=True):
 
     if track_children:
         to_remove = self.repr_ignore() if getattr(self, "repr_ignore", None) else []
+        if hide_context:
+            to_remove.extend(["_context", "_self_saveable_object_factories"])
         children = [
             x for x in self._self_unconditional_checkpoint_dependencies if x.name not in to_remove
         ]

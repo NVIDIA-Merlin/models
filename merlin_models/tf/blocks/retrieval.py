@@ -16,8 +16,17 @@
 from typing import Any, Callable, Dict, Optional
 
 from merlin.schema import Schema, Tags
+import tensorflow as tf
+from merlin_standard_lib import Schema, Tag
 
-from ..core import Block, BlockType, ParallelBlock
+from ..core import (
+    Block,
+    BlockType,
+    ParallelBlock,
+    SequentialBlock,
+    TabularAggregation,
+    tabular_aggregation_registry,
+)
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from .inputs import InputBlock
 from .transformations import RenameFeatures
@@ -33,6 +42,30 @@ def TwoTowerBlock(
     post: Optional[BlockType] = None,
     **kwargs,
 ) -> ParallelBlock:
+class RetrievalMixin:
+    def query_block(self) -> Block:
+        raise NotImplementedError()
+
+    def item_block(self) -> Block:
+        raise NotImplementedError()
+
+    @classmethod
+    def load_query_block(cls, model_path: str) -> Block:
+        model = tf.keras.models.load_model(model_path)
+        tower = model.model[0].query_block()
+
+        return tower
+
+    @classmethod
+    def load_item_block(cls, model_path: str) -> Block:
+        model = tf.keras.models.load_model(model_path)
+        tower = model.model[0].item_block()
+
+        return tower
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class TwoTowerBlock(ParallelBlock, RetrievalMixin):
     """
     Builds the Two-tower architecture, as proposed in the following
     `paper https://doi.org/10.1145/3298689.3346996`_ [Xinyang19].
@@ -67,35 +100,59 @@ def TwoTowerBlock(
     ValueError
         The query_tower is required by TwoTower
     """
-    if schema is None:
-        raise ValueError("The schema is required by TwoTower")
-    if query_tower is None:
-        raise ValueError("The query_tower is required by TwoTower")
 
-    _item_tower: Block = item_tower or query_tower.copy()
-    embedding_options = EmbeddingOptions(embedding_dim_default=embedding_dim_default)
-    if not getattr(_item_tower, "inputs", None):
-        item_schema = schema.select_by_tag(item_tower_tag) if item_tower_tag else schema
-        if not item_schema:
-            raise ValueError(
-                f"The schema should contain features with the tag `{item_tower_tag}`,"
-                "required by item-tower"
-            )
-        item_tower_inputs = InputBlock(item_schema, embedding_options=embedding_options)
-        _item_tower = item_tower_inputs.connect(_item_tower)
-    if not getattr(query_tower, "inputs", None):
-        query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
-        if not query_schema:
-            raise ValueError(
-                f"The schema should contain features with the tag `{query_schema}`,"
-                "required by query-tower"
-            )
-        query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
-        query_tower = query_inputs.connect(query_tower)
+    def __init__(
+        self,
+        schema,
+        query_tower: Block,
+        item_tower: Optional[Block] = None,
+        query_tower_tag=Tag.USER,
+        item_tower_tag=Tag.ITEM,
+        embedding_dim_default: Optional[int] = 64,
+        post: Optional[BlockType] = None,
+        **kwargs,
+    ):
+        if schema is None:
+            raise ValueError("The schema is required by TwoTower")
+        if query_tower is None:
+            raise ValueError("The query_tower is required by TwoTower")
 
-    two_tower = ParallelBlock({"query": query_tower, "item": _item_tower}, post=post, **kwargs)
+        _item_tower: Block = item_tower or query_tower.copy()
+        embedding_options = EmbeddingOptions(embedding_dim_default=embedding_dim_default)
+        if not getattr(_item_tower, "inputs", None):
+            item_schema = schema.select_by_tag(item_tower_tag) if item_tower_tag else schema
+            if not item_schema:
+                raise ValueError(
+                    f"The schema should contain features with the tag `{item_tower_tag}`,"
+                    "required by item-tower"
+                )
+            item_tower_inputs = InputBlock(item_schema, embedding_options=embedding_options)
+            _item_tower = item_tower_inputs.connect(_item_tower)
+        if not getattr(query_tower, "inputs", None):
+            query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
+            if not query_schema:
+                raise ValueError(
+                    f"The schema should contain features with the tag `{query_schema}`,"
+                    "required by query-tower"
+                )
+            query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
+            query_tower = query_inputs.connect(query_tower)
 
-    return two_tower
+        super().__init__({"query": query_tower, "item": _item_tower}, post=post, **kwargs)
+
+    def query_block(self) -> SequentialBlock:
+        return self.select_by_name("query")[0]
+
+    def item_block(self) -> SequentialBlock:
+        return self.select_by_name("item")[0]
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        inputs, config = cls.parse_config(config, custom_objects)
+        output = ParallelBlock(inputs, **config)
+        output.__class__ = cls
+
+        return output
 
 
 def MatrixFactorizationBlock(

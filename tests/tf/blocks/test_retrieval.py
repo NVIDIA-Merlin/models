@@ -24,6 +24,8 @@ import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_models.tf.blocks.aggregation import ElementWiseMultiply
 from merlin_models.tf.utils import testing_utils
+from merlin_models.tf.utils import testing_utils
+from merlin_standard_lib import Tag
 
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):
@@ -98,6 +100,18 @@ def test_two_tower_block_serialization(testing_data: SyntheticData):
     assert len(outputs) == 2
     for key in ["item", "query"]:
         assert list(outputs[key].shape) == [100, 128]
+
+
+def test_two_tower_block_saving(ecommerce_data: SyntheticData):
+    two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([64, 128]))
+
+    model = two_tower.connect(ml.ItemRetrievalTask(target_name="click", metrics=[]))
+
+    dataset = ecommerce_data.tf_dataloader(batch_size=50)
+    copy_two_tower = testing_utils.assert_model_is_retrainable(model, dataset)
+
+    outputs = copy_two_tower(ecommerce_data.tf_tensor_dict)
+    assert list(outputs.shape) == [100, 1]
 
 
 def test_two_tower_block_no_item_features(testing_data: SyntheticData):

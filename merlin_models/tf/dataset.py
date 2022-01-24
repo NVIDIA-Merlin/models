@@ -21,14 +21,26 @@ import numpy as np
 import tensorflow as tf
 from merlin.core.dispatch import HAS_GPU
 from merlin.schema import Tags
+from packaging import version
 
 from merlin_models.loader.backend import DataLoader
 from merlin_models.loader.tf_utils import (
     configure_tensorflow,
     get_dataset_schema_from_feature_columns,
 )
+from merlin_models.loader.dispatch import HAS_GPU
+from merlin_models.loader.tf_utils import get_dataset_schema_from_feature_columns
+from merlin_standard_lib.schema.tag import Tag as Tags
 
-from_dlpack = configure_tensorflow()
+if version.parse(tf.__version__) < version.parse("2.3.0"):
+    try:
+        from tfdlpack import from_dlpack
+    except ModuleNotFoundError as e:
+        message = "If using TensorFlow < 2.3.0, you must install tfdlpack-gpu extension library"
+        raise ModuleNotFoundError(message) from e
+
+else:
+    from tensorflow.experimental.dlpack import from_dlpack
 
 
 # pylint has issues with TF array ops, so disable checks until fixed:

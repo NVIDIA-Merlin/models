@@ -60,7 +60,7 @@ def MLPBlock(
     block_layers = []
 
     for dim in dimensions:
-        block_layers.append(Dense(dim, activation=activation, use_bias=use_bias))
+        block_layers.append(_Dense(dim, activation=activation, use_bias=use_bias))
         if dropout:
             block_layers.append(tf.keras.layers.Dropout(dropout))
         if normalization:
@@ -123,7 +123,7 @@ def DenseResidualBlock(
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class Dense(tf.keras.layers.Layer):
+class _Dense(tf.keras.layers.Layer):
     def __init__(
         self,
         units,
@@ -140,7 +140,7 @@ class Dense(tf.keras.layers.Layer):
         dense=None,
         **kwargs
     ):
-        super(Dense, self).__init__(**kwargs)
+        super(_Dense, self).__init__(**kwargs)
         self.dense = dense or tf.keras.layers.Dense(
             units,
             activation,
@@ -168,10 +168,10 @@ class Dense(tf.keras.layers.Layer):
             agg = tabular_aggregation_registry.parse(self.pre_aggregation)
             input_shape = agg.compute_output_shape(input_shape)
 
-        return super(Dense, self).compute_output_shape(input_shape)
+        return super(_Dense, self).compute_output_shape(input_shape)
 
     def get_config(self):
-        config = super(Dense, self).get_config()
+        config = super(_Dense, self).get_config()
         config["pre_aggregation"] = self.pre_aggregation
         config["units"] = self.units
 
@@ -220,7 +220,7 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         last_dim = input_shape[-1]
 
         if self.dense is None:
-            self.dense = Dense(
+            self.dense = _Dense(
                 last_dim,
                 activation=self.activation,
                 kernel_initializer=self.kernel_initializer,
@@ -231,7 +231,7 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
             )
 
         if self.low_rank_dim is not None and self.dense_u is None:
-            self.dense_u = Dense(
+            self.dense_u = _Dense(
                 self.low_rank_dim,
                 activation=self.activation,
                 kernel_initializer=self.kernel_initializer,

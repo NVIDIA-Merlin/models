@@ -139,7 +139,7 @@ class SequentialBlock(BlockBase, torch.nn.Sequential):
         # pylint: disable=arguments-out-of-order
         return right_shift_block(other, self)
 
-    def forward(self, input, training=True, **kwargs):
+    def forward(self, input, training=False, **kwargs):
         # from merlin_models.torch import TabularSequenceFeatures
 
         for i, module in enumerate(self):
