@@ -24,13 +24,66 @@ from ..utils.tf_utils import FIFOQueue
 
 
 class InBatchSampler(ItemSampler):
-    def __init__(self, batch_size: int, **kwargs):
+    """Provides in-batch sampling for two-tower item retrieval
+    models, following [PAPER REFERENCE]. The implementation is very simple, as it
+    just returns the current item embeddings and metadata, but it is necessary to have
+    `InBatchSampler` under the same interface of other more advanced samplers
+    (e.g. `CachedBatchesSampler`).
+    In a nutshell, for a given (user,item) embeddings pair, the other in-batch item
+    embeddings are used as negative items, rather than computing different embeddings
+    exclusively for negative items.
+    This is a popularity-biased sampling     as popular items are observed more often
+    in training batches.
+    P.s. Ignoring the false negatives (negative items equal to the positive ones) is
+    managed by `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`
+
+    Parameters
+    ----------
+    batch_size : int, optional
+        The batch size. If not set it is inferred when the layer is built (first call())
+    """
+
+    def __init__(self, batch_size: int = None, **kwargs):
         super().__init__(max_num_samples=batch_size, **kwargs)
-        self.batch_size = batch_size
         self._last_batch_items_embeddings: tf.Tensor = None
         self._last_batch_items_metadata: TabularData = None
+        self.set_batch_size(batch_size)
+
+    def build(self, input_shapes: TabularData) -> None:
+        if self._batch_size is None:
+            self.set_batch_size(input_shapes["items_embeddings"][0])
+
+    def set_batch_size(self, batch_size):
+        self._batch_size = batch_size
+        self._max_num_samples = batch_size
 
     def call(self, inputs: TabularData, training=True) -> ItemSamplerData:
+        """Returns the item embeddings and item metadata from
+        the current batch.
+        The implementation is very simple, as it just returns the current
+        item embeddings and metadata, but it is necessary to have
+        `InBatchSampler` under the same interface of other more advanced samplers
+        (e.g. `CachedBatchesSampler`).
+
+        Parameters
+        ----------
+        inputs : TabularData
+            Dict with two keys:
+              "items_embeddings": Items embeddings tensor
+              "items_metadata": Dict like `{"<feature name>": "<feature tensor>"}` which contains
+              features that might be relevant for the sampler.
+              The `InBatchSampler` does not use metadata features
+              specifically, but "item_id" is required when using in combination with
+              `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`, so that
+              false negatives are identified and downscored.
+        training : bool, optional
+            Flag indicating if on training mode, by default True
+
+        Returns
+        -------
+        ItemSamplerData
+            Value object with the sampled item embeddings and item metadata
+        """
         self.add(inputs, training)
         items_embeddings = self.sample()
         return items_embeddings
@@ -45,6 +98,36 @@ class InBatchSampler(ItemSampler):
 
 
 class CachedBatchesSampler(ItemSampler):
+    """Provides efficient cached-batch sampling for two-tower item retrieval
+    models, following [PAPER REFERENCE]. The caches consists of a fixed capacity FIFO queue
+    which keeps the item embeddings from the last N batches. All items in the queue are
+    sampled as negatives for upcoming batches.
+    It is more efficent than computing embeddings
+    exclusively for negative items. This is a popularity-biased sampling as popular
+    items are observed more often in training batches.
+    Compared to `InBatchSampler`, the `CachedBatchesSampler` allows for larger number
+    of negative items, not limited to the batch size. The gradients are not computed
+    for the cached negative embeddings which is a scalable approach. A common combination
+    of samplers for the `ItemRetrievalScorer` is `[InBatchSampler(),
+    CachedBatchesSampler(ignore_last_batch_on_sample=True)]`, which computes gradients for
+    the in-batch negatives and not for the cached item embeddings.
+    P.s. Ignoring the false negatives (negative items equal to the positive ones) is
+    managed by `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`
+
+    Parameters
+    ----------
+    batch_size : int
+        The batch size, which is required to define the sampler capacity
+        (batch_size * num_batches_to_cache)
+    num_batches_to_cache: int
+        The number of batches to cache, which is required to define the sampler capacity
+        (batch_size * num_batches_to_cache), defaults to 1.
+    ignore_last_batch_on_sample: bool
+        Whether should include the last batch in the sampling. By default `False`,
+        as for sampling from the current batch we recommend `InBatchSampler()`, which
+        allows computing gradients for in-batch negative items
+    """
+
     def __init__(
         self,
         batch_size: int,
@@ -108,6 +191,30 @@ class CachedBatchesSampler(ItemSampler):
             )
 
     def call(self, inputs: TabularData, training=True) -> ItemSamplerData:
+        """Adds the current batch to the FIFO queue cache and samples all items
+        embeddings from the last N cached batches.
+
+        Parameters
+        ----------
+        inputs : TabularData
+            Dict with two keys:
+              "items_embeddings": Items embeddings tensor
+              "items_metadata": Dict like `{"<feature name>": "<feature tensor>"}` which contains
+              features that might be relevant for the sampler (e.g. item id, item popularity, item
+              recency).
+              The `CachedBatchesSampler` does not use metadata features
+              specifically, but "item_id" is required when using in combination with
+              `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`, so that
+              false negatives are identified and downscored.
+        training : bool, optional
+            Flag indicating if on training mode, by default True
+
+        Returns
+        -------
+        ItemSamplerData
+            Value object with the sampled item embeddings and item metadata
+        """
+
         self.add(inputs, training)
         items_embeddings = self.sample()
         return items_embeddings

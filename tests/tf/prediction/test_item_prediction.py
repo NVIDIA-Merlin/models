@@ -198,9 +198,6 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     samplers = [cached_batches_sampler, inbatch_sampler]
 
-    total_sampling_capacity = sum([sampler.max_num_samples for sampler in samplers])
-    assert total_sampling_capacity == 300
-
     model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)

@@ -22,8 +22,10 @@ from tensorflow.python.layers.base import Layer
 
 from merlin_models.tf.block.transformations import L2Norm
 from merlin_models.tf.core import Block, ItemSampler, ItemSamplerData
+from merlin_models.tf.prediction.sampling import InBatchSampler
 from merlin_standard_lib import Schema, Tag
 
+from ..typing import TabularData
 from .classification import MultiClassClassificationTask
 from .ranking_metric import ranking_metrics
 
@@ -96,6 +98,22 @@ class LabelAwareAttention(Block):
 
 @Block.registry.register_with_multiple_names("item_retrieval_scorer")
 class ItemRetrievalScorer(Block):
+    """Block for ItemRetrieval, which expects query/user and item embeddings as input and
+    uses dot product to score the positive item (inputs["item"]) and also sampled negative
+    items (during training).
+
+    Parameters
+    ----------
+    samplers : List[ItemSampler], optional
+        List of item samplers that provide negative samples when `training=True`
+    sampling_downscore_false_negatives : bool, optional
+        Identify false negatives (sampled item ids equal to the positive item and downscore them
+        to the `sampling_downscore_false_negatives_value`), by default True
+    sampling_downscore_false_negatives_value : int, optional
+        Value to be used to downscore false negatives when
+        `sampling_downscore_false_negatives=True`, by default `np.finfo(np.float32).min / 100.0`
+    """
+
     def __init__(
         self,
         samplers: List[ItemSampler] = [],
@@ -113,10 +131,6 @@ class ItemRetrievalScorer(Block):
             self.samplers = [self.samplers]
 
         self.set_required_features()
-
-        self.max_num_samples = 0
-        for sampler in self.samplers:
-            self.max_num_samples += sampler.max_num_samples
 
     def set_required_features(self):
         required_features = set()
@@ -151,7 +165,24 @@ class ItemRetrievalScorer(Block):
                 f"for the samplers, but were not found: {not_found}"
             )
 
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+    def call(self, inputs: TabularData, training: bool = True, **kwargs) -> tf.Tensor:
+        """Based on the user/query embedding (inputs["query"]), uses dot product to score
+            the positive item (inputs["item"]) and also sampled negative items (during training).
+
+        Parameters
+        ----------
+        inputs : TabularData
+            Dict with the query and item embeddings (e.g. `{"query": <emb>}, "item": <emb>}`),
+            where embeddings are 2D tensors (batch size, embedding size)
+        training : bool, optional
+            Flag that indicates whether in training mode, by default True
+
+        Returns
+        -------
+        tf.Tensor
+            2D Tensor with the scores for the positive items and, if `training=True`, for the
+            negative sampled items too. Return tensor is 2D (batch size, 1 + #negatives)
+        """
         self._check_input_from_two_tower(inputs)
         self._check_required_context_item_features_are_present()
 
@@ -239,15 +270,12 @@ class ItemRetrievalScorer(Block):
 
         return negative_scores
 
-    # def compute_output_shape(self, input_shape):
-    #    return (100, 401)
-
 
 def ItemRetrievalTask(
     loss=tf.keras.losses.CategoricalCrossentropy(
         from_logits=True, reduction=tf.keras.losses.Reduction.SUM
     ),
-    samplers: List[ItemSampler] = [],
+    samplers: List[ItemSampler] = [InBatchSampler()],
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
@@ -265,7 +293,7 @@ def ItemRetrievalTask(
             Loss function.
             Defaults to `tf.keras.losses.CategoricalCrossentropy()`.
         samplers: List[ItemSampler]
-            List of samplers for negative sampling
+            List of samplers for negative sampling, by default `[InBatchSampler()]`
         metrics: Sequence[MetricOrMetricClass]
             List of top-k ranking metrics.
             Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
@@ -292,13 +320,6 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
-
-    if samplers is None or (isinstance(samplers, list) and len(samplers) == 0):
-        # samplers = [InBatchSampler(batch_size=batch_size)]
-        raise ValueError(
-            "You must provide at least one sampler "
-            + "(e.g. `samplers = [InBatchSampler(), CachedBatchesSampler()]`) for ItemRetrievalTask"
-        )
 
     prediction_call = ItemRetrievalScorer(
         samplers=samplers,

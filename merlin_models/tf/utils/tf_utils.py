@@ -128,6 +128,31 @@ def batch_ref(inputs: Union[tf.Tensor, TabularData]):
 
 
 class FIFOQueue(Layer):
+    """Fixed size FIFO queue for caching input tensors
+    over the batches. The storage is a fixed size tf.Variable()
+    and some pointers are used to emulate the `queue()` / `dequeue()`
+    ops. As soon as maximum capacity is reached, the oldest examples
+    are removed from the queue to add the current beach ones.
+    As an example use case, the `FIFOQueue` is used by
+    `CachedBatchesSampler` to cache item embeddings and item metadata features.
+
+        Parameters
+        ----------
+        capacity : int
+            Maximum number of examples to store
+        dtype : tf.DType
+            The dtype of tensor that will be stored (e.g. tf.int32, tf.float32)
+        dims : List[int], optional
+            The dimension of the tensor examples, by default [], which means each example
+            is a scalar.
+        queue_name : str, optional
+            This is string is concat with the tf.Variable() name to allow differentiating in the
+            graph the FIFO Queue storages, by default ""
+        initialize_tensor : tf.Tensor, optional
+            Allows for initializing the storage with values, by default None which initializes
+            the storage with zeros
+    """
+
     def __init__(
         self,
         capacity: int,
@@ -149,16 +174,19 @@ class FIFOQueue(Layer):
         self.first_pointer = tf.Variable(
             initial_value=tf.Variable(lambda: tf.zeros((), dtype=tf.int32)),
             trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
             dtype=tf.int32,
         )
         self.next_available_pointer = tf.Variable(
             initial_value=tf.Variable(lambda: tf.zeros((), dtype=tf.int32)),
             trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
             dtype=tf.int32,
         )
         self.at_full_capacity = tf.Variable(
             initial_value=tf.Variable(lambda: tf.zeros((), dtype=tf.bool)),
             trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
             dtype=tf.bool,
         )
 
@@ -169,11 +197,20 @@ class FIFOQueue(Layer):
             initial_value=initialize_tensor,
             name=f"{self.queue_name}/fifo_queue_storage",
             trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
             shape=tf.TensorShape([self.capacity] + self.dims),
             dtype=self.queue_dtype,
         )
 
     def enqueue(self, val: tf.Tensor) -> None:
+        """Enqueues an example into the queue
+
+        Parameters
+        ----------
+        val : tf.Tensor
+            Tensor to be stored in the queue. Its shape should match the `dims`
+            set in the queue constructor
+        """
         assert len(val.shape) == len(self.dims)
         assert list(val.shape) == self.dims
 
@@ -188,6 +225,16 @@ class FIFOQueue(Layer):
             self.at_full_capacity.assign(True)
 
     def enqueue_many(self, vals: tf.Tensor) -> None:
+        """Enqueues many examples into the queue.
+
+        Parameters
+        ----------
+        val : tf.Tensor
+            Tensor with the examples to be stored in the queue.
+            The first dim of `vals` is the number of examples.
+            From the second dim, its shape should match the `dims`
+            set in the queue constructor
+        """
         assert len(tf.shape(vals)) == len(self.dims) + 1
         assert list(vals.shape[1:]) == self.dims
 
@@ -223,6 +270,18 @@ class FIFOQueue(Layer):
         self.next_available_pointer.assign(next_pos_end)
 
     def dequeue(self) -> tf.Tensor:
+        """Dequeues a single example from the queue
+
+        Returns
+        -------
+        tf.Tensor
+            A single example of the queue
+
+        Raises
+        ------
+        IndexError
+            The queue is empty
+        """
         if self.first_pointer == self.next_available_pointer:
             raise IndexError("The queue is empty")
         self.at_full_capacity.assign(False)
@@ -233,6 +292,25 @@ class FIFOQueue(Layer):
         return val
 
     def dequeue_many(self, n: int) -> tf.Tensor:
+        """Dequeues many examples from the queue
+
+        Parameters
+        ----------
+        n : int
+            Number of examples to sample from the queue
+
+        Returns
+        -------
+        tf.Tensor
+            A tensor with N examples, being the first dim equal to N
+
+        Raises
+        ------
+        IndexError
+            The queue is empty
+        ValueError
+            The number of elements to dequeue must be greater than 0
+        """
         if self.first_pointer == self.next_available_pointer:
             raise IndexError("The queue is empty")
         if n <= 0:
@@ -261,6 +339,14 @@ class FIFOQueue(Layer):
         return vals
 
     def list_all(self) -> tf.Tensor:
+        """Returns all items in the queue, sorted by the
+        order they were added (FIFO)
+
+        Returns
+        -------
+        tf.Tensor
+            Returns a tensor with all examples added to the queue
+        """
         if self.first_pointer < self.next_available_pointer:
             return self.storage[self.first_pointer : self.next_available_pointer]
         elif self.first_pointer == self.next_available_pointer and not self.at_full_capacity:
@@ -272,6 +358,13 @@ class FIFOQueue(Layer):
             )
 
     def count(self) -> int:
+        """Returns the number of examples added to the queue
+
+        Returns
+        -------
+        int
+            The number of examples added to the queue
+        """
         if self.first_pointer < self.next_available_pointer:
             return self.next_available_pointer - self.first_pointer
         elif self.at_full_capacity:
@@ -282,6 +375,7 @@ class FIFOQueue(Layer):
             return self.capacity - self.first_pointer + self.next_available_pointer
 
     def clear(self) -> None:
+        """Removes all examples from the queue"""
         self.first_pointer.assign(0)
         self.next_available_pointer.assign(0)
         self.at_full_capacity.assign(False)
