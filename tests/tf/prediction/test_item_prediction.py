@@ -69,7 +69,7 @@ def test_last_item_prediction_task(
         sampled_softmax=sampled_softmax,
     )
 
-    model = inputs.connect(ml.MLPBlock([64]), task, context=ml.BlockContext())
+    model = inputs.connect(ml.MLPBlock([64]), task)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     losses = model.fit(sequence_testing_data.tf_dataloader(batch_size=50), epochs=2)
 

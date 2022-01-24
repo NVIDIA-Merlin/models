@@ -26,7 +26,6 @@ from merlin_standard_lib import Schema, Tag
 from ..block.aggregation import SequenceAggregation, SequenceAggregator
 from ..block.inputs import InputBlock
 from ..block.mlp import MLPBlock
-from ..core import BlockContext
 from .classification import MultiClassClassificationTask, Softmax
 from .ranking_metric import ranking_metrics
 
@@ -566,4 +565,4 @@ def YoutubeDNNRetrieval(
         num_sampled=num_sampled,
     )
 
-    return inputs.connect(top_layer, task, context=BlockContext())
+    return inputs.connect(top_layer, task)
