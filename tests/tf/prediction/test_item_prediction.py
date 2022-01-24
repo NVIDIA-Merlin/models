@@ -82,11 +82,11 @@ def test_last_item_prediction_task(
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_youtube_dnn(
+def test_youtube_dnn_retrieval(
     sequence_testing_data: SyntheticData,
     run_eagerly: bool,
 ):
-    model = ml.YoutubeDNN(schema=sequence_testing_data.schema)
+    model = ml.YoutubeDNNRetrieval(schema=sequence_testing_data.schema)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(sequence_testing_data.tf_dataloader(batch_size=50), epochs=2)

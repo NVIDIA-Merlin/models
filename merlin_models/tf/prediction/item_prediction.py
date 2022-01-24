@@ -89,7 +89,7 @@ class SampledSoftmax(Block):
     """
         Compute the softmax scores on a subset of sampled candidates to optimize
         training. During inference, the scores are computed over the whole
-        items catalog.
+        catalog of items.
 
         Reference of the method can be found at [Jean et al., 2014](http://arxiv.org/abs/1412.2007)
 
@@ -117,7 +117,7 @@ class SampledSoftmax(Block):
             Ignore sampled items that are equal to the target classes
             Defaults to True
         weight_tying: bool
-            The item id embedding table weights are shared with the prediction output layer.
+            The item_id embedding weights are shared with the prediction output layer.
             Defaults to True
         bias_initializer: str
             Initializer for setting the initial random biases
@@ -287,7 +287,7 @@ class LabelAwareAttention(Block):
 
 class RemovePad3D(Block):
     """
-    Flatten sequence of labels and filter out non-targets positions
+    Flatten the sequence of labels and filter out non-targets positions
 
     Parameters
     ----------
@@ -324,7 +324,7 @@ class RemovePad3D(Block):
 
 class MaskingHead(Block):
     """
-    Masking class to transform targets based on the
+    The masking class to transform targets based on the
     boolean masking schema stored in the model's context
 
     Parameters
@@ -382,7 +382,7 @@ def NextItemPredictionTask(
             List of top-k ranking metrics.
             Defaults to ranking_metrics(top_ks=[10, 20], labels_onehot=True).
         weight_tying: bool
-            The item id embedding table weights are shared with the prediction network layer.
+            The item_id embedding weights are shared with the prediction network layer.
             Defaults to True
         masking: bool
             Whether masking is used to transform inputs and targets or not
@@ -399,7 +399,7 @@ def NextItemPredictionTask(
             The `Block` that applies additional layers op to inputs.
             Defaults to None.
         softmax_temperature: float
-            Parameter used to reduce model overconfidence, so that softmax(logits / T).
+            Parameter used to reduce the model overconfidence, so that softmax(logits / T).
             Defaults to 1.
         normalize: bool
             Apply L2 normalization before computing dot interactions.
@@ -412,7 +412,7 @@ def NextItemPredictionTask(
             Defaults to False
         num_sampled: int
             When sampled_softmax is enabled, specify the number of
-            negative candidates to generate at each batch
+            negative candidates to generate for each batch
             Defaults to 100
 
     Returns
@@ -521,15 +521,15 @@ def ItemRetrievalTask(
     )
 
 
-def YoutubeDNN(
+def YoutubeDNNRetrieval(
     schema,
     aggregation: str = "concat",
     top_layer: Optional[Block] = MLPBlock([64]),
+    weight_tying: bool = True,
     sampled_softmax: Optional[bool] = True,
+    num_sampled: int = 100,
     loss=tf.nn.softmax_cross_entropy_with_logits,
     metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=False),
-    weight_tying: bool = True,
-    num_sampled: int = 100,
     normalize: bool = True,
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Layer] = None,
@@ -538,7 +538,7 @@ def YoutubeDNN(
 ):
 
     """
-    Build the Youtube-DNN model architecture.
+    Build the Youtube-DNN retrieval model.
     More details of the model can be found at
     [Covington et al., 2016](https://dl.acm.org/doi/10.1145/2959100.2959190Covington)
     """

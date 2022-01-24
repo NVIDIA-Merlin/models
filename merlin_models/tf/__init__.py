@@ -82,7 +82,7 @@ from .prediction.item_prediction import (
     InBatchNegativeSampling,
     ItemRetrievalTask,
     NextItemPredictionTask,
-    YoutubeDNN,
+    YoutubeDNNRetrieval,
 )
 from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 
@@ -161,5 +161,5 @@ __all__ = [
     "NoOp",
     "data",
     "SyntheticData",
-    "YoutubeDNN",
+    "YoutubeDNNRetrieval",
 ]

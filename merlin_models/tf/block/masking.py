@@ -45,7 +45,7 @@ class MaskingBlock(Block):
     their positions in the sequence so that they are not used by the model
     for prediction.
 
-    We currently provide 2 different masking schemes out of the box:
+    We currently provide 2 different masking schemes:
         - Causal LM (clm)
         - Masked LM (mlm)
 
@@ -216,7 +216,7 @@ class CausalLanguageModeling(MaskingBlock):
 
 
 @masking_registry.register_with_multiple_names("mlm", "masked")
-@tf.keras.utils.register_keras_serializable(package="transformers4rec")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class MaskedLanguageModeling(MaskingBlock):
     """
     In Masked Language Modeling (mlm) you randomly select some positions of the sequence to be
