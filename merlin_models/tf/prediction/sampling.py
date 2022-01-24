@@ -24,8 +24,8 @@ from ..utils.tf_utils import FIFOQueue
 
 
 class InBatchSampler(ItemSampler):
-    """Provides in-batch sampling for two-tower item retrieval
-    models, following [PAPER REFERENCE]. The implementation is very simple, as it
+    """Provides in-batch sampling [1] for two-tower item retrieval
+    models. The implementation is very simple, as it
     just returns the current item embeddings and metadata, but it is necessary to have
     `InBatchSampler` under the same interface of other more advanced samplers
     (e.g. `CachedBatchesSampler`).
@@ -36,6 +36,11 @@ class InBatchSampler(ItemSampler):
     in training batches.
     P.s. Ignoring the false negatives (negative items equal to the positive ones) is
     managed by `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`
+
+    References
+    ----------
+    [1] Yi, Xinyang, et al. "Sampling-bias-corrected neural modeling for large corpus item
+    recommendations." Proceedings of the 13th ACM Conference on Recommender Systems. 2019.
 
     Parameters
     ----------
@@ -98,13 +103,13 @@ class InBatchSampler(ItemSampler):
 
 
 class CachedBatchesSampler(ItemSampler):
-    """Provides efficient cached-batch sampling for two-tower item retrieval
-    models, following [PAPER REFERENCE]. The caches consists of a fixed capacity FIFO queue
+    """Provides efficient cached cross-batch [1] / inter-batch [2] negative sampling
+    for two-tower item retrieval model. The caches consists of a fixed capacity FIFO queue
     which keeps the item embeddings from the last N batches. All items in the queue are
     sampled as negatives for upcoming batches.
-    It is more efficent than computing embeddings
-    exclusively for negative items. This is a popularity-biased sampling as popular
-    items are observed more often in training batches.
+    It is more efficent than computing embeddings exclusively for negative items.
+    This is a popularity-biased sampling as popular items are observed more often
+    in training batches.
     Compared to `InBatchSampler`, the `CachedBatchesSampler` allows for larger number
     of negative items, not limited to the batch size. The gradients are not computed
     for the cached negative embeddings which is a scalable approach. A common combination
@@ -113,6 +118,16 @@ class CachedBatchesSampler(ItemSampler):
     the in-batch negatives and not for the cached item embeddings.
     P.s. Ignoring the false negatives (negative items equal to the positive ones) is
     managed by `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`
+
+    References
+    ----------
+    [1] Wang, Jinpeng, Jieming Zhu, and Xiuqiang He. "Cross-Batch Negative Sampling
+    for Training Two-Tower Recommenders." Proceedings of the 44th International ACM
+    SIGIR Conference on Research and Development in Information Retrieval. 2021.
+
+    [2] Zhou, Chang, et al. "Contrastive learning for debiased candidate generation
+    in large-scale recommender systems." Proceedings of the 27th ACM SIGKDD Conference
+    on Knowledge Discovery & Data Mining. 2021.
 
     Parameters
     ----------
