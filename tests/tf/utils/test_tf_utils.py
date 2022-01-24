@@ -170,3 +170,38 @@ def test_queue_clear(fifo_queue_fixture):
     assert queue.count() == 0
     assert queue.list_all().shape[0] == 0
     assert not queue.at_full_capacity
+
+
+def test_enqueue_tensors_1_dim_int32():
+    queue = ml.FIFOQueue(
+        capacity=10,
+        dims=[],
+        dtype=tf.int32,
+    )
+
+    single_input = tf.random.uniform((), minval=1, maxval=10000, dtype=tf.int32)
+    queue.enqueue(single_input)
+
+    multiple_inputs = tf.random.uniform((7,), minval=1, maxval=10000, dtype=tf.int32)
+    queue.enqueue_many(multiple_inputs)
+
+
+def test_enqueue_tensors_wrong_dim():
+    queue = ml.FIFOQueue(
+        capacity=10,
+        dims=[13],
+        dtype=tf.float32,
+    )
+
+    single_input = tf.random.uniform((12,))
+    with pytest.raises(AssertionError) as excinfo:
+        queue.enqueue(single_input)
+    assert "The shape of val and self.dims should match" in str(excinfo.value)
+
+    multiple_inputs = tf.random.uniform((7, 11))
+    with pytest.raises(AssertionError) as excinfo:
+        queue.enqueue_many(multiple_inputs)
+    assert (
+        "The shape of vals (ignoring the first dim which is the number of examples) "
+        "and self.dims should match"
+    ) in str(excinfo.value)

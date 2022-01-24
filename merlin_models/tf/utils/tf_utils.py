@@ -211,8 +211,8 @@ class FIFOQueue(Layer):
             Tensor to be stored in the queue. Its shape should match the `dims`
             set in the queue constructor
         """
-        assert len(val.shape) == len(self.dims)
-        assert list(val.shape) == self.dims
+        assert len(val.shape) == len(self.dims), "The rank of val and self.dims should match"
+        assert list(val.shape) == self.dims, "The shape of val and self.dims should match"
 
         self.storage[self.next_available_pointer].assign(val)
 
@@ -235,8 +235,14 @@ class FIFOQueue(Layer):
             From the second dim, its shape should match the `dims`
             set in the queue constructor
         """
-        assert len(tf.shape(vals)) == len(self.dims) + 1
-        assert list(vals.shape[1:]) == self.dims
+        assert len(tf.shape(vals)) == len(self.dims) + 1, (
+            "The rank of vals (ignoring the first dim which is the number of examples) and "
+            "self.dims should match"
+        )
+        assert list(vals.shape[1:]) == self.dims, (
+            "The shape of vals (ignoring the first dim which is the number of examples) and "
+            "self.dims should match"
+        )
 
         # if values are larger than the queue capacity N, enqueueing only the last N items
         vals = vals[-self.capacity :]
