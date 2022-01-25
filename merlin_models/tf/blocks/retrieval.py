@@ -141,7 +141,7 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
         super().__init__({"query": query_tower, "item": _item_tower}, post=post, **kwargs)
 
     def query_block(self) -> SequentialBlock:
-        return self.select_by_name("query")[:-1]
+        return self.select_by_name("query")[0]
 
     def item_block(self) -> SequentialBlock:
         item_block = self.select_by_name("item")

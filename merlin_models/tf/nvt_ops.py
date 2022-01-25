@@ -4,13 +4,22 @@ import typing as tp
 import numpy as np
 import nvtabular as nvt
 import tensorflow as tf
-from nvtabular.dispatch import get_lib
+from nvtabular.dispatch import HAS_GPU, get_lib
 from nvtabular.ops import ModelEncode as _ModelEncode
 
 from merlin_standard_lib import Schema, Tag
 
 from .core import Block, Model
 from .dataset import Dataset
+
+
+def get_array_lib():
+    if HAS_GPU:
+        import cupy
+
+        return cupy
+
+    return np
 
 
 class TFModelEncode(_ModelEncode):
@@ -22,13 +31,15 @@ class TFModelEncode(_ModelEncode):
         save_path: tp.Optional[str] = None,
         block_load_func: tp.Optional[tp.Callable[[str], Block]] = None,
         schema: tp.Optional[Schema] = None,
+        output_concat_func=None,
     ):
         save_path = save_path or tempfile.mkdtemp()
         model.save(save_path)
 
         model_load_func = block_load_func if block_load_func else tf.keras.models.load_model
         output_names = output_names or model.block.last.task_names
-        output_concat_func = np.concat if len(output_names) == 1 else get_lib().concat
+        if not output_concat_func:
+            output_concat_func = np.concatenate if len(output_names) == 1 else get_lib().concat
 
         self.schema = schema or model.schema
 
@@ -67,16 +78,17 @@ class ItemEmbeddings(TFModelEncode):
             batch_size=batch_size,
             block_load_func=block_load_func,
             schema=schema,
+            output_concat_func=np.concatenate,
         )
 
 
-class UserEmbeddings(TFModelEncode):
+class QueryEmbeddings(TFModelEncode):
     def __init__(
         self, model: Model, dim: int, batch_size: int = 512, save_path: tp.Optional[str] = None
     ):
-        block_load_func = model.block.first.load_user_block
-        user_block = model.block.first.user_block()
-        schema = user_block.schema
+        block_load_func = model.block.first.load_query_block
+        query_block = model.block.first.query_block()
+        schema = query_block.schema
         output_names = [str(i) for i in range(dim)]
 
         super().__init__(
@@ -86,6 +98,7 @@ class UserEmbeddings(TFModelEncode):
             batch_size=batch_size,
             block_load_func=block_load_func,
             schema=schema,
+            output_concat_func=np.concatenate,
         )
 
 
@@ -101,7 +114,7 @@ def model_encode(model, batch):
 
 
 def encode_output(output: tf.Tensor):
-    if len(output.shape) == 2:
+    if len(output.shape) == 2 and output.shape[1] == 1:
         output = tf.squeeze(output)
 
     return output.numpy()
