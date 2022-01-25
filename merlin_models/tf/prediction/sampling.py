@@ -18,7 +18,7 @@ from typing import Optional
 
 import tensorflow as tf
 
-from ..core import Block, ItemSampler, ItemSamplerData
+from ..core import Block, ItemSampler, ItemSamplerData, Tag
 from ..typing import TabularData
 from ..utils.tf_utils import FIFOQueue
 
@@ -28,7 +28,7 @@ class InBatchSampler(ItemSampler):
     models. The implementation is very simple, as it
     just returns the current item embeddings and metadata, but it is necessary to have
     `InBatchSampler` under the same interface of other more advanced samplers
-    (e.g. `CachedBatchesSampler`).
+    (e.g. `CachedCrossBatchSampler`).
     In a nutshell, for a given (user,item) embeddings pair, the other in-batch item
     embeddings are used as negative items, rather than computing different embeddings
     exclusively for negative items.
@@ -68,7 +68,7 @@ class InBatchSampler(ItemSampler):
         The implementation is very simple, as it just returns the current
         item embeddings and metadata, but it is necessary to have
         `InBatchSampler` under the same interface of other more advanced samplers
-        (e.g. `CachedBatchesSampler`).
+        (e.g. `CachedCrossBatchSampler`).
 
         Parameters
         ----------
@@ -102,7 +102,7 @@ class InBatchSampler(ItemSampler):
         return ItemSamplerData(self._last_batch_items_embeddings, self._last_batch_items_metadata)
 
 
-class CachedBatchesSampler(ItemSampler):
+class CachedCrossBatchSampler(ItemSampler):
     """Provides efficient cached cross-batch [1] / inter-batch [2] negative sampling
     for two-tower item retrieval model. The caches consists of a fixed capacity FIFO queue
     which keeps the item embeddings from the last N batches. All items in the queue are
@@ -110,11 +110,11 @@ class CachedBatchesSampler(ItemSampler):
     It is more efficent than computing embeddings exclusively for negative items.
     This is a popularity-biased sampling as popular items are observed more often
     in training batches.
-    Compared to `InBatchSampler`, the `CachedBatchesSampler` allows for larger number
+    Compared to `InBatchSampler`, the `CachedCrossBatchSampler` allows for larger number
     of negative items, not limited to the batch size. The gradients are not computed
     for the cached negative embeddings which is a scalable approach. A common combination
     of samplers for the `ItemRetrievalScorer` is `[InBatchSampler(),
-    CachedBatchesSampler(ignore_last_batch_on_sample=True)]`, which computes gradients for
+    CachedCrossBatchSampler(ignore_last_batch_on_sample=True)]`, which computes gradients for
     the in-batch negatives and not for the cached item embeddings.
     P.s. Ignoring the false negatives (negative items equal to the positive ones) is
     managed by `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`
@@ -200,7 +200,7 @@ class CachedBatchesSampler(ItemSampler):
     def _check_built(self) -> None:
         if self._item_embeddings_queue is None:
             raise Exception(
-                "The CachedBatchesSampler layer was not built yet. "
+                "The CachedCrossBatchSampler layer was not built yet. "
                 "You need to call() that layer at least once before "
                 "so that it is built before calling add() or sample() directly"
             )
@@ -217,7 +217,7 @@ class CachedBatchesSampler(ItemSampler):
               "items_metadata": Dict like `{"<feature name>": "<feature tensor>"}` which contains
               features that might be relevant for the sampler (e.g. item id, item popularity, item
               recency).
-              The `CachedBatchesSampler` does not use metadata features
+              The `CachedCrossBatchSampler` does not use metadata features
               specifically, but "item_id" is required when using in combination with
               `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`, so that
               false negatives are identified and downscored.
@@ -242,9 +242,10 @@ class CachedBatchesSampler(ItemSampler):
         self._check_built()
         self._check_inputs_batch_sizes(inputs)
 
-        items_embeddings = inputs["items_embeddings"]
-        items_metadata = inputs["items_metadata"]
         if training:
+            items_embeddings = inputs["items_embeddings"]
+            items_metadata = inputs["items_metadata"]
+
             self._item_embeddings_queue.enqueue_many(items_embeddings)
             for feat_name in items_metadata:
                 self.items_metadata_queue[feat_name].enqueue_many(items_metadata[feat_name])
@@ -278,13 +279,176 @@ class CachedBatchesSampler(ItemSampler):
         )
 
 
-class UniformSampler(ItemSampler):
-    def __init__(self, stop_gradient: bool = True, **kwargs):
-        super().__init__(**kwargs)
-        self.stop_gradient = stop_gradient
+class CachedUniformSampler(ItemSampler):
+    """Provides a cached uniform negative sampling for two-tower item retrieval model.
+    It is similar to the `CachedCrossBatchSampler`, the main difference
+    is that the `CachedUniformSampler` is a popularity-based sampler and `CachedUniformSampler`
+    only keeps unique item embeddings in the queue for uniform sampling.
+    The caches consists of two fixed capacity internal FIFO queues that hold both
+    item ids and item embeddings.
+    It ensures that each item id (and corresponding embedding) is added only once into
+    the queue. If the item id was already included in the queue by a previous batch,
+    the embedding is updated.
+    As the queues reach their capacity of unique items, new items will replace the
+    first items added to the queue.
 
-    def add(self, items_embeddings: tf.Tensor, items_metadata: TabularData, training=True):
-        raise NotImplementedError()
+    This is a cached implementation of [1], where those authors proposed combining
+    in-batch sampling (our `InBatchSampler()`) with uniform sampling. Differently from
+    [1] which requires a separate dataset with the all unique items (and corresponding features)
+    to generate the item embeddings, our streaming approach in `CachedUniformSampler` keeps
+    caching new items as they appear in the batches. That means that the very first
+    processsed batches will have less negative samples.
 
-    def sample(self) -> TabularData:
-        raise NotImplementedError()
+    P.s. Ignoring the false negatives (negative items equal to the positive ones) is
+    managed by `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`
+
+    References
+    ----------
+    [1] Yang, Ji, et al. "Mixed negative sampling for learning two-tower neural networks in
+    recommendations." Companion Proceedings of the Web Conference 2020. 2020.
+
+    Parameters
+    ----------
+    capacity : int
+        The maximum number of unique items that can be stored
+    """
+
+    def __init__(
+        self,
+        capacity: int,
+        post: Optional[Block] = None,
+        **kwargs,
+    ):
+        assert capacity > 0
+        super().__init__(capacity, **kwargs)
+
+        self.post = post
+
+        self._item_embeddings_queue = None
+        self._item_ids_queue = None
+
+    def build(self, input_shapes: TabularData) -> None:
+        # Reserving additional space for the current batch when ignore_last_batch_on_sample=True
+        queue_size = self.max_num_samples
+
+        item_embeddings_dims = list(input_shapes["items_embeddings"][1:])
+        self._item_embeddings_queue = FIFOQueue(
+            capacity=queue_size,
+            dims=item_embeddings_dims,
+            dtype=tf.float32,
+            name="item_emb",
+        )
+
+        self._item_ids_queue = FIFOQueue(
+            capacity=queue_size,
+            dims=[],
+            dtype=tf.int32,
+            name="item_id",
+        )
+
+    def _check_built(self) -> None:
+        if self._item_embeddings_queue is None:
+            raise Exception(
+                "The CachedUniformSampler layer was not built yet. "
+                "You need to call() that layer at least once before "
+                "so that it is built before calling add() or sample() directly"
+            )
+
+    def call(self, inputs: TabularData, training=True) -> ItemSamplerData:
+        """Adds the unique items of the current batch into a FIFO queue cache
+        and returns all cached unique items, which is equivalent to uniform sampling
+
+        Parameters
+        ----------
+        inputs : TabularData
+            Dict with two keys:
+              "items_embeddings": Items embeddings tensor
+              "items_metadata": Dict like `{"<feature name>": "<feature tensor>"}` which contains
+              features that might be relevant for the sampler (e.g. item id, item popularity, item
+              recency).
+              The `CachedUniformSampler` required "item_id" to avoid storing repeated items.
+        training : bool, optional
+            Flag indicating if on training mode, by default True
+
+        Returns
+        -------
+        ItemSamplerData
+            Value object with the sampled item embeddings and item metadata
+        """
+        self.add(inputs, training)
+        items_embeddings = self.sample()
+        return items_embeddings
+
+    def _check_inputs(self, inputs):
+        assert (
+            str(Tag.ITEM_ID) in inputs["items_metadata"]
+        ), "The 'item_id' metadata feature is required by UniformSampler."
+
+        tf.assert_equal(
+            tf.shape(inputs["items_embeddings"])[0],
+            tf.shape(inputs["items_metadata"][str(Tag.ITEM_ID)])[0],
+        )
+
+    def add(
+        self,
+        inputs: TabularData,
+        training: bool = True,
+    ) -> None:
+        self._check_built()
+        self._check_inputs(inputs)
+
+        if training:
+            items_embeddings = inputs["items_embeddings"]
+            item_ids = inputs["items_metadata"][str(Tag.ITEM_ID)]
+
+            # Removing from inputs repeated item ids and corresponding embeddings
+            item_ids, items_embeddings = self._get_unique_item_ids_embeddings(
+                item_ids, items_embeddings
+            )
+
+            # Identifying what are the internal indices of the item ids in its queue
+            item_ids_idxs = self._item_ids_queue.index_of(item_ids)
+            # Creating masks for new and existing items
+            new_items_mask = tf.equal(item_ids_idxs, -1)
+            existing_items_mask = tf.logical_not(new_items_mask)
+
+            # Updating embeddings of existing items
+            self._item_embeddings_queue.update_by_indices(
+                indices=tf.expand_dims(item_ids_idxs[existing_items_mask], -1),
+                values=items_embeddings[existing_items_mask],
+            )
+
+            # Adding to the queue items not found
+            self._item_embeddings_queue.enqueue_many(items_embeddings[new_items_mask])
+            self._item_ids_queue.enqueue_many(item_ids[new_items_mask])
+
+    def _get_unique_item_ids_embeddings(self, item_ids, items_embeddings):
+        sorting_item_ids_idx = tf.argsort(item_ids)
+        sorted_item_ids = tf.gather(item_ids, sorting_item_ids_idx)
+        sorted_items_embeddings = tf.gather(items_embeddings, sorting_item_ids_idx)
+        non_repeated_item_ids_mask = tf.concat(
+            [
+                # First element is never repeated
+                tf.constant(
+                    True,
+                    shape=(1,),
+                ),
+                tf.not_equal(sorted_item_ids[:-1], sorted_item_ids[1:]),
+            ],
+            axis=0,
+        )
+
+        item_ids = sorted_item_ids[non_repeated_item_ids_mask]
+        items_embeddings = sorted_items_embeddings[non_repeated_item_ids_mask]
+
+        return item_ids, items_embeddings
+
+    def sample(self) -> ItemSamplerData:
+        self._check_built()
+        items_embeddings = self._item_embeddings_queue.list_all()
+        items_ids = self._item_ids_queue.list_all()
+
+        if self.post is not None:
+            items_embeddings = self.post(items_embeddings)
+
+        return ItemSamplerData(items_embeddings, items_metadata={str(Tag.ITEM_ID): items_ids})

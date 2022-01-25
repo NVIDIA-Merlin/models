@@ -26,7 +26,7 @@ from merlin_standard_lib import Tag
 def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     batch_size = 100
 
-    cached_batches_sampler = ml.CachedBatchesSampler(
+    cached_batches_sampler = ml.CachedCrossBatchSampler(
         num_batches_to_cache=2,
         batch_size=batch_size,
         ignore_last_batch_on_sample=ignore_last_batch_on_sample,
@@ -63,9 +63,9 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
 def test_item_retrieval_scorer_cached_sampler_no_result_first_batch():
     batch_size = 100
 
-    # CachedBatchesSampler is the only sampler here and with ignore_last_batch_on_sample=True
+    # CachedCrossBatchSampler is the only sampler here and with ignore_last_batch_on_sample=True
     # for the first batch no sample will be returned, which should raise an exception
-    cached_batches_sampler = ml.CachedBatchesSampler(
+    cached_batches_sampler = ml.CachedCrossBatchSampler(
         num_batches_to_cache=2,
         batch_size=batch_size,
         ignore_last_batch_on_sample=True,
@@ -99,9 +99,9 @@ def test_item_retrieval_scorer_no_sampler():
 def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_id_context():
     batch_size = 100
 
-    # CachedBatchesSampler is the only sampler here and with ignore_last_batch_on_sample=True
+    # CachedCrossBatchSampler is the only sampler here and with ignore_last_batch_on_sample=True
     # for the first batch no sample will be returned, which should raise an exception
-    cached_batches_sampler = ml.CachedBatchesSampler(
+    cached_batches_sampler = ml.CachedCrossBatchSampler(
         num_batches_to_cache=2,
         batch_size=batch_size,
         ignore_last_batch_on_sample=False,
@@ -189,7 +189,7 @@ def test_retrieval_task_inbatch_cached_samplers(
     batch_size = music_streaming_data.tf_tensor_dict["item_id"].shape[0]
     assert batch_size == 100
 
-    cached_batches_sampler = ml.CachedBatchesSampler(
+    cached_batches_sampler = ml.CachedCrossBatchSampler(
         num_batches_to_cache=2,
         batch_size=batch_size,
         ignore_last_batch_on_sample=ignore_last_batch_on_sample,
@@ -226,7 +226,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     batch_size = 100
 
     samplers = [
-        ml.CachedBatchesSampler(
+        ml.CachedCrossBatchSampler(
             num_batches_to_cache=3,
             batch_size=batch_size,
             ignore_last_batch_on_sample=True,

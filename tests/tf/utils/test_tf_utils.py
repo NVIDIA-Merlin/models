@@ -202,6 +202,6 @@ def test_enqueue_tensors_wrong_dim():
     with pytest.raises(AssertionError) as excinfo:
         queue.enqueue_many(multiple_inputs)
     assert (
-        "The shape of vals (ignoring the first dim which is the number of examples) "
+        "The shape of values (ignoring the first dim which is the number of examples) "
         "and self.dims should match"
     ) in str(excinfo.value)

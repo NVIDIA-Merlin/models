@@ -134,7 +134,7 @@ class FIFOQueue(Layer):
     ops. As soon as maximum capacity is reached, the oldest examples
     are removed from the queue to add the current beach ones.
     As an example use case, the `FIFOQueue` is used by
-    `CachedBatchesSampler` to cache item embeddings and item metadata features.
+    `CachedCrossBatchSampler` to cache item embeddings and item metadata features.
 
         Parameters
         ----------
@@ -150,7 +150,10 @@ class FIFOQueue(Layer):
             graph the FIFO Queue storages, by default ""
         initialize_tensor : tf.Tensor, optional
             Allows for initializing the storage with values, by default None which initializes
-            the storage with zeros
+            the storage with -1.
+            P.s. It is important that for categorical features the storage Variable is not
+            initialized with a valid categorical value (e.g. values >= 0), so that `index_of()`
+            works properly
     """
 
     def __init__(
@@ -191,7 +194,9 @@ class FIFOQueue(Layer):
         )
 
         if initialize_tensor is None:
-            initialize_tensor = tf.Variable(lambda: tf.zeros([capacity] + self.dims, dtype=dtype))
+            initialize_tensor = tf.Variable(
+                lambda: tf.zeros([capacity] + self.dims, dtype=dtype) - 1
+            )
 
         self.storage = tf.Variable(
             initial_value=initialize_tensor,
@@ -224,6 +229,16 @@ class FIFOQueue(Layer):
             self.first_pointer.assign(self.next_available_pointer)
             self.at_full_capacity.assign(True)
 
+    def _check_input_values(self, values):
+        assert len(tf.shape(values)) == len(self.dims) + 1, (
+            "The rank of values (ignoring the first dim which is the number of examples) and "
+            "self.dims should match"
+        )
+        assert list(values.shape[1:]) == self.dims, (
+            "The shape of values (ignoring the first dim which is the number of examples) and "
+            "self.dims should match"
+        )
+
     def enqueue_many(self, vals: tf.Tensor) -> None:
         """Enqueues many examples into the queue.
 
@@ -235,14 +250,7 @@ class FIFOQueue(Layer):
             From the second dim, its shape should match the `dims`
             set in the queue constructor
         """
-        assert len(tf.shape(vals)) == len(self.dims) + 1, (
-            "The rank of vals (ignoring the first dim which is the number of examples) and "
-            "self.dims should match"
-        )
-        assert list(vals.shape[1:]) == self.dims, (
-            "The shape of vals (ignoring the first dim which is the number of examples) and "
-            "self.dims should match"
-        )
+        self._check_input_values(vals)
 
         # if values are larger than the queue capacity N, enqueueing only the last N items
         vals = vals[-self.capacity :]
@@ -385,3 +393,72 @@ class FIFOQueue(Layer):
         self.first_pointer.assign(0)
         self.next_available_pointer.assign(0)
         self.at_full_capacity.assign(False)
+
+    def index_of(self, ids: tf.Tensor) -> tf.Tensor:
+        """Retrieves the indices of the input ids if they exist in the queue,
+        and -1 indicates the id was not found.
+
+        Parameters
+        ----------
+        ids : tf.Tensor
+            1D tensor with the search ids
+
+        Returns
+        -------
+        tf.Tensor
+            1D tensor with the same size of the input ids, containing the indices of the
+            ids in the queue (-1 if not found)
+        """
+        assert self.queue_dtype in [tf.int8, tf.int16, tf.int32, tf.int64], (
+            "The index_of method is only available for queues with an int dtype "
+            "(tf.int8, tf.int16, tf.int32, tf.int64)"
+        )
+        assert (
+            self.dims == []
+        ), "The index_of method is only available for queues of scalars (dims=[])"
+
+        # item_ids_indices = tf.where(tf.equal(ids, self.storage))
+        equal_tensor = tf.cast(tf.equal(self.storage, tf.expand_dims(ids, -1)), tf.int32)
+        # Artificially adding a first zero column so that index 0 is returned if
+        # there is not an equal value (1) row-wise
+        equal_tensor_extended = tf.concat(
+            [tf.zeros(shape=(tf.shape(equal_tensor)[0], 1), dtype=tf.int32), equal_tensor],
+            axis=1,
+        )
+        # Subtracting the indices to account for the first collumn added, so that
+        # values not found become -1
+        item_ids_indices = tf.argmax(equal_tensor_extended, axis=1) - 1
+        return item_ids_indices
+
+    def get_values_by_indices(self, indices: tf.Tensor) -> tf.Tensor:
+        """Retrieves values of the queue based on their index
+
+        Parameters
+        ----------
+        indices : tf.Tensor
+            Indices to retrieve
+
+        Returns
+        -------
+        tf.Tensor
+            Values corresponding to the indices
+        """
+        result = tf.gather(self.storage, indices)
+        return result
+
+    def update_by_indices(self, indices: tf.Tensor, values: tf.Tensor) -> None:
+        """Update values of the queue for specific indices
+
+        Parameters
+        ----------
+        indices : tf.Tensor
+            Indices to update
+        values : tf.Tensor
+            Update values
+        """
+        self._check_input_values(values)
+        assert (
+            tf.shape(indices)[0] == tf.shape(values)[0]
+        ), "The number of indices and values should match"
+
+        self.storage.scatter_nd_update(indices, values)

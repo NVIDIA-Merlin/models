@@ -75,7 +75,7 @@ from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
 
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
-from .prediction.sampling import CachedBatchesSampler, InBatchSampler
+from .prediction.sampling import CachedCrossBatchSampler, CachedUniformSampler, InBatchSampler
 from .utils import repr_utils
 from .utils.tf_utils import FIFOQueue
 
@@ -148,7 +148,8 @@ __all__ = [
     "SyntheticData",
     "ItemSampler",
     "ItemSamplerData",
-    "CachedBatchesSampler",
     "InBatchSampler",
+    "CachedCrossBatchSampler",
+    "CachedUniformSampler",
     "FIFOQueue",
 ]
