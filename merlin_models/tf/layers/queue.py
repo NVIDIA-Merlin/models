@@ -349,8 +349,10 @@ class FIFOQueue(Layer):
             Update values
         """
         self._check_input_values(values)
-        assert (
-            tf.shape(indices)[0] == tf.shape(values)[0]
-        ), "The number of indices and values should match"
+        tf.assert_equal(
+            tf.shape(indices)[0],
+            tf.shape(values)[0],
+            "The number of indices and values should match",
+        )
 
         self.storage.scatter_nd_update(indices, values)

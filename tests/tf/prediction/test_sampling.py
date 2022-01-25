@@ -198,10 +198,10 @@ def test_cached_batches_sampler_max_num_samples(ignore_last_batch_on_sample):
     assert cached_batches_sampler.max_num_samples == batch_size * num_batches_to_cache
 
 
-def test_cached_uniform_sampler():
+def test_cached_uniform_sampler_adds_or_updates_items():
     queue_capacity = 15
     uniform_sampler = ml.CachedUniformSampler(
-        capacity=queue_capacity,
+        capacity=queue_capacity, ignore_last_batch_on_sample=False
     )
 
     # Adding 4 new items ids but two of them with repeated item ids (should add only
@@ -274,6 +274,26 @@ def test_cached_uniform_sampler():
     )
 
 
+@pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
+def test_cached_uniform_sampler_expected_number_examples(ignore_last_batch_on_sample):
+    queue_capacity = 100
+    uniform_sampler = ml.CachedUniformSampler(
+        capacity=queue_capacity, ignore_last_batch_on_sample=ignore_last_batch_on_sample
+    )
+
+    for step in range(1, 4):
+        batch_size = 10
+        # Ensures item ids are unique
+        item_ids = tf.range(step * batch_size, (step * batch_size) + 10)
+        item_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+        input_data = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
+        output_data = uniform_sampler(input_data.__dict__)
+
+        expected_samples = batch_size * (step - 1 if ignore_last_batch_on_sample else step)
+        assert tuple(output_data.embeddings.shape) == (expected_samples, 5)
+        assert tuple(output_data.metadata["item_id"].shape) == (expected_samples,)
+
+
 def test_cached_uniform_sampler_no_item_id():
     uniform_sampler = ml.CachedUniformSampler(
         capacity=10,
@@ -293,7 +313,7 @@ def test_cached_uniform_sampler_trying_add_sample_before_built():
 
     with pytest.raises(Exception) as excinfo:
         input_data = ml.EmbeddingWithMetadata(embeddings=None, metadata={})
-        cached_batches_sampler.add(input_data)
+        cached_batches_sampler.add(input_data.__dict__)
     assert "The CachedUniformSampler layer was not built yet." in str(excinfo.value)
 
     with pytest.raises(Exception) as excinfo:

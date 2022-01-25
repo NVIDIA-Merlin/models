@@ -236,7 +236,7 @@ class CachedCrossBatchSampler(ItemSampler):
     def _check_built(self) -> None:
         if self._item_embeddings_queue is None:
             raise Exception(
-                "The CachedCrossBatchSampler layer was not built yet. "
+                f"The {self.__class__.__name__} layer was not built yet. "
                 "You need to call() that layer at least once before "
                 "so that it is built before calling add() or sample() directly"
             )
@@ -280,9 +280,9 @@ class CachedCrossBatchSampler(ItemSampler):
         training: bool = True,
     ) -> None:
         self._check_built()
-        self._check_inputs_batch_sizes(inputs)
 
         if training:
+            self._check_inputs_batch_sizes(inputs)
             items_embeddings = inputs["embeddings"]
             items_metadata = inputs["metadata"]
 
@@ -306,7 +306,7 @@ class CachedCrossBatchSampler(ItemSampler):
         )
 
 
-class CachedUniformSampler(ItemSampler):
+class CachedUniformSampler(CachedCrossBatchSampler):
     """Provides a cached uniform negative sampling for two-tower item retrieval model.
     It is similar to the `CachedCrossBatchSampler`, the main difference
     is that the `CachedUniformSampler` is a popularity-based sampler and `CachedUniformSampler`
@@ -336,51 +336,28 @@ class CachedUniformSampler(ItemSampler):
 
     Parameters
     ----------
-    capacity : int
-        The maximum number of unique items that can be stored
+    capacity: int
+        The queue capacity to store samples
+    ignore_last_batch_on_sample: bool
+        Whether should include the last batch in the sampling. By default `False`,
+        as for sampling from the current batch we recommend `InBatchSampler()`, which
+        allows computing gradients for in-batch negative items
     """
 
-    def __init__(
+    item_id_feature_name = str(Tag.ITEM_ID)
+
+    def _check_inputs(self, inputs):
+        assert (
+            str(Tag.ITEM_ID) in inputs["metadata"]
+        ), "The 'item_id' metadata feature is required by UniformSampler."
+
+    def add(
         self,
-        capacity: int,
-        **kwargs,
-    ):
-        assert capacity > 0
-        super().__init__(capacity, **kwargs)
-
-        self._item_embeddings_queue = None
-        self._item_ids_queue = None
-
-    def build(self, input_shapes: TabularData) -> None:
-        # Reserving additional space for the current batch when ignore_last_batch_on_sample=True
-        queue_size = self.max_num_samples
-
-        item_embeddings_dims = list(input_shapes["embeddings"][1:])
-        self._item_embeddings_queue = FIFOQueue(
-            capacity=queue_size,
-            dims=item_embeddings_dims,
-            dtype=tf.float32,
-            name="item_emb",
-        )
-
-        self._item_ids_queue = FIFOQueue(
-            capacity=queue_size,
-            dims=[],
-            dtype=tf.int32,
-            name="item_id",
-        )
-
-    def _check_built(self) -> None:
-        if self._item_embeddings_queue is None:
-            raise Exception(
-                "The CachedUniformSampler layer was not built yet. "
-                "You need to call() that layer at least once before "
-                "so that it is built before calling add() or sample() directly"
-            )
-
-    def call(self, inputs: TabularData, training=True) -> EmbeddingWithMetadata:
-        """Adds the unique items of the current batch into a FIFO queue cache
-        and returns all cached unique items, which is equivalent to uniform sampling
+        inputs: TabularData,
+        training: bool = True,
+    ) -> None:
+        """Updates the FIFO queue with batch item embeddings (for items whose ids were
+        already added to the queue) and adds to the queue the items seen for the first time
 
         Parameters
         ----------
@@ -390,66 +367,82 @@ class CachedUniformSampler(ItemSampler):
               "items_metadata": Dict like `{"<feature name>": "<feature tensor>"}` which contains
               features that might be relevant for the sampler (e.g. item id, item popularity, item
               recency).
-              The `CachedUniformSampler` required "item_id" to avoid storing repeated items.
+              The `CachedUniformSampler` requires the "item_id" feature to identify items already
+              added to the queue.
         training : bool, optional
             Flag indicating if on training mode, by default True
-
-        Returns
-        -------
-        EmbeddingWithMetadata
-            Value object with the sampled item embeddings and item metadata
         """
-        self.add(inputs, training)
-        items_embeddings = self.sample()
-        return items_embeddings
 
-    def _check_inputs(self, inputs):
-        assert (
-            str(Tag.ITEM_ID) in inputs["metadata"]
-        ), "The 'item_id' metadata feature is required by UniformSampler."
-
-        tf.assert_equal(
-            tf.shape(inputs["embeddings"])[0],
-            tf.shape(inputs["metadata"][str(Tag.ITEM_ID)])[0],
-        )
-
-    def add(
-        self,
-        inputs: TabularData,
-        training: bool = True,
-    ) -> None:
         self._check_built()
-        self._check_inputs(inputs)
 
         if training:
-            items_embeddings = inputs["embeddings"]
-            item_ids = inputs["metadata"][str(Tag.ITEM_ID)]
+            self._check_inputs(inputs)
 
             # Removing from inputs repeated item ids and corresponding embeddings
-            item_ids, items_embeddings = self._get_unique_item_ids_embeddings(
-                item_ids, items_embeddings
-            )
+            unique_items = self._get_unique_items(inputs["embeddings"], inputs["metadata"])
+            unique_items_ids = unique_items.metadata[self.item_id_feature_name]
 
             # Identifying what are the internal indices of the item ids in its queue
-            item_ids_idxs = self._item_ids_queue.index_of(item_ids)
+            item_ids_idxs = self.items_metadata_queue[self.item_id_feature_name].index_of(
+                unique_items_ids
+            )
             # Creating masks for new and existing items
             new_items_mask = tf.equal(item_ids_idxs, -1)
             existing_items_mask = tf.logical_not(new_items_mask)
 
+            update_indices = tf.expand_dims(item_ids_idxs[existing_items_mask], -1)
             # Updating embeddings of existing items
             self._item_embeddings_queue.update_by_indices(
-                indices=tf.expand_dims(item_ids_idxs[existing_items_mask], -1),
-                values=items_embeddings[existing_items_mask],
+                indices=update_indices,
+                values=unique_items.embeddings[existing_items_mask],
             )
 
-            # Adding to the queue items not found
-            self._item_embeddings_queue.enqueue_many(items_embeddings[new_items_mask])
-            self._item_ids_queue.enqueue_many(item_ids[new_items_mask])
+            for feat_name in self.items_metadata_queue:
+                self.items_metadata_queue[feat_name].update_by_indices(
+                    indices=update_indices,
+                    values=unique_items.metadata[feat_name][existing_items_mask],
+                )
 
-    def _get_unique_item_ids_embeddings(self, item_ids, items_embeddings):
+            # Adding to the queue items not found
+            new_items = EmbeddingWithMetadata(
+                embeddings=unique_items.embeddings[new_items_mask],
+                metadata={
+                    feat_name: unique_items.metadata[feat_name][new_items_mask]
+                    for feat_name in unique_items.metadata
+                },
+            )
+            super().add(new_items.__dict__, training)
+
+    def _get_unique_items(
+        self, items_embeddings: tf.Tensor, items_metadata: TabularData
+    ) -> EmbeddingWithMetadata:
+        """Extracts the embeddings and corresponding metadata features for
+        the unique items found in the batch, based on the item ids
+
+        Parameters
+        ----------
+        items_embeddings : items_metadata
+            Batch item embeddings
+        items_metadata : TabularData
+            Batch item metadata features
+
+        Returns
+        -------
+        EmbeddingWithMetadata
+            An EmbeddingWithMetadata object with the embeddings and
+            metadata features of the unique items
+        """
+        item_ids = items_metadata[self.item_id_feature_name]
         sorting_item_ids_idx = tf.argsort(item_ids)
+
+        sorted_embeddings = tf.gather(items_embeddings, sorting_item_ids_idx)
+        sorted_metadata = {
+            feat_name: tf.gather(items_metadata[feat_name], sorting_item_ids_idx)
+            for feat_name in items_metadata
+        }
+
         sorted_item_ids = tf.gather(item_ids, sorting_item_ids_idx)
-        sorted_items_embeddings = tf.gather(items_embeddings, sorting_item_ids_idx)
+
         non_repeated_item_ids_mask = tf.concat(
             [
                 # First element is never repeated
@@ -462,14 +455,13 @@ class CachedUniformSampler(ItemSampler):
             axis=0,
         )
 
-        item_ids = sorted_item_ids[non_repeated_item_ids_mask]
-        items_embeddings = sorted_items_embeddings[non_repeated_item_ids_mask]
+        output_embeddings = sorted_embeddings[non_repeated_item_ids_mask]
+        output_metadata = {
+            feat_name: items_metadata[feat_name][non_repeated_item_ids_mask]
+            for feat_name in sorted_metadata
+        }
 
-        return item_ids, items_embeddings
-
-    def sample(self) -> EmbeddingWithMetadata:
-        self._check_built()
-        items_embeddings = self._item_embeddings_queue.list_all()
-        items_ids = self._item_ids_queue.list_all()
-
-        return EmbeddingWithMetadata(items_embeddings, metadata={str(Tag.ITEM_ID): items_ids})
+        return EmbeddingWithMetadata(
+            embeddings=output_embeddings,
+            metadata=output_metadata,
+        )

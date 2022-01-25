@@ -191,7 +191,7 @@ def test_retrieval_task_inbatch_cached_samplers(
     )
     inbatch_sampler = ml.InBatchSampler()
 
-    samplers = [cached_batches_sampler, inbatch_sampler]
+    samplers = [inbatch_sampler, cached_batches_sampler]
 
     model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))
 
@@ -221,11 +221,15 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     batch_size = 100
 
     samplers = [
+        ml.InBatchSampler(),
         ml.CachedCrossBatchSampler(
             capacity=batch_size * 3,
             ignore_last_batch_on_sample=True,
         ),
-        ml.InBatchSampler(),
+        ml.CachedUniformSampler(
+            capacity=batch_size * 3,
+            ignore_last_batch_on_sample=False,
+        ),
     ]
 
     model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))
