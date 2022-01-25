@@ -190,6 +190,3 @@ class MultiClassClassificationTask(PredictionTask):
                 dict_results.update({metric.name: metric.result()})
 
         return dict_results
-
-    # def compute_output_shape(self, input_shape):
-    #    return (100, 401)

@@ -16,13 +16,13 @@
 import logging
 from typing import List, Optional, Tuple
 
-import numpy as np
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
 from merlin_models.tf.block.transformations import L2Norm
-from merlin_models.tf.core import Block, ItemSampler, ItemSamplerData
-from merlin_models.tf.prediction.sampling import InBatchSampler
+from merlin_models.tf.core import Block, EmbeddingWithMetadata
+from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler
+from merlin_models.utils.constants import MIN_FLOAT
 from merlin_standard_lib import Schema, Tag
 
 from ..typing import TabularData
@@ -30,8 +30,6 @@ from .classification import MultiClassClassificationTask
 from .ranking_metric import ranking_metrics
 
 LOG = logging.getLogger("merlin_models")
-
-MIN_FLOAT = np.finfo(np.float32).min / 100.0
 
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
@@ -205,14 +203,14 @@ class ItemRetrievalScorer(Block):
 
             # Adds items from the current batch into samplers and sample a number of negatives
             for sampler in self.samplers:
-                input_data = ItemSamplerData(batch_items_embeddings, batch_items_metadata)
+                input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
                 neg_items = sampler(input_data.__dict__)
 
-                if tf.shape(neg_items.items_embeddings)[0] > 0:
+                if tf.shape(neg_items.embeddings)[0] > 0:
                     # Accumulates sampled negative items from all samplers
-                    neg_items_embeddings_list.append(neg_items.items_embeddings)
+                    neg_items_embeddings_list.append(neg_items.embeddings)
                     if self.downscore_false_negatives:
-                        neg_items_ids_list.append(neg_items.items_metadata[str(Tag.ITEM_ID)])
+                        neg_items_ids_list.append(neg_items.metadata[str(Tag.ITEM_ID)])
                 else:
                     LOG.warn(
                         f"The sampler {type(sampler).__name__} returned no samples for this batch."
@@ -275,7 +273,7 @@ def ItemRetrievalTask(
     loss=tf.keras.losses.CategoricalCrossentropy(
         from_logits=True, reduction=tf.keras.losses.Reduction.SUM
     ),
-    samplers: List[ItemSampler] = [InBatchSampler()],
+    samplers: List[ItemSampler] = [],
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
@@ -320,6 +318,9 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
+
+    if samplers is None or samplers == []:
+        samplers = [InBatchSampler()]
 
     prediction_call = ItemRetrievalScorer(
         samplers=samplers,

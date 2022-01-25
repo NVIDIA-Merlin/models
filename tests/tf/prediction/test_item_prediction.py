@@ -24,14 +24,12 @@ from merlin_standard_lib import Tag
 
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
 def test_item_retrieval_scorer(ignore_last_batch_on_sample):
-    batch_size = 100
-
+    batch_size = 10
     cached_batches_sampler = ml.CachedCrossBatchSampler(
-        num_batches_to_cache=2,
-        batch_size=batch_size,
+        capacity=batch_size * 2,
         ignore_last_batch_on_sample=ignore_last_batch_on_sample,
     )
-    inbatch_sampler = ml.InBatchSampler(batch_size=batch_size)
+    inbatch_sampler = ml.InBatchSampler()
 
     item_retrieval_scorer = ml.ItemRetrievalScorer(
         samplers=[cached_batches_sampler, inbatch_sampler], sampling_downscore_false_negatives=False
@@ -61,13 +59,12 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
 
 
 def test_item_retrieval_scorer_cached_sampler_no_result_first_batch():
-    batch_size = 100
+    batch_size = 10
 
     # CachedCrossBatchSampler is the only sampler here and with ignore_last_batch_on_sample=True
     # for the first batch no sample will be returned, which should raise an exception
     cached_batches_sampler = ml.CachedCrossBatchSampler(
-        num_batches_to_cache=2,
-        batch_size=batch_size,
+        capacity=batch_size * 2,
         ignore_last_batch_on_sample=True,
     )
 
@@ -97,13 +94,12 @@ def test_item_retrieval_scorer_no_sampler():
 
 
 def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_id_context():
-    batch_size = 100
+    batch_size = 10
 
     # CachedCrossBatchSampler is the only sampler here and with ignore_last_batch_on_sample=True
     # for the first batch no sample will be returned, which should raise an exception
     cached_batches_sampler = ml.CachedCrossBatchSampler(
-        num_batches_to_cache=2,
-        batch_size=batch_size,
+        capacity=batch_size * 2,
         ignore_last_batch_on_sample=False,
     )
 
@@ -122,12 +118,12 @@ def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_
 
 
 def test_item_retrieval_scorer_downscore_false_negatives():
-    batch_size = 100
+    batch_size = 10
 
-    cached_batches_sampler = ml.InBatchSampler(batch_size=batch_size)
+    cached_batches_sampler = ml.InBatchSampler()
 
     # Adding item id to the context
-    item_ids = tf.random.uniform(shape=(batch_size,), minval=1, maxval=10000, dtype=tf.int32)
+    item_ids = tf.random.uniform(shape=(batch_size,), minval=1, maxval=10000000, dtype=tf.int32)
     context = ml.BlockContext(feature_names=["item_id"], feature_dtypes={"item_id": tf.int32})
     _ = context({"item_id": item_ids})
 
@@ -145,7 +141,7 @@ def test_item_retrieval_scorer_downscore_false_negatives():
     output_scores = item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
     output_neg_scores = output_scores[:, 1:]
 
-    diag_mask = tf.eye(tf.shape(output_scores)[0], dtype=tf.bool)
+    diag_mask = tf.eye(tf.shape(output_neg_scores)[0], dtype=tf.bool)
     tf.assert_equal(output_neg_scores[diag_mask], FALSE_NEGATIVE_SCORE)
     tf.assert_equal(
         tf.reduce_all(
@@ -159,10 +155,10 @@ def test_item_retrieval_scorer_downscore_false_negatives():
 
 
 def test_item_retrieval_scorer_only_positive_when_not_training():
-    batch_size = 100
+    batch_size = 10
 
     item_retrieval_scorer = ml.ItemRetrievalScorer(
-        samplers=[ml.InBatchSampler(batch_size=batch_size)],
+        samplers=[ml.InBatchSampler()],
         sampling_downscore_false_negatives=False,
     )
 
@@ -190,11 +186,10 @@ def test_retrieval_task_inbatch_cached_samplers(
     assert batch_size == 100
 
     cached_batches_sampler = ml.CachedCrossBatchSampler(
-        num_batches_to_cache=2,
-        batch_size=batch_size,
+        capacity=batch_size * 2,
         ignore_last_batch_on_sample=ignore_last_batch_on_sample,
     )
-    inbatch_sampler = ml.InBatchSampler(batch_size=batch_size)
+    inbatch_sampler = ml.InBatchSampler()
 
     samplers = [cached_batches_sampler, inbatch_sampler]
 
@@ -227,11 +222,10 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
 
     samplers = [
         ml.CachedCrossBatchSampler(
-            num_batches_to_cache=3,
-            batch_size=batch_size,
+            capacity=batch_size * 3,
             ignore_last_batch_on_sample=True,
         ),
-        ml.InBatchSampler(batch_size=batch_size),
+        ml.InBatchSampler(),
     ]
 
     model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))

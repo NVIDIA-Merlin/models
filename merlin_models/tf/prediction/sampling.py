@@ -14,13 +14,57 @@
 # limitations under the License.
 #
 
-from typing import Optional
+import abc
+from typing import List, Optional
 
 import tensorflow as tf
+from tensorflow.keras.layers import Layer
 
-from ..core import Block, ItemSampler, ItemSamplerData, Tag
+from ..core import EmbeddingWithMetadata, Tag
+from ..layers.queue import FIFOQueue
 from ..typing import TabularData
-from ..utils.tf_utils import FIFOQueue
+
+
+class ItemSampler(abc.ABC, Layer):
+    def __init__(
+        self,
+        max_num_samples: Optional[int] = None,
+        **kwargs,
+    ):
+        super(ItemSampler, self).__init__(**kwargs)
+        self.set_max_num_samples(max_num_samples)
+
+    @abc.abstractmethod
+    def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=True):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def sample(self) -> EmbeddingWithMetadata:
+        raise NotImplementedError()
+
+    def _check_inputs_batch_sizes(self, inputs: TabularData) -> bool:
+        embeddings_batch_size = tf.shape(inputs["embeddings"])[0]
+        for feat_name in inputs["metadata"]:
+            metadata_feat_batch_size = tf.shape(inputs["metadata"][feat_name])[0]
+
+            tf.assert_equal(
+                embeddings_batch_size,
+                metadata_feat_batch_size,
+                "The batch size (first dim) of embeddings "
+                f"({int(embeddings_batch_size)}) and metadata "
+                f"features ({int(metadata_feat_batch_size)}) must match.",
+            )
+
+    @property
+    def required_features(self) -> List[str]:
+        return []
+
+    @property
+    def max_num_samples(self) -> int:
+        return self._max_num_samples
+
+    def set_max_num_samples(self, value) -> None:
+        self._max_num_samples = value
 
 
 class InBatchSampler(ItemSampler):
@@ -54,15 +98,20 @@ class InBatchSampler(ItemSampler):
         self._last_batch_items_metadata: TabularData = None
         self.set_batch_size(batch_size)
 
+    @property
+    def batch_size(self) -> int:
+        return self._batch_size
+
+    def set_batch_size(self, value):
+        self._batch_size = value
+        if value is not None:
+            self.set_max_num_samples(value)
+
     def build(self, input_shapes: TabularData) -> None:
         if self._batch_size is None:
-            self.set_batch_size(input_shapes["items_embeddings"][0])
+            self.set_batch_size(input_shapes["embeddings"][0])
 
-    def set_batch_size(self, batch_size):
-        self._batch_size = batch_size
-        self._max_num_samples = batch_size
-
-    def call(self, inputs: TabularData, training=True) -> ItemSamplerData:
+    def call(self, inputs: TabularData, training=True) -> EmbeddingWithMetadata:
         """Returns the item embeddings and item metadata from
         the current batch.
         The implementation is very simple, as it just returns the current
@@ -86,7 +135,7 @@ class InBatchSampler(ItemSampler):
 
         Returns
         -------
-        ItemSamplerData
+        EmbeddingWithMetadata
             Value object with the sampled item embeddings and item metadata
         """
         self.add(inputs, training)
@@ -95,11 +144,13 @@ class InBatchSampler(ItemSampler):
 
     def add(self, inputs: TabularData, training=True) -> None:
         self._check_inputs_batch_sizes(inputs)
-        self._last_batch_items_embeddings = inputs["items_embeddings"]
-        self._last_batch_items_metadata = inputs["items_metadata"]
+        self._last_batch_items_embeddings = inputs["embeddings"]
+        self._last_batch_items_metadata = inputs["metadata"]
 
-    def sample(self) -> ItemSamplerData:
-        return ItemSamplerData(self._last_batch_items_embeddings, self._last_batch_items_metadata)
+    def sample(self) -> EmbeddingWithMetadata:
+        return EmbeddingWithMetadata(
+            self._last_batch_items_embeddings, self._last_batch_items_metadata
+        )
 
 
 class CachedCrossBatchSampler(ItemSampler):
@@ -131,12 +182,8 @@ class CachedCrossBatchSampler(ItemSampler):
 
     Parameters
     ----------
-    batch_size : int
-        The batch size, which is required to define the sampler capacity
-        (batch_size * num_batches_to_cache)
-    num_batches_to_cache: int
-        The number of batches to cache, which is required to define the sampler capacity
-        (batch_size * num_batches_to_cache), defaults to 1.
+    capacity: int
+        The queue capacity to store samples
     ignore_last_batch_on_sample: bool
         Whether should include the last batch in the sampling. By default `False`,
         as for sampling from the current batch we recommend `InBatchSampler()`, which
@@ -145,20 +192,12 @@ class CachedCrossBatchSampler(ItemSampler):
 
     def __init__(
         self,
-        batch_size: int,
-        num_batches_to_cache: int = 1,
-        post: Optional[Block] = None,
+        capacity: int,
         ignore_last_batch_on_sample: bool = True,
         **kwargs,
     ):
-        assert batch_size > 0
-        assert num_batches_to_cache > 0
-
-        max_num_samples = batch_size * num_batches_to_cache
-        super().__init__(max_num_samples, **kwargs)
-
-        self.batch_size = batch_size
-        self.post = post
+        assert capacity > 0
+        super().__init__(max_num_samples=capacity, **kwargs)
         self.ignore_last_batch_on_sample = ignore_last_batch_on_sample
         self.item_metadata_dtypes = None
 
@@ -166,7 +205,7 @@ class CachedCrossBatchSampler(ItemSampler):
         self._item_embeddings_queue = None
 
     def _maybe_build(self, inputs: TabularData) -> None:
-        items_metadata = inputs["items_metadata"]
+        items_metadata = inputs["metadata"]
         if self.item_metadata_dtypes is None:
             self.item_metadata_dtypes = {
                 feat_name: items_metadata[feat_name].dtype for feat_name in items_metadata
@@ -174,12 +213,9 @@ class CachedCrossBatchSampler(ItemSampler):
         super()._maybe_build(inputs)
 
     def build(self, input_shapes: TabularData) -> None:
-        # Reserving additional space for the current batch when ignore_last_batch_on_sample=True
         queue_size = self.max_num_samples
-        if self.ignore_last_batch_on_sample:
-            queue_size += self.batch_size
 
-        item_embeddings_dims = list(input_shapes["items_embeddings"][1:])
+        item_embeddings_dims = list(input_shapes["embeddings"][1:])
         self._item_embeddings_queue = FIFOQueue(
             capacity=queue_size,
             dims=item_embeddings_dims,
@@ -188,7 +224,7 @@ class CachedCrossBatchSampler(ItemSampler):
         )
 
         self.items_metadata_queue = dict()
-        items_metadata = input_shapes["items_metadata"]
+        items_metadata = input_shapes["metadata"]
         for feat_name in items_metadata:
             self.items_metadata_queue[feat_name] = FIFOQueue(
                 capacity=queue_size,
@@ -205,7 +241,7 @@ class CachedCrossBatchSampler(ItemSampler):
                 "so that it is built before calling add() or sample() directly"
             )
 
-    def call(self, inputs: TabularData, training=True) -> ItemSamplerData:
+    def call(self, inputs: TabularData, training=True) -> EmbeddingWithMetadata:
         """Adds the current batch to the FIFO queue cache and samples all items
         embeddings from the last N cached batches.
 
@@ -226,12 +262,16 @@ class CachedCrossBatchSampler(ItemSampler):
 
         Returns
         -------
-        ItemSamplerData
+        EmbeddingWithMetadata
             Value object with the sampled item embeddings and item metadata
         """
+        if self.ignore_last_batch_on_sample:
+            items_embeddings = self.sample()
+            self.add(inputs, training)
+        else:
+            self.add(inputs, training)
+            items_embeddings = self.sample()
 
-        self.add(inputs, training)
-        items_embeddings = self.sample()
         return items_embeddings
 
     def add(
@@ -243,8 +283,8 @@ class CachedCrossBatchSampler(ItemSampler):
         self._check_inputs_batch_sizes(inputs)
 
         if training:
-            items_embeddings = inputs["items_embeddings"]
-            items_metadata = inputs["items_metadata"]
+            items_embeddings = inputs["embeddings"]
+            items_metadata = inputs["metadata"]
 
             self._item_embeddings_queue.enqueue_many(items_embeddings)
             for feat_name in items_metadata:
@@ -252,7 +292,7 @@ class CachedCrossBatchSampler(ItemSampler):
 
             self._last_batch_size = tf.shape(items_embeddings)[0]
 
-    def sample(self) -> ItemSamplerData:
+    def sample(self) -> EmbeddingWithMetadata:
         self._check_built()
         items_embeddings = self._item_embeddings_queue.list_all()
         items_metadata = {
@@ -260,20 +300,7 @@ class CachedCrossBatchSampler(ItemSampler):
             for feat_name in self.items_metadata_queue
         }
 
-        # Checks if should ignore the last batch, assuming the current batch was already added
-        # to the sampler queue and that InBatchSampler(stop_gradients=False) will
-        # take care of the current batch negatives
-        if self.ignore_last_batch_on_sample:
-            items_embeddings = items_embeddings[: -self._last_batch_size]
-            items_metadata = {
-                feat_name: items_metadata[feat_name][: -self._last_batch_size]
-                for feat_name in items_metadata
-            }
-
-        if self.post is not None:
-            items_embeddings = self.post(items_embeddings)
-
-        return ItemSamplerData(
+        return EmbeddingWithMetadata(
             items_embeddings,
             items_metadata,
         )
@@ -316,13 +343,10 @@ class CachedUniformSampler(ItemSampler):
     def __init__(
         self,
         capacity: int,
-        post: Optional[Block] = None,
         **kwargs,
     ):
         assert capacity > 0
         super().__init__(capacity, **kwargs)
-
-        self.post = post
 
         self._item_embeddings_queue = None
         self._item_ids_queue = None
@@ -331,7 +355,7 @@ class CachedUniformSampler(ItemSampler):
         # Reserving additional space for the current batch when ignore_last_batch_on_sample=True
         queue_size = self.max_num_samples
 
-        item_embeddings_dims = list(input_shapes["items_embeddings"][1:])
+        item_embeddings_dims = list(input_shapes["embeddings"][1:])
         self._item_embeddings_queue = FIFOQueue(
             capacity=queue_size,
             dims=item_embeddings_dims,
@@ -354,7 +378,7 @@ class CachedUniformSampler(ItemSampler):
                 "so that it is built before calling add() or sample() directly"
             )
 
-    def call(self, inputs: TabularData, training=True) -> ItemSamplerData:
+    def call(self, inputs: TabularData, training=True) -> EmbeddingWithMetadata:
         """Adds the unique items of the current batch into a FIFO queue cache
         and returns all cached unique items, which is equivalent to uniform sampling
 
@@ -372,7 +396,7 @@ class CachedUniformSampler(ItemSampler):
 
         Returns
         -------
-        ItemSamplerData
+        EmbeddingWithMetadata
             Value object with the sampled item embeddings and item metadata
         """
         self.add(inputs, training)
@@ -381,12 +405,12 @@ class CachedUniformSampler(ItemSampler):
 
     def _check_inputs(self, inputs):
         assert (
-            str(Tag.ITEM_ID) in inputs["items_metadata"]
+            str(Tag.ITEM_ID) in inputs["metadata"]
         ), "The 'item_id' metadata feature is required by UniformSampler."
 
         tf.assert_equal(
-            tf.shape(inputs["items_embeddings"])[0],
-            tf.shape(inputs["items_metadata"][str(Tag.ITEM_ID)])[0],
+            tf.shape(inputs["embeddings"])[0],
+            tf.shape(inputs["metadata"][str(Tag.ITEM_ID)])[0],
         )
 
     def add(
@@ -398,8 +422,8 @@ class CachedUniformSampler(ItemSampler):
         self._check_inputs(inputs)
 
         if training:
-            items_embeddings = inputs["items_embeddings"]
-            item_ids = inputs["items_metadata"][str(Tag.ITEM_ID)]
+            items_embeddings = inputs["embeddings"]
+            item_ids = inputs["metadata"][str(Tag.ITEM_ID)]
 
             # Removing from inputs repeated item ids and corresponding embeddings
             item_ids, items_embeddings = self._get_unique_item_ids_embeddings(
@@ -443,12 +467,9 @@ class CachedUniformSampler(ItemSampler):
 
         return item_ids, items_embeddings
 
-    def sample(self) -> ItemSamplerData:
+    def sample(self) -> EmbeddingWithMetadata:
         self._check_built()
         items_embeddings = self._item_embeddings_queue.list_all()
         items_ids = self._item_ids_queue.list_all()
 
-        if self.post is not None:
-            items_embeddings = self.post(items_embeddings)
-
-        return ItemSamplerData(items_embeddings, items_metadata={str(Tag.ITEM_ID): items_ids})
+        return EmbeddingWithMetadata(items_embeddings, metadata={str(Tag.ITEM_ID): items_ids})

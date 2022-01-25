@@ -1524,48 +1524,9 @@ MetricOrMetricClass = Union[tf.keras.metrics.Metric, Type[tf.keras.metrics.Metri
 
 
 @dataclass
-class ItemSamplerData:
-    items_embeddings: tf.Tensor
-    items_metadata: Dict[str, tf.Tensor]
-
-
-class ItemSampler(abc.ABC, Layer):
-    def __init__(
-        self,
-        max_num_samples: int,
-        **kwargs,
-    ):
-        super(ItemSampler, self).__init__(**kwargs)
-        self._max_num_samples: int = max_num_samples
-
-    @abc.abstractmethod
-    def add(self, items_embeddings: tf.Tensor, items_metadata: TabularData, training=True):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def sample(self) -> ItemSamplerData:
-        raise NotImplementedError()
-
-    def _check_inputs_batch_sizes(self, inputs: TabularData) -> bool:
-        item_embeddings_batch_size = tf.shape(inputs["items_embeddings"])[0]
-        for feat_name in inputs["items_metadata"]:
-            items_metadata_feat_batch_size = tf.shape(inputs["items_metadata"][feat_name])[0]
-
-            tf.assert_equal(
-                item_embeddings_batch_size,
-                items_metadata_feat_batch_size,
-                "The batch size (first dim) of items_embeddings "
-                f"({int(item_embeddings_batch_size)}) and items_metadata "
-                f"features ({int(items_metadata_feat_batch_size)}) must match.",
-            )
-
-    @property
-    def required_features(self) -> List[str]:
-        return []
-
-    @property
-    def max_num_samples(self) -> int:
-        return self._max_num_samples
+class EmbeddingWithMetadata:
+    embeddings: tf.Tensor
+    metadata: Dict[str, tf.Tensor]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
