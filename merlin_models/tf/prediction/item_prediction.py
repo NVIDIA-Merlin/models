@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
@@ -114,7 +114,7 @@ class ItemRetrievalScorer(Block):
 
     def __init__(
         self,
-        samplers: List[ItemSampler] = [],
+        samplers: Sequence[ItemSampler] = (),
         sampling_downscore_false_negatives=True,
         sampling_downscore_false_negatives_value: int = MIN_FLOAT,
         **kwargs,
@@ -273,7 +273,7 @@ def ItemRetrievalTask(
     loss=tf.keras.losses.CategoricalCrossentropy(
         from_logits=True, reduction=tf.keras.losses.Reduction.SUM
     ),
-    samplers: List[ItemSampler] = [],
+    samplers: Sequence[ItemSampler] = (),
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
@@ -319,8 +319,8 @@ def ItemRetrievalTask(
             The item retrieval prediction task
     """
 
-    if samplers is None or samplers == []:
-        samplers = [InBatchSampler()]
+    if samplers is None or len(samplers) == 0:
+        samplers = (InBatchSampler,)
 
     prediction_call = ItemRetrievalScorer(
         samplers=samplers,

@@ -150,9 +150,7 @@ class FIFOQueue(Layer):
 
         next_pos_start = self.next_available_pointer
         next_pos_end = next_pos_start + num_vals
-
         if next_pos_end < self.capacity:
-
             self.storage[next_pos_start:next_pos_end].assign(vals)
 
             if self.at_full_capacity or (
