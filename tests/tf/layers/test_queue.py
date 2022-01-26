@@ -205,3 +205,46 @@ def test_enqueue_tensors_wrong_dim():
         "The shape of values (ignoring the first dim which is the number of examples) "
         "and self.dims should match"
     ) in str(excinfo.value)
+
+
+def test_indexof():
+    queue = ml.FIFOQueue(
+        capacity=10,
+        dims=[],
+        dtype=tf.int32,
+    )
+
+    item_ids = tf.range(10, 0, -1, dtype=tf.int32)
+    queue.enqueue_many(item_ids)
+
+    indices = queue.index_of([0, 1, 2])
+    tf.assert_equal(tf.cast(indices, tf.int32), [-1, 9, 8])
+
+
+def test_get_values_by_indices():
+    queue = ml.FIFOQueue(
+        capacity=10,
+        dims=[],
+        dtype=tf.int32,
+    )
+
+    item_ids = tf.range(10, 0, -1, dtype=tf.int32)
+    queue.enqueue_many(item_ids)
+
+    values = queue.get_values_by_indices([1, 3])
+    tf.assert_equal(values, [9, 7])
+
+
+def test_update_by_indices():
+    queue = ml.FIFOQueue(
+        capacity=10,
+        dims=[],
+        dtype=tf.int32,
+    )
+
+    item_ids = tf.range(10, 0, -1, dtype=tf.int32)
+    queue.enqueue_many(item_ids)
+
+    queue.update_by_indices(indices=tf.constant([[1], [2]]), values=tf.constant([20, 21]))
+    values = queue.list_all()
+    tf.assert_equal(values, [10, 20, 21, 7, 6, 5, 4, 3, 2, 1])
