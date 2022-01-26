@@ -239,33 +239,3 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     losses = model.fit(music_streaming_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
-
-
-@pytest.mark.parametrize("run_eagerly", [True, False])
-def test_retrieval_task_inbatch_cached_samplers_fit_resume_training(
-    music_streaming_data: SyntheticData, run_eagerly
-):
-    from merlin_models.tf.utils import testing_utils
-
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
-    two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
-
-    batch_size = 100
-
-    samplers = [
-        ml.InBatchSampler(),
-        ml.CachedCrossBatchSampler(
-            capacity=batch_size * 3,
-            ignore_last_batch_on_sample=True,
-        ),
-        ml.CachedUniformSampler(
-            capacity=batch_size * 3,
-            ignore_last_batch_on_sample=False,
-        ),
-    ]
-
-    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))
-
-    dataset = music_streaming_data.tf_dataloader(batch_size=batch_size)
-    copy_model = testing_utils.assert_model_is_retrainable(model, dataset, run_eagerly=run_eagerly)
-    assert copy_model is not None
