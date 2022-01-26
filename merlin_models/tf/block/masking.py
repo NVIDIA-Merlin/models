@@ -38,6 +38,7 @@ MASK_SEQUENCE_PARAMETERS_DOCSTRING = """
 
 
 @docstring_parameter(mask_sequence_parameters=MASK_SEQUENCE_PARAMETERS_DOCSTRING)
+@Block.registry.register_with_multiple_names("masking_block")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class MaskingBlock(Block):
     """Base class to prepare masked items inputs/labels for item prediction task.
@@ -70,7 +71,7 @@ class MaskingBlock(Block):
         self.context.add_variable(
             tf.Variable(
                 initial_value=tf.zeros([1, input_shapes[1]], dtype=tf.bool),
-                name="MASKING_SCHEMA",
+                name="masking_schema",
                 trainable=False,
                 validate_shape=False,
                 shape=tf.TensorShape([None, input_shapes[1]]),
@@ -83,6 +84,14 @@ class MaskingBlock(Block):
             initializer=tf.random_normal_initializer(mean=0.0, stddev=0.001),
             shape=[input_shapes[-1]],
             dtype=tf.float32,
+        )
+
+        self.label_seq_trg_eval = tf.Variable(
+            tf.zeros(shape=[1, input_shapes[1]], dtype=tf.int32),
+            name="target_labels",
+            dtype=tf.int32,
+            trainable=False,
+            shape=tf.TensorShape([None, input_shapes[1]]),
         )
 
         super().build(input_shapes)
@@ -120,6 +129,7 @@ class MaskingBlock(Block):
 
 @masking_registry.register_with_multiple_names("clm", "causal")
 @docstring_parameter(mask_sequence_parameters=MASK_SEQUENCE_PARAMETERS_DOCSTRING)
+@Block.registry.register_with_multiple_names("causal_language_modeling")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class CausalLanguageModeling(MaskingBlock):
     """
@@ -144,22 +154,6 @@ class CausalLanguageModeling(MaskingBlock):
             padding_idx=padding_idx, eval_on_last_item_seq_only=eval_on_last_item_seq_only, **kwargs
         )
         self.train_on_last_item_seq_only = train_on_last_item_seq_only
-        self.label_seq_trg_eval = tf.Variable(
-            tf.zeros(shape=[1, 1], dtype=tf.int32),
-            name="target_labels",
-            dtype=tf.int32,
-            trainable=False,
-            shape=tf.TensorShape([None, None]),
-        )
-
-    def get_config(self):
-        config = super(CausalLanguageModeling, self).get_config()
-        config.update(
-            {
-                "train_on_last_item_seq_only": self.train_on_last_item_seq_only,
-            }
-        )
-        return config
 
     def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
         if (self.eval_on_last_item_seq_only and not training) or (
@@ -190,7 +184,7 @@ class CausalLanguageModeling(MaskingBlock):
             mask_labels = labels != self.padding_idx
 
         # store boolean tensor related to masked targets
-        self.context["MASKING_SCHEMA"].assign(mask_labels)
+        self.context["masking_schema"].assign(mask_labels)
 
         return mask_labels
 
@@ -216,6 +210,7 @@ class CausalLanguageModeling(MaskingBlock):
 
 
 @masking_registry.register_with_multiple_names("mlm", "masked")
+@Block.registry.register_with_multiple_names("masked_language_modeling")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class MaskedLanguageModeling(MaskingBlock):
     """
@@ -338,5 +333,5 @@ class MaskedLanguageModeling(MaskingBlock):
             mask_labels = labels != self.padding_idx
 
         # Store boolean tensor related to masked targets
-        self.context["MASKING_SCHEMA"].assign(mask_labels)
+        self.context["masking_schema"].assign(mask_labels)
         return mask_labels

@@ -24,6 +24,8 @@ from merlin_models.tf.typing import TabularData
 from merlin_models.tf.utils import tf_utils
 from merlin_standard_lib import Schema
 
+from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
+
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
@@ -257,6 +259,7 @@ class SequenceAggregation(Enum):
         return str(o) == str(self)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SequenceAggregator(Block):
     """Computes the aggregation of elements across dimensions of a 3-D tensor.
     Args:
@@ -274,8 +277,21 @@ class SequenceAggregator(Block):
         self.combiner = combiner
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        assert len(inputs.shape) == 3, "inputs should be a 3-D tensor"
         return self.combiner(inputs, axis=self.axis)
 
     def compute_output_shape(self, input_shape):
         batch_size, _, last_dim = input_shape
         return batch_size, last_dim
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(
+            self, config, {"combiner": tf.keras.layers.serialize}
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["combiner"], tf.keras.layers.deserialize)
+        return super().from_config(config)

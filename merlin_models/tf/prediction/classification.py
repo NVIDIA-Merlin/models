@@ -174,7 +174,7 @@ class MultiClassClassificationTask(PredictionTask):
         self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
     ) -> tf.Tensor:
         if getattr(self.loss, "sample_weight", None):
-            return self.loss(targets, predictions, sample_weight)
+            return self.loss(targets, predictions, sample_weight=sample_weight)
         return self.loss(targets, predictions)
 
     def call(self, inputs, training=False, **kwargs):

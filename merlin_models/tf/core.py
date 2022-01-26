@@ -80,7 +80,7 @@ class BlockContext(Layer):
         return self.named_variables[f"{str(item)}/embedding"]
 
     def get_mask(self):
-        mask_schema = self.named_variables.get("MASKING_SCHEMA", None)
+        mask_schema = self.named_variables.get("masking_schema", None)
         if mask_schema is None:
             raise ValueError(
                 "The mask schema is not stored, " "please make sure that a MaskingBlock was set"

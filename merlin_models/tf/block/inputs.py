@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-
+import logging
 from typing import Dict, Optional, Tuple, Union
 
 from merlin_standard_lib import Schema, Tag
@@ -31,47 +31,7 @@ from ..features.embedding import (
 from .aggregation import SequenceAggregation, SequenceAggregator
 from .masking import MaskingBlock, masking_registry
 
-INPUT_PARAMETERS_DOCSTRING = """
-    post: Optional[BlockType]
-        Transformations to apply on the inputs after the module is called (so **after** `forward`).
-        Defaults to None
-    aggregation: Optional[TabularAggregationType]
-        Aggregation to apply after processing the  `forward`-method to output a single Tensor.
-        Defaults to None
-    seq: bool
-        Whether to process inputs for sequential model (returns 3-D tensor)
-        or not (returns 2-D tensor).
-        Defaults to False
-    add_continuous_branch: bool
-        If set, add the branch to process continuous features
-        Defaults to True
-    continuous_tags: Optional[Union[TagsType, Tuple[Tag]]]
-        Tags to filter the continuous features
-        Defaults to  (Tag.CONTINUOUS,)
-    continuous_projection: Optional[Block]
-        If set, concatenate all numerical features and projet using the
-        specified Block.
-        Defaults to None
-    add_embedding_branch: bool
-        If set, add the branch to process categorical features
-        Defaults to True
-    categorical_tags: Optional[Union[TagsType, Tuple[Tag]]]
-        Tags to filter the continuous features
-        Defaults to (Tag.CATEGORICAL,)
-    sequential_tags: Optional[Union[TagsType, Tuple[Tag]]]
-        Tags to filter the sparse features
-        Defaults to (Tag.SEQUENCE,)
-    split_sparse: Optional[bool]
-        When True, separate the processing of context (2-D) and sparse features (3-D).
-        Defaults to False
-    masking: Optional[Union[str, MaskSequence]], optional
-        If set, Apply masking to the input embeddings and compute masked labels.
-        Defaults to None
-    seq_aggregator: Block
-        If non-sequential model (seq=False):
-        aggregate the sparse features tensor along the sequence axis.
-        Defaults to SequenceAggregator('mean')
-"""
+LOG = logging.getLogger("merlin-models")
 
 
 def InputBlock(
@@ -96,7 +56,46 @@ def InputBlock(
 
     Parameters:
     ----------
-        {INPUT_PARAMETERS_DOCSTRING}
+        post: Optional[BlockType]
+            Transformations to apply on the inputs after the module is
+            called (so **after** `forward`).
+            Defaults to None
+        aggregation: Optional[TabularAggregationType]
+            Aggregation to apply after processing the  `forward`-method to output a single Tensor.
+            Defaults to None
+        seq: bool
+            Whether to process inputs for sequential model (returns 3-D tensor)
+            or not (returns 2-D tensor).
+            Defaults to False
+        add_continuous_branch: bool
+            If set, add the branch to process continuous features
+            Defaults to True
+        continuous_tags: Optional[Union[TagsType, Tuple[Tag]]]
+            Tags to filter the continuous features
+            Defaults to  (Tag.CONTINUOUS,)
+        continuous_projection: Optional[Block]
+            If set, concatenate all numerical features and projet using the
+            specified Block.
+            Defaults to None
+        add_embedding_branch: bool
+            If set, add the branch to process categorical features
+            Defaults to True
+        categorical_tags: Optional[Union[TagsType, Tuple[Tag]]]
+            Tags to filter the continuous features
+            Defaults to (Tag.CATEGORICAL,)
+        sequential_tags: Optional[Union[TagsType, Tuple[Tag]]]
+            Tags to filter the sparse features
+            Defaults to (Tag.SEQUENCE,)
+        split_sparse: Optional[bool]
+            When True, separate the processing of context (2-D) and sparse features (3-D).
+            Defaults to False
+        masking: Optional[Union[str, MaskSequence]], optional
+            If set, Apply masking to the input embeddings and compute masked labels.
+            Defaults to None
+        seq_aggregator: Block
+            If non-sequential model (seq=False):
+            aggregate the sparse features tensor along the sequence axis.
+            Defaults to SequenceAggregator('mean')
     """
 
     branches = branches or {}
@@ -108,7 +107,13 @@ def InputBlock(
                 "Please make sure that schema has sparse features when"
                 "`split_context` is set to True"
             )
-        agg = aggregation if aggregation else "concat"
+        if not aggregation:
+            LOG.info(
+                "aggregation is not provided, "
+                "default `concat` will be used to merge seuquential features"
+            )
+            aggregation = "concat"
+        agg = aggregation
         sparse_interactions = InputBlock(
             sparse_schema,
             branches,

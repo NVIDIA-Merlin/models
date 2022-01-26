@@ -31,6 +31,7 @@ from .ranking_metric import ranking_metrics
 
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SamplingBiasCorrection(Block):
     def __init__(self, bias_feature_name: str = "popularity", **kwargs):
         super(SamplingBiasCorrection, self).__init__(**kwargs)
@@ -48,6 +49,7 @@ class SamplingBiasCorrection(Block):
         return input_shape
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SoftmaxTemperature(Block):
     def __init__(self, temperature: float, **kwargs):
         super(SoftmaxTemperature, self).__init__(**kwargs)
@@ -60,6 +62,8 @@ class SoftmaxTemperature(Block):
         return input_shape
 
 
+@Block.registry.register_with_multiple_names("item_weight_tying")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemSoftmaxWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemSoftmaxWeightTying, self).__init__(**kwargs)
@@ -84,24 +88,27 @@ class ItemSoftmaxWeightTying(Block):
         return predictions
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SampledSoftmax(Block):
+
     """
-        Compute the softmax scores on a subset of sampled candidates to optimize
-        training. During inference, the scores are computed over the whole
-        catalog of items.
+    Compute the softmax scores on a subset of sampled candidates to optimize
+    training. During inference, the scores are computed over the whole
+    catalog of items.
 
-        Reference of the method can be found at [Jean et al., 2014](http://arxiv.org/abs/1412.2007)
+    Reference of the method can be found at [Jean et al., 2014](http://arxiv.org/abs/1412.2007)
 
-        We use the default log-uniform sampler given by tensorflow:
-        [log_uniform_candidate_sampler](https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)
+    We use the default log-uniform sampler given by tensorflow:
+    [log_uniform_candidate_sampler](https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)
 
-        We note that this default sampler requires that item-ids are encoded based
-        on a decreasing order of their count frequency and that the classes' expected counts
-        are approximated based on their index order.
+    We note that this default sampler requires that item-ids are encoded based
+    on a decreasing order of their count frequency and that the classes' expected counts
+    are approximated based on their index order.
 
     Parameters:
     -----------
         schema: Schema
+            The schema object including features to use and their properties.
         num_sampled: int
             The number of candidates to sample during training
         sampler
@@ -284,6 +291,8 @@ class LabelAwareAttention(Block):
         raise NotImplementedError("TODO")
 
 
+@Block.registry.register_with_multiple_names("remove_pad_3d")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class RemovePad3D(Block):
     """
     Flatten the sequence of labels and filter out non-targets positions
@@ -303,9 +312,9 @@ class RemovePad3D(Block):
             flatten the predictions vectors to keep only the ones related to target positions.
     """
 
-    def __init__(self, padding_idx: int = 0, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.padding_idx = padding_idx
+        self.padding_idx = 0
 
     def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
         targets = tf.reshape(targets, (-1,))
@@ -321,6 +330,8 @@ class RemovePad3D(Block):
         return targets
 
 
+@Block.registry.register_with_multiple_names("masking_head")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class MaskingHead(Block):
     """
     The masking class to transform targets based on the
@@ -352,7 +363,7 @@ class MaskingHead(Block):
 
 
 def NextItemPredictionTask(
-    schema,
+    schema: Schema,
     loss=tf.keras.losses.SparseCategoricalCrossentropy(
         from_logits=True,
     ),
@@ -373,7 +384,8 @@ def NextItemPredictionTask(
 
     Parameters
     ----------
-        schema:
+        schema: Schema
+            The schema object including features to use and their properties.
         loss: tf.keras.losses.Loss
             Loss function.
             Defaults to `tf.keras.losses.SparseCategoricalCrossentropy()`.
@@ -521,7 +533,7 @@ def ItemRetrievalTask(
 
 
 def YoutubeDNNRetrieval(
-    schema,
+    schema: Schema,
     aggregation: str = "concat",
     top_layer: Optional[Block] = MLPBlock([64]),
     weight_tying: bool = True,
