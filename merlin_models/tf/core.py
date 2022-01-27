@@ -18,6 +18,7 @@ import abc
 import copy
 import sys
 from collections import defaultdict
+from dataclasses import dataclass
 from functools import reduce
 from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload
 
@@ -1522,10 +1523,10 @@ def name_fn(name, inp):
 MetricOrMetricClass = Union[tf.keras.metrics.Metric, Type[tf.keras.metrics.Metric]]
 
 
-class Sampler(abc.ABC):
-    @abc.abstractmethod
-    def sample(self) -> tf.Tensor:
-        raise NotImplementedError()
+@dataclass
+class EmbeddingWithMetadata:
+    embeddings: tf.Tensor
+    metadata: Dict[str, tf.Tensor]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
