@@ -59,6 +59,62 @@ def test_inbatch_sampler_metadata_diff_shape():
     assert "The batch size (first dim) of embedding" in str(excinfo.value)
 
 
+def test_popularity_sampler():
+    num_classes = 10000
+    num_sampled = 10
+    item_weights = tf.random.uniform(shape=(num_classes, 5), dtype=tf.float32)
+    item_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
+    item_ids = tf.random.uniform(shape=(10,), minval=1, maxval=num_classes, dtype=tf.int32)
+
+    popularity_sampler = ml.PopularityBasedSampler(
+        max_num_samples=num_classes, num_sampled=num_sampled
+    )
+
+    input_data = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
+    output_data = popularity_sampler(input_data.__dict__, item_weights)
+
+    assert len(tf.unique_with_counts(output_data.metadata["item_id"])[0]) == num_sampled
+    tf.assert_equal(
+        tf.nn.embedding_lookup(item_weights, output_data.metadata["item_id"]),
+        output_data.embeddings,
+    )
+
+
+def test_popularity_sampler_no_item_id():
+    num_sampled = 10
+    num_classes = 10000
+    item_weights = tf.random.uniform(shape=(num_classes, 5), dtype=tf.float32)
+    popularity_sampler = ml.PopularityBasedSampler(
+        max_num_samples=num_classes, num_sampled=num_sampled
+    )
+
+    item_embeddings = tf.random.uniform(shape=(2, 5), dtype=tf.float32)
+    input_data_0 = ml.EmbeddingWithMetadata(item_embeddings, metadata={})
+
+    with pytest.raises(AssertionError) as excinfo:
+        _ = popularity_sampler(input_data_0.__dict__, item_weights)
+    assert "The 'item_id' metadata feature is required by PopularityBasedSampler" in str(
+        excinfo.value
+    )
+
+
+def test_popularity_sampler_weights_dim_diff_max_num_samples():
+    num_sampled = 10
+    num_classes = 10000
+    item_weights = tf.random.uniform(shape=(50, 5), dtype=tf.float32)
+    item_ids = tf.random.uniform(shape=(10,), minval=1, maxval=num_classes, dtype=tf.int32)
+
+    popularity_sampler = ml.PopularityBasedSampler(
+        max_num_samples=num_classes, num_sampled=num_sampled
+    )
+    item_embeddings = tf.random.uniform(shape=(2, 5), dtype=tf.float32)
+    input_data_0 = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
+
+    with pytest.raises(Exception) as excinfo:
+        _ = popularity_sampler(input_data_0.__dict__, item_weights)
+    assert "The first dimension of the items embeddings ((50,))" in str(excinfo.value)
+
+
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
 def test_cached_batches_sampler_add_sample_single_batch(ignore_last_batch_on_sample):
     batch_size = 10
