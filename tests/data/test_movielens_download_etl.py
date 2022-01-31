@@ -25,7 +25,6 @@ from merlin_standard_lib.utils.data_etl_utils import movielens_download_etl
 def test_movielens_download_etl(tmp_path, dataset_name):
     movielens_download_etl(str(tmp_path), dataset_name)
     schema_file = os.path.join(tmp_path, dataset_name, "train/schema.pbtxt")
-    print(schema_file)
     assert os.path.exists(schema_file)
 
     gdf = cudf.read_parquet(os.path.join(tmp_path, dataset_name, "train/part_0.parquet"))
