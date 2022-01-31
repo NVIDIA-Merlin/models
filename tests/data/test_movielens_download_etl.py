@@ -15,7 +15,7 @@
 #
 import os
 
-import cudf
+import pandas as pd
 import pytest
 
 from merlin_standard_lib.utils.data_etl_utils import movielens_download_etl
@@ -27,9 +27,9 @@ def test_movielens_download_etl(tmp_path, dataset_name):
     schema_file = os.path.join(tmp_path, dataset_name, "train/schema.pbtxt")
     assert os.path.exists(schema_file)
 
-    gdf = cudf.read_parquet(os.path.join(tmp_path, dataset_name, "train/part_0.parquet"))
+    pdf = pd.read_parquet(os.path.join(tmp_path, dataset_name, "train/part_0.parquet"))
     if dataset_name == "ml-100k":
-        assert list(gdf.columns) == [
+        assert list(pdf.columns) == [
             "movieId",
             "userId",
             "genres",
@@ -43,10 +43,10 @@ def test_movielens_download_etl(tmp_path, dataset_name):
             "age",
             "title",
         ]
-        assert gdf.shape[0] == 90570
-        assert gdf.isnull().any().sum() == 0
+        assert pdf.shape[0] == 90570
+        assert pdf.isnull().any().sum() == 0
     elif dataset_name == "ml-25m":
-        assert list(gdf.columns) == [
+        assert list(pdf.columns) == [
             "movieId",
             "userId",
             "genres",
@@ -56,5 +56,5 @@ def test_movielens_download_etl(tmp_path, dataset_name):
             "rating_binary",
             "title",
         ]
-        assert gdf.shape[0] == 20000076
-        assert gdf.isnull().any().sum() == 0
+        assert pdf.shape[0] == 20000076
+        assert pdf.isnull().any().sum() == 0
