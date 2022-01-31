@@ -65,7 +65,9 @@ def InputBlock(
             Defaults to None
         seq: bool
             Whether to process inputs for sequential model (returns 3-D tensor)
-            or not (returns 2-D tensor).
+            or not (returns 2-D tensor). Use `seq=True` to treat the sparse (list) features
+            as sequences (e.g. for sequential recommendation) and `seq=False` to treat sparse
+            features as multi-hot categorical representations.
             Defaults to False
         add_continuous_branch: bool
             If set, add the branch to process continuous features
@@ -145,7 +147,7 @@ def InputBlock(
             branches,
             post,
             aggregation=agg,
-            seq=seq,
+            seq=False,
             add_continuous_branch=add_continuous_branch,
             continuous_tags=continuous_tags,
             continuous_projection=continuous_projection,
