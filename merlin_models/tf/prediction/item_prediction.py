@@ -13,17 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional, Tuple
+import logging
+from typing import List, Optional, Sequence, Tuple
 
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
 from merlin_models.tf.block.transformations import L2Norm
-from merlin_models.tf.core import Block, Sampler
+from merlin_models.tf.core import Block, EmbeddingWithMetadata
+from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler
+from merlin_models.utils.constants import MIN_FLOAT
 from merlin_standard_lib import Schema, Tag
 
+from ..typing import TabularData
 from .classification import MultiClassClassificationTask
 from .ranking_metric import ranking_metrics
+
+LOG = logging.getLogger("merlin_models")
 
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
@@ -80,60 +86,6 @@ class ItemSoftmaxWeightTying(Block):
         return predictions
 
 
-@Block.registry.register_with_multiple_names("in-batch-negative-sampling")
-class InBatchNegativeSampling(Block):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.dot = tf.keras.layers.Dot(axes=1)
-
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        assert len(inputs) == 2
-        if training:
-            return tf.linalg.matmul(*list(inputs.values()), transpose_b=True)
-
-        return self.dot(list(inputs.values()))
-
-    def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
-        if targets:
-            if len(targets.shape) == 2:
-                targets = tf.squeeze(targets)
-            targets = tf.linalg.diag(targets)
-        else:
-            num_rows, num_columns = tf.shape(predictions)[0], tf.shape(predictions)[1]
-            targets = tf.eye(num_rows, num_columns)
-
-        return targets
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-
-class ExtraNegativeSampling(Block):
-    def __init__(self, *sampler: Sampler, **kwargs):
-        self.sampler = sampler
-        super(ExtraNegativeSampling, self).__init__(**kwargs)
-
-    def sample(self) -> tf.Tensor:
-        if len(self.sampler) > 1:
-            return tf.concat([sampler.sample() for sampler in self.sampler], axis=0)
-
-        return self.sampler[0].sample()
-
-    def call(self, inputs, training=True, **kwargs):
-        if training:
-            extra_negatives: tf.Tensor = self.sample()
-            self.extra_negatives_shape = extra_negatives.shape
-            inputs = tf.concat([inputs, extra_negatives], axis=0)
-
-        return inputs
-
-    def call_targets(self, predictions, targets, training=True, **kwargs):
-        if training:
-            targets = tf.concat([targets, tf.zeros(self.extra_negatives_shape)], axis=0)
-
-        return targets
-
-
 # TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
 class LabelAwareAttention(Block):
     def predict(
@@ -142,10 +94,186 @@ class LabelAwareAttention(Block):
         raise NotImplementedError("TODO")
 
 
+@Block.registry.register_with_multiple_names("item_retrieval_scorer")
+class ItemRetrievalScorer(Block):
+    """Block for ItemRetrieval, which expects query/user and item embeddings as input and
+    uses dot product to score the positive item (inputs["item"]) and also sampled negative
+    items (during training).
+
+    Parameters
+    ----------
+    samplers : List[ItemSampler], optional
+        List of item samplers that provide negative samples when `training=True`
+    sampling_downscore_false_negatives : bool, optional
+        Identify false negatives (sampled item ids equal to the positive item and downscore them
+        to the `sampling_downscore_false_negatives_value`), by default True
+    sampling_downscore_false_negatives_value : int, optional
+        Value to be used to downscore false negatives when
+        `sampling_downscore_false_negatives=True`, by default `np.finfo(np.float32).min / 100.0`
+    """
+
+    def __init__(
+        self,
+        samplers: Sequence[ItemSampler] = (),
+        sampling_downscore_false_negatives=True,
+        sampling_downscore_false_negatives_value: int = MIN_FLOAT,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.downscore_false_negatives = sampling_downscore_false_negatives
+        self.false_negatives_score = sampling_downscore_false_negatives_value
+
+        self.samplers = samplers
+        if not isinstance(self.samplers, list):
+            self.samplers = [self.samplers]
+
+        self.set_required_features()
+
+    def set_required_features(self):
+        required_features = set()
+        if self.downscore_false_negatives:
+            required_features.add(str(Tag.ITEM_ID))
+
+        required_features.update(
+            [feature for sampler in self.samplers for feature in sampler.required_features]
+        )
+
+        self._required_features = list(required_features)
+
+    def add_features_to_context(self, feature_shapes) -> List[str]:
+        return self._required_features
+
+    def _check_input_from_two_tower(self, inputs):
+        assert set(inputs.keys()) == set(["query", "item"])
+
+    def _check_required_context_item_features_are_present(self):
+        not_found = list(
+            [
+                feat_name
+                for feat_name in self._required_features
+                if getattr(self, "_context", None) is None
+                or feat_name not in self.context.named_variables
+            ]
+        )
+
+        if len(not_found) > 0:
+            raise ValueError(
+                f"The following required context features should be available "
+                f"for the samplers, but were not found: {not_found}"
+            )
+
+    def call(self, inputs: TabularData, training: bool = True, **kwargs) -> tf.Tensor:
+        """Based on the user/query embedding (inputs["query"]), uses dot product to score
+            the positive item (inputs["item"]) and also sampled negative items (during training).
+
+        Parameters
+        ----------
+        inputs : TabularData
+            Dict with the query and item embeddings (e.g. `{"query": <emb>}, "item": <emb>}`),
+            where embeddings are 2D tensors (batch size, embedding size)
+        training : bool, optional
+            Flag that indicates whether in training mode, by default True
+
+        Returns
+        -------
+        tf.Tensor
+            2D Tensor with the scores for the positive items and, if `training=True`, for the
+            negative sampled items too. Return tensor is 2D (batch size, 1 + #negatives)
+        """
+        self._check_input_from_two_tower(inputs)
+        self._check_required_context_item_features_are_present()
+
+        positive_scores = tf.reduce_sum(
+            tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
+        )
+
+        if not training:
+            return positive_scores
+        else:
+            assert (
+                len(self.samplers) > 0
+            ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
+
+            batch_items_embeddings = inputs["item"]
+            batch_items_metadata = self.get_batch_items_metadata()
+
+            neg_items_embeddings_list = []
+            neg_items_ids_list = []
+
+            # Adds items from the current batch into samplers and sample a number of negatives
+            for sampler in self.samplers:
+                input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
+                neg_items = sampler(input_data.__dict__)
+
+                if tf.shape(neg_items.embeddings)[0] > 0:
+                    # Accumulates sampled negative items from all samplers
+                    neg_items_embeddings_list.append(neg_items.embeddings)
+                    if self.downscore_false_negatives:
+                        neg_items_ids_list.append(neg_items.metadata[str(Tag.ITEM_ID)])
+                else:
+                    LOG.warn(
+                        f"The sampler {type(sampler).__name__} returned no samples for this batch."
+                    )
+
+            if len(neg_items_embeddings_list) == 0:
+                raise Exception(f"No negative items where sampled from samplers {self.samplers}")
+            elif len(neg_items_embeddings_list) == 1:
+                neg_items_embeddings = neg_items_embeddings_list[0]
+            else:
+                neg_items_embeddings = tf.concat(neg_items_embeddings_list, axis=0)
+
+            negative_scores = tf.linalg.matmul(
+                inputs["query"], neg_items_embeddings, transpose_b=True
+            )
+
+            if self.downscore_false_negatives:
+                if len(neg_items_ids_list) == 1:
+                    neg_items_ids = neg_items_ids_list[0]
+                else:
+                    neg_items_ids = tf.concat(neg_items_ids_list, axis=0)
+
+                positive_item_ids = self.context[Tag.ITEM_ID]
+                negative_scores = self.rescore_false_negatives(
+                    positive_item_ids, neg_items_ids, negative_scores
+                )
+
+            all_scores = tf.concat([positive_scores, negative_scores], axis=-1)
+            return all_scores
+
+    def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
+        # Positives in the first column and negatives in the subsequent columns
+        targets = tf.concat(
+            [
+                tf.ones([tf.shape(predictions)[0], 1]),
+                tf.zeros([tf.shape(predictions)[0], tf.shape(predictions)[1] - 1]),
+            ],
+            axis=1,
+        )
+        return targets
+
+    def get_batch_items_metadata(self):
+        result = {feat_name: self.context[feat_name] for feat_name in self._required_features}
+        return result
+
+    def rescore_false_negatives(self, positive_item_ids, neg_samples_item_ids, negative_scores):
+        false_negatives_mask = tf.equal(tf.expand_dims(positive_item_ids, -1), neg_samples_item_ids)
+        # Setting a very small value for false negatives (accidental hits) so that it has
+        # negligicle effect on the loss functions
+        negative_scores = tf.where(
+            false_negatives_mask,
+            tf.ones_like(negative_scores) * self.false_negatives_score,
+            negative_scores,
+        )
+
+        return negative_scores
+
+
 def ItemRetrievalTask(
     loss=tf.keras.losses.CategoricalCrossentropy(
         from_logits=True, reduction=tf.keras.losses.Reduction.SUM
     ),
+    samplers: Sequence[ItemSampler] = (),
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
@@ -162,6 +290,8 @@ def ItemRetrievalTask(
         loss: tf.keras.losses.Loss
             Loss function.
             Defaults to `tf.keras.losses.CategoricalCrossentropy()`.
+        samplers: List[ItemSampler]
+            List of samplers for negative sampling, by default `[InBatchSampler()]`
         metrics: Sequence[MetricOrMetricClass]
             List of top-k ranking metrics.
             Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
@@ -188,7 +318,13 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
-    prediction_call = InBatchNegativeSampling()
+
+    if samplers is None or len(samplers) == 0:
+        samplers = (InBatchSampler,)
+
+    prediction_call = ItemRetrievalScorer(
+        samplers=samplers,
+    )
 
     if normalize:
         prediction_call = L2Norm().connect(prediction_call)

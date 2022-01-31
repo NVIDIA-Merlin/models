@@ -15,22 +15,227 @@
 #
 
 import pytest
+import tensorflow as tf
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_standard_lib import Tag
 
 
+@pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
+def test_item_retrieval_scorer(ignore_last_batch_on_sample):
+    batch_size = 10
+    cached_batches_sampler = ml.CachedCrossBatchSampler(
+        capacity=batch_size * 2,
+        ignore_last_batch_on_sample=ignore_last_batch_on_sample,
+    )
+    inbatch_sampler = ml.InBatchSampler()
+
+    item_retrieval_scorer = ml.ItemRetrievalScorer(
+        samplers=[cached_batches_sampler, inbatch_sampler], sampling_downscore_false_negatives=False
+    )
+
+    users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+    items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+
+    # First batch
+    output_scores1 = item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
+    expected_num_samples_inbatch = batch_size
+    expected_num_samples_cached = 0 if ignore_last_batch_on_sample else batch_size
+    tf.assert_equal(tf.shape(output_scores1)[0], batch_size)
+    # Number of negatives plus one positive
+    tf.assert_equal(
+        tf.shape(output_scores1)[1], expected_num_samples_inbatch + expected_num_samples_cached + 1
+    )
+
+    # Second batch
+    output_scores2 = item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
+    expected_num_samples_cached += batch_size
+    tf.assert_equal(tf.shape(output_scores2)[0], batch_size)
+    # Number of negatives plus one positive
+    tf.assert_equal(
+        tf.shape(output_scores2)[1], expected_num_samples_inbatch + expected_num_samples_cached + 1
+    )
+
+
+def test_item_retrieval_scorer_cached_sampler_no_result_first_batch():
+    batch_size = 10
+
+    # CachedCrossBatchSampler is the only sampler here and with ignore_last_batch_on_sample=True
+    # for the first batch no sample will be returned, which should raise an exception
+    cached_batches_sampler = ml.CachedCrossBatchSampler(
+        capacity=batch_size * 2,
+        ignore_last_batch_on_sample=True,
+    )
+
+    item_retrieval_scorer = ml.ItemRetrievalScorer(
+        samplers=[cached_batches_sampler], sampling_downscore_false_negatives=False
+    )
+
+    users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+    items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+
+    with pytest.raises(Exception) as excinfo:
+        _ = item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
+    assert "No negative items where sampled from samplers" in str(excinfo.value)
+
+
+def test_item_retrieval_scorer_no_sampler():
+    with pytest.raises(Exception) as excinfo:
+        users_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
+        items_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
+        item_retrieval_scorer = ml.ItemRetrievalScorer(
+            samplers=[], sampling_downscore_false_negatives=False
+        )
+        item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
+    assert "At least one sampler is required by ItemRetrievalScorer for negative sampling" in str(
+        excinfo.value
+    )
+
+
+def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_id_context():
+    batch_size = 10
+
+    # CachedCrossBatchSampler is the only sampler here and with ignore_last_batch_on_sample=True
+    # for the first batch no sample will be returned, which should raise an exception
+    cached_batches_sampler = ml.CachedCrossBatchSampler(
+        capacity=batch_size * 2,
+        ignore_last_batch_on_sample=False,
+    )
+
+    item_retrieval_scorer = ml.ItemRetrievalScorer(
+        samplers=[cached_batches_sampler], sampling_downscore_false_negatives=True
+    )
+
+    users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+    items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+
+    with pytest.raises(Exception) as excinfo:
+        _ = item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
+    assert "The following required context features should be available for the samplers" in str(
+        excinfo.value
+    )
+
+
+def test_item_retrieval_scorer_downscore_false_negatives():
+    batch_size = 10
+
+    cached_batches_sampler = ml.InBatchSampler()
+
+    # Adding item id to the context
+    item_ids = tf.random.uniform(shape=(batch_size,), minval=1, maxval=10000000, dtype=tf.int32)
+    context = ml.BlockContext(feature_names=["item_id"], feature_dtypes={"item_id": tf.int32})
+    _ = context({"item_id": item_ids})
+
+    FALSE_NEGATIVE_SCORE = -100_000_000.0
+    item_retrieval_scorer = ml.ItemRetrievalScorer(
+        samplers=[cached_batches_sampler],
+        sampling_downscore_false_negatives=True,
+        sampling_downscore_false_negatives_value=FALSE_NEGATIVE_SCORE,
+        context=context,
+    )
+
+    users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+    items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+
+    output_scores = item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings})
+    output_neg_scores = output_scores[:, 1:]
+
+    diag_mask = tf.eye(tf.shape(output_neg_scores)[0], dtype=tf.bool)
+    tf.assert_equal(output_neg_scores[diag_mask], FALSE_NEGATIVE_SCORE)
+    tf.assert_equal(
+        tf.reduce_all(
+            tf.not_equal(
+                output_neg_scores[tf.math.logical_not(diag_mask)],
+                tf.constant(FALSE_NEGATIVE_SCORE, dtype=output_neg_scores.dtype),
+            )
+        ),
+        True,
+    )
+
+
+def test_item_retrieval_scorer_only_positive_when_not_training():
+    batch_size = 10
+
+    item_retrieval_scorer = ml.ItemRetrievalScorer(
+        samplers=[ml.InBatchSampler()],
+        sampling_downscore_false_negatives=False,
+    )
+
+    users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+    items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+
+    # Calls with training=False, so that only the positive item is scored
+    output_scores = item_retrieval_scorer(
+        {"query": users_embeddings, "item": items_embeddings}, training=False
+    )
+    tf.assert_equal(
+        (int(tf.shape(output_scores)[0]), int(tf.shape(output_scores)[1])), (batch_size, 1)
+    )
+
+
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_retrieval_task(music_streaming_data: SyntheticData, run_eagerly, num_epochs=2):
+@pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
+def test_retrieval_task_inbatch_cached_samplers(
+    music_streaming_data: SyntheticData, run_eagerly, ignore_last_batch_on_sample
+):
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
-    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2))
 
-    output = model(music_streaming_data.tf_tensor_dict)
-    assert output is not None
+    batch_size = music_streaming_data.tf_tensor_dict["item_id"].shape[0]
+    assert batch_size == 100
+
+    cached_batches_sampler = ml.CachedCrossBatchSampler(
+        capacity=batch_size * 2,
+        ignore_last_batch_on_sample=ignore_last_batch_on_sample,
+    )
+    inbatch_sampler = ml.InBatchSampler()
+
+    samplers = [inbatch_sampler, cached_batches_sampler]
+
+    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+
+    for batch_step in range(1, 4):
+        output = model(music_streaming_data.tf_tensor_dict, training=True)
+        expected_num_samples_inbatch = batch_size
+        expected_num_samples_cached = min(
+            batch_size * (batch_step - 1 if ignore_last_batch_on_sample else batch_step),
+            cached_batches_sampler.max_num_samples,
+        )
+        tf.assert_equal(tf.shape(output)[0], batch_size)
+        # Number of negatives plus one positive
+        tf.assert_equal(
+            tf.shape(output)[1], expected_num_samples_inbatch + expected_num_samples_cached + 1
+        )
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_retrieval_task_inbatch_cached_samplers_fit(
+    music_streaming_data: SyntheticData, run_eagerly, num_epochs=2
+):
+    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
+    two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
+
+    batch_size = 100
+
+    samplers = [
+        ml.InBatchSampler(),
+        ml.CachedCrossBatchSampler(
+            capacity=batch_size * 3,
+            ignore_last_batch_on_sample=True,
+        ),
+        ml.CachedUniformSampler(
+            capacity=batch_size * 3,
+            ignore_last_batch_on_sample=False,
+        ),
+    ]
+
+    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])

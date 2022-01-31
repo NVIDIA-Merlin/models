@@ -54,6 +54,7 @@ from .core import (
     Block,
     BlockContext,
     DualEncoderBlock,
+    EmbeddingWithMetadata,
     Filter,
     Model,
     NoOp,
@@ -75,16 +76,19 @@ from .features.embedding import (
     TableConfig,
 )
 from .layers import DotProductInteraction
+from .layers.queue import FIFOQueue
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
-from .prediction.item_prediction import (
-    ExtraNegativeSampling,
-    InBatchNegativeSampling,
-    ItemRetrievalTask,
-)
+from .prediction.item_prediction import ItemRetrievalScorer, ItemRetrievalTask
 from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
 
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
+from .prediction.sampling import (
+    CachedCrossBatchSampler,
+    CachedUniformSampler,
+    InBatchSampler,
+    ItemSampler,
+)
 from .utils import repr_utils
 
 Tag.__hash__ = lambda self: hash(str(self))
@@ -140,9 +144,8 @@ __all__ = [
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",
-    "InBatchNegativeSampling",
-    "ExtraNegativeSampling",
     "ItemRetrievalTask",
+    "ItemRetrievalScorer",
     "NDCGAt",
     "AvgPrecisionAt",
     "RecallAt",
@@ -154,4 +157,10 @@ __all__ = [
     "NoOp",
     "data",
     "SyntheticData",
+    "ItemSampler",
+    "EmbeddingWithMetadata",
+    "InBatchSampler",
+    "CachedCrossBatchSampler",
+    "CachedUniformSampler",
+    "FIFOQueue",
 ]
