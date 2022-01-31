@@ -67,6 +67,9 @@ class BlockContext(Layer):
     def add_features(self, *name):
         self._feature_names = list({*self._feature_names, *name})
 
+    def add_variable(self, variable):
+        setattr(self, variable.name, variable)
+
     def set_dtypes(self, features):
         for feature_name in features:
             self._feature_dtypes[feature_name] = features[feature_name].dtype
@@ -76,6 +79,14 @@ class BlockContext(Layer):
 
     def get_embedding(self, item):
         return self.named_variables[f"{str(item)}/embedding"]
+
+    def get_mask(self):
+        mask_schema = self.named_variables.get("masking_schema", None)
+        if mask_schema is None:
+            raise ValueError(
+                "The mask schema is not stored, " "please make sure that a MaskingBlock was set"
+            )
+        return mask_schema
 
     @property
     def named_variables(self) -> Dict[str, tf.Variable]:
@@ -98,10 +109,15 @@ class BlockContext(Layer):
             if feature_name not in self.named_variables:
                 shape = input_shape[feature_name]
                 dtype = self._feature_dtypes.get(feature_name, tf.float32)
-                if tuple(shape) != (None,):
-                    var = tf.zeros(shape, dtype=dtype)
+
+                if len(tuple(shape)) == 2:
+                    var = tf.zeros([1, shape[-1]], dtype=dtype)
+                    shape = tf.TensorShape([None, shape[-1]])
+                elif tuple(shape) != (None,):
+                    var = tf.zeros((shape), dtype=dtype)
                 else:
                     var = tf.zeros([1], dtype=dtype)
+
                 setattr(
                     self,
                     feature_name,
@@ -186,7 +202,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         super()._maybe_build(inputs)
 
-    def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
+    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
         return targets
 
     def register_features(self, feature_shapes) -> List[str]:
@@ -553,9 +569,11 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(self, predictions, targets, training=None, **kwargs):
+    def call_targets(self, predictions, targets, training=True, **kwargs):
         outputs = targets
         for layer in self.layers:
+            if isinstance(outputs, tuple):
+                outputs, predictions = outputs
             outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
 
         return outputs
@@ -1587,7 +1605,6 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
     def pre_loss(self, predictions, targets, **kwargs):
         targets = self.pre.call_targets(predictions, targets, **kwargs)
-
         return targets
 
     def __call__(self, *args, **kwargs):
@@ -1645,6 +1662,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         if self.pre:
             targets = self.pre_loss(predictions, targets, **kwargs)
+            if isinstance(targets, tuple):
+                targets, predictions = targets
 
         if len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
@@ -2090,7 +2109,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             targets = None
 
-        predictions = self(inputs, training=True)
+        predictions = self(inputs, training=False)
         loss = self.compute_loss(predictions, targets, training=False)
 
         # Handle regularization losses as well.

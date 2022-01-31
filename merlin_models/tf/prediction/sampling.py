@@ -554,5 +554,5 @@ class PopularityBasedSampler(ItemSampler):
 
         return EmbeddingWithMetadata(
             items_embeddings,
-            metadata={str(Tag.ITEM_ID): sampled_ids},
+            metadata={str(Tag.ITEM_ID): tf.cast(sampled_ids, tf.int32)},
         )
