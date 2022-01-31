@@ -21,8 +21,6 @@ import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_standard_lib import Tag
 
-tf = pytest.importorskip("tensorflow")
-
 
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
 def test_item_retrieval_scorer(ignore_last_batch_on_sample):
@@ -41,7 +39,9 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
     # First batch
-    _, output_scores1 = item_retrieval_scorer.call_targets({"query": users_embeddings, "item": items_embeddings}, {})
+    _, output_scores1 = item_retrieval_scorer.call_targets(
+        {"query": users_embeddings, "item": items_embeddings}, {}
+    )
     expected_num_samples_inbatch = batch_size
     expected_num_samples_cached = 0 if ignore_last_batch_on_sample else batch_size
     tf.assert_equal(tf.shape(output_scores1)[0], batch_size)
@@ -51,7 +51,9 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     )
 
     # Second batch
-    _, output_scores2 = item_retrieval_scorer.call_targets({"query": users_embeddings, "item": items_embeddings}, {})
+    _, output_scores2 = item_retrieval_scorer.call_targets(
+        {"query": users_embeddings, "item": items_embeddings}, {}
+    )
     expected_num_samples_cached += batch_size
     tf.assert_equal(tf.shape(output_scores2)[0], batch_size)
     # Number of negatives plus one positive
@@ -59,8 +61,10 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
         tf.shape(output_scores2)[1], expected_num_samples_inbatch + expected_num_samples_cached + 1
     )
 
-""" @tf.funcion convert `call_targets` of the ItemRetrievalScorer to graph ops, in graph-model the exception is not raised.
-For this test, we need to be able track the exceptions in graph mode. 
+
+""" @tf.funcion convert `call_targets` of the ItemRetrievalScorer to graph ops,
+In graph-model the exception is not raised.
+or this test, we need to be able track the exceptions in graph mode.
 
 def test_item_retrieval_scorer_cached_sampler_no_result_first_batch():
     batch_size = 10
@@ -81,8 +85,10 @@ def test_item_retrieval_scorer_cached_sampler_no_result_first_batch():
 
     with pytest.raises(Exception) as excinfo:
         _ = item_retrieval_scorer({"query": users_embeddings, "item": items_embeddings}, {})
-    assert "No negative items where sampled from samplers" in str(excinfo.value)   
+    assert "No negative items where sampled from samplers" in str(excinfo.value)
 """
+
+
 def test_item_retrieval_scorer_no_sampler():
     with pytest.raises(Exception) as excinfo:
         users_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
@@ -90,7 +96,9 @@ def test_item_retrieval_scorer_no_sampler():
         item_retrieval_scorer = ml.ItemRetrievalScorer(
             samplers=[], sampling_downscore_false_negatives=False
         )
-        item_retrieval_scorer.call_targets({"query": users_embeddings, "item": items_embeddings}, {})
+        item_retrieval_scorer.call_targets(
+            {"query": users_embeddings, "item": items_embeddings}, {}
+        )
     assert "At least one sampler is required by ItemRetrievalScorer for negative sampling" in str(
         excinfo.value
     )
@@ -114,7 +122,9 @@ def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
     with pytest.raises(Exception) as excinfo:
-        _ = item_retrieval_scorer.call_targets({"query": users_embeddings, "item": items_embeddings}, targets={})
+        _ = item_retrieval_scorer.call_targets(
+            {"query": users_embeddings, "item": items_embeddings}, targets={}
+        )
     assert "The following required context features should be available for the samplers" in str(
         excinfo.value
     )
@@ -141,7 +151,9 @@ def test_item_retrieval_scorer_downscore_false_negatives():
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
-    _ , output_scores = item_retrieval_scorer.call_targets({"query": users_embeddings, "item": items_embeddings}, targets={})
+    _, output_scores = item_retrieval_scorer.call_targets(
+        {"query": users_embeddings, "item": items_embeddings}, targets={}
+    )
 
     output_neg_scores = output_scores[:, 1:]
 
