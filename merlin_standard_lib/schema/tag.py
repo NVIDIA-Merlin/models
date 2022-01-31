@@ -23,6 +23,7 @@ class Tag(Enum):
     CATEGORICAL = "categorical"
     CONTINUOUS = "continuous"
     LIST = "list"
+    SEQUENCE = "sequence"
     TEXT = "text"
     TEXT_TOKENIZED = "text_tokenized"
     TIME = "time"
