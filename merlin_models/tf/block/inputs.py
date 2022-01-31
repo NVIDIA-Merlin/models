@@ -110,7 +110,7 @@ def InputBlock(
         if not aggregation:
             LOG.info(
                 "aggregation is not provided, "
-                "default `concat` will be used to merge seuquential features"
+                "default `concat` will be used to merge sequential features"
             )
             aggregation = "concat"
         agg = aggregation
