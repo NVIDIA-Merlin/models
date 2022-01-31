@@ -474,8 +474,8 @@ class MaskingHead(Block):
 def SampledSoftmax(
     schema: Schema,
     num_sampled: int,
-    num_true: int = 1,
-    remove_accidental_hits: bool = True,
+    min_id: int = 0,
+    ignore_false_negatives: bool = True,
 ):
     """
     Compute the softmax scores on a subset of sampled candidates to optimize
@@ -489,10 +489,11 @@ def SampledSoftmax(
             The schema object including features to use and their properties.
         num_sampled: int
             The number of candidates to sample during training
-        num_true: int
-            The number of target classes per training example
-            Defaults to 1
-        remove_accidental_hits: bool
+        min_id: int
+            The minimum id value to be sampled as negative. Useful to ignore the first categorical
+            encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
+            Defaults to 0.
+        ignore_false_negatives: bool
             Ignore sampled items that are equal to the target classes
             Defaults to True
 
@@ -505,10 +506,12 @@ def SampledSoftmax(
     """
 
     num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
-    samplers = PopularityBasedSampler(max_num_samples=num_classes)
+    samplers = PopularityBasedSampler(
+        max_num_samples=num_sampled, max_id=num_classes, min_id=min_id
+    )
 
     SampledSoftmax = ItemRetrievalScorer(
-        samplers=samplers, sampling_downscore_false_negatives=remove_accidental_hits
+        samplers=samplers, sampling_downscore_false_negatives=ignore_false_negatives
     )
     return SampledSoftmax
 
@@ -529,6 +532,7 @@ def NextItemPredictionTask(
     normalize: bool = True,
     sampled_softmax: bool = False,
     num_sampled: int = 100,
+    min_sampled_id: int = 0,
 ) -> MultiClassClassificationTask:
     """
     Function to create the NextItemPrediction task with the right parameters.
@@ -575,13 +579,17 @@ def NextItemPredictionTask(
             When sampled_softmax is enabled, specify the number of
             negative candidates to generate for each batch
             Defaults to 100
+        min_sampled_id: int
+            The minimum id value to be sampled. Useful to ignore the first categorical
+            encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
+            Defaults to 0.
     Returns
     -------
         PredictionTask
             The next item prediction task
     """
     if sampled_softmax:
-        prediction_call = SampledSoftmax(schema, num_sampled=num_sampled)
+        prediction_call = SampledSoftmax(schema, num_sampled=num_sampled, min_id=min_sampled_id)
 
     elif weight_tying:
         prediction_call = ItemSoftmaxWeightTying(schema)

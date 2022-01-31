@@ -473,7 +473,7 @@ class PopularityBasedSampler(ItemSampler):
     Provides a popularity-based negative sampling for the softmax layer
     to ensure training efficiency when the catalog of items is very large.
     The capacity of the queue is fixed and is equal to the catalog size.
-    For each batch, we sample `num_sampled` unique negatives.
+    For each batch, we sample `max_num_samples` unique negatives.
 
     We use the default log-uniform sampler given by tensorflow:
         [log_uniform_candidate_sampler](https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)
@@ -488,8 +488,15 @@ class PopularityBasedSampler(ItemSampler):
 
     Parameters
     ----------
-    num_sampled: int
+    max_num_samples: int
         The number of unique negatives to sample at each batch.
+    max_id: int
+        The maximum id value to be sampled. It should be equal to the
+        categorical feature cardinality
+    min_id: int
+        The minimum id value to be sampled. Useful to ignore the first categorical
+        encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
+        Defaults to 0.
     seed: int
         Fix the random values returned by the sampler to ensure reproducibility
         Defaults to None
@@ -498,19 +505,21 @@ class PopularityBasedSampler(ItemSampler):
 
     def __init__(
         self,
-        max_num_samples,
-        num_sampled=100,
-        seed=None,
+        max_id: int,
+        min_id: int = 0,
+        max_num_samples: int = 100,
+        seed: int = None,
         **kwargs,
     ):
         super().__init__(max_num_samples=max_num_samples, **kwargs)
-        self.num_sampled = num_sampled
+        self.max_id = max_id
+        self.min_id = min_id
         self.seed = seed
 
         assert (
-            self.num_sampled <= self.max_num_samples
-        ), f"Number of items to sample `{self.num_sampled}`"
-        f" should be less than total number of ids `{self.max_num_samples}`"
+            self.max_num_samples <= self.max_id
+        ), f"Number of items to sample `{self.max_num_samples}`"
+        f" should be less than total number of ids `{self.max_id}`"
 
     def _check_inputs(self, inputs):
         assert (
@@ -528,10 +537,10 @@ class PopularityBasedSampler(ItemSampler):
 
         tf.assert_equal(
             int(tf.shape(item_weights)[0]),
-            self.max_num_samples,
+            self.max_id,
             "The first dimension of the items embeddings "
-            f"({int(tf.shape(item_weights)[0]),}) and "
-            f"the he number of possible classes ({self.max_num_samples}) should match.",
+            f"({int(tf.shape(item_weights)[0])}) and "
+            f"the the number of possible classes ({self.max_id}) should match.",
         )
 
         items_embeddings = self.sample(item_weights)
@@ -544,11 +553,14 @@ class PopularityBasedSampler(ItemSampler):
         sampled_ids, _, _ = tf.random.log_uniform_candidate_sampler(
             true_classes=tf.ones((1, 1), dtype=tf.int64),
             num_true=1,
-            num_sampled=self.num_sampled,
+            num_sampled=self.max_num_samples,
             unique=True,
-            range_max=self.max_num_samples,
+            range_max=self.max_id - self.min_id,
             seed=self.seed,
         )
+
+        # Shifting the sampled ids to ignore the first ids (usually reserved for nulls, OOV)
+        sampled_ids += self.min_id
 
         items_embeddings = embedding_ops.embedding_lookup(item_weights, sampled_ids)
 
