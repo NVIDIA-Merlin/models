@@ -202,7 +202,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         super()._maybe_build(inputs)
 
-    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+    def call_targets(self, predictions, targets, training=False, **kwargs) -> tf.Tensor:
         return targets
 
     def register_features(self, feature_shapes) -> List[str]:
