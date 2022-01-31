@@ -104,7 +104,7 @@ def InputBlock(
         sparse_schema, context_schema = schema.split_by_tag(sequential_tags)
         if not sparse_schema:
             raise ValueError(
-                "Please make sure that schema has sparse features when"
+                "Please make sure that schema has features tagged as 'sequence' when"
                 "`split_context` is set to True"
             )
         if not aggregation:
