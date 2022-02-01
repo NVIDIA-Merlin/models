@@ -49,6 +49,16 @@ class CosineSimilarity(Distance):
         return out
 
 
+@tabular_aggregation_registry.register("elementwise-multiply")
+class ElementWiseMultiply(Distance):
+    def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
+        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+
+    def distance(self, inputs: TabularData, **kwargs) -> tf.Tensor:
+        out = tf.keras.layers.Multiply()(list(inputs.values()))
+        return out
+
+
 def TwoTowerBlock(
     schema,
     query_tower: Block,
