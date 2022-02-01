@@ -49,6 +49,7 @@ class SyntheticData:
         "music-streaming": HERE / "music_streaming",
         "social": HERE / "social",
         "testing": HERE / "testing",
+        "sequence_testing": HERE / "sequence_testing",
     }
     FILE_NAME = "data.parquet"
 
@@ -260,11 +261,20 @@ def generate_user_item_interactions(
 
     # get ITEM cols
     item_id_col = schema.select_by_tag(Tag.ITEM_ID).feature[0]
-    data[item_id_col.name] = _array.clip(
-        _array.random.lognormal(3.0, 1.0, num_interactions).astype(_array.int32),
-        1,
-        item_id_col.int_domain.max,
-    ).astype(_array.int64)
+    is_list_feature = has_field(item_id_col, "value_count")
+    if not is_list_feature:
+        shape = num_interactions
+    else:
+        shape = (num_interactions, item_id_col.value_count.max)
+    data[item_id_col.name] = (
+        _array.clip(
+            _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
+            1,
+            item_id_col.int_domain.max,
+        )
+        .astype(_array.int64)
+        .tolist()
+    )
     features = schema.select_by_tag(Tag.ITEM).remove_by_tag(Tag.ITEM_ID).feature
     data = generate_conditional_features(
         data,

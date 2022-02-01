@@ -40,6 +40,7 @@ from .block.aggregation import (
 from .block.cross import CrossBlock
 from .block.dlrm import DLRMBlock
 from .block.inputs import InputBlock
+from .block.masking import CausalLanguageModeling, MaskedLanguageModeling
 from .block.mlp import DenseResidualBlock, MLPBlock
 from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
 from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
@@ -78,8 +79,13 @@ from .features.embedding import (
 from .layers import DotProductInteraction
 from .layers.queue import FIFOQueue
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
-from .prediction.item_prediction import ItemRetrievalScorer, ItemRetrievalTask
-from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt
+from .prediction.item_prediction import (
+    ItemRetrievalScorer,
+    ItemRetrievalTask,
+    NextItemPredictionTask,
+    YoutubeDNNRetrieval,
+)
+from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
@@ -88,6 +94,7 @@ from .prediction.sampling import (
     CachedUniformSampler,
     InBatchSampler,
     ItemSampler,
+    PopularityBasedSampler,
 )
 from .utils import repr_utils
 
@@ -115,6 +122,8 @@ __all__ = [
     "CrossBlock",
     "DLRMBlock",
     "MLPBlock",
+    "CausalLanguageModeling",
+    "MaskedLanguageModeling",
     "ContinuousEmbedding",
     "DotProductInteraction",
     "MMOEGate",
@@ -146,9 +155,11 @@ __all__ = [
     "RegressionTask",
     "ItemRetrievalTask",
     "ItemRetrievalScorer",
+    "NextItemPredictionTask",
     "NDCGAt",
     "AvgPrecisionAt",
     "RecallAt",
+    "ranking_metrics",
     "Model",
     "InputBlock",
     "PredictionTasks",
@@ -162,5 +173,7 @@ __all__ = [
     "InBatchSampler",
     "CachedCrossBatchSampler",
     "CachedUniformSampler",
+    "PopularityBasedSampler",
     "FIFOQueue",
+    "YoutubeDNNRetrieval",
 ]

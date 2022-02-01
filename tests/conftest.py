@@ -35,6 +35,11 @@ def music_streaming_data() -> SyntheticData:
 
 
 @pytest.fixture
+def sequence_testing_data() -> SyntheticData:
+    return SyntheticData("sequence_testing", num_rows=100, read_data_fn=read_data)
+
+
+@pytest.fixture
 def social_data() -> SyntheticData:
     return SyntheticData("social", num_rows=100, read_data_fn=read_data)
 
