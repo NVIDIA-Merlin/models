@@ -349,6 +349,12 @@ class Schema(_Schema):
             to_remove, collection_filter_fn, lambda x: x.name, negate=True
         )
 
+    def split_by_tag(self, to_split) -> Tuple["Schema", "Schema"]:
+        return self.select_by_tag(to_split), self.remove_by_tag(to_split)
+
+    def split_by_name(self, to_split) -> Tuple["Schema", "Schema"]:
+        return self.select_by_name(to_split), self.remove_by_name(to_split)
+
     def map_column_schemas(self, map_fn: Callable[[ColumnSchema], ColumnSchema]) -> "Schema":
         output_schemas = []
         for column_schema in self.column_schemas:
