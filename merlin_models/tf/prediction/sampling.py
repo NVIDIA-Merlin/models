@@ -19,6 +19,7 @@ from typing import List, Optional
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
+from tensorflow.python.ops import embedding_ops
 
 from ..core import EmbeddingWithMetadata, Tag
 from ..layers.queue import FIFOQueue
@@ -464,4 +465,106 @@ class CachedUniformSampler(CachedCrossBatchSampler):
         return EmbeddingWithMetadata(
             embeddings=output_embeddings,
             metadata=output_metadata,
+        )
+
+
+class PopularityBasedSampler(ItemSampler):
+    """
+    Provides a popularity-based negative sampling for the softmax layer
+    to ensure training efficiency when the catalog of items is very large.
+    The capacity of the queue is fixed and is equal to the catalog size.
+    For each batch, we sample `max_num_samples` unique negatives.
+
+    We use the default log-uniform sampler given by tensorflow:
+        [log_uniform_candidate_sampler](https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)
+
+    We note that this default sampler requires that
+    item-ids are encoded based on a decreasing order of their count frequency
+    and that the classes' expected counts are approximated based on their index order.
+    The `Categorify` op provided by nvtabular supports the frequency-based encoding as default.
+
+    P.s. Ignoring the false negatives (negative items equal to the positive ones) is
+    managed by `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`
+
+    Parameters
+    ----------
+    max_num_samples: int
+        The number of unique negatives to sample at each batch.
+    max_id: int
+        The maximum id value to be sampled. It should be equal to the
+        categorical feature cardinality
+    min_id: int
+        The minimum id value to be sampled. Useful to ignore the first categorical
+        encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
+        Defaults to 0.
+    seed: int
+        Fix the random values returned by the sampler to ensure reproducibility
+        Defaults to None
+
+    """
+
+    def __init__(
+        self,
+        max_id: int,
+        min_id: int = 0,
+        max_num_samples: int = 100,
+        seed: int = None,
+        **kwargs,
+    ):
+        super().__init__(max_num_samples=max_num_samples, **kwargs)
+        self.max_id = max_id
+        self.min_id = min_id
+        self.seed = seed
+
+        assert (
+            self.max_num_samples <= self.max_id
+        ), f"Number of items to sample `{self.max_num_samples}`"
+        f" should be less than total number of ids `{self.max_id}`"
+
+    def _check_inputs(self, inputs):
+        assert (
+            str(Tag.ITEM_ID) in inputs["metadata"]
+        ), "The 'item_id' metadata feature is required by PopularityBasedSampler."
+
+    def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=True):
+        pass
+
+    def call(
+        self, inputs: TabularData, item_weights: tf.Tensor, training=True
+    ) -> EmbeddingWithMetadata:
+        if training:
+            self._check_inputs(inputs)
+
+        tf.assert_equal(
+            int(tf.shape(item_weights)[0]),
+            self.max_id,
+            "The first dimension of the items embeddings "
+            f"({int(tf.shape(item_weights)[0])}) and "
+            f"the the number of possible classes ({self.max_id}) should match.",
+        )
+
+        items_embeddings = self.sample(item_weights)
+        return items_embeddings
+
+    def _required_features():
+        return [str(Tag.ITEM_ID)]
+
+    def sample(self, item_weights) -> EmbeddingWithMetadata:
+        sampled_ids, _, _ = tf.random.log_uniform_candidate_sampler(
+            true_classes=tf.ones((1, 1), dtype=tf.int64),
+            num_true=1,
+            num_sampled=self.max_num_samples,
+            unique=True,
+            range_max=self.max_id - self.min_id,
+            seed=self.seed,
+        )
+
+        # Shifting the sampled ids to ignore the first ids (usually reserved for nulls, OOV)
+        sampled_ids += self.min_id
+
+        items_embeddings = embedding_ops.embedding_lookup(item_weights, sampled_ids)
+
+        return EmbeddingWithMetadata(
+            items_embeddings,
+            metadata={str(Tag.ITEM_ID): tf.cast(sampled_ids, tf.int32)},
         )
