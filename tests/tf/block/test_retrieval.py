@@ -15,14 +15,14 @@
 #
 import os.path
 
+import numpy as np
 import pytest
+import tensorflow as tf
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_standard_lib import Tag
 
-import numpy as np
-import tensorflow as tf
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):
     mf = ml.MatrixFactorizationBlock(music_streaming_data.schema, dim=128)
@@ -67,16 +67,17 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
     except ImportError:
         pass
 
+
 def test_elementwisemultiply():
-    emb1 = np.random.uniform(-1,1, size=(5,10))
-    emb2 = np.random.uniform(-1,1, size=(5,10))
+    emb1 = np.random.uniform(-1, 1, size=(5, 10))
+    emb2 = np.random.uniform(-1, 1, size=(5, 10))
     x = ml.block.retrieval.ElementWiseMultiply()(
-        {'emb1': tf.constant(emb1),
-         'emb2': tf.constant(emb2)
-    })
-    
+        {"emb1": tf.constant(emb1), "emb2": tf.constant(emb2)}
+    )
+
     assert np.mean(np.isclose(x.numpy(), np.multiply(emb1, emb2))) == 1
-    assert x.numpy().shape == (5,10)
+    assert x.numpy().shape == (5, 10)
+
 
 test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
 

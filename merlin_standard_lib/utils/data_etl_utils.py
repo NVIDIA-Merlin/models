@@ -1,4 +1,4 @@
-# import logging
+import logging
 import os
 import shutil
 from os import path
@@ -14,9 +14,9 @@ from nvtabular.utils import download_file
 
 df_lib = get_lib()
 
-# logging.basicConfig()
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
@@ -58,7 +58,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         train.to_parquet(os.path.join(local_filename, name, "train.parquet"))
         valid.to_parquet(os.path.join(local_filename, name, "valid.parquet"))
 
-        # logger.info("starting ETL..")
+        logger.info("starting ETL..")
 
         # NVTabular pipeline
         movies = df_lib.read_parquet(os.path.join(local_filename, name, "movies_converted.parquet"))
@@ -108,7 +108,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
             "http://files.grouplens.org/datasets/movielens/ml-100k.zip",
             os.path.join(local_filename, "ml-100k.zip"),
         )
-        # logger.info("starting ETL..")
+        logger.info("starting ETL..")
         ratings = pd.read_csv(
             os.path.join(local_filename, "ml-100k/u.data"),
             names=["userId", "movieId", "rating", "timestamp"],
@@ -278,4 +278,4 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
     # Save the workflow
     workflow.save(os.path.join(outputdir, name, "workflow"))
 
-    # logger.info("saving the workflow..")
+    logger.info("saving the workflow..")
