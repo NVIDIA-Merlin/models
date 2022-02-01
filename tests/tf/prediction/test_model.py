@@ -24,7 +24,6 @@ from merlin_models.tf.utils import testing_utils
 # TODO: Fix this test when `run_eagerly=False`
 # @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_simple_model(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=True):
-
     body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -56,7 +55,6 @@ def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run
 def test_dlrm_model_single_head_multiple_tasks(
     music_streaming_data, num_epochs=5, run_eagerly=True
 ):
-
     dlrm_body = ml.DLRMBlock(
         music_streaming_data.schema,
         embedding_dim=64,
@@ -88,7 +86,6 @@ def test_dlrm_model_single_head_multiple_tasks(
 
 @pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
 def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
-
     body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(prediction_task("click"))
 

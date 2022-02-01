@@ -35,7 +35,7 @@ def CrossBlock(
     bias_regularizer: Optional[RegularizerType] = None,
     inputs: Optional[tf.keras.layers.Layer] = None,
     **kwargs,
-):
+) -> SequentialBlock:
     """This block provides a way to create high-order feature interactions
        by a number of stacked Cross Layers, from
        DCN V2: Improved Deep & Cross Network [1].
