@@ -21,7 +21,7 @@ from tensorflow.python.layers.base import Layer
 from tensorflow.python.ops import embedding_ops
 
 from merlin_models.tf.block.transformations import L2Norm
-from merlin_models.tf.core import Block, EmbeddingWithMetadata
+from merlin_models.tf.core import Block, EmbeddingWithMetadata, SequentialBlock
 from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from merlin_models.utils.constants import MIN_FLOAT
 from merlin_standard_lib import Schema, Tag
@@ -642,8 +642,7 @@ def YoutubeDNNRetrieval(
     task_block: Optional[Layer] = None,
     softmax_temperature: float = 1,
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
-):
-
+) -> SequentialBlock:
     """
     Build the Youtube-DNN retrieval model.
     More details of the model can be found at
