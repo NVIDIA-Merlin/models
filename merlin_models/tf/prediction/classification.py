@@ -84,28 +84,30 @@ class BinaryClassificationTask(PredictionTask):
         return super().from_config(config)
 
 
-class Softmax(Block):
+class CategFeaturePrediction(Block):
     def __init__(
         self,
         schema: Schema,
         feature_name: str = Tag.ITEM_ID,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
+        activation=None,
         **kwargs,
     ):
-        super(Softmax, self).__init__(**kwargs)
+        super(CategFeaturePrediction, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.kernel_initializer = kernel_initializer
         self.num_classes = schema.categorical_cardinalities()[feature_name]
         self.feature_name = feature_name
+        self.activation = activation
 
     def build(self, input_shape):
         self.output_layer = Dense(
             units=self.num_classes,
             kernel_initializer=self.kernel_initializer,
             bias_initializer=self.bias_initializer,
-            name=f"{self.feature_name}-softmax",
-            activation="softmax",
+            name=f"{self.feature_name}-prediction",
+            activation=self.activation,
         )
         return super().build(input_shape)
 
@@ -155,7 +157,7 @@ class MultiClassClassificationTask(PredictionTask):
         extra_pre: Optional[Block] = None,
         **kwargs,
     ) -> "MultiClassClassificationTask":
-        pre = Softmax(
+        pre = CategFeaturePrediction(
             schema,
             feature_name,
             bias_initializer=bias_initializer,

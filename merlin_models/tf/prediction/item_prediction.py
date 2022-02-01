@@ -30,7 +30,7 @@ from ..block.aggregation import SequenceAggregation, SequenceAggregator
 from ..block.inputs import InputBlock
 from ..block.mlp import MLPBlock
 from ..typing import TabularData
-from .classification import MultiClassClassificationTask, Softmax
+from .classification import CategFeaturePrediction, MultiClassClassificationTask
 from .ranking_metric import ranking_metrics
 
 LOG = logging.getLogger("merlin_models")
@@ -56,20 +56,20 @@ class SamplingBiasCorrection(Block):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class SoftmaxTemperature(Block):
-    def __init__(self, temperature: float, **kwargs):
-        super(SoftmaxTemperature, self).__init__(**kwargs)
-        self.temperature = temperature
+class PredictionsScaler(Block):
+    def __init__(self, scale_factor: float, **kwargs):
+        super(PredictionsScaler, self).__init__(**kwargs)
+        self.scale_factor = scale_factor
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
         if not training:
-            return inputs / self.temperature
+            return inputs * self.scale_factor
         else:
             return inputs
 
     def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
         if training:
-            return targets, predictions / self.temperature
+            return targets, predictions * self.scale_factor
         return targets
 
     def compute_output_shape(self, input_shape):
@@ -77,9 +77,19 @@ class SoftmaxTemperature(Block):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ItemSoftmaxWeightTying(Block):
+class ItemsPrediction(CategFeaturePrediction):
+    def __init__(
+        self,
+        schema: Schema,
+        **kwargs,
+    ):
+        super(ItemsPrediction, self).__init__(schema, feature_name=Tag.ITEM_ID, **kwargs)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ItemsPredictionWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
-        super(ItemSoftmaxWeightTying, self).__init__(**kwargs)
+        super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
 
@@ -96,9 +106,7 @@ class ItemSoftmaxWeightTying(Block):
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
-        predictions = tf.nn.log_softmax(logits, axis=-1)
-
-        return predictions
+        return logits
 
 
 # TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
@@ -388,7 +396,7 @@ def ItemRetrievalTask(
         prediction_call = L2Norm().connect(prediction_call)
 
     if softmax_temperature != 1:
-        prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
+        prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
 
     if extra_pre_call is not None:
         prediction_call = prediction_call.connect(extra_pre_call)
@@ -471,14 +479,14 @@ class MaskingHead(Block):
         return targets
 
 
-def SampledSoftmax(
+def ItemsPredictionSampled(
     schema: Schema,
     num_sampled: int,
     min_id: int = 0,
     ignore_false_negatives: bool = True,
 ):
     """
-    Compute the softmax scores on a subset of sampled candidates to optimize
+    Compute the items logits on a subset of sampled candidates to optimize
     training. During inference, the scores are computed over the whole
     catalog of items.
     Reference of the method can be found at [Jean et al., 2014](http://arxiv.org/abs/1412.2007)
@@ -510,10 +518,11 @@ def SampledSoftmax(
         max_num_samples=num_sampled, max_id=num_classes, min_id=min_id
     )
 
-    SampledSoftmax = ItemRetrievalScorer(
+    logits = ItemRetrievalScorer(
         samplers=samplers, sampling_downscore_false_negatives=ignore_false_negatives
     )
-    return SampledSoftmax
+
+    return logits
 
 
 def NextItemPredictionTask(
@@ -589,22 +598,24 @@ def NextItemPredictionTask(
             The next item prediction task
     """
     if sampled_softmax:
-        prediction_call = SampledSoftmax(schema, num_sampled=num_sampled, min_id=min_sampled_id)
+        prediction_call = ItemsPredictionSampled(
+            schema, num_sampled=num_sampled, min_id=min_sampled_id
+        )
 
     elif weight_tying:
-        prediction_call = ItemSoftmaxWeightTying(schema)
+        prediction_call = ItemsPredictionWeightTying(schema)
 
     else:
-        prediction_call = Softmax(schema)
+        prediction_call = ItemsPrediction(schema)
+
+    if softmax_temperature != 1:
+        prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
 
     if masking:
         prediction_call = MaskingHead().connect(RemovePad3D(), prediction_call)
 
     if normalize:
         prediction_call = L2Norm().connect(prediction_call)
-
-    if softmax_temperature != 1:
-        prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
 
     if extra_pre_call is not None:
         prediction_call = prediction_call.connect(extra_pre_call)
