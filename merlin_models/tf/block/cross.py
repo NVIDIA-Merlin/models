@@ -196,8 +196,11 @@ class Cross(tf.keras.layers.Layer):
         return output
 
     def validate_inputs(self, x0, x):
-        if x0.shape != x.shape:
-            raise ValueError("`x0` ({}) and `x` ({}) shapes mismatch!".format(x0.shape, x.shape))
+        tf.assert_equal(
+            tf.shape(x0),
+            tf.shape(x),
+            message="`x0` ({}) and `x` ({}) shapes mismatch!".format(x0.shape, x.shape),
+        )
 
     def get_config(self):
         config = dict()
