@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 from os import path
@@ -5,7 +6,6 @@ from os import path
 import numpy as np
 import nvtabular as nvt
 import pandas as pd
-from numba import config
 from nvtabular import ops
 
 # Get dataframe library - cudf or pandas
@@ -14,17 +14,33 @@ from nvtabular.utils import download_file
 
 df_lib = get_lib()
 
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
-    """this funct does the preliminary preprocessing on movielens dataset
+    """This funct does the preliminary preprocessing on movielens dataset
     and converts the csv files to parquet files and saves to disk. Then,
     using NVTabular, it does feature engineering on the parquet files
-    and saves the processed files to disk."""
+    and saves the processed files to disk.
+
+    Parameters
+    ----------
+    local_filename : str
+        path for downloading the raw dataset in and storing the converted
+        parquet files.
+    name : str
+        The name of the Movielens dataset. Currently Movielens 25M and
+        Movielens 100k datasets are supported.
+    outputdir : str, optional
+        path for saving the processed parquet files generated from NVTabular
+        workflow. If not provided, local_filename is used as outputdir.
+    """
     local_filename = os.path.abspath(local_filename)
     if outputdir is None:
         outputdir = local_filename
     if name == "ml-25m":
-        print("downloading movielens 25M..")
         download_file(
             "http://files.grouplens.org/datasets/movielens/ml-25m.zip",
             os.path.join(local_filename, "ml-25m.zip"),
@@ -42,10 +58,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         train.to_parquet(os.path.join(local_filename, name, "train.parquet"))
         valid.to_parquet(os.path.join(local_filename, name, "valid.parquet"))
 
-        # Avoid Numba warnings
-        config.CUDA_LOW_OCCUPANCY_WARNINGS = 0
-
-        print("starting data preprocessing..")
+        logger.info("starting ETL..")
 
         # NVTabular pipeline
         movies = df_lib.read_parquet(os.path.join(local_filename, name, "movies_converted.parquet"))
@@ -91,12 +104,11 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         )
 
     elif name == "ml-100k":
-        print("downloading movielens 100K..")
         download_file(
             "http://files.grouplens.org/datasets/movielens/ml-100k.zip",
             os.path.join(local_filename, "ml-100k.zip"),
         )
-        print("starting ETL..")
+        logger.info("starting ETL..")
         ratings = pd.read_csv(
             os.path.join(local_filename, "ml-100k/u.data"),
             names=["userId", "movieId", "rating", "timestamp"],
@@ -186,7 +198,6 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         valid = valid.merge(movies_converted, on="movieId", how="left")
         train.to_parquet(os.path.join(local_filename, "ml-100k/train.parquet"))
         valid.to_parquet(os.path.join(local_filename, "ml-100k/valid.parquet"))
-        print("starting data preprocessing..")
 
         cat_features = [
             "userId",
@@ -241,7 +252,9 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         )
 
     else:
-        raise ValueError("Unknown dataset name.")
+        raise ValueError(
+            "Unknown dataset name. Only Movielens 25M and 100k datasets are supported."
+        )
 
     train_dataset = nvt.Dataset([os.path.join(local_filename, name, "train.parquet")])
     valid_dataset = nvt.Dataset([os.path.join(local_filename, name, "valid.parquet")])
@@ -264,4 +277,5 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
     )
     # Save the workflow
     workflow.save(os.path.join(outputdir, name, "workflow"))
-    print("saving the workflow..")
+
+    logger.info("saving the workflow..")
