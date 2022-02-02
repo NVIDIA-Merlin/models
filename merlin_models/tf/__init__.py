@@ -85,6 +85,7 @@ from .prediction.item_prediction import (
     NextItemPredictionTask,
     YoutubeDNNRetrieval,
 )
+from .prediction.losses import BPR, BPR_v2
 from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 
 # from .prediction.multi_task import MMOEHead, PLEHead
@@ -176,4 +177,6 @@ __all__ = [
     "PopularityBasedSampler",
     "FIFOQueue",
     "YoutubeDNNRetrieval",
+    "BPR",
+    "BPR_v2",
 ]
