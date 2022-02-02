@@ -14,11 +14,13 @@
 # limitations under the License.
 #
 
+import numpy as np
 import pytest
 import tensorflow as tf
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
+from merlin_models.tf.block.aggregation import ElementWiseMultiply
 from merlin_standard_lib import Tag
 
 
@@ -101,6 +103,15 @@ def test_element_wise_sum_item_multi_aggregation_yoochoose(testing_data: Synthet
     out = block(testing_data.tf_tensor_dict)
 
     assert out.shape[-1] == 64
+
+
+def test_elementwisemultiply():
+    emb1 = np.random.uniform(-1, 1, size=(5, 10))
+    emb2 = np.random.uniform(-1, 1, size=(5, 10))
+    x = ElementWiseMultiply()(tf.constant(emb1), tf.constant(emb2))
+
+    assert np.mean(np.isclose(x.numpy(), np.multiply(emb1, emb2))) == 1
+    assert x.numpy().shape == (5, 10)
 
 
 # def test_element_wise_sum_item_multi_aggregation_registry_yoochoose(

@@ -15,7 +15,7 @@
 #
 import abc
 from enum import Enum
-from typing import Union
+from typing import Union, overload
 
 import tensorflow as tf
 from tensorflow.python.keras.layers import Dot
@@ -249,10 +249,22 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
 
 
 class TupleAggregation(TabularAggregation, abc.ABC):
+    @overload
+    def __call__(self, left: tf.Tensor, right: tf.Tensor, **kwargs):
+        ...
+
+    @overload
     def __call__(self, inputs: TabularData, **kwargs):
-        if not len(inputs) == 2:
-            raise ValueError(f"Expected 2 inputs, got {len(inputs)}")
-        left, right = tuple(inputs.values())
+        ...
+
+    def __call__(self, inputs: TabularData, *args, **kwargs):
+        if isinstance(inputs, tf.Tensor):
+            left = inputs
+            right = args[0]
+        else:
+            if not len(inputs) == 2:
+                raise ValueError(f"Expected 2 inputs, got {len(inputs)}")
+            left, right = tuple(inputs.values())
         outputs = super().__call__(left, right, **kwargs)
 
         return outputs

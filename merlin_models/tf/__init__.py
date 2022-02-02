@@ -76,7 +76,6 @@ from .features.embedding import (
     SequenceEmbeddingFeatures,
     TableConfig,
 )
-from .layers import DotProductInteraction
 from .layers.queue import FIFOQueue
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
 from .prediction.item_prediction import (
@@ -125,7 +124,6 @@ __all__ = [
     "CausalLanguageModeling",
     "MaskedLanguageModeling",
     "ContinuousEmbedding",
-    "DotProductInteraction",
     "MMOEGate",
     "MMOEBlock",
     "CGCBlock",
