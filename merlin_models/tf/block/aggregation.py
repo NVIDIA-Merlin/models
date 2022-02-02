@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import abc
 from enum import Enum
 from typing import Union
 
 import tensorflow as tf
+from tensorflow.python.keras.layers import Dot
 
 from merlin_models.config.schema import requires_schema
 from merlin_models.tf.core import Block, TabularAggregation
@@ -244,6 +246,44 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
             config["schema"] = self.schema.to_json()
 
         return config
+
+
+class TupleAggregation(TabularAggregation, abc.ABC):
+    def __call__(self, inputs: TabularData, **kwargs):
+        if not len(inputs) == 2:
+            raise ValueError(f"Expected 2 inputs, got {len(inputs)}")
+        left, right = tuple(inputs.values())
+        outputs = super().__call__(left, right, **kwargs)
+
+        return outputs
+
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+        raise NotImplementedError()
+
+
+@TabularAggregation.registry.register_with_multiple_names("cosine", "cosine-similarity")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class CosineSimilarity(TupleAggregation):
+    def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
+        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+        self.dot = Dot(axes=1, normalize=True)
+
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+        out = self.dot([left, right])
+
+        return out
+
+
+@TabularAggregation.registry.register("elementwise-multiply")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ElementWiseMultiply(TupleAggregation):
+    def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
+        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+        out = tf.keras.layers.Multiply()([left, right])
+
+        return out
 
 
 class SequenceAggregation(Enum):
