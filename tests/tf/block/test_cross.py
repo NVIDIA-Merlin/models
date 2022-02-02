@@ -55,7 +55,7 @@ def test_cross_input_tuple_x0_xl():
     x0 = tf.random.uniform((NUM_SEQS, DIM))
     x1 = tf.random.uniform((NUM_SEQS, DIM - 1))
     cross = ml.CrossBlock(3)
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(Exception) as excinfo:
         cross((x0, x1))
     assert "shapes mismatch" in str(excinfo.value)
 

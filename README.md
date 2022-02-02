@@ -3,7 +3,7 @@
 [![stability-alpha](https://img.shields.io/badge/stability-alpha-f4d03f.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#alpha)
 
 
-The Merlin Model Library will provide standard models for Recommender Systems, aiming for high quality implementations
+The Merlin Models library will provide standard models for Recommender Systems, aiming for high quality implementations
 from classic Machine Learning models, to more advanced Deep Learning models.
 
 The goal of this library is make it easy for users in industry to train and deploy recommender models, with best
@@ -23,7 +23,7 @@ datasets. ([full requirements doc](https://docs.google.com/document/d/1fIiDtKW3o
 ```python
 import merlin_models.tf as ml
 
-ml.MatrixFactorizationBlock(schema, dim=256).to_model(schema)
+ml.MatrixFactorizationBlock(schema, dim=256).connect(ml.ItemRetrievalTask())
 ```
 
 ### YouTube DNN
@@ -36,11 +36,7 @@ Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube
 ```python
 import merlin_models.tf as ml
 
-dims = [512, 256]
-dnn = ml.InputBlock(schema, post="continuous-powers").apply(ml.MLPBlock(dims))
-prediction_task = ml.SampledItemPredictionTask(schema, dim=dims[-1], num_sampled=500)
-
-model = dnn.to_model(prediction_task)
+model = ml.YoutubeDNNRetrieval(schema, top_layer=ml.MLPBlock([64]))
 ```
 
 ### Two Tower
@@ -56,18 +52,20 @@ High-level API:
 ```python
 import merlin_models.tf as ml
 
-ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256])).to_model(schema.select_by_name(target))
+block = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
+model = block.connect(ml.ItemRetrievalTask())
 ```
 
 Low-level API:
 
 ```python
 import merlin_models.tf as ml
+from merlin_standard_lib import Tag
 
 user_tower = ml.InputBlock(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
 item_tower = ml.InputBlock(schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256]))
-two_tower = ml.merge({"user": user_tower, "item": item_tower}, aggregation="cosine")
-model = two_tower.to_model(schema.select_by_name(TARGET_NAME))
+two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower})
+model = two_tower.connect(ml.ItemRetrievalTask())
 ```
 
 ## Ranking
@@ -85,9 +83,13 @@ High-level API:
 ```python
 import merlin_models.tf as ml
 
-ml.DLRMBlock(
-    schema, bottom_block=ml.MLPBlock([512, 128]), top_block=ml.MLPBlock([512, 128])
-).to_model(schema)
+dlrm = ml.DLRMBlock(
+    schema, 
+    embedding_dim=32, 
+    bottom_block=ml.MLPBlock([512, 128]), 
+    top_block=ml.MLPBlock([512, 128])
+)
+model = dlrm.connect(ml.BinaryClassificationTask(schema))
 ```
 
 Low-level API:
@@ -113,17 +115,19 @@ Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” A
 ```python
 import merlin_models.tf as ml
 
-deep_cross_a = ml.InputBlock(schema, ml.CrossBlock(3)).apply(
-    ml.MLPBlock([512, 256])
-).to_model(schema)
+prediction_task = ml.BinaryClassificationTask(schema)
+cross = ml.CrossBlock(3)
+deep_cross_a = ml.InputBlock(schema).connect(
+    cross, ml.MLPBlock([512, 256]), prediction_task
+)
 
 deep_cross_b = ml.InputBlock(schema).branch(
-    ml.CrossBlock(3), ml.MLPBlock([512, 256]), aggregation="concat"
-).to_model(schema)
+    cross, ml.MLPBlock([512, 256]), aggregation="concat"
+).connect(prediction_task)
 
-b_with_shortcut = ml.InputBlock(schema, ml.CrossBlock(3)).apply_with_shortcut(
+b_with_shortcut = ml.InputBlock(schema).connect(cross).connect_with_shortcut(
     ml.MLPBlock([512, 256]), aggregation="concat"
-).to_model(schema)
+).connect(prediction_task)
 ```
 
 ## Multi-task Learning
@@ -137,26 +141,11 @@ High-level API:
 ```python
 import merlin_models.tf as ml
 
-ml.MMOEHead.from_schema(
-    schema,
-    body=ml.MLPBlock([512, 256]),
-    task_blocks=ml.MLPBlock([64, 32]),
-    expert_block=ml.MLPBlock([64, 32]),
-    num_experts=3,
-).to_model()
-```
-
-Low-level API:
-```python
-import merlin_models.tf as ml
-
-expert_block, num_experts = ml.MLPBlock([256, 128]), 3
-experts = expert_block.repeat_in_parallel(
-    num_experts, prefix="expert_", aggregation=ml.StackFeatures(axis=1)
-)
-gates = ml.MMOEGate(num_experts, dim=gate_dim).repeat_in_parallel(names=output_names)
-mmoe = expert_block.apply_with_shortcut(experts, block_outputs_name="experts")
-mmoe = mmoe.apply(gates, block_name="MMOE")
+inputs = ml.InputBlock(schema)
+prediction_tasks = ml.PredictionTasks(schema)
+block = ml.MLPBlock([64])
+mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
+model = inputs.connect(block, mmoe, prediction_tasks)
 ```
 
 ### Progressive layered extraction
@@ -168,14 +157,12 @@ High-level API:
 ```python
 import merlin_models.tf as ml
 
-ml.PLEHead.from_schema(
-    schema,
-    body=ml.MLPBlock([512, 256]),
-    task_blocks=ml.MLPBlock([64, 32]),
-    expert_block=ml.MLPBlock([64, 32]),
-    num_shared_experts=2,
-    num_task_experts=2,
-    depth=2,
-).to_model()
+inputs = ml.InputBlock(schema)
+prediction_tasks = ml.PredictionTasks(schema)
+block = ml.MLPBlock([64]) 
+cgc = ml.CGCBlock(
+    prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=2
+)
+model = inputs.connect(ml.MLPBlock([64]), cgc, prediction_tasks)
 ```
 

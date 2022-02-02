@@ -35,7 +35,7 @@ def CrossBlock(
     bias_regularizer: Optional[RegularizerType] = None,
     inputs: Optional[tf.keras.layers.Layer] = None,
     **kwargs,
-):
+) -> SequentialBlock:
     """This block provides a way to create high-order feature interactions
        by a number of stacked Cross Layers, from
        DCN V2: Improved Deep & Cross Network [1].
@@ -196,8 +196,11 @@ class Cross(tf.keras.layers.Layer):
         return output
 
     def validate_inputs(self, x0, x):
-        if x0.shape != x.shape:
-            raise ValueError("`x0` ({}) and `x` ({}) shapes mismatch!".format(x0.shape, x.shape))
+        tf.assert_equal(
+            tf.shape(x0),
+            tf.shape(x),
+            message="`x0` ({}) and `x` ({}) shapes mismatch!".format(x0.shape, x.shape),
+        )
 
     def get_config(self):
         config = dict()

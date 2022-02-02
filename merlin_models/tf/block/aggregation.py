@@ -13,15 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from enum import Enum
 from typing import Union
 
 import tensorflow as tf
 
 from merlin_models.config.schema import requires_schema
-from merlin_models.tf.core import TabularAggregation
+from merlin_models.tf.core import Block, TabularAggregation
 from merlin_models.tf.typing import TabularData
 from merlin_models.tf.utils import tf_utils
 from merlin_standard_lib import Schema
+
+from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
@@ -241,3 +244,54 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
             config["schema"] = self.schema.to_json()
 
         return config
+
+
+class SequenceAggregation(Enum):
+    MEAN = tf.reduce_mean
+    SUM = tf.reduce_sum
+    MAX = tf.reduce_max
+    MIN = tf.reduce_min
+
+    def __str__(self):
+        return self.value
+
+    def __eq__(self, o: object) -> bool:
+        return str(o) == str(self)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class SequenceAggregator(Block):
+    """Computes the aggregation of elements across dimensions of a 3-D tensor.
+    Args:
+        combiner:
+            tensorflow method to use for aggregation
+            Defaults to SequenceAggregation.MEAN
+        axis: int
+            The dimensions to reduce.
+            Defaults to 1
+    """
+
+    def __init__(self, combiner=SequenceAggregation.MEAN, axis: int = 1, **kwargs):
+        super().__init__(**kwargs)
+        self.axis = axis
+        self.combiner = combiner
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        assert len(inputs.shape) == 3, "inputs should be a 3-D tensor"
+        return self.combiner(inputs, axis=self.axis)
+
+    def compute_output_shape(self, input_shape):
+        batch_size, _, last_dim = input_shape
+        return batch_size, last_dim
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(
+            self, config, {"combiner": tf.keras.layers.serialize}
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["combiner"], tf.keras.layers.deserialize)
+        return super().from_config(config)

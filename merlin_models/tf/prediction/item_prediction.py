@@ -14,25 +14,30 @@
 # limitations under the License.
 #
 import logging
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
+from tensorflow.python.ops import embedding_ops
 
 from merlin_models.tf.block.transformations import L2Norm
-from merlin_models.tf.core import Block, EmbeddingWithMetadata
-from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler
+from merlin_models.tf.core import Block, EmbeddingWithMetadata, SequentialBlock
+from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from merlin_models.utils.constants import MIN_FLOAT
 from merlin_standard_lib import Schema, Tag
 
+from ..block.aggregation import SequenceAggregation, SequenceAggregator
+from ..block.inputs import InputBlock
+from ..block.mlp import MLPBlock
 from ..typing import TabularData
-from .classification import MultiClassClassificationTask
+from .classification import CategFeaturePrediction, MultiClassClassificationTask
 from .ranking_metric import ranking_metrics
 
 LOG = logging.getLogger("merlin_models")
 
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SamplingBiasCorrection(Block):
     def __init__(self, bias_feature_name: str = "popularity", **kwargs):
         super(SamplingBiasCorrection, self).__init__(**kwargs)
@@ -50,21 +55,41 @@ class SamplingBiasCorrection(Block):
         return input_shape
 
 
-class SoftmaxTemperature(Block):
-    def __init__(self, temperature: float, **kwargs):
-        super(SoftmaxTemperature, self).__init__(**kwargs)
-        self.temperature = temperature
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class PredictionsScaler(Block):
+    def __init__(self, scale_factor: float, **kwargs):
+        super(PredictionsScaler, self).__init__(**kwargs)
+        self.scale_factor = scale_factor
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        return inputs / self.temperature
+        if not training:
+            return inputs * self.scale_factor
+        else:
+            return inputs
+
+    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+        if training:
+            return targets, predictions * self.scale_factor
+        return targets
 
     def compute_output_shape(self, input_shape):
         return input_shape
 
 
-class ItemSoftmaxWeightTying(Block):
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ItemsPrediction(CategFeaturePrediction):
+    def __init__(
+        self,
+        schema: Schema,
+        **kwargs,
+    ):
+        super(ItemsPrediction, self).__init__(schema, feature_name=Tag.ITEM_ID, **kwargs)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ItemsPredictionWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
-        super(ItemSoftmaxWeightTying, self).__init__(**kwargs)
+        super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
 
@@ -81,9 +106,7 @@ class ItemSoftmaxWeightTying(Block):
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
-        predictions = tf.nn.log_softmax(logits, axis=-1)
-
-        return predictions
+        return logits
 
 
 # TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
@@ -163,9 +186,43 @@ class ItemRetrievalScorer(Block):
                 f"for the samplers, but were not found: {not_found}"
             )
 
-    def call(self, inputs: TabularData, training: bool = True, **kwargs) -> tf.Tensor:
+    def call(
+        self, inputs: Union[tf.Tensor, TabularData], training: bool = True, **kwargs
+    ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs["query"]), uses dot product to score
-            the positive item (inputs["item"]) and also sampled negative items (during training).
+            the positive item (inputs["item"] or  self.context.get_embedding(Tag.ITEM_ID))
+        Parameters
+        ----------
+        inputs : Union[tf.Tensor, TabularData]
+            Dict with the query and item embeddings (e.g. `{"query": <emb>}, "item": <emb>}`),
+            where embeddings are 2D tensors (batch size, embedding size)
+        training : bool, optional
+            Flag that indicates whether in training mode, by default True
+
+        Returns
+        -------
+        tf.Tensor
+            2D Tensor with the scores for the positive items,
+            If `training=True`, return the original inputs
+        """
+        if training:
+            return inputs
+
+        if isinstance(inputs, tf.Tensor):
+            embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+            all_scores = tf.matmul(inputs, tf.transpose(embedding_table))
+            return all_scores
+
+        self._check_input_from_two_tower(inputs)
+        positive_scores = tf.reduce_sum(
+            tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
+        )
+        return positive_scores
+
+    @tf.function
+    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+        """Based on the user/query embedding (inputs["query"]), uses dot product to score
+            the positive item and also sampled negative items (during training).
 
         Parameters
         ----------
@@ -177,26 +234,30 @@ class ItemRetrievalScorer(Block):
 
         Returns
         -------
-        tf.Tensor
-            2D Tensor with the scores for the positive items and, if `training=True`, for the
-            negative sampled items too. Return tensor is 2D (batch size, 1 + #negatives)
+        [tf.Tensor,tf.Tensor]
+            all_scores: 2D Tensor with the scores for the positive items and, if `training=True`,
+            for the negative sampled items too.
+            Return tensor is 2D (batch size, 1 + #negatives)
+
         """
-        self._check_input_from_two_tower(inputs)
         self._check_required_context_item_features_are_present()
 
-        positive_scores = tf.reduce_sum(
-            tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
-        )
-
-        if not training:
-            return positive_scores
-        else:
+        if training:
             assert (
                 len(self.samplers) > 0
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
 
-            batch_items_embeddings = inputs["item"]
+            if isinstance(predictions, dict):
+                batch_items_embeddings = predictions["item"]
+            else:
+                embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+                batch_items_embeddings = embedding_ops.embedding_lookup(embedding_table, targets)
+                predictions = {"query": predictions, "item": batch_items_embeddings}
             batch_items_metadata = self.get_batch_items_metadata()
+
+            positive_scores = tf.reduce_sum(
+                tf.multiply(predictions["query"], predictions["item"]), keepdims=True, axis=-1
+            )
 
             neg_items_embeddings_list = []
             neg_items_ids_list = []
@@ -204,7 +265,10 @@ class ItemRetrievalScorer(Block):
             # Adds items from the current batch into samplers and sample a number of negatives
             for sampler in self.samplers:
                 input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
-                neg_items = sampler(input_data.__dict__)
+                if "item_weights" in sampler._call_fn_args:
+                    neg_items = sampler(input_data.__dict__, item_weights=embedding_table)
+                else:
+                    neg_items = sampler(input_data.__dict__)
 
                 if tf.shape(neg_items.embeddings)[0] > 0:
                     # Accumulates sampled negative items from all samplers
@@ -224,24 +288,26 @@ class ItemRetrievalScorer(Block):
                 neg_items_embeddings = tf.concat(neg_items_embeddings_list, axis=0)
 
             negative_scores = tf.linalg.matmul(
-                inputs["query"], neg_items_embeddings, transpose_b=True
+                predictions["query"], neg_items_embeddings, transpose_b=True
             )
 
             if self.downscore_false_negatives:
+                if isinstance(targets, tf.Tensor):
+                    positive_item_ids = targets
+                else:
+                    positive_item_ids = self.context[Tag.ITEM_ID]
+
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]
                 else:
                     neg_items_ids = tf.concat(neg_items_ids_list, axis=0)
 
-                positive_item_ids = self.context[Tag.ITEM_ID]
                 negative_scores = self.rescore_false_negatives(
                     positive_item_ids, neg_items_ids, negative_scores
                 )
 
-            all_scores = tf.concat([positive_scores, negative_scores], axis=-1)
-            return all_scores
+            predictions = tf.concat([positive_scores, negative_scores], axis=-1)
 
-    def call_targets(self, predictions, targets, **kwargs) -> tf.Tensor:
         # Positives in the first column and negatives in the subsequent columns
         targets = tf.concat(
             [
@@ -250,7 +316,7 @@ class ItemRetrievalScorer(Block):
             ],
             axis=1,
         )
-        return targets
+        return targets, predictions
 
     def get_batch_items_metadata(self):
         result = {feat_name: self.context[feat_name] for feat_name in self._required_features}
@@ -330,7 +396,7 @@ def ItemRetrievalTask(
         prediction_call = L2Norm().connect(prediction_call)
 
     if softmax_temperature != 1:
-        prediction_call = prediction_call.connect(SoftmaxTemperature(softmax_temperature))
+        prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
 
     if extra_pre_call is not None:
         prediction_call = prediction_call.connect(extra_pre_call)
@@ -343,3 +409,267 @@ def ItemRetrievalTask(
         metrics=metrics,
         pre=prediction_call,
     )
+
+
+@Block.registry.register_with_multiple_names("remove_pad_3d")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class RemovePad3D(Block):
+    """
+    Flatten the sequence of labels and filter out non-targets positions
+
+    Parameters
+    ----------
+        padding_idx: int
+            The padding index value.
+            Defaults to 0.
+    Returns
+    -------
+        targets: tf.Tensor
+            The flattened vector of true targets positions
+        flatten_predictions: tf.Tensor
+            If the predicions are 3-D vectors (sequential task),
+            flatten the predictions vectors to keep only the ones related to target positions.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.padding_idx = 0
+
+    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+        targets = tf.reshape(targets, (-1,))
+        non_pad_mask = targets != self.padding_idx
+        targets = tf.boolean_mask(targets, non_pad_mask)
+
+        if len(tuple(predictions.get_shape())) == 3:
+            predictions = tf.reshape(predictions, (-1, predictions.shape[-1]))
+            flatten_predictions = tf.boolean_mask(
+                predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
+            )
+            return targets, flatten_predictions
+        return targets
+
+
+@Block.registry.register_with_multiple_names("masking_head")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class MaskingHead(Block):
+    """
+    The masking class to transform targets based on the
+    boolean masking schema stored in the model's context
+    Parameters
+    ----------
+        padding_idx: int
+            The padding index value.
+            Defaults to 0.
+    Returns
+    -------
+        targets: tf.Tensor
+            Tensor of masked labels.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.padding_idx = 0
+
+    def call_targets(
+        self, predictions: tf.Tensor, targets: tf.Tensor, training: bool = True, **kwargs
+    ) -> tf.Tensor:
+        targets = self.context[Tag.ITEM_ID]
+        mask = self.context.get_mask()
+        targets = tf.where(mask, targets, self.padding_idx)
+        return targets
+
+
+def ItemsPredictionSampled(
+    schema: Schema,
+    num_sampled: int,
+    min_id: int = 0,
+    ignore_false_negatives: bool = True,
+):
+    """
+    Compute the items logits on a subset of sampled candidates to optimize
+    training. During inference, the scores are computed over the whole
+    catalog of items.
+    Reference of the method can be found at [Jean et al., 2014](http://arxiv.org/abs/1412.2007)
+
+    Parameters:
+    -----------
+        schema: Schema
+            The schema object including features to use and their properties.
+        num_sampled: int
+            The number of candidates to sample during training
+        min_id: int
+            The minimum id value to be sampled as negative. Useful to ignore the first categorical
+            encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
+            Defaults to 0.
+        ignore_false_negatives: bool
+            Ignore sampled items that are equal to the target classes
+            Defaults to True
+
+    Returns:
+    -------
+        targets, logits: tf.Tensor, tf.Tensor
+            During training, return the concatenated tensor of true class
+            and sampled negatives of shape (bs, num_sampled+1), as well as the related logits.
+            During evaluation, returns the input tensor of true class, and the related logits.
+    """
+
+    num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
+    samplers = PopularityBasedSampler(
+        max_num_samples=num_sampled, max_id=num_classes, min_id=min_id
+    )
+
+    logits = ItemRetrievalScorer(
+        samplers=samplers, sampling_downscore_false_negatives=ignore_false_negatives
+    )
+
+    return logits
+
+
+def NextItemPredictionTask(
+    schema: Schema,
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(
+        from_logits=True,
+    ),
+    metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=True),
+    weight_tying: bool = True,
+    masking: bool = True,
+    extra_pre_call: Optional[Block] = None,
+    target_name: Optional[str] = None,
+    task_name: Optional[str] = None,
+    task_block: Optional[Layer] = None,
+    softmax_temperature: float = 1,
+    normalize: bool = True,
+    sampled_softmax: bool = False,
+    num_sampled: int = 100,
+    min_sampled_id: int = 0,
+) -> MultiClassClassificationTask:
+    """
+    Function to create the NextItemPrediction task with the right parameters.
+    Parameters
+    ----------
+        schema: Schema
+            The schema object including features to use and their properties.
+        loss: tf.keras.losses.Loss
+            Loss function.
+            Defaults to `tf.keras.losses.SparseCategoricalCrossentropy()`.
+        metrics: Sequence[MetricOrMetricClass]
+            List of top-k ranking metrics.
+            Defaults to ranking_metrics(top_ks=[10, 20], labels_onehot=True).
+        weight_tying: bool
+            The item_id embedding weights are shared with the prediction network layer.
+            Defaults to True
+        masking: bool
+            Whether masking is used to transform inputs and targets or not
+            Defaults to True
+        extra_pre_call: Optional[PredictionBlock]
+            Optional extra pre-call block. Defaults to None.
+        target_name: Optional[str]
+            If specified, name of the target tensor to retrieve from dataloader.
+            Defaults to None.
+        task_name: Optional[str]
+            name of the task.
+            Defaults to None.
+        task_block: Block
+            The `Block` that applies additional layers op to inputs.
+            Defaults to None.
+        softmax_temperature: float
+            Parameter used to reduce the model overconfidence, so that softmax(logits / T).
+            Defaults to 1.
+        normalize: bool
+            Apply L2 normalization before computing dot interactions.
+            Defaults to True.
+        sampled_softmax: bool
+            Compute the logits scores over all items of the catalog or
+            generate a subset of candidates
+            When set to True, loss should be set to `tf.nn.softmax_cross_entropy_with_logits`
+            and metrics to `ranking_metrics(top_ks=..., labels_onehot=False)`
+            Defaults to False
+        num_sampled: int
+            When sampled_softmax is enabled, specify the number of
+            negative candidates to generate for each batch
+            Defaults to 100
+        min_sampled_id: int
+            The minimum id value to be sampled. Useful to ignore the first categorical
+            encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
+            Defaults to 0.
+    Returns
+    -------
+        PredictionTask
+            The next item prediction task
+    """
+    if sampled_softmax:
+        prediction_call = ItemsPredictionSampled(
+            schema, num_sampled=num_sampled, min_id=min_sampled_id
+        )
+
+    elif weight_tying:
+        prediction_call = ItemsPredictionWeightTying(schema)
+
+    else:
+        prediction_call = ItemsPrediction(schema)
+
+    if softmax_temperature != 1:
+        prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
+
+    if masking:
+        prediction_call = MaskingHead().connect(RemovePad3D(), prediction_call)
+
+    if normalize:
+        prediction_call = L2Norm().connect(prediction_call)
+
+    if extra_pre_call is not None:
+        prediction_call = prediction_call.connect(extra_pre_call)
+
+    return MultiClassClassificationTask(
+        target_name,
+        task_name,
+        task_block,
+        loss=loss,
+        metrics=metrics,
+        pre=prediction_call,
+    )
+
+
+def YoutubeDNNRetrieval(
+    schema: Schema,
+    aggregation: str = "concat",
+    top_layer: Optional[Block] = MLPBlock([64]),
+    num_sampled: int = 100,
+    loss=tf.nn.softmax_cross_entropy_with_logits,
+    metrics=ranking_metrics(top_ks=[10, 20]),
+    normalize: bool = True,
+    extra_pre_call: Optional[Block] = None,
+    task_block: Optional[Layer] = None,
+    softmax_temperature: float = 1,
+    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+) -> SequentialBlock:
+    """
+    Build the Youtube-DNN retrieval model.
+    More details of the model can be found at
+    [Covington et al., 2016](https://dl.acm.org/doi/10.1145/2959100.2959190Covington)
+    """
+
+    inputs = InputBlock(
+        schema,
+        aggregation=aggregation,
+        seq=False,
+        masking="clm",
+        split_sparse=True,
+        seq_aggregator=seq_aggregator,
+    )
+
+    task = NextItemPredictionTask(
+        schema=schema,
+        loss=loss,
+        metrics=metrics,
+        masking=True,
+        weight_tying=False,
+        sampled_softmax=True,
+        extra_pre_call=extra_pre_call,
+        task_block=task_block,
+        softmax_temperature=softmax_temperature,
+        normalize=normalize,
+        num_sampled=num_sampled,
+    )
+
+    return inputs.connect(top_layer, task)
