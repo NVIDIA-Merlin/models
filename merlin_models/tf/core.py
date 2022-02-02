@@ -710,7 +710,6 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(self, predictions, targets, training=True, **kwargs):
     def call_targets(self, predictions, targets, training=False, **kwargs):
         outputs = targets
         for layer in self.layers:
