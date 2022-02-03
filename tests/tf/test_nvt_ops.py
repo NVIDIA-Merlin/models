@@ -1,9 +1,10 @@
-import nvtabular as nvt
 import pytest
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.nvt_ops import ItemEmbeddings, TFModelEncode, UserEmbeddings
+from merlin_models.tf.nvt_ops import ItemEmbeddings, TFModelEncode, QueryEmbeddings
+
+nvt = pytest.importorskip("nvtabular")
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
