@@ -31,11 +31,12 @@ def DLRMBlock(
     top_block: Optional[Block] = None,
 ) -> SequentialBlock:
     """Builds the DLRM archicture, as proposed in the following
-    `paper https://arxiv.org/pdf/1906.00091.pdf`_ [Naumov19].
+    `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.
 
-    REFERENCES:
-        - [Naumov19] Naumov, Maxim, et al. "Deep learning recommendation model for
-          personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
+    References
+    ----------
+    .. [1] Naumov, Maxim, et al. "Deep learning recommendation model for
+       personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
 
     Parameters
     ----------
