@@ -69,13 +69,14 @@ class PairwiseLoss(Loss):
         return positives_scores, negatives_scores
 
 
-class BPR(PairwiseLoss):
-    """The BPR pairwise loss [1]
+class BPR_Loss(PairwiseLoss):
+    """The Bayesian Personalised Ranking (BPR) pairwise loss [1]_
 
-    References:
-        [1] Rendle, S., Freudenthaler, C., Gantner, Z., and Schmidt-Thieme, L. BPR: Bayesian
-        personalized ranking from implicit feedback. In UAI’09: 25th Conf. on Uncertainty in
-        Artificial Intelligence. https://arxiv.org/pdf/1205.2618.pdf
+    References
+    ----------
+    .. [1] Rendle, S., Freudenthaler, C., Gantner, Z., and Schmidt-Thieme, L. BPR: Bayesian
+       personalized ranking from implicit feedback. In UAI’09: 25th Conf. on Uncertainty in
+       Artificial Intelligence. https://arxiv.org/pdf/1205.2618.pdf
     """
 
     def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
@@ -99,13 +100,14 @@ class BPR(PairwiseLoss):
         return loss
 
 
-class BPRmax(PairwiseLoss):
-    """The BPR-max pairwise loss proposed in [1]
+class BPRmax_Loss(PairwiseLoss):
+    """The BPR-max pairwise loss proposed in [1]_
 
-    References:
-        [1] Hidasi, Balázs, and Alexandros Karatzoglou. "Recurrent neural networks with top-k gains
-        for session-based recommendations." Proceedings of the 27th ACM international conference on
-        information and knowledge management. 2018. https://arxiv.org/abs/1706.03847
+    References
+    ----------
+    .. [1] Hidasi, Balázs, and Alexandros Karatzoglou. "Recurrent neural networks with top-k gains
+       for session-based recommendations." Proceedings of the 27th ACM international conference on
+       information and knowledge management. 2018. https://arxiv.org/abs/1706.03847
     """
 
     def __init__(self, reg_lambda: float = 1.0, **kwargs):
@@ -142,13 +144,14 @@ class BPRmax(PairwiseLoss):
         return loss
 
 
-class TOP1(PairwiseLoss):
-    """The TOP pairwise loss proposed in [1]
+class TOP1_Loss(PairwiseLoss):
+    """The TOP pairwise loss proposed in [1]_
 
-    References:
-        [1] B. Hidasi, A. Karatzoglou, L. Baltrunas, and D. Tikk, “Session-based recommendations
-        with recurrent neural networks,” in Proceedings of Fourth International Conference on
-        Learning Representations (ICLR’16), 2016. https://arxiv.org/abs/1511.06939
+    References
+    ----------
+    .. [1] B. Hidasi, A. Karatzoglou, L. Baltrunas, and D. Tikk, “Session-based recommendations
+       with recurrent neural networks,” in Proceedings of Fourth International Conference on
+       Learning Representations (ICLR’16), 2016. https://arxiv.org/abs/1511.06939
     """
 
     def call(self, y_true: tf.Tensor, y_pred: tf.Tensor):
@@ -172,14 +175,15 @@ class TOP1(PairwiseLoss):
         return loss
 
 
-class TOP1v2(PairwiseLoss):
-    """An adapted version of the TOP pairwise loss proposed in [1], but following the the
-    current GRU4Rec implementation [1].
+class TOP1v2_Loss(PairwiseLoss):
+    """An adapted version of the TOP pairwise loss proposed in [1]_, but following the the
+    current GRU4Rec implementation [2]_.
 
     References:
-        [1] B. Hidasi, A. Karatzoglou, L. Baltrunas, and D. Tikk, “Session-based recommendations
+    .. [1] B. Hidasi, A. Karatzoglou, L. Baltrunas, and D. Tikk, “Session-based recommendations
         with recurrent neural networks,” in Proceedings of Fourth International Conference on
-        Learning Representations (ICLR’16), 2016. https://arxiv.org/abs/1511.06939
+        Learning Representations (ICLR’16), 2016.
+    .. [2] https://arxiv.org/abs/1511.06939
     """
 
     def call(self, y_true: tf.Tensor, y_pred: tf.Tensor):
@@ -203,7 +207,7 @@ class TOP1v2(PairwiseLoss):
             tf.reduce_mean(
                 tf.nn.sigmoid(sub) + tf.nn.sigmoid(tf.square(negatives_scores)),
                 keepdims=True,
-                axis=1,
+                axis=-1,
             )
             - tf.nn.sigmoid(tf.square(positives_scores))
             / tf.cast(tf.shape(negatives_scores)[1], tf.float32)
@@ -211,13 +215,14 @@ class TOP1v2(PairwiseLoss):
         return loss
 
 
-class TOP1max(PairwiseLoss):
-    """The TOP1-max pairwise loss proposed in [1]
+class TOP1max_Loss(PairwiseLoss):
+    """The TOP1-max pairwise loss proposed in [1]_
 
-    References:
-        [1] Hidasi, Balázs, and Alexandros Karatzoglou. "Recurrent neural networks with top-k gains
-        for session-based recommendations." Proceedings of the 27th ACM international conference on
-        information and knowledge management. 2018. https://arxiv.org/abs/1706.03847
+    References
+    ----------
+    .. [1] Hidasi, Balázs, and Alexandros Karatzoglou. "Recurrent neural networks with top-k gains
+       for session-based recommendations." Proceedings of the 27th ACM international conference on
+       information and knowledge management. 2018. https://arxiv.org/abs/1706.03847
     """
 
     def call(self, y_true: tf.Tensor, y_pred: tf.Tensor):
@@ -241,4 +246,104 @@ class TOP1max(PairwiseLoss):
         loss = (
             tf.nn.sigmoid(sub) + tf.nn.sigmoid(tf.square(negatives_scores))
         ) * neg_softmax_weights
+        return loss
+
+
+class Log_Loss(PairwiseLoss):
+    """Pairwise log loss, as described in [1]_: `log(1 + exp(r_uj - r_ui))`, where r_ui is the score
+    of the positive item and r_uj the score of negative items.
+
+    References
+    ----------
+    .. [1] Sun, Zhu, et al. "Are we evaluating rigorously? benchmarking recommendation for
+       reproducible evaluation and fair comparison." Fourteenth ACM conference on recommender
+       systems. 2020.
+    """
+
+    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+        """Loss computation
+
+        Parameters
+        ----------
+        y_true : tf.Tensor
+            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
+        y_pred : tf.Tensor
+            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
+
+        Returns
+        -------
+        tf.Tensor (batch size x 1)
+            Loss per example
+        """
+        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        loss = tf.math.log(1.0 + tf.math.exp(negatives_scores - positives_scores))
+        return loss
+
+
+class Hinge_Loss(PairwiseLoss):
+    """Pairwise hinge loss, as described in [1]_: `max(0, 1 + r_uj - r_ui))`, where r_ui is the score
+    of the positive item and r_uj the score of negative items.
+
+    References
+    ----------
+    .. [1] Sun, Zhu, et al. "Are we evaluating rigorously? benchmarking recommendation for
+       reproducible evaluation and fair comparison." Fourteenth ACM conference on recommender
+       systems. 2020.
+    """
+
+    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+        """Loss computation
+
+        Parameters
+        ----------
+        y_true : tf.Tensor
+            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
+        y_pred : tf.Tensor
+            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
+
+        Returns
+        -------
+        tf.Tensor (batch size x 1)
+            Loss per example
+        """
+        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        loss = tf.math.maximum(0.0, 1 + negatives_scores - positives_scores)
+        return loss
+
+
+class AdaptiveHinge_Loss(PairwiseLoss):
+    """Adaptive hinge pairwise loss. Samples the highest
+    negative scores, as they are closer to violating the
+    expected ranking  where positives should be ranked higher.
+
+    Approximates the idea of Weighted Approximate-Rank Pairwise (WARP) loss [1],
+    inspired by
+    `Spotlight https://maciejkula.github.io/spotlight/losses.html#spotlight.losses.
+    adaptive_hinge_loss`_ implementation.
+
+    References
+    ----------
+    .. [1] Weston, Jason, Samy Bengio, and Nicolas Usunier. "Wsabie:
+       Scaling up to large vocabulary image annotation." IJCAI.
+       Vol. 11. 2011
+    """
+
+    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+        """Loss computation
+
+        Parameters
+        ----------
+        y_true : tf.Tensor
+            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
+        y_pred : tf.Tensor
+            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
+
+        Returns
+        -------
+        tf.Tensor (batch size x 1)
+            Loss per example
+        """
+        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        max_neg_scores = tf.reduce_max(negatives_scores, axis=-1, keepdims=True)
+        loss = tf.math.maximum(0.0, 1 + max_neg_scores - positives_scores)
         return loss

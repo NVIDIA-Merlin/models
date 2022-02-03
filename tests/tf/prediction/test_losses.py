@@ -28,7 +28,7 @@ def test_bpr():
     negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
     targets = tf.concat([positives, negatives], axis=1)
 
-    bpr = ml.BPR()
+    bpr = ml.BPR_Loss()
     loss = bpr(targets, predictions)
     assert len(tf.shape(loss)) == 0
     assert loss > 0
@@ -42,7 +42,7 @@ def test_bpr_no_reduction():
     negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
     targets = tf.concat([positives, negatives], axis=1)
 
-    bpr = ml.BPR(reduction=tf.keras.losses.Reduction.NONE)
+    bpr = ml.BPR_Loss(reduction=tf.keras.losses.Reduction.NONE)
     loss = bpr(targets, predictions)
     tf.assert_equal(tf.shape(loss), (batch_size, num_samples - 1))
     assert tf.reduce_mean(loss) > 0
@@ -57,7 +57,7 @@ def test_bpr_with_sample_weights():
     targets = tf.concat([positives, negatives], axis=1)
     sample_weights = tf.range(1, 101, dtype=tf.float32)
 
-    bpr_max = ml.BPR(reduction=tf.keras.losses.Reduction.NONE)
+    bpr_max = ml.BPR_Loss(reduction=tf.keras.losses.Reduction.NONE)
     loss = bpr_max(targets, predictions)
     loss_with_sampled_weights = bpr_max(targets, predictions, sample_weights)
 
@@ -79,7 +79,7 @@ def test_bpr_multiple_positive():
     negatives = tf.zeros(shape=(batch_size, num_samples - 2), dtype=tf.float32)
     targets = tf.concat([positives, negatives], axis=1)
 
-    bpr = ml.BPR()
+    bpr = ml.BPR_Loss()
 
     with pytest.raises(Exception) as excinfo:
         _ = bpr(targets, predictions)
@@ -94,7 +94,7 @@ def test_bpr_max():
     negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
     targets = tf.concat([positives, negatives], axis=1)
 
-    bpr_max = ml.BPRmax()
+    bpr_max = ml.BPRmax_Loss()
     loss = bpr_max(targets, predictions)
     assert len(tf.shape(loss)) == 0
     assert loss > 0
@@ -108,7 +108,7 @@ def test_top1():
     negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
     targets = tf.concat([positives, negatives], axis=1)
 
-    top1 = ml.TOP1()
+    top1 = ml.TOP1_Loss()
     loss = top1(targets, predictions)
 
     assert len(tf.shape(loss)) == 0
@@ -123,7 +123,7 @@ def test_top1_v2():
     negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
     targets = tf.concat([positives, negatives], axis=1)
 
-    top1v2 = ml.TOP1v2()
+    top1v2 = ml.TOP1v2_Loss()
     loss = top1v2(targets, predictions)
 
     assert len(tf.shape(loss)) == 0
@@ -138,7 +138,49 @@ def test_top1_max():
     negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
     targets = tf.concat([positives, negatives], axis=1)
 
-    top1_max = ml.TOP1max()
+    top1_max = ml.TOP1max_Loss()
     loss = top1_max(targets, predictions)
+    assert len(tf.shape(loss)) == 0
+    assert loss > 0
+
+
+def test_log_loss_max():
+    batch_size = 100
+    num_samples = 20
+    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
+    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
+    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
+    targets = tf.concat([positives, negatives], axis=1)
+
+    log_loss = ml.Log_Loss()
+    loss = log_loss(targets, predictions)
+    assert len(tf.shape(loss)) == 0
+    assert loss > 0
+
+
+def test_hinge_loss_max():
+    batch_size = 100
+    num_samples = 20
+    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
+    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
+    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
+    targets = tf.concat([positives, negatives], axis=1)
+
+    hinge_loss = ml.Hinge_Loss()
+    loss = hinge_loss(targets, predictions)
+    assert len(tf.shape(loss)) == 0
+    assert loss > 0
+
+
+def test_adaptive_hinge_loss_max():
+    batch_size = 100
+    num_samples = 20
+    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
+    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
+    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
+    targets = tf.concat([positives, negatives], axis=1)
+
+    adaptive_hinge_loss = ml.AdaptiveHinge_Loss()
+    loss = adaptive_hinge_loss(targets, predictions)
     assert len(tf.shape(loss)) == 0
     assert loss > 0

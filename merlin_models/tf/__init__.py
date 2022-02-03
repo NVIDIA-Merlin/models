@@ -85,7 +85,16 @@ from .prediction.item_prediction import (
     NextItemPredictionTask,
     YoutubeDNNRetrieval,
 )
-from .prediction.losses import BPR, TOP1, BPRmax, TOP1max, TOP1v2
+from .prediction.losses import (
+    AdaptiveHinge_Loss,
+    BPR_Loss,
+    BPRmax_Loss,
+    Hinge_Loss,
+    Log_Loss,
+    TOP1_Loss,
+    TOP1max_Loss,
+    TOP1v2_Loss,
+)
 from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 
 # from .prediction.multi_task import MMOEHead, PLEHead
@@ -177,10 +186,12 @@ __all__ = [
     "PopularityBasedSampler",
     "FIFOQueue",
     "YoutubeDNNRetrieval",
-    "BPR",
-    "BPR_v2",
-    "BPRmax",
-    "TOP1",
-    "TOP1v2",
-    "TOP1max",
+    "AdaptiveHinge_Loss",
+    "BPR_Loss",
+    "BPRmax_Loss",
+    "Hinge_Loss",
+    "Log_Loss",
+    "TOP1_Loss",
+    "TOP1max_Loss",
+    "TOP1v2_Loss",
 ]

@@ -69,7 +69,7 @@ class ItemSampler(abc.ABC, Layer):
 
 
 class InBatchSampler(ItemSampler):
-    """Provides in-batch sampling [1] for two-tower item retrieval
+    """Provides in-batch sampling [1]_ for two-tower item retrieval
     models. The implementation is very simple, as it
     just returns the current item embeddings and metadata, but it is necessary to have
     `InBatchSampler` under the same interface of other more advanced samplers
@@ -84,8 +84,8 @@ class InBatchSampler(ItemSampler):
 
     References
     ----------
-    [1] Yi, Xinyang, et al. "Sampling-bias-corrected neural modeling for large corpus item
-    recommendations." Proceedings of the 13th ACM Conference on Recommender Systems. 2019.
+    .. [1] Yi, Xinyang, et al. "Sampling-bias-corrected neural modeling for large corpus item
+       recommendations." Proceedings of the 13th ACM Conference on Recommender Systems. 2019.
 
     Parameters
     ----------
@@ -155,7 +155,7 @@ class InBatchSampler(ItemSampler):
 
 
 class CachedCrossBatchSampler(ItemSampler):
-    """Provides efficient cached cross-batch [1] / inter-batch [2] negative sampling
+    """Provides efficient cached cross-batch [1]_ / inter-batch [2]_ negative sampling
     for two-tower item retrieval model. The caches consists of a fixed capacity FIFO queue
     which keeps the item embeddings from the last N batches. All items in the queue are
     sampled as negatives for upcoming batches.
@@ -173,13 +173,13 @@ class CachedCrossBatchSampler(ItemSampler):
 
     References
     ----------
-    [1] Wang, Jinpeng, Jieming Zhu, and Xiuqiang He. "Cross-Batch Negative Sampling
-    for Training Two-Tower Recommenders." Proceedings of the 44th International ACM
-    SIGIR Conference on Research and Development in Information Retrieval. 2021.
+    .. [1] Wang, Jinpeng, Jieming Zhu, and Xiuqiang He. "Cross-Batch Negative Sampling
+       for Training Two-Tower Recommenders." Proceedings of the 44th International ACM
+       SIGIR Conference on Research and Development in Information Retrieval. 2021.
 
-    [2] Zhou, Chang, et al. "Contrastive learning for debiased candidate generation
-    in large-scale recommender systems." Proceedings of the 27th ACM SIGKDD Conference
-    on Knowledge Discovery & Data Mining. 2021.
+    .. [2] Zhou, Chang, et al. "Contrastive learning for debiased candidate generation
+       in large-scale recommender systems." Proceedings of the 27th ACM SIGKDD Conference
+       on Knowledge Discovery & Data Mining. 2021.
 
     Parameters
     ----------
@@ -320,7 +320,7 @@ class CachedUniformSampler(CachedCrossBatchSampler):
     As the queues reach their capacity of unique items, new items will replace the
     first items added to the queue.
 
-    This is a cached implementation of [1], where those authors proposed combining
+    This is a cached implementation of [1]_, where those authors proposed combining
     in-batch sampling (our `InBatchSampler()`) with uniform sampling. Differently from
     [1] which requires a separate dataset with the all unique items (and corresponding features)
     to generate the item embeddings, our streaming approach in `CachedUniformSampler` keeps
@@ -332,8 +332,8 @@ class CachedUniformSampler(CachedCrossBatchSampler):
 
     References
     ----------
-    [1] Yang, Ji, et al. "Mixed negative sampling for learning two-tower neural networks in
-    recommendations." Companion Proceedings of the Web Conference 2020. 2020.
+    .. [1] Yang, Ji, et al. "Mixed negative sampling for learning two-tower neural networks in
+       recommendations." Companion Proceedings of the Web Conference 2020. 2020.
 
     Parameters
     ----------
