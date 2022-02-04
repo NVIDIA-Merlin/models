@@ -261,9 +261,9 @@ class TOP1maxLoss(PairwiseLoss):
         return loss
 
 
-@LossRegistryMixin.registry.register("log_loss")
+@LossRegistryMixin.registry.register("logistic")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class LogLoss(PairwiseLoss):
+class LogisticLoss(PairwiseLoss):
     """Pairwise log loss, as described in [1]_: `log(1 + exp(r_uj - r_ui))`, where r_ui is the score
     of the positive item and r_uj the score of negative items.
 
@@ -290,7 +290,9 @@ class LogLoss(PairwiseLoss):
             Loss per example
         """
         positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
-        loss = tf.math.log(1.0 + tf.math.exp(negatives_scores - positives_scores))
+        sub = negatives_scores - positives_scores
+        # Equivalent to log(1 + exp(sub))
+        loss = tf.nn.relu(sub) + tf.math.log1p(tf.math.exp(-tf.abs(sub)))
         return loss
 
 
@@ -323,7 +325,7 @@ class HingeLoss(PairwiseLoss):
             Loss per example
         """
         positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
-        loss = tf.math.maximum(0.0, 1 + negatives_scores - positives_scores)
+        loss = tf.nn.relu(1 + negatives_scores - positives_scores)
         return loss
 
 
@@ -363,5 +365,5 @@ class AdaptiveHingeLoss(PairwiseLoss):
         """
         positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
         max_neg_scores = tf.reduce_max(negatives_scores, axis=-1, keepdims=True)
-        loss = tf.math.maximum(0.0, 1 + max_neg_scores - positives_scores)
+        loss = tf.nn.relu(1 + max_neg_scores - positives_scores)
         return loss

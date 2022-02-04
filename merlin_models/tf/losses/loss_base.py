@@ -31,3 +31,9 @@ loss_registry.register("binary_crossentropy")(tf.keras.losses.BinaryCrossentropy
 
 class LossRegistryMixin(RegistryMixin["LossRegistryMixin"]):
     registry = loss_registry
+
+
+# TODO: Override the __init__ of Losses to accept temperature and override
+# call() to apply the temperature (logits/temperature) of logits before
+# computing the metrics. Rename `PredictionsScaler` to `TensorScaler` for
+# potential other usages
