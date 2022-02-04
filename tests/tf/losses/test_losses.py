@@ -184,3 +184,21 @@ def test_adaptive_hinge_loss_max():
     loss = adaptive_hinge_loss(targets, predictions)
     assert len(tf.shape(loss)) == 0
     assert loss > 0
+
+
+@pytest.mark.parametrize(
+    "loss_name", ["sparse_categ_crossentropy", "categ_crossentropy", "mse", "binary_crossentropy"]
+)
+def test_keras_losses_registry_resolution(loss_name):
+    batch_size = 100
+    num_samples = 20
+    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
+    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
+    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
+    targets = tf.concat([positives, negatives], axis=1)
+
+    loss_fn = ml.losses.loss_registry.parse(loss_name)
+
+    loss = loss_fn(targets, predictions)
+    assert len(tf.shape(loss)) == 0
+    assert loss > 0
