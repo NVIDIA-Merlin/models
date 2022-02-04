@@ -1,6 +1,6 @@
 ---
 name: "\U0001F680 Feature request"
-about: Submit a proposal/request for a new Transformers4Rec feature
+about: Submit a proposal/request for a new Merlin Modelds feature
 title: "[FEA]"
 labels: "status/needs-triage, kind/feature-request"
 assignees: ''
