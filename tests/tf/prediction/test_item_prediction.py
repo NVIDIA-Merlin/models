@@ -19,7 +19,6 @@ import tensorflow as tf
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.prediction.losses import BPR_Loss
 from merlin_standard_lib import Tag
 
 
@@ -211,7 +210,7 @@ def test_retrieval_task_inbatch_cached_samplers(
     samplers = [inbatch_sampler, cached_batches_sampler]
 
     model = two_tower.connect(
-        ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers, loss=BPR_Loss())
+        ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers, loss="bpr")
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -253,7 +252,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     ]
 
     model = two_tower.connect(
-        ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers, loss=BPR_Loss())
+        ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers, loss="bpr")
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)

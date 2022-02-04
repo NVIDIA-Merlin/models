@@ -336,9 +336,7 @@ class ItemRetrievalScorer(Block):
 
 
 def ItemRetrievalTask(
-    loss=tf.keras.losses.CategoricalCrossentropy(
-        from_logits=True, reduction=tf.keras.losses.Reduction.SUM
-    ),
+    loss="categ_crossentropy",
     samplers: Sequence[ItemSampler] = (),
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
@@ -355,7 +353,7 @@ def ItemRetrievalTask(
     ----------
         loss: tf.keras.losses.Loss
             Loss function.
-            Defaults to `tf.keras.losses.CategoricalCrossentropy()`.
+            Defaults to `categ_crossentropy`.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
         metrics: Sequence[MetricOrMetricClass]
@@ -527,9 +525,7 @@ def ItemsPredictionSampled(
 
 def NextItemPredictionTask(
     schema: Schema,
-    loss=tf.keras.losses.SparseCategoricalCrossentropy(
-        from_logits=True,
-    ),
+    loss="sparse_categ_crossentropy",
     metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=True),
     weight_tying: bool = True,
     masking: bool = True,
@@ -551,7 +547,7 @@ def NextItemPredictionTask(
             The schema object including features to use and their properties.
         loss: tf.keras.losses.Loss
             Loss function.
-            Defaults to `tf.keras.losses.SparseCategoricalCrossentropy()`.
+            Defaults to `sparse_categ_crossentropy`.
         metrics: Sequence[MetricOrMetricClass]
             List of top-k ranking metrics.
             Defaults to ranking_metrics(top_ks=[10, 20], labels_onehot=True).
@@ -635,7 +631,7 @@ def YoutubeDNNRetrieval(
     aggregation: str = "concat",
     top_layer: Optional[Block] = MLPBlock([64]),
     num_sampled: int = 100,
-    loss=tf.nn.softmax_cross_entropy_with_logits,
+    loss="categ_crossentropy",
     metrics=ranking_metrics(top_ks=[10, 20]),
     normalize: bool = True,
     extra_pre_call: Optional[Block] = None,

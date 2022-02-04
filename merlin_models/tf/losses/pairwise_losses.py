@@ -19,8 +19,10 @@ from typing import Tuple
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
 
+from .loss_base import LossRegistryMixin
 
-class PairwiseLoss(Loss):
+
+class PairwiseLoss(Loss, LossRegistryMixin):
     """Base class for pairwise losses"""
 
     def _check_only_one_positive_label_per_example(self, y_true: tf.Tensor):
@@ -69,6 +71,8 @@ class PairwiseLoss(Loss):
         return positives_scores, negatives_scores
 
 
+@LossRegistryMixin.registry.register("bpr")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class BPRLoss(PairwiseLoss):
     """The Bayesian Personalised Ranking (BPR) pairwise loss [1]_
 
@@ -100,6 +104,8 @@ class BPRLoss(PairwiseLoss):
         return loss
 
 
+@LossRegistryMixin.registry.register("bpr-max")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class BPRmaxLoss(PairwiseLoss):
     """The BPR-max pairwise loss proposed in [1]_
 
@@ -144,6 +150,8 @@ class BPRmaxLoss(PairwiseLoss):
         return loss
 
 
+@LossRegistryMixin.registry.register("top1")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class TOP1Loss(PairwiseLoss):
     """The TOP pairwise loss proposed in [1]_
 
@@ -175,6 +183,8 @@ class TOP1Loss(PairwiseLoss):
         return loss
 
 
+@LossRegistryMixin.registry.register("top1_v2")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class TOP1v2Loss(PairwiseLoss):
     """An adapted version of the TOP pairwise loss proposed in [1]_, but following the
     current GRU4Rec implementation [2]_.
@@ -215,6 +225,8 @@ class TOP1v2Loss(PairwiseLoss):
         return loss
 
 
+@LossRegistryMixin.registry.register("top1-max")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class TOP1maxLoss(PairwiseLoss):
     """The TOP1-max pairwise loss proposed in [1]_
 
@@ -249,6 +261,8 @@ class TOP1maxLoss(PairwiseLoss):
         return loss
 
 
+@LossRegistryMixin.registry.register("log_loss")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class LogLoss(PairwiseLoss):
     """Pairwise log loss, as described in [1]_: `log(1 + exp(r_uj - r_ui))`, where r_ui is the score
     of the positive item and r_uj the score of negative items.
@@ -280,6 +294,8 @@ class LogLoss(PairwiseLoss):
         return loss
 
 
+@LossRegistryMixin.registry.register("hinge")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class HingeLoss(PairwiseLoss):
     """Pairwise hinge loss, as described in [1]_: `max(0, 1 + r_uj - r_ui))`, where r_ui is the score
     of the positive item and r_uj the score of negative items.
@@ -311,6 +327,8 @@ class HingeLoss(PairwiseLoss):
         return loss
 
 
+@LossRegistryMixin.registry.register("adaptive_hinge")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class AdaptiveHingeLoss(PairwiseLoss):
     """Adaptive hinge pairwise loss. Samples the highest
     negative scores, as they are closer to violating the
