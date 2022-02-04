@@ -23,7 +23,6 @@ assignees: ''
 - Merlin version: 
 - Platform:
 - Python version:
-- Huggingface Transformers version:
 - PyTorch version (GPU?):
 - Tensorflow version (GPU?):
 
