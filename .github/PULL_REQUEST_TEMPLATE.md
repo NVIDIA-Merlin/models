@@ -1,6 +1,6 @@
 <!--
 
-Thank you for contributing to Transformers4Rec :)
+Thank you for contributing to Merlin Models :)
 
 Here are some guidelines to help the review process go smoothly.
 
