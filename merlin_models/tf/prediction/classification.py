@@ -20,7 +20,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 
-from merlin_models.tf.losses import loss_registry
+from merlin_models.tf.losses import LossType, loss_registry
 from merlin_standard_lib import Schema, Tag
 
 from ..core import Block, MetricOrMetricClass, PredictionTask
@@ -43,7 +43,7 @@ class BinaryClassificationTask(PredictionTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss=DEFAULT_LOSS,
+        loss: Optional[LossType] = DEFAULT_LOSS,
         metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
         **kwargs,
     ):
@@ -136,7 +136,7 @@ class MultiClassClassificationTask(PredictionTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss=DEFAULT_LOSS,
+        loss: Optional[LossType] = DEFAULT_LOSS,
         metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
         pre: Optional[Block] = None,
         **kwargs,

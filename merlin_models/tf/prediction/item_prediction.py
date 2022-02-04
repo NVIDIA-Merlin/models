@@ -22,6 +22,7 @@ from tensorflow.python.ops import embedding_ops
 
 from merlin_models.tf.block.transformations import L2Norm
 from merlin_models.tf.core import Block, EmbeddingWithMetadata, SequentialBlock
+from merlin_models.tf.losses import LossType
 from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from merlin_models.utils.constants import MIN_FLOAT
 from merlin_standard_lib import Schema, Tag
@@ -336,7 +337,7 @@ class ItemRetrievalScorer(Block):
 
 
 def ItemRetrievalTask(
-    loss="categ_crossentropy",
+    loss: Optional[LossType] = "categ_crossentropy",
     samplers: Sequence[ItemSampler] = (),
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
@@ -351,7 +352,7 @@ def ItemRetrievalTask(
 
     Parameters
     ----------
-        loss: tf.keras.losses.Loss
+        loss: Optional[LossType]
             Loss function.
             Defaults to `categ_crossentropy`.
         samplers: List[ItemSampler]
@@ -525,7 +526,7 @@ def ItemsPredictionSampled(
 
 def NextItemPredictionTask(
     schema: Schema,
-    loss="sparse_categ_crossentropy",
+    loss: Optional[LossType] = "sparse_categ_crossentropy",
     metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=True),
     weight_tying: bool = True,
     masking: bool = True,
@@ -545,7 +546,7 @@ def NextItemPredictionTask(
     ----------
         schema: Schema
             The schema object including features to use and their properties.
-        loss: tf.keras.losses.Loss
+        loss: Optional[LossType]
             Loss function.
             Defaults to `sparse_categ_crossentropy`.
         metrics: Sequence[MetricOrMetricClass]
@@ -631,7 +632,7 @@ def YoutubeDNNRetrieval(
     aggregation: str = "concat",
     top_layer: Optional[Block] = MLPBlock([64]),
     num_sampled: int = 100,
-    loss="categ_crossentropy",
+    loss: Optional[LossType] = "categ_crossentropy",
     metrics=ranking_metrics(top_ks=[10, 20]),
     normalize: bool = True,
     extra_pre_call: Optional[Block] = None,

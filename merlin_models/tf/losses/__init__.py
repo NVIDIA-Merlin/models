@@ -15,7 +15,7 @@
 #
 
 from .listwise_losses import CategoricalCrossEntropy, SparseCategoricalCrossEntropy
-from .loss_base import loss_registry
+from .loss_base import LossType, loss_registry
 from .pairwise_losses import (
     AdaptiveHingeLoss,
     BPRLoss,
@@ -42,4 +42,5 @@ __all__ = [
     "BinaryCrossEntropy",
     "MeanSquaredError",
     "loss_registry",
+    "LossType",
 ]

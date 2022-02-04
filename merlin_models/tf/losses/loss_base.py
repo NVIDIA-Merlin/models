@@ -14,7 +14,13 @@
 # limitations under the License.
 #
 
+from typing import Union
+
+import tensorflow as tf
+
 from merlin_standard_lib import Registry, RegistryMixin
+
+LossType = Union[str, tf.keras.losses.Loss]
 
 loss_registry: Registry = Registry.class_registry("tf.losses")
 

@@ -18,7 +18,7 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from merlin_models.tf.losses import loss_registry
+from merlin_models.tf.losses import LossType, loss_registry
 
 from ..core import PredictionTask
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
@@ -34,7 +34,7 @@ class RegressionTask(PredictionTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss=DEFAULT_LOSS,
+        loss: Optional[LossType] = DEFAULT_LOSS,
         metrics=DEFAULT_METRICS,
         **kwargs,
     ):

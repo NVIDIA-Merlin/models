@@ -79,6 +79,7 @@ from .features.embedding import (
 )
 from .layers import DotProductInteraction
 from .layers.queue import FIFOQueue
+from .losses import LossType
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
 from .prediction.item_prediction import (
     ItemRetrievalScorer,
@@ -178,4 +179,5 @@ __all__ = [
     "FIFOQueue",
     "YoutubeDNNRetrieval",
     "losses",
+    "LossType",
 ]
