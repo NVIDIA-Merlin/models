@@ -26,7 +26,6 @@ from .pairwise_losses import (
     TOP1maxLoss,
     TOP1v2Loss,
 )
-from .pointwise_losses import BinaryCrossEntropy, MeanSquaredError
 
 __all__ = [
     "CategoricalCrossEntropy",
@@ -39,8 +38,6 @@ __all__ = [
     "TOP1Loss",
     "TOP1maxLoss",
     "TOP1v2Loss",
-    "BinaryCrossEntropy",
-    "MeanSquaredError",
     "loss_registry",
     "LossType",
 ]
