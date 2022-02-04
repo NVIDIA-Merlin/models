@@ -78,22 +78,13 @@ from .features.embedding import (
 )
 from .layers import DotProductInteraction
 from .layers.queue import FIFOQueue
+from .prediction import losses
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
 from .prediction.item_prediction import (
     ItemRetrievalScorer,
     ItemRetrievalTask,
     NextItemPredictionTask,
     YoutubeDNNRetrieval,
-)
-from .prediction.losses import (
-    AdaptiveHinge_Loss,
-    BPR_Loss,
-    BPRmax_Loss,
-    Hinge_Loss,
-    Log_Loss,
-    TOP1_Loss,
-    TOP1max_Loss,
-    TOP1v2_Loss,
 )
 from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 
@@ -186,12 +177,5 @@ __all__ = [
     "PopularityBasedSampler",
     "FIFOQueue",
     "YoutubeDNNRetrieval",
-    "AdaptiveHinge_Loss",
-    "BPR_Loss",
-    "BPRmax_Loss",
-    "Hinge_Loss",
-    "Log_Loss",
-    "TOP1_Loss",
-    "TOP1max_Loss",
-    "TOP1v2_Loss",
+    "losses",
 ]

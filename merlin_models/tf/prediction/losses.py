@@ -69,7 +69,7 @@ class PairwiseLoss(Loss):
         return positives_scores, negatives_scores
 
 
-class BPR_Loss(PairwiseLoss):
+class BPRLoss(PairwiseLoss):
     """The Bayesian Personalised Ranking (BPR) pairwise loss [1]_
 
     References
@@ -100,7 +100,7 @@ class BPR_Loss(PairwiseLoss):
         return loss
 
 
-class BPRmax_Loss(PairwiseLoss):
+class BPRmaxLoss(PairwiseLoss):
     """The BPR-max pairwise loss proposed in [1]_
 
     References
@@ -121,7 +121,7 @@ class BPRmax_Loss(PairwiseLoss):
         super().__init__(**kwargs)
         self.reg_lambda = reg_lambda
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor):
+    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         """Loss computation
 
         Parameters
@@ -144,7 +144,7 @@ class BPRmax_Loss(PairwiseLoss):
         return loss
 
 
-class TOP1_Loss(PairwiseLoss):
+class TOP1Loss(PairwiseLoss):
     """The TOP pairwise loss proposed in [1]_
 
     References
@@ -154,7 +154,7 @@ class TOP1_Loss(PairwiseLoss):
        Learning Representations (ICLR’16), 2016. https://arxiv.org/abs/1511.06939
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor):
+    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         """Loss computation
 
         Parameters
@@ -175,8 +175,8 @@ class TOP1_Loss(PairwiseLoss):
         return loss
 
 
-class TOP1v2_Loss(PairwiseLoss):
-    """An adapted version of the TOP pairwise loss proposed in [1]_, but following the the
+class TOP1v2Loss(PairwiseLoss):
+    """An adapted version of the TOP pairwise loss proposed in [1]_, but following the
     current GRU4Rec implementation [2]_.
 
     References:
@@ -186,7 +186,7 @@ class TOP1v2_Loss(PairwiseLoss):
     .. [2] https://arxiv.org/abs/1511.06939
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor):
+    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         """Loss computation
 
         Parameters
@@ -215,7 +215,7 @@ class TOP1v2_Loss(PairwiseLoss):
         return loss
 
 
-class TOP1max_Loss(PairwiseLoss):
+class TOP1maxLoss(PairwiseLoss):
     """The TOP1-max pairwise loss proposed in [1]_
 
     References
@@ -225,7 +225,7 @@ class TOP1max_Loss(PairwiseLoss):
        information and knowledge management. 2018. https://arxiv.org/abs/1706.03847
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor):
+    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
         """Loss computation
 
         Parameters
@@ -249,7 +249,7 @@ class TOP1max_Loss(PairwiseLoss):
         return loss
 
 
-class Log_Loss(PairwiseLoss):
+class LogLoss(PairwiseLoss):
     """Pairwise log loss, as described in [1]_: `log(1 + exp(r_uj - r_ui))`, where r_ui is the score
     of the positive item and r_uj the score of negative items.
 
@@ -280,7 +280,7 @@ class Log_Loss(PairwiseLoss):
         return loss
 
 
-class Hinge_Loss(PairwiseLoss):
+class HingeLoss(PairwiseLoss):
     """Pairwise hinge loss, as described in [1]_: `max(0, 1 + r_uj - r_ui))`, where r_ui is the score
     of the positive item and r_uj the score of negative items.
 
@@ -311,7 +311,7 @@ class Hinge_Loss(PairwiseLoss):
         return loss
 
 
-class AdaptiveHinge_Loss(PairwiseLoss):
+class AdaptiveHingeLoss(PairwiseLoss):
     """Adaptive hinge pairwise loss. Samples the highest
     negative scores, as they are closer to violating the
     expected ranking  where positives should be ranked higher.
