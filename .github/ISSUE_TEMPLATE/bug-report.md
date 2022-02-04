@@ -20,7 +20,7 @@ assignees: ''
 <!-- A clear and concise description of what you expected to happen. -->
 
 ### Environment details
-- Transformers4Rec version: 
+- Merlin version: 
 - Platform:
 - Python version:
 - Huggingface Transformers version:
