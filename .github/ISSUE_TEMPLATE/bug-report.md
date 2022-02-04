@@ -1,6 +1,6 @@
 ---
 name: "\U0001F41B Bug Report"
-about: Submit a bug report to help us improve Transformers4Rec
+about: Submit a bug report to help us improve Merlin Models
 title: "[BUG]"
 labels: "status/needs-triage, bug"
 assignees: ''
