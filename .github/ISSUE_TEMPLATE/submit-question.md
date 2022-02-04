@@ -1,6 +1,6 @@
 ---
 name: "❓ Questions & Help"
-about: Ask a general question about Transformers4Rec
+about: Ask a general question about Merlin Models
 title: "[QST]"
 labels: "status/needs-triage, kind/question"
 assignees: ''
