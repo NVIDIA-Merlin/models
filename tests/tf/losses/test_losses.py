@@ -20,7 +20,35 @@ import tensorflow as tf
 import merlin_models.tf as ml
 
 
-def test_bpr():
+@pytest.mark.parametrize(
+    "loss",
+    [
+        # Pairwise losses
+        "bpr",
+        ml.losses.BPRLoss(),
+        "bpr-max",
+        ml.losses.BPRmaxLoss(reg_lambda=1.0),
+        "top1",
+        ml.losses.TOP1Loss(),
+        "top1_v2",
+        ml.losses.TOP1v2Loss(),
+        "top1-max",
+        ml.losses.TOP1maxLoss(),
+        "log_loss",
+        ml.losses.LogLoss(),
+        "hinge",
+        ml.losses.HingeLoss(),
+        "adaptive_hinge",
+        ml.losses.AdaptiveHingeLoss(),
+        # Listwise losses
+        "sparse_categ_crossentropy",
+        "categ_crossentropy",
+        # Pointwise losses
+        "mse",
+        "binary_crossentropy",
+    ],
+)
+def test_losses(loss):
     batch_size = 100
     num_samples = 20
     predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
@@ -28,10 +56,13 @@ def test_bpr():
     negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
     targets = tf.concat([positives, negatives], axis=1)
 
-    bpr = ml.losses.BPRLoss()
-    loss = bpr(targets, predictions)
-    assert len(tf.shape(loss)) == 0
-    assert loss > 0
+    if loss == "sparse_categ_crossentropy":
+        targets = tf.argmax(targets, axis=1)
+
+    loss = ml.losses.loss_registry.parse(loss)
+    loss_output = loss(targets, predictions)
+    assert len(tf.shape(loss_output)) == 0
+    assert loss_output > 0
 
 
 def test_bpr_no_reduction():
@@ -84,121 +115,3 @@ def test_bpr_multiple_positive():
     with pytest.raises(Exception) as excinfo:
         _ = bpr(targets, predictions)
     assert "Only one positive label is allowed per example" in str(excinfo.value)
-
-
-def test_bpr_max():
-    batch_size = 100
-    num_samples = 20
-    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
-    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
-    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
-    targets = tf.concat([positives, negatives], axis=1)
-
-    bpr_max = ml.losses.BPRmaxLoss()
-    loss = bpr_max(targets, predictions)
-    assert len(tf.shape(loss)) == 0
-    assert loss > 0
-
-
-def test_top1():
-    batch_size = 100
-    num_samples = 20
-    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
-    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
-    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
-    targets = tf.concat([positives, negatives], axis=1)
-
-    top1 = ml.losses.TOP1Loss()
-    loss = top1(targets, predictions)
-
-    assert len(tf.shape(loss)) == 0
-    assert loss > 0
-
-
-def test_top1_v2():
-    batch_size = 100
-    num_samples = 20
-    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
-    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
-    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
-    targets = tf.concat([positives, negatives], axis=1)
-
-    top1v2 = ml.losses.TOP1v2Loss()
-    loss = top1v2(targets, predictions)
-
-    assert len(tf.shape(loss)) == 0
-    assert loss > 0
-
-
-def test_top1_max():
-    batch_size = 100
-    num_samples = 20
-    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
-    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
-    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
-    targets = tf.concat([positives, negatives], axis=1)
-
-    top1_max = ml.losses.TOP1maxLoss()
-    loss = top1_max(targets, predictions)
-    assert len(tf.shape(loss)) == 0
-    assert loss > 0
-
-
-def test_log_loss_max():
-    batch_size = 100
-    num_samples = 20
-    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
-    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
-    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
-    targets = tf.concat([positives, negatives], axis=1)
-
-    log_loss = ml.losses.LogLoss()
-    loss = log_loss(targets, predictions)
-    assert len(tf.shape(loss)) == 0
-    assert loss > 0
-
-
-def test_hinge_loss_max():
-    batch_size = 100
-    num_samples = 20
-    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
-    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
-    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
-    targets = tf.concat([positives, negatives], axis=1)
-
-    hinge_loss = ml.losses.HingeLoss()
-    loss = hinge_loss(targets, predictions)
-    assert len(tf.shape(loss)) == 0
-    assert loss > 0
-
-
-def test_adaptive_hinge_loss_max():
-    batch_size = 100
-    num_samples = 20
-    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
-    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
-    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
-    targets = tf.concat([positives, negatives], axis=1)
-
-    adaptive_hinge_loss = ml.losses.AdaptiveHingeLoss()
-    loss = adaptive_hinge_loss(targets, predictions)
-    assert len(tf.shape(loss)) == 0
-    assert loss > 0
-
-
-@pytest.mark.parametrize(
-    "loss_name", ["sparse_categ_crossentropy", "categ_crossentropy", "mse", "binary_crossentropy"]
-)
-def test_keras_losses_registry_resolution(loss_name):
-    batch_size = 100
-    num_samples = 20
-    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
-    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
-    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
-    targets = tf.concat([positives, negatives], axis=1)
-
-    loss_fn = ml.losses.loss_registry.parse(loss_name)
-
-    loss = loss_fn(targets, predictions)
-    assert len(tf.shape(loss)) == 0
-    assert loss > 0
