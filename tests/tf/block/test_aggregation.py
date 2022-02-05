@@ -16,10 +16,10 @@
 
 import pytest
 import tensorflow as tf
+from merlin.graph.tags import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_standard_lib import Tag
 
 
 def test_concat_aggregation_yoochoose(testing_data: SyntheticData):
@@ -73,17 +73,17 @@ def test_element_wise_sum_item_multi_no_col_group():
 
 def test_element_wise_sum_item_multi_col_group_no_item_id(testing_data: SyntheticData):
     with pytest.raises(ValueError) as excinfo:
-        categ_schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
+        categ_schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
         # Remove the item id from col_group
-        categ_schema = categ_schema.remove_by_name("item_id")
+        categ_schema = categ_schema.without("item_id")
         element_wise_op = ml.ElementwiseSumItemMulti(categ_schema)
         element_wise_op(None)
-    assert "no column tagged as item id" in str(excinfo.value)
+    assert "no column" in str(excinfo.value)
 
 
 def test_element_wise_sum_item_multi_features_different_shapes(testing_data: SyntheticData):
     with pytest.raises(ValueError) as excinfo:
-        categ_schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
+        categ_schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
         element_wise_op = ml.ElementwiseSumItemMulti(categ_schema)
         input = {
             "item_id": tf.random.uniform((10, 20)),
@@ -107,7 +107,8 @@ def test_element_wise_sum_item_multi_aggregation_yoochoose(testing_data: Synthet
 #     yoochoose_schema, tf_yoochoose_like
 # ):
 #     tab_module = tr.TabularSequenceFeatures.from_schema(
-#         yoochoose_schema.select_by_tag(Tag.CATEGORICAL), aggregation="element-wise-sum-item-multi"
+#         yoochoose_schema.select_by_tag(Tags.CATEGORICAL),
+#          aggregation="element-wise-sum-item-multi"
 #     )
 #
 #     out = tab_module(tf_yoochoose_like)

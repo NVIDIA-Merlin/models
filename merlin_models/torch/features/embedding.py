@@ -18,10 +18,10 @@ from functools import partial
 from typing import Any, Callable, Dict, Optional, Text, Union
 
 import torch
+from merlin.graph.schema import Schema
+from merlin.graph.tags import Tags
 
-from merlin_standard_lib import Schema, Tag
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
-from merlin_standard_lib.utils.embedding_utils import get_embedding_sizes_from_schema
 
 from ..tabular.base import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
@@ -29,6 +29,7 @@ from ..tabular.base import (
     TabularAggregationType,
     TabularTransformationType,
 )
+from ...utils.schema import categorical_cardinalities, get_embedding_sizes_from_schema
 from ..utils.torch_utils import calculate_batch_size_from_input_size, get_output_sizes_from_schema
 from .base import InputBlock
 
@@ -107,7 +108,7 @@ class EmbeddingFeatures(InputBlock):
         infer_embedding_sizes_multiplier: float = 2.0,
         embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
         combiner: str = "mean",
-        tags: Optional[Union[Tag, list, str]] = None,
+        tags: Optional[Union[Tags, list, str]] = None,
         item_id: Optional[str] = None,
         automatic_build: bool = True,
         max_sequence_length: Optional[int] = None,
@@ -158,8 +159,8 @@ class EmbeddingFeatures(InputBlock):
         if tags:
             schema = schema.select_by_tag(tags)
 
-        if not item_id and schema.select_by_tag(["item_id"]).column_names:
-            item_id = schema.select_by_tag(["item_id"]).column_names[0]
+        if not item_id and schema.select_by_tag(Tags.ITEM_ID).column_names:
+            item_id = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
 
         if infer_embedding_sizes:
             embedding_dims = get_embedding_sizes_from_schema(
@@ -170,7 +171,7 @@ class EmbeddingFeatures(InputBlock):
         embeddings_initializers = embeddings_initializers or {}
 
         emb_config = {}
-        cardinalities = schema.categorical_cardinalities()
+        cardinalities = categorical_cardinalities(schema)
         for key, cardinality in cardinalities.items():
             embedding_size = embedding_dims.get(key, embedding_dim_default)
             embedding_initializer = embeddings_initializers.get(key, None)
@@ -297,7 +298,7 @@ class SoftEmbeddingFeatures(EmbeddingFeatures):
         embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
         layer_norm: bool = True,
         combiner: str = "mean",
-        tags: Optional[Union[Tag, list, str]] = None,
+        tags: Optional[Union[Tags, list, str]] = None,
         automatic_build: bool = True,
         max_sequence_length: Optional[int] = None,
         **kwargs,
@@ -346,7 +347,7 @@ class SoftEmbeddingFeatures(EmbeddingFeatures):
         embeddings_initializers = embeddings_initializers or {}
 
         sizes = {}
-        cardinalities = schema.categorical_cardinalities()
+        cardinalities = categorical_cardinalities(schema)
         for col_name in schema.column_names:
             # If this is NOT a categorical feature
             if col_name not in cardinalities:

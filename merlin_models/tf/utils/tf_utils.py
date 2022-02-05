@@ -22,9 +22,9 @@ from merlin_models.tf.typing import TabularData
 
 def get_output_sizes_from_schema(schema, batch_size=0, max_sequence_length=None):
     sizes = {}
-    for feature in schema.feature:
+    for feature in schema:
         name = feature.name
-        if feature.HasField("value_count"):
+        if feature._is_list:
             sizes[name] = tf.TensorShape(
                 [
                     batch_size,

@@ -17,8 +17,8 @@
 from typing import List, Optional, Union
 
 import tensorflow as tf
-
-from merlin_standard_lib import Schema, Tag
+from merlin.graph.schema import Schema
+from merlin.graph.tags import Tags
 
 from ..core import Block, Filter, ResidualBlock, SequentialBlock, tabular_aggregation_registry
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
@@ -30,7 +30,7 @@ def MLPBlock(
     use_bias: bool = True,
     dropout: Optional[float] = None,
     normalization: Optional[Union[str, tf.keras.layers.Layer]] = None,
-    filter: Optional[Union[Schema, Tag, List[str], "Filter"]] = None,
+    filter: Optional[Union[Schema, Tags, List[str], "Filter"]] = None,
     block_name: str = "MLPBlock",
     **kwargs
 ) -> SequentialBlock:

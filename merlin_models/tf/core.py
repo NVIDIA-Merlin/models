@@ -24,11 +24,17 @@ from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload
 
 import six
 import tensorflow as tf
+from merlin.graph.schema import Schema
+from merlin.graph.tags import Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
 from merlin_models.config.schema import SchemaMixin
-from merlin_standard_lib import Registry, RegistryMixin, Schema, Tag
+from merlin_models.utils.schema import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
+from merlin_standard_lib import Registry, RegistryMixin
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 from merlin_standard_lib.utils.misc_utils import filter_kwargs
 
@@ -75,10 +81,18 @@ class BlockContext(Layer):
             self._feature_dtypes[feature_name] = features[feature_name].dtype
 
     def __getitem__(self, item):
-        return self.named_variables[str(item)]
+        if isinstance(item, Tags):
+            item = item.value
+        else:
+            item = str(item)
+        return self.named_variables[item]
 
     def get_embedding(self, item):
-        return self.named_variables[f"{str(item)}/embedding"]
+        if isinstance(item, Tags):
+            item = item.value
+        else:
+            item = str(item)
+        return self.named_variables[f"{item}/embedding"]
 
     def get_mask(self):
         mask_schema = self.named_variables.get("masking_schema", None)
@@ -341,7 +355,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
                     all_features.extend(filter_features)
 
         if add_rest:
-            rest_features = self.schema.remove_by_name(list(set([str(f) for f in all_features])))
+            rest_features = self.schema.without(list(set([str(f) for f in all_features])))
             rest_block = SequentialBlock([Filter(rest_features)])
             branches.append(rest_block)
 
@@ -402,7 +416,7 @@ class SequentialBlock(Block):
     def __init__(
         self,
         *layers,
-        filter: Optional[Union[Schema, Tag, List[str], "Filter"]] = None,
+        filter: Optional[Union[Schema, Tags, List[str], "Filter"]] = None,
         pre_aggregation: Optional["TabularAggregationType"] = None,
         block_name: Optional[str] = None,
         copy_layers: bool = False,
@@ -756,7 +770,7 @@ class TabularBlock(Block):
         -------
         Optional[TabularModule]
         """
-        schema_copy = schema.copy()
+        schema_copy = copy.copy(schema)
         if tags:
             schema_copy = schema_copy.select_by_tag(tags)
             if not schema_copy.column_names and not allow_none:
@@ -966,7 +980,7 @@ class TabularBlock(Block):
         config = maybe_serialize_keras_objects(self, config, ["pre", "post", "aggregation"])
 
         if self.schema:
-            config["schema"] = self.schema.to_json()
+            config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
 
         return config
 
@@ -978,7 +992,7 @@ class TabularBlock(Block):
     def from_config(cls, config):
         config = maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
         if "schema" in config:
-            config["schema"] = Schema().from_json(config["schema"])
+            config["schema"] = tensorflow_metadata_json_to_schema(config["schema"])
 
         return super().from_config(config)
 
@@ -1101,7 +1115,7 @@ class Filter(TabularBlock):
     @overload
     def __init__(
         self,
-        inputs: Tag,
+        inputs: Tags,
         name=None,
         pop=False,
         exclude=False,
@@ -1125,7 +1139,7 @@ class Filter(TabularBlock):
     def __init__(
         self, inputs, name=None, pop=False, exclude=False, add_to_context: bool = False, **kwargs
     ):
-        if isinstance(inputs, Tag):
+        if isinstance(inputs, Tags):
             self.feature_names = inputs
         else:
             self.feature_names = list(inputs.column_names) if isinstance(inputs, Schema) else inputs
@@ -1137,7 +1151,7 @@ class Filter(TabularBlock):
     def set_schema(self, schema=None):
         out = super().set_schema(schema)
 
-        if isinstance(self.feature_names, Tag):
+        if isinstance(self.feature_names, Tags):
             self.feature_names = self.schema.select_by_tag(self.feature_names).column_names
 
         return out
@@ -1364,7 +1378,7 @@ class ParallelBlock(TabularBlock):
     def from_config(cls, config, custom_objects=None):
         config = maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
         if "schema" in config:
-            config["schema"] = Schema().from_json(config["schema"])
+            config["schema"] = tensorflow_metadata_json_to_schema(config["schema"])
 
         parallel_layers = config.pop("parallel_layers")
         inputs = {
@@ -1798,10 +1812,10 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
         from .prediction.classification import BinaryClassificationTask
         from .prediction.regression import RegressionTask
 
-        for binary_target in schema.select_by_tag(Tag.BINARY_CLASSIFICATION).column_names:
+        for binary_target in schema.select_by_tag(Tags.BINARY_CLASSIFICATION).column_names:
             tasks.append(BinaryClassificationTask(binary_target))
             task_weights.append(task_weight_dict.get(binary_target, 1.0))
-        for regression_target in schema.select_by_tag(Tag.REGRESSION).column_names:
+        for regression_target in schema.select_by_tag(Tags.REGRESSION).column_names:
             tasks.append(RegressionTask(regression_target))
             task_weights.append(task_weight_dict.get(regression_target, 1.0))
         # TODO: Add multi-class classification here. Figure out how to get number of classes
@@ -1996,7 +2010,7 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
         config = maybe_deserialize_keras_objects(config, ["body", "prediction_tasks"])
 
         if "schema" in config:
-            config["schema"] = Schema().from_json(config["schema"])
+            config["schema"] = tensorflow_metadata_json_to_schema(config["schema"])
 
         config["loss_reduction"] = getattr(tf, config["loss_reduction"])
 
@@ -2152,7 +2166,7 @@ def _output_metrics(metrics):
 
 
 def right_shift_layer(self, other):
-    if isinstance(other, (list, Tag)):
+    if isinstance(other, (list, Tags)):
         left_side = [Filter(other)]
     else:
         left_side = other.layers if isinstance(other, SequentialBlock) else [other]

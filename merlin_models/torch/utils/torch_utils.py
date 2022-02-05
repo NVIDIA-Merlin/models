@@ -18,9 +18,7 @@ import abc
 from typing import Dict, Union
 
 import torch
-
-from merlin_standard_lib import Schema
-from merlin_standard_lib.utils.proto_utils import has_field
+from merlin.graph.schema import Schema
 
 from ...config.schema import SchemaMixin
 from ..typing import TabularData
@@ -141,17 +139,19 @@ def check_gpu(module):
 
 def get_output_sizes_from_schema(schema: Schema, batch_size=-1, max_sequence_length=None):
     sizes = {}
-    for feature in schema.feature:
+    for feature in schema:
         name = feature.name
         # Sequential or multi-hot feature
-        if has_field(feature, "value_count"):
+        if feature._is_list:
             sizes[name] = torch.Size(
                 [
                     batch_size,
                     max_sequence_length if max_sequence_length else feature.value_count.max,
                 ]
             )
-        elif has_field(feature, "shape"):
+
+        elif hasattr(feature, "shape"):
+            # TODO: store shape on feature, along with value_counts
             sizes[name] = torch.Size([batch_size] + [d.size for d in feature.shape.dim])
         else:
             sizes[name] = torch.Size([batch_size])

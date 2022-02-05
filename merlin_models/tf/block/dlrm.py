@@ -16,7 +16,8 @@
 
 from typing import Optional
 
-from merlin_standard_lib import Schema, Tag
+from merlin.graph.schema import Schema
+from merlin.graph.tags import Tags
 
 from ..core import Block, Filter, ParallelBlock, SequentialBlock
 from ..features.continuous import ContinuousFeatures
@@ -69,8 +70,8 @@ def DLRMBlock(
     if embedding_dim is None:
         raise ValueError("The embedding_dim is required")
 
-    con_schema = schema.select_by_tag(Tag.CONTINUOUS)
-    cat_schema = schema.select_by_tag(Tag.CATEGORICAL)
+    con_schema = schema.select_by_tag(Tags.CONTINUOUS)
+    cat_schema = schema.select_by_tag(Tags.CATEGORICAL)
 
     if not len(cat_schema) > 0:
         raise ValueError("DLRM requires categorical features")

@@ -15,11 +15,11 @@
 #
 
 import pytest
+from merlin.graph.tags import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_models.tf.utils import testing_utils
-from merlin_standard_lib import Tag
 
 
 def test_tabular_features(testing_data: SyntheticData):
@@ -27,8 +27,8 @@ def test_tabular_features(testing_data: SyntheticData):
 
     outputs = tab_module(testing_data.tf_tensor_dict)
 
-    con = testing_data.schema.select_by_tag(Tag.CONTINUOUS).column_names
-    cat = testing_data.schema.select_by_tag(Tag.CATEGORICAL).column_names
+    con = testing_data.schema.select_by_tag(Tags.CONTINUOUS).column_names
+    cat = testing_data.schema.select_by_tag(Tags.CATEGORICAL).column_names
 
     assert set(outputs.keys()) == set(con + cat)
 
@@ -45,7 +45,7 @@ def test_tabular_features_with_projection(testing_data: SyntheticData):
     tab_module = ml.InputBlock(testing_data.schema, continuous_projection=ml.MLPBlock([64]))
 
     outputs = tab_module(testing_data.tf_tensor_dict)
-    continuous_feature_names = testing_data.schema.select_by_tag(Tag.CONTINUOUS).column_names
+    continuous_feature_names = testing_data.schema.select_by_tag(Tags.CONTINUOUS).column_names
 
     assert len(set(continuous_feature_names).intersection(set(outputs.keys()))) == 0
     assert "continuous_projection" in outputs

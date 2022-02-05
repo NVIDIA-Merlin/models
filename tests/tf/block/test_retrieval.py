@@ -18,10 +18,10 @@ import os.path
 import numpy as np
 import pytest
 import tensorflow as tf
+from merlin.graph.tags import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_standard_lib import Tag
 
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):
@@ -47,9 +47,9 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
     model.fit(music_streaming_data.tf_dataloader(), epochs=5)
 
     item_embedding_parquet = str(tmp_path / "items.parquet")
-    mf.export_embedding_table(Tag.ITEM_ID, item_embedding_parquet, gpu=False)
+    mf.export_embedding_table(Tags.ITEM_ID, item_embedding_parquet, gpu=False)
 
-    df = mf.embedding_table_df(Tag.ITEM_ID, gpu=False)
+    df = mf.embedding_table_df(Tags.ITEM_ID, gpu=False)
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 10001
     assert os.path.exists(item_embedding_parquet)
@@ -59,9 +59,9 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
         import cudf  # noqa: F401
 
         user_embedding_parquet = str(tmp_path / "users.parquet")
-        mf.export_embedding_table(Tag.USER_ID, user_embedding_parquet, gpu=True)
+        mf.export_embedding_table(Tags.USER_ID, user_embedding_parquet, gpu=True)
         assert os.path.exists(user_embedding_parquet)
-        df = mf.embedding_table_df(Tag.USER_ID, gpu=True)
+        df = mf.embedding_table_df(Tags.USER_ID, gpu=True)
         assert isinstance(df, cudf.DataFrame)
         assert len(df) == 10001
     except ImportError:
@@ -104,14 +104,14 @@ def test_two_tower_block_serialization(testing_data: SyntheticData):
 
 def test_two_tower_block_no_item_features(testing_data: SyntheticData):
     with pytest.raises(ValueError) as excinfo:
-        schema = testing_data.schema.remove_by_tag(Tag.ITEM)
+        schema = testing_data.schema.remove_by_tag(Tags.ITEM)
         ml.TwoTowerBlock(schema, query_tower=ml.MLPBlock([64]))
         assert "The schema should contain features with the tag `item`" in str(excinfo.value)
 
 
 def test_two_tower_block_no_user_features(testing_data: SyntheticData):
     with pytest.raises(ValueError) as excinfo:
-        schema = testing_data.schema.remove_by_tag(Tag.USER)
+        schema = testing_data.schema.remove_by_tag(Tags.USER)
         ml.TwoTowerBlock(schema, query_tower=ml.MLPBlock([64]))
         assert "The schema should contain features with the tag `user`" in str(excinfo.value)
 

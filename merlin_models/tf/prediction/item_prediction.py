@@ -17,6 +17,8 @@ import logging
 from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
+from merlin.graph.schema import Schema
+from merlin.graph.tags import Tags
 from tensorflow.python.layers.base import Layer
 from tensorflow.python.ops import embedding_ops
 
@@ -24,12 +26,12 @@ from merlin_models.tf.block.transformations import L2Norm
 from merlin_models.tf.core import Block, EmbeddingWithMetadata, SequentialBlock
 from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from merlin_models.utils.constants import MIN_FLOAT
-from merlin_standard_lib import Schema, Tag
 
 from ..block.aggregation import SequenceAggregation, SequenceAggregator
 from ..block.inputs import InputBlock
 from ..block.mlp import MLPBlock
 from ..typing import TabularData
+from ...utils.schema import categorical_cardinalities
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
 from .ranking_metric import ranking_metrics
 
@@ -83,7 +85,7 @@ class ItemsPrediction(CategFeaturePrediction):
         schema: Schema,
         **kwargs,
     ):
-        super(ItemsPrediction, self).__init__(schema, feature_name=Tag.ITEM_ID, **kwargs)
+        super(ItemsPrediction, self).__init__(schema, feature_name=Tags.ITEM_ID, **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -91,7 +93,7 @@ class ItemsPredictionWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
-        self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
+        self.num_classes = categorical_cardinalities(schema)[Tags.ITEM_ID.value]
 
     def build(self, input_shape):
         self.bias = self.add_weight(
@@ -102,7 +104,7 @@ class ItemsPredictionWeightTying(Block):
         return super().build(input_shape)
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+        embedding_table = self.context.get_embedding(Tags.ITEM_ID)
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
@@ -156,7 +158,7 @@ class ItemRetrievalScorer(Block):
     def set_required_features(self):
         required_features = set()
         if self.downscore_false_negatives:
-            required_features.add(str(Tag.ITEM_ID))
+            required_features.add(Tags.ITEM_ID.value)
 
         required_features.update(
             [feature for sampler in self.samplers for feature in sampler.required_features]
@@ -190,7 +192,7 @@ class ItemRetrievalScorer(Block):
         self, inputs: Union[tf.Tensor, TabularData], training: bool = True, **kwargs
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs["query"]), uses dot product to score
-            the positive item (inputs["item"] or  self.context.get_embedding(Tag.ITEM_ID))
+            the positive item (inputs["item"] or  self.context.get_embedding(Tags.ITEM_ID))
         Parameters
         ----------
         inputs : Union[tf.Tensor, TabularData]
@@ -209,7 +211,7 @@ class ItemRetrievalScorer(Block):
             return inputs
 
         if isinstance(inputs, tf.Tensor):
-            embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+            embedding_table = self.context.get_embedding(Tags.ITEM_ID)
             all_scores = tf.matmul(inputs, tf.transpose(embedding_table))
             return all_scores
 
@@ -250,7 +252,7 @@ class ItemRetrievalScorer(Block):
             if isinstance(predictions, dict):
                 batch_items_embeddings = predictions["item"]
             else:
-                embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+                embedding_table = self.context.get_embedding(Tags.ITEM_ID)
                 batch_items_embeddings = embedding_ops.embedding_lookup(embedding_table, targets)
                 predictions = {"query": predictions, "item": batch_items_embeddings}
             batch_items_metadata = self.get_batch_items_metadata()
@@ -274,7 +276,7 @@ class ItemRetrievalScorer(Block):
                     # Accumulates sampled negative items from all samplers
                     neg_items_embeddings_list.append(neg_items.embeddings)
                     if self.downscore_false_negatives:
-                        neg_items_ids_list.append(neg_items.metadata[str(Tag.ITEM_ID)])
+                        neg_items_ids_list.append(neg_items.metadata[Tags.ITEM_ID.value])
                 else:
                     LOG.warn(
                         f"The sampler {type(sampler).__name__} returned no samples for this batch."
@@ -295,7 +297,7 @@ class ItemRetrievalScorer(Block):
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:
-                    positive_item_ids = self.context[Tag.ITEM_ID]
+                    positive_item_ids = self.context[Tags.ITEM_ID]
 
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]
@@ -473,7 +475,7 @@ class MaskingHead(Block):
     def call_targets(
         self, predictions: tf.Tensor, targets: tf.Tensor, training: bool = True, **kwargs
     ) -> tf.Tensor:
-        targets = self.context[Tag.ITEM_ID]
+        targets = self.context[Tags.ITEM_ID]
         mask = self.context.get_mask()
         targets = tf.where(mask, targets, self.padding_idx)
         return targets
@@ -513,7 +515,7 @@ def ItemsPredictionSampled(
             During evaluation, returns the input tensor of true class, and the related logits.
     """
 
-    num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
+    num_classes = categorical_cardinalities(schema)[Tags.ITEM_ID.value]
     samplers = PopularityBasedSampler(
         max_num_samples=num_sampled, max_id=num_classes, min_id=min_id
     )

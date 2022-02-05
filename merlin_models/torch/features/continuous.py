@@ -17,8 +17,8 @@
 from typing import List, Optional
 
 import torch
+from merlin.graph.schema import Schema
 
-from merlin_standard_lib import Schema
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 
 from ..tabular.base import (

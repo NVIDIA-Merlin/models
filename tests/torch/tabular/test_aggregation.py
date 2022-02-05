@@ -16,9 +16,9 @@
 
 import pytest
 import torch
+from merlin.graph.tags import Tags
 
 import merlin_models.torch as ml
-from merlin_standard_lib import Tag
 
 
 def test_concat_aggregation_yoochoose(tabular_schema, torch_tabular_data):
@@ -75,17 +75,17 @@ def test_element_wise_sum_item_multi_no_col_group():
 
 def test_element_wise_sum_item_multi_col_group_no_item_id(tabular_schema):
     with pytest.raises(ValueError) as excinfo:
-        categ_schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
+        categ_schema = tabular_schema.select_by_tag(Tags.CATEGORICAL)
         # Remove the item id from col_group
-        categ_schema = categ_schema.remove_by_name("item_id")
+        categ_schema = categ_schema.without("item_id")
         element_wise_op = ml.ElementwiseSumItemMulti(categ_schema)
         element_wise_op(None)
-    assert "no column tagged as item id" in str(excinfo.value)
+    assert "no column" in str(excinfo.value)
 
 
 def test_element_wise_sum_item_multi_features_different_shapes(tabular_schema):
     with pytest.raises(ValueError) as excinfo:
-        categ_schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
+        categ_schema = tabular_schema.select_by_tag(Tags.CATEGORICAL)
         element_wise_op = ml.ElementwiseSumItemMulti(categ_schema)
         input = {
             "item_id": torch.rand(10, 20),

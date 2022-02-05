@@ -14,17 +14,18 @@
 # limitations under the License.
 #
 
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import tensorflow as tf
+from merlin.graph.schema import Schema
+from merlin.graph.tags import Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 
-from merlin_standard_lib import Schema, Tag
-
 from ..core import Block, MetricOrMetricClass, PredictionTask
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
+from ...utils.schema import categorical_cardinalities
 from .ranking_metric import ranking_metrics
 
 
@@ -88,7 +89,7 @@ class CategFeaturePrediction(Block):
     def __init__(
         self,
         schema: Schema,
-        feature_name: str = Tag.ITEM_ID,
+        feature_name: Union[str, Tags] = Tags.ITEM_ID,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
         activation=None,
@@ -97,7 +98,10 @@ class CategFeaturePrediction(Block):
         super(CategFeaturePrediction, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.kernel_initializer = kernel_initializer
-        self.num_classes = schema.categorical_cardinalities()[feature_name]
+
+        if isinstance(feature_name, Tags):
+            feature_name = feature_name.value
+        self.num_classes = categorical_cardinalities(schema)[feature_name]
         self.feature_name = feature_name
         self.activation = activation
 
@@ -150,7 +154,7 @@ class MultiClassClassificationTask(PredictionTask):
     def from_schema(
         cls,
         schema: Schema,
-        feature_name: str = Tag.ITEM_ID,
+        feature_name: str = Tags.ITEM_ID,
         loss=DEFAULT_LOSS,
         bias_initializer="zeros",
         kernel_initializer="random_normal",

@@ -14,9 +14,10 @@
 # limitations under the License.
 #
 import pytest
+from merlin.graph.tags import Tags
 
 from merlin_models.data.synthetic import SyntheticData
-from merlin_standard_lib import Tag
+from merlin_models.utils.schema import filter_dict_by_schema
 
 
 def test_tabular_sequence_testing_data():
@@ -33,7 +34,7 @@ def test_tabular_music_data():
     data = tabular_music_data.generate_interactions(100)
 
     assert data["position"].shape == (100,)
-    targets = tabular_music_data.schema.select_by_tag(Tag.TARGETS)
+    targets = tabular_music_data.schema.select_by_tag(Tags.TARGET)
     assert len(targets) == 3
     for val in targets:
         assert data[val.name].shape == (100,)
@@ -48,13 +49,12 @@ def test_tf_tensors_generation_cpu():
     ).to_dict("list")
 
     tensors = {key: tf.convert_to_tensor(value) for key, value in data.items()}
-
     assert tensors["user_id"].shape == (100,)
     assert tensors["user_age"].dtype == tf.float32
-    for val in schema.select_by_tag(Tag.LIST).filter_columns_from_dict(tensors).values():
+    for name, val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).items():
         assert val.shape == (100, 50)
 
-    for val in schema.select_by_tag(Tag.CATEGORICAL).filter_columns_from_dict(tensors).values():
+    for val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.CATEGORICAL)).values():
         assert val.dtype == tf.int32
         assert tf.reduce_max(val) < 52000
 
@@ -70,9 +70,9 @@ def test_torch_tensors_generation_cpu():
 
     assert tensors["user_id"].shape == (100,)
     assert tensors["user_age"].dtype == torch.float32
-    for val in schema.select_by_tag(Tag.LIST).filter_columns_from_dict(tensors).values():
+    for val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).values():
         assert val.shape == (100, 50)
 
-    for val in schema.select_by_tag(Tag.CATEGORICAL).filter_columns_from_dict(tensors).values():
+    for val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.CATEGORICAL)).values():
         assert val.dtype == torch.int64
         assert val.max() < 52000

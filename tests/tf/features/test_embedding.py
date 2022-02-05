@@ -15,12 +15,12 @@
 #
 
 import pytest
+from merlin.graph.tags import Tags
 from tensorflow.python.ops import init_ops_v2
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_models.tf.utils import testing_utils
-from merlin_standard_lib import Tag
 
 
 def test_embedding_features(tf_cat_features):
@@ -36,14 +36,14 @@ def test_embedding_features(tf_cat_features):
 
 
 def test_embedding_features_yoochoose(testing_data: SyntheticData):
-    schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
+    schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(schema)
     embeddings = emb_module(testing_data.tf_tensor_dict)
 
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
     assert all(emb.shape[-1] == 64 for emb in embeddings.values())
-    max_value = schema.select_by_name("item_id").feature[0].int_domain.max
+    max_value = list(schema.select_by_name("item_id"))[0].int_domain.max
     assert emb_module.embedding_tables["item_id"].shape[0] == max_value + 1
 
 
@@ -64,7 +64,7 @@ def test_serialization_embedding_features(testing_data: SyntheticData):
 
 @testing_utils.mark_run_eagerly_modes
 def test_embedding_features_yoochoose_model(testing_data: SyntheticData, run_eagerly):
-    schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
+    schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     inputs = ml.EmbeddingFeatures.from_schema(schema, aggregation="concat")
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
@@ -73,7 +73,7 @@ def test_embedding_features_yoochoose_model(testing_data: SyntheticData, run_eag
 
 
 def test_embedding_features_yoochoose_custom_dims(testing_data: SyntheticData):
-    schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
+    schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema,
@@ -91,7 +91,7 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: SyntheticData):
 
 
 def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: SyntheticData):
-    schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
+    schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema,
@@ -116,7 +116,7 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Syntheti
     CATEGORY_MEAN = 2.0
     CATEGORY_STD = 0.1
 
-    schema = testing_data.schema.select_by_tag(Tag.CATEGORICAL)
+    schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema,
         options=ml.EmbeddingOptions(
@@ -139,6 +139,6 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Syntheti
 def test_shared_embeddings(music_streaming_data: SyntheticData):
     inputs = ml.InputBlock(music_streaming_data.schema)
 
-    embeddings = inputs.select_by_name(Tag.CATEGORICAL)
+    embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)
 
     assert embeddings.table_config("item_genres") == embeddings.table_config("user_genres")

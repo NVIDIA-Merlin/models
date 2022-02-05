@@ -16,9 +16,11 @@
 
 import pytest
 import torch
+from merlin.graph import schema
+from merlin.graph.tags import Tags
 
 import merlin_models.torch as ml
-from merlin_standard_lib import Tag, schema
+from merlin_models.utils.schema import create_categorical_column
 
 
 @pytest.mark.parametrize("replacement_prob", [0.1, 0.3, 0.5, 0.7])
@@ -79,7 +81,7 @@ def test_stochastic_swap_noise(replacement_prob):
 
 @pytest.mark.parametrize("layer_norm", ["layer-norm", ml.TabularLayerNorm()])
 def test_layer_norm(tabular_schema, torch_tabular_data, layer_norm):
-    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
+    schema = tabular_schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema, embedding_dims={"item_id": 100}, embedding_dim_default=64, post=layer_norm
@@ -95,8 +97,8 @@ def test_stochastic_swap_noise_raise_exception_not_2d_item_id():
 
     s = schema.Schema(
         [
-            schema.ColumnSchema.create_categorical(
-                "item_id_feat", num_items=1000, tags=[Tag.ITEM_ID.value]
+            create_categorical_column(
+                "item_id_feat", num_items=1000, tags=[Tags.ITEM_ID.value]
             ),
         ]
     )

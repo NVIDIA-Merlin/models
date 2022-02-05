@@ -21,13 +21,13 @@ from merlin_models.loader.tf_utils import configure_tensorflow
 
 configure_tensorflow()
 
+from merlin.graph.schema import Schema
+from merlin.graph.tags import Tags
 from tensorflow.keras.layers import Dense, Layer
 from tensorflow.python.keras.losses import Loss
 from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
-
-from merlin_standard_lib import Schema, Tag
 
 from .. import data
 from ..data.synthetic import SyntheticData
@@ -98,7 +98,8 @@ from .prediction.sampling import (
 )
 from .utils import repr_utils
 
-Tag.__hash__ = lambda self: hash(str(self))
+# TODO: wtf?
+Tags.__hash__ = lambda self: hash(str(self))
 
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr

@@ -60,10 +60,10 @@ Low-level API:
 
 ```python
 import merlin_models.tf as ml
-from merlin_standard_lib import Tag
+from merlin.graph.tags import Tags
 
-user_tower = ml.InputBlock(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
-item_tower = ml.InputBlock(schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256]))
+user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER), ml.MLPBlock([512, 256]))
+item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM), ml.MLPBlock([512, 256]))
 two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower})
 model = two_tower.connect(ml.ItemRetrievalTask())
 ```
@@ -84,9 +84,9 @@ High-level API:
 import merlin_models.tf as ml
 
 dlrm = ml.DLRMBlock(
-    schema, 
-    embedding_dim=32, 
-    bottom_block=ml.MLPBlock([512, 128]), 
+    schema,
+    embedding_dim=32,
+    bottom_block=ml.MLPBlock([512, 128]),
     top_block=ml.MLPBlock([512, 128])
 )
 model = dlrm.connect(ml.BinaryClassificationTask(schema))
@@ -159,7 +159,7 @@ import merlin_models.tf as ml
 
 inputs = ml.InputBlock(schema)
 prediction_tasks = ml.PredictionTasks(schema)
-block = ml.MLPBlock([64]) 
+block = ml.MLPBlock([64])
 cgc = ml.CGCBlock(
     prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=2
 )

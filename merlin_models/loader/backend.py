@@ -27,6 +27,8 @@ try:
 except ImportError:
     cp = np
 
+from merlin.graph.tags import Tags
+
 from merlin_models.loader.dataframe_iter import DataFrameIter
 from merlin_models.loader.dispatch import (
     HAS_GPU,
@@ -38,7 +40,6 @@ from merlin_models.loader.dispatch import (
     annotate,
 )
 from merlin_models.loader.shuffle import _shuffle_df
-from merlin_standard_lib.schema.tag import Tag as Tags
 
 
 def _num_steps(num_samples, step_size):

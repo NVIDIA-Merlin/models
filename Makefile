@@ -34,7 +34,6 @@ clean:
 
 docstrings:
 	sphinx-apidoc -f -o docs/source/api models
-	sphinx-apidoc -f -o docs/source/api/merlin_standard_lib merlin_standard_lib
 
 docs:
 	cd docs && make html

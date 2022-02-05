@@ -18,10 +18,11 @@ import abc
 from typing import List, Optional
 
 import tensorflow as tf
+from merlin.graph.tags import Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.ops import embedding_ops
 
-from ..core import EmbeddingWithMetadata, Tag
+from ..core import EmbeddingWithMetadata
 from ..layers.queue import FIFOQueue
 from ..typing import TabularData
 
@@ -345,11 +346,11 @@ class CachedUniformSampler(CachedCrossBatchSampler):
         allows computing gradients for in-batch negative items
     """
 
-    item_id_feature_name = str(Tag.ITEM_ID)
+    item_id_feature_name = Tags.ITEM_ID.value
 
     def _check_inputs(self, inputs):
         assert (
-            str(Tag.ITEM_ID) in inputs["metadata"]
+            Tags.ITEM_ID.value in inputs["metadata"]
         ), "The 'item_id' metadata feature is required by UniformSampler."
 
     def add(
@@ -523,7 +524,7 @@ class PopularityBasedSampler(ItemSampler):
 
     def _check_inputs(self, inputs):
         assert (
-            str(Tag.ITEM_ID) in inputs["metadata"]
+            Tags.ITEM_ID.value in inputs["metadata"]
         ), "The 'item_id' metadata feature is required by PopularityBasedSampler."
 
     def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=True):
@@ -547,7 +548,7 @@ class PopularityBasedSampler(ItemSampler):
         return items_embeddings
 
     def _required_features():
-        return [str(Tag.ITEM_ID)]
+        return [Tags.ITEM_ID.value]
 
     def sample(self, item_weights) -> EmbeddingWithMetadata:
         sampled_ids, _, _ = tf.random.log_uniform_candidate_sampler(
@@ -566,5 +567,5 @@ class PopularityBasedSampler(ItemSampler):
 
         return EmbeddingWithMetadata(
             items_embeddings,
-            metadata={str(Tag.ITEM_ID): tf.cast(sampled_ids, tf.int32)},
+            metadata={Tags.ITEM_ID.value: tf.cast(sampled_ids, tf.int32)},
         )

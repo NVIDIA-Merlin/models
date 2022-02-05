@@ -15,8 +15,8 @@
 #
 
 import torch
-
-from merlin_standard_lib import Schema
+from merlin.graph.schema import Schema
+from merlin.graph.tags import Tags
 
 from ...config.schema import requires_schema
 from ..typing import TabularData
@@ -137,8 +137,8 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
         self._expand_non_sequential_features(inputs)
         self._check_input_shapes_equal(inputs)
 
-        schema: Schema = self.schema  # type: ignore
-        other_inputs = {k: v for k, v in inputs.items() if k != schema.item_id_column_name}
+        item_id_column = self.schema.select_by_tag(Tags.ITEM_ID).first.name
+        other_inputs = {k: v for k, v in inputs.items() if k != item_id_column}
         other_inputs_sum = self.stack(other_inputs).sum(dim=0)
         result = item_id_inputs.multiply(other_inputs_sum)
         return result

@@ -16,8 +16,8 @@
 from typing import List, Optional, Tuple, Union
 
 import tensorflow as tf
-
-from merlin_standard_lib import Schema, Tag
+from merlin.graph.schema import Schema
+from merlin.graph.tags import Tags
 
 from ..core import Filter, SequentialBlock, TabularBlock
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
@@ -26,7 +26,7 @@ from .mlp import DenseMaybeLowRank, InitializerType, RegularizerType
 
 def CrossBlock(
     depth: int = 1,
-    filter: Optional[Union[Schema, Tag, List[str], Filter]] = None,
+    filter: Optional[Union[Schema, Tags, List[str], Filter]] = None,
     low_rank_dim: Optional[int] = None,
     use_bias: bool = True,
     kernel_initializer: InitializerType = "truncated_normal",
@@ -51,7 +51,7 @@ def CrossBlock(
     ----------
     depth : int, optional
         Number of cross-layers to be stacked, by default 1
-    filter : Optional[Union[Schema, Tag, List[str], Filter]], optional
+    filter : Optional[Union[Schema, Tags, List[str], Filter]], optional
         Features filter to be applied on the input, by default None
     low_rank_dim : Optional[int], optional
         If this argument is provided, the weight (`W in R(dxd)`),

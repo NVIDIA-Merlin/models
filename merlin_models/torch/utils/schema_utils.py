@@ -17,10 +17,9 @@
 import random
 from typing import Any, Dict, Optional
 
+import numpy as np
 import torch
-
-from merlin_standard_lib import Schema
-from merlin_standard_lib.utils.proto_utils import has_field
+from merlin.graph.schema import Schema
 
 from ..typing import TabularData
 
@@ -38,11 +37,12 @@ def random_data_from_schema(
         if max_session_length:
             session_length = random.randint(min_session_length, max_session_length)
 
-        for feature in schema.feature:
-            is_list_feature = has_field(feature, "value_count")
-            is_int_feature = has_field(feature, "int_domain")
-            is_embedding = feature.shape.dim[0].size > 1 if has_field(feature, "shape") else False
+        for feature in schema:
+            is_list_feature = feature._is_list
+            is_inst_feature = np.issubdtype(feature.dtype, np.integer)
 
+            # TODO: shape
+            is_embedding = feature.shape.dim[0].size > 1 if has_field(feature, "shape") else False
             shape = [d.size for d in feature.shape.dim] if has_field(feature, "shape") else (1,)
 
             if is_int_feature:

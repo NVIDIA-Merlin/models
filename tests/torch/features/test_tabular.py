@@ -15,9 +15,9 @@
 #
 
 import pytest
+from merlin.graph.tags import Tags
 
 import merlin_models.torch as ml
-from merlin_standard_lib import Tag
 
 torch_utils = pytest.importorskip("merlin_models.torch.utils.torch_utils")
 
@@ -28,8 +28,8 @@ def test_tabular_features(tabular_schema, torch_tabular_data):
 
     outputs = tab_module(torch_tabular_data)
 
-    con = schema.select_by_tag(Tag.CONTINUOUS).column_names
-    cat = schema.select_by_tag(Tag.CATEGORICAL).column_names
+    con = schema.select_by_tag(Tags.CONTINUOUS).column_names
+    cat = schema.select_by_tag(Tags.CATEGORICAL).column_names
 
     assert set(outputs.keys()) == set(con + cat)
 
@@ -42,7 +42,7 @@ def test_tabular_features_embeddings_options(tabular_schema, torch_tabular_data)
 
     outputs = tab_module(torch_tabular_data)
 
-    categ_features = schema.select_by_tag(Tag.CATEGORICAL).column_names
+    categ_features = schema.select_by_tag(Tags.CATEGORICAL).column_names
     assert all(v.shape[-1] == EMB_DIM for k, v in outputs.items() if k in categ_features)
 
 
@@ -52,7 +52,7 @@ def test_tabular_features_with_projection(tabular_schema, torch_tabular_data):
 
     outputs = tab_module(torch_tabular_data)
 
-    continuous_feature_names = schema.select_by_tag(Tag.CONTINUOUS).column_names
+    continuous_feature_names = schema.select_by_tag(Tags.CONTINUOUS).column_names
 
     assert len(set(continuous_feature_names).intersection(set(outputs.keys()))) == 0
     assert "continuous_projection" in outputs
@@ -73,12 +73,12 @@ def test_tabular_features_soft_encoding(tabular_schema, torch_tabular_data):
 
     outputs = tab_module(torch_tabular_data)
 
-    con = schema.select_by_tag(Tag.CONTINUOUS).column_names
-    cat = schema.select_by_tag(Tag.CATEGORICAL).column_names
+    con = schema.select_by_tag(Tags.CONTINUOUS).column_names
+    cat = schema.select_by_tag(Tags.CATEGORICAL).column_names
 
     assert set(outputs.keys()) == set(cat + con)
 
     assert all(
         list(outputs[col_name].shape) == list(torch_tabular_data[col_name].shape) + [emb_dim]
-        for col_name in schema.select_by_tag(Tag.CONTINUOUS).column_names
+        for col_name in schema.select_by_tag(Tags.CONTINUOUS).column_names
     )
