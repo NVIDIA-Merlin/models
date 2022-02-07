@@ -20,7 +20,18 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import reduce
-from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload, runtime_checkable, Protocol
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Text,
+    Type,
+    Union,
+    overload,
+    runtime_checkable,
+)
 
 import six
 import tensorflow as tf
@@ -2307,10 +2318,29 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         return metrics
 
-    def fit(self, x=None, y=None, batch_size=None, epochs=1, verbose='auto', callbacks=None, validation_split=0.,
-            validation_data=None, shuffle=True, class_weight=None, sample_weight=None, initial_epoch=0,
-            steps_per_epoch=None, validation_steps=None, validation_batch_size=None, validation_freq=1,
-            max_queue_size=10, workers=1, use_multiprocessing=False, **kwargs):
+    def fit(
+        self,
+        x=None,
+        y=None,
+        batch_size=None,
+        epochs=1,
+        verbose="auto",
+        callbacks=None,
+        validation_split=0.0,
+        validation_data=None,
+        shuffle=True,
+        class_weight=None,
+        sample_weight=None,
+        initial_epoch=0,
+        steps_per_epoch=None,
+        validation_steps=None,
+        validation_batch_size=None,
+        validation_freq=1,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        **kwargs,
+    ):
         # Check if merlin-dataset is passed
         if hasattr(x, "to_ddf"):
             if not batch_size:
@@ -2319,9 +2349,27 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             x = Dataset(x, batch_size=batch_size, **kwargs)
 
-        return super().fit(x, y, batch_size, epochs, verbose, callbacks, validation_split, validation_data, shuffle,
-                           class_weight, sample_weight, initial_epoch, steps_per_epoch, validation_steps,
-                           validation_batch_size, validation_freq, max_queue_size, workers, use_multiprocessing)
+        return super().fit(
+            x,
+            y,
+            batch_size,
+            epochs,
+            verbose,
+            callbacks,
+            validation_split,
+            validation_data,
+            shuffle,
+            class_weight,
+            sample_weight,
+            initial_epoch,
+            steps_per_epoch,
+            validation_steps,
+            validation_batch_size,
+            validation_freq,
+            max_queue_size,
+            workers,
+            use_multiprocessing,
+        )
 
     def batch_predict(self, dataset, batch_size=None, **kwargs):
         # Check if merlin-dataset is passed
@@ -2334,13 +2382,17 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
             raise ValueError(
-                f"Model schema {self.schema.column_names} does not match dataset schema {dataset.column_names}"
+                f"Model schema {self.schema.column_names} does not match dataset schema"
+                + f" {dataset.column_names}"
             )
 
-        from .nvt_ops import TFModelEncode
+        from .prediction.batch import TFModelEncode
+
         model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
 
-        return model_encode.fit_transform(dataset)
+        embeddings = dataset.map_partitions(model_encode).compute(scheduler="synchronous")
+
+        return embeddings
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
@@ -2370,7 +2422,12 @@ class RetrievalBlock(Protocol):
 
 
 class RetrievalModel(Model):
-    def __init__(self, *blocks: Union[Block, ModelLikeBlock], context: Optional[BlockContext] = None, **kwargs):
+    def __init__(
+        self,
+        *blocks: Union[Block, ModelLikeBlock],
+        context: Optional[BlockContext] = None,
+        **kwargs,
+    ):
         super().__init__(*blocks, context=context, **kwargs)
 
         if not any(isinstance(b, RetrievalBlock) for b in self.blocks):
@@ -2381,16 +2438,24 @@ class RetrievalModel(Model):
         return next(b for b in self.blocks if isinstance(b, RetrievalBlock))
 
     def query_embeddings(self, dataset, dim: int, batch_size=None, **kwargs):
-        from merlin_models.tf.nvt_ops import QueryEmbeddings
-        query_embs = QueryEmbeddings(self, dim=dim, batch_size=batch_size, **kwargs).fit_transform(dataset)
+        from merlin_models.tf.prediction.batch import QueryEmbeddings
 
-        return query_embs
+        get_user_emb = QueryEmbeddings(self, dim=self.tower_dims[-1])
+        user_features = self.user_features.train.get().to_ddf()
+
+        embeddings = user_features.map_partitions(get_user_emb).compute(scheduler="synchronous")
+
+        return embeddings
 
     def item_embeddings(self, dataset, dim: int, batch_size=None, **kwargs):
-        from merlin_models.tf.nvt_ops import ItemEmbeddings
-        item_embs = ItemEmbeddings(self, dim=dim, batch_size=batch_size, **kwargs).fit_transform(dataset)
+        from merlin_models.tf.prediction.batch import ItemEmbeddings
 
-        return item_embs
+        get_item_emb = ItemEmbeddings(self, dim=self.tower_dims[-1])
+        item_features = self.item_features.train.get().to_ddf()
+
+        embeddings = item_features.map_partitions(get_item_emb).compute(scheduler="synchronous")
+
+        return embeddings
 
 
 def is_input_block(block: Block) -> bool:
