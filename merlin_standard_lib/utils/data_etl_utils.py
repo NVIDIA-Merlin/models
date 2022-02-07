@@ -75,7 +75,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
 
         # count encode `userId`
         count_logop_feat = (
-            ["userId"] >> ops.JoinGroupby(cont_cols=["rating"], stats=["count"]) >> ops.LogOp()
+            ["userId"] >> ops.JoinGroupby(cont_cols=["movieId"], stats=["count"]) >> ops.LogOp()
         )
         feats_item = cat_features["movieId"] >> ops.AddMetadata(tags=["item_id", "item"])
         feats_user = cat_features["userId"] >> ops.AddMetadata(tags=["user_id", "user"])
@@ -177,7 +177,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         s.notnull()
         movies["genres"] = s.notnull().dot(s.columns + ",").str[:-1]
         movies_converted = movies[
-            ["movieId", "title", "release_date", "video_release_date", "imdb_URL", "genres"]
+            ["movieId", "title", "release_date", "video_release_date", "genres", "imdb_URL"]
         ]
         movies_converted.to_parquet(
             os.path.join(local_filename, "ml-100k/movies_converted.parquet")
@@ -205,7 +205,6 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
             "gender",
             "occupation",
             "zip_code",
-            "imdb_URL",
             "genres",
         ] >> nvt.ops.Categorify()
 
@@ -222,12 +221,12 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
 
         # count encode `userId`
         count_logop_feat = (
-            ["userId"] >> ops.JoinGroupby(cont_cols=["rating"], stats=["count"]) >> ops.LogOp()
+            ["userId"] >> ops.JoinGroupby(cont_cols=["movieId"], stats=["count"]) >> ops.LogOp()
         )
 
         feats_item = cat_features["movieId"] >> ops.AddMetadata(tags=["item_id", "item"])
         feats_user = cat_features["userId"] >> ops.AddMetadata(tags=["user_id", "user"])
-        feats_genres = cat_features["genres", "imdb_URL"] >> ops.AddMetadata(tags=["item"])
+        feats_genres = cat_features["genres"] >> ops.AddMetadata(tags=["item"])
         user_features = cat_features["gender", "zip_code"] >> ops.AddMetadata(tags=["user"])
 
         feats_target = (
