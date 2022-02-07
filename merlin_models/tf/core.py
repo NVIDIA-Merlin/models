@@ -338,7 +338,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         *block: Union[tf.keras.layers.Layer, str],
         block_name: Optional[str] = None,
         context: Optional[BlockContext] = None,
-    ) -> Union["SequentialBlock", "Model"]:
+    ) -> Union["SequentialBlock", "Model", "RetrievalModel"]:
         """Connect the block to other blocks sequentially.
 
         Parameters
@@ -364,6 +364,9 @@ class Block(SchemaMixin, ContextMixin, Layer):
         )
 
         if isinstance(blocks[-1], ModelLikeBlock):
+            if any(isinstance(b, RetrievalBlock) for b in blocks):
+                return RetrievalModel(output)
+
             return Model(output)
 
         return output
@@ -456,7 +459,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         post: Optional[BlockType] = None,
         aggregation: Optional["TabularAggregationType"] = None,
         **kwargs,
-    ) -> Union["SequentialBlock", "Model"]:
+    ) -> Union["SequentialBlock", "Model", "RetrievalModel"]:
         """Connect the block to one or multiple branches.
 
         Parameters
@@ -2389,10 +2392,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         from .prediction.batch import TFModelEncode
 
         model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
+        predictions = dataset.map_partitions(model_encode)
 
-        embeddings = dataset.map_partitions(model_encode).compute(scheduler="synchronous")
-
-        return embeddings
+        return predictions
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
@@ -2443,7 +2445,7 @@ class RetrievalModel(Model):
         get_user_emb = QueryEmbeddings(self, dim=self.tower_dims[-1])
         user_features = self.user_features.train.get().to_ddf()
 
-        embeddings = user_features.map_partitions(get_user_emb).compute(scheduler="synchronous")
+        embeddings = user_features.map_partitions(get_user_emb)
 
         return embeddings
 
@@ -2453,7 +2455,7 @@ class RetrievalModel(Model):
         get_item_emb = ItemEmbeddings(self, dim=self.tower_dims[-1])
         item_features = self.item_features.train.get().to_ddf()
 
-        embeddings = item_features.map_partitions(get_item_emb).compute(scheduler="synchronous")
+        embeddings = item_features.map_partitions(get_item_emb)
 
         return embeddings
 

@@ -25,14 +25,24 @@ def default_function_hook(ctx: FunctionContext) -> Type:
 
 
 def merlin_connect_hook_tf(ctx: FunctionContext) -> Type:
-    SequentialBlock, Model = ctx.default_return_type.items
+    SequentialBlock, Model, RetrievalModel = ctx.default_return_type.items
 
     model_like_blocks = [
         "merlin_models.tf.core.ParallelPredictionBlock",
         "merlin_models.tf.core.PredictionTask",
+        "merlin_models.tf.prediction.classification.BinaryClassificationTask",
+        "merlin_models.tf.prediction.regression.RegressionTask",
+    ]
+
+    retrieval_blocks = [
+        "merlin_models.tf.block.retrieval.TwoTowerBlock",
+        "merlin_models.tf.block.retrieval.MatrixFactorizationBlock",
     ]
 
     if str(ctx.arg_types[0][-1]) in model_like_blocks:
+        if str(ctx.type) in retrieval_blocks:
+            return RetrievalModel
+
         return Model
 
     return SequentialBlock

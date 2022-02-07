@@ -2,7 +2,6 @@ import pytest
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.nvt_ops import ItemEmbeddings, TFModelEncode, QueryEmbeddings
 
 nvt = pytest.importorskip("nvtabular")
 
@@ -18,7 +17,7 @@ def test_model_encode(ecommerce_data: SyntheticData, run_eagerly):
     dataset = ecommerce_data.tf_dataloader(batch_size=50)
     model.fit(dataset, epochs=1)
 
-    data = TFModelEncode(model).fit_transform(nvt.Dataset(ecommerce_data.dataframe))
+    data = model.batch_predict(nvt.Dataset(ecommerce_data.dataframe))
     ddf = data.to_ddf().compute(scheduler="synchronous")
 
     assert len(list(ddf.columns)) == 25
@@ -34,12 +33,12 @@ def test_two_tower_embedding_extraction(ecommerce_data: SyntheticData):
     dataset = ecommerce_data.tf_dataloader(batch_size=50)
     model.fit(dataset, epochs=1)
 
-    item_embs = ItemEmbeddings(model, dim=128).fit_transform(nvt.Dataset(ecommerce_data.dataframe))
+    item_embs = model.item_embeddings(nvt.Dataset(ecommerce_data.dataframe), dim=128)
     item_embs_ddf = item_embs.to_ddf().compute(scheduler="synchronous")
 
     assert len(list(item_embs_ddf.columns)) == 23 + 128
 
-    user_embs = UserEmbeddings(model, dim=128).fit_transform(nvt.Dataset(ecommerce_data.dataframe))
+    user_embs = model.query_embeddings(nvt.Dataset(ecommerce_data.dataframe), dim=128)
     user_embs_ddf = user_embs.to_ddf().compute(scheduler="synchronous")
 
     assert len(list(user_embs_ddf.columns)) == 23 + 128
