@@ -20,7 +20,7 @@ from tensorflow.keras.losses import CategoricalCrossentropy, SparseCategoricalCr
 from .loss_base import LossRegistryMixin
 
 
-@LossRegistryMixin.registry.register("sparse_categ_crossentropy")
+@LossRegistryMixin.registry.register_with_multiple_names("sparse_categorical_crossentropy", "sce")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class SparseCategoricalCrossEntropy(SparseCategoricalCrossentropy, LossRegistryMixin):
     """Extends `tf.keras.losses.SparseCategoricalCrossentropy` by making
@@ -35,7 +35,7 @@ class SparseCategoricalCrossEntropy(SparseCategoricalCrossentropy, LossRegistryM
         super().__init__(from_logits=from_logits, **kwargs)
 
 
-@LossRegistryMixin.registry.register("categ_crossentropy")
+@LossRegistryMixin.registry.register_with_multiple_names("categorical_crossentropy", "ce")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class CategoricalCrossEntropy(CategoricalCrossentropy, LossRegistryMixin):
     """Extends `tf.keras.losses.SparseCategoricalCrossentropy` by making

@@ -41,8 +41,8 @@ import merlin_models.tf as ml
         "adaptive_hinge",
         ml.losses.AdaptiveHingeLoss(),
         # Listwise losses
-        "sparse_categ_crossentropy",
-        "categ_crossentropy",
+        "sparse_categorical_crossentropy",
+        "categorical_crossentropy",
         # Pointwise losses
         "mse",
         "binary_crossentropy",
@@ -56,7 +56,7 @@ def test_losses(loss):
     negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
     targets = tf.concat([positives, negatives], axis=1)
 
-    if loss == "sparse_categ_crossentropy":
+    if loss == "sparse_categorical_crossentropy":
         targets = tf.argmax(targets, axis=1)
 
     loss = ml.losses.loss_registry.parse(loss)

@@ -25,8 +25,12 @@ LossType = Union[str, tf.keras.losses.Loss]
 loss_registry: Registry = Registry.class_registry("tf.losses")
 
 # Registering keras pointwise losses
-loss_registry.register("mse")(tf.keras.losses.MeanSquaredError)
-loss_registry.register("binary_crossentropy")(tf.keras.losses.BinaryCrossentropy)
+loss_registry.register_with_multiple_names("mean_squared_error", "mse")(
+    tf.keras.losses.MeanSquaredError
+)
+loss_registry.register_with_multiple_names("binary_crossentropy", "bce")(
+    tf.keras.losses.BinaryCrossentropy
+)
 
 
 class LossRegistryMixin(RegistryMixin["LossRegistryMixin"]):
