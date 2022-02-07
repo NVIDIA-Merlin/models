@@ -337,7 +337,7 @@ class ItemRetrievalScorer(Block):
 
 
 def ItemRetrievalTask(
-    loss: Optional[LossType] = "categ_crossentropy",
+    loss: Optional[LossType] = "categorical_crossentropy",
     samplers: Sequence[ItemSampler] = (),
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
@@ -354,7 +354,7 @@ def ItemRetrievalTask(
     ----------
         loss: Optional[LossType]
             Loss function.
-            Defaults to `categ_crossentropy`.
+            Defaults to `categorical_crossentropy`.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
         metrics: Sequence[MetricOrMetricClass]
@@ -526,7 +526,7 @@ def ItemsPredictionSampled(
 
 def NextItemPredictionTask(
     schema: Schema,
-    loss: Optional[LossType] = "sparse_categ_crossentropy",
+    loss: Optional[LossType] = "sparse_categorical_crossentropy",
     metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=True),
     weight_tying: bool = True,
     masking: bool = True,
@@ -548,7 +548,7 @@ def NextItemPredictionTask(
             The schema object including features to use and their properties.
         loss: Optional[LossType]
             Loss function.
-            Defaults to `sparse_categ_crossentropy`.
+            Defaults to `sparse_categorical_crossentropy`.
         metrics: Sequence[MetricOrMetricClass]
             List of top-k ranking metrics.
             Defaults to ranking_metrics(top_ks=[10, 20], labels_onehot=True).
@@ -632,7 +632,7 @@ def YoutubeDNNRetrieval(
     aggregation: str = "concat",
     top_layer: Optional[Block] = MLPBlock([64]),
     num_sampled: int = 100,
-    loss: Optional[LossType] = "categ_crossentropy",
+    loss: Optional[LossType] = "categorical_crossentropy",
     metrics=ranking_metrics(top_ks=[10, 20]),
     normalize: bool = True,
     extra_pre_call: Optional[Block] = None,
