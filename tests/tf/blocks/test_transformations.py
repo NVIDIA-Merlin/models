@@ -41,7 +41,7 @@ def test_stochastic_swap_noise(replacement_prob):
     tf.random.set_seed(0)
     ssn = ml.StochasticSwapNoise(pad_token=PAD_TOKEN, replacement_prob=replacement_prob)
     mask = seq_inputs["categ_seq_feat"] != PAD_TOKEN
-    out_features_ssn = ssn(seq_inputs, input_mask=mask)
+    out_features_ssn = ssn(seq_inputs, input_mask=mask, training=True)
 
     for fname in seq_inputs:
         replaced_mask = out_features_ssn[fname] != seq_inputs[fname]
@@ -101,7 +101,7 @@ def test_stochastic_swap_noise_raise_exception_not_2d_item_id():
     ssn = ml.StochasticSwapNoise(pad_token=PAD_TOKEN, replacement_prob=0.3, schema=s)
 
     with pytest.raises(ValueError) as excinfo:
-        ssn(seq_inputs)
+        ssn(seq_inputs, training=True)
     assert "To extract the padding mask from item id tensor it is expected to have 2 dims" in str(
         excinfo.value
     )

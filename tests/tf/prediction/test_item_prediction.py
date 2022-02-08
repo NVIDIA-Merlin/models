@@ -219,7 +219,7 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     for batch_step in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
-        _, output = model.loss_block.pre.call_targets(output, targets={})
+        _, output = model.loss_block.pre.call_targets(output, targets={}, training=True)
         expected_num_samples_inbatch = batch_size
         expected_num_samples_cached = min(
             batch_size * (batch_step - 1 if ignore_last_batch_on_sample else batch_step),
