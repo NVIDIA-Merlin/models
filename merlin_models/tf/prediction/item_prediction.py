@@ -148,8 +148,8 @@ class ItemRetrievalScorer(Block):
         self.false_negatives_score = sampling_downscore_false_negatives_value
 
         self.samplers = samplers
-        if not isinstance(self.samplers, list):
-            self.samplers = [self.samplers]
+        if not isinstance(self.samplers, (list, tuple)):
+            self.samplers = (self.samplers,)
 
         self.set_required_features()
 
@@ -339,7 +339,7 @@ def ItemRetrievalTask(
     loss=tf.keras.losses.CategoricalCrossentropy(
         from_logits=True, reduction=tf.keras.losses.Reduction.SUM
     ),
-    samplers: Sequence[ItemSampler] = [InBatchSampler()],
+    samplers: Sequence[ItemSampler] = (),
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
@@ -384,6 +384,9 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
+
+    if samplers is None or len(samplers) == 0:
+        samplers = (InBatchSampler(),)
 
     prediction_call = ItemRetrievalScorer(
         samplers=samplers,
