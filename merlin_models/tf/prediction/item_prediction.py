@@ -339,7 +339,7 @@ def ItemRetrievalTask(
     loss=tf.keras.losses.CategoricalCrossentropy(
         from_logits=True, reduction=tf.keras.losses.Reduction.SUM
     ),
-    samplers: Sequence[ItemSampler] = (),
+    samplers: Sequence[ItemSampler] = [InBatchSampler()],
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
@@ -384,9 +384,6 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
-
-    if samplers is None or len(samplers) == 0:
-        samplers = (InBatchSampler,)
 
     prediction_call = ItemRetrievalScorer(
         samplers=samplers,
