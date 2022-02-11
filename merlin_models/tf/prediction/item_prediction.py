@@ -149,8 +149,8 @@ class ItemRetrievalScorer(Block):
         self.false_negatives_score = sampling_downscore_false_negatives_value
 
         self.samplers = samplers
-        if not isinstance(self.samplers, list):
-            self.samplers = [self.samplers]
+        if not isinstance(self.samplers, (list, tuple)):
+            self.samplers = (self.samplers,)
 
         self.set_required_features()
 
@@ -385,7 +385,7 @@ def ItemRetrievalTask(
     """
 
     if samplers is None or len(samplers) == 0:
-        samplers = (InBatchSampler,)
+        samplers = (InBatchSampler(),)
 
     prediction_call = ItemRetrievalScorer(
         samplers=samplers,
