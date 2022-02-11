@@ -23,12 +23,15 @@ tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin_models.tf")
 
 
-@pytest.mark.parametrize("mask_block", [ml.CausalLanguageModeling(), ml.MaskedLanguageModeling()])
+@pytest.mark.parametrize("mask_block", [ml.CausalLanguageModeling, ml.MaskedLanguageModeling])
 def test_masking_block(sequence_testing_data: SyntheticData, mask_block):
 
     schema_list = sequence_testing_data.schema.select_by_tag(Tag.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
-    model = embedding_block.connect(mask_block, context=ml.BlockContext())
+    item_id_feature_name = schema_list.get_item_id_feature_name()
+    model = embedding_block.connect(
+        mask_block(item_id_feature_name=item_id_feature_name), context=ml.BlockContext()
+    )
 
     batch = sequence_testing_data.tf_tensor_dict
     masked_input = model(batch)
@@ -47,30 +50,33 @@ def test_masking_schema_error(sequence_testing_data: SyntheticData):
 
 
 # Test only last item is masked when eval_on_last_item_seq_only
-@pytest.mark.parametrize("mask_block", [ml.CausalLanguageModeling(), ml.MaskedLanguageModeling()])
+@pytest.mark.parametrize("mask_block", [ml.CausalLanguageModeling, ml.MaskedLanguageModeling])
 def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
     schema_list = sequence_testing_data.schema.select_by_tag(Tag.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
-    model = embedding_block.connect(mask_block, context=ml.BlockContext())
+    item_id_feature_name = schema_list.get_item_id_feature_name()
+    model = embedding_block.connect(
+        mask_block(item_id_feature_name=item_id_feature_name), context=ml.BlockContext()
+    )
 
     batch = sequence_testing_data.tf_tensor_dict
     _ = model(batch, training=False)
 
     # Get last non-padded label from input
-    non_padded_mask = batch["item_id"] != 0
-    rows_ids = tf.range(batch["item_id"].shape[0], dtype=tf.int64)
+    non_padded_mask = batch[item_id_feature_name] != 0
+    rows_ids = tf.range(batch[item_id_feature_name].shape[0], dtype=tf.int64)
     last_item_sessions = tf.reduce_sum(tf.cast(non_padded_mask, tf.int64), axis=1) - 1
     indices = tf.concat(
         [tf.expand_dims(rows_ids, 1), tf.expand_dims(last_item_sessions, 1)], axis=1
     )
-    last_labels = tf.gather_nd(batch["item_id"], indices).numpy()
+    last_labels = tf.gather_nd(batch[item_id_feature_name], indices).numpy()
     # get the mask schema from the model
     trgt_mask = model.context.get_mask()
 
     # check that only one item is masked for each session
-    assert tf.reduce_sum(tf.cast(trgt_mask, tf.int32)).numpy() == batch["item_id"].shape[0]
+    assert tf.reduce_sum(tf.cast(trgt_mask, tf.int32)).numpy() == batch["item_id_seq"].shape[0]
     # check only the last non-paded item is masked
-    out_targets = tf.boolean_mask(batch["item_id"], trgt_mask).numpy()
+    out_targets = tf.boolean_mask(batch["item_id_seq"], trgt_mask).numpy()
     assert all(last_labels == out_targets)
 
 
@@ -78,7 +84,8 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
 def test_at_least_one_masked_item_mlm(sequence_testing_data):
     schema_list = sequence_testing_data.schema.select_by_tag(Tag.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
-    mask_block = ml.MaskedLanguageModeling()
+    item_id_feature_name = schema_list.get_item_id_feature_name()
+    mask_block = ml.MaskedLanguageModeling(item_id_feature_name=item_id_feature_name)
     model = embedding_block.connect(mask_block, context=ml.BlockContext())
 
     batch = sequence_testing_data.tf_tensor_dict
@@ -92,12 +99,13 @@ def test_at_least_one_masked_item_mlm(sequence_testing_data):
 def test_not_all_masked_lm(sequence_testing_data):
     schema_list = sequence_testing_data.schema.select_by_tag(Tag.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
-    mask_block = ml.MaskedLanguageModeling()
+    item_id_feature_name = schema_list.get_item_id_feature_name()
+    mask_block = ml.MaskedLanguageModeling(item_id_feature_name=item_id_feature_name)
     model = embedding_block.connect(mask_block, context=ml.BlockContext())
 
     batch = sequence_testing_data.tf_tensor_dict
     _ = model(batch, training=True)
 
     trgt_mask = tf.cast(model.context.get_mask(), tf.int32)
-    non_padded_mask = batch["item_id"] != 0
+    non_padded_mask = batch[item_id_feature_name] != 0
     assert all(trgt_mask.numpy().sum(axis=1) != non_padded_mask.numpy().sum(axis=1))

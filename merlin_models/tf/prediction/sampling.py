@@ -343,13 +343,26 @@ class CachedUniformSampler(CachedCrossBatchSampler):
         Whether should include the last batch in the sampling. By default `False`,
         as for sampling from the current batch we recommend `InBatchSampler()`, which
         allows computing gradients for in-batch negative items
+    item_id_feature_name: str
+        Name of the column containing the item ids
+        Defaults to `item_id`
     """
 
-    item_id_feature_name = str(Tag.ITEM_ID)
+    def __init__(
+        self,
+        capacity: int,
+        ignore_last_batch_on_sample: bool = True,
+        item_id_feature_name: str = str(Tag.ITEM_ID),
+        **kwargs,
+    ):
+        super().__init__(
+            capacity=capacity, ignore_last_batch_on_sample=ignore_last_batch_on_sample, **kwargs
+        )
+        self.item_id_feature_name = item_id_feature_name
 
     def _check_inputs(self, inputs):
         assert (
-            str(Tag.ITEM_ID) in inputs["metadata"]
+            str(self.item_id_feature_name) in inputs["metadata"]
         ), "The 'item_id' metadata feature is required by UniformSampler."
 
     def add(
@@ -500,7 +513,9 @@ class PopularityBasedSampler(ItemSampler):
     seed: int
         Fix the random values returned by the sampler to ensure reproducibility
         Defaults to None
-
+    item_id_feature_name: str
+        Name of the column containing the item ids
+        Defaults to `item_id`
     """
 
     def __init__(
@@ -509,12 +524,14 @@ class PopularityBasedSampler(ItemSampler):
         min_id: int = 0,
         max_num_samples: int = 100,
         seed: int = None,
+        item_id_feature_name: str = str(Tag.ITEM_ID),
         **kwargs,
     ):
         super().__init__(max_num_samples=max_num_samples, **kwargs)
         self.max_id = max_id
         self.min_id = min_id
         self.seed = seed
+        self.item_id_feature_name = item_id_feature_name
 
         assert (
             self.max_num_samples <= self.max_id
@@ -523,7 +540,7 @@ class PopularityBasedSampler(ItemSampler):
 
     def _check_inputs(self, inputs):
         assert (
-            str(Tag.ITEM_ID) in inputs["metadata"]
+            self.item_id_feature_name in inputs["metadata"]
         ), "The 'item_id' metadata feature is required by PopularityBasedSampler."
 
     def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=True):
@@ -546,8 +563,8 @@ class PopularityBasedSampler(ItemSampler):
         items_embeddings = self.sample(item_weights)
         return items_embeddings
 
-    def _required_features():
-        return [str(Tag.ITEM_ID)]
+    def _required_features(self):
+        return [self.item_id_feature_name]
 
     def sample(self, item_weights) -> EmbeddingWithMetadata:
         sampled_ids, _, _ = tf.random.log_uniform_candidate_sampler(
@@ -566,5 +583,5 @@ class PopularityBasedSampler(ItemSampler):
 
         return EmbeddingWithMetadata(
             items_embeddings,
-            metadata={str(Tag.ITEM_ID): tf.cast(sampled_ids, tf.int32)},
+            metadata={self.item_id_feature_name: tf.cast(sampled_ids, tf.int32)},
         )

@@ -99,7 +99,6 @@ def InputBlock(
             aggregate the sparse features tensor along the sequence axis.
             Defaults to SequenceAggregator('mean')
     """
-
     branches = branches or {}
 
     if split_sparse:
@@ -131,8 +130,9 @@ def InputBlock(
             split_sparse=False,
         )
         if masking:
+            item_id_feature_name = schema.get_item_id_feature_name()
             if isinstance(masking, str):
-                masking = masking_registry.parse(masking)()
+                masking = masking_registry.parse(masking)(item_id_feature_name=item_id_feature_name)
             sparse_interactions = sparse_interactions.connect(masking)
 
         if not seq:

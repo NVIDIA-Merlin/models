@@ -84,7 +84,8 @@ class ItemsPrediction(CategFeaturePrediction):
         schema: Schema,
         **kwargs,
     ):
-        super(ItemsPrediction, self).__init__(schema, feature_name=Tag.ITEM_ID, **kwargs)
+        item_id_feature_name = schema.get_item_id_feature_name()
+        super(ItemsPrediction, self).__init__(schema, feature_name=item_id_feature_name, **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -92,7 +93,8 @@ class ItemsPredictionWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
-        self.num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
+        self.item_id_feature_name = schema.get_item_id_feature_name()
+        self.num_classes = schema.categorical_cardinalities()[self.item_id_feature_name]
 
     def build(self, input_shape):
         self.bias = self.add_weight(
@@ -103,7 +105,7 @@ class ItemsPredictionWeightTying(Block):
         return super().build(input_shape)
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+        embedding_table = self.context.get_embedding(self.item_id_feature_name)
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
@@ -134,6 +136,9 @@ class ItemRetrievalScorer(Block):
     sampling_downscore_false_negatives_value : int, optional
         Value to be used to downscore false negatives when
         `sampling_downscore_false_negatives=True`, by default `np.finfo(np.float32).min / 100.0`
+    item_id_feature_name: str
+        Name of the column containing the item ids
+        Defaults to `item_id`
     """
 
     def __init__(
@@ -141,13 +146,14 @@ class ItemRetrievalScorer(Block):
         samplers: Sequence[ItemSampler] = (),
         sampling_downscore_false_negatives=True,
         sampling_downscore_false_negatives_value: int = MIN_FLOAT,
+        item_id_feature_name: str = str(Tag.ITEM_ID),
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.downscore_false_negatives = sampling_downscore_false_negatives
         self.false_negatives_score = sampling_downscore_false_negatives_value
-
+        self.item_id_feature_name = item_id_feature_name
         self.samplers = samplers
         if not isinstance(self.samplers, (list, tuple)):
             self.samplers = (self.samplers,)
@@ -157,7 +163,7 @@ class ItemRetrievalScorer(Block):
     def set_required_features(self):
         required_features = set()
         if self.downscore_false_negatives:
-            required_features.add(str(Tag.ITEM_ID))
+            required_features.add(self.item_id_feature_name)
 
         required_features.update(
             [feature for sampler in self.samplers for feature in sampler.required_features]
@@ -191,7 +197,7 @@ class ItemRetrievalScorer(Block):
         self, inputs: Union[tf.Tensor, TabularData], training: bool = True, **kwargs
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs["query"]), uses dot product to score
-            the positive item (inputs["item"] or  self.context.get_embedding(Tag.ITEM_ID))
+            the positive item (inputs["item"] or  self.context.get_embedding(self.item_column))
         Parameters
         ----------
         inputs : Union[tf.Tensor, TabularData]
@@ -210,7 +216,7 @@ class ItemRetrievalScorer(Block):
             return inputs
 
         if isinstance(inputs, tf.Tensor):
-            embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+            embedding_table = self.context.get_embedding(self.item_id_feature_name)
             all_scores = tf.matmul(inputs, tf.transpose(embedding_table))
             return all_scores
 
@@ -251,7 +257,7 @@ class ItemRetrievalScorer(Block):
             if isinstance(predictions, dict):
                 batch_items_embeddings = predictions["item"]
             else:
-                embedding_table = self.context.get_embedding(Tag.ITEM_ID)
+                embedding_table = self.context.get_embedding(self.item_id_feature_name)
                 batch_items_embeddings = embedding_ops.embedding_lookup(embedding_table, targets)
                 predictions = {"query": predictions, "item": batch_items_embeddings}
             batch_items_metadata = self.get_batch_items_metadata()
@@ -275,7 +281,7 @@ class ItemRetrievalScorer(Block):
                     # Accumulates sampled negative items from all samplers
                     neg_items_embeddings_list.append(neg_items.embeddings)
                     if self.downscore_false_negatives:
-                        neg_items_ids_list.append(neg_items.metadata[str(Tag.ITEM_ID)])
+                        neg_items_ids_list.append(neg_items.metadata[self.item_id_feature_name])
                 else:
                     LOG.warn(
                         f"The sampler {type(sampler).__name__} returned no samples for this batch."
@@ -296,7 +302,7 @@ class ItemRetrievalScorer(Block):
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:
-                    positive_item_ids = self.context[Tag.ITEM_ID]
+                    positive_item_ids = self.context[self.item_id_feature_name]
 
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]
@@ -346,6 +352,7 @@ def ItemRetrievalTask(
     task_block: Optional[Layer] = None,
     softmax_temperature: float = 1,
     normalize: bool = True,
+    item_id_feature_name: str = str(Tag.ITEM_ID),
 ) -> MultiClassClassificationTask:
     """
     Function to create the ItemRetrieval task with the right parameters.
@@ -377,6 +384,9 @@ def ItemRetrievalTask(
         normalize: bool
             Apply L2 normalization before computing dot interactions.
             Defaults to True.
+        item_id_feature_name: str
+            Name of the column containing the item ids
+            Defaults to `item_id`
 
     Returns
     -------
@@ -388,7 +398,7 @@ def ItemRetrievalTask(
         samplers = (InBatchSampler(),)
 
     prediction_call = ItemRetrievalScorer(
-        samplers=samplers,
+        samplers=samplers, item_id_feature_name=item_id_feature_name
     )
 
     if normalize:
@@ -459,20 +469,24 @@ class MaskingHead(Block):
         padding_idx: int
             The padding index value.
             Defaults to 0.
+        item_id_feature_name: str
+            Name of the column containing the item ids
+            Defaults to `item_id`
     Returns
     -------
         targets: tf.Tensor
             Tensor of masked labels.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, item_id_feature_name: str = str(Tag.ITEM_ID), **kwargs):
         super().__init__(**kwargs)
         self.padding_idx = 0
+        self.item_id_feature_name = item_id_feature_name
 
     def call_targets(
         self, predictions: tf.Tensor, targets: tf.Tensor, training: bool = True, **kwargs
     ) -> tf.Tensor:
-        targets = self.context[Tag.ITEM_ID]
+        targets = self.context[self.item_id_feature_name]
         mask = self.context.get_mask()
         targets = tf.where(mask, targets, self.padding_idx)
         return targets
@@ -511,14 +525,19 @@ def ItemsPredictionSampled(
             and sampled negatives of shape (bs, num_sampled+1), as well as the related logits.
             During evaluation, returns the input tensor of true class, and the related logits.
     """
-
-    num_classes = schema.categorical_cardinalities()[str(Tag.ITEM_ID)]
+    item_id_feature_name = schema.get_item_id_feature_name()
+    num_classes = schema.categorical_cardinalities()[item_id_feature_name]
     samplers = PopularityBasedSampler(
-        max_num_samples=num_sampled, max_id=num_classes, min_id=min_id
+        max_num_samples=num_sampled,
+        max_id=num_classes,
+        min_id=min_id,
+        item_id_feature_name=item_id_feature_name,
     )
 
     logits = ItemRetrievalScorer(
-        samplers=samplers, sampling_downscore_false_negatives=ignore_false_negatives
+        samplers=samplers,
+        sampling_downscore_false_negatives=ignore_false_negatives,
+        item_id_feature_name=item_id_feature_name,
     )
 
     return logits
@@ -594,6 +613,8 @@ def NextItemPredictionTask(
         PredictionTask
             The next item prediction task
     """
+    item_id_feature_name = schema.get_item_id_feature_name()
+
     if sampled_softmax:
         prediction_call = ItemsPredictionSampled(
             schema, num_sampled=num_sampled, min_id=min_sampled_id
@@ -609,7 +630,9 @@ def NextItemPredictionTask(
         prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
 
     if masking:
-        prediction_call = MaskingHead().connect(RemovePad3D(), prediction_call)
+        prediction_call = MaskingHead(item_id_feature_name=item_id_feature_name).connect(
+            RemovePad3D(), prediction_call
+        )
 
     if normalize:
         prediction_call = L2Norm().connect(prediction_call)
