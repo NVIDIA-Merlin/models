@@ -130,9 +130,8 @@ def InputBlock(
             split_sparse=False,
         )
         if masking:
-            item_id_feature_name = schema.get_item_id_feature_name()
             if isinstance(masking, str):
-                masking = masking_registry.parse(masking)(item_id_feature_name=item_id_feature_name)
+                masking = masking_registry.parse(masking)()
             sparse_interactions = sparse_interactions.connect(masking)
 
         if not seq:

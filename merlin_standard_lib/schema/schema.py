@@ -19,7 +19,7 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 from ..utils import proto_utils
-from .tag import Tag, TagsType
+from .tag import TagsType
 
 try:
     from functools import cached_property  # type: ignore
@@ -526,12 +526,3 @@ class Schema(_Schema):
                 result.column_schemas.pop(key, None)
 
         return result
-
-    def get_names_from_tag(self, tag):
-        return self.select_by_tag(tag).column_names
-
-    def get_item_id_feature_name(self):
-        item_column = self.get_names_from_tag(Tag.ITEM_ID)
-        assert len(item_column) == 1, "Please provide a unique column related to `item_id` tag "
-        f"A number of {len(item_column)} columns is provided"
-        return str(item_column[0])
