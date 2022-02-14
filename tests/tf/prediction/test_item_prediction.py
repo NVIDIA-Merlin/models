@@ -210,7 +210,9 @@ def test_retrieval_task_inbatch_cached_samplers(
     samplers = [inbatch_sampler, cached_batches_sampler]
 
     model = two_tower.connect(
-        ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers, loss="bpr")
+        ml.ItemRetrievalTask(
+            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr"
+        )
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -252,7 +254,9 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     ]
 
     model = two_tower.connect(
-        ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers, loss="bpr")
+        ml.ItemRetrievalTask(
+            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr"
+        )
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -333,7 +337,9 @@ def test_retrieval_task_inbatch_default_sampler(
     batch_size = music_streaming_data.tf_tensor_dict["item_id"].shape[0]
     assert batch_size == 100
 
-    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, loss="bpr"))
+    model = two_tower.connect(
+        ml.ItemRetrievalTask(music_streaming_data.schema, softmax_temperature=2, loss="bpr")
+    )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 

@@ -84,8 +84,7 @@ class ItemsPrediction(CategFeaturePrediction):
         schema: Schema,
         **kwargs,
     ):
-        item_id_feature_name = schema.get_item_id_feature_name()
-        super(ItemsPrediction, self).__init__(schema, feature_name=item_id_feature_name, **kwargs)
+        super(ItemsPrediction, self).__init__(schema, **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -93,7 +92,7 @@ class ItemsPredictionWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
-        self.item_id_feature_name = schema.get_item_id_feature_name()
+        self.item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
         self.num_classes = schema.categorical_cardinalities()[self.item_id_feature_name]
 
     def build(self, input_shape):
@@ -146,7 +145,7 @@ class ItemRetrievalScorer(Block):
         samplers: Sequence[ItemSampler] = (),
         sampling_downscore_false_negatives=True,
         sampling_downscore_false_negatives_value: int = MIN_FLOAT,
-        item_id_feature_name: str = str(Tag.ITEM_ID),
+        item_id_feature_name: str = "item_id",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -343,6 +342,7 @@ class ItemRetrievalScorer(Block):
 
 
 def ItemRetrievalTask(
+    schema: Schema,
     loss: Optional[LossType] = "categorical_crossentropy",
     samplers: Sequence[ItemSampler] = (),
     metrics=ranking_metrics(top_ks=[10, 20]),
@@ -352,13 +352,14 @@ def ItemRetrievalTask(
     task_block: Optional[Layer] = None,
     softmax_temperature: float = 1,
     normalize: bool = True,
-    item_id_feature_name: str = str(Tag.ITEM_ID),
 ) -> MultiClassClassificationTask:
     """
     Function to create the ItemRetrieval task with the right parameters.
 
     Parameters
     ----------
+        schema: Schema
+            The schema object including features to use and their properties.
         loss: Optional[LossType]
             Loss function.
             Defaults to `categorical_crossentropy`.
@@ -384,16 +385,13 @@ def ItemRetrievalTask(
         normalize: bool
             Apply L2 normalization before computing dot interactions.
             Defaults to True.
-        item_id_feature_name: str
-            Name of the column containing the item ids
-            Defaults to `item_id`
 
     Returns
     -------
         PredictionTask
             The item retrieval prediction task
     """
-
+    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
     if samplers is None or len(samplers) == 0:
         samplers = (InBatchSampler(),)
 
@@ -478,7 +476,7 @@ class MaskingHead(Block):
             Tensor of masked labels.
     """
 
-    def __init__(self, item_id_feature_name: str = str(Tag.ITEM_ID), **kwargs):
+    def __init__(self, item_id_feature_name: str = "item_id", **kwargs):
         super().__init__(**kwargs)
         self.padding_idx = 0
         self.item_id_feature_name = item_id_feature_name
@@ -525,7 +523,7 @@ def ItemsPredictionSampled(
             and sampled negatives of shape (bs, num_sampled+1), as well as the related logits.
             During evaluation, returns the input tensor of true class, and the related logits.
     """
-    item_id_feature_name = schema.get_item_id_feature_name()
+    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
     num_classes = schema.categorical_cardinalities()[item_id_feature_name]
     samplers = PopularityBasedSampler(
         max_num_samples=num_sampled,
@@ -613,7 +611,7 @@ def NextItemPredictionTask(
         PredictionTask
             The next item prediction task
     """
-    item_id_feature_name = schema.get_item_id_feature_name()
+    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
 
     if sampled_softmax:
         prediction_call = ItemsPredictionSampled(

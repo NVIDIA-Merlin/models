@@ -21,7 +21,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.ops import embedding_ops
 
-from ..core import EmbeddingWithMetadata, Tag
+from ..core import EmbeddingWithMetadata
 from ..layers.queue import FIFOQueue
 from ..typing import TabularData
 
@@ -352,7 +352,7 @@ class CachedUniformSampler(CachedCrossBatchSampler):
         self,
         capacity: int,
         ignore_last_batch_on_sample: bool = True,
-        item_id_feature_name: str = str(Tag.ITEM_ID),
+        item_id_feature_name: str = "item_id",
         **kwargs,
     ):
         super().__init__(
@@ -524,7 +524,7 @@ class PopularityBasedSampler(ItemSampler):
         min_id: int = 0,
         max_num_samples: int = 100,
         seed: int = None,
-        item_id_feature_name: str = str(Tag.ITEM_ID),
+        item_id_feature_name: str = "item_id",
         **kwargs,
     ):
         super().__init__(max_num_samples=max_num_samples, **kwargs)

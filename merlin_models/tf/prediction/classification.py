@@ -93,7 +93,7 @@ class CategFeaturePrediction(Block):
     def __init__(
         self,
         schema: Schema,
-        feature_name: str = Tag.ITEM_ID,
+        feature_name: str = None,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
         activation=None,
@@ -102,8 +102,8 @@ class CategFeaturePrediction(Block):
         super(CategFeaturePrediction, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.kernel_initializer = kernel_initializer
-        self.num_classes = schema.categorical_cardinalities()[feature_name]
-        self.feature_name = feature_name
+        self.feature_name = feature_name or schema.select_by_tag(Tag.ITEM_ID).column_names[0]
+        self.num_classes = schema.categorical_cardinalities()[self.feature_name]
         self.activation = activation
 
     def build(self, input_shape):
