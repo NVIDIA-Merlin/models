@@ -99,7 +99,6 @@ def InputBlock(
             aggregate the sparse features tensor along the sequence axis.
             Defaults to SequenceAggregator('mean')
     """
-
     branches = branches or {}
 
     if split_sparse:
