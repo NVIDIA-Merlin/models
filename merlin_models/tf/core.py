@@ -1865,9 +1865,9 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
     Parameters
     ----------
-    prediction_tasks : List[Task]
+    prediction_tasks: *PredictionTask
         List of tasks to be used for prediction.
-    task_blocks : Optional[Union[Layer, Dict[str, Layer]]]
+    task_blocks: Optional[Union[Layer, Dict[str, Layer]]]
         Task blocks to be used for prediction.
     task_weights : Optional[List[float]]
         Weights for each task.
@@ -2245,9 +2245,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         metrics["total_loss"] = total_loss
 
         return metrics
-
-    def reset_metrics(self):
-        return self.loss_block.reset_metrics()
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
