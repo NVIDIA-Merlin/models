@@ -1655,6 +1655,23 @@ class EmbeddingWithMetadata:
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
+    """Base-class for prediction tasks.
+
+    Parameters
+    ----------
+    metrics:
+        List of Keras metrics to be evaluated.
+    prediction_metrics:
+        List of Keras metrics used to summarize the predictions.
+    label_metrics:
+        List of Keras metrics used to summarize the labels.
+    loss_metrics:
+        List of Keras metrics used to summarize the loss.
+    name:
+        Optional task name.
+
+    """
+
     def __init__(
         self,
         target_name: Optional[str] = None,
@@ -1668,22 +1685,6 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         name: Optional[Text] = None,
         **kwargs,
     ) -> None:
-        """Initializes the task.
-
-        Parameters
-        ----------
-        metrics:
-            List of Keras metrics to be evaluated.
-        prediction_metrics:
-            List of Keras metrics used to summarize the predictions.
-        label_metrics:
-            List of Keras metrics used to summarize the labels.
-        loss_metrics:
-            List of Keras metrics used to summarize the loss.
-        name:
-            Optional task name.
-        """
-
         super().__init__(name=name, **kwargs)
         self.target_name = target_name
         self.task_block = task_block
@@ -1860,6 +1861,23 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
+    """Multi-task prediction block.
+
+    Parameters
+    ----------
+    prediction_tasks : List[Task]
+        List of tasks to be used for prediction.
+    task_blocks : Optional[Union[Layer, Dict[str, Layer]]]
+        Task blocks to be used for prediction.
+    task_weights : Optional[List[float]]
+        Weights for each task.
+    bias_block : Optional[Layer]
+        Bias block to be used for prediction.
+    loss_reduction : Callable
+        Reduction function for loss.
+
+    """
+
     def __init__(
         self,
         *prediction_tasks: PredictionTask,
@@ -2227,6 +2245,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         metrics["total_loss"] = total_loss
 
         return metrics
+
+    def reset_metrics(self):
+        return self.loss_block.reset_metrics()
 
     @classmethod
     def from_config(cls, config, custom_objects=None):

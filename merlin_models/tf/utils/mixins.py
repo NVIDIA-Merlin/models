@@ -120,3 +120,6 @@ class ModelLikeBlock(Protocol):
 
     def _set_context(self, context):
         ...
+
+    def reset_metrics(self):
+        ...
