@@ -1,10 +1,10 @@
 {
   "feature": [
     {
-      "name": "user_id",
+      "name": "test_user_id",
       "type": "INT",
       "intDomain": {
-        "name": "user_id",
+        "name": "test_user_id",
         "min": "1",
         "max": "1797",
         "isCategorical": true
@@ -120,14 +120,14 @@
       }
     },
     {
-      "name": "item_id",
+      "name": "item_id_seq",
       "type": "INT",
       "valueCount": {
         "min": "1",
         "max": "4"
       },
       "intDomain": {
-        "name": "item_id",
+        "name": "item_id_seq",
         "min": "1",
         "max": "51996",
         "isCategorical": true
