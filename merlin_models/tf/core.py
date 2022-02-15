@@ -49,6 +49,7 @@ class BlockContext(Layer):
     """BlockContext is part of each block.
 
     It is used to store/retrieve public variables, and can be used to retrieve features.
+    This is created automatically in the model and doesn't need to be created manually.
 
     """
 
@@ -158,6 +159,8 @@ class ContextMixin:
 
 
 class Block(SchemaMixin, ContextMixin, Layer):
+    """Core abstraction in Merlin models."""
+
     registry = block_registry
 
     def __init__(self, context: Optional[BlockContext] = None, **kwargs):
@@ -215,6 +218,13 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return SequentialBlock([self, AsTabular(name)], copy_layers=False)
 
     def repeat(self, num: int = 1) -> "SequentialBlock":
+        """Repeat the block num times.
+
+        Parameters
+        ----------
+        num : int
+            Number of times to repeat the block.
+        """
         repeated = []
         for _ in range(num):
             repeated.append(self.copy())
@@ -223,10 +233,22 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
     def prepare(
         self,
-        block=None,
+        block: Optional[BlockType] = None,
         post: Optional[BlockType] = None,
         aggregation: Optional["TabularAggregationType"] = None,
     ) -> "SequentialBlock":
+        """Transform the inputs of this block.
+
+        Parameters
+        ----------
+        block: Optional[Block]
+            If set, this block will be used to transform the inputs of this block.
+        post: Block
+            Block to use as post-transformation.
+        aggregation: TabularAggregationType
+            Aggregation to apply to the inputs.
+
+        """
         block = TabularBlock(post=post, aggregation=aggregation) or block
 
         return SequentialBlock([block, self])
@@ -242,6 +264,27 @@ class Block(SchemaMixin, ContextMixin, Layer):
         residual=False,
         **kwargs,
     ) -> "ParallelBlock":
+        """Repeat the block num times in parallel.
+
+        Parameters
+        ----------
+        num: int
+            Number of times to repeat the block.
+        prefix: str
+            Prefix to use for the names of the blocks.
+        names: List[str]
+            Names of the blocks.
+        post: Block
+            Block to use as post-transformation.
+        aggregation: TabularAggregationType
+            Aggregation to apply to the inputs.
+        copies: bool
+            Whether to copy the block or not.
+        residual: bool
+            Whether to use a residual connection or not.
+
+        """
+
         repeated = {}
         iterator = names if names else range(num)
         if not names and prefix:
@@ -260,6 +303,19 @@ class Block(SchemaMixin, ContextMixin, Layer):
         block_name: Optional[str] = None,
         context: Optional[BlockContext] = None,
     ) -> Union["SequentialBlock", "Model"]:
+        """Connect the block to other blocks sequentially.
+
+        Parameters
+        ----------
+        block: Union[tf.keras.layers.Layer, str]
+            Blocks to connect to.
+        block_name: str
+            Name of the block.
+        context: Optional[BlockContext]
+            Context to use for the block.
+
+        """
+
         blocks = [self.parse(b) for b in block]
 
         for b in blocks:
@@ -281,6 +337,17 @@ class Block(SchemaMixin, ContextMixin, Layer):
         block: Union[tf.keras.layers.Layer, str],
         activation=None,
     ) -> "SequentialBlock":
+        """Connect the block to other blocks sequentially with a residual connection.
+
+        Parameters
+        ----------
+        block: Union[tf.keras.layers.Layer, str]
+            Blocks to connect to.
+        activation: str
+            Activation to use for the residual connection.
+
+        """
+
         _block = self.parse(block)
         residual_block = ResidualBlock(_block, activation=activation)
 
@@ -299,6 +366,22 @@ class Block(SchemaMixin, ContextMixin, Layer):
         aggregation: Optional["TabularAggregationType"] = None,
         block_outputs_name: Optional[str] = None,
     ) -> "SequentialBlock":
+        """Connect the block to other blocks sequentially with a shortcut connection.
+
+        Parameters
+        ----------
+        block: Union[tf.keras.layers.Layer, str]
+            Blocks to connect to.
+        shortcut_filter: Filter
+            Filter to use for the shortcut connection.
+        post: Block
+            Block to use as post-transformation.
+        aggregation: TabularAggregationType
+            Aggregation to apply to the outputs.
+        block_outputs_name: str
+            Name of the block outputs.
+        """
+
         _block = self.parse(block)
         residual_block = WithShortcut(
             _block,
@@ -316,10 +399,19 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return SequentialBlock([self, residual_block], copy_layers=False)
 
     def connect_debug_block(self, append=True):
+        """Connect the block to a debug block.
+
+        Parameters
+        ----------
+        append: bool
+            Whether to append the debug block to the block or to prepend it.
+
+        """
+
         if not append:
             return SequentialBlock([Debug(), self])
 
-        return self.apply(Debug())
+        return self.connect(Debug())
 
     def connect_branch(
         self,
@@ -329,6 +421,20 @@ class Block(SchemaMixin, ContextMixin, Layer):
         aggregation: Optional["TabularAggregationType"] = None,
         **kwargs,
     ) -> Union["SequentialBlock", "Model"]:
+        """Connect the block to one or multiple branches.
+
+        Parameters
+        ----------
+        branches: Union[Block, PredictionTask, str]
+            Blocks to connect to.
+        add_rest: bool
+            Whether to add the rest of the block to the branches.
+        post: Block
+            Block to use as post-transformation.
+        aggregation: TabularAggregationType
+            Aggregation to apply to the outputs.
+
+        """
         branches = [self.parse(b) for b in branches]
 
         all_features = []

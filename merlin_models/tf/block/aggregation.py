@@ -34,6 +34,16 @@ from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_ke
 @TabularAggregation.registry.register("concat")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ConcatFeatures(TabularAggregation):
+    """Concatenates tensors along one dimension.
+
+    Parameters
+    ----------
+    axis : int
+        The axis to concatenate along.
+    output_dtype : str
+        The dtype of the output tensor.
+    """
+
     def __init__(self, axis=-1, output_dtype=tf.float32, **kwargs):
         super().__init__(**kwargs)
         self.axis = axis
@@ -67,6 +77,16 @@ class ConcatFeatures(TabularAggregation):
 @TabularAggregation.registry.register("stack")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class StackFeatures(TabularAggregation):
+    """Stacks tensors along one dimension.
+
+    Parameters
+    ----------
+    axis : int
+        The axis to stack along.
+    output_dtype : str
+        The dtype of the output tensor.
+    """
+
     def __init__(self, axis=-1, output_dtype=tf.float32, **kwargs):
         super().__init__(**kwargs)
         self.axis = axis
@@ -116,6 +136,8 @@ class ElementwiseFeatureAggregation(TabularAggregation):
 @TabularAggregation.registry.register("sum")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class Sum(TabularAggregation):
+    """Sum tensors along the first dimension."""
+
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
         summed = tf.reduce_sum(list(inputs.values()), axis=0)
 
