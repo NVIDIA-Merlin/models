@@ -1566,8 +1566,6 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         Parameters
         ----------
-        loss:
-            Loss function. Defaults to BinaryCrossentropy.
         metrics:
             List of Keras metrics to be evaluated.
         prediction_metrics:

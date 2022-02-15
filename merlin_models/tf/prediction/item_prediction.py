@@ -22,6 +22,7 @@ from tensorflow.python.ops import embedding_ops
 
 from merlin_models.tf.block.transformations import L2Norm
 from merlin_models.tf.core import Block, EmbeddingWithMetadata, SequentialBlock
+from merlin_models.tf.losses import LossType
 from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from merlin_models.utils.constants import MIN_FLOAT
 from merlin_standard_lib import Schema, Tag
@@ -148,8 +149,8 @@ class ItemRetrievalScorer(Block):
         self.false_negatives_score = sampling_downscore_false_negatives_value
 
         self.samplers = samplers
-        if not isinstance(self.samplers, list):
-            self.samplers = [self.samplers]
+        if not isinstance(self.samplers, (list, tuple)):
+            self.samplers = (self.samplers,)
 
         self.set_required_features()
 
@@ -336,9 +337,7 @@ class ItemRetrievalScorer(Block):
 
 
 def ItemRetrievalTask(
-    loss=tf.keras.losses.CategoricalCrossentropy(
-        from_logits=True, reduction=tf.keras.losses.Reduction.SUM
-    ),
+    loss: Optional[LossType] = "categorical_crossentropy",
     samplers: Sequence[ItemSampler] = (),
     metrics=ranking_metrics(top_ks=[10, 20]),
     extra_pre_call: Optional[Block] = None,
@@ -353,9 +352,9 @@ def ItemRetrievalTask(
 
     Parameters
     ----------
-        loss: tf.keras.losses.Loss
+        loss: Optional[LossType]
             Loss function.
-            Defaults to `tf.keras.losses.CategoricalCrossentropy()`.
+            Defaults to `categorical_crossentropy`.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
         metrics: Sequence[MetricOrMetricClass]
@@ -386,7 +385,7 @@ def ItemRetrievalTask(
     """
 
     if samplers is None or len(samplers) == 0:
-        samplers = (InBatchSampler,)
+        samplers = (InBatchSampler(),)
 
     prediction_call = ItemRetrievalScorer(
         samplers=samplers,
@@ -527,9 +526,7 @@ def ItemsPredictionSampled(
 
 def NextItemPredictionTask(
     schema: Schema,
-    loss=tf.keras.losses.SparseCategoricalCrossentropy(
-        from_logits=True,
-    ),
+    loss: Optional[LossType] = "sparse_categorical_crossentropy",
     metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=True),
     weight_tying: bool = True,
     masking: bool = True,
@@ -549,9 +546,9 @@ def NextItemPredictionTask(
     ----------
         schema: Schema
             The schema object including features to use and their properties.
-        loss: tf.keras.losses.Loss
+        loss: Optional[LossType]
             Loss function.
-            Defaults to `tf.keras.losses.SparseCategoricalCrossentropy()`.
+            Defaults to `sparse_categorical_crossentropy`.
         metrics: Sequence[MetricOrMetricClass]
             List of top-k ranking metrics.
             Defaults to ranking_metrics(top_ks=[10, 20], labels_onehot=True).
@@ -635,7 +632,7 @@ def YoutubeDNNRetrieval(
     aggregation: str = "concat",
     top_layer: Optional[Block] = MLPBlock([64]),
     num_sampled: int = 100,
-    loss=tf.nn.softmax_cross_entropy_with_logits,
+    loss: Optional[LossType] = "categorical_crossentropy",
     metrics=ranking_metrics(top_ks=[10, 20]),
     normalize: bool = True,
     extra_pre_call: Optional[Block] = None,
