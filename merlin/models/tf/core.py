@@ -1727,6 +1727,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         task_name: Optional[str] = None,
         metrics: Optional[List[MetricOrMetricClass]] = None,
         pre: Optional[Block] = None,
+        pre_metric: Optional[Block] = None,
         task_block: Optional[Layer] = None,
         prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
@@ -1739,6 +1740,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.task_block = task_block
         self._task_name = task_name
         self.pre = pre
+        self.pre_metric = pre_metric
 
         create_metrics = self._create_metrics
         self.eval_metrics = create_metrics(metrics) if metrics else []
@@ -1839,12 +1841,19 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def repr_add(self):
         return [("loss", self.loss)]
 
-    def calculate_metrics(self, predictions, targets, sample_weight=None, forward=True, loss=None):
+    def calculate_metrics(
+        self, predictions, targets, sample_weight=None, forward=True, loss=None, **kwargs
+    ):
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
 
         if forward:
             predictions = self(predictions)
+
+        if self.pre_metric:
+            targets = self.pre_metric.call_targets(predictions, targets, **kwargs)
+            if isinstance(targets, tuple):
+                targets, predictions = targets
 
         update_ops = []
 

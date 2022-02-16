@@ -90,8 +90,7 @@ def maybe_deserialize_keras_objects(
     return config
 
 
-def extract_topk(ks, scores, labels):
-    max_k = tf.reduce_max(ks)
+def extract_topk(max_k, scores, labels):
     topk_scores, topk_indices = tf.math.top_k(scores, max_k)
     topk_labels = gather_torch_like(labels, topk_indices, max_k)
     return topk_scores, topk_indices, topk_labels
