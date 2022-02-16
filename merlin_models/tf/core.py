@@ -24,8 +24,7 @@ from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload
 
 import six
 import tensorflow as tf
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 

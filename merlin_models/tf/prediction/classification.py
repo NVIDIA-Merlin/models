@@ -17,15 +17,14 @@
 from typing import Optional, Sequence, Union
 
 import tensorflow as tf
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
 
+from ...utils.schema import categorical_cardinalities
 from ..core import Block, MetricOrMetricClass, PredictionTask
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
-from ...utils.schema import categorical_cardinalities
 from .ranking_metric import ranking_metrics
 
 

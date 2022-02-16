@@ -18,18 +18,17 @@ from functools import partial
 from typing import Any, Callable, Dict, Optional, Text, Union
 
 import torch
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 
+from ...utils.schema import categorical_cardinalities, get_embedding_sizes_from_schema
 from ..tabular.base import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     FilterFeatures,
     TabularAggregationType,
     TabularTransformationType,
 )
-from ...utils.schema import categorical_cardinalities, get_embedding_sizes_from_schema
 from ..utils.torch_utils import calculate_batch_size_from_input_size, get_output_sizes_from_schema
 from .base import InputBlock
 

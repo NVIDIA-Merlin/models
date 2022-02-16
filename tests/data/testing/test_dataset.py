@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import pytest
-from merlin.graph.tags import Tags
+from merlin.schema import Tags
 
 from merlin_models.data.synthetic import SyntheticData
 from merlin_models.utils.schema import filter_dict_by_schema

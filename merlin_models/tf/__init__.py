@@ -21,8 +21,7 @@ from merlin_models.loader.tf_utils import configure_tensorflow
 
 configure_tensorflow()
 
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 from tensorflow.keras.layers import Dense, Layer
 from tensorflow.python.keras.losses import Loss
 from tensorflow.python.keras.metrics import Metric

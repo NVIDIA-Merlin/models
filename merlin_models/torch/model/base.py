@@ -21,8 +21,7 @@ from typing import Callable, Dict, Iterable, List, Optional, Type, Union, cast
 import numpy as np
 import torch
 import torchmetrics as tm
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 from tqdm import tqdm
 
 from merlin_standard_lib.registry import camelcase_to_snakecase

@@ -19,7 +19,7 @@ import os
 import dask.dataframe as dd
 import numpy as np
 import tensorflow as tf
-from merlin.graph.tags import Tags
+from merlin.schema import Tags
 
 from merlin_models.loader.backend import DataLoader
 from merlin_models.loader.dispatch import HAS_GPU

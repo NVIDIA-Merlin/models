@@ -13,13 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os
 import math
+import os
+from typing import Dict, List, Optional, Tuple, Union
 
-from typing import List, Optional, Tuple, Union, Dict
-from merlin.graph.schema_io.tensorflow_metadata import TensorflowMetadata
-from merlin.graph.tags import Tags
-from merlin.graph.schema import Schema, ColumnSchema
+from merlin.schema import ColumnSchema, Schema, Tags
+from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 
 def schema_to_tensorflow_metadata_json(schema, path=None):

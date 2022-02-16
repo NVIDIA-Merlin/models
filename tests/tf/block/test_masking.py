@@ -15,7 +15,7 @@
 #
 
 import pytest
-from merlin.graph.tags import Tags
+from merlin.schema import Tags
 
 from merlin_models.data.synthetic import SyntheticData
 

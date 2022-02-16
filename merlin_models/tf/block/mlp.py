@@ -17,8 +17,7 @@
 from typing import List, Optional, Union
 
 import tensorflow as tf
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 
 from ..core import Block, Filter, ResidualBlock, SequentialBlock, tabular_aggregation_registry
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects

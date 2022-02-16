@@ -19,19 +19,17 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Union
 
 import tensorflow as tf
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags, TagsType
+from merlin.schema import Schema, Tags, TagsType
 from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 from merlin_models.tf.block.transformations import AsSparseFeatures
 from merlin_models.utils.schema import (
-    categorical_domains,
     categorical_cardinalities,
+    categorical_domains,
     get_embedding_sizes_from_schema,
 )
-
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 
 from ..core import (

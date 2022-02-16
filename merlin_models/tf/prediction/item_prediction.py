@@ -17,8 +17,7 @@ import logging
 from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 from tensorflow.python.ops import embedding_ops
 
@@ -27,11 +26,11 @@ from merlin_models.tf.core import Block, EmbeddingWithMetadata, SequentialBlock
 from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from merlin_models.utils.constants import MIN_FLOAT
 
+from ...utils.schema import categorical_cardinalities
 from ..block.aggregation import SequenceAggregation, SequenceAggregator
 from ..block.inputs import InputBlock
 from ..block.mlp import MLPBlock
 from ..typing import TabularData
-from ...utils.schema import categorical_cardinalities
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
 from .ranking_metric import ranking_metrics
 

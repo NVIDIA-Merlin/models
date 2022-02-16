@@ -18,8 +18,7 @@ import logging
 from abc import ABC
 
 import numpy as np
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 from torch.utils.data import DataLoader as PyTorchDataLoader
 from torch.utils.data import Dataset, IterableDataset
 

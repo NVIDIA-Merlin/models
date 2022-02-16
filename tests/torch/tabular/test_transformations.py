@@ -16,8 +16,7 @@
 
 import pytest
 import torch
-from merlin.graph import schema
-from merlin.graph.tags import Tags
+from merlin.schema import Tags, Schema
 
 import merlin_models.torch as ml
 from merlin_models.utils.schema import create_categorical_column
@@ -95,7 +94,7 @@ def test_layer_norm(tabular_schema, torch_tabular_data, layer_norm):
 
 def test_stochastic_swap_noise_raise_exception_not_2d_item_id():
 
-    s = schema.Schema(
+    s = Schema(
         [
             create_categorical_column(
                 "item_id_feat", num_items=1000, tags=[Tags.ITEM_ID.value]

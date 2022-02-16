@@ -18,7 +18,7 @@ import abc
 from typing import Dict, Union
 
 import torch
-from merlin.graph.schema import Schema
+from merlin.schema import Schema
 
 from ...config.schema import SchemaMixin
 from ..typing import TabularData
@@ -142,7 +142,7 @@ def get_output_sizes_from_schema(schema: Schema, batch_size=-1, max_sequence_len
     for feature in schema:
         name = feature.name
         # Sequential or multi-hot feature
-        if feature._is_list:
+        if feature.is_list:
             sizes[name] = torch.Size(
                 [
                     batch_size,

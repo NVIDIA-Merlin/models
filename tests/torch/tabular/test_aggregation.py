@@ -16,7 +16,7 @@
 
 import pytest
 import torch
-from merlin.graph.tags import Tags
+from merlin.schema import Tags
 
 import merlin_models.torch as ml
 

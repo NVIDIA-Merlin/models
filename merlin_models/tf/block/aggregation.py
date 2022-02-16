@@ -17,8 +17,7 @@ from enum import Enum
 from typing import Union
 
 import tensorflow as tf
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 
 from merlin_models.config.schema import requires_schema
 from merlin_models.tf.core import Block, TabularAggregation

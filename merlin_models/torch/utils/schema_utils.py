@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
-from merlin.graph.schema import Schema
+from merlin.schema import Schema
 
 from ..typing import TabularData
 
@@ -38,7 +38,7 @@ def random_data_from_schema(
             session_length = random.randint(min_session_length, max_session_length)
 
         for feature in schema:
-            is_list_feature = feature._is_list
+            is_list_feature = feature.is_list
             is_inst_feature = np.issubdtype(feature.dtype, np.integer)
 
             # TODO: shape

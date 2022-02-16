@@ -15,7 +15,7 @@
 #
 
 import pytest
-from merlin.graph.tags import Tags
+from merlin.schema import Tags
 from tensorflow.python.ops import init_ops_v2
 
 import merlin_models.tf as ml

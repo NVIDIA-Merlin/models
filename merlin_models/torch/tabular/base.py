@@ -20,7 +20,7 @@ from functools import reduce
 from typing import Dict, List, Optional, Union
 
 import torch
-from merlin.graph.schema import Schema
+from merlin.schema import Schema
 
 from merlin_standard_lib import Registry
 from merlin_standard_lib.utils.doc_utils import docstring_parameter

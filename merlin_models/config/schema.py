@@ -15,8 +15,7 @@
 #
 from typing import Optional
 
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 
 
 class SchemaMixin:

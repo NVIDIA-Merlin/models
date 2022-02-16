@@ -16,8 +16,7 @@
 
 from typing import Optional
 
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 
 from ..core import Block, Filter, ParallelBlock, SequentialBlock
 from ..features.continuous import ContinuousFeatures

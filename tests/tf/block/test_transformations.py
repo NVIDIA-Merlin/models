@@ -16,8 +16,7 @@
 
 import pytest
 import tensorflow as tf
-from merlin.graph import schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 
 import merlin_models.tf as ml
 from merlin_models.utils.schema import create_categorical_column
@@ -83,7 +82,7 @@ def test_stochastic_swap_noise(replacement_prob):
 
 def test_stochastic_swap_noise_raise_exception_not_2d_item_id():
 
-    s = schema.Schema(
+    s = Schema(
         [
             create_categorical_column(
                 "item_id_feat", num_items=1000, tags=[Tags.ITEM_ID]

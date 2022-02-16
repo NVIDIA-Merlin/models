@@ -16,8 +16,7 @@
 
 from typing import List, Optional, Tuple, Type, Union
 
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags, TagsType
+from merlin.schema import Schema, Tags, TagsType
 
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 

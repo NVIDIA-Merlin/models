@@ -15,8 +15,7 @@
 #
 
 import torch
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 
 from ...config.schema import requires_schema
 from ..typing import TabularData

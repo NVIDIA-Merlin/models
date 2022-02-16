@@ -23,8 +23,7 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 
 from merlin_models.utils.schema import (
     schema_to_tensorflow_metadata_json,
@@ -269,7 +268,7 @@ def generate_user_item_interactions(
     # get ITEM cols
     item_id_col = list(schema.select_by_tag(Tags.ITEM_ID))[0]
 
-    is_list_feature = item_id_col._is_list
+    is_list_feature = item_id_col.is_list
     if not is_list_feature:
         shape = num_interactions
     else:
@@ -302,7 +301,7 @@ def generate_user_item_interactions(
 
     for feature in remaining.remove_by_tag(Tags.BINARY_CLASSIFICATION):
         is_int_feature = np.issubdtype(feature.dtype, np.integer)
-        is_list_feature = feature._is_list
+        is_list_feature = feature.is_list
         if is_list_feature:
             data[feature.name] = generate_random_list_feature(
                 feature, num_interactions, min_session_length, max_session_length, device
@@ -346,7 +345,7 @@ def generate_conditional_features(
     num_interactions = data.shape[0]
     for feature in features:
         is_int_feature = np.issubdtype(feature.dtype, np.integer)
-        is_list_feature = feature._is_list
+        is_list_feature = feature.is_list
 
         if is_list_feature:
             data[feature.name] = generate_random_list_feature(

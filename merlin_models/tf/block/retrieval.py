@@ -17,8 +17,7 @@ import abc
 from typing import Any, Callable, Dict, Optional
 
 import tensorflow as tf
-from merlin.graph.schema import Schema
-from merlin.graph.tags import Tags
+from merlin.schema import Schema, Tags
 from tensorflow.python.keras.layers import Dot
 
 from ..core import Block, BlockType, ParallelBlock, TabularAggregation, tabular_aggregation_registry

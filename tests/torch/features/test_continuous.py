@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from merlin.graph.tags import Tags
+from merlin.schema import Tags
 
 import merlin_models.torch as ml
 

@@ -17,7 +17,7 @@
 from typing import List
 
 import tensorflow as tf
-from merlin.graph.tags import Tags
+from merlin.schema import Tags
 from tensorflow.keras import backend
 from tensorflow.python.ops import array_ops
 

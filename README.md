@@ -60,7 +60,7 @@ Low-level API:
 
 ```python
 import merlin_models.tf as ml
-from merlin.graph.tags import Tags
+from merlin.schema import Tags
 
 user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER), ml.MLPBlock([512, 256]))
 item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM), ml.MLPBlock([512, 256]))

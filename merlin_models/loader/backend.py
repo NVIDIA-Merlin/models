@@ -27,7 +27,7 @@ try:
 except ImportError:
     cp = np
 
-from merlin.graph.tags import Tags
+from merlin.schema import Tags
 
 from merlin_models.loader.dataframe_iter import DataFrameIter
 from merlin_models.loader.dispatch import (
