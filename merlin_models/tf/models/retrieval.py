@@ -1,22 +1,50 @@
-from typing import Optional
+from typing import List, Optional, Union
 
-from merlin_standard_lib import Schema
+from merlin_standard_lib import Schema, Tag
 
 from ..blocks.aggregation import SequenceAggregation, SequenceAggregator
 from ..blocks.inputs import InputBlock
 from ..blocks.mlp import MLPBlock
-from ..core import Block, Model
+from ..blocks.retrieval import TwoTowerBlock
+from ..core import Block, BlockType, Model, ParallelPredictionBlock, PredictionTask
 from ..losses import LossType
 from ..metrics.ranking import ranking_metrics
 from ..prediction.item_prediction import NextItemPredictionTask
+from .utils import _parse_prediction_tasks
 
 
 def MatrixFactorizationModel() -> Model:
     pass
 
 
-def TwoTowerModel() -> Model:
-    pass
+def TwoTowerModel(
+    schema: Schema,
+    query_tower: Block,
+    item_tower: Optional[Block] = None,
+    query_tower_tag=Tag.USER,
+    item_tower_tag=Tag.ITEM,
+    embedding_dim_default: Optional[int] = 64,
+    post: Optional[BlockType] = None,
+    prediction_tasks: Optional[
+        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+    ] = None,
+    **kwargs,
+) -> Model:
+    prediction_tasks = _parse_prediction_tasks(schema, prediction_tasks)
+    two_tower = TwoTowerBlock(
+        schema=schema,
+        query_tower=query_tower,
+        item_tower=item_tower,
+        query_tower_tag=query_tower_tag,
+        item_tower_tag=item_tower_tag,
+        embedding_dim_default=embedding_dim_default,
+        post=post,
+        **kwargs,
+    )
+
+    model = two_tower.connect(prediction_tasks)
+
+    return model
 
 
 def YoutubeDNNRetrievalModel(

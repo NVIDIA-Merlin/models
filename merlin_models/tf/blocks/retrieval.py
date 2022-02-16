@@ -23,7 +23,7 @@ from .inputs import InputBlock
 
 
 def TwoTowerBlock(
-    schema,
+    schema: Schema,
     query_tower: Block,
     item_tower: Optional[Block] = None,
     query_tower_tag=Tags.USER,
