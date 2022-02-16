@@ -254,9 +254,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     ]
 
     model = two_tower.connect(
-        ml.ItemRetrievalTask(
-            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr"
-        )
+        ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers, metrics=[])
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)

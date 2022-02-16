@@ -32,6 +32,8 @@ from ..prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSa
 from ..typing import TabularData
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
+from .evaluation import ItemsPredictionTopK
+from .ranking_metric import ranking_metrics
 
 LOG = logging.getLogger("merlin.models")
 
@@ -617,6 +619,7 @@ def NextItemPredictionTask(
     sampled_softmax: bool = False,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
+    transform_to_onehot: bool = None,
 ) -> MultiClassClassificationTask:
     """
     Function to create the NextItemPrediction task with the right parameters.
@@ -668,6 +671,9 @@ def NextItemPredictionTask(
             The minimum id value to be sampled. Useful to ignore the first categorical
             encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
             Defaults to 0.
+        transform_to_onehot: bool
+            If set to True, transform the encoded integer representation of targets to one-hot one.
+            Default to None.
     Returns
     -------
         PredictionTask
@@ -697,6 +703,13 @@ def NextItemPredictionTask(
     if normalize:
         prediction_call = L2Norm().connect(prediction_call)
 
+    pre_metric = None
+    if len(metrics) > 0:
+        max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
+        pre_metric = ItemsPredictionTopK(
+            k=max_k, transform_to_onehot=transform_to_onehot or not sampled_softmax
+        )
+
     if extra_pre_call is not None:
         prediction_call = prediction_call.connect(extra_pre_call)
 
@@ -707,4 +720,5 @@ def NextItemPredictionTask(
         loss=loss,
         metrics=metrics,
         pre=prediction_call,
+        pre_metric=pre_metric,
     )
