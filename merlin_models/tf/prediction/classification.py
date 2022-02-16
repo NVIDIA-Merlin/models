@@ -22,11 +22,11 @@ from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 
 from merlin_models.tf.losses import LossType, loss_registry
+from merlin_models.tf.metrics.ranking import ranking_metrics
 
 from ...utils.schema import categorical_cardinalities
 from ..core import Block, MetricOrMetricClass, PredictionTask
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
-from .ranking_metric import ranking_metrics
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

@@ -18,10 +18,10 @@ from typing import Optional
 
 from merlin.schema import Schema, Tags
 
+from ..blocks.interaction import DotProductInteraction
 from ..core import Block, Filter, ParallelBlock, SequentialBlock
 from ..features.continuous import ContinuousFeatures
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
-from ..layers import DotProductInteraction
 
 
 def DLRMBlock(

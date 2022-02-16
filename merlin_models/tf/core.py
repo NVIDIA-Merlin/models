@@ -1600,7 +1600,7 @@ class ResidualBlock(WithShortcut):
         strict: bool = False,
         **kwargs,
     ):
-        from merlin_models.tf.block.aggregation import SumResidual
+        from merlin_models.tf.blocks.aggregation import SumResidual
 
         super().__init__(
             block,

@@ -22,10 +22,9 @@ import numpy as np
 import tensorflow as tf
 
 from merlin_models.utils.registry import Registry
+from merlin_models.tf.utils import tf_utils
 
-from ..utils import tf_utils
-
-ranking_metrics_registry = Registry("tf.ranking_metrics")
+from . import metrics_registry
 
 METRIC_PARAMETERS_DOCSTRING = """
     scores : tf.Tensor
@@ -120,7 +119,7 @@ class RankingMetric(tf.keras.metrics.Metric):
         return self.accumulator
 
 
-@ranking_metrics_registry.register_with_multiple_names("precision_at", "precision")
+@metrics_registry.register_with_multiple_names("precision_at", "precision")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class PrecisionAt(RankingMetric):
     def __init__(self, top_ks=None, labels_onehot=False, **kwargs):
@@ -154,7 +153,7 @@ class PrecisionAt(RankingMetric):
             )
 
 
-@ranking_metrics_registry.register_with_multiple_names("recall_at", "recall")
+@metrics_registry.register_with_multiple_names("recall_at", "recall")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class RecallAt(RankingMetric):
     def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
@@ -206,7 +205,7 @@ class RecallAt(RankingMetric):
                 )
 
 
-@ranking_metrics_registry.register_with_multiple_names("avg_precision_at", "avg_precision", "map")
+@metrics_registry.register_with_multiple_names("avg_precision_at", "avg_precision", "map")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class AvgPrecisionAt(RankingMetric):
     def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
@@ -249,7 +248,7 @@ class AvgPrecisionAt(RankingMetric):
             self.accumulator.scatter_nd_update(indices=indices, updates=tf_total_prec / clip_value)
 
 
-@ranking_metrics_registry.register_with_multiple_names("dcg_at", "dcg")
+@metrics_registry.register_with_multiple_names("dcg_at", "dcg")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class DCGAt(RankingMetric):
     def __init__(self, top_ks, labels_onehot=False, **kwargs):
@@ -297,7 +296,7 @@ class DCGAt(RankingMetric):
             # Ensuring type is double, because it can be float if --fp16
 
 
-@ranking_metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
+@metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class NDCGAt(RankingMetric):
     def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):

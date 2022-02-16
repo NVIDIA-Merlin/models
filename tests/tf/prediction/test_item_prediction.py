@@ -314,7 +314,7 @@ def test_youtube_dnn_retrieval(
     sequence_testing_data: SyntheticData,
     run_eagerly: bool,
 ):
-    model = ml.YoutubeDNNRetrieval(schema=sequence_testing_data.schema)
+    model = ml.YoutubeDNNRetrievalModel(schema=sequence_testing_data.schema)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(sequence_testing_data.tf_dataloader(batch_size=50), epochs=2)

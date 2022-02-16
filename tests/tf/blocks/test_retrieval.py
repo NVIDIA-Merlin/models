@@ -20,6 +20,8 @@ from merlin.schema import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
+from merlin_models.tf.blocks.retrieval import ElementWiseMultiply
+from merlin_models.tf.utils import testing_utils
 
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):
@@ -34,6 +36,11 @@ def test_matrix_factorization_block(music_streaming_data: SyntheticData):
 def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
     import pandas as pd
 
+    from merlin_models.tf.blocks.retrieval import CosineSimilarity
+
+    mf = ml.MatrixFactorizationBlock(
+        music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
+    )
     mf = ml.MatrixFactorizationBlock(music_streaming_data.schema, dim=128, aggregation="cosine")
     model = mf.connect(ml.BinaryClassificationTask("like"))
     model.compile(optimizer="adam")
@@ -62,7 +69,14 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
         pass
 
 
-test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
+
+def test_elementwisemultiply():
+    emb1 = np.random.uniform(-1, 1, size=(5, 10))
+    emb2 = np.random.uniform(-1, 1, size=(5, 10))
+    x = ElementWiseMultiply()({"emb1": tf.constant(emb1), "emb2": tf.constant(emb2)})
+
+    assert np.mean(np.isclose(x.numpy(), np.multiply(emb1, emb2))) == 1
+    assert x.numpy().shape == (5, 10)
 
 
 def test_two_tower_block(testing_data: SyntheticData):
@@ -76,7 +90,7 @@ def test_two_tower_block(testing_data: SyntheticData):
 
 def test_two_tower_block_serialization(testing_data: SyntheticData):
     two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
-    copy_two_tower = test_utils.assert_serialization(two_tower)
+    copy_two_tower = testing_utils.assert_serialization(two_tower)
 
     outputs = copy_two_tower(testing_data.tf_tensor_dict)
 
