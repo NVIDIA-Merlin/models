@@ -77,10 +77,21 @@ class BlockContext(Layer):
 
     def set_dtypes(self, features):
         for feature_name in features:
-            self._feature_dtypes[feature_name] = features[feature_name].dtype
+            feature = features[feature_name]
+
+            if isinstance(feature, tuple):
+                dtype = feature[0].dtype
+            else:
+                dtype = feature.dtype
+
+            self._feature_dtypes[feature_name] = dtype
 
     def __getitem__(self, item):
-        if isinstance(item, Tags):
+        if isinstance(item, Schema):
+            if len(item.column_names) > 1:
+                raise ValueError("Schema contains more than one column.")
+            item = item.column_names[0]
+        elif isinstance(item, Tags):
             item = item.value
         else:
             item = str(item)
@@ -1579,8 +1590,6 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         Parameters
         ----------
-        loss:
-            Loss function. Defaults to BinaryCrossentropy.
         metrics:
             List of Keras metrics to be evaluated.
         prediction_metrics:

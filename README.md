@@ -11,8 +11,7 @@ practices baked into the library. This will let users in industry easily train s
 dataset, getting high performance GPU accelerated models into production. This will also let researchers to build custom
 models by incorporating standard components of deep learning recommender models, and then benchmark their new models on
 example offline
-datasets. ([full requirements doc](https://docs.google.com/document/d/1fIiDtKW3og85oiw2o4EQTaiBxqBnarBEG8KCY2V6ho8/edit#heading=h.6u157q1g2hrk))
-.
+datasets.
 
 ## Retrieval Models
 

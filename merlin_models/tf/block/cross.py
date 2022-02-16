@@ -37,13 +37,15 @@ def CrossBlock(
 ) -> SequentialBlock:
     """This block provides a way to create high-order feature interactions
        by a number of stacked Cross Layers, from
-       DCN V2: Improved Deep & Cross Network [1].
+       DCN V2: Improved Deep & Cross Network [1]_.
        See Eq. (1) for full-rank and Eq. (2) for low-rank version.
 
 
     References
     ----------
-        1. [R. Wang et al.](https://arxiv.org/pdf/2008.13535.pdf)
+    .. [1]. Wang, Ruoxi, et al. "DCN V2: Improved deep & cross network and
+       practical lessons for web-scale learning to rank systems." Proceedings
+       of the Web Conference 2021. 2021. https://arxiv.org/pdf/2008.13535.pdf
 
 
     Parameters
@@ -107,7 +109,7 @@ def CrossBlock(
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class Cross(tf.keras.layers.Layer):
     """Implementation of the Cross Layers from
-       DCN V2: Improved Deep & Cross Network [1] -
+       DCN V2: Improved Deep & Cross Network [1]_ -
        See Eq. (1) for full-rank and Eq. (2) for low-rank version.
 
     This layer creates interactions of all input features. When used inside `CrossBlock`,
@@ -125,7 +127,9 @@ class Cross(tf.keras.layers.Layer):
 
     References
     ----------
-        1. [R. Wang et al.](https://arxiv.org/pdf/2008.13535.pdf)
+    .. [1]. Wang, Ruoxi, et al. "DCN V2: Improved deep & cross network and
+       practical lessons for web-scale learning to rank systems." Proceedings
+       of the Web Conference 2021. 2021. https://arxiv.org/pdf/2008.13535.pdf
 
 
     Parameters

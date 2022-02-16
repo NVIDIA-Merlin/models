@@ -16,7 +16,7 @@
 
 import pytest
 import torch
-from merlin.schema import Tags, Schema
+from merlin.schema import Schema, Tags
 
 import merlin_models.torch as ml
 from merlin_models.utils.schema import create_categorical_column
@@ -96,9 +96,7 @@ def test_stochastic_swap_noise_raise_exception_not_2d_item_id():
 
     s = Schema(
         [
-            create_categorical_column(
-                "item_id_feat", num_items=1000, tags=[Tags.ITEM_ID.value]
-            ),
+            create_categorical_column("item_id_feat", num_items=1000, tags=[Tags.ITEM_ID.value]),
         ]
     )
 

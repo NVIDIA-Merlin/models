@@ -20,7 +20,8 @@ import tensorflow as tf
 from merlin.schema import Schema, Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
-from tensorflow.python.keras.losses import SparseCategoricalCrossentropy
+
+from merlin_models.tf.losses import LossType, loss_registry
 
 from ...utils.schema import categorical_cardinalities
 from ..core import Block, MetricOrMetricClass, PredictionTask
@@ -30,7 +31,7 @@ from .ranking_metric import ranking_metrics
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class BinaryClassificationTask(PredictionTask):
-    DEFAULT_LOSS = tf.keras.losses.BinaryCrossentropy()
+    DEFAULT_LOSS = "binary_crossentropy"
     DEFAULT_METRICS = (
         tf.keras.metrics.Precision,
         tf.keras.metrics.Recall,
@@ -43,11 +44,11 @@ class BinaryClassificationTask(PredictionTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss=DEFAULT_LOSS,
+        loss: Optional[LossType] = DEFAULT_LOSS,
         metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
         **kwargs,
     ):
-        logit = kwargs.pop("logit", None)
+        output_layer = kwargs.pop("output_layer", None)
         super().__init__(
             metrics=list(metrics),
             target_name=target_name,
@@ -55,10 +56,10 @@ class BinaryClassificationTask(PredictionTask):
             task_block=task_block,
             **kwargs,
         )
-        self.logit = logit or tf.keras.layers.Dense(
-            1, activation="sigmoid", name=self.child_name("logit")
+        self.output_layer = output_layer or tf.keras.layers.Dense(
+            1, activation="sigmoid", name=self.child_name("output_layer")
         )
-        self.loss = loss
+        self.loss = loss_registry.parse(loss)
 
     def _compute_loss(
         self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
@@ -66,12 +67,14 @@ class BinaryClassificationTask(PredictionTask):
         return self.loss(targets, predictions, sample_weight=sample_weight)
 
     def call(self, inputs, training=False, **kwargs):
-        return self.logit(inputs)
+        return self.output_layer(inputs)
 
     def get_config(self):
         config = super().get_config()
         config = maybe_serialize_keras_objects(
-            self, config, {"logit": tf.keras.layers.serialize, "loss": tf.keras.losses.serialize}
+            self,
+            config,
+            {"output_layer": tf.keras.layers.serialize, "loss": tf.keras.losses.serialize},
         )
 
         return config
@@ -79,16 +82,19 @@ class BinaryClassificationTask(PredictionTask):
     @classmethod
     def from_config(cls, config):
         config = maybe_deserialize_keras_objects(config, ["loss"], tf.keras.losses.deserialize)
-        config = maybe_deserialize_keras_objects(config, ["logit"], tf.keras.layers.deserialize)
+        config = maybe_deserialize_keras_objects(
+            config, ["output_layer"], tf.keras.layers.deserialize
+        )
 
         return super().from_config(config)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class CategFeaturePrediction(Block):
     def __init__(
         self,
         schema: Schema,
-        feature_name: Union[str, Tags] = Tags.ITEM_ID,
+        feature_name: str = None,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
         activation=None,
@@ -97,11 +103,8 @@ class CategFeaturePrediction(Block):
         super(CategFeaturePrediction, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.kernel_initializer = kernel_initializer
-
-        if isinstance(feature_name, Tags):
-            feature_name = feature_name.value
-        self.num_classes = categorical_cardinalities(schema)[feature_name]
-        self.feature_name = feature_name
+        self.feature_name = feature_name or schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        self.num_classes = categorical_cardinalities(schema)[self.feature_name]
         self.activation = activation
 
     def build(self, input_shape):
@@ -121,8 +124,9 @@ class CategFeaturePrediction(Block):
         return input_shape[:-1] + (self.num_classes,)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class MultiClassClassificationTask(PredictionTask):
-    DEFAULT_LOSS = SparseCategoricalCrossentropy(from_logits=True)
+    DEFAULT_LOSS = "sparse_categ_crossentropy"
     DEFAULT_METRICS = {
         "ranking": ranking_metrics(top_ks=[10, 20]),
         "multi-class": (),
@@ -133,7 +137,7 @@ class MultiClassClassificationTask(PredictionTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss=DEFAULT_LOSS,
+        loss: Optional[LossType] = DEFAULT_LOSS,
         metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
         pre: Optional[Block] = None,
         **kwargs,
@@ -147,7 +151,7 @@ class MultiClassClassificationTask(PredictionTask):
             pre=pre,
             **kwargs,
         )
-        self.loss = loss
+        self.loss = loss_registry.parse(loss)
 
     @classmethod
     def from_schema(

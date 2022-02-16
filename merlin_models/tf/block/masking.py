@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import List
+from typing import List, Optional
 
 import tensorflow as tf
 from merlin.schema import Tags
@@ -35,6 +35,9 @@ MASK_SEQUENCE_PARAMETERS_DOCSTRING = """
     eval_on_last_item_seq_only: bool
         When set to True, predict only the last non-padded item during evaluation
         Defaults to True
+    item_id_feature_name: str
+        Name of the column containing the item ids
+        Defaults to `item_id`
 """
 
 
@@ -63,10 +66,17 @@ class MaskingBlock(Block):
         a trainable mask embedding.
     """
 
-    def __init__(self, padding_idx: int = 0, eval_on_last_item_seq_only: bool = True, **kwargs):
+    def __init__(
+        self,
+        padding_idx: int = 0,
+        eval_on_last_item_seq_only: bool = True,
+        item_id_feature_name: Optional[str] = None,
+        **kwargs
+    ):
         super().__init__(**kwargs)
         self.padding_idx = padding_idx
         self.eval_on_last_item_seq_only = eval_on_last_item_seq_only
+        self.item_id_feature_name = item_id_feature_name
 
     def build(self, input_shapes):
         self.context.add_variable(
@@ -98,10 +108,12 @@ class MaskingBlock(Block):
         super().build(input_shapes)
 
     def add_features_to_context(self, feature_shapes) -> List[str]:
-        return [Tags.ITEM_ID.value]
+        f = self.item_id_feature_name or self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+
+        return [f]
 
     def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def apply_mask_to_inputs(self, inputs: tf.Tensor, schema: tf.Tensor) -> tf.Tensor:
         inputs = tf.where(
@@ -112,7 +124,7 @@ class MaskingBlock(Block):
         return inputs
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        items = self.context[Tags.ITEM_ID]
+        items = self.context[self.schema.select_by_tag(Tags.ITEM_ID)]
         mask_schema = self.compute_mask_schema(items, training=training)
         inputs = self.apply_mask_to_inputs(inputs, mask_schema)
         return inputs
