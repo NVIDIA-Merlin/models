@@ -67,7 +67,6 @@ jobs:
           ref: ${{ fromJson(needs.Authorization.outputs.args).ref }}
           lfs: "true"
 
-
       - name: Run blossom action
         uses: NVIDIA/blossom-action@main
         env:
