@@ -52,14 +52,14 @@ class RetrievalMixin:
     @classmethod
     def load_query_block(cls, model_path: str) -> Block:
         model = tf.keras.models.load_model(model_path)
-        tower = model.block[0].query_block()
+        tower = model.block.layers[0].query_block()
 
         return tower
 
     @classmethod
     def load_item_block(cls, model_path: str) -> Block:
         model = tf.keras.models.load_model(model_path)
-        tower = model.block[0].item_block()
+        tower = model.block.layers[0].item_block()
 
         return tower
 

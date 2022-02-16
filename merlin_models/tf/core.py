@@ -364,7 +364,9 @@ class Block(SchemaMixin, ContextMixin, Layer):
         )
 
         if isinstance(blocks[-1], ModelLikeBlock):
-            if any(isinstance(b, RetrievalBlock) for b in blocks):
+            if any(isinstance(b, RetrievalBlock) for b in blocks) or isinstance(
+                self, RetrievalBlock
+            ):
                 return RetrievalModel(output)
 
             return Model(output)
@@ -2374,19 +2376,15 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         )
 
     def batch_predict(self, dataset, batch_size=None, **kwargs):
-        # Check if merlin-dataset is passed
-        if hasattr(dataset, "to_ddf"):
-            if not batch_size:
-                raise ValueError("batch_size must be specified when using merlin-dataset.")
-            from .dataset import Dataset
-
-            dataset = Dataset(dataset, batch_size=batch_size, **kwargs)
-
         if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
             raise ValueError(
                 f"Model schema {self.schema.column_names} does not match dataset schema"
                 + f" {dataset.column_names}"
             )
+
+        # Check if merlin-dataset is passed
+        if hasattr(dataset, "to_ddf"):
+            dataset = dataset.to_ddf()
 
         from .prediction.batch import TFModelEncode
 
@@ -2431,7 +2429,7 @@ class RetrievalModel(Model):
     ):
         super().__init__(*blocks, context=context, **kwargs)
 
-        if not any(isinstance(b, RetrievalBlock) for b in self.blocks):
+        if not any(isinstance(b, RetrievalBlock) for b in self.block):
             raise ValueError("Model must contain a `RetrievalBlock`.")
 
     @property
@@ -2441,20 +2439,26 @@ class RetrievalModel(Model):
     def query_embeddings(self, dataset, dim: int, batch_size=None, **kwargs):
         from merlin_models.tf.prediction.batch import QueryEmbeddings
 
-        get_user_emb = QueryEmbeddings(self, dim=self.tower_dims[-1])
-        user_features = self.user_features.train.get().to_ddf()
+        get_user_emb = QueryEmbeddings(self, dim=dim, batch_size=batch_size)
 
-        embeddings = user_features.map_partitions(get_user_emb)
+        # Check if merlin-dataset is passed
+        if hasattr(dataset, "to_ddf"):
+            dataset = dataset.to_ddf()
+
+        embeddings = dataset.map_partitions(get_user_emb)
 
         return embeddings
 
     def item_embeddings(self, dataset, dim: int, batch_size=None, **kwargs):
         from merlin_models.tf.prediction.batch import ItemEmbeddings
 
-        get_item_emb = ItemEmbeddings(self, dim=self.tower_dims[-1])
-        item_features = self.item_features.train.get().to_ddf()
+        get_item_emb = ItemEmbeddings(self, dim=dim, batch_size=batch_size)
 
-        embeddings = item_features.map_partitions(get_item_emb)
+        # Check if merlin-dataset is passed
+        if hasattr(dataset, "to_ddf"):
+            dataset = dataset.to_ddf()
+
+        embeddings = dataset.map_partitions(get_item_emb)
 
         return embeddings
 
