@@ -15,7 +15,7 @@
 #
 import math
 import os
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict
 
 from merlin.schema import ColumnSchema, Schema, Tags
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata

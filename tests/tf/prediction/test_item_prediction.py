@@ -331,7 +331,7 @@ def test_youtube_dnn_retrieval(
 def test_retrieval_task_inbatch_default_sampler(
     music_streaming_data: SyntheticData, run_eagerly, ignore_last_batch_on_sample
 ):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
+    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
     batch_size = music_streaming_data.tf_tensor_dict["item_id"].shape[0]

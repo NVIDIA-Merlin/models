@@ -18,7 +18,6 @@ import abc
 from typing import List, Optional
 
 import tensorflow as tf
-from merlin.schema import Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.ops import embedding_ops
 

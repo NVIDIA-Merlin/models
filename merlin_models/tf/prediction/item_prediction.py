@@ -393,7 +393,7 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
-    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
+    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     if samplers is None or len(samplers) == 0:
         samplers = (InBatchSampler(),)
 
@@ -525,7 +525,7 @@ def ItemsPredictionSampled(
             and sampled negatives of shape (bs, num_sampled+1), as well as the related logits.
             During evaluation, returns the input tensor of true class, and the related logits.
     """
-    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
+    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     num_classes = categorical_cardinalities(schema)[item_id_feature_name]
     samplers = PopularityBasedSampler(
         max_num_samples=num_sampled,
@@ -613,7 +613,7 @@ def NextItemPredictionTask(
         PredictionTask
             The next item prediction task
     """
-    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
+    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
 
     if sampled_softmax:
         prediction_call = ItemsPredictionSampled(

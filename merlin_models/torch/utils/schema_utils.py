@@ -21,6 +21,8 @@ import numpy as np
 import torch
 from merlin.schema import Schema
 
+from merlin_standard_lib.utils.proto_utils import has_field
+
 from ..typing import TabularData
 
 
@@ -39,7 +41,7 @@ def random_data_from_schema(
 
         for feature in schema:
             is_list_feature = feature.is_list
-            is_inst_feature = np.issubdtype(feature.dtype, np.integer)
+            is_int_feature = np.issubdtype(feature.dtype, np.integer)
 
             # TODO: shape
             is_embedding = feature.shape.dim[0].size > 1 if has_field(feature, "shape") else False
