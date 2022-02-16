@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Union
 
 from merlin_standard_lib import Schema, Tag
 
@@ -9,7 +9,7 @@ from ..blocks.retrieval import TwoTowerBlock
 from ..core import Block, BlockType, Model, ParallelPredictionBlock, PredictionTask
 from ..losses import LossType
 from ..metrics.ranking import ranking_metrics
-from ..prediction.item_prediction import NextItemPredictionTask
+from ..prediction.item_prediction import ItemRetrievalTask, ItemSampler, NextItemPredictionTask
 from .utils import _parse_prediction_tasks
 
 
@@ -28,8 +28,20 @@ def TwoTowerModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
+    softmax_temperature: int = 1,
+    loss: Optional[LossType] = "categorical_crossentropy",
+    samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Model:
+    if not prediction_tasks:
+        prediction_tasks = ItemRetrievalTask(
+            schema,
+            softmax_temperature=softmax_temperature,
+            samplers=samplers,
+            loss=loss,
+            **kwargs,
+        )
+
     prediction_tasks = _parse_prediction_tasks(schema, prediction_tasks)
     two_tower = TwoTowerBlock(
         schema=schema,
