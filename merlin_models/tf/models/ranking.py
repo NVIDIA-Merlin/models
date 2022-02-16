@@ -49,7 +49,7 @@ def DCNModel(
     if stacked:
         dcn_body = input_block.connect(CrossBlock(depth), deep_block)
     else:
-        dcn_body = input_block.branch(CrossBlock(depth), deep_block, aggregation="concat")
+        dcn_body = input_block.connect_branch(CrossBlock(depth), deep_block, aggregation="concat")
 
     model = dcn_body.connect(prediction_tasks)
 
