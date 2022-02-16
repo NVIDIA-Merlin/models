@@ -105,7 +105,9 @@ def test_two_tower_block_serialization(testing_data: SyntheticData):
 def test_two_tower_block_saving(ecommerce_data: SyntheticData):
     two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([64, 128]))
 
-    model = two_tower.connect(ml.ItemRetrievalTask(target_name="click", metrics=[]))
+    model = two_tower.connect(
+        ml.ItemRetrievalTask(ecommerce_data.schema, target_name="click", metrics=[])
+    )
 
     dataset = ecommerce_data.tf_dataloader(batch_size=50)
     copy_two_tower = testing_utils.assert_model_is_retrainable(model, dataset)

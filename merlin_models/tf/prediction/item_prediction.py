@@ -223,7 +223,7 @@ class ItemRetrievalScorer(Block):
         )
         return positive_scores
 
-    @tf.function
+    # @tf.function
     def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
         """Based on the user/query embedding (inputs["query"]), uses dot product to score
             the positive item and also sampled negative items (during training).

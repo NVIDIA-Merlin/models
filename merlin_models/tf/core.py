@@ -1817,14 +1817,13 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
 
-        if isinstance(predictions, dict) and self.target_name:
+        if isinstance(predictions, dict) and self.target_name and self.task_name in predictions:
             predictions = predictions[self.task_name]
 
         if self.pre:
-            targets = self.pre_loss(predictions, targets, **kwargs)
+            targets = self.pre_loss(predictions, targets, training=training, **kwargs)
             if isinstance(targets, tuple):
                 targets, predictions = targets
-            targets = self.pre_loss(predictions, targets, training=training, **kwargs)
 
         if isinstance(targets, tf.Tensor) and len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
