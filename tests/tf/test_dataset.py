@@ -21,7 +21,9 @@ import pytest
 import tensorflow as tf
 from sklearn.metrics import roc_auc_score
 
+import merlin_models.tf as ml
 import merlin_models.tf.dataset as tf_dataloader
+from merlin_models.data.synthetic import SyntheticData
 from merlin_models.loader.dispatch import _dd_from_df, _make_df
 
 
@@ -259,3 +261,26 @@ def test_validater(batch_size):
     true_auc = roc_auc_score(labels, predictions)
     estimated_auc = logs[auc_key]
     assert np.isclose(true_auc, estimated_auc, rtol=1e-6)
+
+
+def test_model_with_sparse_inputs(music_streaming_data: SyntheticData):
+    item_id_schema = music_streaming_data.schema.select_by_name(["user_id", "item_genres"])
+    inputs = ml.InputBlock(item_id_schema)
+    model = inputs.connect(ml.MLPBlock([64]), context=ml.BlockContext())
+
+    df = pd.DataFrame(
+        {
+            "item_genres": np.random.randint(0, 10, (32, 20)).tolist(),
+            "user_id": np.random.randint(0, 10, (32,)).tolist(),
+        }
+    )
+    train_dataset = tf_dataloader.Dataset(
+        _dd_from_df(df),
+        cat_names=["user_id", "item_genres"],
+        batch_size=3,
+        shuffle=False,
+    )
+
+    batch = next(iter(train_dataset))[0]
+    out = model(batch)
+    assert out.shape[-1] == 64
