@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Get latest models version
 cd /models/
@@ -14,5 +15,6 @@ elif [ "$container" == "merlin-pytorch-training" ]; then
     make tests-torch
 # Inference container
 elif [ "$container" == "merlin-inference" ]; then
-    make tests-tf make tests-torch
+    make tests-tf
+    make tests-torch
 fi
