@@ -17,16 +17,10 @@ from typing import Any, Callable, Dict, Optional
 
 from merlin.schema import Schema, Tags
 import tensorflow as tf
+
 from merlin_standard_lib import Schema, Tag
 
-from ..core import (
-    Block,
-    BlockType,
-    ParallelBlock,
-    SequentialBlock,
-    TabularAggregation,
-    tabular_aggregation_registry,
-)
+from ..core import Block, BlockType, ParallelBlock, SequentialBlock
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from .inputs import InputBlock
 from .transformations import RenameFeatures
