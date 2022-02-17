@@ -13,50 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import abc
 from typing import Any, Callable, Dict, Optional
-
-import tensorflow as tf
-from tensorflow.python.keras.layers import Dot
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import Block, BlockType, ParallelBlock, TabularAggregation, tabular_aggregation_registry
+from ..core import Block, BlockType, ParallelBlock
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
-from ..typing import TabularData
 from .inputs import InputBlock
-
-
-class Distance(TabularAggregation, abc.ABC):
-    def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        assert len(inputs) == 2
-
-        return self.distance(inputs, **kwargs)
-
-    def distance(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        raise NotImplementedError()
-
-
-@tabular_aggregation_registry.register("cosine")
-class CosineSimilarity(Distance):
-    def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
-        super().__init__(trainable, name, dtype, dynamic, **kwargs)
-        self.dot = Dot(axes=1, normalize=True)
-
-    def distance(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        out = self.dot(list(inputs.values()))
-
-        return out
-
-
-@tabular_aggregation_registry.register("elementwise-multiply")
-class ElementWiseMultiply(Distance):
-    def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
-        super().__init__(trainable, name, dtype, dynamic, **kwargs)
-
-    def distance(self, inputs: TabularData, **kwargs) -> tf.Tensor:
-        out = tf.keras.layers.Multiply()(list(inputs.values()))
-        return out
 
 
 def TwoTowerBlock(

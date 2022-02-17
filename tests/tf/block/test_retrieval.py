@@ -15,9 +15,7 @@
 #
 import os.path
 
-import numpy as np
 import pytest
-import tensorflow as tf
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
@@ -36,11 +34,7 @@ def test_matrix_factorization_block(music_streaming_data: SyntheticData):
 def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
     import pandas as pd
 
-    from merlin_models.tf.block.retrieval import CosineSimilarity
-
-    mf = ml.MatrixFactorizationBlock(
-        music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
-    )
+    mf = ml.MatrixFactorizationBlock(music_streaming_data.schema, dim=128, aggregation="cosine")
     model = mf.connect(ml.BinaryClassificationTask("like"))
     model.compile(optimizer="adam")
 
@@ -66,17 +60,6 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
         assert len(df) == 10001
     except ImportError:
         pass
-
-
-def test_elementwisemultiply():
-    emb1 = np.random.uniform(-1, 1, size=(5, 10))
-    emb2 = np.random.uniform(-1, 1, size=(5, 10))
-    x = ml.block.retrieval.ElementWiseMultiply()(
-        {"emb1": tf.constant(emb1), "emb2": tf.constant(emb2)}
-    )
-
-    assert np.mean(np.isclose(x.numpy(), np.multiply(emb1, emb2))) == 1
-    assert x.numpy().shape == (5, 10)
 
 
 test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")

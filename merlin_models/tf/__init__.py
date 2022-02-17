@@ -77,7 +77,6 @@ from .features.embedding import (
     SequenceEmbeddingFeatures,
     TableConfig,
 )
-from .layers import DotProductInteraction
 from .layers.queue import FIFOQueue
 from .losses import LossType
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
@@ -127,7 +126,6 @@ __all__ = [
     "CausalLanguageModeling",
     "MaskedLanguageModeling",
     "ContinuousEmbedding",
-    "DotProductInteraction",
     "MMOEGate",
     "MMOEBlock",
     "CGCBlock",
