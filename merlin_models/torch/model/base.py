@@ -24,7 +24,7 @@ import torchmetrics as tm
 from merlin.schema import Schema, Tags
 from tqdm import tqdm
 
-from merlin_standard_lib.registry import camelcase_to_snakecase
+from merlin_models.utils.registry import camelcase_to_snakecase
 
 from ..block.base import BlockBase, BlockOrModule, BlockType
 from ..features.base import InputBlock

@@ -22,7 +22,7 @@ from merlin.schema import Schema, Tags
 from torch.utils.data import DataLoader as PyTorchDataLoader
 from torch.utils.data import Dataset, IterableDataset
 
-from merlin_standard_lib import Registry
+from merlin_models.utils.registry import Registry
 
 from ...utils import dependencies
 

@@ -98,9 +98,6 @@ from .prediction.sampling import (
 )
 from .utils import repr_utils
 
-# TODO: wtf?
-Tags.__hash__ = lambda self: hash(str(self))
-
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr
 

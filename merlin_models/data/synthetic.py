@@ -24,6 +24,7 @@ from typing import Optional, Union
 import numpy as np
 import pandas as pd
 from merlin.schema import Schema, Tags
+from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 from merlin_models.utils.schema import (
     schema_to_tensorflow_metadata_json,
@@ -103,8 +104,7 @@ class SyntheticData:
             os.path.join(str(path), "schema.json") if os.path.isdir(str(path)) else str(path)
         )
         if _schema_path.endswith(".pb") or _schema_path.endswith(".pbtxt"):
-            # TODO:??
-            return Schema().from_proto_text(_schema_path)
+            TensorflowMetadata.from_from_proto_text(_schema_path).to_merlin_schema()
 
         return tensorflow_metadata_json_to_schema(_schema_path)
 

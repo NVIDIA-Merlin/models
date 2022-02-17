@@ -22,7 +22,7 @@ from typing import Dict, List, Optional, Union
 import torch
 from merlin.schema import Schema
 
-from merlin_standard_lib import Registry
+from merlin_models.utils.registry import Registry
 from merlin_standard_lib.utils.doc_utils import docstring_parameter
 
 from ..block.base import BlockBase, SequentialBlock, right_shift_block

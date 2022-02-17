@@ -12,15 +12,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-
-from betterproto import Message
-
-from .registry import Registry, RegistryMixin
-from .utils import proto_utils
-
-# Other monkey-patching
-Message.HasField = proto_utils.has_field  # type: ignore
-Message.copy = proto_utils.copy_better_proto_message  # type: ignore
-
-__all__ = ["ColumnSchema", "Schema", "schema", "Tag", "Registry", "RegistryMixin"]
