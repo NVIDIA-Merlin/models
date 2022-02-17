@@ -28,6 +28,7 @@ from ..block.inputs import InputBlock
 from ..block.mlp import MLPBlock
 from ..block.transformations import L2Norm
 from ..core import Block, EmbeddingWithMetadata, SequentialBlock
+from ..losses.loss_base import LossType
 from ..prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from ..typing import TabularData
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
