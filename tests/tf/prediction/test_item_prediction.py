@@ -40,7 +40,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
 
     # First batch
     _, output_scores1 = item_retrieval_scorer.call_targets(
-        {"query": users_embeddings, "item": items_embeddings}, {}
+        {"query": users_embeddings, "item": items_embeddings}, training=True, targets={}
     )
     expected_num_samples_inbatch = batch_size
     expected_num_samples_cached = 0 if ignore_last_batch_on_sample else batch_size
@@ -52,7 +52,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
 
     # Second batch
     _, output_scores2 = item_retrieval_scorer.call_targets(
-        {"query": users_embeddings, "item": items_embeddings}, {}
+        {"query": users_embeddings, "item": items_embeddings}, training=True, targets={}
     )
     expected_num_samples_cached += batch_size
     tf.assert_equal(tf.shape(output_scores2)[0], batch_size)
@@ -97,7 +97,7 @@ def test_item_retrieval_scorer_no_sampler():
             samplers=[], sampling_downscore_false_negatives=False
         )
         item_retrieval_scorer.call_targets(
-            {"query": users_embeddings, "item": items_embeddings}, {}
+            {"query": users_embeddings, "item": items_embeddings}, targets={}, training=True
         )
     assert "At least one sampler is required by ItemRetrievalScorer for negative sampling" in str(
         excinfo.value
@@ -152,7 +152,7 @@ def test_item_retrieval_scorer_downscore_false_negatives():
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
     _, output_scores = item_retrieval_scorer.call_targets(
-        {"query": users_embeddings, "item": items_embeddings}, targets={}
+        {"query": users_embeddings, "item": items_embeddings}, training=True, targets={}
     )
 
     output_neg_scores = output_scores[:, 1:]
@@ -176,6 +176,7 @@ def test_item_retrieval_scorer_only_positive_when_not_training():
     item_retrieval_scorer = ml.ItemRetrievalScorer(
         samplers=[ml.InBatchSampler()],
         sampling_downscore_false_negatives=False,
+        context=ml.BlockContext()
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
@@ -211,7 +212,7 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     model = two_tower.connect(
         ml.ItemRetrievalTask(
-            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr"
+            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr", metrics=[]
         )
     )
 
@@ -254,15 +255,19 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     ]
 
     model = two_tower.connect(
-        ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers, metrics=[])
-    )
+        ml.ItemRetrievalTask(
+            music_streaming_data._schema, 
+            softmax_temperature=2, 
+            samplers=samplers, 
+            evaluation_candidates=tf.random.uniform((100, 256))
+    ))
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(music_streaming_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
-
+    _ = model.evaluate(music_streaming_data.tf_dataloader(batch_size=batch_size))
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("weight_tying", [True, False])
@@ -285,11 +290,9 @@ def test_last_item_prediction_task(
         metrics = ml.ranking_metrics(top_ks=[10, 20], labels_onehot=False)
     else:
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        metrics = ml.ranking_metrics(top_ks=[10, 20], labels_onehot=True)
     task = ml.NextItemPredictionTask(
         schema=sequence_testing_data.schema,
         loss=loss,
-        metrics=metrics,
         masking=True,
         weight_tying=weight_tying,
         sampled_softmax=sampled_softmax,
@@ -319,7 +322,7 @@ def test_retrieval_task_inbatch_default_sampler(
     assert batch_size == 100
 
     model = two_tower.connect(
-        ml.ItemRetrievalTask(music_streaming_data.schema, softmax_temperature=2, loss="bpr")
+        ml.ItemRetrievalTask(music_streaming_data.schema, softmax_temperature=2, loss="bpr", metrics=[])
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
