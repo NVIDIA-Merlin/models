@@ -19,10 +19,10 @@ import os
 import dask.dataframe as dd
 import numpy as np
 import tensorflow as tf
+from merlin.core.dispatch import HAS_GPU
 from merlin.schema import Tags
 
 from merlin_models.loader.backend import DataLoader
-from merlin_models.loader.dispatch import HAS_GPU
 from merlin_models.loader.tf_utils import (
     configure_tensorflow,
     get_dataset_schema_from_feature_columns,
