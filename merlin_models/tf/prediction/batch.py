@@ -57,7 +57,7 @@ class ModelEncode:
                 type(df)(
                     concat_func([encode_func(self.model, batch) for batch in iterator_func(df)]),
                     columns=self.output_names,
-                    index=df.index,
+                    # index=_df.index,
                 ),
             ]
         )
