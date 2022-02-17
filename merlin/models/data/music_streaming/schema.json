@@ -26,7 +26,8 @@
       "annotation": {
         "tag": [
           "categorical",
-          "item_id"
+          "item_id",
+          "item"
         ]
       }
     },

@@ -1727,7 +1727,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         task_name: Optional[str] = None,
         metrics: Optional[List[MetricOrMetricClass]] = None,
         pre: Optional[Block] = None,
-        pre_metric: Optional[Block] = None,
+        pre_metrics: Optional[Block] = None,
         task_block: Optional[Layer] = None,
         prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
@@ -1740,7 +1740,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.task_block = task_block
         self._task_name = task_name
         self.pre = pre
-        self.pre_metric = pre_metric
+        self.pre_metrics = pre_metrics
 
         create_metrics = self._create_metrics
         self.eval_metrics = create_metrics(metrics) if metrics else []
@@ -1806,7 +1806,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         predictions,
         targets,
         training: bool = False,
-        compute_metrics=True,
+        compute_metrics=False,
         sample_weight: Optional[tf.Tensor] = None,
         **kwargs,
     ) -> tf.Tensor:
@@ -1850,8 +1850,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if forward:
             predictions = self(predictions)
 
-        if self.pre_metric:
-            targets = self.pre_metric.call_targets(predictions, targets, **kwargs)
+        if self.pre_metrics:
+            targets = self.pre_metrics.call_targets(predictions, targets, **kwargs)
             if isinstance(targets, tuple):
                 targets, predictions = targets
 
@@ -2274,7 +2274,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         self,
         inputs: Union[tf.Tensor, TabularData],
         targets: Union[tf.Tensor, TabularData],
-        compute_metrics=True,
+        compute_metrics=False,
         training: bool = False,
         **kwargs,
     ) -> tf.Tensor:
@@ -2297,7 +2297,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     def metric_results(self, mode=None):
         return self.loss_block.metric_results(mode=mode)
 
-    def train_step(self, inputs):
+    def train_step(self, inputs, compute_metrics=False):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:
@@ -2307,7 +2307,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 targets = None
 
             predictions = self(inputs, training=True)
-            loss = self.compute_loss(predictions, targets, training=True)
+            loss = self.compute_loss(predictions, targets, training=True, compute_metrics=True)
             tf.assert_rank(
                 loss,
                 0,
@@ -2339,7 +2339,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             gradients = tape.gradient(total_loss, self.trainable_variables)
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-
         metrics = self.loss_block.metric_result_dict()
         metrics["loss"] = loss
         metrics["regularization_loss"] = regularization_loss
@@ -2356,7 +2355,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             targets = None
 
         predictions = self(inputs, training=False)
-        loss = self.compute_loss(predictions, targets, training=False)
+        loss = self.compute_loss(predictions, targets, training=False, compute_metrics=True)
         tf.assert_rank(
             loss,
             0,

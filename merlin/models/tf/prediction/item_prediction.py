@@ -32,7 +32,7 @@ from ..prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSa
 from ..typing import TabularData
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
-from .evaluation import ItemsPredictionTopK
+from .evaluation import BruteForceTopK, ItemsPredictionTopK
 from .ranking_metric import ranking_metrics
 
 LOG = logging.getLogger("merlin.models")
@@ -110,7 +110,7 @@ class ItemsPredictionWeightTying(Block):
         )
         return super().build(input_shape)
 
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
+    def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
         embedding_table = self.context.get_embedding(self.item_id_feature_name)
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
@@ -125,7 +125,7 @@ class ItemsPredictionWeightTying(Block):
 # TODO: Implement this for the MIND prediction: https://arxiv.org/pdf/1904.08030.pdf
 class LabelAwareAttention(Block):
     def predict(
-        self, predictions, targets=None, training=True, **kwargs
+        self, predictions, targets=None, training=False, **kwargs
     ) -> Tuple[tf.Tensor, tf.Tensor]:
         raise NotImplementedError("TODO")
 
@@ -180,6 +180,20 @@ class ItemRetrievalScorer(Block):
 
         self.set_required_features()
 
+    def build(self, input_shapes):
+        if isinstance(input_shapes, dict):
+            query_shape = input_shapes["query"]
+            self.context.add_variable(
+                tf.Variable(
+                    initial_value=tf.zeros([1, query_shape[-1]], dtype=tf.float32),
+                    name="query",
+                    trainable=False,
+                    validate_shape=False,
+                    shape=tf.TensorShape([None, query_shape[-1]]),
+                )
+            )
+        super().build(input_shapes)
+
     def set_required_features(self):
         required_features = set()
         if self.downscore_false_negatives:
@@ -218,7 +232,7 @@ class ItemRetrievalScorer(Block):
             )
 
     def call(
-        self, inputs: Union[tf.Tensor, TabularData], training: bool = True, **kwargs
+        self, inputs: Union[tf.Tensor, TabularData], training: bool = False, **kwargs
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs["query"]), uses dot product to score
             the positive item (inputs["item"] or  self.context.get_embedding(self.item_column))
@@ -237,6 +251,9 @@ class ItemRetrievalScorer(Block):
             2D Tensor with the scores for the positive items,
             If `training=True`, return the original inputs
         """
+        if isinstance(inputs, dict):
+            self.context["query"].assign(inputs["query"])
+
         if training:
             return inputs
 
@@ -252,8 +269,13 @@ class ItemRetrievalScorer(Block):
         return positive_scores
 
     @tf.function
+<<<<<<< HEAD
     def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
+=======
+    def call_targets(self, predictions, targets, training: bool = False, **kwargs) -> tf.Tensor:
+        """Based on the user/query embedding (inputs["query"]), uses dot product to score
+>>>>>>> first version of top-k evaluation
             the positive item and also sampled negative items (during training).
 
         Parameters
@@ -399,6 +421,81 @@ class ItemRetrievalScorer(Block):
         return super().from_config(config)
 
 
+@Block.registry.register_with_multiple_names("remove_pad_3d")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class RemovePad3D(Block):
+    """
+    Flatten the sequence of labels and filter out non-targets positions
+
+    Parameters
+    ----------
+        padding_idx: int
+            The padding index value.
+            Defaults to 0.
+    Returns
+    -------
+        targets: tf.Tensor
+            The flattened vector of true targets positions
+        flatten_predictions: tf.Tensor
+            If the predicions are 3-D vectors (sequential task),
+            flatten the predictions vectors to keep only the ones related to target positions.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.padding_idx = 0
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+        targets = tf.reshape(targets, (-1,))
+        non_pad_mask = targets != self.padding_idx
+        targets = tf.boolean_mask(targets, non_pad_mask)
+
+        if len(tuple(predictions.get_shape())) == 3:
+            predictions = tf.reshape(predictions, (-1, predictions.shape[-1]))
+            flatten_predictions = tf.boolean_mask(
+                predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
+            )
+            return targets, flatten_predictions
+        return targets
+
+
+@Block.registry.register_with_multiple_names("masking_head")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class MaskingHead(Block):
+    """
+    The masking class to transform targets based on the
+    boolean masking schema stored in the model's context
+    Parameters
+    ----------
+        padding_idx: int
+            The padding index value.
+            Defaults to 0.
+        item_id_feature_name: str
+            Name of the column containing the item ids
+            Defaults to `item_id`
+    Returns
+    -------
+        targets: tf.Tensor
+            Tensor of masked labels.
+    """
+
+    def __init__(self, item_id_feature_name: str = "item_id", **kwargs):
+        super().__init__(**kwargs)
+        self.padding_idx = 0
+        self.item_id_feature_name = item_id_feature_name
+
+    def call_targets(
+        self, predictions: tf.Tensor, targets: tf.Tensor, training: bool = True, **kwargs
+    ) -> tf.Tensor:
+        targets = self.context[self.item_id_feature_name]
+        mask = self.context.get_mask()
+        targets = tf.where(mask, targets, self.padding_idx)
+        return targets
+
+
 def ItemRetrievalTask(
     schema: Schema,
     loss: Optional[LossType] = "categorical_crossentropy",
@@ -410,8 +507,12 @@ def ItemRetrievalTask(
     task_block: Optional[Layer] = None,
     softmax_temperature: float = 1,
     normalize: bool = True,
+<<<<<<< HEAD
     query_name: str = "query",
     item_name: str = "item",
+=======
+    evaluation_candidates: tf.Tensor = None,
+>>>>>>> first version of top-k evaluation
 ) -> MultiClassClassificationTask:
     """
     Function to create the ItemRetrieval task with the right parameters.
@@ -471,6 +572,11 @@ def ItemRetrievalTask(
     if extra_pre_call is not None:
         prediction_call = prediction_call.connect(extra_pre_call)
 
+    pre_metrics = None
+    if len(metrics) > 0:
+        max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
+        pre_metrics = BruteForceTopK(k=max_k - 1).load_index(candidates=evaluation_candidates)
+
     return MultiClassClassificationTask(
         target_name,
         task_name,
@@ -478,79 +584,8 @@ def ItemRetrievalTask(
         loss=loss,
         metrics=metrics,
         pre=prediction_call,
+        pre_metrics=pre_metrics,
     )
-
-
-@Block.registry.register_with_multiple_names("remove_pad_3d")
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class RemovePad3D(Block):
-    """
-    Flatten the sequence of labels and filter out non-targets positions
-
-    Parameters
-    ----------
-        padding_idx: int
-            The padding index value.
-            Defaults to 0.
-    Returns
-    -------
-        targets: tf.Tensor
-            The flattened vector of true targets positions
-        flatten_predictions: tf.Tensor
-            If the predicions are 3-D vectors (sequential task),
-            flatten the predictions vectors to keep only the ones related to target positions.
-    """
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.padding_idx = 0
-
-    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
-        targets = tf.reshape(targets, (-1,))
-        non_pad_mask = targets != self.padding_idx
-        targets = tf.boolean_mask(targets, non_pad_mask)
-
-        if len(tuple(predictions.get_shape())) == 3:
-            predictions = tf.reshape(predictions, (-1, predictions.shape[-1]))
-            flatten_predictions = tf.boolean_mask(
-                predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
-            )
-            return targets, flatten_predictions
-        return targets
-
-
-@Block.registry.register_with_multiple_names("masking_head")
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class MaskingHead(Block):
-    """
-    The masking class to transform targets based on the
-    boolean masking schema stored in the model's context
-    Parameters
-    ----------
-        padding_idx: int
-            The padding index value.
-            Defaults to 0.
-        item_id_feature_name: str
-            Name of the column containing the item ids
-            Defaults to `item_id`
-    Returns
-    -------
-        targets: tf.Tensor
-            Tensor of masked labels.
-    """
-
-    def __init__(self, item_id_feature_name: str = "item_id", **kwargs):
-        super().__init__(**kwargs)
-        self.padding_idx = 0
-        self.item_id_feature_name = item_id_feature_name
-
-    def call_targets(
-        self, predictions: tf.Tensor, targets: tf.Tensor, training: bool = True, **kwargs
-    ) -> tf.Tensor:
-        targets = self.context[self.item_id_feature_name]
-        mask = self.context.get_mask()
-        targets = tf.where(mask, targets, self.padding_idx)
-        return targets
 
 
 def ItemsPredictionSampled(
@@ -607,7 +642,7 @@ def ItemsPredictionSampled(
 def NextItemPredictionTask(
     schema: Schema,
     loss: Optional[LossType] = "sparse_categorical_crossentropy",
-    metrics=ranking_metrics(top_ks=[10, 20], labels_onehot=True),
+    metrics=ranking_metrics(top_ks=[10, 20]),
     weight_tying: bool = True,
     masking: bool = True,
     extra_pre_call: Optional[Block] = None,
@@ -703,10 +738,10 @@ def NextItemPredictionTask(
     if normalize:
         prediction_call = L2Norm().connect(prediction_call)
 
-    pre_metric = None
+    pre_metrics = None
     if len(metrics) > 0:
         max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
-        pre_metric = ItemsPredictionTopK(
+        pre_metrics = ItemsPredictionTopK(
             k=max_k, transform_to_onehot=transform_to_onehot or not sampled_softmax
         )
 
@@ -720,5 +755,5 @@ def NextItemPredictionTask(
         loss=loss,
         metrics=metrics,
         pre=prediction_call,
-        pre_metric=pre_metric,
+        pre_metrics=pre_metrics,
     )
