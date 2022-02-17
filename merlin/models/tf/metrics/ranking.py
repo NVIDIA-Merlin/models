@@ -50,7 +50,6 @@ class RankingMetric(tf.keras.metrics.Metric):
         top_ks: Sequence[int],
         name=None,
         dtype=None,
-        labels_onehot: bool = False,
         **kwargs,
     ):
         super(RankingMetric, self).__init__(name=name, **kwargs)
@@ -78,7 +77,7 @@ class RankingMetric(tf.keras.metrics.Metric):
         # init batch accumulator
         self._build(shape=tf.shape(y_pred))
         # TODO solve applying check_inputs in graph-mode
-        # y_true, y_pred = check_inputs(scores, labels)
+        # y_true, y_pred = check_inputs(y_pred, y_true)
         self._metric(
             scores=tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]]),
             labels=y_true,
@@ -119,8 +118,8 @@ class RankingMetric(tf.keras.metrics.Metric):
 @metrics_registry.register_with_multiple_names("precision_at", "precision")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PrecisionAt(RankingMetric):
-    def __init__(self, top_ks=None, labels_onehot=False, **kwargs):
-        super(PrecisionAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks=None, **kwargs):
+        super(PrecisionAt, self).__init__(top_ks=top_ks, **kwargs)
 
     def _metric(self, scores: tf.Tensor, labels: tf.Tensor, **kwargs) -> tf.Tensor:
         """
@@ -151,8 +150,8 @@ class PrecisionAt(RankingMetric):
 @metrics_registry.register_with_multiple_names("recall_at", "recall")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RecallAt(RankingMetric):
-    def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
-        super(RecallAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks: Sequence[int], **kwargs):
+        super(RecallAt, self).__init__(top_ks=top_ks, **kwargs)
 
     def _metric(self, scores: tf.Tensor, labels: tf.Tensor, **kwargs) -> tf.Tensor:
         """
@@ -199,8 +198,8 @@ class RecallAt(RankingMetric):
 @metrics_registry.register_with_multiple_names("avg_precision_at", "avg_precision", "map")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AvgPrecisionAt(RankingMetric):
-    def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
-        super(AvgPrecisionAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks: Sequence[int], **kwargs):
+        super(AvgPrecisionAt, self).__init__(top_ks=top_ks, **kwargs)
         max_k = tf.reduce_max(self.top_ks)
         self.precision_at = PrecisionAt(top_ks=1 + np.array((range(max_k)))).metric_fn
 
@@ -240,8 +239,8 @@ class AvgPrecisionAt(RankingMetric):
 @metrics_registry.register_with_multiple_names("dcg_at", "dcg")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DCGAt(RankingMetric):
-    def __init__(self, top_ks, labels_onehot=False, **kwargs):
-        super(DCGAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks, **kwargs):
+        super(DCGAt, self).__init__(top_ks=top_ks, **kwargs)
 
     def _metric(
         self, scores: tf.Tensor, labels: tf.Tensor, log_base: int = 2, **kwargs
@@ -286,8 +285,8 @@ class DCGAt(RankingMetric):
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class NDCGAt(RankingMetric):
-    def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
-        super(NDCGAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks: Sequence[int], **kwargs):
+        super(NDCGAt, self).__init__(top_ks=top_ks, **kwargs)
         self.dcg_at = DCGAt(top_ks).metric_fn
 
     def _metric(
@@ -317,9 +316,11 @@ class NDCGAt(RankingMetric):
 
 
 def check_inputs(scores, labels):
-    assert len(tf.shape(scores)) == 2, "scores must be a 2-dimensional tensor"
+    if tf.rank(scores) != 2:
+        raise ValueError(f"scores must be 2-D tensor, (got {scores.shape})")
 
-    assert len(tf.shape(labels)) == 2, "labels must be a 2-dimensional tensor"
+    if tf.rank(labels) != 2:
+        raise ValueError(f"labels must be 2-D tensor, (got {labels.shape})")
 
     scores.get_shape().assert_is_compatible_with(labels.get_shape())
 
