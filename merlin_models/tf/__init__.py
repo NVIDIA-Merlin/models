@@ -78,7 +78,6 @@ from .features.embedding import (
     SequenceEmbeddingFeatures,
     TableConfig,
 )
-from .blocks.queue import FIFOQueue
 from .losses import LossType
 from .metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 from .models.ranking import DCNModel, DLRMModel
