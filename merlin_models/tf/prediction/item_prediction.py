@@ -173,7 +173,7 @@ class ItemRetrievalScorer(Block):
         return self._required_features
 
     def _check_input_from_two_tower(self, inputs):
-        assert set(inputs.keys()) == set(["query", "item"])
+        assert set(inputs.keys()) == {"query", "item"}
 
     def _check_required_context_item_features_are_present(self):
         not_found = list(

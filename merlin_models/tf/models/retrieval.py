@@ -191,15 +191,19 @@ def YoutubeDNNRetrievalModel(
     softmax_temperature: float = 1,
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
 ) -> Model:
-    """
-    Build the Youtube-DNN retrieval model.
-    More details of the model can be found at
-    [Covington et al., 2016](https://dl.acm.org/doi/10.1145/2959100.2959190Covington)
+    """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
 
     Example Usage::
         model = YoutubeDNNRetrievalModel(schema, num_sampled=100)
         model.compile(optimizer="adam")
         model.fit(train_data, epochs=10)
+
+    References
+    ----------
+    [1] Covington, Paul, Jay Adams, and Emre Sargin.
+        "Deep neural networks for youtube recommendations."
+        Proceedings of the 10th ACM conference on recommender systems. 2016.
+
 
     Parameters
     ----------

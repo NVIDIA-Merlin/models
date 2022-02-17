@@ -62,6 +62,41 @@ class AsDenseFeatures(TabularBlock):
         return input_shape
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class RenameFeatures(TabularBlock):
+    def __init__(self, renames: Dict[str, str], **kwargs):
+        super().__init__(**kwargs)
+        self.renames = renames
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+
+        for key, val in inputs.items():
+            if key in self.renames:
+                outputs[self.renames[key]] = val
+            else:
+                outputs[key] = val
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        outputs = {}
+
+        for key, val in input_shape.items():
+            if key in self.renames:
+                outputs[self.renames[key]] = val
+            else:
+                outputs[key] = val
+
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({"renames": self.renames})
+
+        return config
+
+
 @Block.registry.register_with_multiple_names("stochastic-swap-noise", "ssn")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class StochasticSwapNoise(TabularBlock):
