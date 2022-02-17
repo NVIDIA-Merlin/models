@@ -78,6 +78,10 @@ def DCNModel(
     """Create a model using the archicture proposed in DCN V2: Improved Deep & Cross Network [1].
     See Eq. (1) for full-rank and Eq. (2) for low-rank version.
 
+    Example Usage::
+        dcn = DCNModel(schema, depth=2, deep_block=MLPBlock([256, 64]))
+        dcn.compile(optimizer="adam")
+        dcn.fit(train_data, epochs=10)
 
     References
     ----------
@@ -88,6 +92,8 @@ def DCNModel(
 
     Parameters
     ----------
+    schema : Schema
+        The `Schema` with the input features
     depth : int, optional
         Number of cross-layers to be stacked, by default 1
     deep_block : Block, optional
