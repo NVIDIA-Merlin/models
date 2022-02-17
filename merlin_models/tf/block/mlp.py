@@ -33,6 +33,30 @@ def MLPBlock(
     block_name: str = "MLPBlock",
     **kwargs
 ) -> SequentialBlock:
+    """
+    A block that applies a multi-layer perceptron to the input.
+
+    Example usage::
+        mlp = ml.InputBlock(schema).connect(ml.MLPBlock([64, 32]))
+
+    Parameters
+    ----------
+    dimensions: List[int]
+        The number of units in each layer of the MLP.
+    activation: str
+        The activation function to use.
+    use_bias: bool
+        Whether to use a bias in the MLP.
+    dropout: float
+        The dropout rate to use.
+    normalization: str or Layer
+        The normalization layer to use.
+    filter: Schema, Tag, List[str], or Filter
+        The filter to apply to the inputs of the MLP.
+    block_name: str
+        The name of the block.
+    """
+
     block_layers = []
 
     for dim in dimensions:
@@ -58,6 +82,24 @@ def DenseResidualBlock(
     normalization: Optional[Union[str, tf.keras.layers.Layer]] = "batch_norm",
     depth: int = 1,
 ) -> Block:
+    """A block that applies a dense residual block to the input.
+
+    Parameters
+    ----------
+    low_rank_dim: int
+        The dimension of the low rank matrix.
+    activation: str
+        The activation function to use.
+    use_bias: bool
+        Whether to use a bias in the MLP.
+    dropout: float
+        The dropout rate to use.
+    normalization: str or Layer
+        The normalization layer to use.
+    depth: int
+        The number of residual blocks to apply.
+    """
+
     block_layers = []
     block_layers.append(DenseMaybeLowRank(low_rank_dim, activation=None, use_bias=use_bias))
     if dropout:

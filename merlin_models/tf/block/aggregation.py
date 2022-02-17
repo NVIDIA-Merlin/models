@@ -13,11 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import abc
 from enum import Enum
-from typing import Union
+from typing import Union, overload
 
 import tensorflow as tf
 from merlin.schema import Schema, Tags
+from tensorflow.python.keras.layers import Dot
 
 from merlin_models.config.schema import requires_schema
 from merlin_models.tf.core import Block, TabularAggregation
@@ -35,6 +37,16 @@ from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_ke
 @TabularAggregation.registry.register("concat")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ConcatFeatures(TabularAggregation):
+    """Concatenates tensors along one dimension.
+
+    Parameters
+    ----------
+    axis : int
+        The axis to concatenate along.
+    output_dtype : str
+        The dtype of the output tensor.
+    """
+
     def __init__(self, axis=-1, output_dtype=tf.float32, **kwargs):
         super().__init__(**kwargs)
         self.axis = axis
@@ -68,6 +80,16 @@ class ConcatFeatures(TabularAggregation):
 @TabularAggregation.registry.register("stack")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class StackFeatures(TabularAggregation):
+    """Stacks tensors along one dimension.
+
+    Parameters
+    ----------
+    axis : int
+        The axis to stack along.
+    output_dtype : str
+        The dtype of the output tensor.
+    """
+
     def __init__(self, axis=-1, output_dtype=tf.float32, **kwargs):
         super().__init__(**kwargs)
         self.axis = axis
@@ -117,6 +139,8 @@ class ElementwiseFeatureAggregation(TabularAggregation):
 @TabularAggregation.registry.register("sum")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class Sum(TabularAggregation):
+    """Sum tensors along the first dimension."""
+
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
         summed = tf.reduce_sum(list(inputs.values()), axis=0)
 
@@ -246,6 +270,56 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
             config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
 
         return config
+
+
+class TupleAggregation(TabularAggregation, abc.ABC):
+    @overload
+    def __call__(self, left: tf.Tensor, right: tf.Tensor, **kwargs):
+        ...
+
+    @overload
+    def __call__(self, inputs: TabularData, **kwargs):
+        ...
+
+    def __call__(self, inputs: TabularData, *args, **kwargs):
+        if isinstance(inputs, tf.Tensor):
+            left = inputs
+            right = args[0]
+        else:
+            if not len(inputs) == 2:
+                raise ValueError(f"Expected 2 inputs, got {len(inputs)}")
+            left, right = tuple(inputs.values())
+        outputs = super().__call__(left, right, **kwargs)
+
+        return outputs
+
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+        raise NotImplementedError()
+
+
+@TabularAggregation.registry.register_with_multiple_names("cosine", "cosine-similarity")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class CosineSimilarity(TupleAggregation):
+    def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
+        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+        self.dot = Dot(axes=1, normalize=True)
+
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+        out = self.dot([left, right])
+
+        return out
+
+
+@TabularAggregation.registry.register("elementwise-multiply")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ElementWiseMultiply(TupleAggregation):
+    def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
+        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+        out = tf.keras.layers.Multiply()([left, right])
+
+        return out
 
 
 class SequenceAggregation(Enum):
