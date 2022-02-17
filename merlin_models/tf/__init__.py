@@ -31,6 +31,7 @@ from merlin_standard_lib import Schema, Tag
 
 from .. import data
 from ..data.synthetic import SyntheticData
+from . import losses
 from .block.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
@@ -77,6 +78,7 @@ from .features.embedding import (
     TableConfig,
 )
 from .layers.queue import FIFOQueue
+from .losses import LossType
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
 from .prediction.item_prediction import (
     ItemRetrievalScorer,
@@ -174,4 +176,6 @@ __all__ = [
     "PopularityBasedSampler",
     "FIFOQueue",
     "YoutubeDNNRetrieval",
+    "losses",
+    "LossType",
 ]

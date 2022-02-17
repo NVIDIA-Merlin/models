@@ -209,7 +209,11 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     samplers = [inbatch_sampler, cached_batches_sampler]
 
-    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))
+    model = two_tower.connect(
+        ml.ItemRetrievalTask(
+            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr"
+        )
+    )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
@@ -249,7 +253,11 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
         ),
     ]
 
-    model = two_tower.connect(ml.ItemRetrievalTask(softmax_temperature=2, samplers=samplers))
+    model = two_tower.connect(
+        ml.ItemRetrievalTask(
+            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr"
+        )
+    )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
@@ -316,3 +324,30 @@ def test_youtube_dnn_retrieval(
         assert type(losses.history[metric]) is list
     out = model(sequence_testing_data.tf_tensor_dict)
     assert out.shape[-1] == 51997
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
+def test_retrieval_task_inbatch_default_sampler(
+    music_streaming_data: SyntheticData, run_eagerly, ignore_last_batch_on_sample
+):
+    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
+    two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
+
+    batch_size = music_streaming_data.tf_tensor_dict["item_id"].shape[0]
+    assert batch_size == 100
+
+    model = two_tower.connect(
+        ml.ItemRetrievalTask(music_streaming_data.schema, softmax_temperature=2, loss="bpr")
+    )
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    for _ in range(1, 4):
+        output = model(music_streaming_data.tf_tensor_dict, training=True)
+        _, output = model.loss_block.pre.call_targets(output, targets={})
+        expected_num_samples_inbatch = batch_size
+
+        tf.assert_equal(tf.shape(output)[0], batch_size)
+        # Number of negatives plus one positive
+        tf.assert_equal(tf.shape(output)[1], expected_num_samples_inbatch + 1)

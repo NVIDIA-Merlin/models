@@ -18,13 +18,15 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
+from merlin_models.tf.losses import LossType, loss_registry
+
 from ..core import PredictionTask
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class RegressionTask(PredictionTask):
-    DEFAULT_LOSS = tf.keras.losses.MeanSquaredError()
+    DEFAULT_LOSS = "mse"
     DEFAULT_METRICS = (tf.keras.metrics.RootMeanSquaredError,)
 
     def __init__(
@@ -32,7 +34,7 @@ class RegressionTask(PredictionTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss=DEFAULT_LOSS,
+        loss: Optional[LossType] = DEFAULT_LOSS,
         metrics=DEFAULT_METRICS,
         **kwargs,
     ):
@@ -45,7 +47,7 @@ class RegressionTask(PredictionTask):
             **kwargs,
         )
         self.logit = logit or tf.keras.layers.Dense(1, name=self.child_name("logit"))
-        self.loss = loss
+        self.loss = loss_registry.parse(loss)
 
     def _compute_loss(
         self, predictions, targets, sample_weight=None, training: bool = False, **kwargs

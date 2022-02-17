@@ -52,54 +52,68 @@ def InputBlock(
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
     **kwargs,
 ) -> Block:
-    """Input Block to process categorical and continuous input features.
+    """The entry block of the model to process input features from a schema.
+
+    This function creates continuous and embedding layers, and connects them via `ParallelBlock`.
+        If aggregation argument is not set, it returns a dictionary of multiple tensors
+        each corresponds to an input feature.
+        Otherwise, it merges the tensors into one using the aggregation method.
+
+    Example usage::
+
+        mlp = ml.InputBlock(schema).connect(ml.MLPBlock([64, 32]))
 
     Parameters:
     ----------
-        post: Optional[BlockType]
-            Transformations to apply on the inputs after the module is
-            called (so **after** `forward`).
-            Defaults to None
-        aggregation: Optional[TabularAggregationType]
-            Aggregation to apply after processing the  `forward`-method to output a single Tensor.
-            Defaults to None
-        seq: bool
-            Whether to process inputs for sequential model (returns 3-D tensor)
-            or not (returns 2-D tensor). Use `seq=True` to treat the sparse (list) features
-            as sequences (e.g. for sequential recommendation) and `seq=False` to treat sparse
-            features as multi-hot categorical representations.
-            Defaults to False
-        add_continuous_branch: bool
-            If set, add the branch to process continuous features
-            Defaults to True
-        continuous_tags: Optional[Union[TagsType, Tuple[Tag]]]
-            Tags to filter the continuous features
-            Defaults to  (Tag.CONTINUOUS,)
-        continuous_projection: Optional[Block]
-            If set, concatenate all numerical features and projet using the
-            specified Block.
-            Defaults to None
-        add_embedding_branch: bool
-            If set, add the branch to process categorical features
-            Defaults to True
-        categorical_tags: Optional[Union[TagsType, Tuple[Tag]]]
-            Tags to filter the continuous features
-            Defaults to (Tag.CATEGORICAL,)
-        sequential_tags: Optional[Union[TagsType, Tuple[Tag]]]
-            Tags to filter the sparse features
-            Defaults to (Tag.SEQUENCE,)
-        split_sparse: Optional[bool]
-            When True, separate the processing of context (2-D) and sparse features (3-D).
-            Defaults to False
-        masking: Optional[Union[str, MaskSequence]], optional
-            If set, Apply masking to the input embeddings and compute masked labels.
-            Defaults to None
-        seq_aggregator: Block
-            If non-sequential model (seq=False):
-            aggregate the sparse features tensor along the sequence axis.
-            Defaults to SequenceAggregator('mean')
+    schema: Schema
+        Schema of the input data. This Schema object will be automatically generated using
+        [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
+        Next to this, it's also possible to construct it manually.
+    branches: Dict[str, Block], optional
+        Dictionary of branches to use inside the InputBlock.
+    post: Optional[BlockType]
+        Transformations to apply on the inputs after the module is
+        called (so **after** `forward`).
+        Defaults to None
+    aggregation: Optional[TabularAggregationType]
+        Aggregation to apply after processing the  `forward`-method to output a single Tensor.
+        Defaults to None
+    seq: bool
+        Whether to process inputs for sequential model (returns 3-D tensor)
+        or not (returns 2-D tensor). Use `seq=True` to treat the sparse (list) features
+        as sequences (e.g. for sequential recommendation) and `seq=False` to treat sparse
+        features as multi-hot categorical representations.
+        Defaults to False
+    add_continuous_branch: bool
+        If set, add the branch to process continuous features
+        Defaults to True
+    continuous_tags: Optional[Union[TagsType, Tuple[Tag]]]
+        Tags to filter the continuous features
+        Defaults to  (Tag.CONTINUOUS,)
+    continuous_projection: Optional[Block]
+        If set, concatenate all numerical features and projet using the
+        specified Block.
+        Defaults to None
+    add_embedding_branch: bool
+        If set, add the branch to process categorical features
+        Defaults to True
+    categorical_tags: Optional[Union[TagsType, Tuple[Tag]]]
+        Tags to filter the continuous features
+        Defaults to (Tag.CATEGORICAL,)
+    sequential_tags: Optional[Union[TagsType, Tuple[Tag]]]
+        Tags to filter the sparse features
+        Defaults to (Tag.SEQUENCE,)
+    split_sparse: Optional[bool]
+        When True, separate the processing of context (2-D) and sparse features (3-D).
+        Defaults to False
+    masking: Optional[Union[str, MaskSequence]], optional
+        If set, Apply masking to the input embeddings and compute masked labels.
+        Defaults to None
+    seq_aggregator: Block
+        If non-sequential model (seq=False):
+        aggregate the sparse features tensor along the sequence axis.
+        Defaults to SequenceAggregator('mean')
     """
-
     branches = branches or {}
 
     if split_sparse:

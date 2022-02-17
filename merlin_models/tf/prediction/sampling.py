@@ -21,7 +21,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.ops import embedding_ops
 
-from ..core import EmbeddingWithMetadata, Tag
+from ..core import EmbeddingWithMetadata
 from ..layers.queue import FIFOQueue
 from ..typing import TabularData
 
@@ -69,7 +69,7 @@ class ItemSampler(abc.ABC, Layer):
 
 
 class InBatchSampler(ItemSampler):
-    """Provides in-batch sampling [1] for two-tower item retrieval
+    """Provides in-batch sampling [1]_ for two-tower item retrieval
     models. The implementation is very simple, as it
     just returns the current item embeddings and metadata, but it is necessary to have
     `InBatchSampler` under the same interface of other more advanced samplers
@@ -84,8 +84,8 @@ class InBatchSampler(ItemSampler):
 
     References
     ----------
-    [1] Yi, Xinyang, et al. "Sampling-bias-corrected neural modeling for large corpus item
-    recommendations." Proceedings of the 13th ACM Conference on Recommender Systems. 2019.
+    .. [1] Yi, Xinyang, et al. "Sampling-bias-corrected neural modeling for large corpus item
+       recommendations." Proceedings of the 13th ACM Conference on Recommender Systems. 2019.
 
     Parameters
     ----------
@@ -155,7 +155,7 @@ class InBatchSampler(ItemSampler):
 
 
 class CachedCrossBatchSampler(ItemSampler):
-    """Provides efficient cached cross-batch [1] / inter-batch [2] negative sampling
+    """Provides efficient cached cross-batch [1]_ / inter-batch [2]_ negative sampling
     for two-tower item retrieval model. The caches consists of a fixed capacity FIFO queue
     which keeps the item embeddings from the last N batches. All items in the queue are
     sampled as negatives for upcoming batches.
@@ -173,13 +173,13 @@ class CachedCrossBatchSampler(ItemSampler):
 
     References
     ----------
-    [1] Wang, Jinpeng, Jieming Zhu, and Xiuqiang He. "Cross-Batch Negative Sampling
-    for Training Two-Tower Recommenders." Proceedings of the 44th International ACM
-    SIGIR Conference on Research and Development in Information Retrieval. 2021.
+    .. [1] Wang, Jinpeng, Jieming Zhu, and Xiuqiang He. "Cross-Batch Negative Sampling
+       for Training Two-Tower Recommenders." Proceedings of the 44th International ACM
+       SIGIR Conference on Research and Development in Information Retrieval. 2021.
 
-    [2] Zhou, Chang, et al. "Contrastive learning for debiased candidate generation
-    in large-scale recommender systems." Proceedings of the 27th ACM SIGKDD Conference
-    on Knowledge Discovery & Data Mining. 2021.
+    .. [2] Zhou, Chang, et al. "Contrastive learning for debiased candidate generation
+       in large-scale recommender systems." Proceedings of the 27th ACM SIGKDD Conference
+       on Knowledge Discovery & Data Mining. 2021.
 
     Parameters
     ----------
@@ -320,7 +320,7 @@ class CachedUniformSampler(CachedCrossBatchSampler):
     As the queues reach their capacity of unique items, new items will replace the
     first items added to the queue.
 
-    This is a cached implementation of [1], where those authors proposed combining
+    This is a cached implementation of [1]_, where those authors proposed combining
     in-batch sampling (our `InBatchSampler()`) with uniform sampling. Differently from
     [1] which requires a separate dataset with the all unique items (and corresponding features)
     to generate the item embeddings, our streaming approach in `CachedUniformSampler` keeps
@@ -332,8 +332,8 @@ class CachedUniformSampler(CachedCrossBatchSampler):
 
     References
     ----------
-    [1] Yang, Ji, et al. "Mixed negative sampling for learning two-tower neural networks in
-    recommendations." Companion Proceedings of the Web Conference 2020. 2020.
+    .. [1] Yang, Ji, et al. "Mixed negative sampling for learning two-tower neural networks in
+       recommendations." Companion Proceedings of the Web Conference 2020. 2020.
 
     Parameters
     ----------
@@ -343,13 +343,26 @@ class CachedUniformSampler(CachedCrossBatchSampler):
         Whether should include the last batch in the sampling. By default `False`,
         as for sampling from the current batch we recommend `InBatchSampler()`, which
         allows computing gradients for in-batch negative items
+    item_id_feature_name: str
+        Name of the column containing the item ids
+        Defaults to `item_id`
     """
 
-    item_id_feature_name = str(Tag.ITEM_ID)
+    def __init__(
+        self,
+        capacity: int,
+        ignore_last_batch_on_sample: bool = True,
+        item_id_feature_name: str = "item_id",
+        **kwargs,
+    ):
+        super().__init__(
+            capacity=capacity, ignore_last_batch_on_sample=ignore_last_batch_on_sample, **kwargs
+        )
+        self.item_id_feature_name = item_id_feature_name
 
     def _check_inputs(self, inputs):
         assert (
-            str(Tag.ITEM_ID) in inputs["metadata"]
+            str(self.item_id_feature_name) in inputs["metadata"]
         ), "The 'item_id' metadata feature is required by UniformSampler."
 
     def add(
@@ -500,7 +513,9 @@ class PopularityBasedSampler(ItemSampler):
     seed: int
         Fix the random values returned by the sampler to ensure reproducibility
         Defaults to None
-
+    item_id_feature_name: str
+        Name of the column containing the item ids
+        Defaults to `item_id`
     """
 
     def __init__(
@@ -509,12 +524,14 @@ class PopularityBasedSampler(ItemSampler):
         min_id: int = 0,
         max_num_samples: int = 100,
         seed: int = None,
+        item_id_feature_name: str = "item_id",
         **kwargs,
     ):
         super().__init__(max_num_samples=max_num_samples, **kwargs)
         self.max_id = max_id
         self.min_id = min_id
         self.seed = seed
+        self.item_id_feature_name = item_id_feature_name
 
         assert (
             self.max_num_samples <= self.max_id
@@ -523,7 +540,7 @@ class PopularityBasedSampler(ItemSampler):
 
     def _check_inputs(self, inputs):
         assert (
-            str(Tag.ITEM_ID) in inputs["metadata"]
+            self.item_id_feature_name in inputs["metadata"]
         ), "The 'item_id' metadata feature is required by PopularityBasedSampler."
 
     def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=True):
@@ -546,8 +563,8 @@ class PopularityBasedSampler(ItemSampler):
         items_embeddings = self.sample(item_weights)
         return items_embeddings
 
-    def _required_features():
-        return [str(Tag.ITEM_ID)]
+    def _required_features(self):
+        return [self.item_id_feature_name]
 
     def sample(self, item_weights) -> EmbeddingWithMetadata:
         sampled_ids, _, _ = tf.random.log_uniform_candidate_sampler(
@@ -566,5 +583,5 @@ class PopularityBasedSampler(ItemSampler):
 
         return EmbeddingWithMetadata(
             items_embeddings,
-            metadata={str(Tag.ITEM_ID): tf.cast(sampled_ids, tf.int32)},
+            metadata={self.item_id_feature_name: tf.cast(sampled_ids, tf.int32)},
         )
