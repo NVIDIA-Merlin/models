@@ -82,7 +82,7 @@ from .blocks.queue import FIFOQueue
 from .losses import LossType
 from .metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 from .models.ranking import DCNModel, DLRMModel
-from .models.retrieval import TwoTowerModel, YoutubeDNNRetrievalModel
+from .models.retrieval import MatrixFactorizationModel, TwoTowerModel, YoutubeDNNRetrievalModel
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
 from .prediction.item_prediction import (
     ItemRetrievalScorer,
@@ -177,6 +177,7 @@ __all__ = [
     "FIFOQueue",
     "YoutubeDNNRetrievalModel",
     "TwoTowerModel",
+    "MatrixFactorizationModel",
     "DLRMModel",
     "DCNModel",
     "losses",
