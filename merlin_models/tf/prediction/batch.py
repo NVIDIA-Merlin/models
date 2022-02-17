@@ -60,7 +60,7 @@ class ModelEncode:
                     index=df.index,
                 ),
             ]
-        )
+        ).reset_index(drop=True)
 
         # Return result
         return new_df
