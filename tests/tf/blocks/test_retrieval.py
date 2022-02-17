@@ -13,14 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os.path
+import os
 
+import numpy as np
 import pytest
 from merlin.schema import Tags
+import tensorflow as tf
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.blocks.retrieval import ElementWiseMultiply
+from merlin_models.tf.blocks.aggregation import ElementWiseMultiply
 from merlin_models.tf.utils import testing_utils
 
 
@@ -36,7 +38,7 @@ def test_matrix_factorization_block(music_streaming_data: SyntheticData):
 def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
     import pandas as pd
 
-    from merlin_models.tf.blocks.retrieval import CosineSimilarity
+    from merlin_models.tf.blocks.aggregation import CosineSimilarity
 
     mf = ml.MatrixFactorizationBlock(
         music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
@@ -67,7 +69,6 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
         assert len(df) == 10001
     except ImportError:
         pass
-
 
 
 def test_elementwisemultiply():

@@ -27,8 +27,9 @@ from ..blocks.aggregation import SequenceAggregation, SequenceAggregator
 from ..blocks.inputs import InputBlock
 from ..blocks.mlp import MLPBlock
 from ..blocks.transformations import L2Norm
-from ..core import Block, EmbeddingWithMetadata, SequentialBlock
+from ..core import Block, EmbeddingWithMetadata
 from ..losses.loss_base import LossType
+from ..metrics.ranking import ranking_metrics
 from ..prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from ..typing import TabularData
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
