@@ -29,13 +29,13 @@ from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
 from merlin_models.config.schema import SchemaMixin
+from merlin_models.utils.doc_utils import docstring_parameter
+from merlin_models.utils.misc_utils import filter_kwargs
 from merlin_models.utils.registry import Registry, RegistryMixin
 from merlin_models.utils.schema import (
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
 )
-from merlin_standard_lib.utils.doc_utils import docstring_parameter
-from merlin_standard_lib.utils.misc_utils import filter_kwargs
 
 from .typing import TabularData, TensorOrTabularData
 from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock

@@ -1,11 +1,8 @@
 # import tensorflow as tf
 #
 # import merlin_models.tf as ml
-# import merlin_standard_lib as msl
 # from merlin_models.data import SyntheticDataset
-# from merlin.schema import Schema
-# from merlin.schema import Tags
-
+# from merlin.schema import Schema, Tags
 #
 # # RETRIEVAL
 #

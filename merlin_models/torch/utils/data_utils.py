@@ -175,7 +175,7 @@ if dependencies.is_gpu_dataloader_available():
     from nvtabular.loader.torch import DLDataLoader
     from nvtabular.loader.torch import TorchAsyncItr as DataLoader
 
-    from merlin_standard_lib.utils.misc_utils import validate_dataset
+    from merlin_models.utils.misc_utils import validate_dataset
 
     class DLDataLoaderWrapper(DLDataLoader):
         """

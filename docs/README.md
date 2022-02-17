@@ -25,7 +25,6 @@ Refer to the following instructions to build the docs.
 
    ```sh
    sphinx-apidoc -f -o source/api ../merlin_models
-   sphinx-apidoc -f -o source/api/merlin_standard_lib ../merlin_standard_lib
    ```
 
 4. Navigate to `models/docs/` and transform the documentation to HTML output:

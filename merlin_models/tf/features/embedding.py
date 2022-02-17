@@ -25,12 +25,12 @@ from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 from merlin_models.tf.block.transformations import AsSparseFeatures
+from merlin_models.utils.doc_utils import docstring_parameter
 from merlin_models.utils.schema import (
     categorical_cardinalities,
     categorical_domains,
     get_embedding_sizes_from_schema,
 )
-from merlin_standard_lib.utils.doc_utils import docstring_parameter
 
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
