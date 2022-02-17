@@ -29,8 +29,8 @@ def test_matrix_factorization_block(music_streaming_data: SyntheticData):
 
     outputs = mf(music_streaming_data.tf_tensor_dict)
 
-    assert "user_id" in outputs
-    assert "item_id" in outputs
+    assert "query" in outputs
+    assert "item" in outputs
 
 
 def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
