@@ -1390,21 +1390,11 @@ class ParallelBlock(TabularBlock):
             )  # type: ignore
             parsed_to_merge: Dict[str, TabularBlock] = {}
             for key, val in to_merge.items():
-                if not getattr(val, "is_tabular", False):
-                    if not hasattr(val, "as_tabular"):
-                        val = SequentialBlock([val, AsTabular(key)], copy_layers=False)
-                    else:
-                        val = val.as_tabular(key)
                 parsed_to_merge[key] = val
             self.parallel_layers = parsed_to_merge
         elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
             parsed: List[TabularBlock] = []
             for i, inp in enumerate(inputs):
-                if not getattr(inp, "is_tabular", False):
-                    if not hasattr(inp, "as_tabular"):
-                        val = SequentialBlock([inp, AsTabular(str(i))], copy_layers=False)
-                    else:
-                        inp = inp.as_tabular(str(i))
                 parsed.append(inp)
             self.parallel_layers = parsed
         else:
@@ -2195,6 +2185,26 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
             config["task_weights"] = self.task_weights
 
         return config
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ModelBlock(Block, tf.keras.Model):
+    def __init__(self, block: Block, **kwargs):
+        super().__init__(**kwargs)
+        self.block = block
+
+    def call(self, inputs, **kwargs):
+        outputs = self.block(inputs, **kwargs)
+        return outputs
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        block = tf.keras.utils.deserialize_keras_object(config.pop("block"))
+
+        return cls(block, **config)
+
+    def get_config(self):
+        return {"block": tf.keras.utils.serialize_keras_object(self.block)}
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

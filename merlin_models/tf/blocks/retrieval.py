@@ -20,7 +20,7 @@ import tensorflow as tf
 
 from merlin_standard_lib import Schema, Tag
 
-from ..core import Block, BlockType, ParallelBlock, SequentialBlock
+from ..core import Block, BlockType, ModelBlock, ParallelBlock
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from .inputs import InputBlock
 from .transformations import RenameFeatures
@@ -59,7 +59,12 @@ class RetrievalMixin:
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class TwoTowerBlock(ParallelBlock, RetrievalMixin):
+class TowerBlock(ModelBlock):
+    pass
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class TwoTowerBlock(ParallelBlock, RetrievalMixin, tf.keras.Model):
     """
     Builds the Two-tower architecture, as proposed in the following
     `paper https://doi.org/10.1145/3298689.3346996`_ [Xinyang19].
@@ -132,15 +137,19 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
             query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
             query_tower = query_inputs.connect(query_tower)
 
-        super().__init__({"query": query_tower, "item": _item_tower}, post=post, **kwargs)
+        super().__init__(
+            {"query": TowerBlock(query_tower), "item": TowerBlock(_item_tower)}, post=post, **kwargs
+        )
 
-    def query_block(self) -> SequentialBlock:
-        return self.select_by_name("query")[0]
+    def query_tower(self) -> TowerBlock:
+        query_tower = self["query"]
 
-    def item_block(self) -> SequentialBlock:
-        item_block = self.select_by_name("item")
+        return query_tower
 
-        return item_block[0]
+    def item_tower(self) -> TowerBlock:
+        item_tower = self["item"]
+
+        return item_tower
 
     @classmethod
     def from_config(cls, config, custom_objects=None):

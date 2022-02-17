@@ -91,6 +91,23 @@ def test_two_tower_block(testing_data: SyntheticData):
         assert list(outputs[key].shape) == [100, 128]
 
 
+def test_two_tower_block_tower_save(testing_data: SyntheticData, tmp_path):
+    two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
+    two_tower(testing_data.tf_tensor_dict)
+
+    query_tower = two_tower.query_tower()
+    query_tower.save(str(tmp_path / "query_tower"))
+    query_tower_copy = tf.keras.models.load_model(str(tmp_path / "query_tower"))
+    weights = zip(query_tower.get_weights(), query_tower_copy.get_weights())
+    assert all([np.array_equal(w1, w2) for w1, w2 in weights])
+
+    item_tower = two_tower.item_tower()
+    item_tower.save(str(tmp_path / "item_tower"))
+    item_tower_copy = tf.keras.models.load_model(str(tmp_path / "item_tower"))
+    weights = zip(item_tower.get_weights(), item_tower_copy.get_weights())
+    assert all([np.array_equal(w1, w2) for w1, w2 in weights])
+
+
 def test_two_tower_block_serialization(testing_data: SyntheticData):
     two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
     copy_two_tower = testing_utils.assert_serialization(two_tower)
