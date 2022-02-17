@@ -26,45 +26,21 @@ from .inputs import InputBlock
 from .transformations import RenameFeatures
 
 
-def TwoTowerBlock(
-    schema: Schema,
-    query_tower: Block,
-    item_tower: Optional[Block] = None,
-    query_tower_tag=Tags.USER,
-    item_tower_tag=Tags.ITEM,
-    embedding_dim_default: Optional[int] = 64,
-    post: Optional[BlockType] = None,
-    **kwargs,
-) -> ParallelBlock:
-class RetrievalMixin:
-    def query_block(self) -> Block:
-        raise NotImplementedError()
-
-    def item_block(self) -> Block:
-        raise NotImplementedError()
-
-    @classmethod
-    def load_query_block(cls, model_path: str) -> Block:
-        model = tf.keras.models.load_model(model_path)
-        tower = model.block.layers[0].query_block()
-
-        return tower
-
-    @classmethod
-    def load_item_block(cls, model_path: str) -> Block:
-        model = tf.keras.models.load_model(model_path)
-        tower = model.block.layers[0].item_block()
-
-        return tower
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class TowerBlock(ModelBlock):
     pass
 
 
+class RetrievalMixin:
+    def query_block(self) -> TowerBlock:
+        raise NotImplementedError()
+
+    def item_block(self) -> TowerBlock:
+        raise NotImplementedError()
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class TwoTowerBlock(ParallelBlock, RetrievalMixin, tf.keras.Model):
+class TwoTowerBlock(ParallelBlock, RetrievalMixin):
     """
     Builds the Two-tower architecture, as proposed in the following
     `paper https://doi.org/10.1145/3298689.3346996`_ [Xinyang19].
@@ -141,12 +117,12 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin, tf.keras.Model):
             {"query": TowerBlock(query_tower), "item": TowerBlock(_item_tower)}, post=post, **kwargs
         )
 
-    def query_tower(self) -> TowerBlock:
+    def query_block(self) -> TowerBlock:
         query_tower = self["query"]
 
         return query_tower
 
-    def item_tower(self) -> TowerBlock:
+    def item_block(self) -> TowerBlock:
         item_tower = self["item"]
 
         return item_tower

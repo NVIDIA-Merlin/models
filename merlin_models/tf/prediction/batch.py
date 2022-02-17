@@ -7,7 +7,7 @@ import tensorflow as tf
 from merlin_models.loader.dispatch import HAS_GPU, DataFrameType, _concat_columns, get_lib
 from merlin_standard_lib import Schema, Tag
 
-from ..core import Block, Model
+from ..core import Block, Model, RetrievalModel
 from ..dataset import Dataset
 
 
@@ -72,7 +72,7 @@ class ModelEncode:
 class TFModelEncode(ModelEncode):
     def __init__(
         self,
-        model: Model,
+        model: tp.Union[Model, tf.keras.Model],
         output_names: tp.List[str] = None,
         batch_size: int = 512,
         save_path: tp.Optional[str] = None,
@@ -113,17 +113,15 @@ class ItemEmbeddings(TFModelEncode):
     def __init__(
         self, model: Model, dim: int, batch_size: int = 512, save_path: tp.Optional[str] = None
     ):
-        block_load_func = model.block.first.load_item_block
         item_block = model.block.first.item_block()
         schema = item_block.schema
         output_names = [str(i) for i in range(dim)]
 
         super().__init__(
-            model,
+            item_block,
             output_names,
             save_path=save_path,
             batch_size=batch_size,
-            block_load_func=block_load_func,
             schema=schema,
             output_concat_func=np.concatenate,
         )
@@ -131,19 +129,21 @@ class ItemEmbeddings(TFModelEncode):
 
 class QueryEmbeddings(TFModelEncode):
     def __init__(
-        self, model: Model, dim: int, batch_size: int = 512, save_path: tp.Optional[str] = None
+        self,
+        model: RetrievalModel,
+        dim: int,
+        batch_size: int = 512,
+        save_path: tp.Optional[str] = None,
     ):
-        block_load_func = model.block.first.load_query_block
         query_block = model.block.first.query_block()
         schema = query_block.schema
         output_names = [str(i) for i in range(dim)]
 
         super().__init__(
-            model,
+            query_block,
             output_names,
             save_path=save_path,
             batch_size=batch_size,
-            block_load_func=block_load_func,
             schema=schema,
             output_concat_func=np.concatenate,
         )

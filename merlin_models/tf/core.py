@@ -2197,6 +2197,10 @@ class ModelBlock(Block, tf.keras.Model):
         outputs = self.block(inputs, **kwargs)
         return outputs
 
+    @property
+    def schema(self) -> Schema:
+        return self.block.schema
+
     @classmethod
     def from_config(cls, config, custom_objects=None):
         block = tf.keras.utils.deserialize_keras_object(config.pop("block"))
@@ -2419,14 +2423,6 @@ class RetrievalBlock(Protocol):
         ...
 
     def item_block(self) -> Block:
-        ...
-
-    @classmethod
-    def load_query_block(cls, model_path: str) -> Block:
-        ...
-
-    @classmethod
-    def load_item_block(cls, model_path: str) -> Block:
         ...
 
 
