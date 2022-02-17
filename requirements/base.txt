@@ -1,5 +1,5 @@
 numpy>=1.17.0
 tqdm>=4.27
 pyarrow>=1.0
-git+https://github.com/NVIDIA-Merlin/core.git
+merlin-core@git+https://github.com/NVIDIA-Merlin/core.git
 
