@@ -17,6 +17,7 @@ import math
 import os
 from typing import Dict
 
+import numpy as np
 from merlin.schema import ColumnSchema, Schema, Tags
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
@@ -42,9 +43,18 @@ def create_categorical_column(name, num_items, tags=None, properties=None):
     return ColumnSchema(name=name, tags=tags, properties=properties)
 
 
-def create_continuous_column():
-    # TODO
-    return None
+def create_continuous_column(
+    name, dtype=np.float32, min_value=None, max_value=None, tags=None, properties=None
+):
+    properties = properties or {}
+    value_count = {}
+    if min_value is not None:
+        value_count["min"] = min_value
+    if max_value is not None:
+        value_count["max"] = max_value
+    if value_count:
+        properties["value_count"] = value_count
+    return ColumnSchema(name=name, tags=tags, properties=properties, dtype=dtype)
 
 
 def filter_dict_by_schema(input_dict, schema):
