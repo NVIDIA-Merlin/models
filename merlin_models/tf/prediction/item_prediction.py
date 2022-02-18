@@ -17,12 +17,12 @@ import logging
 from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
+from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 from tensorflow.python.ops import embedding_ops
 
-from merlin_standard_lib import Schema, Tag
-
 from ...utils.constants import MIN_FLOAT
+from ...utils.schema import categorical_cardinalities
 from ..block.aggregation import SequenceAggregation, SequenceAggregator
 from ..block.inputs import InputBlock
 from ..block.mlp import MLPBlock
@@ -92,8 +92,8 @@ class ItemsPredictionWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
-        self.item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
-        self.num_classes = schema.categorical_cardinalities()[self.item_id_feature_name]
+        self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        self.num_classes = categorical_cardinalities(schema)[self.item_id_feature_name]
 
     def build(self, input_shape):
         self.bias = self.add_weight(
@@ -197,6 +197,7 @@ class ItemRetrievalScorer(Block):
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs["query"]), uses dot product to score
             the positive item (inputs["item"] or  self.context.get_embedding(self.item_column))
+
         Parameters
         ----------
         inputs : Union[tf.Tensor, TabularData]
@@ -391,7 +392,7 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
-    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
+    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     if samplers is None or len(samplers) == 0:
         samplers = (InBatchSampler(),)
 
@@ -523,8 +524,8 @@ def ItemsPredictionSampled(
             and sampled negatives of shape (bs, num_sampled+1), as well as the related logits.
             During evaluation, returns the input tensor of true class, and the related logits.
     """
-    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
-    num_classes = schema.categorical_cardinalities()[item_id_feature_name]
+    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    num_classes = categorical_cardinalities(schema)[item_id_feature_name]
     samplers = PopularityBasedSampler(
         max_num_samples=num_sampled,
         max_id=num_classes,
@@ -611,7 +612,7 @@ def NextItemPredictionTask(
         PredictionTask
             The next item prediction task
     """
-    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
+    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
 
     if sampled_softmax:
         prediction_call = ItemsPredictionSampled(

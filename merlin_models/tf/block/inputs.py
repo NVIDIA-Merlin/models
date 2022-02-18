@@ -17,8 +17,7 @@
 import logging
 from typing import Dict, Optional, Tuple, Union
 
-from merlin_standard_lib import Schema, Tag
-from merlin_standard_lib.schema.tag import TagsType
+from merlin.schema import Schema, Tags, TagsType
 
 from ..core import Block, BlockType, ParallelBlock, TabularAggregationType
 from ..features.continuous import ContinuousFeatures
@@ -41,12 +40,12 @@ def InputBlock(
     aggregation: Optional[TabularAggregationType] = None,
     seq: bool = False,
     add_continuous_branch: bool = True,
-    continuous_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CONTINUOUS,),
+    continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
     continuous_projection: Optional[Block] = None,
     add_embedding_branch: bool = True,
     embedding_options: EmbeddingOptions = EmbeddingOptions(),
-    categorical_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.CATEGORICAL,),
-    sequential_tags: Optional[Union[TagsType, Tuple[Tag]]] = (Tag.SEQUENCE,),
+    categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
+    sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
     split_sparse: bool = False,
     masking: Optional[Union[str, MaskingBlock]] = None,
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
@@ -87,9 +86,9 @@ def InputBlock(
     add_continuous_branch: bool
         If set, add the branch to process continuous features
         Defaults to True
-    continuous_tags: Optional[Union[TagsType, Tuple[Tag]]]
+    continuous_tags: Optional[Union[TagsType, Tuple[Tags]]]
         Tags to filter the continuous features
-        Defaults to  (Tag.CONTINUOUS,)
+        Defaults to  (Tags.CONTINUOUS,)
     continuous_projection: Optional[Block]
         If set, concatenate all numerical features and projet using the
         specified Block.
@@ -97,12 +96,12 @@ def InputBlock(
     add_embedding_branch: bool
         If set, add the branch to process categorical features
         Defaults to True
-    categorical_tags: Optional[Union[TagsType, Tuple[Tag]]]
+    categorical_tags: Optional[Union[TagsType, Tuple[Tags]]]
         Tags to filter the continuous features
-        Defaults to (Tag.CATEGORICAL,)
-    sequential_tags: Optional[Union[TagsType, Tuple[Tag]]]
+        Defaults to (Tags.CATEGORICAL,)
+    sequential_tags: Optional[Union[TagsType, Tuple[Tags]]]
         Tags to filter the sparse features
-        Defaults to (Tag.SEQUENCE,)
+        Defaults to (Tags.SEQUENCE,)
     split_sparse: Optional[bool]
         When True, separate the processing of context (2-D) and sparse features (3-D).
         Defaults to False
@@ -117,7 +116,8 @@ def InputBlock(
     branches = branches or {}
 
     if split_sparse:
-        sparse_schema, context_schema = schema.split_by_tag(sequential_tags)
+        sparse_schema = schema.select_by_tag(sequential_tags)
+        context_schema = schema.remove_by_tag(sequential_tags)
         if not sparse_schema:
             raise ValueError(
                 "Please make sure that schema has features tagged as 'sequence' when"

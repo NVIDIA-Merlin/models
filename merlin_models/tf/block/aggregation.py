@@ -18,13 +18,14 @@ from enum import Enum
 from typing import Union, overload
 
 import tensorflow as tf
+from merlin.schema import Schema, Tags
 from tensorflow.python.keras.layers import Dot
 
 from merlin_models.config.schema import requires_schema
 from merlin_models.tf.core import Block, TabularAggregation
 from merlin_models.tf.typing import TabularData
 from merlin_models.tf.utils import tf_utils
-from merlin_standard_lib import Schema
+from merlin_models.utils.schema import schema_to_tensorflow_metadata_json
 
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
@@ -247,7 +248,8 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
         self._expand_non_sequential_features(inputs)
         self._check_input_shapes_equal(inputs)
 
-        other_inputs = {k: v for k, v in inputs.items() if k != schema.item_id_column_name}
+        item_id_column = schema.select_by_tag(Tags.ITEM_ID).first.name
+        other_inputs = {k: v for k, v in inputs.items() if k != item_id_column}
         # Sum other inputs when there are multiple features.
         if len(other_inputs) > 1:
             other_inputs = tf.reduce_sum(self.stack(other_inputs), axis=0)
@@ -265,7 +267,7 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
     def get_config(self):
         config = super().get_config()
         if self.schema:
-            config["schema"] = self.schema.to_json()
+            config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
 
         return config
 

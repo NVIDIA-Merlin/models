@@ -47,7 +47,7 @@ def social_data() -> SyntheticData:
 @pytest.fixture
 def testing_data() -> SyntheticData:
     data = SyntheticData("testing", num_rows=100, read_data_fn=read_data)
-    data._schema = data.schema.remove_by_name(["session_id", "session_start", "day_idx"])
+    data._schema = data.schema.without(["session_id", "session_start", "day_idx"])
 
     return data
 

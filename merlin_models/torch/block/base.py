@@ -23,7 +23,7 @@ from typing import List, Optional, Union
 import torch
 from torch.nn import Module
 
-from merlin_standard_lib.utils.misc_utils import filter_kwargs
+from merlin_models.utils.misc_utils import filter_kwargs
 
 from ..utils import torch_utils
 

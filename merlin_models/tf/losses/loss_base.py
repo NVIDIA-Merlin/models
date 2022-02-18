@@ -18,7 +18,7 @@ from typing import Union
 
 import tensorflow as tf
 
-from merlin_standard_lib import Registry, RegistryMixin
+from merlin_models.utils.registry import Registry, RegistryMixin
 
 LossType = Union[str, tf.keras.losses.Loss]
 

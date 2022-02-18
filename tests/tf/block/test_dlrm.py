@@ -15,10 +15,10 @@
 #
 
 import pytest
+from merlin.schema import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_standard_lib import Tag
 
 
 def test_dlrm_block(testing_data: SyntheticData):
@@ -45,7 +45,7 @@ def test_dlrm_block_no_top_block(testing_data: SyntheticData):
 
 
 def test_dlrm_block_no_continuous_features(testing_data: SyntheticData):
-    schema = testing_data.schema.remove_by_tag(Tag.CONTINUOUS)
+    schema = testing_data.schema.remove_by_tag(Tags.CONTINUOUS)
     dlrm = ml.DLRMBlock(schema, embedding_dim=64, top_block=ml.MLPBlock([32]))
     outputs = dlrm(testing_data.tf_tensor_dict)
 
@@ -53,7 +53,7 @@ def test_dlrm_block_no_continuous_features(testing_data: SyntheticData):
 
 
 def test_dlrm_block_no_categ_features(testing_data: SyntheticData):
-    schema = testing_data.schema.remove_by_tag(Tag.CATEGORICAL)
+    schema = testing_data.schema.remove_by_tag(Tags.CATEGORICAL)
     with pytest.raises(ValueError) as excinfo:
         ml.DLRMBlock(
             schema, embedding_dim=64, bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([16])
@@ -62,7 +62,7 @@ def test_dlrm_block_no_categ_features(testing_data: SyntheticData):
 
 
 def test_dlrm_block_single_categ_feature(testing_data: SyntheticData):
-    schema = testing_data.schema.select_by_tag(Tag.ITEM_ID)
+    schema = testing_data.schema.select_by_tag(Tags.ITEM_ID)
     dlrm = ml.DLRMBlock(schema, embedding_dim=64, top_block=ml.MLPBlock([32]))
     outputs = dlrm(testing_data.tf_tensor_dict)
 

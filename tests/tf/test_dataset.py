@@ -19,12 +19,13 @@ import numpy as np
 import pandas as pd
 import pytest
 import tensorflow as tf
+from merlin.core.dispatch import make_df
+from merlin.io.dataset import Dataset
 from sklearn.metrics import roc_auc_score
 
 import merlin_models.tf as ml
 import merlin_models.tf.dataset as tf_dataloader
 from merlin_models.data.synthetic import SyntheticData
-from merlin_models.loader.dispatch import _dd_from_df, _make_df
 
 
 def test_nested_list():
@@ -42,7 +43,7 @@ def test_nested_list():
     )
 
     train_dataset = tf_dataloader.Dataset(
-        _dd_from_df(df),
+        Dataset(df),
         cont_names=["data", "data2"],
         label_names=["label"],
         batch_size=batch_size,
@@ -77,7 +78,7 @@ def test_shuffling():
     df = pd.DataFrame({"a": np.asarray(range(num_rows)), "b": np.asarray([0] * num_rows)})
 
     train_dataset = tf_dataloader.Dataset(
-        _dd_from_df(df), cont_names=["a"], label_names=["b"], batch_size=batch_size, shuffle=True
+        Dataset(df), cont_names=["a"], label_names=["b"], batch_size=batch_size, shuffle=True
     )
 
     batch = next(iter(train_dataset))
@@ -93,7 +94,7 @@ def test_shuffling():
 @pytest.mark.parametrize("drop_last", [True, False])
 @pytest.mark.parametrize("num_rows", [100])
 def test_tf_drp_reset(tmpdir, batch_size, drop_last, num_rows):
-    df = _make_df(
+    df = make_df(
         {
             "cat1": [1] * num_rows,
             "cat2": [2] * num_rows,
@@ -139,7 +140,7 @@ def test_tf_drp_reset(tmpdir, batch_size, drop_last, num_rows):
 
 
 def test_tf_catname_ordering(tmpdir):
-    df = _make_df(
+    df = make_df(
         {
             "cat1": [1] * 100,
             "cat2": [2] * 100,
@@ -175,7 +176,7 @@ def test_tf_catname_ordering(tmpdir):
 
 
 def test_tf_map(tmpdir):
-    df = _make_df(
+    df = make_df(
         {
             "cat1": [1] * 100,
             "cat2": [2] * 100,
@@ -221,10 +222,10 @@ def test_validater(batch_size):
     n_samples = 9
     rand = np.random.RandomState(0)
 
-    gdf = _make_df({"a": rand.randn(n_samples), "label": rand.randint(2, size=n_samples)})
+    gdf = make_df({"a": rand.randn(n_samples), "label": rand.randint(2, size=n_samples)})
 
     dataloader = tf_dataloader.Dataset(
-        _dd_from_df(gdf),
+        Dataset(gdf),
         batch_size=batch_size,
         cat_names=[],
         cont_names=["a"],
@@ -275,7 +276,7 @@ def test_model_with_sparse_inputs(music_streaming_data: SyntheticData):
         }
     )
     train_dataset = tf_dataloader.Dataset(
-        _dd_from_df(df),
+        Dataset(df),
         cat_names=["user_id", "item_genres"],
         batch_size=3,
         shuffle=False,

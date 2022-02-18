@@ -16,16 +16,16 @@
 
 import pytest
 import tensorflow as tf
+from merlin.schema import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_standard_lib import Tag
 
 
 @pytest.mark.parametrize("mask_block", [ml.CausalLanguageModeling, ml.MaskedLanguageModeling])
 def test_masking_block(sequence_testing_data: SyntheticData, mask_block):
 
-    schema_list = sequence_testing_data.schema.select_by_tag(Tag.SEQUENCE)
+    schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
     model = embedding_block.connect(mask_block(), context=ml.BlockContext())
 
@@ -36,7 +36,7 @@ def test_masking_block(sequence_testing_data: SyntheticData, mask_block):
 
 
 def test_masking_schema_error(sequence_testing_data: SyntheticData):
-    schema_list = sequence_testing_data.schema.select_by_tag(Tag.SEQUENCE)
+    schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
     model = embedding_block.connect(ml.MLPBlock([64]), context=ml.BlockContext())
 
@@ -48,7 +48,7 @@ def test_masking_schema_error(sequence_testing_data: SyntheticData):
 # Test only last item is masked when eval_on_last_item_seq_only
 @pytest.mark.parametrize("mask_block", [ml.CausalLanguageModeling, ml.MaskedLanguageModeling])
 def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
-    schema_list = sequence_testing_data.schema.select_by_tag(Tag.SEQUENCE)
+    schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
     model = embedding_block.connect(mask_block(), context=ml.BlockContext())
 
@@ -76,7 +76,7 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
 
 # Test at least one item is masked when training
 def test_at_least_one_masked_item_mlm(sequence_testing_data):
-    schema_list = sequence_testing_data.schema.select_by_tag(Tag.SEQUENCE)
+    schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
     mask_block = ml.MaskedLanguageModeling()
     model = embedding_block.connect(mask_block, context=ml.BlockContext())
@@ -90,7 +90,7 @@ def test_at_least_one_masked_item_mlm(sequence_testing_data):
 
 # Check that not all items are masked when training
 def test_not_all_masked_lm(sequence_testing_data):
-    schema_list = sequence_testing_data.schema.select_by_tag(Tag.SEQUENCE)
+    schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
     mask_block = ml.MaskedLanguageModeling()
     model = embedding_block.connect(mask_block, context=ml.BlockContext())

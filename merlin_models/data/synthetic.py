@@ -21,10 +21,15 @@ from pathlib import Path
 from random import randint
 from typing import Optional, Union
 
+import numpy as np
 import pandas as pd
+from merlin.schema import Schema, Tags
+from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
-from merlin_standard_lib import Schema, Tag
-from merlin_standard_lib.utils.proto_utils import has_field
+from merlin_models.utils.schema import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
 
 LOG = logging.getLogger("merlin-models")
 HERE = pathlib.Path(__file__).parent
@@ -86,7 +91,7 @@ class SyntheticData:
             output_dir = tempfile.mkdtemp()
 
         if not os.path.exists(os.path.join(output_dir, "schema.json")):
-            schema.to_json(os.path.join(output_dir, "schema.json"))
+            schema_to_tensorflow_metadata_json(schema, os.path.join(output_dir, "schema.json"))
 
         output = cls(output_dir, device=device)
         output.generate_interactions(num_rows, min_session_length, max_session_length)
@@ -99,9 +104,9 @@ class SyntheticData:
             os.path.join(str(path), "schema.json") if os.path.isdir(str(path)) else str(path)
         )
         if _schema_path.endswith(".pb") or _schema_path.endswith(".pbtxt"):
-            return Schema().from_proto_text(_schema_path)
+            TensorflowMetadata.from_from_proto_text(_schema_path).to_merlin_schema()
 
-        return Schema().from_json(_schema_path)
+        return tensorflow_metadata_json_to_schema(_schema_path)
 
     @property
     def schema(self) -> Schema:
@@ -164,7 +169,7 @@ class SyntheticData:
         raise NotImplementedError()
 
     def _pull_out_targets(self, inputs):
-        target_names = self.schema.select_by_tag("target").column_names
+        target_names = self.schema.select_by_tag(Tags.TARGET).column_names
         targets = {}
 
         for target_name in target_names:
@@ -185,9 +190,9 @@ def generate_user_item_interactions(
     it supports the generation of conditional user, item and session features.
 
     The schema should include a few tags:
-    - `Tag.SESSION_ID` to tag the session-id feature.
-    - `Tag.USER_ID` for user-id feature.
-    - `Tag.ITEM_ID` for item-id feature.
+    - `Tags.SESSION_ID` to tag the session-id feature.
+    - `Tags.USER_ID` for user-id feature.
+    - `Tags.ITEM_ID` for item-id feature.
 
     It supports both, GPU-based and CPU-based, generation.
 
@@ -220,16 +225,16 @@ def generate_user_item_interactions(
     data = _frame.DataFrame()
     processed_cols = []
     # get session cols
-    session_id_col = schema.select_by_tag(Tag.SESSION_ID)
+    session_id_col = list(schema.select_by_tag(Tags.SESSION_ID))
     if session_id_col:
-        session_id_col = session_id_col.feature[0]
+        session_id_col = session_id_col[0]
         data[session_id_col.name] = _array.clip(
             _array.random.lognormal(3.0, 1.0, num_interactions).astype(_array.int32),
             1,
             session_id_col.int_domain.max,
         ).astype(_array.int64)
 
-        features = schema.select_by_tag(Tag.SESSION).remove_by_tag(Tag.SESSION_ID).feature
+        features = list(schema.select_by_tag(Tags.SESSION).remove_by_tag(Tags.SESSION_ID))
         data = generate_conditional_features(
             data,
             features,
@@ -239,16 +244,17 @@ def generate_user_item_interactions(
             device=device,
         )
         processed_cols += [f.name for f in features] + [session_id_col.name]
+
     # get USER cols
-    user_id_col = schema.select_by_tag(Tag.USER_ID).feature
-    if user_id_col:
-        user_id_col = user_id_col[0]
+    user_id_cols = list(schema.select_by_tag(Tags.USER_ID))
+    if user_id_cols:
+        user_id_col = user_id_cols[0]
         data[user_id_col.name] = _array.clip(
             _array.random.lognormal(3.0, 1.0, num_interactions).astype(_array.int32),
             1,
             user_id_col.int_domain.max,
         ).astype(_array.int64)
-        features = schema.select_by_tag(Tag.USER).remove_by_tag(Tag.USER_ID).feature
+        features = list(schema.select_by_tag(Tags.USER).remove_by_tag(Tags.USER_ID))
         data = generate_conditional_features(
             data,
             features,
@@ -260,8 +266,9 @@ def generate_user_item_interactions(
         processed_cols += [f.name for f in features] + [user_id_col.name]
 
     # get ITEM cols
-    item_id_col = schema.select_by_tag(Tag.ITEM_ID).feature[0]
-    is_list_feature = has_field(item_id_col, "value_count")
+    item_id_col = list(schema.select_by_tag(Tags.ITEM_ID))[0]
+
+    is_list_feature = item_id_col.is_list
     if not is_list_feature:
         shape = num_interactions
     else:
@@ -275,7 +282,7 @@ def generate_user_item_interactions(
         .astype(_array.int64)
         .tolist()
     )
-    features = schema.select_by_tag(Tag.ITEM).remove_by_tag(Tag.ITEM_ID).feature
+    features = list(schema.select_by_tag(Tags.ITEM).remove_by_tag(Tags.ITEM_ID))
     data = generate_conditional_features(
         data,
         features,
@@ -287,28 +294,32 @@ def generate_user_item_interactions(
     processed_cols += [f.name for f in features] + [item_id_col.name]
 
     # Get remaining features
-    remaining = schema.remove_by_name(processed_cols)
+    remaining = schema.without(processed_cols)
 
-    for feature in remaining.select_by_tag(Tag.BINARY_CLASSIFICATION).feature:
+    for feature in remaining.select_by_tag(Tags.BINARY_CLASSIFICATION):
         data[feature.name] = _array.random.randint(0, 2, num_interactions).astype(_array.int64)
 
-    for feature in remaining.remove_by_tag(Tag.BINARY_CLASSIFICATION).feature:
-        is_int_feature = has_field(feature, "int_domain")
-        is_list_feature = has_field(feature, "value_count")
+    for feature in remaining.remove_by_tag(Tags.BINARY_CLASSIFICATION):
+        is_int_feature = np.issubdtype(feature.dtype, np.integer)
+        is_list_feature = feature.is_list
         if is_list_feature:
             data[feature.name] = generate_random_list_feature(
                 feature, num_interactions, min_session_length, max_session_length, device
             )
 
         elif is_int_feature:
+            domain = feature.int_domain
+            min_value, max_value = (domain.min, domain.max) if domain else (0, 1)
+
             data[feature.name] = _array.random.randint(
-                1, feature.int_domain.max, num_interactions
+                min_value, max_value, num_interactions
             ).astype(_array.int64)
 
         else:
-            data[feature.name] = _array.random.uniform(
-                feature.float_domain.min, feature.float_domain.max, num_interactions
-            )
+            domain = feature.float_domain
+            min_value, max_value = (domain.min, domain.max) if domain else (0.0, 1.0)
+
+            data[feature.name] = _array.random.uniform(min_value, max_value, num_interactions)
 
     return data
 
@@ -333,8 +344,8 @@ def generate_conditional_features(
 
     num_interactions = data.shape[0]
     for feature in features:
-        is_int_feature = has_field(feature, "int_domain")
-        is_list_feature = has_field(feature, "value_count")
+        is_int_feature = np.issubdtype(feature.dtype, np.integer)
+        is_list_feature = feature.is_list
 
         if is_list_feature:
             data[feature.name] = generate_random_list_feature(
@@ -368,7 +379,7 @@ def generate_random_list_feature(
     else:
         import cupy as _array
 
-    is_int_feature = has_field(feature, "int_domain")
+    is_int_feature = np.issubdtype(feature.dtype, np.integer)
     if is_int_feature:
         if max_session_length:
             padded_array = []

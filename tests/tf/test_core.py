@@ -2,10 +2,10 @@ from typing import List
 
 import pytest
 import tensorflow as tf
+from merlin.schema import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_standard_lib import Tag
 
 
 def test_filter_features(tf_con_features):
@@ -72,31 +72,30 @@ def test_serialization_continuous_features(
 
 class DummyFeaturesBlock(ml.Block):
     def add_features_to_context(self, feature_shapes) -> List[str]:
-        return [str(Tag.ITEM_ID)]
+        return [Tags.ITEM_ID.value]
 
     def call(self, inputs, **kwargs):
-        items = self.context[Tag.ITEM_ID]
-        emb_table = self.context.get_embedding(Tag.ITEM_ID)
+        items = self.context[Tags.ITEM_ID]
+        emb_table = self.context.get_embedding(Tags.ITEM_ID)
         item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
 
         return inputs * item_embeddings
 
     @property
     def item_embedding_table(self):
-        return self.context.get_embedding(Tag.ITEM_ID)
+        return self.context.get_embedding(Tags.ITEM_ID)
 
 
 def test_block_context(ecommerce_data: SyntheticData):
     inputs = ml.InputBlock(ecommerce_data.schema)
     dummy = DummyFeaturesBlock()
     model = inputs.connect(ml.MLPBlock([64]), dummy, context=ml.BlockContext())
-
     out = model(ecommerce_data.tf_tensor_dict)
 
-    embeddings = inputs.select_by_name(str(Tag.CATEGORICAL))
+    embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)
     assert (
-        dummy.context.get_embedding(Tag.ITEM_ID).shape
-        == embeddings.embedding_tables[str(Tag.ITEM_ID)].shape
+        dummy.context.get_embedding(Tags.ITEM_ID).shape
+        == embeddings.embedding_tables[Tags.ITEM_ID.value].shape
     )
 
     assert out.shape[-1] == 64

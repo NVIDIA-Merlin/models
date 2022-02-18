@@ -17,8 +17,8 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
-
-from merlin_models.loader.dispatch import HAS_GPU, _dd_from_df, _make_df
+from merlin.core.dispatch import HAS_GPU, make_df
+from merlin.io.dataset import Dataset
 
 import merlin_models.torch.dataset as torch_dataloader  # noqa isort:skip
 
@@ -30,7 +30,7 @@ def test_shuffling():
     df = pd.DataFrame({"a": np.asarray(range(num_rows)), "b": np.asarray([0] * num_rows)})
 
     train_dataset = torch_dataloader.Dataset(
-        _dd_from_df(df), conts=["a"], labels=["b"], batch_size=batch_size, shuffle=True
+        Dataset(df), conts=["a"], labels=["b"], batch_size=batch_size, shuffle=True
     )
 
     batch = next(iter(train_dataset))
@@ -45,7 +45,7 @@ def test_shuffling():
 @pytest.mark.parametrize("drop_last", [True, False])
 @pytest.mark.parametrize("num_rows", [100])
 def test_torch_drp_reset(tmpdir, batch_size, drop_last, num_rows):
-    df = _make_df(
+    df = make_df(
         {
             "cat1": [1] * num_rows,
             "cat2": [2] * num_rows,
@@ -61,7 +61,7 @@ def test_torch_drp_reset(tmpdir, batch_size, drop_last, num_rows):
     label_name = ["label"]
 
     data_itr = torch_dataloader.Dataset(
-        _dd_from_df(df),
+        Dataset(df),
         cats=cat_names,
         conts=cont_names,
         labels=label_name,
@@ -92,7 +92,7 @@ def test_torch_drp_reset(tmpdir, batch_size, drop_last, num_rows):
 @pytest.mark.parametrize("sparse_dense", [False, True])
 def test_sparse_tensors(sparse_dense):
     # create small Dataset, add values to sparse_list
-    df = _make_df(
+    df = make_df(
         {
             "spar1": [[1, 2, 3, 4], [4, 2, 4, 4], [1, 3, 4, 3], [1, 1, 3, 3]],
             "spar2": [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14], [15, 16]],
@@ -102,7 +102,7 @@ def test_sparse_tensors(sparse_dense):
     spa_mx = {"spar1": 5, "spar2": 6}
     batch_size = 2
     data_itr = torch_dataloader.Dataset(
-        _dd_from_df(df),
+        Dataset(df),
         cats=spa_lst,
         conts=[],
         labels=[],

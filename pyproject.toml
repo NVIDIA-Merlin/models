@@ -19,3 +19,15 @@ balanced_wrapping = true
 indent = "    "
 known_third_party = ["cudf", "cupy", "dask", "dask_cuda", "dask_cudf", "numba", "numpy", "pytest", "torch", "rmm", "tensorflow"]
 skip = ["build",".eggs"]
+
+
+
+[tool.pytest.ini_options]
+filterwarnings = [
+                'ignore:`np.*` is a deprecated alias:DeprecationWarning',
+                'ignore:WARNING..cuDF.to_dlpack',
+                'ignore:::numba.cuda.envvar:',
+                'ignore:Call to deprecated create function:DeprecationWarning',
+                'ignore:distutils Version classes are deprecated. Use packaging.version instead:DeprecationWarning',
+        ]
+

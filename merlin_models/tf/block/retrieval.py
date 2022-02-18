@@ -15,7 +15,7 @@
 #
 from typing import Any, Callable, Dict, Optional
 
-from merlin_standard_lib import Schema, Tag
+from merlin.schema import Schema, Tags
 
 from ..core import Block, BlockType, ParallelBlock
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
@@ -26,8 +26,8 @@ def TwoTowerBlock(
     schema,
     query_tower: Block,
     item_tower: Optional[Block] = None,
-    query_tower_tag=Tag.USER,
-    item_tower_tag=Tag.ITEM,
+    query_tower_tag=Tags.USER,
+    item_tower_tag=Tags.ITEM,
     embedding_dim_default: Optional[int] = 64,
     post: Optional[BlockType] = None,
     **kwargs,
@@ -46,9 +46,9 @@ def TwoTowerBlock(
         The optional `Block` that combines items features.
         If not provided, a copy of the query_tower is used.
     query_tower_tag : Tag
-        The tag to select query features, by default `Tag.USER`
+        The tag to select query features, by default `Tags.USER`
     item_tower_tag : Tag
-        The tag to select item features, by default `Tag.ITEM`
+        The tag to select item features, by default `Tags.ITEM`
     embedding_dim_default : Optional[int], optional
         Dimension of the embeddings, by default 64
     post: Optional[Block], optional
@@ -100,14 +100,12 @@ def TwoTowerBlock(
 def MatrixFactorizationBlock(
     schema: Schema,
     dim: int,
-    query_id_tag=Tag.USER_ID,
-    item_id_tag=Tag.ITEM_ID,
+    query_id_tag=Tags.USER_ID,
+    item_id_tag=Tags.ITEM_ID,
     embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
     **kwargs,
 ):
-    query_item_schema = schema.select_by_tag(
-        lambda tags: query_id_tag in tags or item_id_tag in tags
-    )
+    query_item_schema = schema.select_by_tag(query_id_tag) + schema.select_by_tag(item_id_tag)
     embedding_options = EmbeddingOptions(
         embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
     )

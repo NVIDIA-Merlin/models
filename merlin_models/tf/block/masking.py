@@ -17,12 +17,13 @@
 from typing import List, Optional
 
 import tensorflow as tf
+from merlin.schema import Tags
 from tensorflow.keras import backend
 from tensorflow.python.ops import array_ops
 
 from merlin_models.tf.core import Block
-from merlin_standard_lib import Registry, Tag
-from merlin_standard_lib.utils.doc_utils import docstring_parameter
+from merlin_models.utils.doc_utils import docstring_parameter
+from merlin_models.utils.registry import Registry
 
 masking_registry = Registry("tf.masking")
 
@@ -107,7 +108,7 @@ class MaskingBlock(Block):
         super().build(input_shapes)
 
     def add_features_to_context(self, feature_shapes) -> List[str]:
-        f = self.item_id_feature_name or self.schema.select_by_tag(Tag.ITEM_ID).column_names[0]
+        f = self.item_id_feature_name or self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
 
         return [f]
 
@@ -123,7 +124,7 @@ class MaskingBlock(Block):
         return inputs
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        items = self.context[self.schema.select_by_tag(Tag.ITEM_ID)]
+        items = self.context[self.schema.select_by_tag(Tags.ITEM_ID)]
         mask_schema = self.compute_mask_schema(items, training=training)
         inputs = self.apply_mask_to_inputs(inputs, mask_schema)
         return inputs

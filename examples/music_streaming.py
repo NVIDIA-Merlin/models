@@ -1,9 +1,8 @@
 # import tensorflow as tf
 #
 # import merlin_models.tf as ml
-# import merlin_standard_lib as msl
 # from merlin_models.data import SyntheticDataset
-# from merlin_standard_lib import Schema, Tag
+# from merlin.schema import Schema, Tags
 #
 # # RETRIEVAL
 #
@@ -15,7 +14,7 @@
 #
 #
 # def build_youtube_dnn(schema: Schema, dims=(512, 256), num_sampled=50) -> ml.Model:
-#     user_schema = schema.select_by_tag(Tag.USER)
+#     user_schema = schema.select_by_tag(Tags.USER)
 #     dnn = ml.inputs(user_schema, post="continuous-powers").apply(ml.MLPBlock(dims))
 #     prediction_task = ml.SampledItemPredictionTask(schema, dim=dims[-1], num_sampled=num_sampled)
 #
@@ -29,8 +28,8 @@
 #         return ml.TwoTowerBlock(schema, ml.MLPBlock(dims)).to_model(schema.select_by_name(target))
 #
 #     def method_2() -> ml.Model:
-#         user_tower = ml.inputs(schema.select_by_tag(Tag.USER), ml.MLPBlock([512, 256]))
-#         item_tower = ml.inputs(schema.select_by_tag(Tag.ITEM), ml.MLPBlock([512, 256]))
+#         user_tower = ml.inputs(schema.select_by_tag(Tags.USER), ml.MLPBlock([512, 256]))
+#         item_tower = ml.inputs(schema.select_by_tag(Tags.ITEM), ml.MLPBlock([512, 256]))
 #         two_tower = ml.merge({"user": user_tower, "item": item_tower}, aggregation="cosine")
 #         model = two_tower.to_model(schema.select_by_name(target))
 #
@@ -38,16 +37,16 @@
 #
 #     def method_3() -> ml.Model:
 #         def routes_verbose(inputs, schema: Schema):
-#             user_features = schema.select_by_tag(Tag.USER).filter_columns_from_dict(inputs)
-#             item_features = schema.select_by_tag(Tag.ITEM).filter_columns_from_dict(inputs)
+#             user_features = schema.select_by_tag(Tags.USER).filter_columns_from_dict(inputs)
+#             item_features = schema.select_by_tag(Tags.ITEM).filter_columns_from_dict(inputs)
 #
 #             user_tower = ml.MLPBlock(dims)(user_features)
 #             item_tower = ml.MLPBlock(dims)(item_features)
 #
 #             return ml.ParallelBlock(dict(user=user_tower, item=item_tower), aggregation="cosine")
 #
-#         user_tower = ml.MLPBlock(dims, filter=Tag.USER).as_tabular("user")
-#         item_tower = ml.MLPBlock(dims, filter=Tag.ITEM).as_tabular("item")
+#         user_tower = ml.MLPBlock(dims, filter=Tags.USER).as_tabular("user")
+#         item_tower = ml.MLPBlock(dims, filter=Tags.ITEM).as_tabular("item")
 #
 #         two_tower = ml.inputs(schema).branch(user_tower, item_tower, aggregation="cosine")
 #         model = two_tower.to_model(schema.select_by_name(target))
@@ -139,7 +138,7 @@
 #         targets = {"item_id": data_df.pop("item_id")}
 #     else:
 #         targets = {}
-#         for target in schema.select_by_tag(Tag.BINARY_CLASSIFICATION):
+#         for target in schema.select_by_tag(Tags.BINARY_CLASSIFICATION):
 #             targets[target.name] = data_df.pop(target.name)
 #
 #     dataset = tf.data.Dataset.from_tensor_slices((dict(data_df), targets))
