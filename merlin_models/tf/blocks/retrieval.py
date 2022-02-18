@@ -111,7 +111,7 @@ def MatrixFactorizationBlock(
         embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
     )
 
-    rename_features = RenameFeatures({str(query_id_tag): "query", str(item_id_tag): "item"})
+    rename_features = RenameFeatures({query_id_tag: "query", item_id_tag: "item"}, schema=schema)
     post = kwargs.pop("post", None)
     if post:
         post = rename_features.connect(post)

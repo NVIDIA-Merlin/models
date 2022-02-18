@@ -16,6 +16,7 @@
 from typing import Dict, Optional, Union
 
 import tensorflow as tf
+from merlin.schema import Schema, Tags
 from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
@@ -64,9 +65,21 @@ class AsDenseFeatures(TabularBlock):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class RenameFeatures(TabularBlock):
-    def __init__(self, renames: Dict[str, str], **kwargs):
-        super().__init__(**kwargs)
-        self.renames = renames
+    def __init__(
+        self, renames: Dict[Union[str, Tags], str], schema: Optional[Schema] = None, **kwargs
+    ):
+        super().__init__(schema=schema, **kwargs)
+        self.renames = {}
+        for key, val in renames.items():
+            if isinstance(key, Tags):
+                if schema is None:
+                    raise ValueError("Schema must be provided to rename features with Tags")
+                cols = schema.select_by_tag(key)
+                if len(cols) != 1:
+                    raise ValueError(f"Tag: {key} does not uniquely identify a column")
+                self.renames[cols.first.name] = val
+            else:
+                self.renames[key] = val
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}

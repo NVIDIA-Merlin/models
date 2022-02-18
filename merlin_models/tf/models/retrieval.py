@@ -1,6 +1,6 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
-from merlin_standard_lib import Schema, Tag
+from merlin.schema import Schema, Tags
 
 from ..blocks.aggregation import SequenceAggregation, SequenceAggregator
 from ..blocks.inputs import InputBlock
@@ -16,8 +16,8 @@ from .utils import _parse_prediction_tasks
 def MatrixFactorizationModel(
     schema: Schema,
     dim: int,
-    query_id_tag=Tag.USER_ID,
-    item_id_tag=Tag.ITEM_ID,
+    query_id_tag=Tags.USER_ID,
+    item_id_tag=Tags.ITEM_ID,
     embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
     post: Optional[BlockType] = None,
     prediction_tasks: Optional[
@@ -94,8 +94,8 @@ def TwoTowerModel(
     schema: Schema,
     query_tower: Block,
     item_tower: Optional[Block] = None,
-    query_tower_tag=Tag.USER,
-    item_tower_tag=Tag.ITEM,
+    query_tower_tag=Tags.USER,
+    item_tower_tag=Tags.ITEM,
     embedding_dim_default: Optional[int] = 64,
     post: Optional[BlockType] = None,
     prediction_tasks: Optional[

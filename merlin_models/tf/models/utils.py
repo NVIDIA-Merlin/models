@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from merlin_standard_lib import Schema
+from merlin.schema import Schema
 
 from ..blocks.multi_task import PredictionTasks
 from ..core import ParallelPredictionBlock, PredictionTask

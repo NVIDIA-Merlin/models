@@ -1,13 +1,13 @@
 import pytest
+from merlin.schema import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_standard_lib import Tag
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_matrix_factorization_model(music_streaming_data: SyntheticData, run_eagerly, num_epochs=2):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
+    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
     model = ml.MatrixFactorizationModel(music_streaming_data.schema, dim=64)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -19,7 +19,7 @@ def test_matrix_factorization_model(music_streaming_data: SyntheticData, run_eag
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_two_tower_model(music_streaming_data: SyntheticData, run_eagerly, num_epochs=2):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tag.TARGETS)
+    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
     model = ml.TwoTowerModel(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)

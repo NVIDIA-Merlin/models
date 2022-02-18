@@ -31,8 +31,6 @@ from merlin_models.utils.schema import (
     categorical_domains,
     get_embedding_sizes_from_schema,
 )
-from merlin_models.tf.blocks.transformations import AsSparseFeatures
-from merlin_standard_lib import Schema
 
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
