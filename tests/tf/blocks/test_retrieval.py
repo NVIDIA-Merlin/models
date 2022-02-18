@@ -17,8 +17,8 @@ import os
 
 import numpy as np
 import pytest
-from merlin.schema import Tags
 import tensorflow as tf
+from merlin.schema import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData

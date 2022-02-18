@@ -23,9 +23,6 @@ from tensorflow.python.ops import embedding_ops
 
 from ...utils.constants import MIN_FLOAT
 from ...utils.schema import categorical_cardinalities
-from ..blocks.aggregation import SequenceAggregation, SequenceAggregator
-from ..blocks.inputs import InputBlock
-from ..blocks.mlp import MLPBlock
 from ..blocks.transformations import L2Norm
 from ..core import Block, EmbeddingWithMetadata
 from ..losses.loss_base import LossType

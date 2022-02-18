@@ -21,7 +21,6 @@ from typing import List, Sequence
 import numpy as np
 import tensorflow as tf
 
-from merlin_models.utils.registry import Registry
 from merlin_models.tf.utils import tf_utils
 
 from . import metrics_registry
