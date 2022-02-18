@@ -20,10 +20,11 @@ from merlin.schema import Schema, Tags
 from ..core import Block, BlockType, ParallelBlock
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from .inputs import InputBlock
+from .transformations import RenameFeatures
 
 
 def TwoTowerBlock(
-    schema,
+    schema: Schema,
     query_tower: Block,
     item_tower: Optional[Block] = None,
     query_tower_tag=Tags.USER,
@@ -109,8 +110,16 @@ def MatrixFactorizationBlock(
     embedding_options = EmbeddingOptions(
         embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
     )
+
+    rename_features = RenameFeatures({query_id_tag: "query", item_id_tag: "item"}, schema=schema)
+    post = kwargs.pop("post", None)
+    if post:
+        post = rename_features.connect(post)
+    else:
+        post = rename_features
+
     matrix_factorization = EmbeddingFeatures.from_schema(
-        query_item_schema, options=embedding_options, **kwargs
+        query_item_schema, post=post, options=embedding_options, **kwargs
     )
 
     return matrix_factorization

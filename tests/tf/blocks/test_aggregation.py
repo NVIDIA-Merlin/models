@@ -21,7 +21,7 @@ from merlin.schema import Tags
 
 import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.block.aggregation import ElementWiseMultiply
+from merlin_models.tf.blocks.aggregation import ElementWiseMultiply
 
 
 def test_concat_aggregation_yoochoose(testing_data: SyntheticData):

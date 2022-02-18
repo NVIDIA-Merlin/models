@@ -24,7 +24,7 @@ from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
-from merlin_models.tf.block.transformations import AsSparseFeatures
+from merlin_models.tf.blocks.transformations import AsSparseFeatures
 from merlin_models.utils.doc_utils import docstring_parameter
 from merlin_models.utils.schema import (
     categorical_cardinalities,
@@ -381,6 +381,7 @@ def ContinuousEmbedding(
     outputs = inputs.connect_branch(
         continuous_embedding.as_tabular(name), add_rest=True, aggregation=aggregation, **kwargs
     )
+
     return outputs
 
 

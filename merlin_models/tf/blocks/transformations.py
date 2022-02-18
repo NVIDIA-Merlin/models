@@ -16,6 +16,7 @@
 from typing import Dict, Optional, Union
 
 import tensorflow as tf
+from merlin.schema import Schema, Tags
 from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
@@ -60,6 +61,53 @@ class AsDenseFeatures(TabularBlock):
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class RenameFeatures(TabularBlock):
+    def __init__(
+        self, renames: Dict[Union[str, Tags], str], schema: Optional[Schema] = None, **kwargs
+    ):
+        super().__init__(schema=schema, **kwargs)
+        self.renames = {}
+        for key, val in renames.items():
+            if isinstance(key, Tags):
+                if schema is None:
+                    raise ValueError("Schema must be provided to rename features with Tags")
+                cols = schema.select_by_tag(key)
+                if len(cols) != 1:
+                    raise ValueError(f"Tag: {key} does not uniquely identify a column")
+                self.renames[cols.first.name] = val
+            else:
+                self.renames[key] = val
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+
+        for key, val in inputs.items():
+            if key in self.renames:
+                outputs[self.renames[key]] = val
+            else:
+                outputs[key] = val
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        outputs = {}
+
+        for key, val in input_shape.items():
+            if key in self.renames:
+                outputs[self.renames[key]] = val
+            else:
+                outputs[key] = val
+
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({"renames": self.renames})
+
+        return config
 
 
 @Block.registry.register_with_multiple_names("stochastic-swap-noise", "ssn")

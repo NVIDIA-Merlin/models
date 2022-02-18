@@ -19,7 +19,7 @@ import tensorflow as tf
 from merlin.schema import Schema
 from tensorflow.keras.layers import Layer
 
-from ..block.aggregation import StackFeatures
+from ..blocks.aggregation import StackFeatures
 from ..core import Block, ParallelBlock, ParallelPredictionBlock, PredictionTask, TabularBlock
 from ..typing import TabularData
 

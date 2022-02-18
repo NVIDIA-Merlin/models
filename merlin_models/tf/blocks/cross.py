@@ -37,7 +37,7 @@ def CrossBlock(
 ) -> SequentialBlock:
     """This block provides a way to create high-order feature interactions
        by a number of stacked Cross Layers, from
-       DCN V2: Improved Deep & Cross Network [1]_.
+       DCN V2: Improved Deep & Cross Network [1].
        See Eq. (1) for full-rank and Eq. (2) for low-rank version.
 
 

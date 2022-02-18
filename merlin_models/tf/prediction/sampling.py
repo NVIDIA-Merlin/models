@@ -21,8 +21,9 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.ops import embedding_ops
 
+from merlin_models.tf.blocks.queue import FIFOQueue
+
 from ..core import EmbeddingWithMetadata
-from ..layers.queue import FIFOQueue
 from ..typing import TabularData
 
 

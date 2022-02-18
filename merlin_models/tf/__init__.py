@@ -31,20 +31,22 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 from .. import data
 from ..data.synthetic import SyntheticData
 from . import losses
-from .block.aggregation import (
+from .blocks.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
     ElementwiseSumItemMulti,
     StackFeatures,
 )
-from .block.cross import CrossBlock
-from .block.dlrm import DLRMBlock
-from .block.inputs import InputBlock
-from .block.masking import CausalLanguageModeling, MaskedLanguageModeling
-from .block.mlp import DenseResidualBlock, MLPBlock
-from .block.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
-from .block.retrieval import MatrixFactorizationBlock, TwoTowerBlock
-from .block.transformations import (
+from .blocks.cross import CrossBlock
+from .blocks.dlrm import DLRMBlock
+from .blocks.inputs import InputBlock
+from .blocks.interaction import DotProductInteraction
+from .blocks.masking import CausalLanguageModeling, MaskedLanguageModeling
+from .blocks.mlp import DenseResidualBlock, MLPBlock
+from .blocks.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
+from .blocks.queue import FIFOQueue
+from .blocks.retrieval import MatrixFactorizationBlock, TwoTowerBlock
+from .blocks.transformations import (
     AsDenseFeatures,
     AsSparseFeatures,
     ExpandDims,
@@ -76,16 +78,16 @@ from .features.embedding import (
     SequenceEmbeddingFeatures,
     TableConfig,
 )
-from .layers.queue import FIFOQueue
 from .losses import LossType
+from .metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
+from .models.ranking import DCNModel, DLRMModel
+from .models.retrieval import MatrixFactorizationModel, TwoTowerModel, YoutubeDNNRetrievalModel
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
 from .prediction.item_prediction import (
     ItemRetrievalScorer,
     ItemRetrievalTask,
     NextItemPredictionTask,
-    YoutubeDNNRetrieval,
 )
-from .prediction.ranking_metric import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
@@ -172,7 +174,11 @@ __all__ = [
     "CachedUniformSampler",
     "PopularityBasedSampler",
     "FIFOQueue",
-    "YoutubeDNNRetrieval",
+    "YoutubeDNNRetrievalModel",
+    "TwoTowerModel",
+    "MatrixFactorizationModel",
+    "DLRMModel",
+    "DCNModel",
     "losses",
     "LossType",
 ]
