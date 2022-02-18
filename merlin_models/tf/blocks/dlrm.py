@@ -19,7 +19,7 @@ from typing import Optional
 from merlin.schema import Schema, Tags
 
 from ..blocks.interaction import DotProductInteraction
-from ..core import Block, Filter, ParallelBlock, SequentialBlock
+from ..core import Block, Debug, Filter, ParallelBlock, SequentialBlock
 from ..features.continuous import ContinuousFeatures
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 
@@ -101,11 +101,13 @@ def DLRMBlock(
     else:
         interaction_inputs = embeddings
 
+    interaction_inputs = interaction_inputs.connect(Debug())
+
     if not top_block:
         return interaction_inputs.connect(DotProductInteractionBlock())
 
     top_block_inputs = interaction_inputs.connect_with_shortcut(
-        DotProductInteractionBlock(), shortcut_filter=Filter("continuous"), aggregation="concat"
+        DotProductInteractionBlock(), shortcut_filter=Filter("bottom_block"), aggregation="concat"
     )
     top_block_outputs = top_block_inputs.connect(top_block)
 

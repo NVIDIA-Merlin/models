@@ -3,10 +3,11 @@ import typing as tp
 
 import numpy as np
 import tensorflow as tf
+from merlin.core.dispatch import HAS_GPU, DataFrameType, get_lib
+from merlin.schema import Schema, Tags
+from nvtabular.dispatch import _concat_columns
 
-from merlin_models.loader.dispatch import HAS_GPU, DataFrameType, _concat_columns, get_lib
-from merlin_standard_lib import Schema, Tag
-
+from ...utils.schema import select_targets
 from ..core import Block, Model, RetrievalModel
 from ..dataset import Dataset
 
@@ -171,9 +172,9 @@ def data_iterator_func(schema, batch_size: int = 512):
     # TODO: Change this to merlin-core
     import nvtabular as nvt
 
-    cat_cols = schema.select_by_tag(Tag.CATEGORICAL).column_names
-    cont_cols = schema.select_by_tag(Tag.CONTINUOUS).column_names
-    targets = schema.select_targets().column_names
+    cat_cols = schema.select_by_tag(Tags.CATEGORICAL).column_names
+    cont_cols = schema.select_by_tag(Tags.CONTINUOUS).column_names
+    targets = select_targets(schema).column_names
 
     def data_iterator(dataset):
         return Dataset(

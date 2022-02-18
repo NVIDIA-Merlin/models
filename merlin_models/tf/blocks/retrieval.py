@@ -15,10 +15,8 @@
 #
 from typing import Any, Callable, Dict, Optional
 
-from merlin.schema import Schema, Tags
 import tensorflow as tf
-
-from merlin_standard_lib import Schema, Tag
+from merlin.schema import Schema, Tags
 
 from ..core import Block, BlockType, ModelBlock, ParallelBlock
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
@@ -81,8 +79,8 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
         schema,
         query_tower: Block,
         item_tower: Optional[Block] = None,
-        query_tower_tag=Tag.USER,
-        item_tower_tag=Tag.ITEM,
+        query_tower_tag=Tags.USER,
+        item_tower_tag=Tags.ITEM,
         embedding_dim_default: Optional[int] = 64,
         post: Optional[BlockType] = None,
         **kwargs,
@@ -112,10 +110,9 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
                 )
             query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
             query_tower = query_inputs.connect(query_tower)
+        branches = {"query": TowerBlock(query_tower), "item": TowerBlock(_item_tower)}
 
-        super().__init__(
-            {"query": TowerBlock(query_tower), "item": TowerBlock(_item_tower)}, post=post, **kwargs
-        )
+        super().__init__(branches, post=post, **kwargs)
 
     def query_block(self) -> TowerBlock:
         query_tower = self["query"]

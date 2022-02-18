@@ -15,11 +15,22 @@
 #
 import math
 import os
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
-from merlin.schema import ColumnSchema, Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags, TagsType
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
+
+
+def select_targets(schema: Schema, extra_tags: Optional[TagsType] = None) -> Schema:
+    out = schema.select_by_tag(Tags.BINARY_CLASSIFICATION)
+    out += schema.select_by_tag(Tags.TARGET)
+    out += schema.select_by_tag(Tags.REGRESSION)
+
+    if extra_tags:
+        out += schema.select_by_tag(extra_tags)
+
+    return out
 
 
 def schema_to_tensorflow_metadata_json(schema, path=None):

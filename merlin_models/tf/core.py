@@ -423,7 +423,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Name of the block outputs.
         """
 
-        _block = self.parse(block)
+        _block = self.parse(block) if not isinstance(block, Block) else block
         residual_block = WithShortcut(
             _block,
             shortcut_filter=shortcut_filter,
@@ -824,7 +824,7 @@ class TabularAggregation(
         if len(seq_features_shapes) > 0:
             return batch_size, sequence_length, agg_dim
 
-        return batch_size, agg_dim
+        return tf.TensorShape((batch_size, agg_dim))
 
     def get_values(self, inputs: TabularData) -> List[tf.Tensor]:
         values = []
@@ -1459,17 +1459,15 @@ class ParallelBlock(TabularBlock):
         ):
             for name, block in self.parallel_dict.items():
                 out = block(inputs[name])
-                if isinstance(out, dict):
-                    outputs.update(out)
-                else:
-                    outputs[name] = out
+                if not isinstance(out, dict):
+                    out = {name: out}
+                outputs.update(out)
         else:
             for name, layer in self.parallel_dict.items():
                 out = layer(inputs)
-                if isinstance(out, dict):
-                    outputs.update(out)
-                else:
-                    outputs[name] = out
+                if not isinstance(out, dict):
+                    out = {name: out}
+                outputs.update(out)
 
         return outputs
 
@@ -1546,6 +1544,9 @@ class AsTabular(tf.keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         return {self.output_name: inputs}
+
+    def compute_output_shape(self, input_shape):
+        return {self.output_name: input_shape}
 
     def get_config(self):
         config = super(AsTabular, self).get_config()

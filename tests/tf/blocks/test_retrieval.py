@@ -24,8 +24,6 @@ import merlin_models.tf as ml
 from merlin_models.data.synthetic import SyntheticData
 from merlin_models.tf.blocks.aggregation import ElementWiseMultiply
 from merlin_models.tf.utils import testing_utils
-from merlin_models.tf.utils import testing_utils
-from merlin_standard_lib import Tag
 
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):

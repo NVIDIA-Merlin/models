@@ -40,7 +40,15 @@ def get_output_sizes_from_schema(schema, batch_size=0, max_sequence_length=None)
 
 
 def calculate_batch_size_from_input_shapes(input_shapes):
-    return [i for i in input_shapes.values() if not isinstance(i, tuple)][0][0]
+    values = []
+
+    for val in input_shapes.values():
+        if isinstance(val, tuple) and isinstance(val[0], tf.TensorShape):
+            values.append(val[0])
+        else:
+            values.append(val)
+
+    return values[0][0]
 
 
 def maybe_serialize_keras_objects(

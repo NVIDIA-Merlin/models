@@ -30,7 +30,6 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin_models.loader.tf_utils import configure_tensorflow
-from merlin_standard_lib import Schema, Tag
 
 from .. import data
 from ..data.synthetic import SyntheticData
@@ -107,7 +106,7 @@ from .utils import repr_utils
 # configure_tensorflow()
 
 
-Tag.__hash__ = lambda self: hash(str(self))
+Tags.__hash__ = lambda self: hash(str(self))
 
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr
