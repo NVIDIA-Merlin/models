@@ -90,7 +90,6 @@ def test_block_context(ecommerce_data: SyntheticData):
     inputs = ml.InputBlock(ecommerce_data.schema)
     dummy = DummyFeaturesBlock()
     model = inputs.connect(ml.MLPBlock([64]), dummy, context=ml.BlockContext())
-    print(ecommerce_data.tf_tensor_dict.keys())
     out = model(ecommerce_data.tf_tensor_dict)
 
     embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)
