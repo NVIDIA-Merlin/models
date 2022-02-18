@@ -36,24 +36,65 @@ def tensorflow_metadata_json_to_schema(value):
     return TensorflowMetadata.from_json(value).to_merlin_schema()
 
 
-def create_categorical_column(name, num_items, tags=None, properties=None):
+def create_categorical_column(
+    name,
+    num_items,
+    dtype=np.int32,
+    tags=None,
+    properties=None,
+    min_value_count=None,
+    max_value_count=None,
+):
     properties = properties or {}
     if num_items:
         properties["domain"] = {"min": 0, "max": num_items}
-    return ColumnSchema(name=name, tags=tags, properties=properties)
+
+    is_list, is_ragged = False, False
+    value_count = {}
+    if min_value_count is not None:
+        value_count["min"] = min_value_count
+    if max_value_count is not None:
+        value_count["max"] = max_value_count
+    if value_count:
+        properties["value_count"] = value_count
+        is_list = True
+        is_ragged = min_value_count != max_value_count
+
+    tags = tags or []
+    if Tags.CATEGORICAL not in tags:
+        tags.append(Tags.CATEGORICAL)
+
+    return ColumnSchema(
+        name=name,
+        tags=tags,
+        dtype=dtype,
+        properties=properties,
+        is_list=is_list,
+        is_ragged=is_ragged,
+    )
 
 
 def create_continuous_column(
-    name, dtype=np.float32, min_value=None, max_value=None, tags=None, properties=None
+    name,
+    dtype=np.float32,
+    tags=None,
+    properties=None,
+    min_value=None,
+    max_value=None,
 ):
     properties = properties or {}
-    value_count = {}
+    domain = {}
     if min_value is not None:
-        value_count["min"] = min_value
+        domain["min"] = min_value
     if max_value is not None:
-        value_count["max"] = max_value
-    if value_count:
-        properties["value_count"] = value_count
+        domain["max"] = max_value
+    if domain:
+        properties["domain"] = domain
+
+    tags = tags or []
+    if Tags.CONTINUOUS not in tags:
+        tags.append(Tags.CONTINUOUS)
+
     return ColumnSchema(name=name, tags=tags, properties=properties, dtype=dtype)
 
 
