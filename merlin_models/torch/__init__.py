@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from merlin_standard_lib import Schema, Tag
+from merlin.schema import Schema
 
 from .. import data
 

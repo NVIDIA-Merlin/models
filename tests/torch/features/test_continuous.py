@@ -14,8 +14,9 @@
 # limitations under the License.
 #
 
+from merlin.schema import Tags
+
 import merlin_models.torch as ml
-from merlin_standard_lib import Tag
 
 
 def test_continuous_features(torch_con_features):
@@ -26,7 +27,7 @@ def test_continuous_features(torch_con_features):
 
 
 def test_continuous_features_yoochoose(tabular_schema, torch_tabular_data):
-    cont_cols = tabular_schema.select_by_tag(Tag.CONTINUOUS)
+    cont_cols = tabular_schema.select_by_tag(Tags.CONTINUOUS)
 
     con = ml.ContinuousFeatures.from_schema(cont_cols)
     outputs = con(torch_tabular_data)

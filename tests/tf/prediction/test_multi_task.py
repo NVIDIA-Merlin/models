@@ -18,7 +18,7 @@ from merlin_models.data.synthetic import SyntheticData
     ],
 )
 def test_model_with_multiple_tasks(music_streaming_data: SyntheticData, task_blocks):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_name("like")
+    music_streaming_data._schema = music_streaming_data.schema.without("like")
 
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema, task_blocks=task_blocks)

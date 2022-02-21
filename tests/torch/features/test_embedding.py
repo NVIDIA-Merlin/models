@@ -19,9 +19,9 @@ from functools import partial
 import numpy as np
 import pytest
 import torch
+from merlin.schema import Tags
 
 import merlin_models.torch as ml
-from merlin_standard_lib import Tag
 
 
 def test_embedding_features(torch_cat_features):
@@ -75,7 +75,7 @@ def test_table_config_invalid_embedding_initializer():
 
 
 def test_embedding_features_yoochoose(tabular_schema, torch_tabular_data):
-    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
+    schema = tabular_schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(schema)
     embeddings = emb_module(torch_tabular_data)
@@ -84,12 +84,12 @@ def test_embedding_features_yoochoose(tabular_schema, torch_tabular_data):
     assert all(emb.shape[-1] == 64 for emb in embeddings.values())
     assert emb_module.item_id == "item_id"
 
-    max_value = schema.select_by_name("item_id").feature[0].int_domain.max
+    max_value = list(schema.select_by_name("item_id"))[0].int_domain.max
     assert emb_module.item_embedding_table.num_embeddings == max_value + 1
 
 
 def test_embedding_features_yoochoose_custom_dims(tabular_schema, torch_tabular_data):
-    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
+    schema = tabular_schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema, embedding_dims={"item_id": 100}, embedding_dim_default=64
@@ -105,7 +105,7 @@ def test_embedding_features_yoochoose_custom_dims(tabular_schema, torch_tabular_
 
 
 def test_embedding_features_yoochoose_infer_embedding_sizes(tabular_schema, torch_tabular_data):
-    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
+    schema = tabular_schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema, infer_embedding_sizes=True, infer_embedding_sizes_multiplier=3.0
@@ -127,7 +127,7 @@ def test_embedding_features_yoochoose_custom_initializers(tabular_schema, torch_
     CATEGORY_MEAN = 2.0
     CATEGORY_STD = 0.1
 
-    schema = tabular_schema.select_by_tag(Tag.CATEGORICAL)
+    schema = tabular_schema.select_by_tag(Tags.CATEGORICAL)
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema,
         layer_norm=False,

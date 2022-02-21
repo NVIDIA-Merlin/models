@@ -17,15 +17,16 @@
 from typing import Optional, Sequence
 
 import tensorflow as tf
+from merlin.schema import Schema, Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 
 from merlin_models.tf.losses import LossType, loss_registry
-from merlin_standard_lib import Schema, Tag
+from merlin_models.tf.metrics.ranking import ranking_metrics
 
+from ...utils.schema import categorical_cardinalities
 from ..core import Block, MetricOrMetricClass, PredictionTask
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
-from .ranking_metric import ranking_metrics
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -102,8 +103,8 @@ class CategFeaturePrediction(Block):
         super(CategFeaturePrediction, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.kernel_initializer = kernel_initializer
-        self.feature_name = feature_name or schema.select_by_tag(Tag.ITEM_ID).column_names[0]
-        self.num_classes = schema.categorical_cardinalities()[self.feature_name]
+        self.feature_name = feature_name or schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        self.num_classes = categorical_cardinalities(schema)[self.feature_name]
         self.activation = activation
 
     def build(self, input_shape):
@@ -156,7 +157,7 @@ class MultiClassClassificationTask(PredictionTask):
     def from_schema(
         cls,
         schema: Schema,
-        feature_name: str = Tag.ITEM_ID,
+        feature_name: str = Tags.ITEM_ID,
         loss=DEFAULT_LOSS,
         bias_initializer="zeros",
         kernel_initializer="random_normal",

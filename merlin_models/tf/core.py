@@ -24,13 +24,18 @@ from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload
 
 import six
 import tensorflow as tf
+from merlin.schema import Schema, Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
 from merlin_models.config.schema import SchemaMixin
-from merlin_standard_lib import Registry, RegistryMixin, Schema, Tag
-from merlin_standard_lib.utils.doc_utils import docstring_parameter
-from merlin_standard_lib.utils.misc_utils import filter_kwargs
+from merlin_models.utils.doc_utils import docstring_parameter
+from merlin_models.utils.misc_utils import filter_kwargs
+from merlin_models.utils.registry import Registry, RegistryMixin
+from merlin_models.utils.schema import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
 
 from .typing import TabularData, TensorOrTabularData
 from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
@@ -49,6 +54,7 @@ class BlockContext(Layer):
     """BlockContext is part of each block.
 
     It is used to store/retrieve public variables, and can be used to retrieve features.
+    This is created automatically in the model and doesn't need to be created manually.
 
     """
 
@@ -86,10 +92,18 @@ class BlockContext(Layer):
             if len(item.column_names) > 1:
                 raise ValueError("Schema contains more than one column.")
             item = item.column_names[0]
-        return self.named_variables[str(item)]
+        elif isinstance(item, Tags):
+            item = item.value
+        else:
+            item = str(item)
+        return self.named_variables[item]
 
     def get_embedding(self, item):
-        return self.named_variables[f"{str(item)}/embedding"]
+        if isinstance(item, Tags):
+            item = item.value
+        else:
+            item = str(item)
+        return self.named_variables[f"{item}/embedding"]
 
     def get_mask(self):
         mask_schema = self.named_variables.get("masking_schema", None)
@@ -169,6 +183,8 @@ class ContextMixin:
 
 
 class Block(SchemaMixin, ContextMixin, Layer):
+    """Core abstraction in Merlin models."""
+
     registry = block_registry
 
     def __init__(self, context: Optional[BlockContext] = None, **kwargs):
@@ -226,6 +242,13 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return SequentialBlock([self, AsTabular(name)], copy_layers=False)
 
     def repeat(self, num: int = 1) -> "SequentialBlock":
+        """Repeat the block num times.
+
+        Parameters
+        ----------
+        num : int
+            Number of times to repeat the block.
+        """
         repeated = []
         for _ in range(num):
             repeated.append(self.copy())
@@ -234,10 +257,22 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
     def prepare(
         self,
-        block=None,
+        block: Optional[BlockType] = None,
         post: Optional[BlockType] = None,
         aggregation: Optional["TabularAggregationType"] = None,
     ) -> "SequentialBlock":
+        """Transform the inputs of this block.
+
+        Parameters
+        ----------
+        block: Optional[Block]
+            If set, this block will be used to transform the inputs of this block.
+        post: Block
+            Block to use as post-transformation.
+        aggregation: TabularAggregationType
+            Aggregation to apply to the inputs.
+
+        """
         block = TabularBlock(post=post, aggregation=aggregation) or block
 
         return SequentialBlock([block, self])
@@ -253,6 +288,27 @@ class Block(SchemaMixin, ContextMixin, Layer):
         residual=False,
         **kwargs,
     ) -> "ParallelBlock":
+        """Repeat the block num times in parallel.
+
+        Parameters
+        ----------
+        num: int
+            Number of times to repeat the block.
+        prefix: str
+            Prefix to use for the names of the blocks.
+        names: List[str]
+            Names of the blocks.
+        post: Block
+            Block to use as post-transformation.
+        aggregation: TabularAggregationType
+            Aggregation to apply to the inputs.
+        copies: bool
+            Whether to copy the block or not.
+        residual: bool
+            Whether to use a residual connection or not.
+
+        """
+
         repeated = {}
         iterator = names if names else range(num)
         if not names and prefix:
@@ -271,6 +327,19 @@ class Block(SchemaMixin, ContextMixin, Layer):
         block_name: Optional[str] = None,
         context: Optional[BlockContext] = None,
     ) -> Union["SequentialBlock", "Model"]:
+        """Connect the block to other blocks sequentially.
+
+        Parameters
+        ----------
+        block: Union[tf.keras.layers.Layer, str]
+            Blocks to connect to.
+        block_name: str
+            Name of the block.
+        context: Optional[BlockContext]
+            Context to use for the block.
+
+        """
+
         blocks = [self.parse(b) for b in block]
 
         for b in blocks:
@@ -292,6 +361,17 @@ class Block(SchemaMixin, ContextMixin, Layer):
         block: Union[tf.keras.layers.Layer, str],
         activation=None,
     ) -> "SequentialBlock":
+        """Connect the block to other blocks sequentially with a residual connection.
+
+        Parameters
+        ----------
+        block: Union[tf.keras.layers.Layer, str]
+            Blocks to connect to.
+        activation: str
+            Activation to use for the residual connection.
+
+        """
+
         _block = self.parse(block)
         residual_block = ResidualBlock(_block, activation=activation)
 
@@ -310,6 +390,22 @@ class Block(SchemaMixin, ContextMixin, Layer):
         aggregation: Optional["TabularAggregationType"] = None,
         block_outputs_name: Optional[str] = None,
     ) -> "SequentialBlock":
+        """Connect the block to other blocks sequentially with a shortcut connection.
+
+        Parameters
+        ----------
+        block: Union[tf.keras.layers.Layer, str]
+            Blocks to connect to.
+        shortcut_filter: Filter
+            Filter to use for the shortcut connection.
+        post: Block
+            Block to use as post-transformation.
+        aggregation: TabularAggregationType
+            Aggregation to apply to the outputs.
+        block_outputs_name: str
+            Name of the block outputs.
+        """
+
         _block = self.parse(block)
         residual_block = WithShortcut(
             _block,
@@ -327,10 +423,19 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return SequentialBlock([self, residual_block], copy_layers=False)
 
     def connect_debug_block(self, append=True):
+        """Connect the block to a debug block.
+
+        Parameters
+        ----------
+        append: bool
+            Whether to append the debug block to the block or to prepend it.
+
+        """
+
         if not append:
             return SequentialBlock([Debug(), self])
 
-        return self.apply(Debug())
+        return self.connect(Debug())
 
     def connect_branch(
         self,
@@ -340,6 +445,20 @@ class Block(SchemaMixin, ContextMixin, Layer):
         aggregation: Optional["TabularAggregationType"] = None,
         **kwargs,
     ) -> Union["SequentialBlock", "Model"]:
+        """Connect the block to one or multiple branches.
+
+        Parameters
+        ----------
+        branches: Union[Block, PredictionTask, str]
+            Blocks to connect to.
+        add_rest: bool
+            Whether to add the rest of the block to the branches.
+        post: Block
+            Block to use as post-transformation.
+        aggregation: TabularAggregationType
+            Aggregation to apply to the outputs.
+
+        """
         branches = [self.parse(b) for b in branches]
 
         all_features = []
@@ -352,7 +471,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
                     all_features.extend(filter_features)
 
         if add_rest:
-            rest_features = self.schema.remove_by_name(list(set([str(f) for f in all_features])))
+            rest_features = self.schema.without(list(set([str(f) for f in all_features])))
             rest_block = SequentialBlock([Filter(rest_features)])
             branches.append(rest_block)
 
@@ -413,7 +532,7 @@ class SequentialBlock(Block):
     def __init__(
         self,
         *layers,
-        filter: Optional[Union[Schema, Tag, List[str], "Filter"]] = None,
+        filter: Optional[Union[Schema, Tags, List[str], "Filter"]] = None,
         pre_aggregation: Optional["TabularAggregationType"] = None,
         block_name: Optional[str] = None,
         copy_layers: bool = False,
@@ -767,7 +886,7 @@ class TabularBlock(Block):
         -------
         Optional[TabularModule]
         """
-        schema_copy = schema.copy()
+        schema_copy = copy.copy(schema)
         if tags:
             schema_copy = schema_copy.select_by_tag(tags)
             if not schema_copy.column_names and not allow_none:
@@ -977,7 +1096,7 @@ class TabularBlock(Block):
         config = maybe_serialize_keras_objects(self, config, ["pre", "post", "aggregation"])
 
         if self.schema:
-            config["schema"] = self.schema.to_json()
+            config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
 
         return config
 
@@ -989,7 +1108,7 @@ class TabularBlock(Block):
     def from_config(cls, config):
         config = maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
         if "schema" in config:
-            config["schema"] = Schema().from_json(config["schema"])
+            config["schema"] = tensorflow_metadata_json_to_schema(config["schema"])
 
         return super().from_config(config)
 
@@ -1112,7 +1231,7 @@ class Filter(TabularBlock):
     @overload
     def __init__(
         self,
-        inputs: Tag,
+        inputs: Tags,
         name=None,
         pop=False,
         exclude=False,
@@ -1136,7 +1255,7 @@ class Filter(TabularBlock):
     def __init__(
         self, inputs, name=None, pop=False, exclude=False, add_to_context: bool = False, **kwargs
     ):
-        if isinstance(inputs, Tag):
+        if isinstance(inputs, Tags):
             self.feature_names = inputs
         else:
             self.feature_names = list(inputs.column_names) if isinstance(inputs, Schema) else inputs
@@ -1148,7 +1267,7 @@ class Filter(TabularBlock):
     def set_schema(self, schema=None):
         out = super().set_schema(schema)
 
-        if isinstance(self.feature_names, Tag):
+        if isinstance(self.feature_names, Tags):
             self.feature_names = self.schema.select_by_tag(self.feature_names).column_names
 
         return out
@@ -1375,7 +1494,7 @@ class ParallelBlock(TabularBlock):
     def from_config(cls, config, custom_objects=None):
         config = maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
         if "schema" in config:
-            config["schema"] = Schema().from_json(config["schema"])
+            config["schema"] = tensorflow_metadata_json_to_schema(config["schema"])
 
         parallel_layers = config.pop("parallel_layers")
         inputs = {
@@ -1481,7 +1600,7 @@ class ResidualBlock(WithShortcut):
         strict: bool = False,
         **kwargs,
     ):
-        from merlin_models.tf.block.aggregation import SumResidual
+        from merlin_models.tf.blocks.aggregation import SumResidual
 
         super().__init__(
             block,
@@ -1560,6 +1679,23 @@ class EmbeddingWithMetadata:
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
+    """Base-class for prediction tasks.
+
+    Parameters
+    ----------
+    metrics:
+        List of Keras metrics to be evaluated.
+    prediction_metrics:
+        List of Keras metrics used to summarize the predictions.
+    label_metrics:
+        List of Keras metrics used to summarize the labels.
+    loss_metrics:
+        List of Keras metrics used to summarize the loss.
+    name:
+        Optional task name.
+
+    """
+
     def __init__(
         self,
         target_name: Optional[str] = None,
@@ -1573,22 +1709,6 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         name: Optional[Text] = None,
         **kwargs,
     ) -> None:
-        """Initializes the task.
-
-        Parameters
-        ----------
-        metrics:
-            List of Keras metrics to be evaluated.
-        prediction_metrics:
-            List of Keras metrics used to summarize the predictions.
-        label_metrics:
-            List of Keras metrics used to summarize the labels.
-        loss_metrics:
-            List of Keras metrics used to summarize the loss.
-        name:
-            Optional task name.
-        """
-
         super().__init__(name=name, **kwargs)
         self.target_name = target_name
         self.task_block = task_block
@@ -1765,6 +1885,23 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
+    """Multi-task prediction block.
+
+    Parameters
+    ----------
+    prediction_tasks: *PredictionTask
+        List of tasks to be used for prediction.
+    task_blocks: Optional[Union[Layer, Dict[str, Layer]]]
+        Task blocks to be used for prediction.
+    task_weights : Optional[List[float]]
+        Weights for each task.
+    bias_block : Optional[Layer]
+        Bias block to be used for prediction.
+    loss_reduction : Callable
+        Reduction function for loss.
+
+    """
+
     def __init__(
         self,
         *prediction_tasks: PredictionTask,
@@ -1807,10 +1944,10 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
         from .prediction.classification import BinaryClassificationTask
         from .prediction.regression import RegressionTask
 
-        for binary_target in schema.select_by_tag(Tag.BINARY_CLASSIFICATION).column_names:
+        for binary_target in schema.select_by_tag(Tags.BINARY_CLASSIFICATION).column_names:
             tasks.append(BinaryClassificationTask(binary_target))
             task_weights.append(task_weight_dict.get(binary_target, 1.0))
-        for regression_target in schema.select_by_tag(Tag.REGRESSION).column_names:
+        for regression_target in schema.select_by_tag(Tags.REGRESSION).column_names:
             tasks.append(RegressionTask(regression_target))
             task_weights.append(task_weight_dict.get(regression_target, 1.0))
         # TODO: Add multi-class classification here. Figure out how to get number of classes
@@ -2005,7 +2142,7 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
         config = maybe_deserialize_keras_objects(config, ["body", "prediction_tasks"])
 
         if "schema" in config:
-            config["schema"] = Schema().from_json(config["schema"])
+            config["schema"] = tensorflow_metadata_json_to_schema(config["schema"])
 
         config["loss_reduction"] = getattr(tf, config["loss_reduction"])
 
@@ -2161,7 +2298,7 @@ def _output_metrics(metrics):
 
 
 def right_shift_layer(self, other):
-    if isinstance(other, (list, Tag)):
+    if isinstance(other, (list, Tags)):
         left_side = [Filter(other)]
     else:
         left_side = other.layers if isinstance(other, SequentialBlock) else [other]

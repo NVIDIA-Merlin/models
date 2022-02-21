@@ -14,14 +14,16 @@
 # limitations under the License.
 #
 
+import copy
 from abc import ABC
 from functools import reduce
 from typing import Dict, List, Optional, Union
 
 import torch
+from merlin.schema import Schema
 
-from merlin_standard_lib import Registry, Schema
-from merlin_standard_lib.utils.doc_utils import docstring_parameter
+from merlin_models.utils.doc_utils import docstring_parameter
+from merlin_models.utils.registry import Registry
 
 from ..block.base import BlockBase, SequentialBlock, right_shift_block
 from ..typing import TabularData, TensorOrTabularData
@@ -174,7 +176,7 @@ class TabularModule(torch.nn.Module):
         -------
         Optional[TabularModule]
         """
-        schema_copy = schema.copy()
+        schema_copy = copy.copy(schema)
         if tags:
             schema_copy = schema_copy.select_by_tag(tags)
 

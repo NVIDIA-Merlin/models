@@ -14,20 +14,23 @@
 # limitations under the License.
 #
 
-from copy import deepcopy
+from copy import copy, deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Union
 
 import tensorflow as tf
+from merlin.schema import Schema, Tags, TagsType
 from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
-from merlin_models.tf.block.transformations import AsSparseFeatures
-from merlin_standard_lib import Schema
-from merlin_standard_lib.schema.tag import Tag, TagsType
-from merlin_standard_lib.utils.doc_utils import docstring_parameter
-from merlin_standard_lib.utils.embedding_utils import get_embedding_sizes_from_schema
+from merlin_models.tf.blocks.transformations import AsSparseFeatures
+from merlin_models.utils.doc_utils import docstring_parameter
+from merlin_models.utils.schema import (
+    categorical_cardinalities,
+    categorical_domains,
+    get_embedding_sizes_from_schema,
+)
 
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
@@ -114,7 +117,7 @@ class EmbeddingFeatures(TabularBlock):
         max_sequence_length: Optional[int] = None,
         **kwargs,
     ) -> Optional["EmbeddingFeatures"]:
-        schema_copy = schema.copy()
+        schema_copy = copy(schema)
 
         if tags:
             schema_copy = schema_copy.select_by_tag(tags)
@@ -128,8 +131,7 @@ class EmbeddingFeatures(TabularBlock):
         embeddings_initializers = options.embeddings_initializers or {}
 
         emb_config = {}
-        cardinalities = schema.categorical_cardinalities()
-        domains = schema.categorical_domains()
+        cardinalities = categorical_cardinalities(schema)
         for key, cardinality in cardinalities.items():
             embedding_size = embedding_dims.get(key, options.embedding_dim_default)
             embedding_initializer = embeddings_initializers.get(key, None)
@@ -137,6 +139,8 @@ class EmbeddingFeatures(TabularBlock):
 
         feature_config: Dict[str, FeatureConfig] = {}
         tables: Dict[str, TableConfig] = {}
+
+        domains = categorical_domains(schema)
         for name, (vocab_size, dim, emb_initilizer) in emb_config.items():
             table_name = domains[name]
             table = tables.get(table_name, None)
@@ -226,8 +230,10 @@ class EmbeddingFeatures(TabularBlock):
     def table_config(self, feature_name: str):
         return self.feature_config[feature_name].table
 
-    def embedding_table_df(self, table_name: Union[str, Tag], gpu=True):
-        embeddings = self.embedding_tables[str(table_name)]
+    def embedding_table_df(self, table_name: Union[str, Tags], gpu=True):
+        if isinstance(table_name, Tags):
+            table_name = table_name.value
+        embeddings = self.embedding_tables[table_name]
 
         if gpu:
             import cudf
@@ -244,7 +250,7 @@ class EmbeddingFeatures(TabularBlock):
 
         return df
 
-    def export_embedding_table(self, table_name: Union[str, Tag], export_path: str, gpu=True):
+    def export_embedding_table(self, table_name: Union[str, Tags], export_path: str, gpu=True):
         df = self.embedding_table_df(table_name, gpu=gpu)
         df.to_parquet(export_path)
 
@@ -368,7 +374,7 @@ def ContinuousEmbedding(
     name: str = "continuous",
     **kwargs,
 ) -> SequentialBlock:
-    continuous_embedding = Filter(Tag.CONTINUOUS, aggregation=continuous_aggregation).connect(
+    continuous_embedding = Filter(Tags.CONTINUOUS, aggregation=continuous_aggregation).connect(
         embedding_block
     )
 

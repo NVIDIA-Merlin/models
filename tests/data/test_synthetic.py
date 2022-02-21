@@ -21,7 +21,7 @@ from merlin_models.data.synthetic import SyntheticData, generate_user_item_inter
 def test_generate_item_interactions_cpu(testing_data: SyntheticData):
     pd = pytest.importorskip("pandas")
     data = generate_user_item_interactions(
-        testing_data.schema.remove_by_name("event_timestamp"), num_interactions=500
+        testing_data.schema.without("event_timestamp"), num_interactions=500
     )
 
     assert isinstance(data, pd.DataFrame)
@@ -86,7 +86,7 @@ def test_generate_item_interactions_gpu(testing_data: SyntheticData):
         "event_weekday_sin": "float64",
         "event_weekday_cos": "float64",
         "categories": "int64",
-        "event_timestamp": "float64",
+        "event_timestamp": "int64",
     }
 
     assert all(

@@ -33,8 +33,7 @@ clean:
 	rm -r docs dist build *.egg-info
 
 docstrings:
-	sphinx-apidoc -f -o docs/source/api merlin_models
-	sphinx-apidoc -f -o docs/source/api/merlin_standard_lib merlin_standard_lib
+	sphinx-apidoc -f -o docs/source/api models
 
 docs:
 	cd docs && make html

@@ -17,22 +17,19 @@ import logging
 from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
+from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 from tensorflow.python.ops import embedding_ops
 
-from merlin_models.tf.block.transformations import L2Norm
-from merlin_models.tf.core import Block, EmbeddingWithMetadata, SequentialBlock
-from merlin_models.tf.losses import LossType
-from merlin_models.tf.prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
-from merlin_models.utils.constants import MIN_FLOAT
-from merlin_standard_lib import Schema, Tag
-
-from ..block.aggregation import SequenceAggregation, SequenceAggregator
-from ..block.inputs import InputBlock
-from ..block.mlp import MLPBlock
+from ...utils.constants import MIN_FLOAT
+from ...utils.schema import categorical_cardinalities
+from ..blocks.transformations import L2Norm
+from ..core import Block, EmbeddingWithMetadata
+from ..losses.loss_base import LossType
+from ..metrics.ranking import ranking_metrics
+from ..prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from ..typing import TabularData
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
-from .ranking_metric import ranking_metrics
 
 LOG = logging.getLogger("merlin_models")
 
@@ -92,8 +89,8 @@ class ItemsPredictionWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
-        self.item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
-        self.num_classes = schema.categorical_cardinalities()[self.item_id_feature_name]
+        self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        self.num_classes = categorical_cardinalities(schema)[self.item_id_feature_name]
 
     def build(self, input_shape):
         self.bias = self.add_weight(
@@ -174,7 +171,7 @@ class ItemRetrievalScorer(Block):
         return self._required_features
 
     def _check_input_from_two_tower(self, inputs):
-        assert set(inputs.keys()) == set(["query", "item"])
+        assert set(inputs.keys()) == {"query", "item"}
 
     def _check_required_context_item_features_are_present(self):
         not_found = list(
@@ -197,6 +194,7 @@ class ItemRetrievalScorer(Block):
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs["query"]), uses dot product to score
             the positive item (inputs["item"] or  self.context.get_embedding(self.item_column))
+
         Parameters
         ----------
         inputs : Union[tf.Tensor, TabularData]
@@ -391,7 +389,7 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
-    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
+    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     if samplers is None or len(samplers) == 0:
         samplers = (InBatchSampler(),)
 
@@ -523,8 +521,8 @@ def ItemsPredictionSampled(
             and sampled negatives of shape (bs, num_sampled+1), as well as the related logits.
             During evaluation, returns the input tensor of true class, and the related logits.
     """
-    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
-    num_classes = schema.categorical_cardinalities()[item_id_feature_name]
+    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    num_classes = categorical_cardinalities(schema)[item_id_feature_name]
     samplers = PopularityBasedSampler(
         max_num_samples=num_sampled,
         max_id=num_classes,
@@ -611,7 +609,7 @@ def NextItemPredictionTask(
         PredictionTask
             The next item prediction task
     """
-    item_id_feature_name = schema.select_by_tag(Tag.ITEM_ID).column_names[0]
+    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
 
     if sampled_softmax:
         prediction_call = ItemsPredictionSampled(
@@ -646,48 +644,3 @@ def NextItemPredictionTask(
         metrics=metrics,
         pre=prediction_call,
     )
-
-
-def YoutubeDNNRetrieval(
-    schema: Schema,
-    aggregation: str = "concat",
-    top_layer: Optional[Block] = MLPBlock([64]),
-    num_sampled: int = 100,
-    loss: Optional[LossType] = "categorical_crossentropy",
-    metrics=ranking_metrics(top_ks=[10, 20]),
-    normalize: bool = True,
-    extra_pre_call: Optional[Block] = None,
-    task_block: Optional[Layer] = None,
-    softmax_temperature: float = 1,
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
-) -> SequentialBlock:
-    """
-    Build the Youtube-DNN retrieval model.
-    More details of the model can be found at
-    [Covington et al., 2016](https://dl.acm.org/doi/10.1145/2959100.2959190Covington)
-    """
-
-    inputs = InputBlock(
-        schema,
-        aggregation=aggregation,
-        seq=False,
-        masking="clm",
-        split_sparse=True,
-        seq_aggregator=seq_aggregator,
-    )
-
-    task = NextItemPredictionTask(
-        schema=schema,
-        loss=loss,
-        metrics=metrics,
-        masking=True,
-        weight_tying=False,
-        sampled_softmax=True,
-        extra_pre_call=extra_pre_call,
-        task_block=task_block,
-        softmax_temperature=softmax_temperature,
-        normalize=normalize,
-        num_sampled=num_sampled,
-    )
-
-    return inputs.connect(top_layer, task)
