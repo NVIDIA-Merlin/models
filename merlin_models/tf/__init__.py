@@ -80,7 +80,7 @@ from .features.embedding import (
 )
 from .losses import LossType
 from .metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
-from .models.ranking import DCNModel, DLRMModel
+from .models.ranking import DCNModel, DLRMModel, MLPModel
 from .models.retrieval import MatrixFactorizationModel, TwoTowerModel, YoutubeDNNRetrievalModel
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
 from .prediction.item_prediction import (
@@ -181,4 +181,5 @@ __all__ = [
     "DCNModel",
     "losses",
     "LossType",
+    "MLPModel"
 ]

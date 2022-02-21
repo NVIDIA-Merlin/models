@@ -8,6 +8,55 @@ from ..blocks.inputs import InputBlock
 from ..blocks.mlp import MLPBlock
 from ..core import Block, Model, ParallelPredictionBlock, PredictionTask
 from .utils import _parse_prediction_tasks
+from ..features.embedding import EmbeddingOptions
+
+def MLPModel(
+    schema: Schema,
+    embedding_dim: int,
+    mlp_block: Block,
+    prediction_tasks: Optional[
+        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+    ] = None,
+) -> Model:
+    """MLP-model architecture.
+
+    Example Usage::
+        mlp = mm.MLPModel(
+            schema,
+            embedding_dim=256,
+            mlp_block=mm.MLPBlock([64, 32]),
+            prediction_tasks=mm.BinaryClassificationTask("click")
+        )
+        mlp.compile(optimizer="adam")
+        mlp.fit(train_data, epochs=10)
+
+    Parameters
+    ----------
+    schema : Schema
+        The `Schema` with the input features
+    embedding_dim : int
+        Dimension of the embeddings
+    mlp_block : Block
+        The MLP block applied to the embeddings
+    prediction_tasks: optional
+        The prediction tasks to be used, by default this will be inferred from the Schema.
+
+    Returns
+    -------
+    Model
+
+    """
+
+    prediction_tasks = _parse_prediction_tasks(schema, prediction_tasks)
+    
+    model = Model(
+        InputBlock(schema, 
+                   embedding_options=EmbeddingOptions(embedding_dim_default=embedding_dim)),
+        mlp_block,
+        prediction_tasks
+    )
+    
+    return model
 
 
 def DLRMModel(
