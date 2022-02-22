@@ -133,7 +133,7 @@ def _get_schema(dataset):
     return None
 
 
-class Dataset(tf.keras.utils.Sequence, DataLoader):
+class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
     """
     Infinite generator used to asynchronously iterate through CSV or Parquet
     dataframes on GPU by leveraging an NVTabular `Dataset`. Applies preprocessing

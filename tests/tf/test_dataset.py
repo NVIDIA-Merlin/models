@@ -42,7 +42,7 @@ def test_nested_list():
         }
     )
 
-    train_dataset = tf_dataloader.Dataset(
+    train_dataset = tf_dataloader.BatchedDataset(
         Dataset(df),
         cont_names=["data", "data2"],
         label_names=["label"],
@@ -77,7 +77,7 @@ def test_shuffling():
 
     df = pd.DataFrame({"a": np.asarray(range(num_rows)), "b": np.asarray([0] * num_rows)})
 
-    train_dataset = tf_dataloader.Dataset(
+    train_dataset = tf_dataloader.BatchedDataset(
         Dataset(df), cont_names=["a"], label_names=["b"], batch_size=batch_size, shuffle=True
     )
 
@@ -111,7 +111,7 @@ def test_tf_drp_reset(tmpdir, batch_size, drop_last, num_rows):
     cont_names = ["cont3", "cont2", "cont1"]
     label_name = ["label"]
 
-    data_itr = tf_dataloader.Dataset(
+    data_itr = tf_dataloader.BatchedDataset(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -157,7 +157,7 @@ def test_tf_catname_ordering(tmpdir):
     cont_names = ["cont3", "cont2", "cont1"]
     label_name = ["label"]
 
-    data_itr = tf_dataloader.Dataset(
+    data_itr = tf_dataloader.BatchedDataset(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -198,7 +198,7 @@ def test_tf_map(tmpdir):
 
         return features, labels, sample_weight
 
-    data_itr = tf_dataloader.Dataset(
+    data_itr = tf_dataloader.BatchedDataset(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -224,7 +224,7 @@ def test_validater(batch_size):
 
     gdf = make_df({"a": rand.randn(n_samples), "label": rand.randint(2, size=n_samples)})
 
-    dataloader = tf_dataloader.Dataset(
+    dataloader = tf_dataloader.BatchedDataset(
         Dataset(gdf),
         batch_size=batch_size,
         cat_names=[],
@@ -275,7 +275,7 @@ def test_model_with_sparse_inputs(music_streaming_data: SyntheticData):
             "user_id": np.random.randint(0, 10, (32,)).tolist(),
         }
     )
-    train_dataset = tf_dataloader.Dataset(
+    train_dataset = tf_dataloader.BatchedDataset(
         Dataset(df),
         cat_names=["user_id", "item_genres"],
         batch_size=3,
