@@ -25,6 +25,7 @@ from packaging import version
 from merlin.core.dispatch import HAS_GPU
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
+from merlin.models.utils.schema import select_targets
 from merlin.schema import Tags
 
 LOG = logging.getLogger("merlin.models")
@@ -98,12 +99,13 @@ def _validate_dataset(paths_or_dataset, batch_size, buffer_size, engine, device,
     return dd_engine[engine](files)
 
 
-def _validate_schema(feature_columns, cat_names, cont_names, schema=None):
+def _validate_schema(feature_columns, cat_names, cont_names, label_names, schema=None):
     _uses_feature_columns = feature_columns is not None
     _uses_explicit_schema = (cat_names is not None) or (cont_names is not None)
 
     cat_tag_names = schema.select_by_tag([Tags.CATEGORICAL]).column_names if schema else []
     cont_tag_names = schema.select_by_tag([Tags.CONTINUOUS]).column_names if schema else []
+    label_names = label_names or []
     _uses_dataset_schema = cat_tag_names or cont_tag_names
 
     if _uses_feature_columns and _uses_explicit_schema:
@@ -111,15 +113,18 @@ def _validate_schema(feature_columns, cat_names, cont_names, schema=None):
             "Passed `feature_column`s and explicit column names, must be one or the other"
         )
     elif _uses_feature_columns:
-        return get_dataset_schema_from_feature_columns(feature_columns)
+        cat_names, cont_names = get_dataset_schema_from_feature_columns(feature_columns)
+
+        return cat_names, cont_names, label_names
     elif _uses_explicit_schema:
         cat_names = cat_names or []
         cont_names = cont_names or []
-        return cat_names, cont_names
+
+        return cat_names, cont_names, label_names
     elif _uses_dataset_schema:
-        cat_tag_names = cat_tag_names or []
-        cont_tag_names = cont_tag_names or []
-        return cat_tag_names, cont_tag_names
+        label_names = label_names or select_targets(schema)
+
+        return cat_tag_names, cont_tag_names, label_names
     else:
         raise ValueError(
             "Must either pass a list of TensorFlow `feature_column`s "
@@ -268,8 +273,8 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
             paths_or_dataset, batch_size, buffer_size, engine, device, reader_kwargs
         )
         schema = _get_schema(dataset) if not schema else schema
-        cat_names, cont_names = _validate_schema(
-            feature_columns, cat_names, cont_names, schema=schema
+        cat_names, cont_names, label_names = _validate_schema(
+            feature_columns, cat_names, cont_names, label_names, schema=schema
         )
 
         device = device or 0
