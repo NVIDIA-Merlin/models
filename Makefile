@@ -8,7 +8,7 @@ lint:
 	black --check .
 	isort -c .
 	check-manifest .
-	mypy transformers4rec --install-types --non-interactive --no-strict-optional --ignore-missing-imports
+	mypy merlin-models --install-types --non-interactive --no-strict-optional --ignore-missing-imports
 
 tests:
 	coverage run -m pytest || exit 1
