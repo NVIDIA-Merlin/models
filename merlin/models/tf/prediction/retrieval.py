@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 import tensorflow as tf
 from merlin.schema import Schema, Tags
@@ -32,59 +32,9 @@ from .evaluation import BruteForceTopK
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ItemRetrieval(MultiClassClassificationTask):
-    DEFAULT_LOSS = "sparse_categorical_crossentropy"
-    DEFAULT_METRICS = ranking_metrics(top_ks=[10, 20])
-
-    def __init__(
-        self,
-        target_name: Optional[str] = None,
-        task_name: Optional[str] = None,
-        task_block: Optional[Layer] = None,
-        loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
-        train_metrics: Sequence[MetricOrMetricClass] = None,
-        pre: Optional[Block] = None,
-        pre_metrics: Optional[Block] = None,
-        **kwargs,
-    ):
-
-        super().__init__(
-            metrics=list(metrics),
-            target_name=target_name,
-            task_name=task_name,
-            task_block=task_block,
-            pre=pre,
-            **kwargs,
-        )
-        self.loss = loss_registry.parse(loss)
-
-        if len(self.metrics) > 0:
-            max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
-            pre_metrics = BruteForceTopK(k=max_k - 1)
-        self.pre_metrics = pre_metrics
-
-    def load_candidates(self, candidates):
-        """Load candidates to use for evaluation/prediction"""
-        if not self.pre_metrics:
-            raise ValueError("The evaluation block is not set for metrics evaluation")
-        self.pre_metrics.load_index(candidates)
-
-
-def ItemRetrievalTask(
-    schema: Schema,
-    loss: Optional[LossType] = "categorical_crossentropy",
-    metrics: Sequence[MetricOrMetricClass] = ranking_metrics(top_ks=[10, 20]),
-    samplers: Sequence[ItemSampler] = (),
-    extra_pre_call: Optional[Block] = None,
-    target_name: Optional[str] = None,
-    task_name: Optional[str] = None,
-    task_block: Optional[Layer] = None,
-    softmax_temperature: float = 1,
-    normalize: bool = True,
-) -> ItemRetrieval:
+class ItemRetrievalTask(MultiClassClassificationTask):
     """
-    Function to create the ItemRetrieval task with the right parameters.
+    ItemRetrieval task class.
 
     Parameters
     ----------
@@ -93,11 +43,11 @@ def ItemRetrievalTask(
         loss: Optional[LossType]
             Loss function.
             Defaults to `categorical_crossentropy`.
-        samplers: List[ItemSampler]
-            List of samplers for negative sampling, by default `[InBatchSampler()]`
         metrics: Sequence[MetricOrMetricClass]
             List of top-k ranking metrics.
             Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
+        samplers: List[ItemSampler]
+            List of samplers for negative sampling, by default `[InBatchSampler()]`
         extra_pre_call: Optional[PredictionBlock]
             Optional extra pre-call block. Defaults to None.
         target_name: Optional[str]
@@ -121,28 +71,65 @@ def ItemRetrievalTask(
         PredictionTask
             The item retrieval prediction task
     """
-    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    if samplers is None or len(samplers) == 0:
-        samplers = (InBatchSampler(),)
 
-    prediction_call = ItemRetrievalScorer(
-        samplers=samplers, item_id_feature_name=item_id_feature_name
-    )
+    DEFAULT_LOSS = "categorical_crossentropy"
+    DEFAULT_METRICS = ranking_metrics(top_ks=[10, 20])
 
-    if normalize:
-        prediction_call = L2Norm().connect(prediction_call)
+    def __init__(
+        self,
+        schema: Schema,
+        loss: Optional[LossType] = DEFAULT_LOSS,
+        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
+        samplers: List[ItemSampler] = (),
+        target_name: Optional[str] = None,
+        task_name: Optional[str] = None,
+        task_block: Optional[Layer] = None,
+        train_metrics: Sequence[MetricOrMetricClass] = None,
+        extra_pre_call: Optional[Block] = None,
+        softmax_temperature: float = 1,
+        normalize: bool = True,
+        **kwargs,
+    ):
+        self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        self._set_prediction_call(samplers, normalize, softmax_temperature, extra_pre_call)
+        self.loss = loss_registry.parse(loss)
 
-    if softmax_temperature != 1:
-        prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
+        super().__init__(
+            loss=self.loss,
+            metrics=list(metrics),
+            target_name=target_name,
+            task_name=task_name,
+            task_block=task_block,
+            pre=self.prediction_call,
+        )
 
-    if extra_pre_call is not None:
-        prediction_call = prediction_call.connect(extra_pre_call)
+        if len(self.metrics) > 0:
+            max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
+            pre_metrics = BruteForceTopK(k=max_k - 1)
+            self.pre_metrics = pre_metrics
 
-    return ItemRetrieval(
-        target_name,
-        task_name,
-        task_block,
-        loss=loss,
-        metrics=metrics,
-        pre=prediction_call,
-    )
+    def _set_prediction_call(self, samplers, normalize, softmax_temperature, extra_pre_call):
+
+        if samplers is None or len(samplers) == 0:
+            samplers = (InBatchSampler(),)
+
+        prediction_call = ItemRetrievalScorer(
+            samplers=samplers, item_id_feature_name=self.item_id_feature_name
+        )
+
+        if normalize:
+            prediction_call = L2Norm().connect(prediction_call)
+
+        if softmax_temperature != 1:
+            prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
+
+        if extra_pre_call is not None:
+            prediction_call = prediction_call.connect(extra_pre_call)
+
+        self.prediction_call = prediction_call
+
+    def load_candidates(self, candidates):
+        """Load candidates to use for evaluation/prediction"""
+        if not self.pre_metrics:
+            raise ValueError("The evaluation block is not set for metrics evaluation")
+        self.pre_metrics.load_index(candidates)
