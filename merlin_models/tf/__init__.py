@@ -28,6 +28,9 @@ from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
+# Must happen before any importing of tensorflow to curtail mem usage
+from merlin_models.loader.tf_utils import configure_tensorflow
+
 from .. import data
 from ..data.synthetic import SyntheticData
 from . import losses
@@ -112,7 +115,7 @@ OptimizerV2.__repr__ = repr_utils.layer_repr_no_children
 
 __all__ = [
     "Schema",
-    "Tag",
+    "Tags",
     "Block",
     "BlockContext",
     "SequentialBlock",

@@ -29,6 +29,7 @@ from ..losses.loss_base import LossType
 from ..metrics.ranking import ranking_metrics
 from ..prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from ..typing import TabularData
+from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
 
 LOG = logging.getLogger("merlin_models")
@@ -72,6 +73,12 @@ class PredictionsScaler(Block):
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+    def get_config(self):
+        config = super().get_config()
+        config["scale_factor"] = self.scale_factor
+
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -117,6 +124,7 @@ class LabelAwareAttention(Block):
 
 
 @Block.registry.register_with_multiple_names("item_retrieval_scorer")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemRetrievalScorer(Block):
     """Block for ItemRetrieval, which expects query/user and item embeddings as input and
     uses dot product to score the positive item (inputs["item"]) and also sampled negative
@@ -337,6 +345,21 @@ class ItemRetrievalScorer(Block):
         )
 
         return negative_scores
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(self, config, ["samplers"])
+        config["downscore_false_negatives"] = self.downscore_false_negatives
+        config["false_negatives_score"] = self.false_negatives_score
+        config["item_id_feature_name"] = self.item_id_feature_name
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["samplers"])
+
+        return super().from_config(config)
 
 
 def ItemRetrievalTask(

@@ -116,7 +116,7 @@ def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, t
     model.save(str(tmp_path))
 
     copy_model = tf.keras.models.load_model(str(tmp_path))
-    assert copy_model.context == copy_model.body.layers[0].context
+    assert copy_model.context == copy_model.block.layers[0].context
     assert list(copy_model.context._feature_names) == ["item_id"]
     assert len(dict(copy_model.context._feature_dtypes)) == 23
 

@@ -583,7 +583,7 @@ class MergeTabular(TabularBlock):
 
         return self.to_merge
 
-    def forward(self, inputs: TabularData, training=True, **kwargs) -> TabularData:  # type: ignore
+    def forward(self, inputs: TabularData, training=False, **kwargs) -> TabularData:  # type: ignore
         assert isinstance(inputs, dict), "Inputs needs to be a dict"
 
         outputs = {}

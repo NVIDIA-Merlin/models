@@ -20,8 +20,20 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import reduce
-from typing import Dict, List, Optional, Sequence, Text, Type, Union, overload
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Text,
+    Type,
+    Union,
+    overload,
+    runtime_checkable,
+)
 
+import merlin.io
 import six
 import tensorflow as tf
 from merlin.schema import Schema, Tags
@@ -193,6 +205,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             self._set_context(context)
 
     @classmethod
+    @tf.autograph.experimental.do_not_convert
     def parse(cls, *block: BlockType) -> "Block":
         if len(block) == 1 and isinstance(block[0], (list, tuple)):
             block = block[0]
@@ -326,7 +339,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         *block: Union[tf.keras.layers.Layer, str],
         block_name: Optional[str] = None,
         context: Optional[BlockContext] = None,
-    ) -> Union["SequentialBlock", "Model"]:
+    ) -> Union["SequentialBlock", "Model", "RetrievalModel"]:
         """Connect the block to other blocks sequentially.
 
         Parameters
@@ -352,6 +365,11 @@ class Block(SchemaMixin, ContextMixin, Layer):
         )
 
         if isinstance(blocks[-1], ModelLikeBlock):
+            if any(isinstance(b, RetrievalBlock) for b in blocks) or isinstance(
+                self, RetrievalBlock
+            ):
+                return RetrievalModel(output)
+
             return Model(output)
 
         return output
@@ -406,7 +424,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Name of the block outputs.
         """
 
-        _block = self.parse(block)
+        _block = self.parse(block) if not isinstance(block, Block) else block
         residual_block = WithShortcut(
             _block,
             shortcut_filter=shortcut_filter,
@@ -444,7 +462,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         post: Optional[BlockType] = None,
         aggregation: Optional["TabularAggregationType"] = None,
         **kwargs,
-    ) -> Union["SequentialBlock", "Model"]:
+    ) -> Union["SequentialBlock", "Model", "RetrievalModel"]:
         """Connect the block to one or multiple branches.
 
         Parameters
@@ -569,6 +587,10 @@ class SequentialBlock(Block):
                 )
 
         super(SequentialBlock, self).__init__(**kwargs)
+
+        if getattr(layers[0], "schema", None):
+            super().set_schema(layers[0].schema)
+
         layers = copy.copy(layers) if copy_layers else layers
         if filter:
             if not isinstance(filter, Filter):
@@ -619,8 +641,14 @@ class SequentialBlock(Block):
     @property
     def inputs(self):
         first = list(self)[0]
+        if isinstance(first, SequentialBlock):
+            return first.inputs
         if is_input_block(first):
             return first
+
+    @property
+    def first(self):
+        return self.layers[0]
 
     @property
     def last(self):
@@ -699,7 +727,7 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(self, predictions, targets, training=True, **kwargs):
+    def call_targets(self, predictions, targets, training=False, **kwargs):
         outputs = targets
         for layer in self.layers:
             if isinstance(outputs, tuple):
@@ -797,7 +825,7 @@ class TabularAggregation(
         if len(seq_features_shapes) > 0:
             return batch_size, sequence_length, agg_dim
 
-        return batch_size, agg_dim
+        return tf.TensorShape((batch_size, agg_dim))
 
     def get_values(self, inputs: TabularData) -> List[tf.Tensor]:
         values = []
@@ -1363,21 +1391,11 @@ class ParallelBlock(TabularBlock):
             )  # type: ignore
             parsed_to_merge: Dict[str, TabularBlock] = {}
             for key, val in to_merge.items():
-                if not getattr(val, "is_tabular", False):
-                    if not hasattr(val, "as_tabular"):
-                        val = SequentialBlock([val, AsTabular(key)], copy_layers=False)
-                    else:
-                        val = val.as_tabular(key)
                 parsed_to_merge[key] = val
             self.parallel_layers = parsed_to_merge
         elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
             parsed: List[TabularBlock] = []
             for i, inp in enumerate(inputs):
-                if not getattr(inp, "is_tabular", False):
-                    if not hasattr(inp, "as_tabular"):
-                        val = SequentialBlock([inp, AsTabular(str(i))], copy_layers=False)
-                    else:
-                        inp = inp.as_tabular(str(i))
                 parsed.append(inp)
             self.parallel_layers = parsed
         else:
@@ -1442,17 +1460,15 @@ class ParallelBlock(TabularBlock):
         ):
             for name, block in self.parallel_dict.items():
                 out = block(inputs[name])
-                if isinstance(out, dict):
-                    outputs.update(out)
-                else:
-                    outputs[name] = out
+                if not isinstance(out, dict):
+                    out = {name: out}
+                outputs.update(out)
         else:
             for name, layer in self.parallel_dict.items():
                 out = layer(inputs)
-                if isinstance(out, dict):
-                    outputs.update(out)
-                else:
-                    outputs[name] = out
+                if not isinstance(out, dict):
+                    out = {name: out}
+                outputs.update(out)
 
         return outputs
 
@@ -1491,7 +1507,7 @@ class ParallelBlock(TabularBlock):
         )
 
     @classmethod
-    def from_config(cls, config, custom_objects=None):
+    def parse_config(cls, config, custom_objects=None):
         config = maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
         if "schema" in config:
             config["schema"] = tensorflow_metadata_json_to_schema(config["schema"])
@@ -1501,6 +1517,12 @@ class ParallelBlock(TabularBlock):
             name: tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
             for name, conf in parallel_layers.items()
         }
+
+        return inputs, config
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        inputs, config = cls.parse_config(config, custom_objects)
 
         return cls(inputs, **config)
 
@@ -1523,6 +1545,9 @@ class AsTabular(tf.keras.layers.Layer):
 
     def call(self, inputs, **kwargs):
         return {self.output_name: inputs}
+
+    def compute_output_shape(self, input_shape):
+        return {self.output_name: input_shape}
 
     def get_config(self):
         config = super(AsTabular, self).get_config()
@@ -1786,15 +1811,15 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
 
-        if isinstance(predictions, dict) and self.target_name:
+        if isinstance(predictions, dict) and self.target_name and self.task_name in predictions:
             predictions = predictions[self.task_name]
 
         if self.pre:
-            targets = self.pre_loss(predictions, targets, **kwargs)
+            targets = self.pre_loss(predictions, targets, training=training, **kwargs)
             if isinstance(targets, tuple):
                 targets, predictions = targets
 
-        if len(targets.shape) == len(predictions.shape) - 1:
+        if isinstance(targets, tf.Tensor) and len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
 
         loss = self._compute_loss(
@@ -1879,6 +1904,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             config["target_name"] = self.target_name
         if self._task_name:
             config["task_name"] = self._task_name
+
+        if "metrics" not in config:
+            config["metrics"] = []
 
         return config
 
@@ -2162,6 +2190,30 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ModelBlock(Block, tf.keras.Model):
+    def __init__(self, block: Block, **kwargs):
+        super().__init__(**kwargs)
+        self.block = block
+
+    def call(self, inputs, **kwargs):
+        outputs = self.block(inputs, **kwargs)
+        return outputs
+
+    @property
+    def schema(self) -> Schema:
+        return self.block.schema
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        block = tf.keras.utils.deserialize_keras_object(config.pop("block"))
+
+        return cls(block, **config)
+
+    def get_config(self):
+        return {"block": tf.keras.utils.serialize_keras_object(self.block)}
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class Model(tf.keras.Model, LossMixin, MetricsMixin):
     def __init__(
         self,
@@ -2176,22 +2228,38 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             and isinstance(blocks[0], SequentialBlock)
             and isinstance(blocks[0].layers[-1], ModelLikeBlock)
         ):
-            self.body = blocks[0]
-            if not getattr(self.body, "_context", None):
-                self.body._set_context(context)
+            self.block = blocks[0]
         else:
             if not isinstance(blocks[-1], ModelLikeBlock):
                 raise ValueError("Last block must be able to calculate loss & metrics.")
-            self.body = SequentialBlock(blocks, context=context)
+            self.block = SequentialBlock(blocks, context=context)
+        if not getattr(self.block, "_context", None):
+            self.block._set_context(context)
         self.context = context
 
     def call(self, inputs, **kwargs):
-        outputs = self.body(inputs, **kwargs)
+        outputs = self.block(inputs, **kwargs)
         return outputs
+
+    # @property
+    # def inputs(self):
+    #     return self.block.inputs
+
+    @property
+    def first(self):
+        return self.block.layers[0]
+
+    @property
+    def last(self):
+        return self.block.layers[-1]
 
     @property
     def loss_block(self) -> ModelLikeBlock:
-        return self.body.last if isinstance(self.body, SequentialBlock) else self.body
+        return self.block.last if isinstance(self.block, SequentialBlock) else self.block
+
+    @property
+    def schema(self) -> Schema:
+        return self.block.schema
 
     def compute_loss(
         self,
@@ -2270,14 +2338,192 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         return metrics
 
+    def fit(
+        self,
+        x=None,
+        y=None,
+        batch_size=None,
+        epochs=1,
+        verbose="auto",
+        callbacks=None,
+        validation_split=0.0,
+        validation_data=None,
+        shuffle=True,
+        class_weight=None,
+        sample_weight=None,
+        initial_epoch=0,
+        steps_per_epoch=None,
+        validation_steps=None,
+        validation_batch_size=None,
+        validation_freq=1,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        **kwargs,
+    ):
+        # Check if merlin-dataset is passed
+        if hasattr(x, "to_ddf"):
+            if not batch_size:
+                raise ValueError("batch_size must be specified when using merlin-dataset.")
+            from .dataset import Dataset
+
+            x = Dataset(x, batch_size=batch_size, **kwargs)
+
+        return super().fit(
+            x,
+            y,
+            batch_size,
+            epochs,
+            verbose,
+            callbacks,
+            validation_split,
+            validation_data,
+            shuffle,
+            class_weight,
+            sample_weight,
+            initial_epoch,
+            steps_per_epoch,
+            validation_steps,
+            validation_batch_size,
+            validation_freq,
+            max_queue_size,
+            workers,
+            use_multiprocessing,
+        )
+
+    def batch_predict(
+        self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
+    ) -> merlin.io.Dataset:
+        """Batched prediction using the Dask.
+
+        Parameters
+        ----------
+        dataset: merlin.io.Dataset
+            Dataset to predict on.
+        batch_size: int
+            Batch size to use for prediction.
+
+        Returns merlin.io.Dataset
+        -------
+
+        """
+        if hasattr(dataset, "schema"):
+            if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
+                raise ValueError(
+                    f"Model schema {self.schema.column_names} does not match dataset schema"
+                    + f" {dataset.schema.column_names}"
+                )
+
+        # Check if merlin-dataset is passed
+        if hasattr(dataset, "to_ddf"):
+            dataset = dataset.to_ddf()
+
+        from .prediction.batch import TFModelEncode
+
+        model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
+        predictions = dataset.map_partitions(model_encode)
+
+        return merlin.io.Dataset(predictions)
+
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        body = tf.keras.utils.deserialize_keras_object(config.pop("body"))
+        block = tf.keras.utils.deserialize_keras_object(config.pop("block"))
 
-        return cls(body, **config)
+        return cls(block, **config)
 
     def get_config(self):
-        return {"body": tf.keras.utils.serialize_keras_object(self.body)}
+        return {"block": tf.keras.utils.serialize_keras_object(self.block)}
+
+
+@runtime_checkable
+class RetrievalBlock(Protocol):
+    def query_block(self) -> Block:
+        ...
+
+    def item_block(self) -> Block:
+        ...
+
+
+class RetrievalModel(Model):
+    """Embedding-based retrieval model. """
+
+    def __init__(
+        self,
+        *blocks: Union[Block, ModelLikeBlock],
+        context: Optional[BlockContext] = None,
+        **kwargs,
+    ):
+        super().__init__(*blocks, context=context, **kwargs)
+
+        if not any(isinstance(b, RetrievalBlock) for b in self.block):
+            raise ValueError("Model must contain a `RetrievalBlock`.")
+
+    @property
+    def retrieval_block(self) -> RetrievalBlock:
+        return next(b for b in self.blocks if isinstance(b, RetrievalBlock))
+
+    def query_embeddings(
+        self,
+        dataset: merlin.io.Dataset,
+        dim: int,
+        batch_size=None,
+    ) -> merlin.io.Dataset:
+        """Export query embeddings from the model.
+
+        Parameters
+        ----------
+        dataset: merlin.io.Dataset
+            Dataset to export embeddings from.
+        dim: int
+            Dimensionality of the embeddings.
+        batch_size: int
+            Batch size to use for embedding extraction.
+
+        Returns
+        -------
+        merlin.io.Dataset
+        """
+        from merlin_models.tf.prediction.batch import QueryEmbeddings
+
+        get_user_emb = QueryEmbeddings(self, dim=dim, batch_size=batch_size)
+
+        # Check if merlin-dataset is passed
+        if hasattr(dataset, "to_ddf"):
+            dataset = dataset.to_ddf()
+
+        embeddings = dataset.map_partitions(get_user_emb)
+
+        return merlin.io.Dataset(embeddings)
+
+    def item_embeddings(
+        self, dataset: merlin.io.Dataset, dim: int, batch_size=None, **kwargs
+    ) -> merlin.io.Dataset:
+        """Export item embeddings from the model.
+
+        Parameters
+        ----------
+        dataset: merlin.io.Dataset
+            Dataset to export embeddings from.
+        dim: int
+            Dimensionality of the embeddings.
+        batch_size: int
+            Batch size to use for embedding extraction.
+
+        Returns
+        -------
+        merlin.io.Dataset
+        """
+        from merlin_models.tf.prediction.batch import ItemEmbeddings
+
+        get_item_emb = ItemEmbeddings(self, dim=dim, batch_size=batch_size)
+
+        # Check if merlin-dataset is passed
+        if hasattr(dataset, "to_ddf"):
+            dataset = dataset.to_ddf()
+
+        embeddings = dataset.map_partitions(get_item_emb)
+
+        return merlin.io.Dataset(embeddings)
 
 
 def is_input_block(block: Block) -> bool:

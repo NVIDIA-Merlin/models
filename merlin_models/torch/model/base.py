@@ -370,7 +370,7 @@ class Head(torch.nn.Module, LossMixin, MetricsMixin):
     def forward(
         self,
         body_outputs: Union[torch.Tensor, TabularData],
-        training: bool = True,
+        training: bool = False,
         call_body: bool = False,
         always_output_dict: bool = False,
         **kwargs,
@@ -392,7 +392,7 @@ class Head(torch.nn.Module, LossMixin, MetricsMixin):
         self,
         body_outputs: Union[torch.Tensor, TabularData],
         targets: Union[torch.Tensor, TabularData],
-        training: bool = True,
+        training: bool = False,
         compute_metrics: bool = True,
         call_body: bool = False,
         **kwargs,
@@ -508,7 +508,7 @@ class Model(torch.nn.Module, LossMixin, MetricsMixin):
         self.head_reduction = head_reduction
         self.optimizer = optimizer
 
-    def forward(self, inputs: TensorOrTabularData, training=True, **kwargs):
+    def forward(self, inputs: TensorOrTabularData, training=False, **kwargs):
         # TODO: Optimize this
         outputs = {}
         for head in self.heads:
