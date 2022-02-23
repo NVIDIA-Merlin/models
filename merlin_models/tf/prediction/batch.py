@@ -12,13 +12,6 @@ from ..core import Block, Model, RetrievalModel
 from ..dataset import Dataset
 
 
-def get_array_lib():
-    if HAS_GPU:
-        import cupy
-
-        return cupy
-
-    return np
 
 
 class ModelEncode:
