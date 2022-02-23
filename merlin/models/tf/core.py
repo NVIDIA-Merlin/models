@@ -1732,6 +1732,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        compute_train_metrics: Optional[bool] = True,
         name: Optional[Text] = None,
         **kwargs,
     ) -> None:
@@ -1747,6 +1748,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.prediction_metrics = create_metrics(prediction_metrics) if prediction_metrics else []
         self.label_metrics = create_metrics(label_metrics) if label_metrics else []
         self.loss_metrics = create_metrics(loss_metrics) if loss_metrics else []
+        self.compute_train_metrics = compute_train_metrics
 
     def pre_call(self, inputs, **kwargs):
         x = inputs
@@ -1829,12 +1831,13 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         )
 
         if compute_metrics:
-            update_ops = self.calculate_metrics(predictions, targets, forward=False, loss=loss)
+            if (not training) or (training and self.compute_train_metrics):
+                update_ops = self.calculate_metrics(predictions, targets, forward=False, loss=loss)
 
-            update_ops = [x for x in update_ops if x is not None]
+                update_ops = [x for x in update_ops if x is not None]
 
-            with tf.control_dependencies(update_ops):
-                return tf.identity(loss)
+                with tf.control_dependencies(update_ops):
+                    return tf.identity(loss)
 
         return loss
 
