@@ -170,7 +170,7 @@ def data_iterator_func(schema, batch_size: int = 512):
 
     def data_iterator(dataset):
         return Dataset(
-            nvt.Dataset(dataset),
+            merlin.io.dataset.Dataset(dataset),
             batch_size=batch_size,
             cat_names=cat_cols,
             cont_names=cont_cols,
