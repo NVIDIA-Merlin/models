@@ -21,15 +21,12 @@ import tensorflow as tf
 from merlin.schema import Schema, Tags
 from tensorflow.python.ops import embedding_ops
 
-<<<<<<< HEAD:merlin/models/tf/blocks/retrieval.py
-from ..core import Block, BlockType, ModelBlock, ParallelBlock
-=======
 from ...utils.constants import MIN_FLOAT
-from ..core import Block, BlockType, EmbeddingWithMetadata, ParallelBlock
->>>>>>> new structure of item prediction and retrieval tasks:merlin_models/tf/blocks/retrieval.py
+from ..core import Block, BlockType, EmbeddingWithMetadata, ModelBlock, ParallelBlock
 from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 from ..prediction.sampling import ItemSampler
 from ..typing import TabularData
+from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from .inputs import InputBlock
 from .transformations import RenameFeatures
 
@@ -415,3 +412,18 @@ class ItemRetrievalScorer(Block):
         )
 
         return negative_scores
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(self, config, ["samplers"])
+        config["downscore_false_negatives"] = self.downscore_false_negatives
+        config["false_negatives_score"] = self.false_negatives_score
+        config["item_id_feature_name"] = self.item_id_feature_name
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["samplers"])
+
+        return super().from_config(config)

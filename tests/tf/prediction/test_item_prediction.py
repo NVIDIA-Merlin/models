@@ -176,7 +176,7 @@ def test_item_retrieval_scorer_only_positive_when_not_training():
     item_retrieval_scorer = ml.ItemRetrievalScorer(
         samplers=[ml.InBatchSampler()],
         sampling_downscore_false_negatives=False,
-        context=ml.BlockContext()
+        context=ml.BlockContext(),
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
@@ -212,7 +212,11 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     model = two_tower.connect(
         ml.ItemRetrievalTask(
-            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr", metrics=[]
+            music_streaming_data._schema,
+            softmax_temperature=2,
+            samplers=samplers,
+            loss="bpr",
+            metrics=[],
         )
     )
 
@@ -220,7 +224,11 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     for batch_step in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
+<<<<<<< HEAD
         _, output = model.loss_block.pre.call_targets(output, targets={}, training=True)
+=======
+        _, output = model.loss_block.pre.call_targets(output, training=True, targets={})
+>>>>>>> fix merge conflicts of  new merlin name space
         expected_num_samples_inbatch = batch_size
         expected_num_samples_cached = min(
             batch_size * (batch_step - 1 if ignore_last_batch_on_sample else batch_step),
@@ -253,23 +261,12 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
             ignore_last_batch_on_sample=False,
         ),
     ]
-<<<<<<< HEAD
-
-    model = two_tower.connect(
-        ml.ItemRetrievalTask(
-            music_streaming_data._schema, 
-            softmax_temperature=2, 
-            samplers=samplers, 
-            evaluation_candidates=tf.random.uniform((100, 256))
-    ))
-=======
     task = ml.ItemRetrievalTask(
         music_streaming_data._schema, softmax_temperature=2, samplers=samplers
     )
     # load candidates for evaluation
     task.load_candidates(tf.random.uniform((100, 256)))
     model = two_tower.connect(task)
->>>>>>> new structure of item prediction and retrieval tasks
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
@@ -277,6 +274,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
     _ = model.evaluate(music_streaming_data.tf_dataloader(batch_size=batch_size))
+
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("weight_tying", [True, False])
@@ -331,7 +329,9 @@ def test_retrieval_task_inbatch_default_sampler(
     assert batch_size == 100
 
     model = two_tower.connect(
-        ml.ItemRetrievalTask(music_streaming_data.schema, softmax_temperature=2, loss="bpr", metrics=[])
+        ml.ItemRetrievalTask(
+            music_streaming_data.schema, softmax_temperature=2, loss="bpr", metrics=[]
+        )
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
