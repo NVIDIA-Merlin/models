@@ -19,7 +19,7 @@ import tensorflow as tf
 from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 
-from merlin_models.tf.losses import LossType, loss_registry
+from merlin.models.tf.losses import LossType, loss_registry
 
 from ..blocks.item_prediction import PredictionsScaler
 from ..blocks.retrieval import ItemRetrievalScorer

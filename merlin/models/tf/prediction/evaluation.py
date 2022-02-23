@@ -17,7 +17,7 @@ from typing import Tuple
 
 import tensorflow as tf
 
-from merlin_models.tf.core import Block
+from merlin.models.tf.core import Block
 
 from ..utils import tf_utils
 

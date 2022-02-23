@@ -17,11 +17,9 @@ import logging
 from typing import Optional
 
 import tensorflow as tf
+from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 
-from merlin.schema import Schema, Tags
-
-from ...utils.constants import MIN_FLOAT
 from ...utils.schema import categorical_cardinalities
 from ..blocks.item_prediction import (
     ItemsPredictionWeightTying,
@@ -34,9 +32,6 @@ from ..blocks.transformations import L2Norm
 from ..core import Block
 from ..losses.loss_base import LossType
 from ..metrics.ranking import ranking_metrics
-from ..prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
-from ..typing import TabularData
-from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from ..prediction.sampling import PopularityBasedSampler
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
 from .evaluation import ItemsPredictionTopK
@@ -44,53 +39,7 @@ from .evaluation import ItemsPredictionTopK
 LOG = logging.getLogger("merlin.models")
 
 
-@Block.registry.register_with_multiple_names("sampling-bias-correction")
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class SamplingBiasCorrection(Block):
-    def __init__(self, bias_feature_name: str = "popularity", **kwargs):
-        super(SamplingBiasCorrection, self).__init__(**kwargs)
-        self.bias_feature_name = bias_feature_name
-
-    def call_features(self, features, **kwargs):
-        self.bias = features[self.bias_feature_name]
-
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        inputs -= tf.math.log(self.bias)
-
-        return inputs
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class PredictionsScaler(Block):
-    def __init__(self, scale_factor: float, **kwargs):
-        super(PredictionsScaler, self).__init__(**kwargs)
-        self.scale_factor = scale_factor
-
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        if not training:
-            return inputs * self.scale_factor
-        else:
-            return inputs
-
-    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
-        if training:
-            return targets, predictions * self.scale_factor
-        return targets
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-    def get_config(self):
-        config = super().get_config()
-        config["scale_factor"] = self.scale_factor
-
-        return config
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemsPrediction(CategFeaturePrediction):
     def __init__(
         self,
@@ -100,6 +49,8 @@ class ItemsPrediction(CategFeaturePrediction):
         super(ItemsPrediction, self).__init__(schema, **kwargs)
 
 
+<<<<<<< HEAD
+<<<<<<< HEAD:merlin/models/tf/prediction/item_prediction.py
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ItemsPredictionWeightTying(Block):
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
@@ -120,10 +71,6 @@ class ItemsPredictionWeightTying(Block):
         embedding_table = self.context.get_embedding(self.item_id_feature_name)
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
-
-        # To ensure that the output is always fp32, avoiding numerical
-        # instabilities with mixed_float16 policy
-        logits = tf.cast(logits, tf.float32)
 
         return logits
 
@@ -370,18 +317,11 @@ class ItemRetrievalScorer(Block):
 
             predictions = tf.concat([positive_scores, negative_scores], axis=-1)
 
-            # To ensure that the output is always fp32, avoiding numerical
-            # instabilities with mixed_float16 policy
-            predictions = tf.cast(predictions, tf.float32)
-
         # Positives in the first column and negatives in the subsequent columns
         targets = tf.concat(
             [
-                tf.ones([tf.shape(predictions)[0], 1], dtype=predictions.dtype),
-                tf.zeros(
-                    [tf.shape(predictions)[0], tf.shape(predictions)[1] - 1],
-                    dtype=predictions.dtype,
-                ),
+                tf.ones([tf.shape(predictions)[0], 1]),
+                tf.zeros([tf.shape(predictions)[0], tf.shape(predictions)[1] - 1]),
             ],
             axis=1,
         )
@@ -596,6 +536,8 @@ def ItemRetrievalTask(
 
 =======
 >>>>>>> new structure of item prediction and retrieval tasks:merlin_models/tf/prediction/item_prediction.py
+=======
+>>>>>>> fix merge conflicts of  new merlin name space
 def ItemsPredictionSampled(
     schema: Schema,
     num_sampled: int,
