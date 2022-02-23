@@ -2483,7 +2483,7 @@ class RetrievalModel(Model):
         -------
         merlin.io.Dataset
         """
-        from merlin_models.tf.prediction.batch import QueryEmbeddings
+        from merlin.models.tf.prediction.batch import QueryEmbeddings
 
         get_user_emb = QueryEmbeddings(self, dim=dim, batch_size=batch_size)
 
@@ -2513,7 +2513,7 @@ class RetrievalModel(Model):
         -------
         merlin.io.Dataset
         """
-        from merlin_models.tf.prediction.batch import ItemEmbeddings
+        from merlin.models.tf.prediction.batch import ItemEmbeddings
 
         get_item_emb = ItemEmbeddings(self, dim=dim, batch_size=batch_size)
 
