@@ -12,19 +12,19 @@ lint:
 
 tests:
 	coverage run -m pytest || exit 1
-	coverage report --include 'merlin.models/*'
-	coverage html --include 'merlin.models/*'
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
 
 
 tests-tf:
 	coverage run -m pytest tests --ignore "tests/torch" || exit 1
-	coverage report --include 'merlin.models/*'
-	coverage html --include 'merlin.models/*'
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
 
 tests-torch:
 	coverage run -m pytest tests --ignore "tests/tf" || exit 1
-	coverage report --include 'merlin.models/*'
-	coverage html --include 'merlin.models/*'
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
 
 dist:
 	python setup.py sdist
