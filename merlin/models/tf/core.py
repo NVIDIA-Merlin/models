@@ -2297,7 +2297,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     def metric_results(self, mode=None):
         return self.loss_block.metric_results(mode=mode)
 
-    def train_step(self, inputs, compute_metrics=False):
+    def train_step(self, inputs):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:

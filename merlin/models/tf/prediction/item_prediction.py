@@ -14,26 +14,32 @@
 # limitations under the License.
 #
 import logging
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import Optional
 
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
-from tensorflow.python.ops import embedding_ops
 
 from merlin.schema import Schema, Tags
 
 from ...utils.constants import MIN_FLOAT
 from ...utils.schema import categorical_cardinalities
+from ..blocks.item_prediction import (
+    ItemsPredictionWeightTying,
+    MaskingHead,
+    PredictionsScaler,
+    RemovePad3D,
+)
+from ..blocks.retrieval import ItemRetrievalScorer
 from ..blocks.transformations import L2Norm
-from ..core import Block, EmbeddingWithMetadata
+from ..core import Block
 from ..losses.loss_base import LossType
 from ..metrics.ranking import ranking_metrics
 from ..prediction.sampling import InBatchSampler, ItemSampler, PopularityBasedSampler
 from ..typing import TabularData
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
+from ..prediction.sampling import PopularityBasedSampler
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
-from .evaluation import BruteForceTopK, ItemsPredictionTopK
-from .ranking_metric import ranking_metrics
+from .evaluation import ItemsPredictionTopK
 
 LOG = logging.getLogger("merlin.models")
 
@@ -588,6 +594,8 @@ def ItemRetrievalTask(
     )
 
 
+=======
+>>>>>>> new structure of item prediction and retrieval tasks:merlin_models/tf/prediction/item_prediction.py
 def ItemsPredictionSampled(
     schema: Schema,
     num_sampled: int,
