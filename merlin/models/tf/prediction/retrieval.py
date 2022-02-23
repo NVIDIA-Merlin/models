@@ -34,7 +34,7 @@ from .evaluation import BruteForceTopK
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemRetrievalTask(MultiClassClassificationTask):
     """
-    ItemRetrieval task class.
+    Class for ItemRetrieval task.
 
     Parameters
     ----------
@@ -88,11 +88,13 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         extra_pre_call: Optional[Block] = None,
         softmax_temperature: float = 1,
         normalize: bool = True,
+        compute_train_metrics: bool = False,
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self._set_prediction_call(samplers, normalize, softmax_temperature, extra_pre_call)
         self.loss = loss_registry.parse(loss)
+        self.compute_train_metrics = compute_train_metrics
 
         super().__init__(
             loss=self.loss,
