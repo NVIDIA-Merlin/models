@@ -2445,7 +2445,7 @@ class RetrievalBlock(Protocol):
 
 
 class RetrievalModel(Model):
-    """Embedding-based retrieval model. """
+    """Embedding-based retrieval model."""
 
     def __init__(
         self,

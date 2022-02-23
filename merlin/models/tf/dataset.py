@@ -24,10 +24,7 @@ from merlin.schema import Tags
 from packaging import version
 
 from merlin.models.loader.backend import DataLoader
-from merlin.models.loader.tf_utils import (
-    configure_tensorflow,
-    get_dataset_schema_from_feature_columns,
-)
+from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
 
 if version.parse(tf.__version__) < version.parse("2.3.0"):
     try:
