@@ -162,8 +162,7 @@ def encode_output(output: tf.Tensor):
 
 
 def data_iterator_func(schema, batch_size: int = 512):
-    # TODO: Change this to merlin-core
-    import nvtabular as nvt
+    import merlin.io.dataset
 
     cat_cols = schema.select_by_tag(Tags.CATEGORICAL).column_names
     cont_cols = schema.select_by_tag(Tags.CONTINUOUS).column_names
