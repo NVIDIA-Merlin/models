@@ -15,6 +15,7 @@
 #
 import pytest
 from merlin.schema import Tags
+from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 from merlin_models.data.synthetic import SyntheticData
 from merlin_models.utils.schema import filter_dict_by_schema
@@ -76,3 +77,10 @@ def test_torch_tensors_generation_cpu():
     for val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.CATEGORICAL)).values():
         assert val.dtype == torch.int64
         assert val.max() < 52000
+
+
+def test_synthetic_read_proto_text(tmpdir):
+    schema = SyntheticData("music_streaming").schema
+    TensorflowMetadata.from_merlin_schema(schema).to_proto_text_file(tmpdir, "schema.pbtxt")
+    reloaded = SyntheticData.read_schema(tmpdir / "schema.pbtxt")
+    assert schema == reloaded

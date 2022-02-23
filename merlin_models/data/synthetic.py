@@ -100,11 +100,13 @@ class SyntheticData:
 
     @classmethod
     def read_schema(cls, path: Union[str, Path]) -> Schema:
-        _schema_path = (
-            os.path.join(str(path), "schema.json") if os.path.isdir(str(path)) else str(path)
-        )
+        path = str(path)
+        _schema_path = os.path.join(path, "schema.json") if os.path.isdir(path) else path
+
         if _schema_path.endswith(".pb") or _schema_path.endswith(".pbtxt"):
-            TensorflowMetadata.from_from_proto_text(_schema_path).to_merlin_schema()
+            return TensorflowMetadata.from_proto_text_file(
+                os.path.dirname(_schema_path), os.path.basename(_schema_path)
+            ).to_merlin_schema()
 
         return tensorflow_metadata_json_to_schema(_schema_path)
 
