@@ -103,7 +103,6 @@ from .prediction.sampling import (
 )
 from .utils import repr_utils
 
-# configure_tensorflow()
 
 
 Tags.__hash__ = lambda self: hash(str(self))
