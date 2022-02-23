@@ -5,7 +5,7 @@
 ![User-item matrix broken down into a user matrix and an item matrix.](../img/mf.png)
 
 ```python
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 ml.MatrixFactorizationBlock(schema, dim=256).connect(ml.ItemRetrievalTask())
 ```
@@ -17,7 +17,7 @@ Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube
 ![Sample network architecture for YouTube DNN.](../img/youtube-dnn.png)
 
 ```python
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 model = ml.YoutubeDNNRetrieval(schema, top_layer=ml.MLPBlock([64]))
 ```
@@ -33,7 +33,7 @@ Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019. <htt
 High-level API:
 
 ```python
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 block = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
 model = block.connect(ml.ItemRetrievalTask())
@@ -42,7 +42,7 @@ model = block.connect(ml.ItemRetrievalTask())
 Low-level API:
 
 ```python
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 from merlin.schema import Tags
 
 user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER), ml.MLPBlock([512, 256]))
@@ -63,7 +63,7 @@ et al. “Deep Learning Recommendation Model for Personalization and Recommendat
 High-level API:
 
 ```python
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 dlrm = ml.DLRMBlock(
     schema,
@@ -77,7 +77,7 @@ model = dlrm.connect(ml.BinaryClassificationTask(schema))
 Low-level API:
 
 ```python
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 dlrm_inputs = ml.ContinuousEmbedding(
     ml.InputBlock(schema, embedding_dim_default=128),
@@ -95,7 +95,7 @@ Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” A
 ![Visualization of DCN-V2.](../img/dcn-v2.png)
 
 ```python
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 prediction_task = ml.BinaryClassificationTask(schema)
 cross = ml.CrossBlock(3)
@@ -122,7 +122,7 @@ Ma, Jiaqi, Zhe Zhao, Xinyang Yi, Jilin Chen, Lichan Hong, and Ed H. Chi. “Mode
 High-level API:
 
 ```python
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 inputs = ml.InputBlock(schema)
 prediction_tasks = ml.PredictionTasks(schema)
@@ -140,7 +140,7 @@ Tang, Hongyan, Junning Liu, Ming Zhao, and Xudong Gong. “Progressive Layered E
 High-level API:
 
 ```python
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 inputs = ml.InputBlock(schema)
 prediction_tasks = ml.PredictionTasks(schema)
