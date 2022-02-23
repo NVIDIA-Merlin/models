@@ -33,6 +33,7 @@ from typing import (
     runtime_checkable,
 )
 
+import merlin.io
 import six
 import tensorflow as tf
 from merlin.schema import Schema, Tags
@@ -2390,12 +2391,25 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             use_multiprocessing,
         )
 
-    def batch_predict(self, dataset, batch_size=None, **kwargs):
+    def batch_predict(self, dataset, batch_size=None, **kwargs) -> merlin.io.Dataset:
+        """Batched prediction using the Dask.
+
+        Parameters
+        ----------
+        dataset: merlin.io.Dataset
+            Dataset to predict on.
+        batch_size: int
+            Batch size to use for prediction.
+
+        Returns merlin.io.Dataset
+        -------
+
+        """
         if hasattr(dataset, "schema"):
             if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
                 raise ValueError(
                     f"Model schema {self.schema.column_names} does not match dataset schema"
-                    + f" {dataset.column_names}"
+                    + f" {dataset.schema.column_names}"
                 )
 
         # Check if merlin-dataset is passed
@@ -2407,7 +2421,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
         predictions = dataset.map_partitions(model_encode)
 
-        return predictions
+        return merlin.io.Dataset(predictions)
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
