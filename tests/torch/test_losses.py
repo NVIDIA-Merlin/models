@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 # import pytest
-# import merlin_models.torch as ml
+# import merlin.models.torch as ml
 
-# examples_utils = pytest.importorskip("merlin_models.torch.losses")
+# examples_utils = pytest.importorskip("merlin.models.torch.losses")
 
 
 # @pytest.mark.parametrize("label_smoothing", [0.0, 0.1, 0.6])

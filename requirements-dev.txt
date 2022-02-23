@@ -1,6 +1,0 @@
-# packages necessary to run tests and push PRs
-
-pytest>=5
-black
-flake8
-isort

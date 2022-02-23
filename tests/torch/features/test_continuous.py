@@ -16,7 +16,7 @@
 
 from merlin.schema import Tags
 
-import merlin_models.torch as ml
+import merlin.models.torch as ml
 
 
 def test_continuous_features(torch_con_features):

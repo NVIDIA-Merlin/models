@@ -20,10 +20,10 @@ import pytest
 import tensorflow as tf
 from merlin.schema import Tags
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.blocks.aggregation import ElementWiseMultiply
-from merlin_models.tf.utils import testing_utils
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.blocks.aggregation import ElementWiseMultiply
+from merlin.models.tf.utils import testing_utils
 
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):
@@ -38,7 +38,7 @@ def test_matrix_factorization_block(music_streaming_data: SyntheticData):
 def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
     import pandas as pd
 
-    from merlin_models.tf.blocks.aggregation import CosineSimilarity
+    from merlin.models.tf.blocks.aggregation import CosineSimilarity
 
     mf = ml.MatrixFactorizationBlock(
         music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()

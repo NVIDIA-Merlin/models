@@ -17,8 +17,8 @@
 import pytest
 import tensorflow as tf
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
 
 
 @pytest.mark.parametrize("dim", [32, 64])

@@ -17,15 +17,15 @@ import pytest
 from merlin.schema import Tags
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
-from merlin_models.data.synthetic import SyntheticData
-from merlin_models.utils.schema import filter_dict_by_schema
+from merlin.models.data.synthetic import SyntheticData
+from merlin.models.utils.schema import filter_dict_by_schema
 
 
 def test_tabular_sequence_testing_data():
     tabular_testing_data = SyntheticData("testing")
     assert isinstance(tabular_testing_data, SyntheticData)
 
-    assert tabular_testing_data.schema_path.endswith("merlin_models/data/testing/schema.json")
+    assert tabular_testing_data.schema_path.endswith("merlin/models/data/testing/schema.json")
     assert len(tabular_testing_data.schema) == 11
 
 

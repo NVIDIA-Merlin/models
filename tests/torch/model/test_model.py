@@ -17,7 +17,7 @@
 import pytest
 import torch
 
-import merlin_models.torch as ml
+import merlin.models.torch as ml
 
 if torch.cuda.is_available():
     devices = ["cpu", "cuda"]

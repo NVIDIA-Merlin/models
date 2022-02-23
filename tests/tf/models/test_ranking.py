@@ -16,9 +16,9 @@
 #
 import pytest
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.utils import testing_utils
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.utils import testing_utils
 
 
 # TODO: Fix this test when `run_eagerly=False`
@@ -121,7 +121,7 @@ def test_serialization_model(ecommerce_data: SyntheticData, prediction_task):
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("model_name", ["mlp", "dlrm"])
 def test_resume_training(ecommerce_data: SyntheticData, prediction_task, run_eagerly, model_name):
-    from merlin_models.tf.utils import testing_utils
+    from merlin.models.tf.utils import testing_utils
 
     if prediction_task:
         prediction_task = prediction_task("click")

@@ -16,11 +16,11 @@
 
 import pytest
 
-from merlin_models.data.synthetic import SyntheticData
+from merlin.models.data.synthetic import SyntheticData
 
 tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin_models.tf")
-test_utils = pytest.importorskip("merlin_models.tf.utils.testing_utils")
+ml = pytest.importorskip("merlin.models.tf")
+test_utils = pytest.importorskip("merlin.models.tf.utils.testing_utils")
 
 
 @pytest.mark.parametrize("cross_layers", [1, 2, 3])

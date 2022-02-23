@@ -18,8 +18,8 @@ import pytest
 import tensorflow as tf
 from merlin.schema import Tags
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
 
 
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])

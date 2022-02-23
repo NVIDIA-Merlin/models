@@ -17,9 +17,9 @@
 import pytest
 from merlin.schema import Tags
 
-import merlin_models.torch as ml
+import merlin.models.torch as ml
 
-torch_utils = pytest.importorskip("merlin_models.torch.utils.torch_utils")
+torch_utils = pytest.importorskip("merlin.models.torch.utils.torch_utils")
 
 
 def test_tabular_features(tabular_schema, torch_tabular_data):

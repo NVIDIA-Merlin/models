@@ -19,9 +19,9 @@ import pytest
 import tensorflow as tf
 from merlin.schema import Tags
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.blocks.aggregation import ElementWiseMultiply
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.blocks.aggregation import ElementWiseMultiply
 
 
 def test_concat_aggregation_yoochoose(testing_data: SyntheticData):

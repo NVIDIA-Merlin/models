@@ -15,7 +15,7 @@
 #
 import pytest
 
-from merlin_models.data.synthetic import SyntheticData, generate_user_item_interactions
+from merlin.models.data.synthetic import SyntheticData, generate_user_item_interactions
 
 
 def test_generate_item_interactions_cpu(testing_data: SyntheticData):
