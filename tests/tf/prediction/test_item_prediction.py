@@ -253,6 +253,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
             ignore_last_batch_on_sample=False,
         ),
     ]
+<<<<<<< HEAD
 
     model = two_tower.connect(
         ml.ItemRetrievalTask(
@@ -261,6 +262,14 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
             samplers=samplers, 
             evaluation_candidates=tf.random.uniform((100, 256))
     ))
+=======
+    task = ml.ItemRetrievalTask(
+        music_streaming_data._schema, softmax_temperature=2, samplers=samplers
+    )
+    # load candidates for evaluation
+    task.load_candidates(tf.random.uniform((100, 256)))
+    model = two_tower.connect(task)
+>>>>>>> new structure of item prediction and retrieval tasks
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
