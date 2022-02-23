@@ -80,42 +80,42 @@ class BruteForceTopK(Block):
         self._k = k
         self._candidates = None
 
-    def load_index(self, candidates: tf.Tensor, identifiers: tf.Tensor = None):
+    def load_index(self, candidates_embeddings: tf.Tensor, candidates_ids: tf.Tensor = None):
         """
         Set the embeddings and identifiers variables
 
         Parameters:
         ----------
-        candidates: tf.Tensor
+        candidates_embeddings: tf.Tensor
             candidates embedddings tensors.
 
-        identifiers: tf.Tensor
+        candidates_ids: tf.Tensor
             The candidates ids.
         """
-        if len(tf.shape(candidates)) != 2:
+        if len(tf.shape(candidates_embeddings)) != 2:
             raise ValueError(
-                f"The candidates embeddings tensor must be 2D (got {candidates.shape})."
+                f"The candidates embeddings tensor must be 2D (got {candidates_embeddings.shape})."
             )
-        if not identifiers:
-            identifiers = tf.range(candidates.shape[0])
+        if not candidates_ids:
+            candidates_ids = tf.range(candidates_embeddings.shape[0])
 
         self._identifiers = self.add_weight(
             name="identifiers",
-            dtype=identifiers.dtype,
-            shape=identifiers.shape,
+            dtype=candidates_ids.dtype,
+            shape=candidates_ids.shape,
             initializer=tf.keras.initializers.Constant(value=0),
             trainable=False,
         )
         self._candidates = self.add_weight(
             name="candidates",
-            dtype=candidates.dtype,
-            shape=candidates.shape,
+            dtype=candidates_embeddings.dtype,
+            shape=candidates_embeddings.shape,
             initializer=tf.keras.initializers.Zeros(),
             trainable=False,
         )
 
-        self._identifiers.assign(identifiers)
-        self._candidates.assign(candidates)
+        self._identifiers.assign(candidates_ids)
+        self._candidates.assign(candidates_embeddings)
         return self
 
     def load_from_dataset(self, candidates):
