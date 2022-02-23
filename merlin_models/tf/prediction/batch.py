@@ -3,15 +3,12 @@ import typing as tp
 
 import numpy as np
 import tensorflow as tf
-from merlin.core.dispatch import HAS_GPU, DataFrameType, get_lib
+from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
 from merlin.schema import Schema, Tags
-from merlin.core.dispatch import concat_columns
 
 from ...utils.schema import select_targets
 from ..core import Block, Model, RetrievalModel
 from ..dataset import Dataset
-
-
 
 
 class ModelEncode:
@@ -45,7 +42,7 @@ class ModelEncode:
         concat_func = self.output_concat_func or np.concatenate
 
         # Iterate over batches of df and collect predictions
-        new_df = _concat_columns(
+        new_df = concat_columns(
             [
                 df,
                 type(df)(
