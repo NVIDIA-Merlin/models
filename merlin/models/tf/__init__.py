@@ -48,7 +48,7 @@ from .blocks.masking import CausalLanguageModeling, MaskedLanguageModeling
 from .blocks.mlp import DenseResidualBlock, MLPBlock
 from .blocks.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
 from .blocks.queue import FIFOQueue
-from .blocks.retrieval import MatrixFactorizationBlock, TwoTowerBlock
+from .blocks.retrieval import ItemRetrievalScorer, MatrixFactorizationBlock, TwoTowerBlock
 from .blocks.transformations import (
     AsDenseFeatures,
     AsSparseFeatures,
@@ -86,14 +86,11 @@ from .metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 from .models.ranking import DCNModel, DLRMModel
 from .models.retrieval import MatrixFactorizationModel, TwoTowerModel, YoutubeDNNRetrievalModel
 from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
-from .prediction.item_prediction import (
-    ItemRetrievalScorer,
-    ItemRetrievalTask,
-    NextItemPredictionTask,
-)
+from .prediction.item_prediction import NextItemPredictionTask
 
 # from .prediction.multi_task import MMOEHead, PLEHead
 from .prediction.regression import RegressionTask
+from .prediction.retrieval import ItemRetrievalScorer, ItemRetrievalTask
 from .prediction.sampling import (
     CachedCrossBatchSampler,
     CachedUniformSampler,

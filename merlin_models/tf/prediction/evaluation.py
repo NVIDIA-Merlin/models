@@ -83,6 +83,14 @@ class BruteForceTopK(Block):
     def load_index(self, candidates: tf.Tensor, identifiers: tf.Tensor = None):
         """
         Set the embeddings and identifiers variables
+
+        Parameters:
+        ----------
+        candidates: tf.Tensor
+            candidates embedddings tensors.
+
+        identifiers: tf.Tensor
+            The candidates ids.
         """
         if len(tf.shape(candidates)) != 2:
             raise ValueError(
@@ -110,29 +118,64 @@ class BruteForceTopK(Block):
         self._candidates.assign(candidates)
         return self
 
-    def load_from_dataset(
-        self,
-        items_embeddings,
-    ):
+    def load_from_dataset(self, candidates):
+        """
+        Set the embeddings and identifiers variables from a dask dataset.
+        """
+
+        # Get candidates dataset
+        # Separate identifier column from embeddings vectors
+        # Convert them to a tensor representation
+        # call load_index method
         raise NotImplementedError()
 
     def _compute_score(self, queries: tf.Tensor, candidates: tf.Tensor) -> tf.Tensor:
         """Computes the standard dot product score from queries and candidates."""
         return tf.matmul(queries, candidates, transpose_b=True)
 
-    def call(
-        self, inputs: tf.Tensor, training: bool = False, **kwargs
-    ) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(self, inputs: tf.Tensor, k: int = None, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
         """
-        Compute top-k scores and related indices from query inputs
+        Compute Top-k scores and related indices from query inputs
+
+        Parameters:
+        ----------
+        inputs: tf.Tensor
+            Tensor of pre-computed query embeddings.
+        k: int
+            Number of top candidates to retrieve
+            Defaults to constructor `_k` parameter.
+        Returns
+        -------
+        top_scores, top_indices: tf.Tensor, tf.Tensor
+            2D Tensors with the scores for the top-k implicit negatives and related indices.
+
         """
+        k = k if k is not None else self._k
         if self._candidates is None:
             raise ValueError("load_index should be called before")
         scores = self._compute_score(inputs, self._candidates)
-        top_scores, top_indices = tf.math.top_k(scores, k=self._k)
-        return top_scores, tf.gather(self._identifiers, top_indices)
+        top_scores, top_indices = tf.math.top_k(scores, k=k)
+        top_indices = tf.gather(self._identifiers, top_indices)
+        return top_scores, top_indices
 
     def call_targets(self, predictions, targets, training=False, **kwargs) -> tf.Tensor:
+        """
+        Retrieve top-k negative scores for evaluation metrics.
+
+        Parameters:
+        ----------
+        predictions: tf.Tensor
+            Tensor of pre-computed positive scores.
+            If`training=True`, the first column of predictions is expected
+            to be positive scores and the remaining sampled negatives are ignored.
+
+        Returns
+        -------
+        targets, predictions: tf.Tensor, tf.Tensor
+            2D Tensors with the one-hot representation of true targets and
+            the scores for the top-k implicit negatives.
+        """
+
         queries = self.context["query"]
         top_scores, _ = self.call(queries)
         predictions = tf.expand_dims(predictions[:, 0], -1)

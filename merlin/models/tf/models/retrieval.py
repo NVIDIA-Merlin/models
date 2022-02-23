@@ -9,7 +9,9 @@ from ..blocks.retrieval import MatrixFactorizationBlock, TwoTowerBlock
 from ..core import Block, BlockType, Model, ParallelPredictionBlock, PredictionTask
 from ..losses import LossType
 from ..metrics.ranking import ranking_metrics
-from ..prediction.item_prediction import ItemRetrievalTask, ItemSampler, NextItemPredictionTask
+from ..prediction.item_prediction import NextItemPredictionTask
+from ..prediction.retrieval import ItemRetrievalTask
+from ..prediction.sampling import ItemSampler
 from .utils import _parse_prediction_tasks
 
 
@@ -68,6 +70,7 @@ def MatrixFactorizationModel(
     if not prediction_tasks:
         prediction_tasks = ItemRetrievalTask(
             schema,
+            metrics=[],
             softmax_temperature=softmax_temperature,
             samplers=samplers,
             loss=loss,
@@ -155,6 +158,7 @@ def TwoTowerModel(
     if not prediction_tasks:
         prediction_tasks = ItemRetrievalTask(
             schema,
+            metrics=[],
             softmax_temperature=softmax_temperature,
             samplers=samplers,
             loss=loss,
