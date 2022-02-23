@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from merlin.core.dispatch import HAS_GPU, DataFrameType, get_lib
 from merlin.schema import Schema, Tags
-from nvtabular.dispatch import _concat_columns
+from merlin.core.dispatch import concat_columns
 
 from ...utils.schema import select_targets
 from ..core import Block, Model, RetrievalModel
