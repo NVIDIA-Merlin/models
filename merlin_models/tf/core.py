@@ -2391,7 +2391,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             use_multiprocessing,
         )
 
-    def batch_predict(self, dataset, batch_size=None, **kwargs) -> merlin.io.Dataset:
+    def batch_predict(
+        self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
+    ) -> merlin.io.Dataset:
         """Batched prediction using the Dask.
 
         Parameters
@@ -2443,6 +2445,8 @@ class RetrievalBlock(Protocol):
 
 
 class RetrievalModel(Model):
+    """Embedding-based retrieval model. """
+
     def __init__(
         self,
         *blocks: Union[Block, ModelLikeBlock],
@@ -2458,7 +2462,27 @@ class RetrievalModel(Model):
     def retrieval_block(self) -> RetrievalBlock:
         return next(b for b in self.blocks if isinstance(b, RetrievalBlock))
 
-    def query_embeddings(self, dataset, dim: int, batch_size=None, **kwargs):
+    def query_embeddings(
+        self,
+        dataset: merlin.io.Dataset,
+        dim: int,
+        batch_size=None,
+    ) -> merlin.io.Dataset:
+        """Export query embeddings from the model.
+
+        Parameters
+        ----------
+        dataset: merlin.io.Dataset
+            Dataset to export embeddings from.
+        dim: int
+            Dimensionality of the embeddings.
+        batch_size: int
+            Batch size to use for embedding extraction.
+
+        Returns
+        -------
+        merlin.io.Dataset
+        """
         from merlin_models.tf.prediction.batch import QueryEmbeddings
 
         get_user_emb = QueryEmbeddings(self, dim=dim, batch_size=batch_size)
@@ -2469,9 +2493,26 @@ class RetrievalModel(Model):
 
         embeddings = dataset.map_partitions(get_user_emb)
 
-        return embeddings
+        return merlin.io.Dataset(embeddings)
 
-    def item_embeddings(self, dataset, dim: int, batch_size=None, **kwargs):
+    def item_embeddings(
+        self, dataset: merlin.io.Dataset, dim: int, batch_size=None, **kwargs
+    ) -> merlin.io.Dataset:
+        """Export item embeddings from the model.
+
+        Parameters
+        ----------
+        dataset: merlin.io.Dataset
+            Dataset to export embeddings from.
+        dim: int
+            Dimensionality of the embeddings.
+        batch_size: int
+            Batch size to use for embedding extraction.
+
+        Returns
+        -------
+        merlin.io.Dataset
+        """
         from merlin_models.tf.prediction.batch import ItemEmbeddings
 
         get_item_emb = ItemEmbeddings(self, dim=dim, batch_size=batch_size)
@@ -2482,7 +2523,7 @@ class RetrievalModel(Model):
 
         embeddings = dataset.map_partitions(get_item_emb)
 
-        return embeddings
+        return merlin.io.Dataset(embeddings)
 
 
 def is_input_block(block: Block) -> bool:
