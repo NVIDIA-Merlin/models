@@ -21,8 +21,6 @@ from typing import List, Sequence
 import numpy as np
 import tensorflow as tf
 
-from merlin.models.tf.utils import tf_utils
-
 from . import metrics_registry
 
 METRIC_PARAMETERS_DOCSTRING = """
