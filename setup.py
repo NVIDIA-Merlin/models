@@ -18,7 +18,7 @@ import itertools
 import os
 import sys
 
-from setuptools import find_packages, setup
+from setuptools import find_namespace_packages, setup
 
 try:
     import versioneer
@@ -51,7 +51,7 @@ setup(
     name="merlin-models",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    packages=find_packages(),
+    packages=find_namespace_packages(),
     url="https://github.com/NVIDIA-Merlin/models",
     author="NVIDIA Corporation",
     license="Apache 2.0",

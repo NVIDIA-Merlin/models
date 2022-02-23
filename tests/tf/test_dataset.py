@@ -23,9 +23,9 @@ from merlin.core.dispatch import make_df
 from merlin.io.dataset import Dataset
 from sklearn.metrics import roc_auc_score
 
-import merlin_models.tf as ml
-import merlin_models.tf.dataset as tf_dataloader
-from merlin_models.data.synthetic import SyntheticData
+import merlin.models.tf as ml
+import merlin.models.tf.dataset as tf_dataloader
+from merlin.models.data.synthetic import SyntheticData
 
 
 def test_nested_list():

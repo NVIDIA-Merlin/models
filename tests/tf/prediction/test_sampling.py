@@ -17,7 +17,7 @@
 import pytest
 import tensorflow as tf
 
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 
 def test_inbatch_sampler():

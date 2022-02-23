@@ -16,14 +16,14 @@
 
 import tensorflow as tf
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
 
 targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
 
 def test_binary_classification_head(testing_data: SyntheticData):
-    from merlin_models.tf.utils import testing_utils
+    from merlin.models.tf.utils import testing_utils
 
     body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("target"))
@@ -32,7 +32,7 @@ def test_binary_classification_head(testing_data: SyntheticData):
 
 
 def test_serialization_binary_classification_head(testing_data: SyntheticData):
-    from merlin_models.tf.utils import testing_utils
+    from merlin.models.tf.utils import testing_utils
 
     body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("target"))

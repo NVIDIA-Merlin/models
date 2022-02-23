@@ -1,4 +1,4 @@
-import merlin_models.tf as ml
+import merlin.models.tf as ml
 
 if __name__ == "__main__":
     for path in ml.SyntheticData.DATASETS.values():

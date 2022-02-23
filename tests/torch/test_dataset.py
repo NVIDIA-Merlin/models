@@ -20,7 +20,7 @@ import torch
 from merlin.core.dispatch import HAS_GPU, make_df
 from merlin.io.dataset import Dataset
 
-import merlin_models.torch.dataset as torch_dataloader  # noqa isort:skip
+import merlin.models.torch.dataset as torch_dataloader  # noqa isort:skip
 
 
 def test_shuffling():

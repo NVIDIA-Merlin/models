@@ -18,8 +18,8 @@ import pytest
 import tensorflow as tf
 from merlin.schema import Schema, Tags
 
-import merlin_models.tf as ml
-from merlin_models.utils.schema import create_categorical_column
+import merlin.models.tf as ml
+from merlin.models.utils.schema import create_categorical_column
 
 
 @pytest.mark.parametrize("replacement_prob", [0.1, 0.3, 0.5, 0.7])

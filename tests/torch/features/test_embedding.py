@@ -21,7 +21,7 @@ import pytest
 import torch
 from merlin.schema import Tags
 
-import merlin_models.torch as ml
+import merlin.models.torch as ml
 
 
 def test_embedding_features(torch_cat_features):

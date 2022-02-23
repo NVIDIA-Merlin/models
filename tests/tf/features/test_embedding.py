@@ -18,9 +18,9 @@ import pytest
 from merlin.schema import Tags
 from tensorflow.python.ops import init_ops_v2
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.utils import testing_utils
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.utils import testing_utils
 
 
 def test_embedding_features(tf_cat_features):
@@ -54,7 +54,7 @@ def test_serialization_embedding_features(testing_data: SyntheticData):
 
     assert list(inputs.feature_config.keys()) == list(copy_layer.feature_config.keys())
 
-    from merlin_models.tf.features.embedding import serialize_table_config as ser
+    from merlin.models.tf.features.embedding import serialize_table_config as ser
 
     assert all(
         ser(inputs.feature_config[key].table) == ser(copy_layer.feature_config[key].table)
