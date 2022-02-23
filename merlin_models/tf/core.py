@@ -2391,11 +2391,12 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         )
 
     def batch_predict(self, dataset, batch_size=None, **kwargs):
-        if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
-            raise ValueError(
-                f"Model schema {self.schema.column_names} does not match dataset schema"
-                + f" {dataset.column_names}"
-            )
+        if hasattr(dataset, "schema"):
+            if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
+                raise ValueError(
+                    f"Model schema {self.schema.column_names} does not match dataset schema"
+                    + f" {dataset.column_names}"
+                )
 
         # Check if merlin-dataset is passed
         if hasattr(dataset, "to_ddf"):
