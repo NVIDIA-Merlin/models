@@ -2,8 +2,8 @@ from typing import List, Optional, Union
 
 from merlin.schema import Schema
 
-from ..blocks.multi_task import PredictionTasks
 from ..core import ParallelPredictionBlock, PredictionTask
+from ..prediction_tasks.multi import PredictionTasks
 
 
 def _parse_prediction_tasks(

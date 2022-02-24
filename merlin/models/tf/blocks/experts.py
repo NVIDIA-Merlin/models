@@ -17,30 +17,14 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
+from merlin.schema import Schema
 
 from merlin.schema import Schema
 
 from ..blocks.aggregation import StackFeatures
 from ..core import Block, ParallelBlock, ParallelPredictionBlock, PredictionTask, TabularBlock
 from ..typing import TabularData
-
-
-def PredictionTasks(
-    schema: Schema,
-    task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-    task_weight_dict: Optional[Dict[str, float]] = None,
-    bias_block: Optional[Layer] = None,
-    loss_reduction=tf.reduce_mean,
-    **kwargs,
-) -> ParallelPredictionBlock:
-    return ParallelPredictionBlock.from_schema(
-        schema,
-        task_blocks=task_blocks,
-        task_weight_dict=task_weight_dict,
-        bias_block=bias_block,
-        loss_reduction=loss_reduction,
-        **kwargs,
-    )
+from .core.aggregation import StackFeatures
 
 
 class MMOEGate(Block):

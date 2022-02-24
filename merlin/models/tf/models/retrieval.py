@@ -2,16 +2,17 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from merlin.schema import Schema, Tags
 
-from ..blocks.aggregation import SequenceAggregation, SequenceAggregator
-from ..blocks.inputs import InputBlock
+from ..blocks.core.aggregation import SequenceAggregation, SequenceAggregator
+from ..blocks.core.inputs import InputBlock
 from ..blocks.mlp import MLPBlock
-from ..blocks.retrieval import MatrixFactorizationBlock, TwoTowerBlock
+from ..blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from ..blocks.retrieval.two_tower import TwoTowerBlock
+from ..blocks.sampling.base import ItemSampler
 from ..core import Block, BlockType, Model, ParallelPredictionBlock, PredictionTask
 from ..losses import LossType
 from ..metrics.ranking import ranking_metrics
-from ..prediction.item_prediction import NextItemPredictionTask
-from ..prediction.retrieval import ItemRetrievalTask
-from ..prediction.sampling import ItemSampler
+from ..prediction_tasks.next_item import NextItemPredictionTask
+from ..prediction_tasks.retrieval import ItemRetrievalTask
 from .utils import _parse_prediction_tasks
 
 
