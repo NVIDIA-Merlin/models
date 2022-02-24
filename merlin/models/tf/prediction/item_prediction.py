@@ -186,7 +186,8 @@ class ItemRetrievalScorer(Block):
         return self._required_features
 
     def _check_input_from_two_tower(self, inputs):
-        assert set(inputs.keys()) == set([self.query_name, self.item_name])
+        if set(inputs.keys()) != set([self.query_name, self.item_name]):
+            raise ValueError(f“Wrong input-names, expected: {[self.query_name, self.item_name]} but got: {inputs.keys()}")
 
     def _check_required_context_item_features_are_present(self):
         not_found = list(
