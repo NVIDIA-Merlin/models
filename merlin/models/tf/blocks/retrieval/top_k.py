@@ -15,9 +15,10 @@
 #
 from typing import Tuple
 
+import merlin.io
 import tensorflow as tf
 
-from merlin.models.tf.core import Block
+from merlin.models.tf.core import Block, ModelBlock, RetrievalModel
 from merlin.models.tf.utils import tf_utils
 
 
@@ -188,3 +189,34 @@ class BruteForceTopK(Block):
             axis=1,
         )
         return targets, predictions
+
+
+class TopKRecommender(ModelBlock):
+    """
+    Recommender model that retrieves top-k implicit negatives.
+    """
+
+    def __init__(
+        self,
+        retrieval_model: RetrievalModel,
+        data: merlin.io.Dataset,
+        dim: int,
+        k: int = 10,
+        **kwargs,
+    ):
+        """
+        Parameters:
+        ----------
+        k: int
+            Number of top candidates to retrieve
+        """
+
+        item_embeddings = retrieval_model.item_embeddings(data, batch_size=128, dim=dim)
+
+        query_block = retrieval_model.retrieval_block.query_block()
+        top_k = BruteForceTopK(k=k)
+        top_k.load_from_dataset(item_embeddings)
+        block = query_block.connect(top_k)
+
+        super().__init__(block, **kwargs)
+        self._k = k
