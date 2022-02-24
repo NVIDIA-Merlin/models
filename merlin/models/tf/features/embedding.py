@@ -23,15 +23,15 @@ from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
-from merlin.models.tf.blocks.transformations import AsSparseFeatures
-from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.models.utils.schema import (
+from ...utils.doc_utils import docstring_parameter
+from ...utils.schema import (
     categorical_cardinalities,
     categorical_domains,
     get_embedding_sizes_from_schema,
 )
 from merlin.schema import Schema, Tags, TagsType
 
+from ..blocks.core.transformations import AsSparseFeatures
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Block,

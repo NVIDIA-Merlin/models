@@ -34,27 +34,36 @@ from merlin.schema import Schema, Tags
 from .. import data
 from ..data.synthetic import SyntheticData
 from . import losses
-from .blocks.aggregation import (
+from .blocks.core.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
     ElementwiseSumItemMulti,
     StackFeatures,
 )
-from .blocks.cross import CrossBlock
-from .blocks.dlrm import DLRMBlock
-from .blocks.inputs import InputBlock
-from .blocks.interaction import DotProductInteraction
-from .blocks.masking import CausalLanguageModeling, MaskedLanguageModeling
-from .blocks.mlp import DenseResidualBlock, MLPBlock
-from .blocks.multi_task import CGCBlock, MMOEBlock, MMOEGate, PredictionTasks
-from .blocks.queue import FIFOQueue
-from .blocks.retrieval import ItemRetrievalScorer, MatrixFactorizationBlock, TwoTowerBlock
-from .blocks.transformations import (
+from .blocks.core.inputs import InputBlock
+from .blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
+from .blocks.core.transformations import (
     AsDenseFeatures,
     AsSparseFeatures,
     ExpandDims,
     StochasticSwapNoise,
 )
+from .blocks.cross import CrossBlock
+from .blocks.dlrm import DLRMBlock
+from .blocks.experts import CGCBlock, MMOEBlock, MMOEGate
+from .blocks.interaction import DotProductInteraction
+from .blocks.mlp import DenseResidualBlock, MLPBlock
+from .blocks.retrieval.base import ItemRetrievalScorer
+from .blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from .blocks.retrieval.two_tower import TwoTowerBlock
+from .blocks.sampling.base import ItemSampler
+from .blocks.sampling.cross_batch import (
+    CachedCrossBatchSampler,
+    CachedUniformSampler,
+    PopularityBasedSampler,
+)
+from .blocks.sampling.in_batch import InBatchSampler
+from .blocks.sampling.queue import FIFOQueue
 from .core import (
     AsTabular,
     Block,
@@ -85,19 +94,11 @@ from .losses import LossType
 from .metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
 from .models.ranking import DCNModel, DLRMModel
 from .models.retrieval import MatrixFactorizationModel, TwoTowerModel, YoutubeDNNRetrievalModel
-from .prediction.classification import BinaryClassificationTask, MultiClassClassificationTask
-from .prediction.item_prediction import NextItemPredictionTask
-
-# from .prediction.multi_task import MMOEHead, PLEHead
-from .prediction.regression import RegressionTask
-from .prediction.retrieval import ItemRetrievalScorer, ItemRetrievalTask
-from .prediction.sampling import (
-    CachedCrossBatchSampler,
-    CachedUniformSampler,
-    InBatchSampler,
-    ItemSampler,
-    PopularityBasedSampler,
-)
+from .prediction_tasks.classification import BinaryClassificationTask, MultiClassClassificationTask
+from .prediction_tasks.multi import PredictionTasks
+from .prediction_tasks.next_item import NextItemPredictionTask
+from .prediction_tasks.regression import RegressionTask
+from .prediction_tasks.retrieval import ItemRetrievalTask
 from .utils import repr_utils
 
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
