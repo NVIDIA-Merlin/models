@@ -40,6 +40,7 @@ from .blocks.core.aggregation import (
     ElementwiseSumItemMulti,
     StackFeatures,
 )
+from .blocks.core.index import TopKIndex
 from .blocks.core.inputs import InputBlock
 from .blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
 from .blocks.core.transformations import (
