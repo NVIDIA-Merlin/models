@@ -18,8 +18,7 @@ from typing import Tuple
 import tensorflow as tf
 
 from merlin.models.tf.core import Block
-
-from ..utils import tf_utils
+from merlin.models.tf.utils import tf_utils
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

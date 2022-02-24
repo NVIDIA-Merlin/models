@@ -19,6 +19,8 @@ import tensorflow as tf
 from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 
+from merlin.models.tf.blocks.retrieval.top_k import BruteForceTopK
+
 from ..blocks.core.transformations import L2Norm, PredictionsScaler
 from ..blocks.retrieval.base import ItemRetrievalScorer
 from ..blocks.sampling.base import ItemSampler
@@ -27,7 +29,6 @@ from ..core import Block, MetricOrMetricClass
 from ..losses import LossType, loss_registry
 from ..metrics.ranking import ranking_metrics
 from .classification import MultiClassClassificationTask
-from .evaluation import BruteForceTopK
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
