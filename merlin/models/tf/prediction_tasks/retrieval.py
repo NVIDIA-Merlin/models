@@ -19,13 +19,12 @@ import tensorflow as tf
 from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 
-from merlin.models.tf.losses import LossType, loss_registry
-
 from ..blocks.core.transformations import L2Norm, PredictionsScaler
 from ..blocks.retrieval.base import ItemRetrievalScorer
 from ..blocks.sampling.base import ItemSampler
 from ..blocks.sampling.in_batch import InBatchSampler
 from ..core import Block, MetricOrMetricClass
+from ..losses import LossType, loss_registry
 from ..metrics.ranking import ranking_metrics
 from .classification import MultiClassClassificationTask
 from .evaluation import BruteForceTopK
@@ -33,8 +32,7 @@ from .evaluation import BruteForceTopK
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemRetrievalTask(MultiClassClassificationTask):
-    """
-    Class for ItemRetrieval task.
+    """Prediction-task for item-retrieval.
 
     Parameters
     ----------
@@ -86,13 +84,13 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         task_block: Optional[Layer] = None,
         train_metrics: Sequence[MetricOrMetricClass] = None,
         extra_pre_call: Optional[Block] = None,
-        softmax_temperature: float = 1,
+        softmax_temperature: float = 1.0,
         normalize: bool = True,
         compute_train_metrics: bool = False,
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        self._set_prediction_call(samplers, normalize, softmax_temperature, extra_pre_call)
+        pre = self._build_prediction_call(samplers, normalize, softmax_temperature, extra_pre_call)
         self.loss = loss_registry.parse(loss)
         self.compute_train_metrics = compute_train_metrics
 
@@ -102,16 +100,21 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
-            pre=self.prediction_call,
+            pre=pre,
+            **kwargs,
         )
 
         if len(self.metrics) > 0:
             max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
-            pre_metrics = BruteForceTopK(k=max_k - 1)
-            self.pre_metrics = pre_metrics
+            self.pre_metrics = BruteForceTopK(k=max_k - 1)
 
-    def _set_prediction_call(self, samplers, normalize, softmax_temperature, extra_pre_call):
-
+    def _build_prediction_call(
+        self,
+        samplers: List[ItemSampler],
+        normalize: bool,
+        softmax_temperature: float,
+        extra_pre_call: Optional[Block] = None,
+    ):
         if samplers is None or len(samplers) == 0:
             samplers = (InBatchSampler(),)
 
@@ -128,7 +131,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         if extra_pre_call is not None:
             prediction_call = prediction_call.connect(extra_pre_call)
 
-        self.prediction_call = prediction_call
+        return prediction_call
 
     def load_candidates(self, candidates):
         """Load candidates to use for evaluation/prediction"""

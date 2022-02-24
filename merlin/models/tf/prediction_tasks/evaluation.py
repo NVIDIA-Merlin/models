@@ -177,7 +177,7 @@ class BruteForceTopK(Block):
         """
 
         queries = self.context["query"]
-        top_scores, _ = self.call(queries)
+        top_scores, _ = self(queries)
         predictions = tf.expand_dims(predictions[:, 0], -1)
         predictions = tf.concat([predictions, top_scores], axis=-1)
         # Positives in the first column and negatives in the subsequent columns
