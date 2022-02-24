@@ -21,18 +21,18 @@ from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 
 from ...utils.schema import categorical_cardinalities
-from ..blocks.item_prediction import (
+from ..blocks.core.masking import MaskingHead
+from ..blocks.core.transformations import (
     ItemsPredictionWeightTying,
-    MaskingHead,
+    L2Norm,
     PredictionsScaler,
     RemovePad3D,
 )
-from ..blocks.retrieval import ItemRetrievalScorer
-from ..blocks.transformations import L2Norm
+from ..blocks.retrieval.base import ItemRetrievalScorer
+from ..blocks.sampling.cross_batch import PopularityBasedSampler
 from ..core import Block
-from ..losses.loss_base import LossType
+from ..losses.base import LossType
 from ..metrics.ranking import ranking_metrics
-from ..prediction.sampling import PopularityBasedSampler
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
 from .evaluation import ItemsPredictionTopK
 

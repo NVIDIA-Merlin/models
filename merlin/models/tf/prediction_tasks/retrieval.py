@@ -21,12 +21,12 @@ from tensorflow.python.layers.base import Layer
 
 from merlin.models.tf.losses import LossType, loss_registry
 
-from ..blocks.item_prediction import PredictionsScaler
-from ..blocks.retrieval import ItemRetrievalScorer
-from ..blocks.transformations import L2Norm
+from ..blocks.core.transformations import L2Norm, PredictionsScaler
+from ..blocks.retrieval.base import ItemRetrievalScorer
+from ..blocks.sampling.base import ItemSampler
+from ..blocks.sampling.in_batch import InBatchSampler
 from ..core import Block, MetricOrMetricClass
 from ..metrics.ranking import ranking_metrics
-from ..prediction.sampling import InBatchSampler, ItemSampler
 from .classification import MultiClassClassificationTask
 from .evaluation import BruteForceTopK
 

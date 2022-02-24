@@ -1625,7 +1625,7 @@ class ResidualBlock(WithShortcut):
         strict: bool = False,
         **kwargs,
     ):
-        from merlin.models.tf.blocks.aggregation import SumResidual
+        from merlin.models.tf.blocks.core.aggregation import SumResidual
 
         super().__init__(
             block,
@@ -1981,8 +1981,8 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
         tasks: List[PredictionTask] = []
         task_weights = []
-        from .prediction.classification import BinaryClassificationTask
-        from .prediction.regression import RegressionTask
+        from .prediction_tasks.classification import BinaryClassificationTask
+        from .prediction_tasks.regression import RegressionTask
 
         for binary_target in schema.select_by_tag(Tags.BINARY_CLASSIFICATION).column_names:
             tasks.append(BinaryClassificationTask(binary_target))
@@ -2459,7 +2459,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if hasattr(dataset, "to_ddf"):
             dataset = dataset.to_ddf()
 
-        from .prediction.batch import TFModelEncode
+        from merlin.models.tf.utils.batch import TFModelEncode
 
         model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
         predictions = dataset.map_partitions(model_encode)
@@ -2524,7 +2524,7 @@ class RetrievalModel(Model):
         -------
         merlin.io.Dataset
         """
-        from merlin.models.tf.prediction.batch import QueryEmbeddings
+        from merlin.models.tf.utils.batch import QueryEmbeddings
 
         get_user_emb = QueryEmbeddings(self, dim=dim, batch_size=batch_size)
 
@@ -2554,7 +2554,7 @@ class RetrievalModel(Model):
         -------
         merlin.io.Dataset
         """
-        from merlin.models.tf.prediction.batch import ItemEmbeddings
+        from merlin.models.tf.utils.batch import ItemEmbeddings
 
         get_item_emb = ItemEmbeddings(self, dim=dim, batch_size=batch_size)
 

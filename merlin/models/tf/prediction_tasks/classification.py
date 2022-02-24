@@ -26,6 +26,8 @@ from merlin.schema import Schema, Tags
 
 from ...utils.schema import categorical_cardinalities
 from ..core import Block, MetricOrMetricClass, PredictionTask
+from ..losses import LossType, loss_registry
+from ..metrics.ranking import ranking_metrics
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 

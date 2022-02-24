@@ -21,7 +21,7 @@ import pytest
 import tensorflow as tf
 
 from ..core import Model
-from ..prediction.classification import BinaryClassificationTask
+from ..prediction_tasks.classification import BinaryClassificationTask
 
 
 def mark_run_eagerly_modes(*args, **kwargs):
