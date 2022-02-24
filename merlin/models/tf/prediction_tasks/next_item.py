@@ -20,6 +20,8 @@ import tensorflow as tf
 from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 
+from merlin.models.tf.blocks.retrieval.top_k import ItemsPredictionTopK
+
 from ...utils.schema import categorical_cardinalities
 from ..blocks.core.masking import MaskingHead
 from ..blocks.core.transformations import (
@@ -34,7 +36,6 @@ from ..core import Block
 from ..losses.base import LossType
 from ..metrics.ranking import ranking_metrics
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
-from .evaluation import ItemsPredictionTopK
 
 LOG = logging.getLogger("merlin.models")
 
