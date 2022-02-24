@@ -72,14 +72,15 @@ class ItemRetrievalScorer(Block):
         item_id_feature_name: str = "item_id",
         **kwargs,
     ):
+        if not isinstance(samplers, (list, tuple)):
+            samplers = (samplers,)
+
         super().__init__(**kwargs)
 
         self.downscore_false_negatives = sampling_downscore_false_negatives
         self.false_negatives_score = sampling_downscore_false_negatives_value
         self.item_id_feature_name = item_id_feature_name
         self.samplers = samplers
-        if not isinstance(self.samplers, (list, tuple)):
-            self.samplers = (self.samplers,)
 
         self.set_required_features()
 
