@@ -581,7 +581,7 @@ def ItemsPredictionSampled(
     )
 
     logits = ItemRetrievalScorer(
-        samplers=samplers,
+        samplers=[samplers],
         sampling_downscore_false_negatives=ignore_false_negatives,
         item_id_feature_name=item_id_feature_name,
     )
