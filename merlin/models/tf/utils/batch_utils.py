@@ -16,7 +16,7 @@ class ModelEncode:
     def __init__(
         self,
         model,
-        output_names,
+        output_names=None,
         data_iterator_func=None,
         model_load_func=None,
         model_encode_func=None,
@@ -36,29 +36,31 @@ class ModelEncode:
             self._model = self.model_load_func(self._model)
         return self._model
 
-    def __call__(self, df: DataFrameType) -> DataFrameType:
+    def __call__(
+        self,
+        df: DataFrameType,
+        filter_input_columns: tp.Optional[tp.List[str]] = None,
+        filter_output_columns: tp.Optional[tp.List[str]] = None,
+    ) -> DataFrameType:
         # Set defaults
         iterator_func = self.data_iterator_func or (lambda x: [x])
         encode_func = self.model_encode_func or (lambda x, y: x(y))
         concat_func = self.output_concat_func or np.concatenate
 
         # Iterate over batches of df and collect predictions
-        new_df = concat_columns(
-            [
-                df,
-                type(df)(
-                    concat_func([encode_func(self.model, batch) for batch in iterator_func(df)]),
-                    columns=self.output_names,
-                    # index=_df.index,
-                ),
-            ]
-        )
+        outputs = concat_func([encode_func(self.model, batch) for batch in iterator_func(df)])
+        output_names = self.output_names or [str(i) for i in range(outputs.shape[1])]
+        model_output_df = type(df)(outputs, columns=output_names)
+        if filter_output_columns:
+            model_output_df = model_output_df[filter_output_columns]
+        input_df = df if not filter_input_columns else df[filter_input_columns]
 
-        # Return result
-        return new_df
+        output_df = concat_columns([input_df, model_output_df])
 
-    def transform(self, col_selector, df: DataFrameType) -> DataFrameType:
-        return self(df[col_selector])
+        return output_df
+
+    def transform(self, col_selector, df: DataFrameType, **kwargs) -> DataFrameType:
+        return self(df[col_selector], **kwargs)
 
 
 class TFModelEncode(ModelEncode):
@@ -76,7 +78,11 @@ class TFModelEncode(ModelEncode):
         model.save(save_path)
 
         model_load_func = block_load_func if block_load_func else tf.keras.models.load_model
-        output_names = output_names or model.block.last.task_names
+        if not output_names:
+            try:
+                output_names = model.block.last.task_names
+            except AttributeError:
+                pass
         if not output_concat_func:
             output_concat_func = np.concatenate if len(output_names) == 1 else get_lib().concat
 
@@ -102,16 +108,12 @@ class TFModelEncode(ModelEncode):
 
 
 class ItemEmbeddings(TFModelEncode):
-    def __init__(
-        self, model: Model, dim: int, batch_size: int = 512, save_path: tp.Optional[str] = None
-    ):
+    def __init__(self, model: Model, batch_size: int = 512, save_path: tp.Optional[str] = None):
         item_block = model.block.first.item_block()
         schema = item_block.schema
-        output_names = [str(i) for i in range(dim)]
 
         super().__init__(
             item_block,
-            output_names,
             save_path=save_path,
             batch_size=batch_size,
             schema=schema,
@@ -123,17 +125,14 @@ class QueryEmbeddings(TFModelEncode):
     def __init__(
         self,
         model: RetrievalModel,
-        dim: int,
         batch_size: int = 512,
         save_path: tp.Optional[str] = None,
     ):
         query_block = model.block.first.query_block()
         schema = query_block.schema
-        output_names = [str(i) for i in range(dim)]
 
         super().__init__(
             query_block,
-            output_names,
             save_path=save_path,
             batch_size=batch_size,
             schema=schema,

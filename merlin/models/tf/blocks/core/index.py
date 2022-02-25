@@ -13,14 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
+from typing import Optional, Union
 
 import merlin.io
 import numpy as np
 import tensorflow as tf
+from merlin.schema import Tags
+from tensorflow.python import to_dlpack
 
 from merlin.models.tf.core import Block
-from merlin.models.tf.utils.batch import TFModelEncode
+from merlin.models.tf.utils.batch_utils import TFModelEncode
 
 """
 This would be useful for instance to convert the item-tower.
@@ -48,8 +50,39 @@ class IndexBlock(Block):
         raise NotImplementedError()
 
     @classmethod
-    def from_block(cls, block: Block, data: merlin.io.Dataset, id_column: str, **kwargs):
-        raise NotImplementedError()
+    def from_block(
+        cls, block: Block, data: merlin.io.Dataset, id_column: Optional[str] = None, **kwargs
+    ) -> "IndexBlock":
+        """Build candidates embeddings from applying `block` to a dataset of features `data`.
+
+        Parameters:
+        -----------
+        block: Block
+            The Block that retruns embeddings from raw item features.
+        data: merlin.io.Dataset
+            Dataset containing raw item features.
+        id_column: Optional[str]
+            The candidates ids column name.
+            Note, this will be inferred automatically if the block contains
+            a schema with an item-id Tag.
+        """
+        if not id_column and getattr(block, "schema", None):
+            tagged = block.schema.select_by_tag(Tags.ITEM_ID)
+            if tagged.column_schemas:
+                id_column = tagged.first.name
+
+        model_encode = TFModelEncode(model=block, output_concat_func=np.concatenate)
+
+        data = data.to_ddf()
+        ids = data[id_column].compute()
+        block_outputs = data.map_partitions(
+            model_encode, filter_input_columns=[id_column]
+        ).compute()
+
+        values = tf.convert_to_tensor(block_outputs[list(block_outputs.columns)[1:]])
+        ids = tf.convert_to_tensor(block_outputs[id_column])
+
+        return cls(values=values, ids=ids, **kwargs)
 
     def update(self, values: tf.Tensor, ids: Optional[tf.Tensor] = None):
         if len(tf.shape(values)) != 2:
@@ -64,18 +97,32 @@ class IndexBlock(Block):
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         return self.values[inputs]
 
-    def to_dataset(self, **kwargs) -> merlin.io.Dataset:
-        raise NotImplementedError()
+    def to_dataset(self, gpu=True) -> merlin.io.Dataset:
+        if gpu:
+            import cudf
+
+            df = cudf.from_dlpack(to_dlpack(tf.convert_to_tensor(self.values)))
+            df.columns = [str(col) for col in list(df.columns)]
+            df.set_index(cudf.RangeIndex(0, self.values.shape[0]))
+        else:
+            import pandas as pd
+
+            df = pd.DataFrame(self.values.numpy())
+            df.columns = [str(col) for col in list(df.columns)]
+            df.set_index(pd.RangeIndex(0, self.values.shape[0]))
+
+        return merlin.io.Dataset(df)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class TopKIndex(IndexBlock):
+class TopKIndexBlock(IndexBlock):
     """
     Top-K index to retrieve top-k scores and indices from an item block.
 
     Parameters:
     -----------
-        k:
+        k: int
+            Number of top candidates to retrieve.
         values: tf.Tensor
             The pre-computed embedddings of candidates.
         ids: tf.Tensor
@@ -84,18 +131,17 @@ class TopKIndex(IndexBlock):
 
     def __init__(self, k, values: tf.Tensor, ids: Optional[tf.Tensor] = None, **kwargs):
         self._k = k
-        super(TopKIndex, self).__init__(values, ids, **kwargs)
+        super(TopKIndexBlock, self).__init__(values, ids, **kwargs)
 
     @classmethod
     def from_block(
         cls,
         block: Block,
-        output_dim: int,
         data: merlin.io.Dataset,
-        id_column: str,
         k: int = 20,
+        id_column: Optional[str] = None,
         **kwargs,
-    ):
+    ) -> "TopKIndexBlock":
         """
         class method to build candidates embeddings from
         applying `block` to a dataset of features `data`
@@ -108,26 +154,17 @@ class TopKIndex(IndexBlock):
             The output dimension of `block`.
         data: merlin.io.Dataset
             Dataset containing raw item features.
-        id_column: str
-            The candidates ids column name.
         k: int
             Number of top candidates to retrieve.
             Defaults to 20
+         id_column: Optional[str]
+            The candidates ids column name.
+            Note, this will be inferred automatically if the block contains
+            a schema with an item-id Tag.
         """
-        output_names = [str(i) for i in range(output_dim)]
-        model_encode = TFModelEncode(
-            model=block, output_names=output_names, output_concat_func=np.concatenate
-        )
+        return super().from_block(block=block, data=data, id_column=id_column, k=k, **kwargs)
 
-        data = data.to_ddf()
-        ids = data[id_column].compute()
-        values = data.map_partitions(model_encode).compute()
-
-        values = tf.convert_to_tensor(values[output_names])
-        ids = tf.convert_to_tensor(ids)
-        return cls(k, values, ids, **kwargs)
-
-    def call(self, inputs: tf.Tensor, k=None, **kwargs) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, k=None, **kwargs) -> Union[tf.Tensor, tf.Tensor]:
         """
         Compute Top-k scores and related indices from query inputs
 
@@ -147,4 +184,5 @@ class TopKIndex(IndexBlock):
         scores = tf.matmul(inputs, self.values, transpose_b=True)
         top_scores, top_indices = tf.math.top_k(scores, k=k)
         top_indices = tf.gather(self.ids, top_indices)
+
         return top_scores, top_indices
