@@ -24,7 +24,7 @@ from merlin.models.data.synthetic import SyntheticData
 def test_topk_index(ecommerce_data: SyntheticData):
     two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([64, 128]))
 
-    model = two_tower.connect(
+    model: ml.RetrievalModel = two_tower.connect(
         ml.ItemRetrievalTask(ecommerce_data.schema, target_name="click", metrics=[])
     )
     model.compile(run_eagerly=True, optimizer="adam")
