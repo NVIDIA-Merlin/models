@@ -46,8 +46,13 @@ class IndexBlock(Block):
         self.ids = ids
 
     @classmethod
-    def from_dataset(cls, data: merlin.io.Dataset, id_column: str, **kwargs):
-        raise NotImplementedError()
+    def from_dataset(cls, data: merlin.io.Dataset, **kwargs):
+        if hasattr(data, "to_ddf"):
+            data = data.to_ddf()
+        values = tf.convert_to_tensor(data)
+        ids = tf.convert_to_tensor(data.index)
+
+        return cls(values=values, ids=ids, **kwargs)
 
     @classmethod
     def from_block(
@@ -74,15 +79,13 @@ class IndexBlock(Block):
         model_encode = TFModelEncode(model=block, output_concat_func=np.concatenate)
 
         data = data.to_ddf()
-        ids = data[id_column].compute()
         block_outputs = data.map_partitions(
             model_encode, filter_input_columns=[id_column]
         ).compute()
 
-        values = tf.convert_to_tensor(block_outputs[list(block_outputs.columns)[1:]])
-        ids = tf.convert_to_tensor(block_outputs[id_column])
+        block_outputs.set_index(id_column, inplace=True)
 
-        return cls(values=values, ids=ids, **kwargs)
+        return cls.from_dataset(block_outputs, **kwargs)
 
     def update(self, values: tf.Tensor, ids: Optional[tf.Tensor] = None):
         if len(tf.shape(values)) != 2:
@@ -116,8 +119,7 @@ class IndexBlock(Block):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class TopKIndexBlock(IndexBlock):
-    """
-    Top-K index to retrieve top-k scores and indices from an item block.
+    """Top-K index to retrieve top-k scores and indices from an item block.
 
     Parameters:
     -----------
