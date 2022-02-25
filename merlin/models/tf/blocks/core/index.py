@@ -46,7 +46,7 @@ class IndexBlock(Block):
         self.ids = ids
 
     @classmethod
-    def from_dataset(cls, data: merlin.io.Dataset, **kwargs):
+    def from_dataset(cls, data: merlin.io.Dataset, **kwargs) -> "IndexBlock":
         if hasattr(data, "to_ddf"):
             data = data.to_ddf()
         values = tf.convert_to_tensor(data)
@@ -63,7 +63,7 @@ class IndexBlock(Block):
         Parameters:
         -----------
         block: Block
-            The Block that retruns embeddings from raw item features.
+            The Block that returns embeddings from raw item features.
         data: merlin.io.Dataset
             Dataset containing raw item features.
         id_column: Optional[str]
