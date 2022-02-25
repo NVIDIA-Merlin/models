@@ -2561,6 +2561,29 @@ class RetrievalModel(Model):
 
         return merlin.io.Dataset(embeddings)
 
+    def to_top_k_recommender(self, data: merlin.io.Dataset, k: int, **kwargs) -> ModelBlock:
+        """Convert the model to a Top-k Recommender.
+
+        Parameters
+        ----------
+        data: merlin.io.Dataset
+            Dataset to convert to a Top-k Recommender.
+        k: int
+            Number of recommendations to make.
+
+        Returns
+        -------
+        SequentialBlock
+        """
+        import merlin_models.tf as ml
+
+        topk_index = ml.TopKIndexBlock.from_block(
+            self.retrieval_block.item_block(), data=data, k=k, **kwargs
+        )
+        recommender = self.retrieval_block.query_block().connect(topk_index)
+
+        return ModelBlock(recommender)
+
 
 def is_input_block(block: Block) -> bool:
     return block and getattr(block, "is_input", None)
