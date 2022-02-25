@@ -2459,7 +2459,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if hasattr(dataset, "to_ddf"):
             dataset = dataset.to_ddf()
 
-        from merlin.models.tf.utils.batch import TFModelEncode
+        from merlin.models.tf.utils.batch_utils import TFModelEncode
 
         model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
         predictions = dataset.map_partitions(model_encode)
@@ -2506,7 +2506,6 @@ class RetrievalModel(Model):
     def query_embeddings(
         self,
         dataset: merlin.io.Dataset,
-        dim: int,
         batch_size=None,
     ) -> merlin.io.Dataset:
         """Export query embeddings from the model.
@@ -2515,8 +2514,6 @@ class RetrievalModel(Model):
         ----------
         dataset: merlin.io.Dataset
             Dataset to export embeddings from.
-        dim: int
-            Dimensionality of the embeddings.
         batch_size: int
             Batch size to use for embedding extraction.
 
@@ -2524,9 +2521,9 @@ class RetrievalModel(Model):
         -------
         merlin.io.Dataset
         """
-        from merlin.models.tf.utils.batch import QueryEmbeddings
+        from merlin.models.tf.utils.batch_utils import QueryEmbeddings
 
-        get_user_emb = QueryEmbeddings(self, dim=dim, batch_size=batch_size)
+        get_user_emb = QueryEmbeddings(self, batch_size=batch_size)
 
         # Check if merlin-dataset is passed
         if hasattr(dataset, "to_ddf"):
@@ -2537,7 +2534,7 @@ class RetrievalModel(Model):
         return merlin.io.Dataset(embeddings)
 
     def item_embeddings(
-        self, dataset: merlin.io.Dataset, dim: int, batch_size=None, **kwargs
+        self, dataset: merlin.io.Dataset, batch_size=None, **kwargs
     ) -> merlin.io.Dataset:
         """Export item embeddings from the model.
 
@@ -2545,8 +2542,6 @@ class RetrievalModel(Model):
         ----------
         dataset: merlin.io.Dataset
             Dataset to export embeddings from.
-        dim: int
-            Dimensionality of the embeddings.
         batch_size: int
             Batch size to use for embedding extraction.
 
@@ -2554,9 +2549,9 @@ class RetrievalModel(Model):
         -------
         merlin.io.Dataset
         """
-        from merlin.models.tf.utils.batch import ItemEmbeddings
+        from merlin.models.tf.utils.batch_utils import ItemEmbeddings
 
-        get_item_emb = ItemEmbeddings(self, dim=dim, batch_size=batch_size)
+        get_item_emb = ItemEmbeddings(self, batch_size=batch_size)
 
         # Check if merlin-dataset is passed
         if hasattr(dataset, "to_ddf"):
