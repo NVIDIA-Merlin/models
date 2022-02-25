@@ -35,14 +35,12 @@ def test_two_tower_embedding_extraction(ecommerce_data: SyntheticData):
     dataset = ecommerce_data.tf_dataloader(batch_size=50)
     model.fit(dataset, epochs=1)
 
-    item_embs = model.item_embeddings(nvt.Dataset(ecommerce_data.dataframe), dim=128, batch_size=10)
+    item_embs = model.item_embeddings(nvt.Dataset(ecommerce_data.dataframe), batch_size=10)
     item_embs_ddf = item_embs.compute(scheduler="synchronous")
 
     assert len(list(item_embs_ddf.columns)) == 25 + 128
 
-    user_embs = model.query_embeddings(
-        nvt.Dataset(ecommerce_data.dataframe), dim=128, batch_size=10
-    )
+    user_embs = model.query_embeddings(nvt.Dataset(ecommerce_data.dataframe), batch_size=10)
     user_embs_ddf = user_embs.compute(scheduler="synchronous")
 
     assert len(list(user_embs_ddf.columns)) == 25 + 128

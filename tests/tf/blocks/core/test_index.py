@@ -36,9 +36,7 @@ def test_topk_index(ecommerce_data: SyntheticData):
     item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates("item_id")
     item_dataset = nvt.Dataset(item_dataset)
 
-    topk_index = ml.TopKIndex.from_block(
-        two_tower.item_block(), output_dim=128, data=item_dataset, id_column="item_id"
-    )
+    topk_index = ml.TopKIndexBlock.from_block(two_tower.item_block(), data=item_dataset)
     recommender = two_tower.query_block().connect(topk_index)
 
     batch = next(iter(dataset))[0]

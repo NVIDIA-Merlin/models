@@ -18,6 +18,7 @@ from copy import copy, deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Union
 
+import merlin.io
 import tensorflow as tf
 from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
@@ -249,6 +250,9 @@ class EmbeddingFeatures(TabularBlock):
             df.set_index(pd.RangeIndex(0, embeddings.shape[0]))
 
         return df
+
+    def embedding_table_dataset(self, table_name: Union[str, Tags], gpu=True) -> merlin.io.Dataset:
+        return merlin.io.Dataset(self.embedding_table_df(table_name, gpu))
 
     def export_embedding_table(self, table_name: Union[str, Tags], export_path: str, gpu=True):
         df = self.embedding_table_df(table_name, gpu=gpu)
