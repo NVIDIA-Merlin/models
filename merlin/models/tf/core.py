@@ -712,6 +712,9 @@ class SequentialBlock(Block):
         for i, layer in enumerate(self.layers):
             if i == len(self.layers) - 1:
                 filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
+                filtered_kwargs.update(
+                    filter_kwargs(kwargs, layer.call, filter_positional_or_keyword=False)
+                )
             else:
                 filtered_kwargs = filter_kwargs(
                     dict(training=training), layer, filter_positional_or_keyword=False
@@ -2501,7 +2504,7 @@ class RetrievalModel(Model):
 
     @property
     def retrieval_block(self) -> RetrievalBlock:
-        return next(b for b in self.blocks if isinstance(b, RetrievalBlock))
+        return next(b for b in self.block if isinstance(b, RetrievalBlock))
 
     def query_embeddings(
         self,
@@ -2575,7 +2578,7 @@ class RetrievalModel(Model):
         -------
         SequentialBlock
         """
-        import merlin_models.tf as ml
+        import merlin.models.tf as ml
 
         topk_index = ml.TopKIndexBlock.from_block(
             self.retrieval_block.item_block(), data=data, k=k, **kwargs
