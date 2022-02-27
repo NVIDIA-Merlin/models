@@ -18,6 +18,7 @@ from typing import Optional, Union
 import merlin.io
 import numpy as np
 import tensorflow as tf
+from merlin.core.dispatch import DataFrameType
 from merlin.schema import Tags
 from tensorflow.python import to_dlpack
 
@@ -46,9 +47,13 @@ class IndexBlock(Block):
         self.ids = ids
 
     @classmethod
-    def from_dataset(cls, data: merlin.io.Dataset, **kwargs) -> "IndexBlock":
+    def from_dataset(
+        cls, data: merlin.io.Dataset, check_unique_ids: bool = True, **kwargs
+    ) -> "IndexBlock":
         if hasattr(data, "to_ddf"):
             data = data.to_ddf()
+        if check_unique_ids:
+            cls._check_unique_ids(data=data)
         values = tf.convert_to_tensor(data)
         ids = tf.convert_to_tensor(data.index)
 
@@ -86,6 +91,11 @@ class IndexBlock(Block):
         block_outputs.set_index(id_column, inplace=True)
 
         return cls.from_dataset(block_outputs, **kwargs)
+
+    @staticmethod
+    def _check_unique_ids(data: DataFrameType):
+        if data.index.nunique() != data.shape[0]:
+            raise ValueError("Please make sure that `data` contains unique indices")
 
     def update(self, values: tf.Tensor, ids: Optional[tf.Tensor] = None):
         if len(tf.shape(values)) != 2:
