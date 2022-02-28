@@ -143,8 +143,10 @@ class ItemRetrievalScorer(Block):
     item_id_feature_name: str
         Name of the column containing the item ids
         Defaults to `item_id`
-    query_name: str = 'query'
-    item_name: str = 'item'
+    query_name: str
+        Identify query tower for query/user embeddings, by default 'query'
+    item_name: str
+        Identify item tower for item embeddings, by default'item'
     """
 
     def __init__(
