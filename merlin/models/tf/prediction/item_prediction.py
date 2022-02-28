@@ -351,8 +351,8 @@ class ItemRetrievalScorer(Block):
 
     def rescore_false_negatives(self, positive_item_ids, neg_samples_item_ids, negative_scores):
         # Removing dimensions of size 1 from the shape of the item ids, if applicable
-        positive_item_ids = tf.squeeze(positive_item_ids, -1)
-        neg_samples_item_ids = tf.squeeze(neg_samples_item_ids, -1)
+        positive_item_ids = tf.squeeze(positive_item_ids)
+        neg_samples_item_ids = tf.squeeze(neg_samples_item_ids)
 
         # Reshapes positive and negative ids so that false_negatives_mask matches the scores shape
         false_negatives_mask = tf.equal(
