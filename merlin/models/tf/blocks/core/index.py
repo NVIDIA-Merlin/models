@@ -161,7 +161,7 @@ class TopKIndexBlock(IndexBlock):
         Parameters:
         -----------
         block: Block
-            The Block that retruns embeddings from raw item features.
+            The Block that returns embeddings from raw item features.
         output_dim: int
             The output dimension of `block`.
         data: merlin.io.Dataset
@@ -169,7 +169,7 @@ class TopKIndexBlock(IndexBlock):
         k: int
             Number of top candidates to retrieve.
             Defaults to 20
-         id_column: Optional[str]
+        id_column: Optional[str]
             The candidates ids column name.
             Note, this will be inferred automatically if the block contains
             a schema with an item-id Tag.

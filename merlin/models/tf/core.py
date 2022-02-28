@@ -2506,9 +2506,24 @@ class RetrievalModel(Model):
     def retrieval_block(self) -> RetrievalBlock:
         return next(b for b in self.block if isinstance(b, RetrievalBlock))
 
+    def _ensure_unique(
+        self, dataset: merlin.io.Dataset, tag: Union[str, Tags], id_tag: Union[str, Tags]
+    ):
+        # Check if merlin-dataset is passed
+        ddf = dataset.to_ddf() if hasattr(dataset, "to_ddf") else dataset
+
+        columns = dataset.schema.select_by_tag(tag).column_names
+        if columns:
+            id_col = dataset.schema.select_by_tag(id_tag).first.name
+            ddf = ddf[columns].group_by(id_col).agg("first")
+
+        return ddf
+
     def query_embeddings(
         self,
         dataset: merlin.io.Dataset,
+        query_tag=Tags.USER,
+        query_id_tag=Tags.USER_ID,
         batch_size=None,
     ) -> merlin.io.Dataset:
         """Export query embeddings from the model.
@@ -2517,6 +2532,10 @@ class RetrievalModel(Model):
         ----------
         dataset: merlin.io.Dataset
             Dataset to export embeddings from.
+        query_tag: str
+            Tag to use for the query.
+        query_id_tag: str
+            Tag to use for the query id.
         batch_size: int
             Batch size to use for embedding extraction.
 
@@ -2528,16 +2547,17 @@ class RetrievalModel(Model):
 
         get_user_emb = QueryEmbeddings(self, batch_size=batch_size)
 
-        # Check if merlin-dataset is passed
-        if hasattr(dataset, "to_ddf"):
-            dataset = dataset.to_ddf()
-
+        dataset = self._ensure_unique(dataset, query_tag, query_id_tag)
         embeddings = dataset.map_partitions(get_user_emb)
 
         return merlin.io.Dataset(embeddings)
 
     def item_embeddings(
-        self, dataset: merlin.io.Dataset, batch_size=None, **kwargs
+        self,
+        dataset: merlin.io.Dataset,
+        item_tag=Tags.ITEM,
+        item_id_tag=Tags.ITEM_ID,
+        batch_size=None,
     ) -> merlin.io.Dataset:
         """Export item embeddings from the model.
 
@@ -2545,6 +2565,10 @@ class RetrievalModel(Model):
         ----------
         dataset: merlin.io.Dataset
             Dataset to export embeddings from.
+        item_tag: str
+            Tag to use for the item.
+        item_id_tag: str
+            Tag to use for the item id.
         batch_size: int
             Batch size to use for embedding extraction.
 
@@ -2556,10 +2580,7 @@ class RetrievalModel(Model):
 
         get_item_emb = ItemEmbeddings(self, batch_size=batch_size)
 
-        # Check if merlin-dataset is passed
-        if hasattr(dataset, "to_ddf"):
-            dataset = dataset.to_ddf()
-
+        dataset = self._ensure_unique(dataset, item_tag, item_id_tag)
         embeddings = dataset.map_partitions(get_item_emb)
 
         return merlin.io.Dataset(embeddings)
