@@ -2370,6 +2370,9 @@ class ModelBlock(Block, tf.keras.Model):
     def build(self, input_shapes):
         return self.block.build(input_shapes)
 
+    def compute_output_shape(self, input_shape):
+        return self.block.compute_output_shape(input_shape)
+
     @property
     def schema(self) -> Schema:
         return self.block.schema
@@ -2546,7 +2549,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         with tf.GradientTape() as tape:
             if isinstance(inputs, tuple):
-                inputs, targets = inputs
+                if len(inputs) == 1:
+                    inputs = inputs[0]
+                    targets = None
+                else:
+                    inputs, targets = inputs
             else:
                 targets = None
 
@@ -2601,7 +2608,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         """Custom test step using the `compute_loss` method."""
 
         if isinstance(inputs, tuple):
-            inputs, targets = inputs
+            if len(inputs) == 1:
+                inputs = inputs[0]
+                targets = None
+            else:
+                inputs, targets = inputs
         else:
             targets = None
 

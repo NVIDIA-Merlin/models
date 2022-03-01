@@ -10,6 +10,10 @@ from merlin.models.tf.dataset import Dataset
 from merlin.models.utils.schema import select_targets
 from merlin.schema import Schema, Tags
 
+from ...utils.schema import select_targets
+from ..core import Block, Model, RetrievalModel
+from ..dataset import BatchedDataset
+
 
 class ModelEncode:
     def __init__(
@@ -165,7 +169,7 @@ def data_iterator_func(schema, batch_size: int = 512):
     targets = select_targets(schema).column_names
 
     def data_iterator(dataset):
-        return Dataset(
+        return BatchedDataset(
             merlin.io.dataset.Dataset(dataset),
             batch_size=batch_size,
             cat_names=cat_cols,

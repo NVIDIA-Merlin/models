@@ -37,6 +37,12 @@ class AsSparseFeatures(TabularBlock):
             if isinstance(val, tuple):
                 values = val[0][:, 0]
                 row_lengths = val[1][:, 0]
+
+                if values.dtype == tf.float32:
+                    values = tf.cast(values, tf.int32)
+                if row_lengths.dtype == tf.float32:
+                    row_lengths = tf.cast(row_lengths, tf.int32)
+
                 outputs[name] = tf.RaggedTensor.from_row_lengths(values, row_lengths).to_sparse()
             else:
                 outputs[name] = val
@@ -44,8 +50,6 @@ class AsSparseFeatures(TabularBlock):
         return outputs
 
     def compute_output_shape(self, input_shape):
-        tf.SparseTensorSpec
-
         return input_shape
 
 
