@@ -3,20 +3,38 @@ import os
 import shutil
 from os import path
 
+import merlin.io
 import numpy as np
 import nvtabular as nvt
 import pandas as pd
-from nvtabular import ops
 
 # Get dataframe library - cudf or pandas
-from nvtabular.dispatch import get_lib
-from nvtabular.utils import download_file
+from merlin.core.dispatch import get_lib
+from merlin.core.utils import download_file
+from nvtabular import ops
 
 df_lib = get_lib()
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def get_movielens(path=None, variant="ml-25m"):
+    """Returns a tuple of train/test Dataset objects for the movielens dataset"""
+    if path is None:
+        path = os.environ.get(
+            "INPUT_DATA_DIR", os.path.expanduser("~/merlin-models-data/movielens/")
+        )
+
+    variant_path = os.path.join(path, variant)
+    if not os.path.exists(variant_path):
+        os.makedirs(variant_path)
+        movielens_download_etl(path, variant)
+
+    train = merlin.io.Dataset(os.path.join(variant_path, "train"), engine="parquet")
+    valid = merlin.io.Dataset(os.path.join(variant_path, "valid"), engine="parquet")
+    return train, valid
 
 
 def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
@@ -63,7 +81,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         # NVTabular pipeline
         movies = df_lib.read_parquet(os.path.join(local_filename, name, "movies_converted.parquet"))
         joined = ["userId", "movieId"] >> ops.JoinExternal(movies, on=["movieId"])
-        cat_features = joined >> ops.Categorify()
+        cat_features = joined >> ops.Categorify(dtype="int32")
         label = nvt.ColumnSelector(["rating"])
 
         # Columns to apply to
@@ -206,7 +224,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
             "occupation",
             "zip_code",
             "genres",
-        ] >> nvt.ops.Categorify()
+        ] >> nvt.ops.Categorify(dtype="int32")
 
         cont_names = ["age"]
         boundaries = {"age": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]}

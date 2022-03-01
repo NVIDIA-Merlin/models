@@ -42,9 +42,9 @@ def MatrixFactorizationModel(
     dim: int
         The dimension of the embeddings.
     query_id_tag : Tag
-        The tag to select query features, by default `Tag.USER`
+        The tag to select query features, by default `Tags.USER`
     item_id_tag : Tag
-        The tag to select item features, by default `Tag.ITEM`
+        The tag to select item features, by default `Tags.ITEM`
     embeddings_initializers: Dict[str, Callable[[Any], None]]
         A dictionary of initializers for embeddings.
     post: Optional[Block], optional
@@ -129,9 +129,9 @@ def TwoTowerModel(
         The optional `Block` that combines items features.
         If not provided, a copy of the query_tower is used.
     query_tower_tag: Tag
-        The tag to select query features, by default `Tag.USER`
+        The tag to select query features, by default `Tags.USER`
     item_tower_tag: Tag
-        The tag to select item features, by default `Tag.ITEM`
+        The tag to select item features, by default `Tags.ITEM`
     embedding_dim_default: Optional[int], optional
         Dimension of the embeddings, by default 64
     post: Optional[Block], optional
