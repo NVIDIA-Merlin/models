@@ -41,7 +41,6 @@ from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
 import merlin.io
-import merlin.models.tf as ml
 from merlin.models.config.schema import SchemaMixin
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.misc_utils import filter_kwargs
