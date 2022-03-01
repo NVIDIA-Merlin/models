@@ -569,6 +569,8 @@ class DataLoader:
             if len(column_names) == 0:
                 tensors.append(None)
                 continue
+            if hasattr(column_names, "column_names"):
+                column_names = column_names.column_names
 
             gdf_i = gdf[column_names]
             gdf.drop(columns=column_names, inplace=True)

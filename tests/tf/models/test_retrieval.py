@@ -14,7 +14,7 @@ def test_matrix_factorization_model(music_streaming_data: SyntheticData, run_eag
     model = mm.MatrixFactorizationModel(music_streaming_data.schema, dim=64)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+    losses = model.fit(music_streaming_data.dataset, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
@@ -88,7 +88,7 @@ def test_youtube_dnn_retrieval(
     model = mm.YoutubeDNNRetrievalModel(schema=sequence_testing_data.schema)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(sequence_testing_data.tf_dataloader(batch_size=50), epochs=2)
+    losses = model.fit(sequence_testing_data.dataset, batch_size=50, epochs=2)
 
     assert len(losses.epoch) == 2
     for metric in losses.history.keys():

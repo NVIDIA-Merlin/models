@@ -122,7 +122,7 @@ def _validate_schema(feature_columns, cat_names, cont_names, label_names, schema
 
         return cat_names, cont_names, label_names
     elif _uses_dataset_schema:
-        label_names = label_names or select_targets(schema)
+        label_names = label_names or select_targets(schema).column_names
 
         return cat_tag_names, cont_tag_names, label_names
     else:
@@ -266,6 +266,7 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         drop_last=False,
         sparse_names=None,
         sparse_max=None,
+        multi_label_as_dict=True,
         sparse_as_dense=False,
         schema=None,
     ):
@@ -298,6 +299,8 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
             sparse_as_dense=sparse_as_dense,
         )
         self._map_fns = []
+        if len(label_names) > 1 and multi_label_as_dict:
+            self._map_fns.append(lambda X, y: (X, dict(zip(label_names, y))))
 
     def __len__(self):
         """

@@ -78,8 +78,13 @@ class DummyFeaturesBlock(ml.Block):
         items = self.context[Tags.ITEM_ID]
         emb_table = self.context.get_embedding(Tags.ITEM_ID)
         item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
+        if len(item_embeddings.shape) == 3:
+            item_embeddings = tf.squeeze(item_embeddings)
 
         return inputs * item_embeddings
+
+    def compute_output_shape(self, input_shapes):
+        return input_shapes
 
     @property
     def item_embedding_table(self):
@@ -101,7 +106,7 @@ def test_block_context(ecommerce_data: SyntheticData):
     assert out.shape[-1] == 64
 
 
-@pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize("run_eagerly", [True])
 def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, tmp_path):
     dummy = DummyFeaturesBlock()
     model = ml.Model(
@@ -112,7 +117,7 @@ def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, t
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    model.fit(ecommerce_data.tf_dataloader(), epochs=1)
+    model.fit(ecommerce_data.dataset, batch_size=50, epochs=1)
     model.save(str(tmp_path))
 
     copy_model = tf.keras.models.load_model(str(tmp_path))

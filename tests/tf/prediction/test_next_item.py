@@ -275,7 +275,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
+    losses = model.fit(music_streaming_data.dataset, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
@@ -313,7 +313,7 @@ def test_last_item_prediction_task(
 
     model = inputs.connect(ml.MLPBlock([64]), task)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    losses = model.fit(sequence_testing_data.tf_dataloader(batch_size=50), epochs=2)
+    losses = model.fit(sequence_testing_data.dataset, batch_size=50, epochs=2)
 
     assert len(losses.epoch) == 2
     for metric in losses.history.keys():
