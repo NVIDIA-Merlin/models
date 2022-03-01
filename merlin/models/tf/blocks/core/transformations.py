@@ -50,8 +50,6 @@ class AsSparseFeatures(TabularBlock):
         return outputs
 
     def compute_output_shape(self, input_shape):
-        tf.SparseTensorSpec
-
         return input_shape
 
 
