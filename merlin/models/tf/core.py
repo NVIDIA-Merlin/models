@@ -2299,12 +2299,18 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             predictions = self(inputs, training=True)
             loss = self.compute_loss(predictions, targets, training=True)
+            tf.assert_rank(
+                loss,
+                0,
+                "The loss tensor should have rank 0. "
+                "Check if you are using a tf.keras.losses.Loss with 'reduction' "
+                "properly set",
+            )
 
-            # Handle regularization losses as well.
-            # Casting reg. loss to fp16 if needed to match the main loss
-            regularization_loss = tf.cast(sum(self.losses), loss.dtype)
+            # Casting regularization loss to fp16 if needed to match the main loss
+            regularization_loss = tf.cast(tf.reduce_sum(self.losses), loss.dtype)
 
-            total_loss = tf.add_n([loss, regularization_loss])
+            total_loss = loss + regularization_loss
 
         gradients = tape.gradient(total_loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
@@ -2326,9 +2332,16 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         predictions = self(inputs, training=False)
         loss = self.compute_loss(predictions, targets, training=False)
+        tf.assert_rank(
+            loss,
+            0,
+            "The loss tensor should have rank 0. "
+            "Check if you are using a tf.keras.losses.Loss with 'reduction' "
+            "properly set",
+        )
 
-        # Handle regularization losses as well.
-        regularization_loss = sum(self.losses)
+        # Casting regularization loss to fp16 if needed to match the main loss
+        regularization_loss = tf.cast(tf.reduce_sum(self.losses), loss.dtype)
 
         total_loss = loss + regularization_loss
 

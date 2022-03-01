@@ -283,7 +283,7 @@ def test_last_item_prediction_task(
         split_sparse=True,
     )
     if sampled_softmax:
-        loss = tf.nn.softmax_cross_entropy_with_logits
+        loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
         metrics = ml.ranking_metrics(top_ks=[10, 20], labels_onehot=False)
     else:
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
