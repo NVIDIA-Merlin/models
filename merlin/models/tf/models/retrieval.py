@@ -16,6 +16,7 @@ from .utils import parse_prediction_tasks
 from ..prediction_tasks.next_item import NextItemPredictionTask
 from ..prediction_tasks.retrieval import ItemRetrievalTask
 from .utils import _parse_prediction_tasks
+from .utils import parse_prediction_tasks
 
 
 def MatrixFactorizationModel(
