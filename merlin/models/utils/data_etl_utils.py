@@ -21,7 +21,26 @@ logger.setLevel(logging.INFO)
 
 
 def get_movielens(path=None, variant="ml-25m"):
-    """Returns a tuple of train/test Dataset objects for the movielens dataset"""
+    """Gets the movielens dataset for use with merlin-models
+
+    This function will return a tuple of train/test merlin.io.Dataset objects for the
+    movielens dataset. This will download the movielens dataset locally if needed,
+    and run a ETL pipeline with NVTabular to make this dataset ready for use with
+    merlin-models.
+
+    Parameters
+    ----------
+    path : str
+        The path to download the files locally to. If not set will default to
+        the 'merlin-models-data` directory in your home folder
+    variant : "ml-25m" or "ml-100k"
+        Which variant of the movielens dataset to use. Must be either "ml-25m" or "ml-100k"
+
+    Returns
+    -------
+    tuple
+        A tuple consisting of a merlin.io.Dataset for the training dataset and validation dataset
+    """
     if path is None:
         path = os.environ.get(
             "INPUT_DATA_DIR", os.path.expanduser("~/merlin-models-data/movielens/")
