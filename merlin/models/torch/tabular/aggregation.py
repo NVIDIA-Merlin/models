@@ -15,6 +15,7 @@
 #
 
 import torch
+
 from merlin.schema import Schema, Tags
 
 from ...config.schema import requires_schema

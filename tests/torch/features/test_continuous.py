@@ -14,9 +14,8 @@
 # limitations under the License.
 #
 
-from merlin.schema import Tags
-
 import merlin.models.torch as ml
+from merlin.schema import Tags
 
 
 def test_continuous_features(torch_con_features):

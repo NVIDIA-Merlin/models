@@ -16,8 +16,9 @@
 from typing import Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
-from merlin.schema import Schema
 from tensorflow.keras.layers import Layer
+
+from merlin.schema import Schema
 
 from ..blocks.aggregation import StackFeatures
 from ..core import Block, ParallelBlock, ParallelPredictionBlock, PredictionTask, TabularBlock

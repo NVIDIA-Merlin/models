@@ -16,6 +16,7 @@
 from typing import List, Optional, Tuple, Union
 
 import tensorflow as tf
+
 from merlin.schema import Schema, Tags
 
 from ..core import Filter, SequentialBlock, TabularBlock

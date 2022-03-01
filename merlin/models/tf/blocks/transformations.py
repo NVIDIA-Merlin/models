@@ -16,13 +16,13 @@
 from typing import Dict, Optional, Union
 
 import tensorflow as tf
-from merlin.schema import Schema, Tags
 from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
 from merlin.models.tf.core import Block, TabularBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
+from merlin.schema import Schema, Tags
 
 
 @Block.registry.register("as-sparse")

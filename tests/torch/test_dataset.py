@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
+
 from merlin.core.dispatch import HAS_GPU, make_df
 from merlin.io.dataset import Dataset
 

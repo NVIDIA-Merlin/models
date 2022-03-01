@@ -18,7 +18,6 @@ from enum import Enum
 from typing import Union, overload
 
 import tensorflow as tf
-from merlin.schema import Schema, Tags
 from tensorflow.python.keras.layers import Dot
 
 from merlin.models.config.schema import requires_schema
@@ -26,6 +25,7 @@ from merlin.models.tf.core import Block, TabularAggregation
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils.schema import schema_to_tensorflow_metadata_json
+from merlin.schema import Schema, Tags
 
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 

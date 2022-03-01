@@ -17,6 +17,7 @@
 from typing import List, Optional, Union
 
 import tensorflow as tf
+
 from merlin.schema import Schema, Tags
 
 from ..core import Block, Filter, ResidualBlock, SequentialBlock, tabular_aggregation_registry

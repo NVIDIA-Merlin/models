@@ -17,13 +17,13 @@
 from typing import List, Optional
 
 import tensorflow as tf
-from merlin.schema import Tags
 from tensorflow.keras import backend
 from tensorflow.python.ops import array_ops
 
 from merlin.models.tf.core import Block
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.registry import Registry
+from merlin.schema import Tags
 
 masking_registry = Registry("tf.masking")
 

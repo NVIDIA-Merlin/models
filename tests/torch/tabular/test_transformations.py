@@ -16,10 +16,10 @@
 
 import pytest
 import torch
-from merlin.schema import Schema, Tags
 
 import merlin.models.torch as ml
 from merlin.models.utils.schema import create_categorical_column
+from merlin.schema import Schema, Tags
 
 
 @pytest.mark.parametrize("replacement_prob", [0.1, 0.3, 0.5, 0.7])

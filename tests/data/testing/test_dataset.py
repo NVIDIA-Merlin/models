@@ -14,11 +14,11 @@
 # limitations under the License.
 #
 import pytest
-from merlin.schema import Tags
-from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 from merlin.models.data.synthetic import SyntheticData
 from merlin.models.utils.schema import filter_dict_by_schema
+from merlin.schema import Tags
+from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 
 def test_tabular_sequence_testing_data():

@@ -15,11 +15,11 @@
 #
 
 import pytest
-from merlin.schema import Tags
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
 from merlin.models.tf.utils import testing_utils
+from merlin.schema import Tags
 
 
 def test_continuous_features(tf_con_features):

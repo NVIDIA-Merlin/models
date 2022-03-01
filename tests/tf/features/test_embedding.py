@@ -15,12 +15,12 @@
 #
 
 import pytest
-from merlin.schema import Tags
 from tensorflow.python.ops import init_ops_v2
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
 from merlin.models.tf.utils import testing_utils
+from merlin.schema import Tags
 
 
 def test_embedding_features(tf_cat_features):

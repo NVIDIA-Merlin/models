@@ -16,6 +16,7 @@
 from typing import Any, Callable, Dict, Optional
 
 import tensorflow as tf
+
 from merlin.schema import Schema, Tags
 
 from ..core import Block, BlockType, ModelBlock, ParallelBlock

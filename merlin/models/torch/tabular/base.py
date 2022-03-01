@@ -20,10 +20,10 @@ from functools import reduce
 from typing import Dict, List, Optional, Union
 
 import torch
-from merlin.schema import Schema
 
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.registry import Registry
+from merlin.schema import Schema
 
 from ..block.base import BlockBase, SequentialBlock, right_shift_block
 from ..typing import TabularData, TensorOrTabularData
