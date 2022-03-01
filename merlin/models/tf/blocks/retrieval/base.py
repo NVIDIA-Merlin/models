@@ -171,7 +171,7 @@ class ItemRetrievalScorer(Block):
     @tf.function
     def call_targets(
         self,
-        outputs: dict,
+        outputs: TabularData,
         training: bool = False,
         **kwargs,
     ) -> tf.Tensor:
