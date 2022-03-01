@@ -58,7 +58,7 @@ class BinaryClassificationTask(PredictionTask):
         )
 
         self.output_layer = output_layer or tf.keras.layers.Dense(
-            1, activation="sigmoid", name=self.child_name("output_layer")
+            1, activation="linear", name=self.child_name("output_layer")
         )
         # To ensure that the output is always fp32, avoiding numerical
         # instabilities with mixed_float16 policy
