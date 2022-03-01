@@ -730,7 +730,7 @@ class SequentialBlock(Block):
     def call_targets(self, predictions, targets, training=False, **kwargs):
         outputs = targets
         for layer in self.layers:
-            if isinstance(outputs, tuple):
+            if isinstance(outputs, (list, tuple)) and len(outputs) > 0:
                 outputs, predictions = outputs
             outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
 
