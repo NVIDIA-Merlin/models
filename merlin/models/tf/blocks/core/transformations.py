@@ -319,18 +319,19 @@ class RemovePad3D(Block):
     def compute_output_shape(self, input_shape):
         return input_shape
 
-    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: dict, training=True, **kwargs) -> tf.Tensor:
+        self._check_output_for_call_targets(outputs)
+        targets, predictions = outputs["targets"], outputs["predictions"]
         targets = tf.reshape(targets, (-1,))
         non_pad_mask = targets != self.padding_idx
         targets = tf.boolean_mask(targets, non_pad_mask)
 
         if len(tuple(predictions.get_shape())) == 3:
             predictions = tf.reshape(predictions, (-1, predictions.shape[-1]))
-            flatten_predictions = tf.boolean_mask(
+            predictions = tf.boolean_mask(
                 predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
             )
-            return targets, flatten_predictions
-        return targets
+        return {"targets": targets, "predictions": predictions}
 
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
@@ -364,10 +365,12 @@ class PredictionsScaler(Block):
         else:
             return inputs
 
-    def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: dict, training=True, **kwargs) -> tf.Tensor:
+        self._check_output_for_call_targets(outputs)
+        targets, predictions = outputs["targets"], outputs["predictions"]
         if training:
-            return targets, predictions * self.scale_factor
-        return targets
+            predictions = predictions * self.scale_factor
+        return {"targets": targets, "predictions": predictions}
 
     def compute_output_shape(self, input_shape):
         return input_shape

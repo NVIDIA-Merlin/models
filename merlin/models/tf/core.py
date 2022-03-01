@@ -242,8 +242,12 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         super()._maybe_build(inputs)
 
-    def call_targets(self, predictions, targets, training=False, **kwargs) -> tf.Tensor:
-        return targets
+    def _check_output_for_call_targets(self, outputs):
+        assert set(outputs.keys()) == {"targets", "predictions"}
+
+    def call_targets(self, outputs: dict, training=False, **kwargs) -> tf.Tensor:
+        self._check_output_for_call_targets(outputs)
+        return outputs
 
     def register_features(self, feature_shapes) -> List[str]:
         return []
@@ -730,13 +734,10 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(self, predictions, targets, training=False, **kwargs):
-        outputs = targets
+    def call_targets(self, outputs: dict, training=False, **kwargs):
+        self._check_output_for_call_targets(outputs)
         for layer in self.layers:
-            if isinstance(outputs, (list, tuple)) and len(outputs) > 0:
-                outputs, predictions = outputs
-            outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
-
+            outputs = layer.call_targets(outputs, training=training, **kwargs)
         return outputs
 
     def get_config(self):
@@ -1765,8 +1766,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return x
 
     def pre_loss(self, predictions, targets, **kwargs):
-        targets = self.pre.call_targets(predictions, targets, **kwargs)
-        return targets
+        outputs = self.pre.call_targets({"predictions": predictions, "targets": targets}, **kwargs)
+        return outputs["targets"], outputs["predictions"]
 
     def __call__(self, *args, **kwargs):
         inputs = self.pre_call(*args, **kwargs)
@@ -1857,9 +1858,10 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions = self(predictions)
 
         if self.pre_metrics:
-            targets = self.pre_metrics.call_targets(predictions, targets, **kwargs)
-            if isinstance(targets, tuple):
-                targets, predictions = targets
+            outputs = self.pre_metrics.call_targets(
+                {"predictions": predictions, "targets": targets}, **kwargs
+            )
+            targets, predictions = outputs["targets"], outputs["predictions"]
 
         update_ops = []
 
@@ -2515,7 +2517,7 @@ class RetrievalModel(Model):
         columns = dataset.schema.select_by_tag(tag).column_names
         if columns:
             id_col = dataset.schema.select_by_tag(id_tag).first.name
-            ddf = ddf[columns].group_by(id_col).agg("first")
+            ddf = ddf[columns].groupby(id_col).agg("first").reset_index()
 
         return ddf
 
