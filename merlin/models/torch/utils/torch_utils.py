@@ -18,6 +18,7 @@ import abc
 from typing import Dict, Union
 
 import torch
+
 from merlin.schema import Schema
 
 from ...config.schema import SchemaMixin

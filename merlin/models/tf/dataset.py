@@ -19,12 +19,12 @@ import os
 import dask.dataframe as dd
 import numpy as np
 import tensorflow as tf
-from merlin.core.dispatch import HAS_GPU
-from merlin.schema import Tags
 from packaging import version
 
+from merlin.core.dispatch import HAS_GPU
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
+from merlin.schema import Tags
 
 if version.parse(tf.__version__) < version.parse("2.3.0"):
     try:

@@ -21,7 +21,6 @@ from merlin.models.loader.tf_utils import configure_tensorflow
 
 configure_tensorflow()
 
-from merlin.schema import Schema, Tags
 from tensorflow.keras.layers import Dense, Layer
 from tensorflow.python.keras.losses import Loss
 from tensorflow.python.keras.metrics import Metric
@@ -30,6 +29,7 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.loader.tf_utils import configure_tensorflow
+from merlin.schema import Schema, Tags
 
 from .. import data
 from ..data.synthetic import SyntheticData

@@ -16,9 +16,8 @@
 
 from typing import List, Optional, Tuple, Type, Union
 
-from merlin.schema import Schema, Tags, TagsType
-
 from merlin.models.utils.doc_utils import docstring_parameter
+from merlin.schema import Schema, Tags, TagsType
 
 from ..block.base import SequentialBlock
 from ..block.mlp import MLPBlock

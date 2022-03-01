@@ -18,6 +18,7 @@ import os
 from typing import Dict, Optional
 
 import numpy as np
+
 from merlin.schema import ColumnSchema, Schema, Tags, TagsType
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
