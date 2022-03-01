@@ -2383,9 +2383,6 @@ class ModelBlock(Block, tf.keras.Model):
     def compute_output_shape(self, input_shape):
         return self.block.compute_output_shape(input_shape)
 
-    def compute_output_shape(self, input_shape):
-        return self.block.compute_output_shape(input_shape)
-
     @property
     def schema(self) -> Schema:
         return self.block.schema
