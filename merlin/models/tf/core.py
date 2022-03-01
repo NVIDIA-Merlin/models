@@ -382,6 +382,39 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return output
 
+    def wrap_as_model(
+        self,
+        schema: Schema,
+        input_block: Optional[BlockType] = None,
+        prediction_tasks: Optional[
+            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
+        ] = None,
+        **kwargs,
+    ) -> "Model":
+        """Wrap the block between inputs & outputs to create a model.
+
+        Parameters
+        ----------
+        schema: Schema
+            Schema to use for the model.
+        input_block: Optional[Block]
+            Block to use as input.
+        prediction_tasks: Optional[
+            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        ]
+            Prediction tasks to use.
+
+        """
+        from merlin.models.tf.blocks.inputs import InputBlock
+        from merlin.models.tf.models.utils import parse_prediction_tasks
+
+        aggregation = kwargs.pop("aggregation", "concat")
+        input_block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
+
+        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+
+        return Model(input_block, self, prediction_tasks)
+
     def connect_with_residual(
         self,
         block: Union[tf.keras.layers.Layer, str],

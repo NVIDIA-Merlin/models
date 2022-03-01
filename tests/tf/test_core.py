@@ -7,6 +7,7 @@ from tensorflow.keras import mixed_precision
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
 from merlin.schema import Tags
+from merlin.models.tf.utils import testing_utils
 
 
 def test_filter_features(tf_con_features):
@@ -48,15 +49,13 @@ def test_tabular_block(tf_con_features):
 def test_serialization_continuous_features(
     testing_data: SyntheticData, pre, post, aggregation, include_schema
 ):
-    from merlin.models.tf.utils.testing_utils import assert_serialization
-
     schema = None
     if include_schema:
         schema = testing_data.schema
 
     inputs = ml.TabularBlock(pre=pre, post=post, aggregation=aggregation, schema=schema)
 
-    copy_layer = assert_serialization(inputs)
+    copy_layer = testing_utils.assert_serialization(inputs)
 
     keep_cols = ["user_id", "item_id", "event_hour_sin", "event_hour_cos"]
     tf_tabular_data = testing_data.tf_tensor_dict
@@ -127,12 +126,21 @@ def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, t
 
 
 def test_simple_model(ecommerce_data: SyntheticData):
-    from merlin.models.tf.utils import testing_utils
-
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),
         ml.MLPBlock([64]),
         ml.BinaryClassificationTask("click"),
+    )
+
+    copy_model = testing_utils.assert_serialization(model)
+    testing_utils.assert_loss_and_metrics_are_valid(
+        copy_model, ecommerce_data.tf_features_and_targets
+    )
+
+
+def test_block_wrap_as_model(ecommerce_data: SyntheticData):
+    model = ml.MLPBlock([64]).wrap_as_model(
+        ecommerce_data.schema, prediction_tasks=ml.BinaryClassificationTask("click")
     )
 
     copy_model = testing_utils.assert_serialization(model)
