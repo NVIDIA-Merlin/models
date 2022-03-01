@@ -2368,7 +2368,11 @@ class ModelBlock(Block, tf.keras.Model):
         return outputs
 
     def build(self, input_shapes):
-        return self.block.build(input_shapes)
+        self.block.build(input_shapes)
+
+        if not hasattr(self.build, "_is_default"):
+            self._build_input_shape = input_shapes
+        self.built = True
 
     def compute_output_shape(self, input_shape):
         return self.block.compute_output_shape(input_shape)
