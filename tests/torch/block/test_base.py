@@ -16,7 +16,7 @@
 
 import torch
 
-import merlin_models.torch as ml
+import merlin.models.torch as ml
 
 
 def test_base_block(torch_tabular_features):

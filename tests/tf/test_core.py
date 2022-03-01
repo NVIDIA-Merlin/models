@@ -4,8 +4,8 @@ import pytest
 import tensorflow as tf
 from merlin.schema import Tags
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
 
 
 def test_filter_features(tf_con_features):
@@ -47,7 +47,7 @@ def test_tabular_block(tf_con_features):
 def test_serialization_continuous_features(
     testing_data: SyntheticData, pre, post, aggregation, include_schema
 ):
-    from merlin_models.tf.utils.testing_utils import assert_serialization
+    from merlin.models.tf.utils.testing_utils import assert_serialization
 
     schema = None
     if include_schema:
@@ -116,7 +116,7 @@ def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, t
     model.save(str(tmp_path))
 
     copy_model = tf.keras.models.load_model(str(tmp_path))
-    assert copy_model.context == copy_model.body.layers[0].context
+    assert copy_model.context == copy_model.block.layers[0].context
     assert list(copy_model.context._feature_names) == ["item_id"]
     assert len(dict(copy_model.context._feature_dtypes)) == 23
 
@@ -126,7 +126,7 @@ def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, t
 
 
 def test_simple_model(ecommerce_data: SyntheticData):
-    from merlin_models.tf.utils import testing_utils
+    from merlin.models.tf.utils import testing_utils
 
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),

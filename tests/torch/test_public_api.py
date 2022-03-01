@@ -16,7 +16,7 @@
 
 import pytest
 
-import merlin_models.torch as ml
+import merlin.models.torch as ml
 
 
 def test_torch_import():

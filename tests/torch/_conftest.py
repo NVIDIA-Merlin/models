@@ -18,8 +18,8 @@ import numpy as np
 import pytest
 import torch
 
-import merlin_models.torch as ml
-from merlin_models.data.synthetic import SyntheticData
+import merlin.models.torch as ml
+from merlin.models.data.synthetic import SyntheticData
 
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100

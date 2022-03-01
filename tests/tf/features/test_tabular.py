@@ -17,9 +17,9 @@
 import pytest
 from merlin.schema import Tags
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.utils import testing_utils
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.utils import testing_utils
 
 
 def test_tabular_features(testing_data: SyntheticData):

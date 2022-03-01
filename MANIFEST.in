@@ -16,7 +16,7 @@ recursive-include tests *.parquet
 recursive-include tests *.pbtxt
 recursive-include tests *.py
 
-recursive-include merlin_models *.parquet *.json *.py *.typed
+recursive-include merlin/models *.parquet *.json *.py *.typed
 
 
 # Ignore notebooks & examples
@@ -29,5 +29,5 @@ exclude .github
 recursive-exclude ci *
 exclude ci
 exclude .pylintrc
-include merlin_models/_version.py
+include merlin/models/_version.py
 include versioneer.py

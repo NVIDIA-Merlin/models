@@ -19,7 +19,7 @@ from __future__ import absolute_import
 
 import pytest
 
-from merlin_models.data.synthetic import SyntheticData, _read_data
+from merlin.models.data.synthetic import SyntheticData, _read_data
 
 read_data = _read_data
 

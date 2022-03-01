@@ -17,7 +17,7 @@
 # import pytest
 
 # torch = pytest.importorskip("torch")
-# import merlin_models.torch as ml
+# import merlin.models.torch as ml
 
 # def test_pyarrow_load(yoochoose_schema, tabular_data_file):
 #     pytest.importorskip("pyarrow")

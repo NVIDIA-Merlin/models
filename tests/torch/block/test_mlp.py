@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-import merlin_models.torch as ml
+import merlin.models.torch as ml
 
 
 def test_mlp_block(tabular_schema, torch_tabular_data):

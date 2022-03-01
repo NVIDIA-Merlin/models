@@ -20,10 +20,10 @@ import pytest
 import tensorflow as tf
 from merlin.schema import Tags
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
-from merlin_models.tf.blocks.aggregation import ElementWiseMultiply
-from merlin_models.tf.utils import testing_utils
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.blocks.aggregation import ElementWiseMultiply
+from merlin.models.tf.utils import testing_utils
 
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):
@@ -38,7 +38,7 @@ def test_matrix_factorization_block(music_streaming_data: SyntheticData):
 def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
     import pandas as pd
 
-    from merlin_models.tf.blocks.aggregation import CosineSimilarity
+    from merlin.models.tf.blocks.aggregation import CosineSimilarity
 
     mf = ml.MatrixFactorizationBlock(
         music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
@@ -89,6 +89,23 @@ def test_two_tower_block(testing_data: SyntheticData):
         assert list(outputs[key].shape) == [100, 128]
 
 
+def test_two_tower_block_tower_save(testing_data: SyntheticData, tmp_path):
+    two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
+    two_tower(testing_data.tf_tensor_dict)
+
+    query_tower = two_tower.query_block()
+    query_tower.save(str(tmp_path / "query_tower"))
+    query_tower_copy = tf.keras.models.load_model(str(tmp_path / "query_tower"))
+    weights = zip(query_tower.get_weights(), query_tower_copy.get_weights())
+    assert all([np.array_equal(w1, w2) for w1, w2 in weights])
+
+    item_tower = two_tower.item_block()
+    item_tower.save(str(tmp_path / "item_tower"))
+    item_tower_copy = tf.keras.models.load_model(str(tmp_path / "item_tower"))
+    weights = zip(item_tower.get_weights(), item_tower_copy.get_weights())
+    assert all([np.array_equal(w1, w2) for w1, w2 in weights])
+
+
 def test_two_tower_block_serialization(testing_data: SyntheticData):
     two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
     copy_two_tower = testing_utils.assert_serialization(two_tower)
@@ -98,6 +115,21 @@ def test_two_tower_block_serialization(testing_data: SyntheticData):
     assert len(outputs) == 2
     for key in ["item", "query"]:
         assert list(outputs[key].shape) == [100, 128]
+
+
+# TODO: Fix this test
+# def test_two_tower_block_saving(ecommerce_data: SyntheticData):
+#     two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([64, 128]))
+#
+#     model = two_tower.connect(
+#         ml.ItemRetrievalTask(ecommerce_data.schema, target_name="click", metrics=[])
+#     )
+#
+#     dataset = ecommerce_data.tf_dataloader(batch_size=50)
+#     copy_two_tower = testing_utils.assert_model_is_retrainable(model, dataset)
+#
+#     outputs = copy_two_tower(ecommerce_data.tf_tensor_dict)
+#     assert list(outputs.shape) == [100, 1]
 
 
 def test_two_tower_block_no_item_features(testing_data: SyntheticData):

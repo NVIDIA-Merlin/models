@@ -17,8 +17,8 @@
 import pytest
 from merlin.schema import Tags
 
-import merlin_models.tf as ml
-from merlin_models.data.synthetic import SyntheticData
+import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
 
 
 def test_dlrm_block(testing_data: SyntheticData):
@@ -26,11 +26,11 @@ def test_dlrm_block(testing_data: SyntheticData):
         testing_data.schema,
         embedding_dim=64,
         bottom_block=ml.MLPBlock([64]),
-        top_block=ml.MLPBlock([32]),
+        top_block=ml.DenseResidualBlock(),
     )
     outputs = dlrm(testing_data.tf_tensor_dict)
 
-    assert list(outputs.shape) == [100, 32]
+    assert list(outputs.shape) == [100, 2080]
 
 
 def test_dlrm_block_no_top_block(testing_data: SyntheticData):
