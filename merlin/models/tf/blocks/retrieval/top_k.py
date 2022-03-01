@@ -21,6 +21,8 @@ import tensorflow as tf
 from merlin.models.tf.core import Block, ModelBlock, RetrievalModel
 from merlin.models.tf.utils import tf_utils
 
+from ...typing import TabularData
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemsPredictionTopK(Block):
@@ -49,7 +51,7 @@ class ItemsPredictionTopK(Block):
         self.transform_to_onehot = transform_to_onehot
 
     @tf.function
-    def call_targets(self, outputs, training=False, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: TabularData, training=False, **kwargs) -> tf.Tensor:
         self._check_output_for_call_targets(outputs)
         targets, predictions = outputs["targets"], outputs["predictions"]
         if self.transform_to_onehot:
@@ -160,7 +162,7 @@ class BruteForceTopK(Block):
         top_indices = tf.gather(self._identifiers, top_indices)
         return top_scores, top_indices
 
-    def call_targets(self, outputs: dict, training=False, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: TabularData, training=False, **kwargs) -> tf.Tensor:
         """
         Retrieve top-k negative scores for evaluation metrics.
 

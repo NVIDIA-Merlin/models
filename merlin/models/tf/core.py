@@ -245,7 +245,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
     def _check_output_for_call_targets(self, outputs):
         assert set(outputs.keys()) == {"targets", "predictions"}
 
-    def call_targets(self, outputs: dict, training=False, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: TabularData, training=False, **kwargs) -> tf.Tensor:
         self._check_output_for_call_targets(outputs)
         return outputs
 
@@ -734,7 +734,7 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(self, outputs: dict, training=False, **kwargs):
+    def call_targets(self, outputs: TabularData, training=False, **kwargs):
         self._check_output_for_call_targets(outputs)
         for layer in self.layers:
             outputs = layer.call_targets(outputs, training=training, **kwargs)

@@ -319,7 +319,7 @@ class RemovePad3D(Block):
     def compute_output_shape(self, input_shape):
         return input_shape
 
-    def call_targets(self, outputs: dict, training=True, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: TabularData, training=True, **kwargs) -> tf.Tensor:
         self._check_output_for_call_targets(outputs)
         targets, predictions = outputs["targets"], outputs["predictions"]
         targets = tf.reshape(targets, (-1,))
@@ -365,7 +365,7 @@ class PredictionsScaler(Block):
         else:
             return inputs
 
-    def call_targets(self, outputs: dict, training=True, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: TabularData, training=True, **kwargs) -> tf.Tensor:
         self._check_output_for_call_targets(outputs)
         targets, predictions = outputs["targets"], outputs["predictions"]
         if training:
