@@ -338,6 +338,10 @@ class ItemRetrievalScorer(Block):
                     positive_item_ids, neg_items_ids, negative_scores
                 )
 
+                if len(negative_scores.shape) == 3:
+                    negative_scores = tf.squeeze(negative_scores)
+
+            print(negative_scores)
             predictions = tf.concat([positive_scores, negative_scores], axis=-1)
 
             # To ensure that the output is always fp32, avoiding numerical
