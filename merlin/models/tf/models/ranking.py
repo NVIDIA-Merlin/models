@@ -7,8 +7,9 @@ from ..blocks.dlrm import DLRMBlock
 from ..blocks.inputs import InputBlock
 from ..blocks.mlp import MLPBlock
 from ..core import Block, Model, ParallelPredictionBlock, PredictionTask
-from .utils import _parse_prediction_tasks
 from ..features.embedding import EmbeddingOptions
+from .utils import _parse_prediction_tasks
+
 
 def MLPModel(
     schema: Schema,
@@ -48,14 +49,13 @@ def MLPModel(
     """
 
     prediction_tasks = _parse_prediction_tasks(schema, prediction_tasks)
-    
+
     model = Model(
-        InputBlock(schema, 
-                   embedding_options=EmbeddingOptions(embedding_dim_default=embedding_dim)),
+        InputBlock(schema, embedding_options=EmbeddingOptions(embedding_dim_default=embedding_dim)),
         mlp_block,
-        prediction_tasks
+        prediction_tasks,
     )
-    
+
     return model
 
 
