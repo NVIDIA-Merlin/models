@@ -49,13 +49,15 @@ class ItemsPredictionTopK(Block):
         self.transform_to_onehot = transform_to_onehot
 
     @tf.function
-    def call_targets(self, predictions, targets, training=False, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs, training=False, **kwargs) -> tf.Tensor:
+        self._check_output_for_call_targets(outputs)
+        targets, predictions = outputs["targets"], outputs["predictions"]
         if self.transform_to_onehot:
             num_classes = tf.shape(predictions)[-1]
             targets = tf_utils.tranform_label_to_onehot(targets, num_classes)
 
         topk_scores, _, topk_labels = tf_utils.extract_topk(self._k, predictions, targets)
-        return topk_labels, topk_scores
+        return {"targets": topk_labels, "predictions": topk_scores}
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -158,7 +160,7 @@ class BruteForceTopK(Block):
         top_indices = tf.gather(self._identifiers, top_indices)
         return top_scores, top_indices
 
-    def call_targets(self, predictions, targets, training=False, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: dict, training=False, **kwargs) -> tf.Tensor:
         """
         Retrieve top-k negative scores for evaluation metrics.
 
@@ -175,7 +177,8 @@ class BruteForceTopK(Block):
             2D Tensors with the one-hot representation of true targets and
             the scores for the top-k implicit negatives.
         """
-
+        self._check_output_for_call_targets(outputs)
+        targets, predictions = outputs["targets"], outputs["predictions"]
         queries = self.context["query"]
         top_scores, _ = self(queries)
         predictions = tf.expand_dims(predictions[:, 0], -1)
@@ -188,7 +191,7 @@ class BruteForceTopK(Block):
             ],
             axis=1,
         )
-        return targets, predictions
+        return {"targets": targets, "predictions": predictions}
 
 
 class TopKRecommender(ModelBlock):

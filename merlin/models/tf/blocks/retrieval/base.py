@@ -171,8 +171,7 @@ class ItemRetrievalScorer(Block):
     @tf.function
     def call_targets(
         self,
-        predictions: Union[tf.Tensor, TabularData],
-        targets: tf.Tensor,
+        outputs: dict,
         training: bool = False,
         **kwargs,
     ) -> tf.Tensor:
@@ -195,7 +194,8 @@ class ItemRetrievalScorer(Block):
             Returned tensor is 2D (batch size, 1 + #negatives)
         """
         self._check_required_context_item_features_are_present()
-
+        self._check_output_for_call_targets(outputs)
+        targets, predictions = outputs["targets"], outputs["predictions"]
         if training:
             assert (
                 len(self.samplers) > 0
@@ -270,14 +270,22 @@ class ItemRetrievalScorer(Block):
             ],
             axis=1,
         )
-        return targets, predictions
+        return {"targets": targets, "predictions": predictions}
 
     def get_batch_items_metadata(self):
         result = {feat_name: self.context[feat_name] for feat_name in self._required_features}
         return result
 
     def rescore_false_negatives(self, positive_item_ids, neg_samples_item_ids, negative_scores):
-        false_negatives_mask = tf.equal(tf.expand_dims(positive_item_ids, -1), neg_samples_item_ids)
+        # Removing dimensions of size 1 from the shape of the item ids, if applicable
+        positive_item_ids = tf.squeeze(positive_item_ids)
+        neg_samples_item_ids = tf.squeeze(neg_samples_item_ids)
+
+        # Reshapes positive and negative ids so that false_negatives_mask matches the scores shape
+        false_negatives_mask = tf.equal(
+            tf.expand_dims(positive_item_ids, -1), tf.expand_dims(neg_samples_item_ids, 0)
+        )
+
         # Setting a very small value for false negatives (accidental hits) so that it has
         # negligicle effect on the loss functions
         negative_scores = tf.where(

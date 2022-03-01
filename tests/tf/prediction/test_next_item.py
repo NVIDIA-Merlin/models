@@ -39,9 +39,10 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
     # First batch
-    _, output_scores1 = item_retrieval_scorer.call_targets(
-        {"query": users_embeddings, "item": items_embeddings}, training=True, targets={}
-    )
+    output_scores1 = item_retrieval_scorer.call_targets(
+        {"predictions": {"query": users_embeddings, "item": items_embeddings}, "targets": {}},
+        training=True,
+    )["predictions"]
     expected_num_samples_inbatch = batch_size
     expected_num_samples_cached = 0 if ignore_last_batch_on_sample else batch_size
     tf.assert_equal(tf.shape(output_scores1)[0], batch_size)
@@ -51,9 +52,10 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     )
 
     # Second batch
-    _, output_scores2 = item_retrieval_scorer.call_targets(
-        {"query": users_embeddings, "item": items_embeddings}, training=True, targets={}
-    )
+    output_scores2 = item_retrieval_scorer.call_targets(
+        {"predictions": {"query": users_embeddings, "item": items_embeddings}, "targets": {}},
+        training=True,
+    )["predictions"]
     expected_num_samples_cached += batch_size
     tf.assert_equal(tf.shape(output_scores2)[0], batch_size)
     # Number of negatives plus one positive
@@ -97,7 +99,8 @@ def test_item_retrieval_scorer_no_sampler():
             samplers=[], sampling_downscore_false_negatives=False
         )
         item_retrieval_scorer.call_targets(
-            {"query": users_embeddings, "item": items_embeddings}, targets={}, training=True
+            {"predictions": {"query": users_embeddings, "item": items_embeddings}, "targets": {}},
+            training=True,
         )
     assert "At least one sampler is required by ItemRetrievalScorer for negative sampling" in str(
         excinfo.value
@@ -123,7 +126,7 @@ def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_
 
     with pytest.raises(Exception) as excinfo:
         _ = item_retrieval_scorer.call_targets(
-            {"query": users_embeddings, "item": items_embeddings}, targets={}
+            {"predictions": {"query": users_embeddings, "item": items_embeddings}, "targets": {}}
         )
     assert "The following required context features should be available for the samplers" in str(
         excinfo.value
@@ -151,9 +154,11 @@ def test_item_retrieval_scorer_downscore_false_negatives():
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
-    _, output_scores = item_retrieval_scorer.call_targets(
-        {"query": users_embeddings, "item": items_embeddings}, training=True, targets={}
+    outputs = item_retrieval_scorer.call_targets(
+        {"predictions": {"query": users_embeddings, "item": items_embeddings}, "targets": {}},
+        training=True,
     )
+    output_scores = outputs["predictions"]
 
     output_neg_scores = output_scores[:, 1:]
 
@@ -223,7 +228,9 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     for batch_step in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
-        _, output = model.loss_block.pre.call_targets(output, targets={}, training=True)
+        output = model.loss_block.pre.call_targets(
+            {"predictions": output, "targets": {}}, training=True
+        )["predictions"]
         expected_num_samples_inbatch = batch_size
         expected_num_samples_cached = min(
             batch_size * (batch_step - 1 if ignore_last_batch_on_sample else batch_step),
@@ -289,7 +296,6 @@ def test_last_item_prediction_task(
     )
     if sampled_softmax:
         loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-        metrics = ml.ranking_metrics(top_ks=[10, 20], labels_onehot=False)
     else:
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     task = ml.NextItemPredictionTask(
@@ -331,7 +337,9 @@ def test_retrieval_task_inbatch_default_sampler(
 
     for _ in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
-        _, output = model.loss_block.pre.call_targets(output, targets={}, training=True)
+        output = model.loss_block.pre.call_targets(
+            {"predictions": output, "targets": {}}, training=True
+        )["predictions"]
         expected_num_samples_inbatch = batch_size
 
         tf.assert_equal(tf.shape(output)[0], batch_size)
