@@ -21,6 +21,7 @@ from pathlib import Path
 from random import randint
 from typing import Optional, Union
 
+import merlin.io
 import numpy as np
 import pandas as pd
 
@@ -114,6 +115,14 @@ class SyntheticData:
     @property
     def schema(self) -> Schema:
         return self._schema
+
+    @property
+    def dataframe(self) -> pd.DataFrame:
+        return self._read_data_fn(self.data_path, num_rows=self._num_rows)
+
+    @property
+    def dataset(self) -> merlin.io.Dataset:
+        return merlin.io.Dataset(self.dataframe, schema=self.schema)
 
     def generate_interactions(
         self, num_rows=100, min_session_length=5, max_session_length=None, save=True

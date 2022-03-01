@@ -26,7 +26,8 @@ def test_two_tower_model(music_streaming_data: SyntheticData, run_eagerly, num_e
     model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([512, 256]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+    data = music_streaming_data.dataset
+    losses = model.fit(data, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
