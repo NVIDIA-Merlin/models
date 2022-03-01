@@ -24,6 +24,7 @@ from merlin.schema import Tags
 from ....utils.doc_utils import docstring_parameter
 from ....utils.registry import Registry
 from ...core import Block
+from ...typing import TabularData
 
 masking_registry = Registry("tf.masking")
 
@@ -375,7 +376,7 @@ class MaskingHead(Block):
         self.padding_idx = 0
         self.item_id_feature_name = item_id_feature_name
 
-    def call_targets(self, outputs: dict, training: bool = True, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: TabularData, training: bool = True, **kwargs) -> tf.Tensor:
         self._check_output_for_call_targets(outputs)
         targets = self.context[self.item_id_feature_name]
         mask = self.context.get_mask()
