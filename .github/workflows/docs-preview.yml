@@ -1,0 +1,55 @@
+name: docs-preview
+
+on:
+  pull_request:
+    branches: [docs-api]
+    types: [opened, synchronize, closed]
+
+jobs:
+  build-html:
+    if:
+      contains(github.event.action, "opened") or contains(github.event.action,
+      "synchronize")
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [3.9.7]
+        os: [ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Ubuntu packages
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y protobuf-compiler
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .[all]
+      - name: Build
+        run: |
+          python setup.py develop
+      - name: Make HTML
+        run: |
+          pushd docs
+          make html
+          popd
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@4.2.5
+        with:
+          branch: gh-pages
+          folder: docs/build/html
+          target-folder: review/pr-${{ github.event.number }}
+
+  remove-html:
+    if: contains(github.event.action, "closed")
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        ref: gh-pages
+      - name: Delete preview HTML
+        run: rm -rf review/pr-${{ github.event.number }}
