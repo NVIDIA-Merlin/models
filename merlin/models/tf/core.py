@@ -2310,7 +2310,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             # Casting regularization loss to fp16 if needed to match the main loss
             regularization_loss = tf.cast(tf.reduce_sum(self.losses), loss.dtype)
 
-            total_loss = loss + regularization_loss
+            total_loss = tf.add_n([loss, regularization_loss])
 
         gradients = tape.gradient(total_loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
