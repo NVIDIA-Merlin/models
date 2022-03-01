@@ -16,4 +16,4 @@
 
 import numpy as np
 
-MIN_FLOAT = np.finfo(np.float16).min
+MIN_FLOAT = np.finfo(np.float16).min / 100.0

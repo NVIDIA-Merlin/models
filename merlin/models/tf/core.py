@@ -2306,13 +2306,29 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 "Check if you are using a tf.keras.losses.Loss with 'reduction' "
                 "properly set",
             )
+            assert loss.dtype == tf.float32, (
+                f"The loss dtype should be tf.float32 but is rather {loss.dtype}. "
+                "Ensure that your model output has tf.float32 dtype, as "
+                "that should be the case when using mixed_float16 policy "
+                "to avoid numerical instabilities."
+            )
 
-            # Casting regularization loss to fp16 if needed to match the main loss
-            regularization_loss = tf.cast(tf.reduce_sum(self.losses), loss.dtype)
+            regularization_loss = tf.reduce_sum(self.losses)
 
             total_loss = tf.add_n([loss, regularization_loss])
 
-        gradients = tape.gradient(total_loss, self.trainable_variables)
+            if getattr(self.optimizer, "get_scaled_loss", False):
+                scaled_loss = self.optimizer.get_scaled_loss(total_loss)
+
+        # If mixed precision (mixed_float16 policy) is enabled
+        # (and the optimizer is automatically wrapped by
+        #  tensorflow.keras.mixed_precision.LossScaleOptimizer())
+        if getattr(self.optimizer, "get_scaled_loss", False):
+            scaled_gradients = tape.gradient(scaled_loss, self.trainable_variables)
+            gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)
+        else:
+            gradients = tape.gradient(total_loss, self.trainable_variables)
+
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
         metrics = self.loss_block.metric_result_dict()

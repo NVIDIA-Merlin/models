@@ -112,6 +112,10 @@ class ItemsPredictionWeightTying(Block):
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
+        # To ensure that the output is always fp32, avoiding numerical
+        # instabilities with mixed_float16 policy
+        logits = tf.cast(logits, tf.float32)
+
         return logits
 
 
@@ -335,11 +339,18 @@ class ItemRetrievalScorer(Block):
 
             predictions = tf.concat([positive_scores, negative_scores], axis=-1)
 
+            # To ensure that the output is always fp32, avoiding numerical
+            # instabilities with mixed_float16 policy
+            predictions = tf.cast(predictions, tf.float32)
+
         # Positives in the first column and negatives in the subsequent columns
         targets = tf.concat(
             [
-                tf.ones([tf.shape(predictions)[0], 1]),
-                tf.zeros([tf.shape(predictions)[0], tf.shape(predictions)[1] - 1]),
+                tf.ones([tf.shape(predictions)[0], 1], dtype=predictions.dtype),
+                tf.zeros(
+                    [tf.shape(predictions)[0], tf.shape(predictions)[1] - 1],
+                    dtype=predictions.dtype,
+                ),
             ],
             axis=1,
         )
