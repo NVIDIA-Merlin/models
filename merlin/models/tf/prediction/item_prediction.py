@@ -644,7 +644,8 @@ def NextItemPredictionTask(
         sampled_softmax: bool
             Compute the logits scores over all items of the catalog or
             generate a subset of candidates
-            When set to True, loss should be set to `tf.nn.softmax_cross_entropy_with_logits`
+            When set to True, loss should be set to
+            `tf.keras.losses.CategoricalCrossentropy(from_logits=True)`
             and metrics to `ranking_metrics(top_ks=..., labels_onehot=False)`
             Defaults to False
         num_sampled: int
