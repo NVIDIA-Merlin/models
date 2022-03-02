@@ -3,15 +3,16 @@ import os
 import shutil
 from os import path
 
-import merlin.io
 import numpy as np
 import nvtabular as nvt
 import pandas as pd
+from nvtabular import ops
+
+import merlin.io
 
 # Get dataframe library - cudf or pandas
 from merlin.core.dispatch import get_lib
 from merlin.core.utils import download_file
-from nvtabular import ops
 
 df_lib = get_lib()
 
