@@ -14,12 +14,10 @@
 # limitations under the License.
 #
 import implicit
-import numpy as np
-import pandas as pd
 from implicit.evaluation import ranking_metrics_at_k
-from scipy.sparse import coo_matrix
 
 from merlin.io import Dataset
+from merlin.models.utils.dataset import _to_numpy, dataset_to_coo
 from merlin.schema import Tags
 
 
@@ -60,7 +58,7 @@ class ImplicitModelAdaptor:
             If there is a column tagged as Tags.TARGET we will also use that for the values,
             otherwise will be set to 1
         """
-        data = _dataset_to_coo(train).tocsr()
+        data = dataset_to_coo(train).tocsr()
         self.implicit_model.fit(data)
         self.train_data = data
 
@@ -79,7 +77,7 @@ class ImplicitModelAdaptor:
             return metrics like 'map@10' , but by increasing k you can generate
             different versions
         """
-        test = _dataset_to_coo(test_dataset).tocsr()
+        test = dataset_to_coo(test_dataset).tocsr()
         ret = ranking_metrics_at_k(
             self.implicit_model,
             self.train_data,
@@ -115,38 +113,3 @@ class AlternatingLeastSquares(ImplicitModelAdaptor):
 class BayesianPersonalizedRanking(ImplicitModelAdaptor):
     def __init__(self, *args, **kwargs):
         super().__init__(implicit.bpr.BayesianPersonalizedRanking(*args, **kwargs))
-
-
-def _dataset_to_coo(dataset: Dataset):
-    """Converts a merlin.io.Dataset object to a scipy coo matrix"""
-    user_id_column = dataset.schema.select_by_tag(Tags.USER_ID).first.name
-    item_id_column = dataset.schema.select_by_tag(Tags.ITEM_ID).first.name
-
-    columns = [user_id_column, item_id_column]
-    target_column = None
-    target = dataset.schema.select_by_tag(Tags.TARGET)
-
-    if len(target) > 1:
-        raise ValueError(
-            "Found more than one column tagged Tags.TARGET in the dataset schema."
-            f" Expected a single target column but found  {target.column_names}"
-        )
-
-    elif len(target) == 1:
-        target_column = target.first.name
-        columns.append(target_column)
-
-    df = dataset.to_ddf()[columns].compute(scheduler="synchronous")
-
-    userids = _to_numpy(df[user_id_column])
-    itemids = _to_numpy(df[item_id_column])
-    targets = _to_numpy(df[target_column]) if target_column else np.ones(len(userids))
-    return coo_matrix((targets.astype("float32"), (userids, itemids)))
-
-
-def _to_numpy(series):
-    """converts a pandas or cudf series to a numpy array"""
-    if isinstance(series, pd.Series):
-        return series.values
-    else:
-        return series.values_host

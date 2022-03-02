@@ -17,12 +17,9 @@ import multiprocessing
 
 import lightfm
 import lightfm.evaluation
-import numpy as np
-import pandas as pd
-from scipy.sparse import coo_matrix
 
 from merlin.io import Dataset
-from merlin.schema import Tags
+from merlin.models.utils.dataset import dataset_to_coo
 
 
 class LightFM:
@@ -62,7 +59,7 @@ class LightFM:
             If there is a column tagged as Tags.TARGET we will also use that for the values,
             otherwise will be set to 1
         """
-        data = _dataset_to_coo(train).tocsr()
+        data = dataset_to_coo(train).tocsr()
         self.lightfm_model.fit(data, epochs=self.epochs, num_threads=self.num_threads)
         self.train_data = data
 
@@ -80,7 +77,7 @@ class LightFM:
             How many items to return per prediction
         """
 
-        test = _dataset_to_coo(test_dataset).tocsr()
+        test = dataset_to_coo(test_dataset).tocsr()
 
         # lightfm needs the test set to have the same dimensionality as the train set
         test.resize(self.train_data.shape)
@@ -102,34 +99,5 @@ class LightFM:
         k: int
             The number of recommendations to generate for each user
         """
-        data = _dataset_to_coo(dataset)
+        data = dataset_to_coo(dataset)
         return self.lightfm_model.predict(data.row, data.col)
-
-
-def _dataset_to_coo(dataset: Dataset):
-    """Converts a merlin.io.Dataset object to a scipy coo matrix"""
-    # TODO: this code should be shared between this and the implicit model
-    user_id_column = dataset.schema.select_by_tag(Tags.USER_ID).first.name
-    item_id_column = dataset.schema.select_by_tag(Tags.ITEM_ID).first.name
-
-    columns = [user_id_column, item_id_column]
-    target_column = None
-    target = dataset.schema.select_by_tag(Tags.TARGET)
-    if target:
-        target_column = target.first.name
-        columns.append(target_column)
-
-    df = dataset.to_ddf()[columns].compute(scheduler="synchronous")
-
-    userids = _to_numpy(df[user_id_column])
-    itemids = _to_numpy(df[item_id_column])
-    targets = _to_numpy(df[target_column]) if target_column else np.ones(len(userids))
-    return coo_matrix((targets.astype("float32"), (userids, itemids)))
-
-
-def _to_numpy(series):
-    """converts a pandas or cudf series to a numpy array"""
-    if isinstance(series, pd.Series):
-        return series.values
-    else:
-        return series.values_host
