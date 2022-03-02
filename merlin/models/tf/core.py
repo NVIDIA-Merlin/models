@@ -158,9 +158,13 @@ class BlockContext(Layer):
                 dtype = self._feature_dtypes.get(feature_name, tf.float32)
 
                 if len(tuple(shape)) == 2:
-                    s = (shape[-1],) if not isinstance(shape[-1], tuple) else shape[-1]
-                    var = tf.zeros([1, *s], dtype=dtype)
-                    shape = tf.TensorShape([None, *s])
+                    s = (
+                        (shape[-1],)
+                        if not isinstance(shape[-1], (tuple, tf.TensorShape))
+                        else shape[-1]
+                    )
+                    var = tf.zeros([1, *tuple(s)], dtype=dtype)
+                    shape = tf.TensorShape([None, *tuple(s)])
                 elif tuple(shape) != (None,):
                     var = tf.zeros((shape), dtype=dtype)
                 else:
