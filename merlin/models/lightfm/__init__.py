@@ -49,7 +49,7 @@ class LightFM:
         self.num_threads = num_threads or multiprocessing.cpu_count()
 
     def fit(self, train: Dataset):
-        """Trains the implicit model
+        """Trains the lightfm model
 
         Parameters
         ----------
