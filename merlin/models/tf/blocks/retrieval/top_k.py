@@ -18,7 +18,7 @@ from typing import Tuple
 import tensorflow as tf
 
 import merlin.io
-from merlin.models.tf.core import Block, ModelBlock, RetrievalModel
+from merlin.models.tf.core import Block, ModelBlock, RetrievalModel, PredictionOutput
 from merlin.models.tf.utils import tf_utils
 
 from ...typing import TabularData
@@ -51,15 +51,14 @@ class ItemsPredictionTopK(Block):
         self.transform_to_onehot = transform_to_onehot
 
     @tf.function
-    def call_targets(self, outputs: TabularData, training=False, **kwargs) -> tf.Tensor:
-        self._check_output_for_call_targets(outputs)
-        targets, predictions = outputs["targets"], outputs["predictions"]
+    def call_targets(self, outputs: PredictionOutput, training=False, **kwargs) -> "PredictionOutput":
+        targets, predictions =  outputs.targets, outputs.predictions
         if self.transform_to_onehot:
             num_classes = tf.shape(predictions)[-1]
             targets = tf_utils.tranform_label_to_onehot(targets, num_classes)
 
         topk_scores, _, topk_labels = tf_utils.extract_topk(self._k, predictions, targets)
-        return {"targets": topk_labels, "predictions": topk_scores}
+        return PredictionOutput(topk_scores, topk_labels)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -162,7 +161,7 @@ class BruteForceTopK(Block):
         top_indices = tf.gather(self._identifiers, top_indices)
         return top_scores, top_indices
 
-    def call_targets(self, outputs: TabularData, training=False, **kwargs) -> tf.Tensor:
+    def call_targets(self, outputs: PredictionOutput, training=False, **kwargs) -> "PredictionOutput":
         """
         Retrieve top-k negative scores for evaluation metrics.
 
@@ -179,8 +178,7 @@ class BruteForceTopK(Block):
             2D Tensors with the one-hot representation of true targets and
             the scores for the top-k implicit negatives.
         """
-        self._check_output_for_call_targets(outputs)
-        targets, predictions = outputs["targets"], outputs["predictions"]
+        targets, predictions =  outputs.targets, outputs.predictions
         queries = self.context["query"]
         top_scores, _ = self(queries)
         predictions = tf.expand_dims(predictions[:, 0], -1)
@@ -193,7 +191,7 @@ class BruteForceTopK(Block):
             ],
             axis=1,
         )
-        return {"targets": targets, "predictions": predictions}
+        return PredictionOutput(predictions, targets)
 
 
 class TopKRecommender(ModelBlock):
