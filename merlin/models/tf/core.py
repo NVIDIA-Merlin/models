@@ -31,6 +31,7 @@ from typing import (
     Union,
     overload,
     runtime_checkable,
+    NamedTuple
 )
 
 import six
@@ -59,6 +60,11 @@ from .utils.tf_utils import (
 
 block_registry: Registry = Registry.class_registry("tf.blocks")
 BlockType = Union["Block", str, Sequence[str]]
+
+
+class PredictionOutput(NamedTuple):
+    predictions: Union[TabularData, tf.Tensor]
+    targets: Union[TabularData, tf.Tensor]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -242,11 +248,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         super()._maybe_build(inputs)
 
-    def _check_output_for_call_targets(self, outputs):
-        assert set(outputs.keys()) == {"targets", "predictions"}
-
-    def call_targets(self, outputs: TabularData, training=False, **kwargs) -> tf.Tensor:
-        self._check_output_for_call_targets(outputs)
+    def call_targets(self, outputs: PredictionOutput, training=False, **kwargs) -> "PredictionOutput":
         return outputs
 
     def register_features(self, feature_shapes) -> List[str]:
@@ -734,8 +736,7 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(self, outputs: TabularData, training=False, **kwargs):
-        self._check_output_for_call_targets(outputs)
+    def call_targets(self, outputs: PredictionOutput, training=False, **kwargs) -> "PredictionOutput":
         for layer in self.layers:
             outputs = layer.call_targets(outputs, training=training, **kwargs)
         return outputs
@@ -1765,9 +1766,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         return x
 
-    def pre_loss(self, predictions, targets, **kwargs):
-        outputs = self.pre.call_targets({"predictions": predictions, "targets": targets}, **kwargs)
-        return outputs["targets"], outputs["predictions"]
+    def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
+        outputs = self.pre.call_targets(outputs, **kwargs)
+        return outputs
 
     def __call__(self, *args, **kwargs):
         inputs = self.pre_call(*args, **kwargs)
@@ -1823,9 +1824,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions = predictions[self.task_name]
 
         if self.pre:
-            targets = self.pre_loss(predictions, targets, training=training, **kwargs)
-            if isinstance(targets, tuple):
-                targets, predictions = targets
+            outputs = self.pre_loss(PredictionOutput(predictions, targets), training=training, **kwargs)
+            targets, predictions = outputs.targets, outputs.predictions
 
         if isinstance(targets, tf.Tensor) and len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
@@ -1859,9 +1859,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         if self.pre_metrics:
             outputs = self.pre_metrics.call_targets(
-                {"predictions": predictions, "targets": targets}, **kwargs
+               PredictionOutput(predictions, targets),  **kwargs
             )
-            targets, predictions = outputs["targets"], outputs["predictions"]
+            targets, predictions = outputs.targets, outputs.predictions
 
         update_ops = []
 
