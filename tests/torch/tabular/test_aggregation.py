@@ -16,9 +16,9 @@
 
 import pytest
 import torch
-from merlin.schema import Tags
 
 import merlin.models.torch as ml
+from merlin.schema import Tags
 
 
 def test_concat_aggregation_yoochoose(tabular_schema, torch_tabular_data):

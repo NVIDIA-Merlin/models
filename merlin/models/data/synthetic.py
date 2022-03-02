@@ -23,13 +23,13 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
-from merlin.schema import Schema, Tags
-from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 from merlin.models.utils.schema import (
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
 )
+from merlin.schema import Schema, Tags
+from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 LOG = logging.getLogger("merlin-models")
 HERE = pathlib.Path(__file__).parent

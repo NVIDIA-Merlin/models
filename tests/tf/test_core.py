@@ -1,9 +1,10 @@
 from typing import List
-
 import pytest
+
 import tensorflow as tf
-from merlin.schema import Tags
 from tensorflow.keras import mixed_precision
+
+from merlin.schema import Tags
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData

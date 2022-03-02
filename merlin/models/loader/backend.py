@@ -36,10 +36,9 @@ from merlin.core.dispatch import (
     make_df,
     pull_apart_list,
 )
-from merlin.schema import Tags
-
 from merlin.models.loader.dataframe_iter import DataFrameIter
 from merlin.models.loader.shuffle import _shuffle_df
+from merlin.schema import Tags
 
 
 def _num_steps(num_samples, step_size):

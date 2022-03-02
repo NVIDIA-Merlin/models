@@ -18,6 +18,7 @@ line_length = 100
 balanced_wrapping = true
 indent = "    "
 known_third_party = ["cudf", "cupy", "dask", "dask_cuda", "dask_cudf", "numba", "numpy", "pytest", "torch", "rmm", "tensorflow"]
+known_first_party = ["merlin"]
 skip = ["build",".eggs"]
 
 

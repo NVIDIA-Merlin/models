@@ -15,9 +15,9 @@
 #
 
 import pytest
-from merlin.schema import Tags
 
 import merlin.models.torch as ml
+from merlin.schema import Tags
 
 torch_utils = pytest.importorskip("merlin.models.torch.utils.torch_utils")
 
