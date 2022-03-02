@@ -22,7 +22,6 @@ from tensorflow.python.keras.layers import Dot
 
 from merlin.schema import Schema, Tags
 
-from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from ....config.schema import requires_schema
 from ....utils.schema import schema_to_tensorflow_metadata_json
 from ...core import Block, TabularAggregation

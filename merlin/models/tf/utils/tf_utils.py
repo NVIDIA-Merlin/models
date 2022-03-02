@@ -15,9 +15,21 @@
 #
 from typing import Union
 
+import numpy as np
 import tensorflow as tf
+from packaging import version
 
 from merlin.models.tf.typing import TabularData
+
+if version.parse(tf.__version__) < version.parse("2.3.0"):
+    try:
+        from tfdlpack import from_dlpack
+    except ModuleNotFoundError as e:
+        message = "If using TensorFlow < 2.3.0, you must install tfdlpack-gpu extension library"
+        raise ModuleNotFoundError(message) from e
+
+else:
+    from tensorflow.experimental.dlpack import from_dlpack
 
 
 def get_output_sizes_from_schema(schema, batch_size=0, max_sequence_length=None):
@@ -131,3 +143,58 @@ def batch_ref(inputs: Union[tf.Tensor, TabularData]):
         refs.append(inputs[key].ref())
 
     return hash(tuple(refs))
+
+
+def pack_df(gdf):
+    if isinstance(gdf, np.ndarray):
+        return gdf
+    elif hasattr(gdf, "to_dlpack") and callable(getattr(gdf, "to_dlpack")):
+        return gdf.to_dlpack()
+    elif hasattr(gdf, "to_numpy") and callable(getattr(gdf, "to_numpy")):
+        gdf = gdf.to_numpy()
+        if isinstance(gdf[0], list):
+            gdf = np.stack(gdf)
+        return gdf
+    return gdf.toDlpack()
+
+
+def unpack_df(gdf):
+    if hasattr(gdf, "shape"):
+        return tf.convert_to_tensor(gdf)
+    return from_dlpack(gdf)
+
+
+def df_to_tensor(gdf, dtype=None):
+    if gdf.empty:
+        return
+
+    # checks necessary because of this bug
+    # https://github.com/tensorflow/tensorflow/issues/42660
+    if len(gdf.shape) == 1 or gdf.shape[1] == 1:
+        dlpack = pack_df(gdf)
+    elif gdf.shape[0] == 1:
+        dlpack = pack_df(gdf.values[0])
+    else:
+        dlpack = pack_df(gdf.values.T)
+    # catch error caused by tf eager context
+    # not being initialized
+
+    try:
+        x = unpack_df(dlpack)
+    except AssertionError:
+        tf.random.uniform((1,))
+        x = unpack_df(dlpack)
+    # if rank is already two it is  already in list format
+    if gdf.shape[0] == 1 and not tf.rank(x) == 2:
+        # batch size 1 so got squashed to a vector
+        x = tf.expand_dims(x, 0)
+    elif len(gdf.shape) == 1 or len(x.shape) == 1:
+        # sort of a generic check for any other
+        # len(shape)==1 case, could probably
+        # be more specific
+        x = tf.expand_dims(x, -1)
+    elif gdf.shape[1] > 1:
+        # matrix which means we had to transpose
+        # for the bug above, so untranspose
+        x = tf.transpose(x)
+    return x

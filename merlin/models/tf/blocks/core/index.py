@@ -15,28 +15,16 @@
 #
 from typing import Optional, Union
 
-import merlin.io
 import numpy as np
 import tensorflow as tf
-from merlin.core.dispatch import DataFrameType
-from merlin.schema import Tags
 from tensorflow.python import to_dlpack
 
+import merlin.io
+from merlin.core.dispatch import DataFrameType
 from merlin.models.tf.core import Block
+from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.batch_utils import TFModelEncode
-
-"""
-This would be useful for instance to convert the item-tower.
-We could integrate this into the Block-class.
-
-two_tower_block = ...
-topk_index = TopKIndex.from_block(two_tower_block.item_block(), item_dataset)
-
-recommender = two_tower_block.query_block().connect(topk_index)
-
-
-
-"""
+from merlin.schema import Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -54,8 +42,11 @@ class IndexBlock(Block):
             data = data.to_ddf()
         if check_unique_ids:
             cls._check_unique_ids(data=data)
-        values = tf.convert_to_tensor(data)
-        ids = tf.convert_to_tensor(data.index)
+        values = tf_utils.df_to_tensor(data)
+        ids = tf_utils.df_to_tensor(data.index)
+
+        if len(ids.shape) == 2:
+            ids = tf.squeeze(ids)
 
         return cls(values=values, ids=ids, **kwargs)
 
@@ -94,7 +85,7 @@ class IndexBlock(Block):
 
     @staticmethod
     def _check_unique_ids(data: DataFrameType):
-        if data.index.nunique() != data.shape[0]:
+        if data.index.to_series().nunique() != data.shape[0]:
             raise ValueError("Please make sure that `data` contains unique indices")
 
     def update(self, values: tf.Tensor, ids: Optional[tf.Tensor] = None):
@@ -198,3 +189,7 @@ class TopKIndexBlock(IndexBlock):
         top_indices = tf.gather(self.ids, top_indices)
 
         return top_scores, top_indices
+
+    def compute_output_shape(self, input_shape):
+        batch_size = input_shape[0]
+        return tf.TensorShape((batch_size, self._k)), tf.TensorShape((batch_size, self._k))
