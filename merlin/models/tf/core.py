@@ -23,6 +23,7 @@ from functools import reduce
 from typing import (
     Dict,
     List,
+    NamedTuple,
     Optional,
     Protocol,
     Sequence,
@@ -31,7 +32,6 @@ from typing import (
     Union,
     overload,
     runtime_checkable,
-    NamedTuple
 )
 
 import six
@@ -248,7 +248,9 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         super()._maybe_build(inputs)
 
-    def call_targets(self, outputs: PredictionOutput, training=False, **kwargs) -> "PredictionOutput":
+    def call_targets(
+        self, outputs: PredictionOutput, training=False, **kwargs
+    ) -> "PredictionOutput":
         return outputs
 
     def register_features(self, feature_shapes) -> List[str]:
@@ -736,7 +738,9 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(self, outputs: PredictionOutput, training=False, **kwargs) -> "PredictionOutput":
+    def call_targets(
+        self, outputs: PredictionOutput, training=False, **kwargs
+    ) -> "PredictionOutput":
         for layer in self.layers:
             outputs = layer.call_targets(outputs, training=training, **kwargs)
         return outputs
@@ -1824,7 +1828,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions = predictions[self.task_name]
 
         if self.pre:
-            outputs = self.pre_loss(PredictionOutput(predictions, targets), training=training, **kwargs)
+            outputs = self.pre_loss(
+                PredictionOutput(predictions, targets), training=training, **kwargs
+            )
             targets, predictions = outputs.targets, outputs.predictions
 
         if isinstance(targets, tf.Tensor) and len(targets.shape) == len(predictions.shape) - 1:
@@ -1859,7 +1865,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         if self.pre_metrics:
             outputs = self.pre_metrics.call_targets(
-               PredictionOutput(predictions, targets),  **kwargs
+                PredictionOutput(predictions, targets), **kwargs
             )
             targets, predictions = outputs.targets, outputs.predictions
 

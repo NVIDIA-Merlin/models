@@ -23,7 +23,7 @@ from tensorflow.python.ops import array_ops
 from merlin.schema import Schema, Tags
 
 from ....utils.schema import categorical_cardinalities
-from ...core import Block, TabularBlock, PredictionOutput
+from ...core import Block, PredictionOutput, TabularBlock
 from ...typing import TabularData, TensorOrTabularData
 
 
@@ -318,7 +318,9 @@ class RemovePad3D(Block):
     def compute_output_shape(self, input_shape):
         return input_shape
 
-    def call_targets(self, outputs: PredictionOutput, training=True, **kwargs) -> "PredictionOutput":
+    def call_targets(
+        self, outputs: PredictionOutput, training=True, **kwargs
+    ) -> "PredictionOutput":
         targets, predictions = outputs.targets, outputs.predictions
         targets = tf.reshape(targets, (-1,))
         non_pad_mask = targets != self.padding_idx
@@ -363,8 +365,10 @@ class PredictionsScaler(Block):
         else:
             return inputs
 
-    def call_targets(self, outputs: PredictionOutput, training=True, **kwargs) -> "PredictionOutput":
-        targets, predictions =  outputs.targets, outputs.predictions
+    def call_targets(
+        self, outputs: PredictionOutput, training=True, **kwargs
+    ) -> "PredictionOutput":
+        targets, predictions = outputs.targets, outputs.predictions
         if training:
             predictions = predictions * self.scale_factor
         return PredictionOutput(predictions, targets)

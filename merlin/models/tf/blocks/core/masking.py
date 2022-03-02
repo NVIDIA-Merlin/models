@@ -25,7 +25,6 @@ from merlin.schema import Tags
 from ....utils.doc_utils import docstring_parameter
 from ....utils.registry import Registry
 from ...core import Block, PredictionOutput
-from ...typing import TabularData
 
 masking_registry = Registry("tf.masking")
 
@@ -377,7 +376,9 @@ class MaskingHead(Block):
         self.padding_idx = 0
         self.item_id_feature_name = item_id_feature_name
 
-    def call_targets(self, outputs: PredictionOutput, training: bool = True, **kwargs) -> "PredictionOutput":
+    def call_targets(
+        self, outputs: PredictionOutput, training: bool = True, **kwargs
+    ) -> "PredictionOutput":
         targets = self.context[self.item_id_feature_name]
         mask = self.context.get_mask()
         targets = tf.where(mask, targets, self.padding_idx)
