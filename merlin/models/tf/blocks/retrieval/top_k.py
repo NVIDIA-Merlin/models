@@ -22,7 +22,6 @@ from merlin.models.tf.core import Block, ModelBlock, PredictionOutput, Retrieval
 from merlin.models.tf.utils import tf_utils
 
 
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemsPredictionTopK(Block):
     """
