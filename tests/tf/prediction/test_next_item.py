@@ -43,10 +43,10 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     output_scores1 = item_retrieval_scorer.call_targets(
         PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
         training=True,
-    )
+    ).predictions
     expected_num_samples_inbatch = batch_size
     expected_num_samples_cached = 0 if ignore_last_batch_on_sample else batch_size
-    tf.assert_equal(tf.shape(output_scores1.predictions)[0], batch_size)
+    tf.assert_equal(tf.shape(output_scores1)[0], batch_size)
     # Number of negatives plus one positive
     tf.assert_equal(
         tf.shape(output_scores1)[1], expected_num_samples_inbatch + expected_num_samples_cached + 1
@@ -56,12 +56,12 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     output_scores2 = item_retrieval_scorer.call_targets(
         PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
         training=True,
-    )
+    ).predictions
     expected_num_samples_cached += batch_size
     tf.assert_equal(tf.shape(output_scores2)[0], batch_size)
     # Number of negatives plus one positive
     tf.assert_equal(
-        tf.shape(output_scores2.predictions)[1],
+        tf.shape(output_scores2)[1],
         expected_num_samples_inbatch + expected_num_samples_cached + 1,
     )
 
