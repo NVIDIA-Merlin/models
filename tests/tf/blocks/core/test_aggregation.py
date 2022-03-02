@@ -20,9 +20,8 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
-from merlin.models.tf.blocks.aggregation import ElementWiseMultiply
-from merlin.schema import Tags
 from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
+from merlin.schema import Tags
 
 
 def test_concat_aggregation_yoochoose(testing_data: SyntheticData):
