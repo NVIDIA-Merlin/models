@@ -1,13 +1,12 @@
 from typing import List
-import pytest
 
+import pytest
 import tensorflow as tf
 from tensorflow.keras import mixed_precision
 
-from merlin.schema import Tags
-
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
+from merlin.schema import Tags
 
 
 def test_filter_features(tf_con_features):
