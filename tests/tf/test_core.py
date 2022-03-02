@@ -2,10 +2,11 @@ from typing import List
 
 import pytest
 import tensorflow as tf
-from merlin.schema import Tags
+from tensorflow.keras import mixed_precision
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
+from merlin.schema import Tags
 
 
 def test_filter_features(tf_con_features):
@@ -147,3 +148,19 @@ def test_wrong_model(ecommerce_data: SyntheticData):
             ml.MLPBlock([64]),
         )
     assert "Last block must be able to calculate loss & metrics." in str(excinfo.value)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_block_context_model_fp16(ecommerce_data: SyntheticData, run_eagerly: bool, num_epochs=2):
+
+    mixed_precision.set_global_policy("mixed_float16")
+    model = ml.Model(
+        ml.InputBlock(ecommerce_data.schema),
+        ml.MLPBlock([32]),
+        ml.BinaryClassificationTask("click"),
+    )
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    mixed_precision.set_global_policy("float32")
+    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=64), epochs=2)
+    assert len(losses.epoch) == num_epochs
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])

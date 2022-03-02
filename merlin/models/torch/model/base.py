@@ -21,10 +21,10 @@ from typing import Callable, Dict, Iterable, List, Optional, Type, Union, cast
 import numpy as np
 import torch
 import torchmetrics as tm
-from merlin.schema import Schema, Tags
 from tqdm import tqdm
 
 from merlin.models.utils.registry import camelcase_to_snakecase
+from merlin.schema import Schema, Tags
 
 from ..block.base import BlockBase, BlockOrModule, BlockType
 from ..features.base import InputBlock

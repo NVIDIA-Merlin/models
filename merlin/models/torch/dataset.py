@@ -16,9 +16,9 @@
 import numpy as np
 import pandas as pd
 import torch
-from merlin.core.dispatch import HAS_GPU
 from torch.utils.dlpack import from_dlpack
 
+from merlin.core.dispatch import HAS_GPU
 from merlin.models.loader.backend import DataLoader
 
 

@@ -3,6 +3,7 @@ import typing as tp
 
 import numpy as np
 import tensorflow as tf
+
 from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
 from merlin.schema import Schema, Tags
 

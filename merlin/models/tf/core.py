@@ -33,13 +33,12 @@ from typing import (
     runtime_checkable,
 )
 
-import merlin.io
 import six
 import tensorflow as tf
-from merlin.schema import Schema, Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
+import merlin.io
 from merlin.models.config.schema import SchemaMixin
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.misc_utils import filter_kwargs
@@ -48,6 +47,7 @@ from merlin.models.utils.schema import (
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
 )
+from merlin.schema import Schema, Tags
 
 from .typing import TabularData, TensorOrTabularData
 from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
@@ -730,7 +730,7 @@ class SequentialBlock(Block):
     def call_targets(self, predictions, targets, training=False, **kwargs):
         outputs = targets
         for layer in self.layers:
-            if isinstance(outputs, tuple):
+            if isinstance(outputs, (list, tuple)) and len(outputs) > 0:
                 outputs, predictions = outputs
             outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
 
@@ -2299,13 +2299,36 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             predictions = self(inputs, training=True)
             loss = self.compute_loss(predictions, targets, training=True)
+            tf.assert_rank(
+                loss,
+                0,
+                "The loss tensor should have rank 0. "
+                "Check if you are using a tf.keras.losses.Loss with 'reduction' "
+                "properly set",
+            )
+            assert loss.dtype == tf.float32, (
+                f"The loss dtype should be tf.float32 but is rather {loss.dtype}. "
+                "Ensure that your model output has tf.float32 dtype, as "
+                "that should be the case when using mixed_float16 policy "
+                "to avoid numerical instabilities."
+            )
 
-            # Handle regularization losses as well.
-            regularization_loss = sum(self.losses)
+            regularization_loss = tf.reduce_sum(self.losses)
 
-            total_loss = loss + regularization_loss
+            total_loss = tf.add_n([loss, regularization_loss])
 
-        gradients = tape.gradient(total_loss, self.trainable_variables)
+            if getattr(self.optimizer, "get_scaled_loss", False):
+                scaled_loss = self.optimizer.get_scaled_loss(total_loss)
+
+        # If mixed precision (mixed_float16 policy) is enabled
+        # (and the optimizer is automatically wrapped by
+        #  tensorflow.keras.mixed_precision.LossScaleOptimizer())
+        if getattr(self.optimizer, "get_scaled_loss", False):
+            scaled_gradients = tape.gradient(scaled_loss, self.trainable_variables)
+            gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)
+        else:
+            gradients = tape.gradient(total_loss, self.trainable_variables)
+
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
         metrics = self.loss_block.metric_result_dict()
@@ -2325,9 +2348,16 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         predictions = self(inputs, training=False)
         loss = self.compute_loss(predictions, targets, training=False)
+        tf.assert_rank(
+            loss,
+            0,
+            "The loss tensor should have rank 0. "
+            "Check if you are using a tf.keras.losses.Loss with 'reduction' "
+            "properly set",
+        )
 
-        # Handle regularization losses as well.
-        regularization_loss = sum(self.losses)
+        # Casting regularization loss to fp16 if needed to match the main loss
+        regularization_loss = tf.cast(tf.reduce_sum(self.losses), loss.dtype)
 
         total_loss = loss + regularization_loss
 

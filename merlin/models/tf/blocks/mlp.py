@@ -17,16 +17,25 @@
 from typing import List, Optional, Union
 
 import tensorflow as tf
+
 from merlin.schema import Schema, Tags
 
 from ..core import Block, Filter, ResidualBlock, SequentialBlock, tabular_aggregation_registry
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
+InitializerType = Union[str, tf.keras.initializers.Initializer]
+RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
+
 
 def MLPBlock(
     dimensions: List[int],
-    activation="relu",
+    activation: str = "relu",
     use_bias: bool = True,
+    kernel_initializer: InitializerType = "glorot_uniform",
+    bias_initializer: InitializerType = "zeros",
+    kernel_regularizer: Optional[RegularizerType] = None,
+    bias_regularizer: Optional[RegularizerType] = None,
+    activity_regularizer: Optional[RegularizerType] = None,
     dropout: Optional[float] = None,
     normalization: Optional[Union[str, tf.keras.layers.Layer]] = None,
     filter: Optional[Union[Schema, Tags, List[str], "Filter"]] = None,
@@ -47,6 +56,17 @@ def MLPBlock(
         The activation function to use.
     use_bias: bool
         Whether to use a bias in the MLP.
+    kernel_initializer: InitializerType
+        Initializer for the kernel weights matrix. Defaults to "glorot_uniform".
+    bias_initializer: InitializerType
+        Initializer for the bias vector. Default to "zeros".
+    kernel_regularizer: Optional[RegularizerType]
+        Regularizer function applied to the kernel weights matrix. Default to None.
+    bias_regularizer: Optional[RegularizerType]
+        Regularizer function applied to the bias vector.  Default to None.
+    activity_regularizer: Optional[RegularizerType]
+        Regularizer function applied to the output of the layer (its "activation").
+        Default to None.
     dropout: float
         The dropout rate to use.
     normalization: str or Layer
@@ -60,7 +80,18 @@ def MLPBlock(
     block_layers = []
 
     for dim in dimensions:
-        block_layers.append(_Dense(dim, activation=activation, use_bias=use_bias))
+        block_layers.append(
+            _Dense(
+                dim,
+                activation=activation,
+                use_bias=use_bias,
+                kernel_initializer=kernel_initializer,
+                bias_initializer=bias_initializer,
+                kernel_regularizer=kernel_regularizer,
+                bias_regularizer=bias_regularizer,
+                activity_regularizer=activity_regularizer,
+            )
+        )
         if dropout:
             block_layers.append(tf.keras.layers.Dropout(dropout))
         if normalization:
@@ -182,10 +213,6 @@ class _Dense(tf.keras.layers.Layer):
         config = maybe_deserialize_keras_objects(config, {"dense": tf.keras.layers.deserialize})
 
         return cls(**config)
-
-
-InitializerType = Union[str, tf.keras.initializers.Initializer]
-RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

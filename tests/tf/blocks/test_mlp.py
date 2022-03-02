@@ -16,6 +16,7 @@
 
 import pytest
 import tensorflow as tf
+from tensorflow.keras import regularizers
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
@@ -27,10 +28,31 @@ from merlin.models.data.synthetic import SyntheticData
 @pytest.mark.parametrize(
     "normalization", [None, "batch_norm", tf.keras.layers.BatchNormalization()]
 )
-def test_mlp_block_yoochoose(testing_data: SyntheticData, dim, activation, dropout, normalization):
+def test_mlp_block_yoochoose(
+    testing_data: SyntheticData,
+    dim,
+    activation,
+    dropout,
+    normalization,
+    kernel_initializer="glorot_uniform",
+    bias_initializer="zeros",
+    kernel_regularizer="l2",
+    bias_regularizer="l1",
+    activity_regularizer=regularizers.l2(1e-4),
+):
     inputs = ml.InputBlock(testing_data.schema)
 
-    mlp = ml.MLPBlock([dim], activation=activation, dropout=dropout, normalization=normalization)
+    mlp = ml.MLPBlock(
+        [dim],
+        activation=activation,
+        dropout=dropout,
+        normalization=normalization,
+        kernel_initializer=kernel_initializer,
+        bias_initializer=bias_initializer,
+        kernel_regularizer=kernel_regularizer,
+        bias_regularizer=bias_regularizer,
+        activity_regularizer=activity_regularizer,
+    )
     body = ml.SequentialBlock([inputs, mlp])
 
     outputs = body(testing_data.tf_tensor_dict)

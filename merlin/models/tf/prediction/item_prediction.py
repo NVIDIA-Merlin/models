@@ -17,9 +17,10 @@ import logging
 from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
-from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 from tensorflow.python.ops import embedding_ops
+
+from merlin.schema import Schema, Tags
 
 from ...utils.constants import MIN_FLOAT
 from ...utils.schema import categorical_cardinalities
@@ -112,6 +113,10 @@ class ItemsPredictionWeightTying(Block):
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
+        # To ensure that the output is always fp32, avoiding numerical
+        # instabilities with mixed_float16 policy
+        logits = tf.cast(logits, tf.float32)
+
         return logits
 
 
@@ -143,6 +148,10 @@ class ItemRetrievalScorer(Block):
     item_id_feature_name: str
         Name of the column containing the item ids
         Defaults to `item_id`
+    query_name: str
+        Identify query tower for query/user embeddings, by default 'query'
+    item_name: str
+        Identify item tower for item embeddings, by default'item'
     """
 
     def __init__(
@@ -151,6 +160,8 @@ class ItemRetrievalScorer(Block):
         sampling_downscore_false_negatives=True,
         sampling_downscore_false_negatives_value: int = MIN_FLOAT,
         item_id_feature_name: str = "item_id",
+        query_name: str = "query",
+        item_name: str = "item",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -159,6 +170,9 @@ class ItemRetrievalScorer(Block):
         self.false_negatives_score = sampling_downscore_false_negatives_value
         self.item_id_feature_name = item_id_feature_name
         self.samplers = samplers
+        self.query_name = query_name
+        self.item_name = item_name
+
         if not isinstance(self.samplers, (list, tuple)):
             self.samplers = (self.samplers,)
 
@@ -179,7 +193,11 @@ class ItemRetrievalScorer(Block):
         return self._required_features
 
     def _check_input_from_two_tower(self, inputs):
-        assert set(inputs.keys()) == {"query", "item"}
+        if set(inputs.keys()) != set([self.query_name, self.item_name]):
+            raise ValueError(
+                f"Wrong input-names, expected: {[self.query_name, self.item_name]} "
+                f"but got: {inputs.keys()}"
+            )
 
     def _check_required_context_item_features_are_present(self):
         not_found = list(
@@ -227,13 +245,13 @@ class ItemRetrievalScorer(Block):
 
         self._check_input_from_two_tower(inputs)
         positive_scores = tf.reduce_sum(
-            tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
+            tf.multiply(inputs[self.query_name], inputs[self.item_name]), keepdims=True, axis=-1
         )
         return positive_scores
 
     @tf.function
     def call_targets(self, predictions, targets, training=True, **kwargs) -> tf.Tensor:
-        """Based on the user/query embedding (inputs["query"]), uses dot product to score
+        """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item and also sampled negative items (during training).
 
         Parameters
@@ -260,15 +278,17 @@ class ItemRetrievalScorer(Block):
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
 
             if isinstance(predictions, dict):
-                batch_items_embeddings = predictions["item"]
+                batch_items_embeddings = predictions[self.item_name]
             else:
                 embedding_table = self.context.get_embedding(self.item_id_feature_name)
                 batch_items_embeddings = embedding_ops.embedding_lookup(embedding_table, targets)
-                predictions = {"query": predictions, "item": batch_items_embeddings}
+                predictions = {self.query_name: predictions, self.item_name: batch_items_embeddings}
             batch_items_metadata = self.get_batch_items_metadata()
 
             positive_scores = tf.reduce_sum(
-                tf.multiply(predictions["query"], predictions["item"]), keepdims=True, axis=-1
+                tf.multiply(predictions[self.query_name], predictions[self.item_name]),
+                keepdims=True,
+                axis=-1,
             )
 
             neg_items_embeddings_list = []
@@ -300,7 +320,7 @@ class ItemRetrievalScorer(Block):
                 neg_items_embeddings = tf.concat(neg_items_embeddings_list, axis=0)
 
             negative_scores = tf.linalg.matmul(
-                predictions["query"], neg_items_embeddings, transpose_b=True
+                predictions[self.query_name], neg_items_embeddings, transpose_b=True
             )
 
             if self.downscore_false_negatives:
@@ -320,11 +340,18 @@ class ItemRetrievalScorer(Block):
 
             predictions = tf.concat([positive_scores, negative_scores], axis=-1)
 
+            # To ensure that the output is always fp32, avoiding numerical
+            # instabilities with mixed_float16 policy
+            predictions = tf.cast(predictions, tf.float32)
+
         # Positives in the first column and negatives in the subsequent columns
         targets = tf.concat(
             [
-                tf.ones([tf.shape(predictions)[0], 1]),
-                tf.zeros([tf.shape(predictions)[0], tf.shape(predictions)[1] - 1]),
+                tf.ones([tf.shape(predictions)[0], 1], dtype=predictions.dtype),
+                tf.zeros(
+                    [tf.shape(predictions)[0], tf.shape(predictions)[1] - 1],
+                    dtype=predictions.dtype,
+                ),
             ],
             axis=1,
         )
@@ -335,7 +362,15 @@ class ItemRetrievalScorer(Block):
         return result
 
     def rescore_false_negatives(self, positive_item_ids, neg_samples_item_ids, negative_scores):
-        false_negatives_mask = tf.equal(tf.expand_dims(positive_item_ids, -1), neg_samples_item_ids)
+        # Removing dimensions of size 1 from the shape of the item ids, if applicable
+        positive_item_ids = tf.squeeze(positive_item_ids)
+        neg_samples_item_ids = tf.squeeze(neg_samples_item_ids)
+
+        # Reshapes positive and negative ids so that false_negatives_mask matches the scores shape
+        false_negatives_mask = tf.equal(
+            tf.expand_dims(positive_item_ids, -1), tf.expand_dims(neg_samples_item_ids, 0)
+        )
+
         # Setting a very small value for false negatives (accidental hits) so that it has
         # negligicle effect on the loss functions
         negative_scores = tf.where(
@@ -373,6 +408,8 @@ def ItemRetrievalTask(
     task_block: Optional[Layer] = None,
     softmax_temperature: float = 1,
     normalize: bool = True,
+    query_name: str = "query",
+    item_name: str = "item",
 ) -> MultiClassClassificationTask:
     """
     Function to create the ItemRetrieval task with the right parameters.
@@ -417,7 +454,10 @@ def ItemRetrievalTask(
         samplers = (InBatchSampler(),)
 
     prediction_call = ItemRetrievalScorer(
-        samplers=samplers, item_id_feature_name=item_id_feature_name
+        samplers=samplers,
+        item_id_feature_name=item_id_feature_name,
+        query_name=query_name,
+        item_name=item_name,
     )
 
     if normalize:
@@ -616,7 +656,8 @@ def NextItemPredictionTask(
         sampled_softmax: bool
             Compute the logits scores over all items of the catalog or
             generate a subset of candidates
-            When set to True, loss should be set to `tf.nn.softmax_cross_entropy_with_logits`
+            When set to True, loss should be set to
+            `tf.keras.losses.CategoricalCrossentropy(from_logits=True)`
             and metrics to `ranking_metrics(top_ks=..., labels_onehot=False)`
             Defaults to False
         num_sampled: int
