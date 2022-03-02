@@ -382,7 +382,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return output
 
-    def wrap_as_model(
+    def to_model(
         self,
         schema: Schema,
         input_block: Optional[BlockType] = None,
@@ -407,6 +407,11 @@ class Block(SchemaMixin, ContextMixin, Layer):
         """
         from merlin.models.tf.blocks.inputs import InputBlock
         from merlin.models.tf.models.utils import parse_prediction_tasks
+
+        if is_input_block(self.first):
+            if input_block is not None:
+                raise ValueError("The block already includes an InputBlock")
+            input_block = self.first
 
         aggregation = kwargs.pop("aggregation", "concat")
         input_block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
@@ -2316,6 +2321,47 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     @property
     def schema(self) -> Schema:
         return self.block.schema
+
+    @classmethod
+    def from_block(
+        cls,
+        block: BlockType,
+        schema: Schema,
+        input_block: Optional[BlockType] = None,
+        prediction_tasks: Optional[
+            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
+        ] = None,
+        **kwargs,
+    ) -> "Model":
+        """Create a model from a `block`
+
+        Parameters
+        ----------
+        block: BlockType
+            The block to wrap in-between an InputBlock and prediction task(s)
+        schema: Schema
+            Schema to use for the model.
+        input_block: Optional[Block]
+            Block to use as input.
+        prediction_tasks: Optional[
+            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        ]
+            Prediction tasks to use.
+
+        """
+
+        from merlin.models.tf.blocks.inputs import InputBlock
+        from merlin.models.tf.models.utils import parse_prediction_tasks
+
+        if is_input_block(cls.first):
+            assert input_block is None, "The block already includes an `InputBlock`"
+            input_block = cls.first
+
+        aggregation = kwargs.pop("aggregation", "concat")
+        input_block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
+
+        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+        return cls(input_block, block, prediction_tasks)
 
     def compute_loss(
         self,

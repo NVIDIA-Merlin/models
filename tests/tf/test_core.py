@@ -8,6 +8,7 @@ import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
 from merlin.schema import Tags
 from merlin.models.tf.utils import testing_utils
+from merlin.schema import Tags
 
 
 def test_filter_features(tf_con_features):
@@ -138,8 +139,8 @@ def test_simple_model(ecommerce_data: SyntheticData):
     )
 
 
-def test_block_wrap_as_model(ecommerce_data: SyntheticData):
-    model = ml.MLPBlock([64]).wrap_as_model(
+def test_block_to_model(ecommerce_data: SyntheticData):
+    model = ml.MLPBlock([64]).to_model(
         ecommerce_data.schema, prediction_tasks=ml.BinaryClassificationTask("click")
     )
 
@@ -147,6 +148,31 @@ def test_block_wrap_as_model(ecommerce_data: SyntheticData):
     testing_utils.assert_loss_and_metrics_are_valid(
         copy_model, ecommerce_data.tf_features_and_targets
     )
+
+
+def test_model_from_block(ecommerce_data: SyntheticData):
+    model = ml.Model.from_block(
+        ml.MLPBlock([64]),
+        ecommerce_data.schema,
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    copy_model = testing_utils.assert_serialization(model)
+    testing_utils.assert_loss_and_metrics_are_valid(
+        copy_model, ecommerce_data.tf_features_and_targets
+    )
+
+
+def test_block_with_input_to_model(ecommerce_data: SyntheticData):
+    inputs = ml.InputBlock(ecommerce_data.schema)
+    block = inputs.connect(ml.MLPBlock([64]))
+
+    with pytest.raises(ValueError) as excinfo:
+        block.to_model(
+            ecommerce_data.schema,
+            input_block=inputs,
+        )
+    assert "The block already includes an InputBlock" in str(excinfo.value)
 
 
 def test_wrong_model(ecommerce_data: SyntheticData):
