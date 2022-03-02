@@ -20,8 +20,6 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 
-from merlin.models.tf.losses import LossType, loss_registry
-from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.schema import Schema, Tags
 
 from ...utils.schema import categorical_cardinalities

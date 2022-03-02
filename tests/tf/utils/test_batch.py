@@ -1,7 +1,7 @@
 import pytest
-from merlin.io import Dataset
 
 import merlin.models.tf as ml
+from merlin.io import Dataset
 from merlin.models.data.synthetic import SyntheticData
 
 
