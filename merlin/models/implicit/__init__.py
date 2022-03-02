@@ -81,7 +81,10 @@ class ImplicitModelAdaptor:
         """
         test = _dataset_to_coo(test_dataset).tocsr()
         ret = ranking_metrics_at_k(
-            self.implicit_model, self.train_data, test, K=k, filter_already_liked_items=True
+            self.implicit_model,
+            self.train_data,
+            test,
+            K=k,
         )
         return {metric + f"@{k}": value for metric, value in ret.items()}
 
