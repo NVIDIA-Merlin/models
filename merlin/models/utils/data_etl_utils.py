@@ -8,15 +8,53 @@ import nvtabular as nvt
 import pandas as pd
 from nvtabular import ops
 
+import merlin.io
+
 # Get dataframe library - cudf or pandas
-from nvtabular.dispatch import get_lib
-from nvtabular.utils import download_file
+from merlin.core.dispatch import get_lib
+from merlin.core.utils import download_file
 
 df_lib = get_lib()
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+def get_movielens(path=None, variant="ml-25m"):
+    """Gets the movielens dataset for use with merlin-models
+
+    This function will return a tuple of train/test merlin.io.Dataset objects for the
+    movielens dataset. This will download the movielens dataset locally if needed,
+    and run a ETL pipeline with NVTabular to make this dataset ready for use with
+    merlin-models.
+
+    Parameters
+    ----------
+    path : str
+        The path to download the files locally to. If not set will default to
+        the 'merlin-models-data` directory in your home folder
+    variant : "ml-25m" or "ml-100k"
+        Which variant of the movielens dataset to use. Must be either "ml-25m" or "ml-100k"
+
+    Returns
+    -------
+    tuple
+        A tuple consisting of a merlin.io.Dataset for the training dataset and validation dataset
+    """
+    if path is None:
+        path = os.environ.get(
+            "INPUT_DATA_DIR", os.path.expanduser("~/merlin-models-data/movielens/")
+        )
+
+    variant_path = os.path.join(path, variant)
+    if not os.path.exists(variant_path):
+        os.makedirs(variant_path)
+        movielens_download_etl(path, variant)
+
+    train = merlin.io.Dataset(os.path.join(variant_path, "train"), engine="parquet")
+    valid = merlin.io.Dataset(os.path.join(variant_path, "valid"), engine="parquet")
+    return train, valid
 
 
 def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
@@ -63,7 +101,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         # NVTabular pipeline
         movies = df_lib.read_parquet(os.path.join(local_filename, name, "movies_converted.parquet"))
         joined = ["userId", "movieId"] >> ops.JoinExternal(movies, on=["movieId"])
-        cat_features = joined >> ops.Categorify()
+        cat_features = joined >> ops.Categorify(dtype="int32")
         label = nvt.ColumnSelector(["rating"])
 
         # Columns to apply to
@@ -206,7 +244,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
             "occupation",
             "zip_code",
             "genres",
-        ] >> nvt.ops.Categorify()
+        ] >> nvt.ops.Categorify(dtype="int32")
 
         cont_names = ["age"]
         boundaries = {"age": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]}
