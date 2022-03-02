@@ -21,6 +21,7 @@ from tensorflow.keras import backend
 from tensorflow.python.ops import array_ops
 
 from merlin.schema import Tags
+
 from ....utils.doc_utils import docstring_parameter
 from ....utils.registry import Registry
 from ...core import Block

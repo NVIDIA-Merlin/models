@@ -15,11 +15,11 @@
 #
 
 import pytest
-from merlin.io.dataset import Dataset
-from merlin.schema import Tags
 
 import merlin.models.tf as ml
+from merlin.io.dataset import Dataset
 from merlin.models.data.synthetic import SyntheticData
+from merlin.schema import Tags
 
 
 def test_topk_index(ecommerce_data: SyntheticData):

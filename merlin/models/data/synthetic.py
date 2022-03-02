@@ -21,10 +21,10 @@ from pathlib import Path
 from random import randint
 from typing import Optional, Union
 
-import merlin.io
 import numpy as np
 import pandas as pd
 
+import merlin.io
 from merlin.models.utils.schema import (
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,

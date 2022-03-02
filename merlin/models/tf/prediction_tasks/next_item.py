@@ -17,10 +17,10 @@ import logging
 from typing import Optional
 
 import tensorflow as tf
-from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 
 from merlin.models.tf.blocks.retrieval.top_k import ItemsPredictionTopK
+from merlin.schema import Schema, Tags
 
 from ...utils.schema import categorical_cardinalities
 from ..blocks.core.masking import MaskingHead

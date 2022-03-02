@@ -20,9 +20,8 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
-from merlin.models.tf.core import Block, TabularBlock
-from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.schema import Schema, Tags
+
 from ....utils.schema import categorical_cardinalities
 from ...core import Block, TabularBlock
 from ...typing import TabularData, TensorOrTabularData
