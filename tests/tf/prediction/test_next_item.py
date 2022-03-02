@@ -19,8 +19,8 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
-from merlin.schema import Tags
 from merlin.models.tf.core import PredictionOutput
+from merlin.schema import Tags
 
 
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
@@ -61,7 +61,8 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     tf.assert_equal(tf.shape(output_scores2)[0], batch_size)
     # Number of negatives plus one positive
     tf.assert_equal(
-        tf.shape(output_scores2.predictions)[1], expected_num_samples_inbatch + expected_num_samples_cached + 1
+        tf.shape(output_scores2.predictions)[1],
+        expected_num_samples_inbatch + expected_num_samples_cached + 1,
     )
 
 
@@ -230,7 +231,7 @@ def test_retrieval_task_inbatch_cached_samplers(
     for batch_step in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
         output = model.loss_block.pre.call_targets(
-           PredictionOutput(output, {}), training=True
+            PredictionOutput(output, {}), training=True
         ).predictions
         expected_num_samples_inbatch = batch_size
         expected_num_samples_cached = min(
@@ -276,7 +277,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     losses = model.fit(music_streaming_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
-    #_ = model.evaluate(music_streaming_data.tf_dataloader(batch_size=batch_size))
+    # _ = model.evaluate(music_streaming_data.tf_dataloader(batch_size=batch_size))
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -339,7 +340,7 @@ def test_retrieval_task_inbatch_default_sampler(
     for _ in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
         output = model.loss_block.pre.call_targets(
-           PredictionOutput(output, {}), training=True
+            PredictionOutput(output, {}), training=True
         ).predictions
         expected_num_samples_inbatch = batch_size
 

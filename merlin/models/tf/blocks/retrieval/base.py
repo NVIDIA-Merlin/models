@@ -40,6 +40,7 @@ class RetrievalMixin:
     def item_block(self) -> TowerBlock:
         raise NotImplementedError()
 
+
 @Block.registry.register_with_multiple_names("item_retrieval_scorer")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemRetrievalScorer(Block):
@@ -176,7 +177,9 @@ class ItemRetrievalScorer(Block):
         return positive_scores
 
     @tf.function
-    def call_targets(self, outputs: PredictionOutput, training=True, **kwargs) -> "PredictionOutput":
+    def call_targets(
+        self, outputs: PredictionOutput, training=True, **kwargs
+    ) -> "PredictionOutput":
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item and also sampled negative items (during training).
         Parameters
