@@ -15,9 +15,9 @@
 #
 from typing import Tuple
 
-import merlin.io
 import tensorflow as tf
 
+import merlin.io
 from merlin.models.tf.core import Block, ModelBlock, RetrievalModel
 from merlin.models.tf.utils import tf_utils
 

@@ -16,10 +16,10 @@
 from typing import List, Optional, Sequence
 
 import tensorflow as tf
-from merlin.schema import Schema, Tags
 from tensorflow.python.layers.base import Layer
 
 from merlin.models.tf.blocks.retrieval.top_k import BruteForceTopK
+from merlin.schema import Schema, Tags
 
 from ..blocks.core.transformations import L2Norm, PredictionsScaler
 from ..blocks.retrieval.base import ItemRetrievalScorer

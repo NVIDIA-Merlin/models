@@ -15,10 +15,9 @@
 #
 import os
 
-from merlin.schema import Tags
-
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
+from merlin.schema import Tags
 
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):

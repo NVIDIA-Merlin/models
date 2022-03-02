@@ -5,11 +5,10 @@ import numpy as np
 import tensorflow as tf
 
 from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
-from merlin.schema import Schema, Tags
-
 from merlin.models.tf.core import Block, Model, RetrievalModel
 from merlin.models.tf.dataset import Dataset
 from merlin.models.utils.schema import select_targets
+from merlin.schema import Schema, Tags
 
 
 class ModelEncode:

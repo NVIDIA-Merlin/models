@@ -16,8 +16,9 @@
 from typing import Dict, Optional, Union
 
 import tensorflow as tf
-from merlin.schema import Schema
 from tensorflow.keras.layers import Layer
+
+from merlin.schema import Schema
 
 from ..core import ParallelPredictionBlock
 

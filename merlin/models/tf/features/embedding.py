@@ -18,11 +18,13 @@ from copy import copy, deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Union
 
-import merlin.io
 import tensorflow as tf
 from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
+
+import merlin.io
+from merlin.schema import Schema, Tags, TagsType
 
 from ...utils.doc_utils import docstring_parameter
 from ...utils.schema import (
@@ -30,8 +32,6 @@ from ...utils.schema import (
     categorical_domains,
     get_embedding_sizes_from_schema,
 )
-from merlin.schema import Schema, Tags, TagsType
-
 from ..blocks.core.transformations import AsSparseFeatures
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,

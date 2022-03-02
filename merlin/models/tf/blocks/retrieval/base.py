@@ -17,8 +17,6 @@ import logging
 from typing import List, Sequence, Union
 
 import tensorflow as tf
-
-from merlin.schema import Schema, Tags
 from tensorflow.python.ops import embedding_ops
 
 from ....utils.constants import MIN_FLOAT
