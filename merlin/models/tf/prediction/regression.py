@@ -47,6 +47,11 @@ class RegressionTask(PredictionTask):
             **kwargs,
         )
         self.logit = logit or tf.keras.layers.Dense(1, name=self.child_name("logit"))
+        # To ensure that the output is always fp32, avoiding numerical
+        # instabilities with mixed_float16 policy
+        self.output_activation = tf.keras.layers.Activation(
+            "linear", dtype="float32", name="prediction"
+        )
         self.loss = loss_registry.parse(loss)
 
     def _compute_loss(
@@ -55,7 +60,7 @@ class RegressionTask(PredictionTask):
         return self.loss(targets, predictions, sample_weight=sample_weight)
 
     def call(self, inputs, training=False, **kwargs):
-        return self.logit(inputs)
+        return self.output_activation(self.logit(inputs))
 
     def get_config(self):
         config = super().get_config()

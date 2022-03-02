@@ -56,8 +56,14 @@ class BinaryClassificationTask(PredictionTask):
             task_block=task_block,
             **kwargs,
         )
+
         self.output_layer = output_layer or tf.keras.layers.Dense(
-            1, activation="sigmoid", name=self.child_name("output_layer")
+            1, activation="linear", name=self.child_name("output_layer")
+        )
+        # To ensure that the output is always fp32, avoiding numerical
+        # instabilities with mixed_float16 policy
+        self.output_activation = tf.keras.layers.Activation(
+            "sigmoid", dtype="float32", name="prediction"
         )
         self.loss = loss_registry.parse(loss)
 
@@ -67,7 +73,7 @@ class BinaryClassificationTask(PredictionTask):
         return self.loss(targets, predictions, sample_weight=sample_weight)
 
     def call(self, inputs, training=False, **kwargs):
-        return self.output_layer(inputs)
+        return self.output_activation(self.output_layer(inputs))
 
     def get_config(self):
         config = super().get_config()
@@ -107,18 +113,24 @@ class CategFeaturePrediction(Block):
         self.num_classes = categorical_cardinalities(schema)[self.feature_name]
         self.activation = activation
 
+        # To ensure that the output is always fp32, avoiding numerical
+        # instabilities with mixed_float16 policy
+        self.output_activation = tf.keras.layers.Activation(
+            activation, dtype="float32", name="predictions"
+        )
+
     def build(self, input_shape):
         self.output_layer = Dense(
             units=self.num_classes,
             kernel_initializer=self.kernel_initializer,
             bias_initializer=self.bias_initializer,
             name=f"{self.feature_name}-prediction",
-            activation=self.activation,
+            activation="linear",
         )
         return super().build(input_shape)
 
     def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
-        return self.output_layer(inputs)
+        return self.output_activation(self.output_layer(inputs))
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.num_classes,)
