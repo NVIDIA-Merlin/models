@@ -20,7 +20,7 @@ import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 
 from ....utils.constants import MIN_FLOAT
-from ...core import Block, EmbeddingWithMetadata, ModelBlock
+from ...core import Block, EmbeddingWithMetadata, ModelBlock, PredictionOutput
 from ...typing import TabularData
 from ...utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 from ..sampling.base import ItemSampler
@@ -40,13 +40,12 @@ class RetrievalMixin:
     def item_block(self) -> TowerBlock:
         raise NotImplementedError()
 
-
 @Block.registry.register_with_multiple_names("item_retrieval_scorer")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemRetrievalScorer(Block):
     """Block for ItemRetrieval, which expects query/user and item embeddings as input and
     uses dot product to score the positive item (inputs["item"]) and also sampled negative
     items (during training).
-
     Parameters
     ----------
     samplers : List[ItemSampler], optional
@@ -60,6 +59,10 @@ class ItemRetrievalScorer(Block):
     item_id_feature_name: str
         Name of the column containing the item ids
         Defaults to `item_id`
+    query_name: str
+        Identify query tower for query/user embeddings, by default 'query'
+    item_name: str
+        Identify item tower for item embeddings, by default'item'
     """
 
     def __init__(
@@ -68,23 +71,27 @@ class ItemRetrievalScorer(Block):
         sampling_downscore_false_negatives=True,
         sampling_downscore_false_negatives_value: int = MIN_FLOAT,
         item_id_feature_name: str = "item_id",
+        query_name: str = "query",
+        item_name: str = "item",
         **kwargs,
     ):
-        if not isinstance(samplers, (list, tuple)):
-            samplers = (samplers,)
-
         super().__init__(**kwargs)
 
         self.downscore_false_negatives = sampling_downscore_false_negatives
         self.false_negatives_score = sampling_downscore_false_negatives_value
         self.item_id_feature_name = item_id_feature_name
         self.samplers = samplers
+        self.query_name = query_name
+        self.item_name = item_name
+
+        if not isinstance(self.samplers, (list, tuple)):
+            self.samplers = (self.samplers,)
 
         self.set_required_features()
 
     def build(self, input_shapes):
         if isinstance(input_shapes, dict):
-            query_shape = input_shapes["query"]
+            query_shape = input_shapes[self.query_name]
             self.context.add_variable(
                 tf.Variable(
                     initial_value=tf.zeros([1, query_shape[-1]], dtype=tf.float32),
@@ -111,7 +118,11 @@ class ItemRetrievalScorer(Block):
         return self._required_features
 
     def _check_input_from_two_tower(self, inputs):
-        assert set(inputs.keys()) == {"query", "item"}
+        if set(inputs.keys()) != set([self.query_name, self.item_name]):
+            raise ValueError(
+                f"Wrong input-names, expected: {[self.query_name, self.item_name]} "
+                f"but got: {inputs.keys()}"
+            )
 
     def _check_required_context_item_features_are_present(self):
         not_found = list(
@@ -130,11 +141,10 @@ class ItemRetrievalScorer(Block):
             )
 
     def call(
-        self, inputs: Union[tf.Tensor, TabularData], training: bool = False, **kwargs
+        self, inputs: Union[tf.Tensor, TabularData], training: bool = True, **kwargs
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs["query"]), uses dot product to score
             the positive item (inputs["item"] or  self.context.get_embedding(self.item_column))
-
         Parameters
         ----------
         inputs : Union[tf.Tensor, TabularData]
@@ -142,7 +152,6 @@ class ItemRetrievalScorer(Block):
             where embeddings are 2D tensors (batch size, embedding size)
         training : bool, optional
             Flag that indicates whether in training mode, by default True
-
         Returns
         -------
         tf.Tensor
@@ -162,53 +171,48 @@ class ItemRetrievalScorer(Block):
 
         self._check_input_from_two_tower(inputs)
         positive_scores = tf.reduce_sum(
-            tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
+            tf.multiply(inputs[self.query_name], inputs[self.item_name]), keepdims=True, axis=-1
         )
         return positive_scores
 
     @tf.function
-    def call_targets(
-        self,
-        outputs: TabularData,
-        training: bool = False,
-        **kwargs,
-    ) -> tf.Tensor:
-        """Based on the user/query embedding (inputs["query"]), uses dot product to score
+    def call_targets(self, outputs: PredictionOutput, training=True, **kwargs) -> "PredictionOutput":
+        """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item and also sampled negative items (during training).
-
         Parameters
         ----------
-        predictions : Union[TabularData, tf.Tensor]
+        inputs : TabularData
             Dict with the query and item embeddings (e.g. `{"query": <emb>}, "item": <emb>}`),
             where embeddings are 2D tensors (batch size, embedding size)
         training : bool, optional
             Flag that indicates whether in training mode, by default True
-
         Returns
         -------
         [tf.Tensor,tf.Tensor]
-            predictions: 2D Tensor with the scores for the positive items and, if `training=True`,
+            all_scores: 2D Tensor with the scores for the positive items and, if `training=True`,
             for the negative sampled items too.
-            Returned tensor is 2D (batch size, 1 + #negatives)
+            Return tensor is 2D (batch size, 1 + #negatives)
         """
         self._check_required_context_item_features_are_present()
-        self._check_output_for_call_targets(outputs)
-        targets, predictions = outputs["targets"], outputs["predictions"]
+        targets, predictions = outputs.targets, outputs.predictions
+
         if training:
             assert (
                 len(self.samplers) > 0
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
 
             if isinstance(predictions, dict):
-                batch_items_embeddings = predictions["item"]
+                batch_items_embeddings = predictions[self.item_name]
             else:
                 embedding_table = self.context.get_embedding(self.item_id_feature_name)
                 batch_items_embeddings = embedding_ops.embedding_lookup(embedding_table, targets)
-                predictions = {"query": predictions, "item": batch_items_embeddings}
+                predictions = {self.query_name: predictions, self.item_name: batch_items_embeddings}
             batch_items_metadata = self.get_batch_items_metadata()
 
             positive_scores = tf.reduce_sum(
-                tf.multiply(predictions["query"], predictions["item"]), keepdims=True, axis=-1
+                tf.multiply(predictions[self.query_name], predictions[self.item_name]),
+                keepdims=True,
+                axis=-1,
             )
 
             neg_items_embeddings_list = []
@@ -240,7 +244,7 @@ class ItemRetrievalScorer(Block):
                 neg_items_embeddings = tf.concat(neg_items_embeddings_list, axis=0)
 
             negative_scores = tf.linalg.matmul(
-                predictions["query"], neg_items_embeddings, transpose_b=True
+                predictions[self.query_name], neg_items_embeddings, transpose_b=True
             )
 
             if self.downscore_false_negatives:
@@ -260,15 +264,22 @@ class ItemRetrievalScorer(Block):
 
             predictions = tf.concat([positive_scores, negative_scores], axis=-1)
 
+            # To ensure that the output is always fp32, avoiding numerical
+            # instabilities with mixed_float16 policy
+            predictions = tf.cast(predictions, tf.float32)
+
         # Positives in the first column and negatives in the subsequent columns
         targets = tf.concat(
             [
-                tf.ones([tf.shape(predictions)[0], 1]),
-                tf.zeros([tf.shape(predictions)[0], tf.shape(predictions)[1] - 1]),
+                tf.ones([tf.shape(predictions)[0], 1], dtype=predictions.dtype),
+                tf.zeros(
+                    [tf.shape(predictions)[0], tf.shape(predictions)[1] - 1],
+                    dtype=predictions.dtype,
+                ),
             ],
             axis=1,
         )
-        return {"targets": targets, "predictions": predictions}
+        return PredictionOutput(predictions, targets)
 
     def get_batch_items_metadata(self):
         result = {feat_name: self.context[feat_name] for feat_name in self._required_features}

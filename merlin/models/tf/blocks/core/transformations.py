@@ -23,7 +23,7 @@ from tensorflow.python.ops import array_ops
 from merlin.schema import Schema, Tags
 
 from ....utils.schema import categorical_cardinalities
-from ...core import Block, TabularBlock
+from ...core import Block, TabularBlock, PredictionOutput
 from ...typing import TabularData, TensorOrTabularData
 
 
@@ -307,7 +307,7 @@ class RemovePad3D(Block):
         targets: tf.Tensor
             The flattened vector of true targets positions
         flatten_predictions: tf.Tensor
-            If the predicions are 3-D vectors (sequential task),
+            If the predictions are 3-D vectors (sequential task),
             flatten the predictions vectors to keep only the ones related to target positions.
     """
 
@@ -318,9 +318,8 @@ class RemovePad3D(Block):
     def compute_output_shape(self, input_shape):
         return input_shape
 
-    def call_targets(self, outputs: TabularData, training=True, **kwargs) -> tf.Tensor:
-        self._check_output_for_call_targets(outputs)
-        targets, predictions = outputs["targets"], outputs["predictions"]
+    def call_targets(self, outputs: PredictionOutput, training=True, **kwargs) -> "PredictionOutput":
+        targets, predictions = outputs.targets, outputs.predictions
         targets = tf.reshape(targets, (-1,))
         non_pad_mask = targets != self.padding_idx
         targets = tf.boolean_mask(targets, non_pad_mask)
@@ -330,7 +329,7 @@ class RemovePad3D(Block):
             predictions = tf.boolean_mask(
                 predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
             )
-        return {"targets": targets, "predictions": predictions}
+        return PredictionOutput(predictions, targets)
 
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
@@ -364,12 +363,11 @@ class PredictionsScaler(Block):
         else:
             return inputs
 
-    def call_targets(self, outputs: TabularData, training=True, **kwargs) -> tf.Tensor:
-        self._check_output_for_call_targets(outputs)
-        targets, predictions = outputs["targets"], outputs["predictions"]
+    def call_targets(self, outputs: PredictionOutput, training=True, **kwargs) -> "PredictionOutput":
+        targets, predictions =  outputs.targets, outputs.predictions
         if training:
             predictions = predictions * self.scale_factor
-        return {"targets": targets, "predictions": predictions}
+        return PredictionOutput(predictions, targets)
 
     def compute_output_shape(self, input_shape):
         return input_shape
