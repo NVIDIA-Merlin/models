@@ -18,10 +18,9 @@ from typing import Tuple
 import tensorflow as tf
 
 import merlin.io
-from merlin.models.tf.core import Block, ModelBlock, RetrievalModel, PredictionOutput
+from merlin.models.tf.core import Block, ModelBlock, PredictionOutput, RetrievalModel
 from merlin.models.tf.utils import tf_utils
 
-from ...typing import TabularData
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -51,8 +50,10 @@ class ItemsPredictionTopK(Block):
         self.transform_to_onehot = transform_to_onehot
 
     @tf.function
-    def call_targets(self, outputs: PredictionOutput, training=False, **kwargs) -> "PredictionOutput":
-        targets, predictions =  outputs.targets, outputs.predictions
+    def call_targets(
+        self, outputs: PredictionOutput, training=False, **kwargs
+    ) -> "PredictionOutput":
+        targets, predictions = outputs.targets, outputs.predictions
         if self.transform_to_onehot:
             num_classes = tf.shape(predictions)[-1]
             targets = tf_utils.tranform_label_to_onehot(targets, num_classes)
@@ -161,7 +162,9 @@ class BruteForceTopK(Block):
         top_indices = tf.gather(self._identifiers, top_indices)
         return top_scores, top_indices
 
-    def call_targets(self, outputs: PredictionOutput, training=False, **kwargs) -> "PredictionOutput":
+    def call_targets(
+        self, outputs: PredictionOutput, training=False, **kwargs
+    ) -> "PredictionOutput":
         """
         Retrieve top-k negative scores for evaluation metrics.
 
@@ -178,7 +181,7 @@ class BruteForceTopK(Block):
             2D Tensors with the one-hot representation of true targets and
             the scores for the top-k implicit negatives.
         """
-        targets, predictions =  outputs.targets, outputs.predictions
+        targets, predictions = outputs.targets, outputs.predictions
         queries = self.context["query"]
         top_scores, _ = self(queries)
         predictions = tf.expand_dims(predictions[:, 0], -1)
