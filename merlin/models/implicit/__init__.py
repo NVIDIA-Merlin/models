@@ -122,7 +122,14 @@ def _dataset_to_coo(dataset: Dataset):
     columns = [user_id_column, item_id_column]
     target_column = None
     target = dataset.schema.select_by_tag(Tags.TARGET)
-    if target:
+
+    if len(target) > 1:
+        raise ValueError(
+            "Found more than one column tagged Tags.TARGET in the dataset schema."
+            f" Expected a single target column but found  {target.column_names}"
+        )
+
+    elif len(target) == 1:
         target_column = target.first.name
         columns.append(target_column)
 
