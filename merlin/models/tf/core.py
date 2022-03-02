@@ -33,13 +33,12 @@ from typing import (
     runtime_checkable,
 )
 
-import merlin.io
 import six
 import tensorflow as tf
-from merlin.schema import Schema, Tags
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
+import merlin.io
 from merlin.models.config.schema import SchemaMixin
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.misc_utils import filter_kwargs
@@ -48,6 +47,7 @@ from merlin.models.utils.schema import (
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
 )
+from merlin.schema import Schema, Tags
 
 from .typing import TabularData, TensorOrTabularData
 from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock

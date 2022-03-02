@@ -15,10 +15,10 @@
 #
 
 import pytest
-from merlin.schema import Tags
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
+from merlin.schema import Tags
 
 
 def test_dlrm_block(testing_data: SyntheticData):

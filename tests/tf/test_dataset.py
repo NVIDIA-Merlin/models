@@ -19,12 +19,12 @@ import numpy as np
 import pandas as pd
 import pytest
 import tensorflow as tf
-from merlin.core.dispatch import make_df
-from merlin.io.dataset import Dataset
 from sklearn.metrics import roc_auc_score
 
 import merlin.models.tf as ml
 import merlin.models.tf.dataset as tf_dataloader
+from merlin.core.dispatch import make_df
+from merlin.io.dataset import Dataset
 from merlin.models.data.synthetic import SyntheticData
 
 

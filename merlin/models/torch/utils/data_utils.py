@@ -18,11 +18,11 @@ import logging
 from abc import ABC
 
 import numpy as np
-from merlin.schema import Schema, Tags
 from torch.utils.data import DataLoader as PyTorchDataLoader
 from torch.utils.data import Dataset, IterableDataset
 
 from merlin.models.utils.registry import Registry
+from merlin.schema import Schema, Tags
 
 from ...utils import dependencies
 

@@ -18,9 +18,9 @@ from functools import partial
 from typing import Any, Callable, Dict, Optional, Text, Union
 
 import torch
-from merlin.schema import Schema, Tags
 
 from merlin.models.utils.doc_utils import docstring_parameter
+from merlin.schema import Schema, Tags
 
 from ...utils.schema import categorical_cardinalities, get_embedding_sizes_from_schema
 from ..tabular.base import (

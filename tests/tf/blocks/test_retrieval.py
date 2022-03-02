@@ -18,12 +18,12 @@ import os
 import numpy as np
 import pytest
 import tensorflow as tf
-from merlin.schema import Tags
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
 from merlin.models.tf.blocks.aggregation import ElementWiseMultiply
 from merlin.models.tf.utils import testing_utils
+from merlin.schema import Tags
 
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):
