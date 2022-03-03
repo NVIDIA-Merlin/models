@@ -83,8 +83,11 @@ class RankingMetric(tf.keras.metrics.Metric):
         self.metric_mean.append(self.accumulator)
 
     def result(self):
-        # Computing the mean of the batch metrics (for each cut-off at topk)
-        return tf.reduce_mean(tf.concat(self.metric_mean, axis=0), axis=0)
+        if len(self.metric_mean) > 0:
+            # Computing the mean of the batch metrics (for each cut-off at topk)
+            return tf.reduce_mean(tf.concat(self.metric_mean, axis=0), axis=0)
+        else:
+            return tf.zeros((len(self.top_ks)))
 
     def reset_state(self):
         self.metric_mean = []
