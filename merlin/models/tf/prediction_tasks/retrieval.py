@@ -83,17 +83,14 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        train_metrics: Sequence[MetricOrMetricClass] = None,
         extra_pre_call: Optional[Block] = None,
         softmax_temperature: float = 1.0,
         normalize: bool = True,
-        compute_train_metrics: bool = False,
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         pre = self._build_prediction_call(samplers, normalize, softmax_temperature, extra_pre_call)
         self.loss = loss_registry.parse(loss)
-        self.compute_train_metrics = compute_train_metrics
 
         super().__init__(
             loss=self.loss,
@@ -105,9 +102,14 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             **kwargs,
         )
 
-        if len(self.metrics) > 0:
-            max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
-            self.pre_metrics = BruteForceTopK(k=max_k - 1)
+        if self.metrics is not None and len(self.metrics) > 0:
+            ranking_metrics = list([metric for metric in metrics if hasattr(metric, "top_ks")])
+            if len(set(ranking_metrics)) > 0:
+                top_k = tf.reduce_max([metric.top_ks for metric in ranking_metrics]) - 1
+            else:
+                # Makes BruteForceTopK to score all items, without further sorting
+                top_k = None
+            self.pre_eval_topk = BruteForceTopK(k=top_k)
 
     def _build_prediction_call(
         self,
@@ -136,6 +138,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
     def load_candidates(self, candidates):
         """Load candidates to use for evaluation/prediction"""
-        if not self.pre_metrics:
+        if not self.pre_eval_topk:
             raise ValueError("The evaluation block is not set for metrics evaluation")
-        self.pre_metrics.load_index(candidates)
+        self.pre_eval_topk.load_index(candidates)

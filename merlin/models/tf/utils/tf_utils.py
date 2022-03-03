@@ -117,17 +117,12 @@ def create_output_placeholder(scores, ks):
 
 
 def gather_torch_like(labels, indices, max_k):
-    # gather_indices = []
-    gather_indices = tf.TensorArray(tf.int32, size=tf.shape(indices)[0])
-    for i in range(tf.shape(indices)[0]):
-        gather_indices = gather_indices.write(
-            i,
-            tf.concat(
-                [i * tf.ones((max_k, 1), tf.int32), tf.expand_dims(indices[i, :], -1)], axis=1
-            ),
-        )
-    all_indices = gather_indices.stack()
-    labels = tf.reshape(tf.gather_nd(labels, all_indices), tf.shape(indices))
+
+    row_idxs = tf.repeat(tf.range(tf.shape(labels)[0]), max_k)
+    col_idx = tf.reshape(indices, tf.shape(row_idxs))
+    all_indices = tf.transpose(tf.stack([row_idxs, col_idx]))
+
+    labels = tf.reshape(tf.gather_nd(labels, all_indices), (tf.shape(labels)[0], max_k))
     return labels
 
 

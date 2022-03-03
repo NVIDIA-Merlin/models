@@ -54,6 +54,7 @@ from .typing import TabularData, TensorOrTabularData
 from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from .utils.tf_utils import (
     calculate_batch_size_from_input_shapes,
+    extract_topk,
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
@@ -721,7 +722,11 @@ class SequentialBlock(Block):
             if i == len(self.layers) - 1:
                 filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
                 filtered_kwargs.update(
-                    filter_kwargs(kwargs, layer.call, filter_positional_or_keyword=False)
+                    filter_kwargs(
+                        {**dict(training=training), **kwargs},
+                        layer.call,
+                        filter_positional_or_keyword=False,
+                    )
                 )
             else:
                 filtered_kwargs = filter_kwargs(
@@ -1736,12 +1741,11 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         task_name: Optional[str] = None,
         metrics: Optional[List[MetricOrMetricClass]] = None,
         pre: Optional[Block] = None,
-        pre_metrics: Optional[Block] = None,
+        pre_eval_topk: Optional[Block] = None,
         task_block: Optional[Layer] = None,
         prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-        compute_train_metrics: Optional[bool] = True,
         name: Optional[Text] = None,
         **kwargs,
     ) -> None:
@@ -1750,14 +1754,13 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.task_block = task_block
         self._task_name = task_name
         self.pre = pre
-        self.pre_metrics = pre_metrics
+        self.pre_eval_topk = pre_eval_topk
 
         create_metrics = self._create_metrics
         self.eval_metrics = create_metrics(metrics) if metrics else []
         self.prediction_metrics = create_metrics(prediction_metrics) if prediction_metrics else []
         self.label_metrics = create_metrics(label_metrics) if label_metrics else []
         self.loss_metrics = create_metrics(loss_metrics) if loss_metrics else []
-        self.compute_train_metrics = compute_train_metrics
 
     def pre_call(self, inputs, **kwargs):
         x = inputs
@@ -1840,22 +1843,34 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions, targets=targets, sample_weight=sample_weight, training=training
         )
 
-        if compute_metrics:
-            if (not training) or (training and self.compute_train_metrics):
-                update_ops = self.calculate_metrics(predictions, targets, forward=False, loss=loss)
+        update_ops = tf.cond(
+            tf.convert_to_tensor(compute_metrics),
+            lambda: self.calculate_metrics(
+                predictions, targets, loss=loss, forward=False, training=training
+            ),
+            lambda: [],
+        )
 
-                update_ops = [x for x in update_ops if x is not None]
+        update_ops = [x for x in update_ops if x is not None]
 
-                with tf.control_dependencies(update_ops):
-                    return tf.identity(loss)
+        with tf.control_dependencies(update_ops):
+            return tf.identity(loss)
 
-        return loss
+        # return loss
 
     def repr_add(self):
         return [("loss", self.loss)]
 
+    # @tf.function
     def calculate_metrics(
-        self, predictions, targets, sample_weight=None, forward=True, loss=None, **kwargs
+        self,
+        predictions,
+        targets,
+        sample_weight=None,
+        forward=True,
+        loss=None,
+        training=False,
+        **kwargs,
     ):
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
@@ -1863,11 +1878,23 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if forward:
             predictions = self(predictions)
 
-        if self.pre_metrics:
-            outputs = self.pre_metrics.call_targets(
-                PredictionOutput(predictions, targets), **kwargs
-            )
-            targets, predictions = outputs.targets, outputs.predictions
+        metrics = (
+            self.eval_metrics + self.prediction_metrics + self.label_metrics + self.loss_metrics
+        )
+
+        ranking_metrics = list([metric for metric in metrics if hasattr(metric, "top_ks")])
+        if training:
+            if len(ranking_metrics) > 0:
+                # Sorts the top-k items for metrics computation
+                max_k = tf.reduce_max([metric.top_ks for metric in ranking_metrics])
+                predictions, _, targets = extract_topk(max_k, predictions, targets)
+
+        else:
+            if self.pre_eval_topk:
+                outputs = self.pre_eval_topk.call_targets(
+                    PredictionOutput(predictions, targets), **kwargs
+                )
+                targets, predictions = outputs.targets, outputs.predictions
 
         update_ops = []
 
@@ -2236,6 +2263,14 @@ class ModelBlock(Block, tf.keras.Model):
         return {"block": tf.keras.utils.serialize_keras_object(self.block)}
 
 
+class IsFittingCallback(tf.keras.callbacks.Callback):
+    def on_train_begin(self, logs=None):
+        self.model._is_fitting = True
+
+    def on_train_end(self, logs=None):
+        self.model._is_fitting = False
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Model(tf.keras.Model, LossMixin, MetricsMixin):
     def __init__(
@@ -2259,6 +2294,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
         self.context = context
+        self._is_fitting = False
 
     def call(self, inputs, **kwargs):
         outputs = self.block(inputs, **kwargs)
@@ -2301,11 +2337,12 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         inputs: Union[tf.Tensor, TabularData],
         targets: Union[tf.Tensor, TabularData],
         mode: str = "val",
-        forward=True,
+        forward: bool = True,
+        training: bool = False,
         **kwargs,
     ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
         return self.loss_block.calculate_metrics(
-            inputs, targets, mode=mode, forward=forward, **kwargs
+            inputs, targets, mode=mode, forward=forward, training=training, **kwargs
         )
 
     def metric_results(self, mode=None):
@@ -2320,8 +2357,18 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             else:
                 targets = None
 
+            # Computing train metrics each `train_metrics_steps`
+            steps = self.optimizer.iterations
+            compute_metrics = tf.cond(
+                tf.greater_equal(self.train_metrics_steps, 1),
+                lambda: tf.equal(tf.math.floormod(steps, self.train_metrics_steps), 0),
+                lambda: False,
+            )
+
             predictions = self(inputs, training=True)
-            loss = self.compute_loss(predictions, targets, training=True, compute_metrics=True)
+            loss = self.compute_loss(
+                predictions, targets, training=True, compute_metrics=compute_metrics
+            )
             tf.assert_rank(
                 loss,
                 0,
@@ -2353,7 +2400,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             gradients = tape.gradient(total_loss, self.trainable_variables)
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+
         metrics = self.loss_block.metric_result_dict()
+
         metrics["loss"] = loss
         metrics["regularization_loss"] = regularization_loss
         metrics["total_loss"] = total_loss
@@ -2368,8 +2417,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             targets = None
 
-        predictions = self(inputs, training=False)
-        loss = self.compute_loss(predictions, targets, training=False, compute_metrics=True)
+        training = self._is_fitting
+        predictions = self(inputs, training=training)
+        loss = self.compute_loss(predictions, targets, training=training, compute_metrics=True)
         tf.assert_rank(
             loss,
             0,
@@ -2411,6 +2461,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         max_queue_size=10,
         workers=1,
         use_multiprocessing=False,
+        train_metrics_steps=1,
         **kwargs,
     ):
         # Check if merlin-dataset is passed
@@ -2420,6 +2471,14 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             from .dataset import Dataset
 
             x = Dataset(x, batch_size=batch_size, **kwargs)
+
+        self.train_metrics_steps = train_metrics_steps
+
+        if callbacks is None:
+            callbacks = []
+
+        # Adding a callback to detect whether the model is running fit() or not
+        callbacks = [IsFittingCallback()] + callbacks
 
         return super().fit(
             x,

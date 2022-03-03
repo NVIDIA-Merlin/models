@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Tuple
+from typing import Optional, Tuple
 
 import tensorflow as tf
 
@@ -68,15 +68,15 @@ class BruteForceTopK(Block):
 
     Parameters
     ----------
-    k: int
-        Number of top candidates to retrieve.
-        Defaults to 20
+    k: Optional[int]
+        Number of top candidates to retrieve from the index.
+        Defaults to 20. If None all items in the index will be retrieved.
 
     """
 
     def __init__(
         self,
-        k: int = 20,
+        k: Optional[int] = 20,
         **kwargs,
     ):
         super(BruteForceTopK, self).__init__(**kwargs)
@@ -136,7 +136,9 @@ class BruteForceTopK(Block):
         """Computes the standard dot product score from queries and candidates."""
         return tf.matmul(queries, candidates, transpose_b=True)
 
-    def call(self, inputs: tf.Tensor, k: int = None, **kwargs) -> Tuple[tf.Tensor, tf.Tensor]:
+    def call(
+        self, inputs: tf.Tensor, k: Optional[int] = None, **kwargs
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Compute Top-k scores and related indices from query inputs
 
@@ -144,7 +146,7 @@ class BruteForceTopK(Block):
         ----------
         inputs: tf.Tensor
             Tensor of pre-computed query embeddings.
-        k: int
+        k: Optional[int]
             Number of top candidates to retrieve
             Defaults to constructor `_k` parameter.
         Returns
@@ -157,8 +159,15 @@ class BruteForceTopK(Block):
         if self._candidates is None:
             raise ValueError("load_index should be called before")
         scores = self._compute_score(inputs, self._candidates)
-        top_scores, top_indices = tf.math.top_k(scores, k=k)
-        top_indices = tf.gather(self._identifiers, top_indices)
+
+        if k is not None:
+            top_scores, top_indices = tf.math.top_k(scores, k=k)
+            top_indices = tf.gather(self._identifiers, top_indices)
+        else:
+            top_scores = scores
+            top_indices = tf.tile(
+                tf.expand_dims(tf.range(tf.shape(scores)[1]), 0), [tf.shape(scores)[0], 1]
+            )
         return top_scores, top_indices
 
     def call_targets(
@@ -166,6 +175,7 @@ class BruteForceTopK(Block):
     ) -> "PredictionOutput":
         """
         Retrieve top-k negative scores for evaluation metrics.
+        If k is None retrieve scores over all items.
 
         Parameters:
         ----------
@@ -189,7 +199,7 @@ class BruteForceTopK(Block):
         targets = tf.concat(
             [
                 tf.ones([tf.shape(predictions)[0], 1]),
-                tf.zeros([tf.shape(predictions)[0], self._k]),
+                tf.zeros([tf.shape(top_scores)[0], tf.shape(top_scores)[1]]),
             ],
             axis=1,
         )
