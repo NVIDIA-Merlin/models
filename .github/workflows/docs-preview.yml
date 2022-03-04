@@ -2,14 +2,12 @@ name: docs-preview
 
 on:
   pull_request:
-    branches: [docs-api]
+    branches: [main]
     types: [opened, synchronize, closed]
 
 jobs:
   build-html:
-    if:
-      contains(github.event.action, "opened") or contains(github.event.action,
-      "synchronize")
+    if: contains(github.event.action, "opened") or contains(github.event.action, "synchronize")
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
