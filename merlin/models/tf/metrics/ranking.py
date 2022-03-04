@@ -16,11 +16,17 @@
 
 # Adapted from source code: https://github.com/karlhigley/ranking-metrics-torch
 from abc import abstractmethod
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
 import numpy as np
 import tensorflow as tf
+from keras.utils import losses_utils, metrics_utils
+from keras.utils.tf_utils import is_tensor_or_variable
+from tensorflow.keras import backend
+from tensorflow.keras.metrics import Mean
+from tensorflow.keras.metrics import get as get_metric
 
+from ..utils.tf_utils import extract_topk
 from . import metrics_registry
 
 METRIC_PARAMETERS_DOCSTRING = """
@@ -343,5 +349,123 @@ def process_metrics(metrics, prefix=""):
     return metrics_proc
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class RankingMetric2(Mean):
+    def __init__(self, fn, k=5, pre_sorted=True, name=None, dtype=None, **kwargs):
+        super().__init__(name=name, dtype=dtype)
+        self._fn = fn
+        self.k = k
+        self.pre_sorted = pre_sorted
+        self._fn_kwargs = kwargs
+
+    def update_state(
+        self,
+        y_true: tf.Tensor,
+        y_pred: tf.Tensor,
+        relevant_count: Optional[tf.Tensor] = None,
+        sample_weight: Optional[tf.Tensor] = None,
+    ):
+        y_true = tf.cast(y_true, self._dtype)
+        y_pred = tf.cast(y_pred, self._dtype)
+        [
+            y_true,
+            y_pred,
+        ], sample_weight = metrics_utils.ragged_assert_compatible_and_get_flat_values(
+            [y_true, y_pred], sample_weight
+        )
+        y_pred, y_true = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true)
+
+        y_pred, y_true, relevant_count = self._maybe_sort_top_k(y_pred, y_true, relevant_count)
+
+        ag_fn = tf.__internal__.autograph.tf_convert(
+            self._fn, tf.__internal__.autograph.control_status_ctx()
+        )
+        matches = ag_fn(
+            y_true,
+            y_pred,
+            relevant_count=relevant_count,
+            k=self.k,
+            **self._fn_kwargs,
+        )
+        return super().update_state(matches, sample_weight=sample_weight)
+
+    def _maybe_sort_top_k(self, y_pred, y_true, relevant_count: tf.Tensor = None):
+        if not self.pre_sorted:
+            y_pred, y_true, relevant_count = RankingMetric.extract_topk_for_metrics(
+                y_pred, y_true, self.k
+            )
+        else:
+            if relevant_count is None:
+                raise Exception(
+                    "If y_true was pre-sorted (and truncated to top-k) you must "
+                    "provide relevant_count argument."
+                )
+            relevant_count = tf.cast(relevant_count, self._dtype)
+
+        return y_pred, y_true, relevant_count
+
+    @classmethod
+    def extract_topk_for_metrics(cls, y_pred, y_true, k):
+        # Computes the number of relevant items per row (before extracting only the top-k)
+        relevant_count = tf.reduce_sum(y_true, axis=-1)
+        y_pred, y_true = extract_topk(k, y_pred, y_true)
+        return y_pred, y_true, relevant_count
+
+    def get_config(self):
+        config = {}
+
+        if type(self) is RankingMetric2:
+            # Only include function argument when the object is a MeanMetricWrapper
+            # and not a subclass.
+            config["fn"] = self._fn
+            config["k"] = self.k
+            config["pre_sorted"] = self.pre_sorted
+
+            for k, v in self._fn_kwargs.items():
+                config[k] = backend.eval(v) if is_tensor_or_variable(v) else v
+            base_config = super(RankingMetric2, self).get_config()
+            return dict(list(base_config.items()) + list(config.items()))
+
+    @classmethod
+    def from_config(cls, config):
+        # Note that while MeanMetricWrapper itself isn't public, objects of this
+        # class may be created and added to the model by calling model.compile.
+        fn = config.pop("fn", None)
+        k = config.pop("k", None)
+        pre_sorted = config.pop("pre_sorted", None)
+        if cls is RankingMetric2:
+            return cls(get_metric(fn), k=k, pre_sorted=pre_sorted, **config)
+        return super(RankingMetric2, cls).from_config(config)
+
+
+# TODO: Ensure that y_true is complete when pre_sorted=True
+def recall_at(
+    y_true: tf.Tensor,
+    y_pred: tf.Tensor,
+    relevant_count: Optional[tf.Tensor],
+    k: int = 5,
+) -> tf.Tensor:
+    # Compute recalls at K
+    rel_indices = tf.where(relevant_count != 0)
+    rel_count = tf.gather_nd(relevant_count, rel_indices)
+
+    if tf.shape(rel_indices)[0] > 0:
+        rel_labels = tf.cast(tf.gather_nd(y_true, rel_indices)[:, : int(k)], backend.floatx())
+        results = tf.cast(
+            tf.math.divide(tf.reduce_sum(rel_labels, axis=-1), rel_count),
+            backend.floatx(),
+        )
+        return results
+    else:
+        return tf.convert_to_tensor([], dtype=backend.floatx())
+
+
+@metrics_registry.register_with_multiple_names("recall_at2", "recall2")
+class RecallAt2(RankingMetric2):
+    def __init__(self, k=5, pre_sorted=True, name="recall"):
+        super().__init__(recall_at, k=k, pre_sorted=pre_sorted, name=name)
+
+
 def ranking_metrics(top_ks: Sequence[int], **kwargs) -> Sequence[RankingMetric]:
-    return NDCGAt(top_ks, **kwargs), RecallAt(top_ks, **kwargs), AvgPrecisionAt(top_ks, **kwargs)
+    # return NDCGAt(top_ks, **kwargs), RecallAt(top_ks, **kwargs), AvgPrecisionAt(top_ks, **kwargs)
+    return [(RecallAt2(k)) for k in top_ks]

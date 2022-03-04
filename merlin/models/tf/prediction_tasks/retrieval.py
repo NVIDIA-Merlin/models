@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from collections import Sequence as SequenceCollection
 from typing import List, Optional, Sequence
 
 import tensorflow as tf
@@ -27,7 +28,7 @@ from ..blocks.sampling.base import ItemSampler
 from ..blocks.sampling.in_batch import InBatchSampler
 from ..core import Block, MetricOrMetricClass
 from ..losses import LossType, loss_registry
-from ..metrics.ranking import ranking_metrics
+from ..metrics.ranking import RankingMetric2, ranking_metrics
 from .classification import MultiClassClassificationTask
 
 
@@ -94,7 +95,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
         super().__init__(
             loss=self.loss,
-            metrics=list(metrics),
+            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
@@ -102,14 +103,23 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             **kwargs,
         )
 
-        if self.metrics is not None and len(self.metrics) > 0:
-            ranking_metrics = list([metric for metric in metrics if hasattr(metric, "top_ks")])
-            if len(set(ranking_metrics)) > 0:
-                top_k = tf.reduce_max([metric.top_ks for metric in ranking_metrics]) - 1
+        if self.metrics is not None:
+            if isinstance(metrics, SequenceCollection):
+                metrics = list(metrics)
             else:
-                # Makes BruteForceTopK to score all items, without further sorting
-                top_k = None
-            self.pre_eval_topk = BruteForceTopK(k=top_k)
+                metrics = [metrics]
+
+            if len(self.metrics) > 0:
+                ranking_metrics = list(
+                    [metric for metric in metrics if isinstance(metric, RankingMetric2)]
+                )
+
+                if len(ranking_metrics) > 0:
+                    top_k = tf.reduce_max([metric.k for metric in ranking_metrics]) - 1
+                else:
+                    # Makes BruteForceTopK to score all items, without further sorting
+                    top_k = None
+                self.pre_eval_topk = BruteForceTopK(k=top_k)
 
     def _build_prediction_call(
         self,

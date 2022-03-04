@@ -17,6 +17,7 @@
 import abc
 import copy
 import sys
+from collections import Sequence as SequenceCollection
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import reduce
@@ -50,11 +51,11 @@ from merlin.models.utils.schema import (
 )
 from merlin.schema import Schema, Tags
 
+from .metrics.ranking import RankingMetric2
 from .typing import TabularData, TensorOrTabularData
 from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from .utils.tf_utils import (
     calculate_batch_size_from_input_shapes,
-    extract_topk,
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
@@ -1756,6 +1757,12 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.pre = pre
         self.pre_eval_topk = pre_eval_topk
 
+        if metrics is not None:
+            if isinstance(metrics, SequenceCollection):
+                metrics = list(metrics)
+            else:
+                metrics = [metrics]
+
         create_metrics = self._create_metrics
         self.eval_metrics = create_metrics(metrics) if metrics else []
         self.prediction_metrics = create_metrics(prediction_metrics) if prediction_metrics else []
@@ -1843,6 +1850,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions, targets=targets, sample_weight=sample_weight, training=training
         )
 
+        update_ops = []
         if compute_metrics:
             update_ops = self.calculate_metrics(
                 predictions, targets, loss=loss, forward=False, training=training
@@ -1875,30 +1883,52 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if forward:
             predictions = self(predictions)
 
-        metrics = (
-            self.eval_metrics + self.prediction_metrics + self.label_metrics + self.loss_metrics
-        )
-
-        ranking_metrics = list([metric for metric in metrics if hasattr(metric, "top_ks")])
-        if training:
-            if len(ranking_metrics) > 0:
-                # Sorts the top-k items for metrics computation
-                max_k = tf.reduce_max([metric.top_ks for metric in ranking_metrics])
-                predictions, targets = extract_topk(max_k, predictions, targets)
-
-        else:
-            if self.pre_eval_topk:
-                outputs = self.pre_eval_topk.call_targets(
-                    PredictionOutput(predictions, targets), **kwargs
-                )
-                targets, predictions = outputs.targets, outputs.predictions
-
         update_ops = []
 
-        for metric in self.eval_metrics:
-            update_ops.append(
-                metric.update_state(y_true=targets, y_pred=predictions, sample_weight=sample_weight)
+        if not training and self.pre_eval_topk:
+            outputs = self.pre_eval_topk.call_targets(
+                PredictionOutput(predictions, targets), **kwargs
             )
+            targets, predictions = outputs.targets, outputs.predictions
+            relevant_count = None
+
+        if len(self.eval_metrics) > 0:
+            predictions_eval = predictions
+            targets_eval = targets
+
+            if training:
+                ranking_metrics = list(
+                    [metric for metric in self.eval_metrics if isinstance(metric, RankingMetric2)]
+                )
+
+                if len(ranking_metrics) > 0:
+                    # Checking the highest k used in ranking metrics
+                    max_k = tf.reduce_max([metric.k for metric in ranking_metrics])
+                    # Pre-sorts predictions and targets (by prediction scores) only once
+                    # for all ranking metric (for performance optimization) and extracts
+                    # only the top-k predictions/targets.
+                    # The relevant_count is necessary because when extracing the labels from the
+                    # top-k predictions some relevant items might not be included, but the
+                    # relevant count is necessary for many ranking metrics (e.g. recall, ndcg)
+                    (
+                        predictions_eval,
+                        targets_eval,
+                        relevant_count,
+                    ) = RankingMetric2.extract_topk_for_metrics(predictions, targets, max_k)
+
+            for metric in self.eval_metrics:
+                if isinstance(metric, RankingMetric2):
+                    metric_state = metric.update_state(
+                        targets_eval,
+                        predictions_eval,
+                        relevant_count,
+                        sample_weight=sample_weight,
+                    )
+                else:
+                    metric_state = metric.update_state(
+                        y_true=targets, y_pred=predictions, sample_weight=sample_weight
+                    )
+                update_ops.append(metric_state)
 
         for metric in self.prediction_metrics:
             update_ops.append(metric.update_state(predictions, sample_weight=sample_weight))
@@ -2314,7 +2344,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         # Initializing model control flags controled by MetricsComputeCallback()
         self._should_compute_train_metrics_for_batch = False
-        self._should_compute_eval_metrics_as_in_training = True
+        self._should_compute_eval_metrics_as_in_training = False
         self._is_first_batch = True
 
     def call(self, inputs, **kwargs):
@@ -2492,7 +2522,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             callbacks = []
 
         # Adding a callback to control metrics computation
-        callbacks = [MetricsComputeCallback(train_metrics_steps)] + callbacks
+        callbacks.append(MetricsComputeCallback(train_metrics_steps))
 
         return super().fit(
             x,
@@ -2514,43 +2544,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             max_queue_size,
             workers,
             use_multiprocessing,
-        )
-
-    def evaluate(
-        self,
-        x=None,
-        y=None,
-        batch_size=None,
-        verbose=1,
-        sample_weight=None,
-        steps=None,
-        callbacks=None,
-        max_queue_size=10,
-        workers=1,
-        use_multiprocessing=False,
-        return_dict=False,
-        **kwargs,
-    ):
-
-        if callbacks is None:
-            callbacks = []
-
-        # Adding a callback to control metrics computation
-        callbacks = [MetricsComputeCallback()] + callbacks
-
-        return super().evaluate(
-            x=x,
-            y=y,
-            batch_size=batch_size,
-            verbose=verbose,
-            sample_weight=sample_weight,
-            steps=steps,
-            callbacks=callbacks,
-            max_queue_size=max_queue_size,
-            workers=workers,
-            use_multiprocessing=use_multiprocessing,
-            return_dict=return_dict,
-            **kwargs,
         )
 
     def batch_predict(
