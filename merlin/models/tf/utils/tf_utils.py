@@ -105,7 +105,7 @@ def maybe_deserialize_keras_objects(
 def extract_topk(max_k, scores, labels):
     topk_scores, topk_indices = tf.math.top_k(scores, max_k)
     topk_labels = gather_torch_like(labels, topk_indices, max_k)
-    return topk_scores, topk_indices, topk_labels
+    return topk_scores, topk_labels
 
 
 def tranform_label_to_onehot(labels, vocab_size):

@@ -1887,7 +1887,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             if len(ranking_metrics) > 0:
                 # Sorts the top-k items for metrics computation
                 max_k = tf.reduce_max([metric.top_ks for metric in ranking_metrics])
-                predictions, _, targets = extract_topk(max_k, predictions, targets)
+                predictions, targets = extract_topk(max_k, predictions, targets)
 
         else:
             if self.pre_eval_topk:
@@ -2263,12 +2263,30 @@ class ModelBlock(Block, tf.keras.Model):
         return {"block": tf.keras.utils.serialize_keras_object(self.block)}
 
 
-class IsFittingCallback(tf.keras.callbacks.Callback):
+class MetricsComputeCallback(tf.keras.callbacks.Callback):
+    def __init__(self, train_metrics_steps=1, **kwargs):
+        self.train_metrics_steps = train_metrics_steps
+        super().__init__(**kwargs)
+
     def on_train_begin(self, logs=None):
-        self.model._is_fitting = True
+        self._is_fitting = True
 
     def on_train_end(self, logs=None):
-        self.model._is_fitting = False
+        self._is_fitting = False
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self.model._is_first_batch = True
+
+    def on_train_batch_begin(self, batch, logs=None):
+        self.model._should_compute_train_metrics_for_batch = (
+            self.model._is_first_batch or batch % self.train_metrics_steps == 0
+        )
+
+    def on_train_batch_end(self, batch, logs=None):
+        self.model._is_first_batch = False
+
+    def on_test_batch_begin(self, batch, logs=None):
+        self.model._should_compute_eval_metrics_as_in_training = self._is_fitting
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -2294,7 +2312,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
         self.context = context
-        self._is_fitting = False
 
     def call(self, inputs, **kwargs):
         outputs = self.block(inputs, **kwargs)
@@ -2357,17 +2374,12 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             else:
                 targets = None
 
-            # Computing train metrics each `train_metrics_steps`
-            steps = self.optimizer.iterations
-            compute_metrics = tf.cond(
-                tf.greater_equal(self.train_metrics_steps, 1),
-                lambda: tf.equal(tf.math.floormod(steps, self.train_metrics_steps), 0),
-                lambda: False,
-            )
-
             predictions = self(inputs, training=True)
             loss = self.compute_loss(
-                predictions, targets, training=True, compute_metrics=compute_metrics
+                predictions,
+                targets,
+                training=True,
+                compute_metrics=self._should_compute_train_metrics_for_batch,
             )
             tf.assert_rank(
                 loss,
@@ -2417,7 +2429,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             targets = None
 
-        training = self._is_fitting
+        training = self._should_compute_eval_metrics_as_in_training
         predictions = self(inputs, training=training)
         loss = self.compute_loss(predictions, targets, training=training, compute_metrics=True)
         tf.assert_rank(
@@ -2472,13 +2484,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             x = Dataset(x, batch_size=batch_size, **kwargs)
 
-        self.train_metrics_steps = train_metrics_steps
-
         if callbacks is None:
             callbacks = []
 
         # Adding a callback to detect whether the model is running fit() or not
-        callbacks = [IsFittingCallback()] + callbacks
+        callbacks = [MetricsComputeCallback(train_metrics_steps)] + callbacks
 
         return super().fit(
             x,
