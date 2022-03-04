@@ -1843,25 +1843,17 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions, targets=targets, sample_weight=sample_weight, training=training
         )
 
-        update_ops = self.calculate_metrics(
-            predictions, targets, loss=loss, forward=False, training=training
-        )
-        """
-        update_ops = tf.cond(
-            tf.convert_to_tensor(compute_metrics),
-            lambda: self.calculate_metrics(
+        if compute_metrics:
+            update_ops = self.calculate_metrics(
                 predictions, targets, loss=loss, forward=False, training=training
-            ),
-            lambda: [],
-        )
-        """
+            )
 
-        update_ops = [x for x in update_ops if x is not None]
+            update_ops = [x for x in update_ops if x is not None]
 
-        with tf.control_dependencies(update_ops):
-            return tf.identity(loss)
+            with tf.control_dependencies(update_ops):
+                return tf.identity(loss)
 
-        # return loss
+        return loss
 
     def repr_add(self):
         return [("loss", self.loss)]
@@ -2318,6 +2310,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
         self.context = context
+        self._is_fitting = False
 
         # Initializing model control flags controled by MetricsComputeCallback()
         self._should_compute_train_metrics_for_batch = False
