@@ -40,9 +40,9 @@ else:
 try:
     from merlin.io import Dataset
 
-    nvt_dataset_class = Dataset
+    merlin_dataset_class = Dataset
 except ImportError:
-    nvt_dataset_class = None
+    merlin_dataset_class = None
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter,unexpected-keyword-arg,redundant-keyword-arg
@@ -85,11 +85,11 @@ def _validate_dataset(paths_or_dataset, batch_size, buffer_size, engine, device,
 
     cpu = device and "cpu" in device
 
-    if nvt_dataset_class:
-        return nvt_dataset_class(files, engine=engine, cpu=cpu)
+    if merlin_dataset_class:
+        return merlin_dataset_class(files, engine=engine, cpu=cpu)
     else:
         LOG.warning(
-            "NVTabular Dataset class not detected, reverting to Dask Dataframe."
+            "Merlin Dataset class not detected, reverting to Dask Dataframe."
             "Expect slower iteration speeds."
         )
     return dd_engine[engine](files)
