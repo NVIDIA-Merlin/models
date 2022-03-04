@@ -1843,6 +1843,10 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions, targets=targets, sample_weight=sample_weight, training=training
         )
 
+        update_ops = self.calculate_metrics(
+            predictions, targets, loss=loss, forward=False, training=training
+        )
+        """
         update_ops = tf.cond(
             tf.convert_to_tensor(compute_metrics),
             lambda: self.calculate_metrics(
@@ -1850,6 +1854,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             ),
             lambda: [],
         )
+        """
 
         update_ops = [x for x in update_ops if x is not None]
 
@@ -2266,6 +2271,7 @@ class ModelBlock(Block, tf.keras.Model):
 class MetricsComputeCallback(tf.keras.callbacks.Callback):
     def __init__(self, train_metrics_steps=1, **kwargs):
         self.train_metrics_steps = train_metrics_steps
+        self._is_fitting = False
         super().__init__(**kwargs)
 
     def on_train_begin(self, logs=None):
@@ -2285,7 +2291,7 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
     def on_train_batch_end(self, batch, logs=None):
         self.model._is_first_batch = False
 
-    def on_test_batch_begin(self, batch, logs=None):
+    def on_test_begin(self, logs=None):
         self.model._should_compute_eval_metrics_as_in_training = self._is_fitting
 
 
@@ -2312,6 +2318,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
         self.context = context
+
+        # Initializing model control flags controled by MetricsComputeCallback()
+        self._should_compute_train_metrics_for_batch = False
+        self._should_compute_eval_metrics_as_in_training = True
+        self._is_first_batch = True
 
     def call(self, inputs, **kwargs):
         outputs = self.block(inputs, **kwargs)
@@ -2487,7 +2498,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if callbacks is None:
             callbacks = []
 
-        # Adding a callback to detect whether the model is running fit() or not
+        # Adding a callback to control metrics computation
         callbacks = [MetricsComputeCallback(train_metrics_steps)] + callbacks
 
         return super().fit(
@@ -2510,6 +2521,43 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             max_queue_size,
             workers,
             use_multiprocessing,
+        )
+
+    def evaluate(
+        self,
+        x=None,
+        y=None,
+        batch_size=None,
+        verbose=1,
+        sample_weight=None,
+        steps=None,
+        callbacks=None,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        return_dict=False,
+        **kwargs,
+    ):
+
+        if callbacks is None:
+            callbacks = []
+
+        # Adding a callback to control metrics computation
+        callbacks = [MetricsComputeCallback()] + callbacks
+
+        return super().evaluate(
+            x=x,
+            y=y,
+            batch_size=batch_size,
+            verbose=verbose,
+            sample_weight=sample_weight,
+            steps=steps,
+            callbacks=callbacks,
+            max_queue_size=max_queue_size,
+            workers=workers,
+            use_multiprocessing=use_multiprocessing,
+            return_dict=return_dict,
+            **kwargs,
         )
 
     def batch_predict(
