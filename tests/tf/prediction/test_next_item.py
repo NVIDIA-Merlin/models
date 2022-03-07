@@ -18,7 +18,9 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
+from merlin.io.dataset import Dataset
 from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.core import PredictionOutput
 from merlin.schema import Tags
 
 
@@ -39,9 +41,10 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
     # First batch
-    _, output_scores1 = item_retrieval_scorer.call_targets(
-        {"query": users_embeddings, "item": items_embeddings}, {}
-    )
+    output_scores1 = item_retrieval_scorer.call_outputs(
+        PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
+        training=True,
+    ).predictions
     expected_num_samples_inbatch = batch_size
     expected_num_samples_cached = 0 if ignore_last_batch_on_sample else batch_size
     tf.assert_equal(tf.shape(output_scores1)[0], batch_size)
@@ -51,18 +54,20 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     )
 
     # Second batch
-    _, output_scores2 = item_retrieval_scorer.call_targets(
-        {"query": users_embeddings, "item": items_embeddings}, {}
-    )
+    output_scores2 = item_retrieval_scorer.call_outputs(
+        PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
+        training=True,
+    ).predictions
     expected_num_samples_cached += batch_size
     tf.assert_equal(tf.shape(output_scores2)[0], batch_size)
     # Number of negatives plus one positive
     tf.assert_equal(
-        tf.shape(output_scores2)[1], expected_num_samples_inbatch + expected_num_samples_cached + 1
+        tf.shape(output_scores2)[1],
+        expected_num_samples_inbatch + expected_num_samples_cached + 1,
     )
 
 
-""" @tf.funcion convert `call_targets` of the ItemRetrievalScorer to graph ops,
+""" @tf.funcion convert `call_outputs` of the ItemRetrievalScorer to graph ops,
 In graph-model the exception is not raised.
 or this test, we need to be able track the exceptions in graph mode.
 
@@ -96,8 +101,9 @@ def test_item_retrieval_scorer_no_sampler():
         item_retrieval_scorer = ml.ItemRetrievalScorer(
             samplers=[], sampling_downscore_false_negatives=False
         )
-        item_retrieval_scorer.call_targets(
-            {"query": users_embeddings, "item": items_embeddings}, {}
+        item_retrieval_scorer.call_outputs(
+            PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
+            training=True,
         )
     assert "At least one sampler is required by ItemRetrievalScorer for negative sampling" in str(
         excinfo.value
@@ -122,8 +128,8 @@ def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
     with pytest.raises(Exception) as excinfo:
-        _ = item_retrieval_scorer.call_targets(
-            {"query": users_embeddings, "item": items_embeddings}, targets={}
+        _ = item_retrieval_scorer.call_outputs(
+            PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {})
         )
     assert "The following required context features should be available for the samplers" in str(
         excinfo.value
@@ -151,9 +157,11 @@ def test_item_retrieval_scorer_downscore_false_negatives():
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
-    _, output_scores = item_retrieval_scorer.call_targets(
-        {"query": users_embeddings, "item": items_embeddings}, targets={}
+    outputs = item_retrieval_scorer.call_outputs(
+        PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
+        training=True,
     )
+    output_scores = outputs.predictions
 
     output_neg_scores = output_scores[:, 1:]
 
@@ -176,6 +184,7 @@ def test_item_retrieval_scorer_only_positive_when_not_training():
     item_retrieval_scorer = ml.ItemRetrievalScorer(
         samplers=[ml.InBatchSampler()],
         sampling_downscore_false_negatives=False,
+        context=ml.BlockContext(),
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
@@ -211,7 +220,10 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     model = two_tower.connect(
         ml.ItemRetrievalTask(
-            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr"
+            music_streaming_data._schema,
+            softmax_temperature=2,
+            samplers=samplers,
+            loss="bpr",
         )
     )
 
@@ -219,7 +231,9 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     for batch_step in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
-        _, output = model.loss_block.pre.call_targets(output, targets={}, training=True)
+        output = model.loss_block.pre.call_outputs(
+            PredictionOutput(output, {}), training=True
+        ).predictions
         expected_num_samples_inbatch = batch_size
         expected_num_samples_cached = min(
             batch_size * (batch_step - 1 if ignore_last_batch_on_sample else batch_step),
@@ -234,10 +248,10 @@ def test_retrieval_task_inbatch_cached_samplers(
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_retrieval_task_inbatch_cached_samplers_fit(
-    music_streaming_data: SyntheticData, run_eagerly, num_epochs=2
+    ecommerce_data: SyntheticData, run_eagerly, num_epochs=2
 ):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
-    two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
+    ecommerce_data._schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
     batch_size = 100
 
@@ -252,18 +266,25 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
             ignore_last_batch_on_sample=False,
         ),
     ]
-
-    model = two_tower.connect(
-        ml.ItemRetrievalTask(
-            music_streaming_data._schema, softmax_temperature=2, samplers=samplers, loss="bpr"
-        )
+    task = ml.ItemRetrievalTask(
+        ecommerce_data._schema,
+        softmax_temperature=2,
+        samplers=samplers,
+        compute_train_metrics=False,
     )
+    model = two_tower.connect(task)
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
+    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+
+    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
+    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
+    item_dataset = Dataset(item_dataset)
+    model = model.load_topk_evaluation(item_dataset, k=20)
+    _ = model.evaluate(ecommerce_data.tf_dataloader(batch_size=batch_size))
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -284,14 +305,11 @@ def test_last_item_prediction_task(
     )
     if sampled_softmax:
         loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-        metrics = ml.ranking_metrics(top_ks=[10, 20], labels_onehot=False)
     else:
         loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-        metrics = ml.ranking_metrics(top_ks=[10, 20], labels_onehot=True)
     task = ml.NextItemPredictionTask(
         schema=sequence_testing_data.schema,
         loss=loss,
-        metrics=metrics,
         masking=True,
         weight_tying=weight_tying,
         sampled_softmax=sampled_softmax,
@@ -328,7 +346,9 @@ def test_retrieval_task_inbatch_default_sampler(
 
     for _ in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
-        _, output = model.loss_block.pre.call_targets(output, targets={}, training=True)
+        output = model.loss_block.pre.call_outputs(
+            PredictionOutput(output, {}), training=True
+        ).predictions
         expected_num_samples_inbatch = batch_size
 
         tf.assert_equal(tf.shape(output)[0], batch_size)

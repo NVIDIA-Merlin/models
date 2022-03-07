@@ -20,10 +20,11 @@ import tensorflow as tf
 from tensorflow.keras import backend
 from tensorflow.python.ops import array_ops
 
-from merlin.models.tf.core import Block
-from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.models.utils.registry import Registry
 from merlin.schema import Tags
+
+from ....utils.doc_utils import docstring_parameter
+from ....utils.registry import Registry
+from ...core import Block, PredictionOutput
 
 masking_registry = Registry("tf.masking")
 
@@ -348,3 +349,37 @@ class MaskedLanguageModeling(MaskingBlock):
         # Store boolean tensor related to masked targets
         self.context["masking_schema"].assign(mask_labels)
         return mask_labels
+
+
+@Block.registry.register_with_multiple_names("masking_head")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class MaskingHead(Block):
+    """
+    The masking class to transform targets based on the
+    boolean masking schema stored in the model's context
+    Parameters
+    ----------
+        padding_idx: int
+            The padding index value.
+            Defaults to 0.
+        item_id_feature_name: str
+            Name of the column containing the item ids
+            Defaults to `item_id`
+    Returns
+    -------
+        targets: tf.Tensor
+            Tensor of masked labels.
+    """
+
+    def __init__(self, item_id_feature_name: str = "item_id", **kwargs):
+        super().__init__(**kwargs)
+        self.padding_idx = 0
+        self.item_id_feature_name = item_id_feature_name
+
+    def call_outputs(
+        self, outputs: PredictionOutput, training: bool = True, **kwargs
+    ) -> "PredictionOutput":
+        targets = self.context[self.item_id_feature_name]
+        mask = self.context.get_mask()
+        targets = tf.where(mask, targets, self.padding_idx)
+        return PredictionOutput(outputs.predictions, targets)

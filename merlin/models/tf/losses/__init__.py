@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 
-from .listwise_losses import CategoricalCrossEntropy, SparseCategoricalCrossEntropy
-from .loss_base import LossType, loss_registry
-from .pairwise_losses import (
+from .base import LossType, loss_registry
+from .listwise import CategoricalCrossEntropy, SparseCategoricalCrossEntropy
+from .pairwise import (
     AdaptiveHingeLoss,
     BPRLoss,
     BPRmaxLoss,

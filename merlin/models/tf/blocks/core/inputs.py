@@ -19,9 +19,9 @@ from typing import Dict, Optional, Tuple, Union
 
 from merlin.schema import Schema, Tags, TagsType
 
-from ..core import Block, BlockType, ParallelBlock, TabularAggregationType
-from ..features.continuous import ContinuousFeatures
-from ..features.embedding import (
+from ...core import Block, BlockType, ParallelBlock, TabularAggregationType
+from ...features.continuous import ContinuousFeatures
+from ...features.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,

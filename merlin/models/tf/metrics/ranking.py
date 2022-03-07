@@ -21,15 +21,15 @@ from typing import List, Sequence
 import numpy as np
 import tensorflow as tf
 
-from merlin.models.tf.utils import tf_utils
-
 from . import metrics_registry
 
 METRIC_PARAMETERS_DOCSTRING = """
     scores : tf.Tensor
-        scores of predicted item-ids.
+        A tensor with shape (batch_size, n_items) corresponding to
+        the ranking scores of items.
     labels : tf.Tensor
-        true item-ids labels.
+        A tensor with shape (batch_size, n_items) corresponding to
+        the one-hot representation of true labels.
 """
 
 
@@ -41,8 +41,6 @@ class RankingMetric(tf.keras.metrics.Metric):
     ----------
     top_ks : list, default [2, 5])
         list of cutoffs
-    labels_onehot : bool
-        Enable transform the encoded labels to one-hot representation
     """
 
     def __init__(
@@ -50,12 +48,10 @@ class RankingMetric(tf.keras.metrics.Metric):
         top_ks: Sequence[int],
         name=None,
         dtype=None,
-        labels_onehot: bool = False,
         **kwargs,
     ):
         super(RankingMetric, self).__init__(name=name, **kwargs)
         self.top_ks = top_ks
-        self.labels_onehot = labels_onehot
         # Store the mean vector of the batch metrics (for each cut-off at topk) in ListWrapper
         self.metric_mean: List[tf.Tensor] = []
         self.accumulator = tf.Variable(
@@ -65,7 +61,7 @@ class RankingMetric(tf.keras.metrics.Metric):
         )
 
     def get_config(self):
-        config = {"top_ks": self.top_ks, "labels_onehot": self.labels_onehot}
+        config = {"top_ks": self.top_ks}
         base_config = super(RankingMetric, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
@@ -78,9 +74,8 @@ class RankingMetric(tf.keras.metrics.Metric):
         # Computing the metrics at different cut-offs
         # init batch accumulator
         self._build(shape=tf.shape(y_pred))
-        if self.labels_onehot:
-            y_true = tf_utils.tranform_label_to_onehot(y_true, tf.shape(y_pred)[-1])
-
+        # TODO solve applying check_inputs in graph-mode
+        # y_true, y_pred = check_inputs(y_pred, y_true)
         self._metric(
             scores=tf.reshape(y_pred, [-1, tf.shape(y_pred)[-1]]),
             labels=y_true,
@@ -88,8 +83,11 @@ class RankingMetric(tf.keras.metrics.Metric):
         self.metric_mean.append(self.accumulator)
 
     def result(self):
-        # Computing the mean of the batch metrics (for each cut-off at topk)
-        return tf.reduce_mean(tf.concat(self.metric_mean, axis=0), axis=0)
+        if len(self.metric_mean) > 0:
+            # Computing the mean of the batch metrics (for each cut-off at topk)
+            return tf.reduce_mean(tf.concat(self.metric_mean, axis=0), axis=0)
+        else:
+            return tf.zeros((len(self.top_ks)))
 
     def reset_state(self):
         self.metric_mean = []
@@ -121,8 +119,8 @@ class RankingMetric(tf.keras.metrics.Metric):
 @metrics_registry.register_with_multiple_names("precision_at", "precision")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PrecisionAt(RankingMetric):
-    def __init__(self, top_ks=None, labels_onehot=False, **kwargs):
-        super(PrecisionAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks=None, **kwargs):
+        super(PrecisionAt, self).__init__(top_ks=top_ks, **kwargs)
 
     def _metric(self, scores: tf.Tensor, labels: tf.Tensor, **kwargs) -> tf.Tensor:
         """
@@ -132,8 +130,6 @@ class PrecisionAt(RankingMetric):
         {METRIC_PARAMETERS_DOCSTRING}
         """
         ks = tf.convert_to_tensor(self.top_ks)
-        ks, scores, labels = check_inputs(ks, scores, labels)
-        _, _, topk_labels = tf_utils.extract_topk(ks, scores, labels)
         bs = tf.shape(scores)[0]
 
         for index in range(int(tf.shape(ks)[0])):
@@ -148,15 +144,15 @@ class PrecisionAt(RankingMetric):
             )
 
             self.accumulator.scatter_nd_update(
-                indices=indices, updates=tf.reduce_sum(topk_labels[:, : int(k)], axis=1) / float(k)
+                indices=indices, updates=tf.reduce_sum(labels[:, : int(k)], axis=1) / float(k)
             )
 
 
 @metrics_registry.register_with_multiple_names("recall_at", "recall")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RecallAt(RankingMetric):
-    def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
-        super(RecallAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks: Sequence[int], **kwargs):
+        super(RecallAt, self).__init__(top_ks=top_ks, **kwargs)
 
     def _metric(self, scores: tf.Tensor, labels: tf.Tensor, **kwargs) -> tf.Tensor:
         """
@@ -166,8 +162,6 @@ class RecallAt(RankingMetric):
         {METRIC_PARAMETERS_DOCSTRING}
         """
         ks = tf.convert_to_tensor(self.top_ks)
-        ks, scores, labels = check_inputs(ks, scores, labels)
-        _, _, topk_labels = tf_utils.extract_topk(ks, scores, labels)
 
         # Compute recalls at K
         num_relevant = tf.reduce_sum(labels, axis=-1)
@@ -177,9 +171,7 @@ class RecallAt(RankingMetric):
         if tf.shape(rel_indices)[0] > 0:
             for index in range(int(tf.shape(ks)[0])):
                 k = ks[index]
-                rel_labels = tf.cast(
-                    tf.gather_nd(topk_labels, rel_indices)[:, : int(k)], tf.float32
-                )
+                rel_labels = tf.cast(tf.gather_nd(labels, rel_indices)[:, : int(k)], tf.float32)
                 batch_recall_k = tf.cast(
                     tf.reshape(
                         tf.math.divide(tf.reduce_sum(rel_labels, axis=-1), rel_count),
@@ -207,8 +199,8 @@ class RecallAt(RankingMetric):
 @metrics_registry.register_with_multiple_names("avg_precision_at", "avg_precision", "map")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AvgPrecisionAt(RankingMetric):
-    def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
-        super(AvgPrecisionAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks: Sequence[int], **kwargs):
+        super(AvgPrecisionAt, self).__init__(top_ks=top_ks, **kwargs)
         max_k = tf.reduce_max(self.top_ks)
         self.precision_at = PrecisionAt(top_ks=1 + np.array((range(max_k)))).metric_fn
 
@@ -220,14 +212,12 @@ class AvgPrecisionAt(RankingMetric):
         {METRIC_PARAMETERS_DOCSTRING}
         """
         ks = tf.convert_to_tensor(self.top_ks)
-        ks, scores, labels = check_inputs(ks, scores, labels)
-        topk_scores, _, topk_labels = tf_utils.extract_topk(ks, scores, labels)
 
         num_relevant = tf.reduce_sum(labels, axis=-1)
 
         bs = tf.shape(scores)[0]
-        precisions = self.precision_at(topk_scores, topk_labels)
-        rel_precisions = precisions * topk_labels
+        precisions = self.precision_at(scores, labels)
+        rel_precisions = precisions * labels
 
         for index in range(int(tf.shape(ks)[0])):
             k = ks[index]
@@ -250,8 +240,8 @@ class AvgPrecisionAt(RankingMetric):
 @metrics_registry.register_with_multiple_names("dcg_at", "dcg")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DCGAt(RankingMetric):
-    def __init__(self, top_ks, labels_onehot=False, **kwargs):
-        super(DCGAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks, **kwargs):
+        super(DCGAt, self).__init__(top_ks=top_ks, **kwargs)
 
     def _metric(
         self, scores: tf.Tensor, labels: tf.Tensor, log_base: int = 2, **kwargs
@@ -264,8 +254,6 @@ class DCGAt(RankingMetric):
         {METRIC_PARAMETERS_DOCSTRING}
         """
         ks = tf.convert_to_tensor(self.top_ks)
-        ks, scores, labels = check_inputs(ks, scores, labels)
-        _, _, topk_labels = tf_utils.extract_topk(ks, scores, labels)
 
         # Compute discounts
         max_k = tf.reduce_max(ks)
@@ -277,8 +265,8 @@ class DCGAt(RankingMetric):
         # Compute DCGs at K
         for index in range(len(self.top_ks)):
             k = ks[index]
-            m = topk_labels[:, :k] * tf.repeat(
-                tf.expand_dims(discounts[:k], 0), tf.shape(topk_labels)[0], axis=0
+            m = labels[:, :k] * tf.repeat(
+                tf.expand_dims(discounts[:k], 0), tf.shape(labels)[0], axis=0
             )
             rows_ids = tf.range(bs, dtype=tf.int64)
             indices = tf.concat(
@@ -298,8 +286,8 @@ class DCGAt(RankingMetric):
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class NDCGAt(RankingMetric):
-    def __init__(self, top_ks: Sequence[int], labels_onehot=False, **kwargs):
-        super(NDCGAt, self).__init__(top_ks=top_ks, labels_onehot=labels_onehot, **kwargs)
+    def __init__(self, top_ks: Sequence[int], **kwargs):
+        super(NDCGAt, self).__init__(top_ks=top_ks, **kwargs)
         self.dcg_at = DCGAt(top_ks).metric_fn
 
     def _metric(
@@ -312,14 +300,11 @@ class NDCGAt(RankingMetric):
         ----------
         {METRIC_PARAMETERS_DOCSTRING}
         """
-        ks = tf.convert_to_tensor(self.top_ks)
-        ks, scores, labels = check_inputs(ks, scores, labels)
-        topk_scores, _, topk_labels = tf_utils.extract_topk(ks, scores, labels)
 
         # Compute discounted cumulative gains
-        gains = self.dcg_at(labels=topk_labels, scores=topk_scores, log_base=log_base)
+        gains = self.dcg_at(labels=labels, scores=scores, log_base=log_base)
         self.accumulator.assign(gains)
-        normalizing_gains = self.dcg_at(labels=topk_labels, scores=topk_labels, log_base=log_base)
+        normalizing_gains = self.dcg_at(labels=labels, scores=labels, log_base=log_base)
 
         # Prevent divisions by zero
         relevant_pos = tf.where(normalizing_gains != 0)
@@ -331,19 +316,16 @@ class NDCGAt(RankingMetric):
         self.accumulator.scatter_nd_update(relevant_pos, updates)
 
 
-def check_inputs(ks, scores, labels):
-    if len(ks.shape) > 1:
-        raise ValueError("ks should be a 1-dimensional tensor")
+def check_inputs(scores, labels):
+    if tf.rank(scores) != 2:
+        raise ValueError(f"scores must be 2-D tensor, (got {scores.shape})")
 
-    if len(scores.shape) != 2:
-        raise ValueError("scores must be a 2-dimensional tensor")
-
-    if len(labels.shape) != 2:
-        raise ValueError("labels must be a 2-dimensional tensor")
+    if tf.rank(labels) != 2:
+        raise ValueError(f"labels must be 2-D tensor, (got {labels.shape})")
 
     scores.get_shape().assert_is_compatible_with(labels.get_shape())
 
-    return (tf.cast(ks, tf.int32), tf.cast(scores, tf.float32), tf.cast(labels, tf.float32))
+    return (tf.cast(scores, tf.float32), tf.cast(labels, tf.float32))
 
 
 def process_metrics(metrics, prefix=""):

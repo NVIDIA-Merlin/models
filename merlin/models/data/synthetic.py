@@ -24,6 +24,7 @@ from typing import Optional, Union
 import numpy as np
 import pandas as pd
 
+import merlin.io
 from merlin.models.utils.schema import (
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
@@ -152,6 +153,10 @@ class SyntheticData:
     @property
     def dataframe(self) -> pd.DataFrame:
         return self._read_data_fn(self.data_path, num_rows=self._num_rows)
+
+    @property
+    def dataset(self) -> merlin.io.Dataset:
+        return merlin.io.Dataset(self.dataframe, schema=self.schema)
 
     def tf_dataloader(self, batch_size=50):
         # TODO: return tf NVTabular loader

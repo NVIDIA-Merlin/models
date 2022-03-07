@@ -20,14 +20,13 @@ from typing import Union, overload
 import tensorflow as tf
 from tensorflow.python.keras.layers import Dot
 
-from merlin.models.config.schema import requires_schema
-from merlin.models.tf.core import Block, TabularAggregation
-from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils import tf_utils
-from merlin.models.utils.schema import schema_to_tensorflow_metadata_json
 from merlin.schema import Schema, Tags
 
-from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
+from ....config.schema import requires_schema
+from ....utils.schema import schema_to_tensorflow_metadata_json
+from ...core import Block, TabularAggregation
+from ...typing import TabularData
+from ...utils import tf_utils
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
@@ -362,12 +361,14 @@ class SequenceAggregator(Block):
 
     def get_config(self):
         config = super().get_config()
-        config = maybe_serialize_keras_objects(
+        config = tf_utils.maybe_serialize_keras_objects(
             self, config, {"combiner": tf.keras.layers.serialize}
         )
         return config
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["combiner"], tf.keras.layers.deserialize)
+        config = tf_utils.maybe_deserialize_keras_objects(
+            config, ["combiner"], tf.keras.layers.deserialize
+        )
         return super().from_config(config)

@@ -23,6 +23,7 @@ from functools import reduce
 from typing import (
     Dict,
     List,
+    NamedTuple,
     Optional,
     Protocol,
     Sequence,
@@ -59,6 +60,11 @@ from .utils.tf_utils import (
 
 block_registry: Registry = Registry.class_registry("tf.blocks")
 BlockType = Union["Block", str, Sequence[str]]
+
+
+class PredictionOutput(NamedTuple):
+    predictions: Union[TabularData, tf.Tensor]
+    targets: Union[TabularData, tf.Tensor]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -242,8 +248,10 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         super()._maybe_build(inputs)
 
-    def call_targets(self, predictions, targets, training=False, **kwargs) -> tf.Tensor:
-        return targets
+    def call_outputs(
+        self, outputs: PredictionOutput, training=False, **kwargs
+    ) -> "PredictionOutput":
+        return outputs
 
     def register_features(self, feature_shapes) -> List[str]:
         return []
@@ -712,6 +720,9 @@ class SequentialBlock(Block):
         for i, layer in enumerate(self.layers):
             if i == len(self.layers) - 1:
                 filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
+                filtered_kwargs.update(
+                    filter_kwargs(kwargs, layer.call, filter_positional_or_keyword=False)
+                )
             else:
                 filtered_kwargs = filter_kwargs(
                     dict(training=training), layer, filter_positional_or_keyword=False
@@ -727,13 +738,11 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(self, predictions, targets, training=False, **kwargs):
-        outputs = targets
+    def call_outputs(
+        self, outputs: PredictionOutput, training=False, **kwargs
+    ) -> "PredictionOutput":
         for layer in self.layers:
-            if isinstance(outputs, (list, tuple)) and len(outputs) > 0:
-                outputs, predictions = outputs
-            outputs = layer.call_targets(predictions, outputs, training=training, **kwargs)
-
+            outputs = layer.call_outputs(outputs, training=training, **kwargs)
         return outputs
 
     def get_config(self):
@@ -1625,7 +1634,7 @@ class ResidualBlock(WithShortcut):
         strict: bool = False,
         **kwargs,
     ):
-        from merlin.models.tf.blocks.aggregation import SumResidual
+        from merlin.models.tf.blocks.core.aggregation import SumResidual
 
         super().__init__(
             block,
@@ -1727,10 +1736,12 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         task_name: Optional[str] = None,
         metrics: Optional[List[MetricOrMetricClass]] = None,
         pre: Optional[Block] = None,
+        pre_metrics: Optional[Block] = None,
         task_block: Optional[Layer] = None,
         prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        compute_train_metrics: Optional[bool] = True,
         name: Optional[Text] = None,
         **kwargs,
     ) -> None:
@@ -1739,12 +1750,14 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.task_block = task_block
         self._task_name = task_name
         self.pre = pre
+        self.pre_metrics = pre_metrics
 
         create_metrics = self._create_metrics
         self.eval_metrics = create_metrics(metrics) if metrics else []
         self.prediction_metrics = create_metrics(prediction_metrics) if prediction_metrics else []
         self.label_metrics = create_metrics(label_metrics) if label_metrics else []
         self.loss_metrics = create_metrics(loss_metrics) if loss_metrics else []
+        self.compute_train_metrics = compute_train_metrics
 
     def pre_call(self, inputs, **kwargs):
         x = inputs
@@ -1757,9 +1770,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         return x
 
-    def pre_loss(self, predictions, targets, **kwargs):
-        targets = self.pre.call_targets(predictions, targets, **kwargs)
-        return targets
+    def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
+        outputs = self.pre.call_outputs(outputs, **kwargs)
+        return outputs
 
     def __call__(self, *args, **kwargs):
         inputs = self.pre_call(*args, **kwargs)
@@ -1804,7 +1817,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         predictions,
         targets,
         training: bool = False,
-        compute_metrics=True,
+        compute_metrics=False,
         sample_weight: Optional[tf.Tensor] = None,
         **kwargs,
     ) -> tf.Tensor:
@@ -1815,9 +1828,10 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions = predictions[self.task_name]
 
         if self.pre:
-            targets = self.pre_loss(predictions, targets, training=training, **kwargs)
-            if isinstance(targets, tuple):
-                targets, predictions = targets
+            outputs = self.pre_loss(
+                PredictionOutput(predictions, targets), training=training, **kwargs
+            )
+            targets, predictions = outputs.targets, outputs.predictions
 
         if isinstance(targets, tf.Tensor) and len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
@@ -1827,24 +1841,33 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         )
 
         if compute_metrics:
-            update_ops = self.calculate_metrics(predictions, targets, forward=False, loss=loss)
+            if (not training) or (training and self.compute_train_metrics):
+                update_ops = self.calculate_metrics(predictions, targets, forward=False, loss=loss)
 
-            update_ops = [x for x in update_ops if x is not None]
+                update_ops = [x for x in update_ops if x is not None]
 
-            with tf.control_dependencies(update_ops):
-                return tf.identity(loss)
+                with tf.control_dependencies(update_ops):
+                    return tf.identity(loss)
 
         return loss
 
     def repr_add(self):
         return [("loss", self.loss)]
 
-    def calculate_metrics(self, predictions, targets, sample_weight=None, forward=True, loss=None):
+    def calculate_metrics(
+        self, predictions, targets, sample_weight=None, forward=True, loss=None, **kwargs
+    ):
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
 
         if forward:
             predictions = self(predictions)
+
+        if self.pre_metrics:
+            outputs = self.pre_metrics.call_outputs(
+                PredictionOutput(predictions, targets), **kwargs
+            )
+            targets, predictions = outputs.targets, outputs.predictions
 
         update_ops = []
 
@@ -1969,8 +1992,8 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
         tasks: List[PredictionTask] = []
         task_weights = []
-        from .prediction.classification import BinaryClassificationTask
-        from .prediction.regression import RegressionTask
+        from .prediction_tasks.classification import BinaryClassificationTask
+        from .prediction_tasks.regression import RegressionTask
 
         for binary_target in schema.select_by_tag(Tags.BINARY_CLASSIFICATION).column_names:
             tasks.append(BinaryClassificationTask(binary_target))
@@ -2265,7 +2288,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         self,
         inputs: Union[tf.Tensor, TabularData],
         targets: Union[tf.Tensor, TabularData],
-        compute_metrics=True,
+        compute_metrics=False,
         training: bool = False,
         **kwargs,
     ) -> tf.Tensor:
@@ -2298,7 +2321,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 targets = None
 
             predictions = self(inputs, training=True)
-            loss = self.compute_loss(predictions, targets, training=True)
+            loss = self.compute_loss(predictions, targets, training=True, compute_metrics=True)
             tf.assert_rank(
                 loss,
                 0,
@@ -2330,7 +2353,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             gradients = tape.gradient(total_loss, self.trainable_variables)
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-
         metrics = self.loss_block.metric_result_dict()
         metrics["loss"] = loss
         metrics["regularization_loss"] = regularization_loss
@@ -2347,7 +2369,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             targets = None
 
         predictions = self(inputs, training=False)
-        loss = self.compute_loss(predictions, targets, training=False)
+        loss = self.compute_loss(predictions, targets, training=False, compute_metrics=True)
         tf.assert_rank(
             loss,
             0,
@@ -2448,7 +2470,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if hasattr(dataset, "to_ddf"):
             dataset = dataset.to_ddf()
 
-        from .prediction.batch import TFModelEncode
+        from merlin.models.tf.utils.batch_utils import TFModelEncode
 
         model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
         predictions = dataset.map_partitions(model_encode)
@@ -2490,12 +2512,26 @@ class RetrievalModel(Model):
 
     @property
     def retrieval_block(self) -> RetrievalBlock:
-        return next(b for b in self.blocks if isinstance(b, RetrievalBlock))
+        return next(b for b in self.block if isinstance(b, RetrievalBlock))
+
+    def _ensure_unique(
+        self, dataset: merlin.io.Dataset, tag: Union[str, Tags], id_tag: Union[str, Tags]
+    ):
+        # Check if merlin-dataset is passed
+        ddf = dataset.to_ddf() if hasattr(dataset, "to_ddf") else dataset
+
+        columns = dataset.schema.select_by_tag(tag).column_names
+        if columns:
+            id_col = dataset.schema.select_by_tag(id_tag).first.name
+            ddf = ddf[columns].groupby(id_col).agg("first").reset_index()
+
+        return ddf
 
     def query_embeddings(
         self,
         dataset: merlin.io.Dataset,
-        dim: int,
+        query_tag=Tags.USER,
+        query_id_tag=Tags.USER_ID,
         batch_size=None,
     ) -> merlin.io.Dataset:
         """Export query embeddings from the model.
@@ -2504,8 +2540,10 @@ class RetrievalModel(Model):
         ----------
         dataset: merlin.io.Dataset
             Dataset to export embeddings from.
-        dim: int
-            Dimensionality of the embeddings.
+        query_tag: str
+            Tag to use for the query.
+        query_id_tag: str
+            Tag to use for the query id.
         batch_size: int
             Batch size to use for embedding extraction.
 
@@ -2513,20 +2551,21 @@ class RetrievalModel(Model):
         -------
         merlin.io.Dataset
         """
-        from merlin.models.tf.prediction.batch import QueryEmbeddings
+        from merlin.models.tf.utils.batch_utils import QueryEmbeddings
 
-        get_user_emb = QueryEmbeddings(self, dim=dim, batch_size=batch_size)
+        get_user_emb = QueryEmbeddings(self, batch_size=batch_size)
 
-        # Check if merlin-dataset is passed
-        if hasattr(dataset, "to_ddf"):
-            dataset = dataset.to_ddf()
-
+        dataset = self._ensure_unique(dataset, query_tag, query_id_tag)
         embeddings = dataset.map_partitions(get_user_emb)
 
         return merlin.io.Dataset(embeddings)
 
     def item_embeddings(
-        self, dataset: merlin.io.Dataset, dim: int, batch_size=None, **kwargs
+        self,
+        dataset: merlin.io.Dataset,
+        item_tag=Tags.ITEM,
+        item_id_tag=Tags.ITEM_ID,
+        batch_size=None,
     ) -> merlin.io.Dataset:
         """Export item embeddings from the model.
 
@@ -2534,8 +2573,10 @@ class RetrievalModel(Model):
         ----------
         dataset: merlin.io.Dataset
             Dataset to export embeddings from.
-        dim: int
-            Dimensionality of the embeddings.
+        item_tag: str
+            Tag to use for the item.
+        item_id_tag: str
+            Tag to use for the item id.
         batch_size: int
             Batch size to use for embedding extraction.
 
@@ -2543,17 +2584,61 @@ class RetrievalModel(Model):
         -------
         merlin.io.Dataset
         """
-        from merlin.models.tf.prediction.batch import ItemEmbeddings
+        from merlin.models.tf.utils.batch_utils import ItemEmbeddings
 
-        get_item_emb = ItemEmbeddings(self, dim=dim, batch_size=batch_size)
+        get_item_emb = ItemEmbeddings(self, batch_size=batch_size)
 
-        # Check if merlin-dataset is passed
-        if hasattr(dataset, "to_ddf"):
-            dataset = dataset.to_ddf()
-
+        dataset = self._ensure_unique(dataset, item_tag, item_id_tag)
         embeddings = dataset.map_partitions(get_item_emb)
 
         return merlin.io.Dataset(embeddings)
+
+    def load_topk_evaluation(self, data: merlin.io.Dataset, k: int, **kwargs):
+        """Update the model with a top-k evaluation block.
+
+        Parameters
+        ----------
+        data: merlin.io.Dataset
+            Dataset of negatives to use for evaluation.
+        k: int
+            Number of negatives to retrieve.
+
+        Returns
+        -------
+        SequentialBlock
+        """
+        import merlin.models.tf as ml
+
+        topk_index = ml.TopKIndexBlock.from_block(
+            self.retrieval_block.item_block(), data=data, k=k - 1, context=self.context, **kwargs
+        )
+        # set cache_query to True in the ItemRetrievalScorer
+        self.loss_block.retrieval_scorer.cache_query = True
+        self.loss_block.pre_metrics = topk_index
+        return self
+
+    def to_top_k_recommender(self, data: merlin.io.Dataset, k: int, **kwargs) -> ModelBlock:
+        """Convert the model to a Top-k Recommender.
+
+        Parameters
+        ----------
+        data: merlin.io.Dataset
+            Dataset to convert to a Top-k Recommender.
+        k: int
+            Number of recommendations to make.
+
+        Returns
+        -------
+        SequentialBlock
+        """
+        import merlin.models.tf as ml
+
+        topk_index = ml.TopKIndexBlock.from_block(
+            self.retrieval_block.item_block(), data=data, k=k, **kwargs
+        )
+        recommender = self.retrieval_block.query_block().connect(topk_index)
+
+        return ModelBlock(recommender)
 
 
 def is_input_block(block: Block) -> bool:

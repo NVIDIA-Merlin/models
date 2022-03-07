@@ -2,9 +2,9 @@ from typing import List, Optional, Union
 
 from merlin.schema import Schema
 
+from ..blocks.core.inputs import InputBlock
 from ..blocks.cross import CrossBlock
 from ..blocks.dlrm import DLRMBlock
-from ..blocks.inputs import InputBlock
 from ..blocks.mlp import MLPBlock
 from ..core import Block, Model, ParallelPredictionBlock, PredictionTask
 from .utils import _parse_prediction_tasks

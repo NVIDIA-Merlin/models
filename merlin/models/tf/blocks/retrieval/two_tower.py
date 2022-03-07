@@ -13,29 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Any, Callable, Dict, Optional
+
+import logging
+from typing import Optional
 
 import tensorflow as tf
 
 from merlin.schema import Schema, Tags
 
-from ..core import Block, BlockType, ModelBlock, ParallelBlock
-from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
-from .inputs import InputBlock
-from .transformations import RenameFeatures
+from ...core import Block, BlockType, ParallelBlock
+from ...features.embedding import EmbeddingOptions
+from ..core.inputs import InputBlock
+from .base import RetrievalMixin, TowerBlock
 
-
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class TowerBlock(ModelBlock):
-    pass
-
-
-class RetrievalMixin:
-    def query_block(self) -> TowerBlock:
-        raise NotImplementedError()
-
-    def item_block(self) -> TowerBlock:
-        raise NotImplementedError()
+LOG = logging.getLogger("merlin_models")
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -77,7 +68,7 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
 
     def __init__(
         self,
-        schema,
+        schema: Schema,
         query_tower: Block,
         item_tower: Optional[Block] = None,
         query_tower_tag=Tags.USER,
@@ -132,30 +123,3 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
         output.__class__ = cls
 
         return output
-
-
-def MatrixFactorizationBlock(
-    schema: Schema,
-    dim: int,
-    query_id_tag=Tags.USER_ID,
-    item_id_tag=Tags.ITEM_ID,
-    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
-    **kwargs,
-):
-    query_item_schema = schema.select_by_tag(query_id_tag) + schema.select_by_tag(item_id_tag)
-    embedding_options = EmbeddingOptions(
-        embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
-    )
-
-    rename_features = RenameFeatures({query_id_tag: "query", item_id_tag: "item"}, schema=schema)
-    post = kwargs.pop("post", None)
-    if post:
-        post = rename_features.connect(post)
-    else:
-        post = rename_features
-
-    matrix_factorization = EmbeddingFeatures.from_schema(
-        query_item_schema, post=post, options=embedding_options, **kwargs
-    )
-
-    return matrix_factorization
