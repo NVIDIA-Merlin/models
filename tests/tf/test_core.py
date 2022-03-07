@@ -140,13 +140,20 @@ def test_simple_model(ecommerce_data: SyntheticData):
 
 
 def test_block_to_model(ecommerce_data: SyntheticData):
+    embedding_options = ml.EmbeddingOptions(embedding_dim_default=32)
     model = ml.MLPBlock([64]).to_model(
-        ecommerce_data.schema, prediction_tasks=ml.BinaryClassificationTask("click")
+        ecommerce_data.schema,
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+        embedding_options=embedding_options,
     )
 
     copy_model = testing_utils.assert_serialization(model)
     testing_utils.assert_loss_and_metrics_are_valid(
         copy_model, ecommerce_data.tf_features_and_targets
+    )
+
+    assert all(
+        [f.table.dim == 32 for f in list(model.block.inputs["categorical"].feature_config.values())]
     )
 
 
@@ -186,7 +193,6 @@ def test_wrong_model(ecommerce_data: SyntheticData):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_block_context_model_fp16(ecommerce_data: SyntheticData, run_eagerly: bool, num_epochs=2):
-
     mixed_precision.set_global_policy("mixed_float16")
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),

@@ -2350,18 +2350,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         """
 
-        from merlin.models.tf.blocks.inputs import InputBlock
-        from merlin.models.tf.models.utils import parse_prediction_tasks
-
-        if is_input_block(cls.first):
-            assert input_block is None, "The block already includes an `InputBlock`"
-            input_block = cls.first
-
-        aggregation = kwargs.pop("aggregation", "concat")
-        input_block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
-
-        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-        return cls(input_block, block, prediction_tasks)
+        return block.to_model(
+            schema, input_block=input_block, prediction_tasks=prediction_tasks, **kwargs
+        )
 
     def compute_loss(
         self,
