@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import contextlib
+import logging
 import os
 
 import dask.dataframe as dd
@@ -25,6 +26,8 @@ from merlin.core.dispatch import HAS_GPU
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
 from merlin.schema import Tags
+
+LOG = logging.getLogger("merlin.models")
 
 if version.parse(tf.__version__) < version.parse("2.3.0"):
     try:
