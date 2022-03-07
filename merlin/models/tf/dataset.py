@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import contextlib
+import logging
 import os
 
 import dask.dataframe as dd
@@ -26,6 +27,8 @@ from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
 from merlin.schema import Tags
 
+LOG = logging.getLogger("merlin.models")
+
 if version.parse(tf.__version__) < version.parse("2.3.0"):
     try:
         from tfdlpack import from_dlpack
@@ -36,7 +39,13 @@ if version.parse(tf.__version__) < version.parse("2.3.0"):
 else:
     from tensorflow.experimental.dlpack import from_dlpack
 
+# noqa
+try:
+    from merlin.io import Dataset
 
+    merlin_dataset_class = Dataset
+except ImportError:
+    merlin_dataset_class = None
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter,unexpected-keyword-arg,redundant-keyword-arg
@@ -49,12 +58,12 @@ dd_engine = {
 }
 
 
-def _validate_dataset(paths_or_dataset, batch_size, buffer_size, engine, reader_kwargs):
+def _validate_dataset(paths_or_dataset, batch_size, buffer_size, engine, device, reader_kwargs):
     # TODO: put this in parent class and allow
     # torch dataset to leverage as well?
 
     # if a dataset was passed, just return it
-    if hasattr(paths_or_dataset, "schema") or isinstance(paths_or_dataset, dd.DataFrame):
+    if hasattr(paths_or_dataset, "schema"):
         return paths_or_dataset
 
     # otherwise initialize a dataset
@@ -76,6 +85,16 @@ def _validate_dataset(paths_or_dataset, batch_size, buffer_size, engine, reader_
     if not engine:
         # default engine is parquet
         engine = "parquet"
+
+    cpu = device and "cpu" in device
+
+    if merlin_dataset_class:
+        return merlin_dataset_class(files, engine=engine, cpu=cpu)
+    else:
+        LOG.warning(
+            "Merlin Dataset class not detected, reverting to Dask Dataframe."
+            "Expect slower iteration speeds."
+        )
     return dd_engine[engine](files)
 
 
@@ -246,7 +265,7 @@ class Dataset(tf.keras.utils.Sequence, DataLoader):
         schema=None,
     ):
         dataset = _validate_dataset(
-            paths_or_dataset, batch_size, buffer_size, engine, reader_kwargs
+            paths_or_dataset, batch_size, buffer_size, engine, device, reader_kwargs
         )
         schema = _get_schema(dataset) if not schema else schema
         cat_names, cont_names = _validate_schema(
