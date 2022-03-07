@@ -68,7 +68,7 @@ class AsDenseFeatures(TabularBlock):
                 row_lengths = val[1][:, 0]
                 ragged = tf.RaggedTensor.from_row_lengths(values, row_lengths)
                 if self.max_seq_length:
-                    outputs[name] = ragged.to_tensor(shape=[None, self.max_seq_length])
+                    outputs[name] = self.to_tensor(shape=[None, self.max_seq_length])
                 else:
                     outputs[name] = ragged.to_tensor()
             else:
@@ -99,7 +99,7 @@ class AsDenseFeatures(TabularBlock):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RenameFeatures(TabularBlock):
     def __init__(
-        self, renames: Dict[Union[str, Tags], str], schema: Optional[Schema] = None, **kwargs
+            self, renames: Dict[Union[str, Tags], str], schema: Optional[Schema] = None, **kwargs
     ):
         super().__init__(schema=schema, **kwargs)
         self.renames = {}
@@ -157,11 +157,11 @@ class StochasticSwapNoise(TabularBlock):
         self.replacement_prob = replacement_prob
 
     def call(
-        self,
-        inputs: TensorOrTabularData,
-        input_mask: Optional[tf.Tensor] = None,
-        training=False,
-        **kwargs,
+            self,
+            inputs: TensorOrTabularData,
+            input_mask: Optional[tf.Tensor] = None,
+            training=False,
+            **kwargs,
     ) -> TensorOrTabularData:
         def augment(input_mask):
             if self.schema:
@@ -199,7 +199,7 @@ class StochasticSwapNoise(TabularBlock):
         sampled_values_to_replace = tf.gather(
             input_flattened_non_zero,
             tf.random.shuffle(tf.range(tf.shape(input_flattened_non_zero)[0]))[
-                :n_values_to_replace
+            :n_values_to_replace
             ],
         )
 
