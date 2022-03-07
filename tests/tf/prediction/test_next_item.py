@@ -299,7 +299,7 @@ def test_last_item_prediction_task(
         sequence_testing_data.schema,
         aggregation="concat",
         seq=False,
-        max_seq_length=50,
+        max_seq_length=4,
         masking="clm",
         split_sparse=True,
     )
@@ -320,7 +320,7 @@ def test_last_item_prediction_task(
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
 
-    out = model(sequence_testing_data.tf_tensor_dict)
+    out = model({k: tf.cast(v, tf.int64) for k, v in sequence_testing_data.tf_tensor_dict.items()})
     assert out.shape[-1] == 51997
 
 
