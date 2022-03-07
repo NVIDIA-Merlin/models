@@ -318,7 +318,7 @@ class RemovePad3D(Block):
     def compute_output_shape(self, input_shape):
         return input_shape
 
-    def call_targets(
+    def call_outputs(
         self, outputs: PredictionOutput, training=True, **kwargs
     ) -> "PredictionOutput":
         targets, predictions = outputs.targets, outputs.predictions
@@ -365,7 +365,7 @@ class PredictionsScaler(Block):
         else:
             return inputs
 
-    def call_targets(
+    def call_outputs(
         self, outputs: PredictionOutput, training=True, **kwargs
     ) -> "PredictionOutput":
         targets, predictions = outputs.targets, outputs.predictions

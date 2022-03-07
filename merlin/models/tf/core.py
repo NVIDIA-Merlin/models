@@ -248,7 +248,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         super()._maybe_build(inputs)
 
-    def call_targets(
+    def call_outputs(
         self, outputs: PredictionOutput, training=False, **kwargs
     ) -> "PredictionOutput":
         return outputs
@@ -738,11 +738,11 @@ class SequentialBlock(Block):
 
         return outputs, targets
 
-    def call_targets(
+    def call_outputs(
         self, outputs: PredictionOutput, training=False, **kwargs
     ) -> "PredictionOutput":
         for layer in self.layers:
-            outputs = layer.call_targets(outputs, training=training, **kwargs)
+            outputs = layer.call_outputs(outputs, training=training, **kwargs)
         return outputs
 
     def get_config(self):
@@ -1771,7 +1771,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return x
 
     def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
-        outputs = self.pre.call_targets(outputs, **kwargs)
+        outputs = self.pre.call_outputs(outputs, **kwargs)
         return outputs
 
     def __call__(self, *args, **kwargs):
@@ -1864,7 +1864,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions = self(predictions)
 
         if self.pre_metrics:
-            outputs = self.pre_metrics.call_targets(
+            outputs = self.pre_metrics.call_outputs(
                 PredictionOutput(predictions, targets), **kwargs
             )
             targets, predictions = outputs.targets, outputs.predictions

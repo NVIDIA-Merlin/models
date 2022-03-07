@@ -190,7 +190,7 @@ class TopKIndexBlock(IndexBlock):
 
         return top_scores, top_indices
 
-    def call_targets(
+    def call_outputs(
         self, outputs: PredictionOutput, training=False, **kwargs
     ) -> "PredictionOutput":
         """

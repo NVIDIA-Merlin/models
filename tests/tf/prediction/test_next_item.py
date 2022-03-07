@@ -41,7 +41,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
     # First batch
-    output_scores1 = item_retrieval_scorer.call_targets(
+    output_scores1 = item_retrieval_scorer.call_outputs(
         PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
         training=True,
     ).predictions
@@ -54,7 +54,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     )
 
     # Second batch
-    output_scores2 = item_retrieval_scorer.call_targets(
+    output_scores2 = item_retrieval_scorer.call_outputs(
         PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
         training=True,
     ).predictions
@@ -67,7 +67,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     )
 
 
-""" @tf.funcion convert `call_targets` of the ItemRetrievalScorer to graph ops,
+""" @tf.funcion convert `call_outputs` of the ItemRetrievalScorer to graph ops,
 In graph-model the exception is not raised.
 or this test, we need to be able track the exceptions in graph mode.
 
@@ -101,7 +101,7 @@ def test_item_retrieval_scorer_no_sampler():
         item_retrieval_scorer = ml.ItemRetrievalScorer(
             samplers=[], sampling_downscore_false_negatives=False
         )
-        item_retrieval_scorer.call_targets(
+        item_retrieval_scorer.call_outputs(
             PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
             training=True,
         )
@@ -128,7 +128,7 @@ def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
     with pytest.raises(Exception) as excinfo:
-        _ = item_retrieval_scorer.call_targets(
+        _ = item_retrieval_scorer.call_outputs(
             PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {})
         )
     assert "The following required context features should be available for the samplers" in str(
@@ -157,7 +157,7 @@ def test_item_retrieval_scorer_downscore_false_negatives():
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
-    outputs = item_retrieval_scorer.call_targets(
+    outputs = item_retrieval_scorer.call_outputs(
         PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
         training=True,
     )
@@ -231,7 +231,7 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     for batch_step in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
-        output = model.loss_block.pre.call_targets(
+        output = model.loss_block.pre.call_outputs(
             PredictionOutput(output, {}), training=True
         ).predictions
         expected_num_samples_inbatch = batch_size
@@ -346,7 +346,7 @@ def test_retrieval_task_inbatch_default_sampler(
 
     for _ in range(1, 4):
         output = model(music_streaming_data.tf_tensor_dict, training=True)
-        output = model.loss_block.pre.call_targets(
+        output = model.loss_block.pre.call_outputs(
             PredictionOutput(output, {}), training=True
         ).predictions
         expected_num_samples_inbatch = batch_size

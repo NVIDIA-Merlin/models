@@ -179,7 +179,7 @@ class ItemRetrievalScorer(Block):
         return positive_scores
 
     @tf.function
-    def call_targets(
+    def call_outputs(
         self, outputs: PredictionOutput, training=True, **kwargs
     ) -> "PredictionOutput":
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score

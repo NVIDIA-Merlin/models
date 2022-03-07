@@ -47,7 +47,7 @@ class ItemsPredictionTopK(Block):
         self.transform_to_onehot = transform_to_onehot
 
     @tf.function
-    def call_targets(
+    def call_outputs(
         self, outputs: PredictionOutput, training=False, **kwargs
     ) -> "PredictionOutput":
         targets, predictions = outputs.targets, outputs.predictions

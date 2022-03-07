@@ -116,7 +116,7 @@ def NextItemPredictionTask(
     sampled_softmax: bool = False,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
-    transform_to_onehot: bool = None,
+    transform_to_onehot: bool = False,
 ) -> MultiClassClassificationTask:
     """
     Function to create the NextItemPrediction task with the right parameters.
@@ -169,7 +169,7 @@ def NextItemPredictionTask(
             Defaults to 0.
         transform_to_onehot: bool
             If set to True, transform the encoded integer representation of targets to one-hot one.
-            Default to None.
+            Default to False.
     Returns
     -------
         PredictionTask

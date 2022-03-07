@@ -376,7 +376,7 @@ class MaskingHead(Block):
         self.padding_idx = 0
         self.item_id_feature_name = item_id_feature_name
 
-    def call_targets(
+    def call_outputs(
         self, outputs: PredictionOutput, training: bool = True, **kwargs
     ) -> "PredictionOutput":
         targets = self.context[self.item_id_feature_name]
