@@ -18,15 +18,15 @@ import logging
 import os
 
 import dask.dataframe as dd
+import numpy as np
 import tensorflow as tf
+from packaging import version
 
 from merlin.core.dispatch import HAS_GPU
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
-from merlin.models.tf.utils import tf_utils
 from merlin.schema import Tags
 
-<<<<<<< HEAD
 LOG = logging.getLogger("merlin.models")
 
 if version.parse(tf.__version__) < version.parse("2.3.0"):
@@ -46,8 +46,6 @@ try:
     merlin_dataset_class = Dataset
 except ImportError:
     merlin_dataset_class = None
-=======
->>>>>>> Adding dlpack to IndexBlock
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter,unexpected-keyword-arg,redundant-keyword-arg
@@ -357,8 +355,57 @@ class Dataset(tf.keras.utils.Sequence, DataLoader):
     def _FLOAT32_DTYPE(self):
         return tf.float32
 
+    def _pack(self, gdf):
+        if isinstance(gdf, np.ndarray):
+            return gdf
+        elif hasattr(gdf, "to_dlpack") and callable(getattr(gdf, "to_dlpack")):
+            return gdf.to_dlpack()
+        elif hasattr(gdf, "to_numpy") and callable(getattr(gdf, "to_numpy")):
+            gdf = gdf.to_numpy()
+            if isinstance(gdf[0], list):
+                gdf = np.stack(gdf)
+            return gdf
+        return gdf.toDlpack()
+
+    def _unpack(self, gdf):
+        if hasattr(gdf, "shape"):
+            return tf.convert_to_tensor(gdf)
+        return from_dlpack(gdf)
+
     def _to_tensor(self, gdf, dtype=None):
-        return tf_utils.df_to_tensor(gdf, dtype=dtype)
+        if gdf.empty:
+            return
+
+        # checks necessary because of this bug
+        # https://github.com/tensorflow/tensorflow/issues/42660
+        if len(gdf.shape) == 1 or gdf.shape[1] == 1:
+            dlpack = self._pack(gdf)
+        elif gdf.shape[0] == 1:
+            dlpack = self._pack(gdf.values[0])
+        else:
+            dlpack = self._pack(gdf.values.T)
+        # catch error caused by tf eager context
+        # not being initialized
+
+        try:
+            x = self._unpack(dlpack)
+        except AssertionError:
+            tf.random.uniform((1,))
+            x = self._unpack(dlpack)
+        # if rank is already two it is  already in list format
+        if gdf.shape[0] == 1 and not tf.rank(x) == 2:
+            # batch size 1 so got squashed to a vector
+            x = tf.expand_dims(x, 0)
+        elif len(gdf.shape) == 1 or len(x.shape) == 1:
+            # sort of a generic check for any other
+            # len(shape)==1 case, could probably
+            # be more specific
+            x = tf.expand_dims(x, -1)
+        elif gdf.shape[1] > 1:
+            # matrix which means we had to transpose
+            # for the bug above, so untranspose
+            x = tf.transpose(x)
+        return x
 
     def _pull_values_offsets(self, values_offset):
         """
