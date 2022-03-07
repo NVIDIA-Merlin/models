@@ -17,7 +17,7 @@
 import logging
 from typing import Dict, Optional, Tuple, Union
 
-from merlin.models.tf.blocks.transformations import AsDenseFeatures
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.schema import Schema, Tags, TagsType
 
 from ...core import Block, BlockType, ParallelBlock, TabularAggregationType

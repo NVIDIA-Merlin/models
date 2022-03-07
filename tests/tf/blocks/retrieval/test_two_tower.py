@@ -13,18 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
+
 import numpy as np
 import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
-<<<<<<< HEAD:tests/tf/blocks/retrieval/test_two_tower.py
-=======
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):
     mf = ml.MatrixFactorizationBlock(music_streaming_data.schema, dim=128)
 
@@ -37,7 +38,7 @@ def test_matrix_factorization_block(music_streaming_data: SyntheticData):
 def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
     import pandas as pd
 
-    from merlin.models.tf.blocks.aggregation import CosineSimilarity
+    from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
 
     mf = ml.MatrixFactorizationBlock(
         music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
@@ -79,7 +80,6 @@ def test_elementwisemultiply():
     assert x.numpy().shape == (5, 10)
 
 
->>>>>>> Some more fixes, still not working:tests/tf/blocks/test_retrieval.py
 def test_two_tower_block(testing_data: SyntheticData):
     two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
     outputs = two_tower(testing_data.tf_tensor_dict)
