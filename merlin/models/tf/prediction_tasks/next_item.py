@@ -199,10 +199,10 @@ def NextItemPredictionTask(
     if normalize:
         prediction_call = L2Norm().connect(prediction_call)
 
-    pre_metrics = None
+    pre_eval_topk = None
     if len(metrics) > 0:
         max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
-        pre_metrics = ItemsPredictionTopK(
+        pre_eval_topk = ItemsPredictionTopK(
             k=max_k, transform_to_onehot=transform_to_onehot or not sampled_softmax
         )
 
@@ -216,5 +216,5 @@ def NextItemPredictionTask(
         loss=loss,
         metrics=metrics,
         pre=prediction_call,
-        pre_metrics=pre_metrics,
+        pre_eval_topk=pre_eval_topk,
     )

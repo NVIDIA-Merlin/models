@@ -270,7 +270,6 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
         ecommerce_data._schema,
         softmax_temperature=2,
         samplers=samplers,
-        compute_train_metrics=False,
     )
     model = two_tower.connect(task)
 
