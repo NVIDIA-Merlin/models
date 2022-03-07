@@ -56,26 +56,50 @@ class AsSparseFeatures(TabularBlock):
 @Block.registry.register("as-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsDenseFeatures(TabularBlock):
+    def __init__(self, max_seq_length: Optional[int] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.max_seq_length = max_seq_length
+
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
             if isinstance(val, tuple):
                 values = val[0][:, 0]
                 row_lengths = val[1][:, 0]
-                outputs[name] = tf.RaggedTensor.from_row_lengths(values, row_lengths).to_tensor()
+                ragged = tf.RaggedTensor.from_row_lengths(values, row_lengths)
+                if self.max_seq_length:
+                    outputs[name] = self.to_tensor(shape=[None, self.max_seq_length])
+                else:
+                    outputs[name] = ragged.to_tensor()
             else:
                 outputs[name] = val
 
         return outputs
 
     def compute_output_shape(self, input_shape):
-        return input_shape
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shape)
+        outputs = {}
+
+        for key, val in input_shape.items():
+            if self.max_seq_length:
+                outputs[key] = tf.TensorShape((batch_size, self.max_seq_length))
+            else:
+                # TODO: What to do here?
+                raise ValueError("max_seq_length must be specified")
+
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({"max_seq_length": self.max_seq_length})
+
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RenameFeatures(TabularBlock):
     def __init__(
-        self, renames: Dict[Union[str, Tags], str], schema: Optional[Schema] = None, **kwargs
+            self, renames: Dict[Union[str, Tags], str], schema: Optional[Schema] = None, **kwargs
     ):
         super().__init__(schema=schema, **kwargs)
         self.renames = {}
@@ -133,11 +157,11 @@ class StochasticSwapNoise(TabularBlock):
         self.replacement_prob = replacement_prob
 
     def call(
-        self,
-        inputs: TensorOrTabularData,
-        input_mask: Optional[tf.Tensor] = None,
-        training=False,
-        **kwargs,
+            self,
+            inputs: TensorOrTabularData,
+            input_mask: Optional[tf.Tensor] = None,
+            training=False,
+            **kwargs,
     ) -> TensorOrTabularData:
         def augment(input_mask):
             if self.schema:
@@ -175,7 +199,7 @@ class StochasticSwapNoise(TabularBlock):
         sampled_values_to_replace = tf.gather(
             input_flattened_non_zero,
             tf.random.shuffle(tf.range(tf.shape(input_flattened_non_zero)[0]))[
-                :n_values_to_replace
+            :n_values_to_replace
             ],
         )
 

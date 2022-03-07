@@ -194,6 +194,7 @@ def TwoTowerModel(
 
 def YoutubeDNNRetrievalModel(
     schema: Schema,
+    max_seq_length: int,
     aggregation: str = "concat",
     top_block: Block = MLPBlock([64]),
     num_sampled: int = 100,
@@ -255,6 +256,7 @@ def YoutubeDNNRetrievalModel(
         schema,
         aggregation=aggregation,
         seq=False,
+        max_seq_length=max_seq_length,
         masking="clm",
         split_sparse=True,
         seq_aggregator=seq_aggregator,
