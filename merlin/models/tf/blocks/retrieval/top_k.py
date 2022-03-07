@@ -55,5 +55,5 @@ class ItemsPredictionTopK(Block):
             num_classes = tf.shape(predictions)[-1]
             targets = tf_utils.tranform_label_to_onehot(targets, num_classes)
 
-        topk_scores, _, topk_labels = tf_utils.extract_topk(self._k, predictions, targets)
+        topk_scores, topk_labels = tf_utils.extract_topk(self._k, predictions, targets)
         return PredictionOutput(topk_scores, topk_labels)

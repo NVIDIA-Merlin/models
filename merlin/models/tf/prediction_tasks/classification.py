@@ -50,7 +50,7 @@ class BinaryClassificationTask(PredictionTask):
     ):
         output_layer = kwargs.pop("output_layer", None)
         super().__init__(
-            metrics=list(metrics),
+            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
@@ -156,7 +156,7 @@ class MultiClassClassificationTask(PredictionTask):
     ):
 
         super().__init__(
-            metrics=list(metrics),
+            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,

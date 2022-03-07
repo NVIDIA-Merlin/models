@@ -53,7 +53,8 @@ class MetricsMixin(abc.ABC):
         inputs: Union[tf.Tensor, TabularData],
         targets: Union[tf.Tensor, TabularData],
         mode: str = "val",
-        forward=True,
+        forward: bool = True,
+        training: bool = False,
         **kwargs,
     ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
         """Calculate metrics on a batch of data, each metric is stateful and this updates the state.
@@ -111,6 +112,7 @@ class ModelLikeBlock(Protocol):
         targets: Union[tf.Tensor, TabularData],
         mode: str = "val",
         forward=True,
+        training=False,
         **kwargs,
     ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
         ...

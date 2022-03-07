@@ -82,11 +82,9 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        train_metrics: Sequence[MetricOrMetricClass] = None,
         extra_pre_call: Optional[Block] = None,
         softmax_temperature: float = 1.0,
         normalize: bool = True,
-        compute_train_metrics: bool = False,
         cache_query: bool = False,
         **kwargs,
     ):
@@ -94,16 +92,14 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         self.cache_query = cache_query
         pre = self._build_prediction_call(samplers, normalize, softmax_temperature, extra_pre_call)
         self.loss = loss_registry.parse(loss)
-        self.compute_train_metrics = compute_train_metrics
 
         super().__init__(
             loss=self.loss,
-            metrics=list(metrics),
+            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
             pre=pre,
-            compute_train_metrics=compute_train_metrics,
             **kwargs,
         )
 
