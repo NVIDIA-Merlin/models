@@ -41,6 +41,7 @@ from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
 import merlin.io
+import merlin.models.tf as ml
 from merlin.models.config.schema import SchemaMixin
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.misc_utils import filter_kwargs
@@ -158,13 +159,14 @@ class BlockContext(Layer):
                 dtype = self._feature_dtypes.get(feature_name, tf.float32)
 
                 if len(tuple(shape)) == 2:
-                    s = (
-                        (shape[-1],)
-                        if not isinstance(shape[-1], (tuple, tf.TensorShape))
-                        else shape[-1]
-                    )
-                    var = tf.zeros([1, *tuple(s)], dtype=dtype)
-                    shape = tf.TensorShape([None, *tuple(s)])
+                    # s = (
+                    #    (shape[-1],)
+                    #    if not isinstance(shape[-1], (tuple, tf.TensorShape))
+                    #    else shape[-1]
+                    # )
+                    s1 = int(shape[0][0] / shape[-1][0])
+                    var = tf.zeros([1, s1], dtype=dtype)
+                    shape = tf.TensorShape([None, s1])
                 elif tuple(shape) != (None,):
                     var = tf.zeros((shape), dtype=dtype)
                 else:
