@@ -18,6 +18,7 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
+from merlin.io.dataset import Dataset
 from merlin.models.data.synthetic import SyntheticData
 from merlin.models.tf.core import PredictionOutput
 from merlin.schema import Tags
@@ -247,10 +248,10 @@ def test_retrieval_task_inbatch_cached_samplers(
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_retrieval_task_inbatch_cached_samplers_fit(
-    music_streaming_data: SyntheticData, run_eagerly, num_epochs=2
+    ecommerce_data: SyntheticData, run_eagerly, num_epochs=2
 ):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
-    two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
+    ecommerce_data._schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
     batch_size = 100
 
@@ -266,18 +267,24 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
         ),
     ]
     task = ml.ItemRetrievalTask(
-        music_streaming_data._schema, softmax_temperature=2, samplers=samplers
+        ecommerce_data._schema,
+        softmax_temperature=2,
+        samplers=samplers,
+        compute_train_metrics=False,
     )
-    # load candidates for evaluation
-    task.load_candidates(tf.random.uniform((100, 256)))
     model = two_tower.connect(task)
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
+    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
-    # _ = model.evaluate(music_streaming_data.tf_dataloader(batch_size=batch_size))
+
+    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
+    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
+    item_dataset = Dataset(item_dataset)
+    model = model.load_topk_evaluation(item_dataset, k=20)
+    _ = model.evaluate(ecommerce_data.tf_dataloader(batch_size=batch_size))
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

@@ -74,6 +74,7 @@ class ItemRetrievalScorer(Block):
         item_id_feature_name: str = "item_id",
         query_name: str = "query",
         item_name: str = "item",
+        cache_query: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -84,6 +85,7 @@ class ItemRetrievalScorer(Block):
         self.samplers = samplers
         self.query_name = query_name
         self.item_name = item_name
+        self.cache_query = cache_query
 
         if not isinstance(self.samplers, (list, tuple)):
             self.samplers = (self.samplers,)
@@ -159,7 +161,7 @@ class ItemRetrievalScorer(Block):
             2D Tensor with the scores for the positive items,
             If `training=True`, return the original inputs
         """
-        if isinstance(inputs, dict):
+        if self.cache_query:
             self.context["query"].assign(inputs["query"])
 
         if training:

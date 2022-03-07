@@ -21,7 +21,7 @@ from tensorflow.python import to_dlpack
 
 import merlin.io
 from merlin.core.dispatch import DataFrameType
-from merlin.models.tf.core import Block
+from merlin.models.tf.core import Block, PredictionOutput
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.batch_utils import TFModelEncode
 from merlin.schema import Tags
@@ -189,6 +189,40 @@ class TopKIndexBlock(IndexBlock):
         top_indices = tf.gather(self.ids, top_indices)
 
         return top_scores, top_indices
+
+    def call_targets(
+        self, outputs: PredictionOutput, training=False, **kwargs
+    ) -> "PredictionOutput":
+        """
+        Retrieve top-k negative scores for evaluation.
+
+        Parameters
+        ----------
+        predictions: tf.Tensor
+            Tensor of pre-computed positive scores.
+            If`training=True`, the first column of predictions is expected
+            to be positive scores and the remaining sampled negatives are ignored.
+
+        Returns
+        -------
+        targets, predictions: tf.Tensor, tf.Tensor
+            2D Tensors with the one-hot representation of true targets and
+            the scores for the top-k implicit negatives.
+        """
+        targets, predictions = outputs.targets, outputs.predictions
+        queries = self.context["query"]
+        top_scores, _ = self(queries, k=self._k)
+        predictions = tf.expand_dims(predictions[:, 0], -1)
+        predictions = tf.concat([predictions, top_scores], axis=-1)
+        # Positives in the first column and negatives in the subsequent columns
+        targets = tf.concat(
+            [
+                tf.ones([tf.shape(predictions)[0], 1]),
+                tf.zeros([tf.shape(predictions)[0], self._k]),
+            ],
+            axis=1,
+        )
+        return PredictionOutput(predictions, targets)
 
     def compute_output_shape(self, input_shape):
         batch_size = input_shape[0]

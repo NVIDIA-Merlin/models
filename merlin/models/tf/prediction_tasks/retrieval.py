@@ -18,7 +18,6 @@ from typing import List, Optional, Sequence
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
-from merlin.models.tf.blocks.retrieval.top_k import BruteForceTopK
 from merlin.schema import Schema, Tags
 
 from ..blocks.core.transformations import L2Norm, PredictionsScaler
@@ -88,9 +87,11 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         softmax_temperature: float = 1.0,
         normalize: bool = True,
         compute_train_metrics: bool = False,
+        cache_query: bool = False,
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        self.cache_query = cache_query
         pre = self._build_prediction_call(samplers, normalize, softmax_temperature, extra_pre_call)
         self.loss = loss_registry.parse(loss)
         self.compute_train_metrics = compute_train_metrics
@@ -102,12 +103,9 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             task_name=task_name,
             task_block=task_block,
             pre=pre,
+            compute_train_metrics=compute_train_metrics,
             **kwargs,
         )
-
-        if len(self.metrics) > 0:
-            max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
-            self.pre_metrics = BruteForceTopK(k=max_k - 1)
 
     def _build_prediction_call(
         self,
@@ -120,7 +118,9 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             samplers = (InBatchSampler(),)
 
         prediction_call = ItemRetrievalScorer(
-            samplers=samplers, item_id_feature_name=self.item_id_feature_name
+            samplers=samplers,
+            item_id_feature_name=self.item_id_feature_name,
+            cache_query=self.cache_query,
         )
 
         if normalize:
@@ -134,8 +134,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
         return prediction_call
 
-    def load_candidates(self, candidates):
-        """Load candidates to use for evaluation/prediction"""
-        if not self.pre_metrics:
-            raise ValueError("The evaluation block is not set for metrics evaluation")
-        self.pre_metrics.load_index(candidates)
+    @property
+    def retrieval_scorer(self):
+        return self.pre[0][1]
