@@ -2593,6 +2593,30 @@ class RetrievalModel(Model):
 
         return merlin.io.Dataset(embeddings)
 
+    def load_topk_evaluation(self, data: merlin.io.Dataset, k: int, **kwargs):
+        """Update the model with a top-k evaluation block.
+
+        Parameters
+        ----------
+        data: merlin.io.Dataset
+            Dataset of negatives to use for evaluation.
+        k: int
+            Number of negatives to retrieve.
+
+        Returns
+        -------
+        SequentialBlock
+        """
+        import merlin.models.tf as ml
+
+        topk_index = ml.TopKIndexBlock.from_block(
+            self.retrieval_block.item_block(), data=data, k=k - 1, context=self.context, **kwargs
+        )
+        # set cache_query to True in the ItemRetrievalScorer
+        self.loss_block.retrieval_scorer.cache_query = True
+        self.loss_block.pre_metrics = topk_index
+        return self
+
     def to_top_k_recommender(self, data: merlin.io.Dataset, k: int, **kwargs) -> ModelBlock:
         """Convert the model to a Top-k Recommender.
 
