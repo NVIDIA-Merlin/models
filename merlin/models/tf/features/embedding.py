@@ -24,10 +24,9 @@ from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 import merlin.io
-from merlin.models.tf.blocks.base import (
+from merlin.models.tf.blocks.core.base import Block, BlockType
+from merlin.models.tf.blocks.core.combinators import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
-    Block,
-    BlockType,
     Filter,
     SequentialBlock,
     TabularAggregationType,
@@ -39,12 +38,8 @@ from merlin.models.tf.blocks.core.transformations import AsSparseFeatures
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
+from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.models.utils.schema import (
-    categorical_cardinalities,
-    categorical_domains,
-    get_embedding_sizes_from_schema,
-)
 from merlin.schema import Schema, Tags, TagsType
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
@@ -123,7 +118,7 @@ class EmbeddingFeatures(TabularBlock):
             schema_copy = schema_copy.select_by_tag(tags)
 
         if options.infer_embedding_sizes:
-            embedding_dims = get_embedding_sizes_from_schema(
+            embedding_dims = schema_utils.get_embedding_sizes_from_schema(
                 schema, options.infer_embedding_sizes_multiplier
             )
 
@@ -131,7 +126,7 @@ class EmbeddingFeatures(TabularBlock):
         embeddings_initializers = options.embeddings_initializers or {}
 
         emb_config = {}
-        cardinalities = categorical_cardinalities(schema)
+        cardinalities = schema_utils.categorical_cardinalities(schema)
         for key, cardinality in cardinalities.items():
             embedding_size = embedding_dims.get(key, options.embedding_dim_default)
             embedding_initializer = embeddings_initializers.get(key, None)
@@ -140,7 +135,7 @@ class EmbeddingFeatures(TabularBlock):
         feature_config: Dict[str, FeatureConfig] = {}
         tables: Dict[str, TableConfig] = {}
 
-        domains = categorical_domains(schema)
+        domains = schema_utils.categorical_domains(schema)
         for name, (vocab_size, dim, emb_initilizer) in emb_config.items():
             table_name = domains[name]
             table = tables.get(table_name, None)

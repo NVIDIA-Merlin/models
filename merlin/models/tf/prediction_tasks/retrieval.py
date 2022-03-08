@@ -18,7 +18,7 @@ from typing import List, Optional
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
-from merlin.models.tf.blocks.base import Block, MetricOrMetricClass
+from merlin.models.tf.blocks.core.base import Block, MetricOrMetricClass
 from merlin.models.tf.blocks.core.transformations import L2Norm, PredictionsScaler
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler

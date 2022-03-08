@@ -20,7 +20,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 
-from merlin.models.tf.blocks.base import Block, MetricOrMetricClass
+from merlin.models.tf.blocks.core.base import Block, MetricOrMetricClass
 from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.base import PredictionTask
@@ -28,7 +28,7 @@ from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
-from merlin.models.utils.schema import categorical_cardinalities
+from merlin.models.utils.schema_utils import categorical_cardinalities
 from merlin.schema import Schema, Tags
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

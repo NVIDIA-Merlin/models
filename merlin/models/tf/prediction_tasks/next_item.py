@@ -19,7 +19,7 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
-from merlin.models.tf.blocks.base import Block
+from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.masking import MaskingHead
 from merlin.models.tf.blocks.core.transformations import (
     ItemsPredictionWeightTying,
@@ -37,7 +37,7 @@ from merlin.models.tf.prediction_tasks.classification import (
     CategFeaturePrediction,
     MultiClassClassificationTask,
 )
-from merlin.models.utils.schema import categorical_cardinalities
+from merlin.models.utils.schema_utils import categorical_cardinalities
 from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin.models")

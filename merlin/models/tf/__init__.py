@@ -29,25 +29,27 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 
 from merlin.models import data
 from merlin.models.data.synthetic import SyntheticData
-from merlin.models.tf.blocks.base import (
-    AsTabular,
+from merlin.models.tf.blocks.core.aggregation import (
+    ConcatFeatures,
+    ElementwiseSum,
+    ElementwiseSumItemMulti,
+    StackFeatures,
+)
+from merlin.models.tf.blocks.core.base import (
     Block,
     BlockContext,
-    DualEncoderBlock,
     EmbeddingWithMetadata,
+    right_shift_layer,
+)
+from merlin.models.tf.blocks.core.combinators import (
+    AsTabular,
+    DualEncoderBlock,
     Filter,
     NoOp,
     ParallelBlock,
     ResidualBlock,
     SequentialBlock,
     TabularBlock,
-    right_shift_layer,
-)
-from merlin.models.tf.blocks.core.aggregation import (
-    ConcatFeatures,
-    ElementwiseSum,
-    ElementwiseSumItemMulti,
-    StackFeatures,
 )
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
@@ -104,7 +106,6 @@ from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.tf.utils import repr_utils
 
 # Must happen before any importing of tensorflow to curtail mem usage
-from merlin.schema import Schema, Tags
 
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr
@@ -117,13 +118,10 @@ Metric.__repr__ = repr_utils.layer_repr_no_children
 OptimizerV2.__repr__ = repr_utils.layer_repr_no_children
 
 __all__ = [
-    "Schema",
-    "Tags",
     "Block",
     "BlockContext",
     "SequentialBlock",
     "ResidualBlock",
-    "right_shift_layer",
     "DualEncoderBlock",
     "CrossBlock",
     "DLRMBlock",

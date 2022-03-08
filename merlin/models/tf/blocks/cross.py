@@ -17,7 +17,7 @@ from typing import List, Optional, Tuple, Union
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.base import Filter, SequentialBlock, TabularBlock
+from merlin.models.tf.blocks.core.combinators import Filter, SequentialBlock, TabularBlock
 from merlin.models.tf.blocks.mlp import DenseMaybeLowRank, InitializerType, RegularizerType
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,

@@ -20,7 +20,7 @@ import tensorflow as tf
 import merlin.models.tf as ml
 from merlin.io.dataset import Dataset
 from merlin.models.data.synthetic import SyntheticData
-from merlin.models.tf.blocks.base import PredictionOutput
+from merlin.models.tf.blocks.core.base import PredictionOutput
 from merlin.schema import Tags
 
 

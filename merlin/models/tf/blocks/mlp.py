@@ -18,8 +18,8 @@ from typing import List, Optional, Union
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.base import (
-    Block,
+from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.blocks.core.combinators import (
     Filter,
     ResidualBlock,
     SequentialBlock,

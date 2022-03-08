@@ -21,10 +21,11 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import Dot
 
 from merlin.models.config.schema import requires_schema
-from merlin.models.tf.blocks.base import Block, TabularAggregation
+from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.blocks.core.combinators import TabularAggregation
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
-from merlin.models.utils.schema import schema_to_tensorflow_metadata_json
+from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
 from merlin.schema import Schema, Tags
 
 # pylint has issues with TF array ops, so disable checks until fixed:

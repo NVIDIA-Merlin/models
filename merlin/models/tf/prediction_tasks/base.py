@@ -6,22 +6,22 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
-from merlin.models.tf.blocks.base import (
+from merlin.models.tf.blocks.core.base import (
     Block,
     BlockContext,
     BlockType,
     ContextMixin,
     MetricOrMetricClass,
-    ParallelBlock,
     PredictionOutput,
     _output_metrics,
     name_fn,
 )
+from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin
 from merlin.models.utils.misc_utils import filter_kwargs
-from merlin.models.utils.schema import tensorflow_metadata_json_to_schema
+from merlin.models.utils.schema_utils import tensorflow_metadata_json_to_schema
 from merlin.schema import Schema, Tags
 
 

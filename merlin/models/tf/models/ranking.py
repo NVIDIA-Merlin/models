@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from merlin.models.tf.blocks.base import Block
+from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock

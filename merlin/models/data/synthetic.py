@@ -25,10 +25,7 @@ import numpy as np
 import pandas as pd
 
 import merlin.io
-from merlin.models.utils.schema import (
-    schema_to_tensorflow_metadata_json,
-    tensorflow_metadata_json_to_schema,
-)
+from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
@@ -92,7 +89,9 @@ class SyntheticData:
             output_dir = tempfile.mkdtemp()
 
         if not os.path.exists(os.path.join(output_dir, "schema.json")):
-            schema_to_tensorflow_metadata_json(schema, os.path.join(output_dir, "schema.json"))
+            schema_utils.schema_to_tensorflow_metadata_json(
+                schema, os.path.join(output_dir, "schema.json")
+            )
 
         output = cls(output_dir, device=device)
         output.generate_interactions(num_rows, min_session_length, max_session_length)
@@ -109,7 +108,7 @@ class SyntheticData:
                 os.path.dirname(_schema_path), os.path.basename(_schema_path)
             ).to_merlin_schema()
 
-        return tensorflow_metadata_json_to_schema(_schema_path)
+        return schema_utils.tensorflow_metadata_json_to_schema(_schema_path)
 
     @property
     def schema(self) -> Schema:

@@ -20,8 +20,10 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
-from merlin.models.tf.blocks.base import Block, PredictionOutput, TabularBlock
+from merlin.models.tf.blocks.core.base import Block, PredictionOutput
+from merlin.models.tf.blocks.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
+from merlin.models.utils.schema_utils import categorical_cardinalities
 from merlin.models.tf.utils.tf_utils import transform_label_to_onehot
 from merlin.models.utils.schema import categorical_cardinalities
 from merlin.schema import Schema, Tags

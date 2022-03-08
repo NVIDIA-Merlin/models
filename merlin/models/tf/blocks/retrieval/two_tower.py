@@ -19,7 +19,8 @@ from typing import Optional
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.base import Block, BlockType, ParallelBlock
+from merlin.models.tf.blocks.core.base import Block, BlockType
+from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.retrieval.base import RetrievalMixin, TowerBlock
 from merlin.models.tf.features.embedding import EmbeddingOptions

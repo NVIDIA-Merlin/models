@@ -3,7 +3,8 @@ from typing import Dict, Optional, Protocol, Union, runtime_checkable
 import tensorflow as tf
 
 import merlin.io
-from merlin.models.tf.blocks.base import Block, BlockContext, SequentialBlock
+from merlin.models.tf.blocks.core.base import Block, BlockContext
+from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from merlin.schema import Schema, Tags

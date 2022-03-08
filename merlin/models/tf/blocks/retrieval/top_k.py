@@ -16,7 +16,7 @@
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.base import Block, PredictionOutput
+from merlin.models.tf.blocks.core.base import Block, PredictionOutput
 from merlin.models.tf.utils import tf_utils
 
 

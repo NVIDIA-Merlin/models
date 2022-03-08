@@ -18,9 +18,9 @@ from typing import List, Optional
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.base import (
+from merlin.models.tf.blocks.core.base import BlockType
+from merlin.models.tf.blocks.core.combinators import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
-    BlockType,
     Filter,
     TabularAggregationType,
     TabularBlock,

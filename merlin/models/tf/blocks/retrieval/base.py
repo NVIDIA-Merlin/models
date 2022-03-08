@@ -19,7 +19,7 @@ from typing import List, Sequence, Union
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 
-from merlin.models.tf.blocks.base import Block, EmbeddingWithMetadata, PredictionOutput
+from merlin.models.tf.blocks.core.base import Block, EmbeddingWithMetadata, PredictionOutput
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData

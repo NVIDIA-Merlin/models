@@ -2,6 +2,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from merlin.models.tf.blocks.base import Block, BlockType, MetricOrMetricClass, PredictionTask
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
@@ -11,7 +12,6 @@ from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.tf.models.utils import parse_prediction_tasks
-from merlin.models.tf.models.utils import _parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
