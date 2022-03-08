@@ -8,14 +8,18 @@ from ..blocks.mlp import MLPBlock
 from ..blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
 from ..blocks.retrieval.two_tower import TwoTowerBlock
 from ..blocks.sampling.base import ItemSampler
-from ..core import Block, BlockType, Model, ParallelPredictionBlock, PredictionTask
+from ..core import (
+    Block,
+    BlockType,
+    MetricOrMetricClass,
+    Model,
+    ParallelPredictionBlock,
+    PredictionTask,
+)
 from ..losses import LossType
 from ..metrics.ranking import ranking_metrics
-from ..prediction.item_prediction import ItemRetrievalTask, ItemSampler, NextItemPredictionTask
-from .utils import parse_prediction_tasks
 from ..prediction_tasks.next_item import NextItemPredictionTask
 from ..prediction_tasks.retrieval import ItemRetrievalTask
-from .utils import _parse_prediction_tasks
 from .utils import parse_prediction_tasks
 
 
@@ -31,6 +35,7 @@ def MatrixFactorizationModel(
     ] = None,
     softmax_temperature: int = 1,
     loss: Optional[LossType] = "bpr",
+    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Model:
@@ -74,7 +79,7 @@ def MatrixFactorizationModel(
     if not prediction_tasks:
         prediction_tasks = ItemRetrievalTask(
             schema,
-            metrics=[],
+            metrics=metrics,
             softmax_temperature=softmax_temperature,
             samplers=samplers,
             loss=loss,
@@ -110,6 +115,7 @@ def TwoTowerModel(
     ] = None,
     softmax_temperature: int = 1,
     loss: Optional[LossType] = "categorical_crossentropy",
+    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Model:
@@ -162,7 +168,7 @@ def TwoTowerModel(
     if not prediction_tasks:
         prediction_tasks = ItemRetrievalTask(
             schema,
-            metrics=[],
+            metrics=metrics,
             softmax_temperature=softmax_temperature,
             samplers=samplers,
             loss=loss,

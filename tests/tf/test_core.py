@@ -6,7 +6,6 @@ from tensorflow.keras import mixed_precision
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
-from merlin.schema import Tags
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
