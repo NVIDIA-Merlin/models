@@ -63,12 +63,12 @@ class SequentialBlock(Block):
             If any of the layers are not instances of keras `Layer`.
         """
         if len(layers) == 1 and isinstance(layers[0], (list, tuple)):
-            layers = layers[0]
+            layers = layers[0]  # type: ignore
 
         self.block_name = block_name
 
         if pre_aggregation:
-            layers = [TabularBlock(aggregation=pre_aggregation), *layers]
+            layers = [TabularBlock(aggregation=pre_aggregation), *layers]  # type: ignore
 
         for layer in layers:
             if not isinstance(layer, tf.keras.layers.Layer):
@@ -89,7 +89,7 @@ class SequentialBlock(Block):
                 filter = Filter(filter)
             self.layers = [filter, *layers]
         else:
-            self.layers = layers
+            self.layers = list(layers)
 
     def compute_output_shape(self, input_shape):
         output_shape = input_shape
@@ -473,7 +473,7 @@ class TabularBlock(Block):
         self,
         inputs: TabularData,
         transformations: Optional[BlockType] = None,
-        merge_with: Union["TabularBlock", List["TabularBlock"]] = None,
+        merge_with: Optional[Union["TabularBlock", List["TabularBlock"]]] = None,
         aggregation: Optional[TabularAggregationType] = None,
     ) -> TensorOrTabularData:
         """Method that's typically called after the forward method for post-processing.
@@ -523,7 +523,7 @@ class TabularBlock(Block):
         *args,
         pre: Optional[BlockType] = None,
         post: Optional[BlockType] = None,
-        merge_with: Union["TabularBlock", List["TabularBlock"]] = None,
+        merge_with: Optional[Union["TabularBlock", List["TabularBlock"]]] = None,
         aggregation: Optional[TabularAggregationType] = None,
         **kwargs,
     ) -> TensorOrTabularData:
@@ -577,8 +577,8 @@ class TabularBlock(Block):
 
         """
         if transformations:
-            transformations = Block.parse(transformations)
-            return transformations(inputs)
+            _transformations = Block.parse(transformations)
+            return _transformations(inputs)
 
         return inputs
 
@@ -894,7 +894,7 @@ class ParallelBlock(TabularBlock):
         elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
             parsed: List[TabularBlock] = []
             for i, inp in enumerate(inputs):
-                parsed.append(inp)
+                parsed.append(inp)  # type: ignore
             self.parallel_layers = parsed
         else:
             raise ValueError(

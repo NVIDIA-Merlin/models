@@ -101,7 +101,7 @@ class CGCGateTransformation(TabularBlock):
                 len(task_names) * num_task_experts + num_shared_experts, dim=dim
             )
 
-    def call(self, expert_outputs: TabularData, **kwargs) -> TabularData:
+    def call(self, expert_outputs: TabularData, **kwargs) -> TabularData:  # type: ignore
         outputs: TabularData = {}
 
         shortcut = expert_outputs.pop("shortcut")

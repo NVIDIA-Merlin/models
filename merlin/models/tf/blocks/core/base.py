@@ -178,7 +178,7 @@ class ContextMixin:
     def _set_context(self, context: BlockContext):
         if hasattr(self, "_context"):
             context._merge(self._context)
-        self._context = context
+        self._context: BlockContext = context
 
 
 class Block(SchemaMixin, ContextMixin, Layer):
@@ -195,13 +195,14 @@ class Block(SchemaMixin, ContextMixin, Layer):
     @tf.autograph.experimental.do_not_convert
     def parse(cls, *block: BlockType) -> "Block":
         if len(block) == 1 and isinstance(block[0], (list, tuple)):
-            block = block[0]
+            block = block[0]  # type: ignore
 
+        output: "Block"
         if len(block) == 1:
-            output: "Block" = cls.registry.parse(block[0])
+            output = cls.registry.parse(block[0])
         else:
             blocks = [cls.registry.parse(b) for b in block]
-            output: "Block" = blocks[0].connect(*blocks[1:])
+            output = blocks[0].connect(*blocks[1:])
 
         return output
 
@@ -356,8 +357,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         for b in blocks:
             if isinstance(b, Block):
-                if not b.schema:
-                    b.schema = self.schema
+                if not b.has_schema:
+                    b._schema = self.schema
 
         output = SequentialBlock(
             [self, *blocks], copy_layers=False, block_name=block_name, context=context
@@ -481,10 +482,10 @@ class Block(SchemaMixin, ContextMixin, Layer):
         """
         from merlin.models.tf.blocks.core.combinators import Filter, ParallelBlock, SequentialBlock
 
-        branches = [self.parse(b) for b in branches]
+        _branches = [self.parse(b) for b in branches]
 
         all_features = []
-        for branch in branches:
+        for branch in _branches:
             if getattr(branch, "set_schema", None):
                 branch.set_schema(self.schema)
             if isinstance(branch, SequentialBlock):
@@ -493,21 +494,23 @@ class Block(SchemaMixin, ContextMixin, Layer):
                     all_features.extend(filter_features)
 
         if add_rest:
+            if not self.schema:
+                raise ValueError("Schema is required to add rest features.")
             rest_features = self.schema.without(list(set([str(f) for f in all_features])))
             rest_block = SequentialBlock([Filter(rest_features)])
-            branches.append(rest_block)
+            _branches.append(rest_block)
 
-        if all(isinstance(branch, ModelLikeBlock) for branch in branches):
+        if all(isinstance(branch, ModelLikeBlock) for branch in _branches):
             from merlin.models.tf import ParallelPredictionBlock
 
             parallel = ParallelPredictionBlock(
-                *branches, post=post, aggregation=aggregation, **kwargs
+                *_branches, post=post, aggregation=aggregation, **kwargs
             )
 
             return Model(SequentialBlock([self, parallel]))
 
         return SequentialBlock(
-            [self, ParallelBlock(*branches, post=post, aggregation=aggregation, **kwargs)]
+            [self, ParallelBlock(*_branches, post=post, aggregation=aggregation, **kwargs)]
         )
 
     def select_by_name(self, name: str) -> Optional["Block"]:
@@ -552,7 +555,8 @@ class EmbeddingWithMetadata:
 
 
 def is_input_block(block: Block) -> bool:
-    return block and getattr(block, "is_input", None)
+    is_defined = True if block else False
+    return is_defined and getattr(block, "is_input", False)
 
 
 def has_input_block(block: Block) -> bool:

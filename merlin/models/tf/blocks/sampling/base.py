@@ -40,7 +40,7 @@ class ItemSampler(abc.ABC, Layer):
     def sample(self) -> EmbeddingWithMetadata:
         raise NotImplementedError()
 
-    def _check_inputs_batch_sizes(self, inputs: TabularData) -> bool:
+    def _check_inputs_batch_sizes(self, inputs: TabularData):
         embeddings_batch_size = tf.shape(inputs["embeddings"])[0]
         for feat_name in inputs["metadata"]:
             metadata_feat_batch_size = tf.shape(inputs["metadata"][feat_name])[0]

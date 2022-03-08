@@ -294,7 +294,7 @@ class TupleAggregation(TabularAggregation, abc.ABC):
 
         return outputs
 
-    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
         raise NotImplementedError()
 
 
@@ -305,7 +305,7 @@ class CosineSimilarity(TupleAggregation):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
         self.dot = Dot(axes=1, normalize=True)
 
-    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
         out = self.dot([left, right])
 
         return out
@@ -317,7 +317,7 @@ class ElementWiseMultiply(TupleAggregation):
     def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
 
-    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
         out = tf.keras.layers.Multiply()([left, right])
 
         return out

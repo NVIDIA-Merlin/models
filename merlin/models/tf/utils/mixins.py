@@ -74,7 +74,7 @@ class MetricsMixin(abc.ABC):
         """
         raise NotImplementedError()
 
-    def metric_results(self, mode: str = None) -> Dict[str, Union[float, tf.Tensor]]:
+    def metric_results(self, mode: str = "val") -> Dict[str, Union[float, tf.Tensor]]:
         """Returns the current state of each metric.
 
         The state is typically updated each batch by calling the `calculate_metrics` method.
@@ -117,7 +117,7 @@ class ModelLikeBlock(Protocol):
     ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
         ...
 
-    def metric_results(self, mode: str = None) -> Dict[str, Union[float, tf.Tensor]]:
+    def metric_results(self, mode: str = "val") -> Dict[str, Union[float, tf.Tensor]]:
         ...
 
     def _set_context(self, context):

@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
-
 from merlin.schema import Schema, Tags
 
 
@@ -30,8 +28,15 @@ class SchemaMixin:
         return self
 
     @property
-    def schema(self) -> Optional[Schema]:
-        return getattr(self, "_schema", None)
+    def schema(self) -> Schema:
+        if not self.has_schema:
+            raise ValueError(f"{self.__class__.__name__} does not have a schema.")
+
+        return self._schema
+
+    @property
+    def has_schema(self):
+        return getattr(self, "_schema", None) is not None
 
     @schema.setter
     def schema(self, value):

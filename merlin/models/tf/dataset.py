@@ -42,9 +42,9 @@ else:
 
 # noqa
 try:
-    from merlin.io import Dataset
+    from merlin.io import Dataset as _Dataset
 
-    merlin_dataset_class = Dataset
+    merlin_dataset_class = _Dataset
 except ImportError:
     merlin_dataset_class = None
 # pylint has issues with TF array ops, so disable checks until fixed:

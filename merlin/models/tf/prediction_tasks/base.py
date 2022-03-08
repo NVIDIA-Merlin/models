@@ -85,8 +85,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return x
 
     def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
-        outputs = self.pre.call_outputs(outputs, **kwargs)
-        return outputs
+        out = self.pre.call_outputs(outputs, **kwargs) if self.pre else outputs
+
+        return out
 
     def __call__(self, *args, **kwargs):
         inputs = self.pre_call(*args, **kwargs)
@@ -203,7 +204,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         return update_ops
 
-    def metric_results(self, mode: str = None):
+    def metric_results(self, mode: str = "val"):
         return {metric.name: metric.result() for metric in self.metrics}
 
     def metric_result_dict(self, mode=None):
@@ -393,6 +394,8 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
     def add_task(self, task: PredictionTask, task_weight=1):
         key = task.target_name
+        if not key:
+            raise ValueError("PredictionTask must have a target_name")
         self.parallel_dict[key] = task
         if task_weight:
             self._task_weight_dict[key] = task_weight
@@ -436,7 +439,7 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
         return super().compute_call_output_shape(input_shape)
 
-    def compute_loss(
+    def compute_loss(  # type: ignore
         self, inputs: Union[tf.Tensor, TabularData], targets, training=False, **kwargs
     ) -> tf.Tensor:
         losses = []

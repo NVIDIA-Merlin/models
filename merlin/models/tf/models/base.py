@@ -411,8 +411,8 @@ class RetrievalModel(Model):
             self.retrieval_block.item_block(), data=data, k=k - 1, context=self.context, **kwargs
         )
         # set cache_query to True in the ItemRetrievalScorer
-        self.loss_block.retrieval_scorer.cache_query = True
-        self.loss_block.pre_metrics = topk_index
+        self.loss_block.retrieval_scorer.cache_query = True  # type: ignore
+        self.loss_block.pre_metrics = topk_index  # type: ignore
         return self
 
     def to_top_k_recommender(self, data: merlin.io.Dataset, k: int, **kwargs) -> ModelBlock:

@@ -280,9 +280,9 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
             inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
 
         if self.low_rank_dim is None:
-            return self.dense(inputs)
+            return self.dense(inputs)  # type: ignore
 
-        return self.dense(self.dense_u(inputs))
+        return self.dense(self.dense_u(inputs))  # type: ignore
 
     def compute_output_shape(self, input_shape):
         if isinstance(input_shape, dict):

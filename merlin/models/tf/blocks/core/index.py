@@ -137,7 +137,7 @@ class TopKIndexBlock(IndexBlock):
         super(TopKIndexBlock, self).__init__(values, ids, **kwargs)
 
     @classmethod
-    def from_block(
+    def from_block(  # type: ignore
         cls,
         block: Block,
         data: merlin.io.Dataset,

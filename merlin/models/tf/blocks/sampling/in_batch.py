@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+from typing import Optional
 
 import tensorflow as tf
 
@@ -46,10 +46,10 @@ class InBatchSampler(ItemSampler):
         The batch size. If not set it is inferred when the layer is built (first call())
     """
 
-    def __init__(self, batch_size: int = None, **kwargs):
+    def __init__(self, batch_size: Optional[int] = None, **kwargs):
         super().__init__(max_num_samples=batch_size, **kwargs)
-        self._last_batch_items_embeddings: tf.Tensor = None
-        self._last_batch_items_metadata: TabularData = None
+        self._last_batch_items_embeddings: tf.Tensor = None  # type: ignore
+        self._last_batch_items_metadata: TabularData = {}
         self.set_batch_size(batch_size)
 
     @property
@@ -96,7 +96,7 @@ class InBatchSampler(ItemSampler):
         items_embeddings = self.sample()
         return items_embeddings
 
-    def add(self, inputs: TabularData, training=True) -> None:
+    def add(self, inputs: TabularData, training=True) -> None:  # type: ignore
         self._check_inputs_batch_sizes(inputs)
         self._last_batch_items_embeddings = inputs["embeddings"]
         self._last_batch_items_metadata = inputs["metadata"]

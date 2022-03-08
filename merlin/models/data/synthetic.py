@@ -19,7 +19,7 @@ import pathlib
 import tempfile
 from pathlib import Path
 from random import randint
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -43,7 +43,7 @@ def _read_data(path: str, num_rows: Optional[int] = None) -> pd.DataFrame:
 
 
 class SyntheticData:
-    DATASETS = {
+    DATASETS: Dict[str, Path] = {
         "ecommerce": HERE / "ecommerce/small",
         "e-commerce": HERE / "ecommerce/small",
         "ecommerce-large": HERE / "ecommerce/large",
@@ -65,7 +65,7 @@ class SyntheticData:
         read_data_fn=_read_data,
     ):
         if not os.path.isdir(data):
-            data = self.DATASETS[data]
+            data = self.DATASETS[data]  # type: ignore
 
         self._dir = str(data)
         self.data_path = os.path.join(self._dir, self.FILE_NAME)
@@ -231,9 +231,9 @@ def generate_user_item_interactions(
     data = _frame.DataFrame()
     processed_cols = []
     # get session cols
-    session_id_col = list(schema.select_by_tag(Tags.SESSION_ID))
-    if session_id_col:
-        session_id_col = session_id_col[0]
+    session_id_cols = list(schema.select_by_tag(Tags.SESSION_ID))
+    if session_id_cols:
+        session_id_col = session_id_cols[0]
         data[session_id_col.name] = _array.clip(
             _array.random.lognormal(3.0, 1.0, num_interactions).astype(_array.int32),
             1,
