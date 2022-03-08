@@ -86,6 +86,7 @@ from merlin.models.tf.features.embedding import (
 )
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
+from .models import benchmark
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.tf.models.ranking import DCNModel, DLRMModel
 from merlin.models.tf.models.retrieval import (
