@@ -352,6 +352,8 @@ def process_metrics(metrics, prefix=""):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RankingMetric2(Mean):
     def __init__(self, fn, k=5, pre_sorted=True, name=None, dtype=None, **kwargs):
+        if name is not None:
+            name = f"{name}_{k}"
         super().__init__(name=name, dtype=dtype)
         self._fn = fn
         self.k = k
@@ -362,7 +364,7 @@ class RankingMetric2(Mean):
         self,
         y_true: tf.Tensor,
         y_pred: tf.Tensor,
-        relevant_count: Optional[tf.Tensor] = None,
+        label_relevant_counts: Optional[tf.Tensor] = None,
         sample_weight: Optional[tf.Tensor] = None,
     ):
         y_true = tf.cast(y_true, self._dtype)
@@ -375,41 +377,35 @@ class RankingMetric2(Mean):
         )
         y_pred, y_true = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true)
 
-        y_pred, y_true, relevant_count = self._maybe_sort_top_k(y_pred, y_true, relevant_count)
+        y_pred, y_true, label_relevant_counts = self._maybe_sort_top_k(
+            y_pred, y_true, label_relevant_counts
+        )
 
         ag_fn = tf.__internal__.autograph.tf_convert(
             self._fn, tf.__internal__.autograph.control_status_ctx()
         )
+
         matches = ag_fn(
             y_true,
             y_pred,
-            relevant_count=relevant_count,
+            label_relevant_counts=label_relevant_counts,
             k=self.k,
             **self._fn_kwargs,
         )
         return super().update_state(matches, sample_weight=sample_weight)
 
-    def _maybe_sort_top_k(self, y_pred, y_true, relevant_count: tf.Tensor = None):
+    def _maybe_sort_top_k(self, y_pred, y_true, label_relevant_counts: tf.Tensor = None):
         if not self.pre_sorted:
-            y_pred, y_true, relevant_count = RankingMetric.extract_topk_for_metrics(
-                y_pred, y_true, self.k
-            )
+            y_pred, y_true, label_relevant_counts = extract_topk(self.k, y_pred, y_true)
         else:
-            if relevant_count is None:
+            if label_relevant_counts is None:
                 raise Exception(
                     "If y_true was pre-sorted (and truncated to top-k) you must "
-                    "provide relevant_count argument."
+                    "provide label_relevant_counts argument."
                 )
-            relevant_count = tf.cast(relevant_count, self._dtype)
+            label_relevant_counts = tf.cast(label_relevant_counts, self._dtype)
 
-        return y_pred, y_true, relevant_count
-
-    @classmethod
-    def extract_topk_for_metrics(cls, y_pred, y_true, k):
-        # Computes the number of relevant items per row (before extracting only the top-k)
-        relevant_count = tf.reduce_sum(y_true, axis=-1)
-        y_pred, y_true = extract_topk(k, y_pred, y_true)
-        return y_pred, y_true, relevant_count
+        return y_pred, y_true, label_relevant_counts
 
     def get_config(self):
         config = {}
@@ -442,12 +438,12 @@ class RankingMetric2(Mean):
 def recall_at(
     y_true: tf.Tensor,
     y_pred: tf.Tensor,
-    relevant_count: Optional[tf.Tensor],
+    label_relevant_counts: Optional[tf.Tensor],
     k: int = 5,
 ) -> tf.Tensor:
     # Compute recalls at K
-    rel_indices = tf.where(relevant_count != 0)
-    rel_count = tf.gather_nd(relevant_count, rel_indices)
+    rel_indices = tf.where(label_relevant_counts != 0)
+    rel_count = tf.gather_nd(label_relevant_counts, rel_indices)
 
     if tf.shape(rel_indices)[0] > 0:
         rel_labels = tf.cast(tf.gather_nd(y_true, rel_indices)[:, : int(k)], backend.floatx())

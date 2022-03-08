@@ -302,10 +302,7 @@ def test_last_item_prediction_task(
         masking="clm",
         split_sparse=True,
     )
-    if sampled_softmax:
-        loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-    else:
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     task = ml.NextItemPredictionTask(
         schema=sequence_testing_data.schema,
         loss=loss,

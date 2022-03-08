@@ -133,3 +133,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
     @property
     def retrieval_scorer(self):
         return self.pre[0][1]
+
+    def set_retrieval_cache_query(self, value: bool):
+        self.retrieval_scorer.cache_query = value

@@ -204,13 +204,7 @@ class MultiClassClassificationTask(PredictionTask):
     def metric_results(self, mode: str = None):
         dict_results = {}
         for metric in self.metrics:
-            if hasattr(metric, "top_ks"):
-                topks = metric.top_ks
-                results = metric.result()
-                for i, k in enumerate(topks):
-                    dict_results[f"{metric.name}_{k}"] = results[i]
-            else:
-                dict_results.update({metric.name: metric.result()})
+            dict_results.update({metric.name: metric.result()})
 
         return dict_results
 

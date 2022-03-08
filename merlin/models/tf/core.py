@@ -56,6 +56,7 @@ from .typing import TabularData, TensorOrTabularData
 from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from .utils.tf_utils import (
     calculate_batch_size_from_input_shapes,
+    extract_topk,
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
@@ -67,6 +68,7 @@ BlockType = Union["Block", str, Sequence[str]]
 class PredictionOutput(NamedTuple):
     predictions: Union[TabularData, tf.Tensor]
     targets: Union[TabularData, tf.Tensor]
+    label_relevant_counts: Optional[tf.Tensor] = None
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -1807,6 +1809,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.label_metrics = create_metrics(label_metrics) if label_metrics else []
         self.loss_metrics = create_metrics(loss_metrics) if loss_metrics else []
 
+    def set_pre_eval_topk(self, block):
+        self.pre_eval_topk = block
+
     def pre_call(self, inputs, **kwargs):
         x = inputs
 
@@ -1923,43 +1928,77 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         update_ops = []
 
+        label_relevant_counts_eval = None
         if not training and self.pre_eval_topk:
-            outputs = self.pre_eval_topk.call_targets(
+            outputs = self.pre_eval_topk.call_outputs(
                 PredictionOutput(predictions, targets), **kwargs
             )
-            targets, predictions = outputs.targets, outputs.predictions
-            relevant_count = None
+            targets, predictions, label_relevant_counts_eval = (
+                outputs.targets,
+                outputs.predictions,
+                outputs.label_relevant_counts,
+            )
 
         if len(self.eval_metrics) > 0:
             predictions_eval = predictions
             targets_eval = targets
 
-            if training:
-                ranking_metrics = list(
-                    [metric for metric in self.eval_metrics if isinstance(metric, RankingMetric2)]
+            ranking_metrics = list(
+                [metric for metric in self.eval_metrics if isinstance(metric, RankingMetric2)]
+            )
+
+            if len(ranking_metrics) > 0:
+
+                tf.assert_equal(
+                    tf.shape(targets),
+                    tf.shape(predictions),
+                    f"Predictions ({tf.shape(predictions)}) and targets ({tf.shape(targets)}) "
+                    f"should have the same shape. Check if targets were one-hot encoded "
+                    f"(with LabelToOneHot() block for example).",
                 )
 
-                if len(ranking_metrics) > 0:
-                    # Checking the highest k used in ranking metrics
-                    max_k = tf.reduce_max([metric.k for metric in ranking_metrics])
-                    # Pre-sorts predictions and targets (by prediction scores) only once
-                    # for all ranking metric (for performance optimization) and extracts
-                    # only the top-k predictions/targets.
-                    # The relevant_count is necessary because when extracing the labels from the
-                    # top-k predictions some relevant items might not be included, but the
-                    # relevant count is necessary for many ranking metrics (e.g. recall, ndcg)
-                    (
-                        predictions_eval,
-                        targets_eval,
-                        relevant_count,
-                    ) = RankingMetric2.extract_topk_for_metrics(predictions, targets, max_k)
+                max_k = tf.reduce_max([metric.k for metric in ranking_metrics])
+                tf.debugging.assert_greater_equal(
+                    tf.shape(predictions_eval)[-1],
+                    max_k,
+                    f"The max k for ranking metrics ({max_k}) is higher than "
+                    f"the number of predictions in this batch",
+                )
+
+                pre_sorted_ranking_metrics = list(
+                    [metric for metric in ranking_metrics if metric.pre_sorted]
+                )
+
+                if len(pre_sorted_ranking_metrics) > 0:
+
+                    if len(ranking_metrics) > len(pre_sorted_ranking_metrics):
+                        raise Exception(
+                            "If one of the ranking metrics is set to 'pre_sorted=True', all the "
+                            "other ranking metrics should have the same configuration to avoid "
+                            "sorting predictions twice."
+                        )
+
+                    if training or self.pre_eval_topk is None:
+                        # Checking the highest k used in ranking metrics
+                        max_k = tf.reduce_max([metric.k for metric in pre_sorted_ranking_metrics])
+                        # Pre-sorts predictions and targets (by prediction scores) only once
+                        # for all ranking metric (for performance optimization) and extracts
+                        # only the top-k predictions/targets.
+                        # The label_relevant_counts is necessary because when extracing the labels
+                        # from the top-k predictions some relevant items might not be included, but
+                        # the relevant count is necessary for many ranking metrics (recall, ndcg)
+                        (
+                            predictions_eval,
+                            targets_eval,
+                            label_relevant_counts_eval,
+                        ) = extract_topk(max_k, predictions, targets)
 
             for metric in self.eval_metrics:
-                if isinstance(metric, RankingMetric2):
+                if isinstance(metric, RankingMetric2) and metric.pre_sorted:
                     metric_state = metric.update_state(
                         targets_eval,
                         predictions_eval,
-                        relevant_count,
+                        label_relevant_counts_eval,
                         sample_weight=sample_weight,
                     )
                 else:
@@ -2784,8 +2823,8 @@ class RetrievalModel(Model):
             self.retrieval_block.item_block(), data=data, k=k - 1, context=self.context, **kwargs
         )
         # set cache_query to True in the ItemRetrievalScorer
-        self.loss_block.retrieval_scorer.cache_query = True
-        self.loss_block.pre_eval_topk = topk_index
+        self.loss_block.set_retrieval_cache_query(True)
+        self.loss_block.set_pre_eval_topk(topk_index)
         return self
 
     def to_top_k_recommender(self, data: merlin.io.Dataset, k: int, **kwargs) -> ModelBlock:
