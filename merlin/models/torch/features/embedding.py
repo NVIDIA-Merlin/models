@@ -31,7 +31,10 @@ from merlin.models.torch.utils.torch_utils import (
     get_output_sizes_from_schema,
 )
 from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.models.utils.schema import categorical_cardinalities, get_embedding_sizes_from_schema
+from merlin.models.utils.schema_utils import (
+    categorical_cardinalities,
+    get_embedding_sizes_from_schema,
+)
 from merlin.schema import Schema, Tags
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
