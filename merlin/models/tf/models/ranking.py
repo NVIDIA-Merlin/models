@@ -7,7 +7,7 @@ from ..blocks.cross import CrossBlock
 from ..blocks.dlrm import DLRMBlock
 from ..blocks.mlp import MLPBlock
 from ..core import Block, Model, ParallelPredictionBlock, PredictionTask
-from .utils import _parse_prediction_tasks
+from .utils import parse_prediction_tasks
 
 
 def DLRMModel(
@@ -51,7 +51,7 @@ def DLRMModel(
 
     """
 
-    prediction_tasks = _parse_prediction_tasks(schema, prediction_tasks)
+    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
 
     dlrm_body = DLRMBlock(
         schema,
@@ -118,7 +118,7 @@ def DCNModel(
 
     aggregation = kwargs.pop("aggregation", "concat")
     input_block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
-    prediction_tasks = _parse_prediction_tasks(schema, prediction_tasks)
+    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     if stacked:
         dcn_body = input_block.connect(CrossBlock(depth), deep_block)
     else:
