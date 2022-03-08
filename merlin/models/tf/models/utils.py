@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 
-from merlin.models.tf.blocks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.schema import Schema
 

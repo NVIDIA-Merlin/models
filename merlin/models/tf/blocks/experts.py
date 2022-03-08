@@ -17,14 +17,9 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.base import (
-    Block,
-    ParallelBlock,
-    ParallelPredictionBlock,
-    PredictionTask,
-    TabularBlock,
-)
+from merlin.models.tf.blocks.base import Block, ParallelBlock, TabularBlock
 from merlin.models.tf.blocks.core.aggregation import StackFeatures
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.schema import Schema
 

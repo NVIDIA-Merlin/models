@@ -38,8 +38,6 @@ from merlin.models.tf.blocks.base import (
     Filter,
     NoOp,
     ParallelBlock,
-    ParallelPredictionBlock,
-    PredictionTask,
     ResidualBlock,
     SequentialBlock,
     TabularBlock,
@@ -94,6 +92,7 @@ from merlin.models.tf.models.retrieval import (
     TwoTowerModel,
     YoutubeDNNRetrievalModel,
 )
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.classification import (
     BinaryClassificationTask,
     MultiClassClassificationTask,

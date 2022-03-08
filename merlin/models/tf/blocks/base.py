@@ -23,28 +23,16 @@ from collections import Sequence as SequenceCollection
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import reduce
-from typing import (
-    TYPE_CHECKING,
-    Dict,
-    List,
-    NamedTuple,
-    Optional,
-    Sequence,
-    Text,
-    Type,
-    Union,
-    overload,
-)
+from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Sequence, Type, Union, overload
 
 import six
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
-from tensorflow.python.keras.utils import generic_utils
 
 import merlin.io
 from merlin.models.config.schema import SchemaMixin
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
-from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
+from merlin.models.tf.utils.mixins import ModelLikeBlock
 from merlin.models.tf.utils.tf_utils import (
     calculate_batch_size_from_input_shapes,
     maybe_deserialize_keras_objects,
@@ -59,22 +47,13 @@ from merlin.models.utils.schema import (
 )
 from merlin.schema import Schema, Tags
 
-from .metrics.ranking import RankingMetric
-from .typing import TabularData, TensorOrTabularData
-from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
-from .utils.tf_utils import (
-    calculate_batch_size_from_input_shapes,
-    extract_topk,
-    maybe_deserialize_keras_objects,
-    maybe_serialize_keras_objects,
-)
-
 block_registry: Registry = Registry.class_registry("tf.blocks")
 BlockType = Union["Block", str, Sequence[str]]
 
 
 if TYPE_CHECKING:
-    from models.tf.models.base import Model, RetrievalModel
+    from merlin.models.tf.models.base import Model, RetrievalModel
+    from merlin.models.tf.prediction_tasks.base import PredictionTask
 
 
 class PredictionOutput(NamedTuple):
@@ -390,7 +369,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         """
 
-        from merlin.models.tf.blocks.models.base import Model, RetrievalBlock, RetrievalModel
+        from merlin.models.tf.models.base import Model, RetrievalBlock, RetrievalModel
 
         blocks = [self.parse(b) for b in block]
 
@@ -571,6 +550,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
             branches.append(rest_block)
 
         if all(isinstance(branch, ModelLikeBlock) for branch in branches):
+            from merlin.models.tf import ParallelPredictionBlock
+
             parallel = ParallelPredictionBlock(
                 *branches, post=post, aggregation=aggregation, **kwargs
             )
