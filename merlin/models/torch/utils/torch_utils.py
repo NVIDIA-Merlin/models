@@ -19,10 +19,9 @@ from typing import Dict, Union
 
 import torch
 
+from merlin.models.config.schema import SchemaMixin
+from merlin.models.torch.typing import TabularData
 from merlin.schema import Schema
-
-from ...config.schema import SchemaMixin
-from ..typing import TabularData
 
 
 class OutputSizeMixin(SchemaMixin, abc.ABC):
@@ -47,7 +46,7 @@ class OutputSizeMixin(SchemaMixin, abc.ABC):
         raise NotImplementedError()
 
     def __rrshift__(self, other):
-        from ..block.base import right_shift_block
+        from merlin.models.torch.block.base import right_shift_block
 
         return right_shift_block(self, other)
 

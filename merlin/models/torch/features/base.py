@@ -16,7 +16,7 @@
 
 from abc import ABC
 
-from ..tabular.base import TabularBlock
+from merlin.models.torch.tabular.base import TabularBlock
 
 
 class InputBlock(TabularBlock, ABC):

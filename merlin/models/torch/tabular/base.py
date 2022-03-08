@@ -21,13 +21,15 @@ from typing import Dict, List, Optional, Union
 
 import torch
 
+from merlin.models.torch.block.base import BlockBase, SequentialBlock, right_shift_block
+from merlin.models.torch.typing import TabularData, TensorOrTabularData
+from merlin.models.torch.utils.torch_utils import (
+    OutputSizeMixin,
+    calculate_batch_size_from_input_size,
+)
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.registry import Registry
 from merlin.schema import Schema
-
-from ..block.base import BlockBase, SequentialBlock, right_shift_block
-from ..typing import TabularData, TensorOrTabularData
-from ..utils.torch_utils import OutputSizeMixin, calculate_batch_size_from_input_size
 
 tabular_transformation_registry: Registry = Registry.class_registry("torch.tabular_transformations")
 tabular_aggregation_registry: Registry = Registry.class_registry("torch.tabular_aggregations")

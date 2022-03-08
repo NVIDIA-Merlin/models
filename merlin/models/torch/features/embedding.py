@@ -19,18 +19,20 @@ from typing import Any, Callable, Dict, Optional, Text, Union
 
 import torch
 
-from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import Schema, Tags
-
-from ...utils.schema import categorical_cardinalities, get_embedding_sizes_from_schema
-from ..tabular.base import (
+from merlin.models.torch.features.base import InputBlock
+from merlin.models.torch.tabular.base import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     FilterFeatures,
     TabularAggregationType,
     TabularTransformationType,
 )
-from ..utils.torch_utils import calculate_batch_size_from_input_size, get_output_sizes_from_schema
-from .base import InputBlock
+from merlin.models.torch.utils.torch_utils import (
+    calculate_batch_size_from_input_size,
+    get_output_sizes_from_schema,
+)
+from merlin.models.utils.doc_utils import docstring_parameter
+from merlin.models.utils.schema import categorical_cardinalities, get_embedding_sizes_from_schema
+from merlin.schema import Schema, Tags
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     feature_config: Dict[str, FeatureConfig]

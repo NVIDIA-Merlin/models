@@ -21,9 +21,9 @@ from typing import Optional
 import torch
 import torchmetrics as tm
 
-from ..block.base import BuildableBlock, SequentialBlock
-from ..utils.torch_utils import LambdaModule
-from .base import BlockType, PredictionTask
+from merlin.models.torch.block.base import BuildableBlock, SequentialBlock
+from merlin.models.torch.model.base import BlockType, PredictionTask
+from merlin.models.torch.utils.torch_utils import LambdaModule
 
 LOG = logging.getLogger("merlin.models")
 

@@ -23,13 +23,12 @@ import torch
 import torchmetrics as tm
 from tqdm import tqdm
 
+from merlin.models.torch.block.base import BlockBase, BlockOrModule, BlockType
+from merlin.models.torch.features.base import InputBlock
+from merlin.models.torch.typing import TabularData, TensorOrTabularData
+from merlin.models.torch.utils.torch_utils import LossMixin, MetricsMixin
 from merlin.models.utils.registry import camelcase_to_snakecase
 from merlin.schema import Schema, Tags
-
-from ..block.base import BlockBase, BlockOrModule, BlockType
-from ..features.base import InputBlock
-from ..typing import TabularData, TensorOrTabularData
-from ..utils.torch_utils import LossMixin, MetricsMixin
 
 
 def name_fn(name, inp):
@@ -199,7 +198,7 @@ class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
             predictions = self(predictions)
         predictions = self.forward_to_prediction_fn(cast(torch.Tensor, predictions))
 
-        from .prediction_task import BinaryClassificationTask
+        from merlin.models.torch.model.prediction_task import BinaryClassificationTask
 
         for metric in self.metrics:
             if isinstance(metric, tuple(type(x) for x in BinaryClassificationTask.DEFAULT_METRICS)):
@@ -328,7 +327,10 @@ class Head(torch.nn.Module, LossMixin, MetricsMixin):
         tasks: List[PredictionTask] = []
         task_weights = []
 
-        from .prediction_task import BinaryClassificationTask, RegressionTask
+        from merlin.models.torch.model.prediction_task import (
+            BinaryClassificationTask,
+            RegressionTask,
+        )
 
         for binary_target in schema.select_by_tag(Tags.BINARY_CLASSIFICATION).column_names:
             tasks.append(BinaryClassificationTask(binary_target))

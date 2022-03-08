@@ -14,9 +14,9 @@
 # limitations under the License.
 #
 
-from .base import LossType, loss_registry
-from .listwise import CategoricalCrossEntropy, SparseCategoricalCrossEntropy
-from .pairwise import (
+from merlin.models.tf.losses.base import LossType, loss_registry
+from merlin.models.tf.losses.listwise import CategoricalCrossEntropy, SparseCategoricalCrossEntropy
+from merlin.models.tf.losses.pairwise import (
     AdaptiveHingeLoss,
     BPRLoss,
     BPRmaxLoss,

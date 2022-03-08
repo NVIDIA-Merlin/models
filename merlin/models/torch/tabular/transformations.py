@@ -18,9 +18,9 @@ from typing import Dict, Optional
 
 import torch
 
-from ..features.embedding import FeatureConfig, TableConfig
-from ..typing import TabularData, TensorOrTabularData
-from .base import TabularTransformation, tabular_transformation_registry
+from merlin.models.torch.features.embedding import FeatureConfig, TableConfig
+from merlin.models.torch.tabular.base import TabularTransformation, tabular_transformation_registry
+from merlin.models.torch.typing import TabularData, TensorOrTabularData
 
 
 @tabular_transformation_registry.register_with_multiple_names("stochastic-swap-noise", "ssn")
