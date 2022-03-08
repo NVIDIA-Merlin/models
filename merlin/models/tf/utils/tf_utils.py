@@ -103,12 +103,14 @@ def maybe_deserialize_keras_objects(
 
 
 def extract_topk(max_k, scores, labels):
+    # Computes the number of relevant items per row (before extracting only the top-k)
+    label_relevant_counts = tf.reduce_sum(labels, axis=-1)
     topk_scores, topk_indices = tf.math.top_k(scores, max_k)
     topk_labels = gather_torch_like(labels, topk_indices, max_k)
-    return topk_scores, topk_labels
+    return topk_scores, topk_labels, label_relevant_counts
 
 
-def tranform_label_to_onehot(labels, vocab_size):
+def transform_label_to_onehot(labels, vocab_size):
     return tf.one_hot(tf.reshape(labels, (-1,)), vocab_size)
 
 

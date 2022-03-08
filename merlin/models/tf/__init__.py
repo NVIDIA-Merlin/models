@@ -47,6 +47,7 @@ from .blocks.core.transformations import (
     AsDenseFeatures,
     AsSparseFeatures,
     ExpandDims,
+    LabelToOneHot,
     StochasticSwapNoise,
 )
 from .blocks.cross import CrossBlock
@@ -169,6 +170,7 @@ __all__ = [
     "InputBlock",
     "PredictionTasks",
     "StochasticSwapNoise",
+    "LabelToOneHot",
     "ExpandDims",
     "NoOp",
     "data",

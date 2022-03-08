@@ -31,29 +31,31 @@ class ItemsPredictionTopK(Block):
     k: int
         Number of top candidates to return.
         Defaults to 20
-    transform_to_onehot: bool
-        If set to True, transform integer encoded ids to one-hot representation.
-        Defaults to True
     """
 
     def __init__(
         self,
         k: int = 20,
-        transform_to_onehot: bool = True,
         **kwargs,
     ):
         super(ItemsPredictionTopK, self).__init__(**kwargs)
         self._k = k
-        self.transform_to_onehot = transform_to_onehot
 
     @tf.function
     def call_outputs(
         self, outputs: PredictionOutput, training=False, **kwargs
     ) -> "PredictionOutput":
         targets, predictions = outputs.targets, outputs.predictions
-        if self.transform_to_onehot:
-            num_classes = tf.shape(predictions)[-1]
-            targets = tf_utils.tranform_label_to_onehot(targets, num_classes)
 
-        topk_scores, topk_labels = tf_utils.extract_topk(self._k, predictions, targets)
-        return PredictionOutput(topk_scores, topk_labels)
+        tf.assert_equal(
+            tf.shape(targets),
+            tf.shape(predictions),
+            f"Predictions ({tf.shape(predictions)}) and targets ({tf.shape(targets)}) "
+            f"should have the same shape. Check if targets were one-hot encoded "
+            f"(with LabelToOneHot() block for example).",
+        )
+
+        topk_scores, topk_labels, label_relevant_counts = tf_utils.extract_topk(
+            self._k, predictions, targets
+        )
+        return PredictionOutput(topk_scores, topk_labels, label_relevant_counts)

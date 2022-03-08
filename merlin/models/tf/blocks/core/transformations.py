@@ -25,6 +25,7 @@ from merlin.schema import Schema, Tags
 from ....utils.schema import categorical_cardinalities
 from ...core import Block, PredictionOutput, TabularBlock
 from ...typing import TabularData, TensorOrTabularData
+from ...utils.tf_utils import transform_label_to_onehot
 
 
 @Block.registry.register("as-sparse")
@@ -400,3 +401,23 @@ class ItemsPredictionWeightTying(Block):
         logits = tf.nn.bias_add(logits, self.bias)
 
         return logits
+
+
+@Block.registry.register_with_multiple_names("label_to_onehot")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class LabelToOneHot(Block):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def call_outputs(
+        self, outputs: PredictionOutput, training=True, **kwargs
+    ) -> "PredictionOutput":
+        targets, predictions = outputs.targets, outputs.predictions
+
+        num_classes = tf.shape(predictions)[-1]
+        targets = transform_label_to_onehot(targets, num_classes)
+
+        return PredictionOutput(predictions, targets)
