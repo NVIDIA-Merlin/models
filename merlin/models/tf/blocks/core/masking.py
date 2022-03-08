@@ -279,7 +279,7 @@ class MaskedLanguageModeling(MaskingBlock):
         """
         item_ids = tf.squeeze(item_ids)
         item_ids = tf.cast(item_ids, dtype=tf.int64)
-        self.labels.assign(tf.fill(tf.shape(item_ids), self.padding_idx))
+        self.labels.assign(tf.cast(tf.fill(tf.shape(item_ids), self.padding_idx), tf.int64))
         non_padded_mask = tf.cast(item_ids != self.padding_idx, self.labels.dtype)
         rows_ids = tf.range(tf.shape(item_ids)[0], dtype=tf.int64)
 
