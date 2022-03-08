@@ -19,8 +19,8 @@ from typing import List, Optional
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from ...core import EmbeddingWithMetadata
-from ...typing import TabularData
+from merlin.models.tf.blocks.base import EmbeddingWithMetadata
+from merlin.models.tf.typing import TabularData
 
 
 class ItemSampler(abc.ABC, Layer):

@@ -1,13 +1,13 @@
 from typing import List, Optional, Union
 
+from merlin.models.tf.blocks.base import Block, ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.blocks.cross import CrossBlock
+from merlin.models.tf.blocks.dlrm import DLRMBlock
+from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.models.base import Model
+from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.schema import Schema
-
-from ..blocks.core.inputs import InputBlock
-from ..blocks.cross import CrossBlock
-from ..blocks.dlrm import DLRMBlock
-from ..blocks.mlp import MLPBlock
-from ..core import Block, Model, ParallelPredictionBlock, PredictionTask
-from .utils import parse_prediction_tasks
 
 
 def DLRMModel(

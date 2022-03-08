@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+from __future__ import annotations
+
 import abc
 import copy
 import sys
@@ -22,17 +24,16 @@ from collections import defaultdict
 from dataclasses import dataclass
 from functools import reduce
 from typing import (
+    TYPE_CHECKING,
     Dict,
     List,
     NamedTuple,
     Optional,
-    Protocol,
     Sequence,
     Text,
     Type,
     Union,
     overload,
-    runtime_checkable,
 )
 
 import six
@@ -41,8 +42,14 @@ from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
 import merlin.io
-import merlin.models.tf as ml
 from merlin.models.config.schema import SchemaMixin
+from merlin.models.tf.typing import TabularData, TensorOrTabularData
+from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
+from merlin.models.tf.utils.tf_utils import (
+    calculate_batch_size_from_input_shapes,
+    maybe_deserialize_keras_objects,
+    maybe_serialize_keras_objects,
+)
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.misc_utils import filter_kwargs
 from merlin.models.utils.registry import Registry, RegistryMixin
@@ -64,6 +71,10 @@ from .utils.tf_utils import (
 
 block_registry: Registry = Registry.class_registry("tf.blocks")
 BlockType = Union["Block", str, Sequence[str]]
+
+
+if TYPE_CHECKING:
+    from models.tf.models.base import Model, RetrievalModel
 
 
 class PredictionOutput(NamedTuple):
@@ -378,6 +389,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Context to use for the block.
 
         """
+
+        from merlin.models.tf.blocks.models.base import Model, RetrievalBlock, RetrievalModel
 
         blocks = [self.parse(b) for b in block]
 
@@ -771,7 +784,8 @@ class SequentialBlock(Block):
     def call(self, inputs, training=False, **kwargs):
         if getattr(self, "_need_to_call_context", False):
             # convert sparse inputs to dense before storing them to the context?
-            self.context(ml.AsDenseFeatures()(inputs))
+            from models.tf.blocks.core.transformations import AsDenseFeatures
+            self.context(AsDenseFeatures()(inputs))
 
         outputs = inputs
         for i, layer in enumerate(self.layers):
@@ -1803,6 +1817,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+        compute_train_metrics: Optional[bool] = True,
         name: Optional[Text] = None,
         **kwargs,
     ) -> None:
@@ -2152,8 +2167,8 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
         tasks: List[PredictionTask] = []
         task_weights = []
-        from .prediction_tasks.classification import BinaryClassificationTask
-        from .prediction_tasks.regression import RegressionTask
+        from merlin.models.tf.blocks.prediction_tasks.classification import BinaryClassificationTask
+        from merlin.models.tf.blocks.prediction_tasks.regression import RegressionTask
 
         for binary_target in schema.select_by_tag(Tags.BINARY_CLASSIFICATION).column_names:
             tasks.append(BinaryClassificationTask(binary_target))

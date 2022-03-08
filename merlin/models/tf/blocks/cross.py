@@ -17,11 +17,13 @@ from typing import List, Optional, Tuple, Union
 
 import tensorflow as tf
 
+from merlin.models.tf.blocks.base import Filter, SequentialBlock, TabularBlock
+from merlin.models.tf.blocks.mlp import DenseMaybeLowRank, InitializerType, RegularizerType
+from merlin.models.tf.utils.tf_utils import (
+    maybe_deserialize_keras_objects,
+    maybe_serialize_keras_objects,
+)
 from merlin.schema import Schema, Tags
-
-from ..core import Filter, SequentialBlock, TabularBlock
-from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
-from .mlp import DenseMaybeLowRank, InitializerType, RegularizerType
 
 
 def CrossBlock(

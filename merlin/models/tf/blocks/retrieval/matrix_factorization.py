@@ -16,10 +16,9 @@
 import logging
 from typing import Any, Callable, Dict, Optional
 
+from merlin.models.tf.blocks.core.transformations import RenameFeatures
+from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
 from merlin.schema import Schema, Tags
-
-from ...features.embedding import EmbeddingFeatures, EmbeddingOptions
-from ..core.transformations import RenameFeatures
 
 LOG = logging.getLogger("merlin_models")
 

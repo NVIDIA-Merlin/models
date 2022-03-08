@@ -23,13 +23,17 @@ from merlin.schema import Schema, Tags, TagsType
 from ...core import Block, BlockType, ParallelBlock, TabularAggregationType
 from ...features.continuous import ContinuousFeatures
 from ...features.embedding import (
+from merlin.models.tf.blocks.base import Block, BlockType, ParallelBlock, TabularAggregationType
+from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
+from merlin.models.tf.features.continuous import ContinuousFeatures
+from merlin.models.tf.features.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
     SequenceEmbeddingFeatures,
 )
-from .aggregation import SequenceAggregation, SequenceAggregator
-from .masking import MaskingBlock, masking_registry
+from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin-models")
 

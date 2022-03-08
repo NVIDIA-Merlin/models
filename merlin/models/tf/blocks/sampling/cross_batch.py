@@ -17,9 +17,9 @@
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 
-from ...typing import TabularData
-from .base import EmbeddingWithMetadata, ItemSampler
-from .queue import FIFOQueue
+from merlin.models.tf.blocks.sampling.base import EmbeddingWithMetadata, ItemSampler
+from merlin.models.tf.blocks.sampling.queue import FIFOQueue
+from merlin.models.tf.typing import TabularData
 
 
 class CachedCrossBatchSampler(ItemSampler):

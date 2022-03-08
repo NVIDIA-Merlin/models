@@ -20,13 +20,11 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
+from merlin.models.tf.blocks.base import Block, PredictionOutput, TabularBlock
+from merlin.models.tf.typing import TabularData, TensorOrTabularData
+from merlin.models.tf.utils.tf_utils import transform_label_to_onehot
+from merlin.models.utils.schema import categorical_cardinalities
 from merlin.schema import Schema, Tags
-
-from ....utils.schema import categorical_cardinalities
-from ...core import Block, PredictionOutput, TabularBlock
-from ...typing import TabularData, TensorOrTabularData
-from ...utils.tf_utils import transform_label_to_onehot
-
 
 @Block.registry.register("as-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

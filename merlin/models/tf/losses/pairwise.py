@@ -19,7 +19,7 @@ from typing import Tuple
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
 
-from .base import LossRegistryMixin
+from merlin.models.tf.losses.base import LossRegistryMixin
 
 
 class PairwiseLoss(Loss, LossRegistryMixin):

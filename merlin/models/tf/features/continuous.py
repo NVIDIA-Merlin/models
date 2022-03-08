@@ -18,16 +18,15 @@ from typing import List, Optional
 
 import tensorflow as tf
 
-from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import Schema
-
-from ..core import (
+from merlin.models.tf.blocks.base import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     BlockType,
     Filter,
     TabularAggregationType,
     TabularBlock,
 )
+from merlin.models.utils.doc_utils import docstring_parameter
+from merlin.schema import Schema
 
 
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)

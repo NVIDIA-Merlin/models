@@ -20,13 +20,12 @@ from typing import Union, overload
 import tensorflow as tf
 from tensorflow.python.keras.layers import Dot
 
+from merlin.models.config.schema import requires_schema
+from merlin.models.tf.blocks.base import Block, TabularAggregation
+from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils import tf_utils
+from merlin.models.utils.schema import schema_to_tensorflow_metadata_json
 from merlin.schema import Schema, Tags
-
-from ....config.schema import requires_schema
-from ....utils.schema import schema_to_tensorflow_metadata_json
-from ...core import Block, TabularAggregation
-from ...typing import TabularData
-from ...utils import tf_utils
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613

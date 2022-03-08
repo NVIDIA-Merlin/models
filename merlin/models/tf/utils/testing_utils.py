@@ -20,8 +20,8 @@ import tempfile
 import pytest
 import tensorflow as tf
 
-from ..core import Model
-from ..prediction_tasks.classification import BinaryClassificationTask
+from merlin.models.tf.models.base import Model
+from merlin.models.tf.prediction_tasks.classification import BinaryClassificationTask
 
 
 def mark_run_eagerly_modes(*args, **kwargs):

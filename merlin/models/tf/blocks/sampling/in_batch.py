@@ -17,8 +17,8 @@
 
 import tensorflow as tf
 
-from ...typing import TabularData
-from .base import EmbeddingWithMetadata, ItemSampler
+from merlin.models.tf.blocks.sampling.base import EmbeddingWithMetadata, ItemSampler
+from merlin.models.tf.typing import TabularData
 
 
 class InBatchSampler(ItemSampler):

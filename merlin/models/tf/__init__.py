@@ -27,65 +27,57 @@ from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
-# Must happen before any importing of tensorflow to curtail mem usage
-from merlin.models.loader.tf_utils import configure_tensorflow
-from merlin.schema import Schema, Tags
-
-from .. import data
-from ..data.synthetic import SyntheticData
-from . import losses
-from .blocks.core.aggregation import (
-    ConcatFeatures,
-    ElementwiseSum,
-    ElementwiseSumItemMulti,
-    StackFeatures,
-)
-from .blocks.core.index import IndexBlock, TopKIndexBlock
-from .blocks.core.inputs import InputBlock
-from .blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
-from .blocks.core.transformations import (
-    AsDenseFeatures,
-    AsSparseFeatures,
-    ExpandDims,
-    LabelToOneHot,
-    StochasticSwapNoise,
-)
-from .blocks.cross import CrossBlock
-from .blocks.dlrm import DLRMBlock
-from .blocks.experts import CGCBlock, MMOEBlock, MMOEGate
-from .blocks.interaction import DotProductInteraction
-from .blocks.mlp import DenseResidualBlock, MLPBlock
-from .blocks.retrieval.base import ItemRetrievalScorer
-from .blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
-from .blocks.retrieval.two_tower import TwoTowerBlock
-from .blocks.sampling.base import ItemSampler
-from .blocks.sampling.cross_batch import (
-    CachedCrossBatchSampler,
-    CachedUniformSampler,
-    PopularityBasedSampler,
-)
-from .blocks.sampling.in_batch import InBatchSampler
-from .blocks.sampling.queue import FIFOQueue
-from .core import (
+from merlin.models import data
+from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.blocks.base import (
     AsTabular,
     Block,
     BlockContext,
     DualEncoderBlock,
     EmbeddingWithMetadata,
     Filter,
-    Model,
     NoOp,
     ParallelBlock,
     ParallelPredictionBlock,
     PredictionTask,
     ResidualBlock,
-    RetrievalModel,
     SequentialBlock,
     TabularBlock,
     right_shift_layer,
 )
-from .features.continuous import ContinuousFeatures
-from .features.embedding import (
+from merlin.models.tf.blocks.core.aggregation import (
+    ConcatFeatures,
+    ElementwiseSum,
+    ElementwiseSumItemMulti,
+    StackFeatures,
+)
+from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
+from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
+from merlin.models.tf.blocks.core.transformations import (
+    AsDenseFeatures,
+    AsSparseFeatures,
+    ExpandDims,
+    StochasticSwapNoise,
+)
+from merlin.models.tf.blocks.cross import CrossBlock
+from merlin.models.tf.blocks.dlrm import DLRMBlock
+from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
+from merlin.models.tf.blocks.interaction import DotProductInteraction
+from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
+from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
+from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
+from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.blocks.sampling.cross_batch import (
+    CachedCrossBatchSampler,
+    CachedUniformSampler,
+    PopularityBasedSampler,
+)
+from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
+from merlin.models.tf.blocks.sampling.queue import FIFOQueue
+from merlin.models.tf.features.continuous import ContinuousFeatures
+from merlin.models.tf.features.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
@@ -93,16 +85,27 @@ from .features.embedding import (
     SequenceEmbeddingFeatures,
     TableConfig,
 )
-from .losses import LossType
-from .metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
-from .models.ranking import DCNModel, DLRMModel
-from .models.retrieval import MatrixFactorizationModel, TwoTowerModel, YoutubeDNNRetrievalModel
-from .prediction_tasks.classification import BinaryClassificationTask, MultiClassClassificationTask
-from .prediction_tasks.multi import PredictionTasks
-from .prediction_tasks.next_item import NextItemPredictionTask
-from .prediction_tasks.regression import RegressionTask
-from .prediction_tasks.retrieval import ItemRetrievalTask
-from .utils import repr_utils
+from merlin.models.tf.losses import LossType
+from merlin.models.tf.metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
+from merlin.models.tf.models.base import Model, RetrievalModel
+from merlin.models.tf.models.ranking import DCNModel, DLRMModel
+from merlin.models.tf.models.retrieval import (
+    MatrixFactorizationModel,
+    TwoTowerModel,
+    YoutubeDNNRetrievalModel,
+)
+from merlin.models.tf.prediction_tasks.classification import (
+    BinaryClassificationTask,
+    MultiClassClassificationTask,
+)
+from merlin.models.tf.prediction_tasks.multi import PredictionTasks
+from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
+from merlin.models.tf.prediction_tasks.regression import RegressionTask
+from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.utils import repr_utils
+
+# Must happen before any importing of tensorflow to curtail mem usage
+from merlin.schema import Schema, Tags
 
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr
@@ -170,7 +173,6 @@ __all__ = [
     "InputBlock",
     "PredictionTasks",
     "StochasticSwapNoise",
-    "LabelToOneHot",
     "ExpandDims",
     "NoOp",
     "data",

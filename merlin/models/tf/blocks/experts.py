@@ -17,11 +17,16 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
 
+from merlin.models.tf.blocks.base import (
+    Block,
+    ParallelBlock,
+    ParallelPredictionBlock,
+    PredictionTask,
+    TabularBlock,
+)
+from merlin.models.tf.blocks.core.aggregation import StackFeatures
+from merlin.models.tf.typing import TabularData
 from merlin.schema import Schema
-
-from ..core import Block, ParallelBlock, ParallelPredictionBlock, PredictionTask, TabularBlock
-from ..typing import TabularData
-from .core.aggregation import StackFeatures
 
 
 class MMOEGate(Block):

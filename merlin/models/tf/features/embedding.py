@@ -24,16 +24,7 @@ from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 import merlin.io
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSparseFeatures
-from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.models.utils.schema import (
-    categorical_cardinalities,
-    categorical_domains,
-    get_embedding_sizes_from_schema,
-)
-from merlin.schema import Schema, Tags, TagsType
-
-from ..core import (
+from merlin.models.tf.blocks.base import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Block,
     BlockType,
@@ -42,11 +33,19 @@ from ..core import (
     TabularAggregationType,
     TabularBlock,
 )
+from merlin.models.tf.blocks.core.transformations import AsSparseFeatures
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
-from ..typing import TabularData
+from merlin.models.tf.typing import TabularData
+from merlin.models.utils.doc_utils import docstring_parameter
+from merlin.models.utils.schema import (
+    categorical_cardinalities,
+    categorical_domains,
+    get_embedding_sizes_from_schema,
+)
+from merlin.schema import Schema, Tags, TagsType
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     feature_config: Dict[str, FeatureConfig]

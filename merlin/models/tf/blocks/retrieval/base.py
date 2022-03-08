@@ -19,11 +19,15 @@ from typing import List, Sequence, Union
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 
-from ....utils.constants import MIN_FLOAT
-from ...core import Block, EmbeddingWithMetadata, ModelBlock, PredictionOutput
-from ...typing import TabularData
-from ...utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
-from ..sampling.base import ItemSampler
+from merlin.models.tf.blocks.base import Block, EmbeddingWithMetadata, PredictionOutput
+from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.models.base import ModelBlock
+from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils.tf_utils import (
+    maybe_deserialize_keras_objects,
+    maybe_serialize_keras_objects,
+)
+from merlin.models.utils.constants import MIN_FLOAT
 
 LOG = logging.getLogger("merlin_models")
 

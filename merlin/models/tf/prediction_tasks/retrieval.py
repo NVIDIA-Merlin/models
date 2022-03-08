@@ -18,16 +18,15 @@ from typing import List, Optional
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
+from merlin.models.tf.blocks.base import Block, MetricOrMetricClass
+from merlin.models.tf.blocks.core.transformations import L2Norm, PredictionsScaler
+from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
+from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
+from merlin.models.tf.losses import LossType, loss_registry
+from merlin.models.tf.metrics.ranking import ranking_metrics
+from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
 from merlin.schema import Schema, Tags
-
-from ..blocks.core.transformations import L2Norm, PredictionsScaler
-from ..blocks.retrieval.base import ItemRetrievalScorer
-from ..blocks.sampling.base import ItemSampler
-from ..blocks.sampling.in_batch import InBatchSampler
-from ..core import Block, MetricOrMetrics
-from ..losses import LossType, loss_registry
-from ..metrics.ranking import ranking_metrics
-from .classification import MultiClassClassificationTask
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

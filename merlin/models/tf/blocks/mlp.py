@@ -18,10 +18,18 @@ from typing import List, Optional, Union
 
 import tensorflow as tf
 
+from merlin.models.tf.blocks.base import (
+    Block,
+    Filter,
+    ResidualBlock,
+    SequentialBlock,
+    tabular_aggregation_registry,
+)
+from merlin.models.tf.utils.tf_utils import (
+    maybe_deserialize_keras_objects,
+    maybe_serialize_keras_objects,
+)
 from merlin.schema import Schema, Tags
-
-from ..core import Block, Filter, ResidualBlock, SequentialBlock, tabular_aggregation_registry
-from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 InitializerType = Union[str, tf.keras.initializers.Initializer]
 RegularizerType = Union[str, tf.keras.regularizers.Regularizer]

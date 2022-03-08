@@ -20,8 +20,8 @@ import tensorflow as tf
 import merlin.models.tf as ml
 from merlin.io.dataset import Dataset
 from merlin.models.data.synthetic import SyntheticData
-from merlin.models.tf.core import PredictionOutput
 from merlin.schema import Tags
+from models.tf.blocks.base import PredictionOutput
 
 
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])

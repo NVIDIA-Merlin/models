@@ -13,6 +13,10 @@ repos:
     hooks:
       - id: flake8
         args: ["--extend-ignore=E203,W503"]
+  - repo: https://github.com/MarcoGorelli/absolufy-imports
+    rev: v0.3.1
+    hooks:
+      - id: absolufy-imports
   # yaml formatting
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v2.3.0

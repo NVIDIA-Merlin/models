@@ -16,12 +16,11 @@
 
 from typing import Optional
 
+from merlin.models.tf.blocks.base import Block, Debug, Filter, ParallelBlock, SequentialBlock
+from merlin.models.tf.blocks.interaction import DotProductInteraction
+from merlin.models.tf.features.continuous import ContinuousFeatures
+from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
 from merlin.schema import Schema, Tags
-
-from ..blocks.interaction import DotProductInteraction
-from ..core import Block, Debug, Filter, ParallelBlock, SequentialBlock
-from ..features.continuous import ContinuousFeatures
-from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 
 
 def DLRMBlock(

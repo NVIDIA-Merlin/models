@@ -18,7 +18,7 @@ from typing import Dict, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
 
-from ..typing import TabularData
+from merlin.models.tf.typing import TabularData
 
 
 class LossMixin(abc.ABC):
