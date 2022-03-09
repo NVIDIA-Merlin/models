@@ -301,7 +301,7 @@ class TabularModule(torch.nn.Module):
         self,
         inputs: TabularData,
         transformations: Optional[TabularTransformationsType] = None,
-        merge_with: Union["TabularModule", List["TabularModule"]] = None,
+        merge_with: Optional[Union["TabularModule", List["TabularModule"]]] = None,
         aggregation: Optional[TabularAggregationType] = None,
     ) -> TensorOrTabularData:
         """Method that's typically called after the forward method for post-processing.
@@ -352,7 +352,7 @@ class TabularModule(torch.nn.Module):
         *args,
         pre: Optional[TabularTransformationsType] = None,
         post: Optional[TabularTransformationsType] = None,
-        merge_with: Union["TabularModule", List["TabularModule"]] = None,
+        merge_with: Optional[Union["TabularModule", List["TabularModule"]]] = None,
         aggregation: Optional[TabularAggregationType] = None,
         **kwargs,
     ) -> TensorOrTabularData:
@@ -485,7 +485,8 @@ class TabularBlock(BlockBase, TabularModule, ABC):
         schema: Optional[Schema] = None,
     ):
         super().__init__(pre=pre, post=post, aggregation=aggregation)
-        self.schema = schema
+        if schema:
+            self.set_schema(schema)
 
     def to_module(self, shape_or_module, device=None):
         shape = shape_or_module
@@ -576,7 +577,7 @@ class MergeTabular(TabularBlock):
 
         # Merge schemas if necessary.
         if not schema and all(getattr(m, "_schema", False) for m in self.merge_values):
-            self.schema = reduce(lambda a, b: a + b, [m.schema for m in self.merge_values])
+            self.set_schema(reduce(lambda a, b: a + b, [m.schema for m in self.merge_values]))
 
     @property
     def merge_values(self):

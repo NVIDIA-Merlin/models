@@ -127,7 +127,7 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
     def __init__(self, schema: Schema = None):
         super().__init__()
         self.stack = StackFeatures(axis=0)
-        self.schema = schema
+        self.set_schema(schema)
         self.item_id_col_name = None
 
     def forward(self, inputs: TabularData) -> torch.Tensor:

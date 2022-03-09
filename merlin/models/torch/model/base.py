@@ -67,7 +67,7 @@ class PredictionTask(torch.nn.Module, LossMixin, MetricsMixin):
     def __init__(
         self,
         loss: torch.nn.Module,
-        metrics: Iterable[tm.Metric] = None,
+        metrics: Iterable[tm.Metric] = (),
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         forward_to_prediction_fn: Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
@@ -435,7 +435,7 @@ class Head(torch.nn.Module, LossMixin, MetricsMixin):
 
         return _output_metrics(metrics)
 
-    def compute_metrics(self, mode: str = None) -> Dict[str, Union[float, torch.Tensor]]:
+    def compute_metrics(self, mode: str = "val") -> Dict[str, Union[float, torch.Tensor]]:
         def name_fn(x):
             return "_".join([mode, x]) if mode else x
 

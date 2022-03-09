@@ -38,7 +38,7 @@ class SchemaMixin:
     def has_schema(self):
         return getattr(self, "_schema", None) is not None
 
-    @schema.setter
+    @schema.setter  # type: ignore
     def schema(self, value):
         if value:
             self.set_schema(value)

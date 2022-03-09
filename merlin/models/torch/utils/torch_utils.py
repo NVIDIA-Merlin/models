@@ -104,7 +104,7 @@ class MetricsMixin:
         """
         raise NotImplementedError()
 
-    def compute_metrics(self, mode: str = None) -> Dict[str, Union[float, torch.Tensor]]:
+    def compute_metrics(self, mode: str = "val") -> Dict[str, Union[float, torch.Tensor]]:
         """Returns the current state of each metric.
 
         The state is typically updated each batch by calling the `calculate_metrics` method.
