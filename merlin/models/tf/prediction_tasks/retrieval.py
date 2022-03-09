@@ -132,7 +132,24 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
     @property
     def retrieval_scorer(self):
-        return self.pre[0][1]
+        def find_retrieval_scorer_block(block):
+            if isinstance(block, ItemRetrievalScorer):
+                return block
+
+            if getattr(block, "layers", None):
+                for subblock in block.layers:
+                    result = find_retrieval_scorer_block(subblock)
+                    if result:
+                        return result
+
+            return None
+
+        result = find_retrieval_scorer_block(self.pre)
+
+        if result is None:
+            raise Exception("An ItemRetrievalScorer layer was not found in the model.")
+
+        return result
 
     def set_retrieval_cache_query(self, value: bool):
         self.retrieval_scorer.cache_query = value

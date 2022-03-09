@@ -1902,7 +1902,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         )
 
         loss = tf.cond(
-            compute_metrics,
+            tf.convert_to_tensor(compute_metrics),
             lambda: self.attach_metrics_calculation_to_loss(predictions, targets, loss, training),
             lambda: loss,
         )
@@ -1941,7 +1941,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         update_ops = []
 
         label_relevant_counts_eval = None
+
         if not training and self._pre_eval_topk:
+
             outputs = self._pre_eval_topk.call_outputs(
                 PredictionOutput(predictions, targets), **kwargs
             )
@@ -2405,6 +2407,9 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
     def on_test_begin(self, logs=None):
         self.model._should_compute_eval_metrics_as_in_training.assign(self._is_fitting)
 
+    def on_test_end(self, logs=None):
+        self.model._should_compute_eval_metrics_as_in_training.assign(False)
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Model(tf.keras.Model, LossMixin, MetricsMixin):
@@ -2439,7 +2444,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             synchronization=tf.VariableSynchronization.NONE,
             initial_value=lambda: False,
         )
-
         self._should_compute_eval_metrics_as_in_training = tf.Variable(
             dtype=tf.bool,
             name="should_compute_eval_metrics_as_in_training",
@@ -2596,15 +2600,22 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             targets = None
 
-        training = self._should_compute_eval_metrics_as_in_training
-        predictions = self(inputs, training=training)
-        loss = self.compute_loss(predictions, targets, training=training, compute_metrics=True)
-        tf.assert_rank(
-            loss,
-            0,
-            "The loss tensor should have rank 0. "
-            "Check if you are using a tf.keras.losses.Loss with 'reduction' "
-            "properly set",
+        def compute_loss_metrics(training):
+            predictions = self(inputs, training=training)
+            loss = self.compute_loss(predictions, targets, training=training, compute_metrics=True)
+            tf.assert_rank(
+                loss,
+                0,
+                "The loss tensor should have rank 0. "
+                "Check if you are using a tf.keras.losses.Loss with 'reduction' "
+                "properly set",
+            )
+            return loss
+
+        loss = tf.cond(
+            self._should_compute_eval_metrics_as_in_training,
+            lambda: compute_loss_metrics(training=True),
+            lambda: compute_loss_metrics(training=False),
         )
 
         # Casting regularization loss to fp16 if needed to match the main loss
