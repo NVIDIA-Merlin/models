@@ -60,7 +60,7 @@ class BinaryClassificationTask(PredictionTask):
             1, activation="linear", name=self.child_name("output_layer")
         )
         # To ensure that the output is always fp32, avoiding numerical
-        # instabilities with mixed_float16 policy
+        # instabilities with mixed_float16 (fp16) policy
         self.output_activation = tf.keras.layers.Activation(
             "sigmoid", dtype="float32", name="prediction"
         )
