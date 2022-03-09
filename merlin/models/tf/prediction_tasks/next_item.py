@@ -19,7 +19,6 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
-from merlin.models.tf.blocks.retrieval.top_k import ItemsPredictionTopK
 from merlin.schema import Schema, Tags
 
 from ...utils.schema import categorical_cardinalities
@@ -35,7 +34,7 @@ from ..blocks.retrieval.base import ItemRetrievalScorer
 from ..blocks.sampling.cross_batch import PopularityBasedSampler
 from ..core import Block
 from ..losses.base import LossType
-from ..metrics.ranking import RankingMetric, ranking_metrics
+from ..metrics.ranking import ranking_metrics
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
 
 LOG = logging.getLogger("merlin.models")
@@ -197,13 +196,6 @@ def NextItemPredictionTask(
     if normalize:
         prediction_call = L2Norm().connect(prediction_call)
 
-    pre_eval_topk = None
-    if len(metrics) > 0:
-        ranking_metrics = list([metric for metric in metrics if isinstance(metric, RankingMetric)])
-        if len(ranking_metrics) > 0:
-            max_k = tf.reduce_max([metric.k for metric in metrics])
-            pre_eval_topk = ItemsPredictionTopK(k=max_k)
-
     if extra_pre_call is not None:
         prediction_call = prediction_call.connect(extra_pre_call)
 
@@ -214,5 +206,4 @@ def NextItemPredictionTask(
         loss=loss,
         metrics=metrics,
         pre=prediction_call,
-        pre_eval_topk=pre_eval_topk,
     )

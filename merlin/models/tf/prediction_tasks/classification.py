@@ -25,7 +25,6 @@ from merlin.schema import Schema, Tags
 from ...utils.schema import categorical_cardinalities
 from ..core import Block, MetricOrMetricClass, PredictionTask
 from ..losses import LossType, loss_registry
-from ..metrics.ranking import ranking_metrics
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 
@@ -140,8 +139,7 @@ class CategFeaturePrediction(Block):
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = "sparse_categorical_crossentropy"
     DEFAULT_METRICS = {
-        "ranking": ranking_metrics(top_ks=[10]),
-        "multi-class": (),
+        "multi-class": [tf.keras.metrics.Accuracy],
     }
 
     def __init__(
@@ -150,7 +148,7 @@ class MultiClassClassificationTask(PredictionTask):
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS["ranking"],
+        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS["multi-class"],
         pre: Optional[Block] = None,
         **kwargs,
     ):
