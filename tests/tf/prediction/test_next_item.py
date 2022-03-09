@@ -283,7 +283,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
     item_dataset = Dataset(item_dataset)
     model = model.load_topk_evaluation(item_dataset, k=20)
-    _ = model.evaluate(ecommerce_data.tf_dataloader(batch_size=batch_size))
+    _ = model.evaluate(x=ecommerce_data.dataset, batch_size=50)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

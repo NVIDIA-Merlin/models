@@ -164,8 +164,16 @@ class BlockContext(Layer):
                         if not isinstance(shape[-1], (tuple, tf.TensorShape))
                         else int(shape[0][0] / shape[-1][0])
                     )
-                    var = tf.zeros([1, s], dtype=dtype)
-                    shape = tf.TensorShape([None, s])
+                    if s == 1:
+                        shape = tf.TensorShape(
+                            [
+                                None,
+                            ]
+                        )
+                        var = tf.zeros([1], dtype=dtype)
+                    else:
+                        shape = tf.TensorShape([None, s])
+                        var = tf.zeros([1, s], dtype=dtype)
                 elif tuple(shape) != (None,):
                     var = tf.zeros((shape), dtype=dtype)
                 else:
@@ -2711,6 +2719,44 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             max_queue_size,
             workers,
             use_multiprocessing,
+        )
+
+    def evaluate(
+        self,
+        x=None,
+        y=None,
+        batch_size=None,
+        verbose=1,
+        sample_weight=None,
+        steps=None,
+        callbacks=None,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        return_dict=False,
+        **kwargs,
+    ):
+        # Check if merlin-dataset is passed
+        if hasattr(x, "to_ddf"):
+            if not batch_size:
+                raise ValueError("batch_size must be specified when using merlin-dataset.")
+            from .dataset import BatchedDataset
+
+            x = BatchedDataset(x, batch_size=batch_size, **kwargs)
+
+        return super().evaluate(
+            x,
+            y,
+            batch_size,
+            verbose,
+            sample_weight,
+            steps,
+            callbacks,
+            max_queue_size,
+            workers,
+            use_multiprocessing,
+            return_dict,
+            **kwargs,
         )
 
     def _add_metrics_callback(self, callbacks, train_metrics_steps):

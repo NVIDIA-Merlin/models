@@ -1,5 +1,7 @@
 import pytest
 
+import tensorflow as tf
+
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
 from merlin.models.data.synthetic import SyntheticData
@@ -93,6 +95,6 @@ def test_youtube_dnn_retrieval(
     assert len(losses.epoch) == 2
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
-    out = model(sequence_testing_data.tf_tensor_dict)
+    out = model({k: tf.cast(v, tf.int64) for k, v in sequence_testing_data.tf_tensor_dict.items()})
 
     assert out.shape[-1] == 51997
