@@ -575,7 +575,7 @@ class MergeTabular(TabularBlock):
             )
 
         # Merge schemas if necessary.
-        if not schema and all(getattr(m, "schema", False) for m in self.merge_values):
+        if not schema and all(getattr(m, "_schema", False) for m in self.merge_values):
             self.schema = reduce(lambda a, b: a + b, [m.schema for m in self.merge_values])
 
     @property
