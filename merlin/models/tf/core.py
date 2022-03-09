@@ -42,6 +42,7 @@ from tensorflow.python.keras.utils import generic_utils
 
 import merlin.io
 from merlin.models.config.schema import SchemaMixin
+from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.misc_utils import filter_kwargs
 from merlin.models.utils.registry import Registry, RegistryMixin
@@ -1711,6 +1712,7 @@ def name_fn(name, inp):
 
 
 MetricOrMetricClass = Union[tf.keras.metrics.Metric, Type[tf.keras.metrics.Metric]]
+MetricOrMetrics = Union[Sequence[MetricOrMetricClass], MetricOrMetricClass]
 
 
 @dataclass
@@ -1742,7 +1744,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self,
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
-        metrics: Optional[List[MetricOrMetricClass]] = None,
+        metrics: Optional[MetricOrMetrics] = None,
         pre: Optional[Block] = None,
         pre_eval_topk: Optional[Block] = None,
         task_block: Optional[Layer] = None,
@@ -1757,7 +1759,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.task_block = task_block
         self._task_name = task_name
         self.pre = pre
-        self.pre_eval_topk = pre_eval_topk
+        self._pre_eval_topk = pre_eval_topk
 
         if metrics is not None:
             if isinstance(metrics, SequenceCollection):
@@ -1771,8 +1773,13 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.label_metrics = create_metrics(label_metrics) if label_metrics else []
         self.loss_metrics = create_metrics(loss_metrics) if loss_metrics else []
 
-    def set_pre_eval_topk(self, block):
-        self.pre_eval_topk = block
+    @property
+    def pre_eval_topk(self):
+        return self._pre_eval_topk
+
+    @pre_eval_topk.setter
+    def pre_eval_topk(self, value):
+        self._pre_eval_topk = value
 
     def pre_call(self, inputs, **kwargs):
         x = inputs
@@ -1800,7 +1807,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def build_task(self, input_shape, schema: Schema, body: Block, **kwargs):
         return super().build(input_shape)
 
-    def _create_metrics(self, metrics: List[MetricOrMetricClass]) -> List[tf.keras.metrics.Metric]:
+    def _create_metrics(
+        self, metrics: Sequence[MetricOrMetricClass]
+    ) -> List[tf.keras.metrics.Metric]:
         outputs = []
         for metric in metrics:
             if not isinstance(metric, tf.keras.metrics.Metric):
@@ -1863,7 +1872,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
             update_ops = [x for x in update_ops if x is not None]
 
-            with tf.control_dependencies(update_ops):
+            with tf.control_dependencies([update_ops, compute_metrics]):
                 return tf.identity(loss)
 
         return loss
@@ -1891,8 +1900,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         update_ops = []
 
         label_relevant_counts_eval = None
-        if not training and self.pre_eval_topk:
-            outputs = self.pre_eval_topk.call_outputs(
+        if not training and self._pre_eval_topk:
+            outputs = self._pre_eval_topk.call_outputs(
                 PredictionOutput(predictions, targets), **kwargs
             )
             targets, predictions, label_relevant_counts_eval = (
@@ -1940,7 +1949,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
                             "sorting predictions twice."
                         )
 
-                    if training or self.pre_eval_topk is None:
+                    if training or self._pre_eval_topk is None:
                         # Checking the highest k used in ranking metrics
                         max_k = tf.reduce_max([metric.k for metric in pre_sorted_ranking_metrics])
                         # Pre-sorts predictions and targets (by prediction scores) only once
@@ -2749,12 +2758,22 @@ class RetrievalModel(Model):
         """
         import merlin.models.tf as ml
 
+        if not (
+            getattr(self, "loss_block", None) and isinstance(self.loss_block, ItemRetrievalTask)
+        ):
+            raise ValueError(
+                "Your retrieval model should contain an ItemRetrievalTask "
+                "in the end (loss_block)."
+            )
+
         topk_index = ml.TopKIndexBlock.from_block(
             self.retrieval_block.item_block(), data=data, k=k - 1, context=self.context, **kwargs
         )
+        self.loss_block.pre_eval_topk = topk_index
+
         # set cache_query to True in the ItemRetrievalScorer
         self.loss_block.set_retrieval_cache_query(True)
-        self.loss_block.set_pre_eval_topk(topk_index)
+
         return self
 
     def to_top_k_recommender(self, data: merlin.io.Dataset, k: int, **kwargs) -> ModelBlock:
