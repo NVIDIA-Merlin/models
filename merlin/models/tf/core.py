@@ -2664,11 +2664,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             x = Dataset(x, batch_size=batch_size, **kwargs)
 
-        if callbacks is None:
-            callbacks = []
-
-        # Adding a callback to control metrics computation
-        callbacks.append(MetricsComputeCallback(train_metrics_steps))
+        callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
         return super().fit(
             x,
@@ -2691,6 +2687,22 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             workers,
             use_multiprocessing,
         )
+
+    def _add_metrics_callback(self, callbacks, train_metrics_steps):
+        if callbacks is None:
+            callbacks = []
+
+        if isinstance(callbacks, SequenceCollection):
+            callbacks = list(callbacks)
+        else:
+            callbacks = [callbacks]
+
+        callback_types = [type(callback) for callback in callbacks]
+        if MetricsComputeCallback not in callback_types:
+            # Adding a callback to control metrics computation
+            callbacks.append(MetricsComputeCallback(train_metrics_steps))
+
+        return callbacks
 
     def batch_predict(
         self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
