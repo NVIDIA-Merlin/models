@@ -401,6 +401,7 @@ class PredictionsScaler(Block):
         self, outputs: PredictionOutput, training=True, **kwargs
     ) -> "PredictionOutput":
         targets, predictions = outputs.targets, outputs.predictions
+        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         if training:
             predictions = predictions * self.scale_factor
         return PredictionOutput(predictions, targets)

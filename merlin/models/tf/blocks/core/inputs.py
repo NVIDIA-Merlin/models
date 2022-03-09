@@ -15,7 +15,7 @@
 #
 
 import logging
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Type, Union
 
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.schema import Schema, Tags, TagsType
@@ -184,18 +184,18 @@ def InputBlock(
         pre = None
         if max_seq_length and seq:
             pre = AsDenseFeatures(max_seq_length)
-        branches["continuous"] = ContinuousFeatures.from_schema(
+        branches["continuous"] = ContinuousFeatures.from_schema(  # type: ignore
             schema,
             tags=continuous_tags,
             pre=pre,
         )
     if add_embedding_branch and schema.select_by_tag(categorical_tags).column_schemas:
-        emb_cls = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
+        emb_cls: Type[EmbeddingFeatures] = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
         emb_kwargs = {}
         if max_seq_length and seq:
             emb_kwargs["max_seq_length"] = max_seq_length
 
-        branches["categorical"] = emb_cls.from_schema(
+        branches["categorical"] = emb_cls.from_schema(  # type: ignore
             schema, tags=categorical_tags, options=embedding_options, **emb_kwargs
         )
 

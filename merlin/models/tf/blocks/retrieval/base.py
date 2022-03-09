@@ -86,13 +86,13 @@ class ItemRetrievalScorer(Block):
         self.downscore_false_negatives = sampling_downscore_false_negatives
         self.false_negatives_score = sampling_downscore_false_negatives_value
         self.item_id_feature_name = item_id_feature_name
-        self.samplers = samplers
         self.query_name = query_name
         self.item_name = item_name
         self.cache_query = cache_query
 
-        if not isinstance(self.samplers, (list, tuple)):
-            self.samplers = (self.samplers,)
+        if not isinstance(samplers, (list, tuple)):
+            samplers = (samplers,)  # type: ignore
+        self.samplers = samplers
 
         self.set_required_features()
 
@@ -204,6 +204,8 @@ class ItemRetrievalScorer(Block):
         """
         self._check_required_context_item_features_are_present()
         targets, predictions = outputs.targets, outputs.predictions
+
+        assert isinstance(predictions, tf.Tensor), "Predictions should be a tensor"
 
         if training:
             assert (

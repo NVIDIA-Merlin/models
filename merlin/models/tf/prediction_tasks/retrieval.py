@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional
+from typing import Optional, Sequence
 
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
@@ -24,7 +24,6 @@ from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.losses import LossType, loss_registry
-from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
 from merlin.schema import Schema, Tags
 
@@ -104,7 +103,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
     def _build_prediction_call(
         self,
-        samplers: List[ItemSampler],
+        samplers: Sequence[ItemSampler],
         normalize: bool,
         softmax_temperature: float,
         extra_pre_call: Optional[Block] = None,

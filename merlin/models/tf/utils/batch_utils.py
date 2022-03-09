@@ -67,7 +67,7 @@ class TFModelEncode(ModelEncode):
     def __init__(
         self,
         model: tp.Union[Model, tf.keras.Model],
-        output_names: tp.List[str] = None,
+        output_names: tp.Optional[tp.List[str]] = None,
         batch_size: int = 512,
         save_path: tp.Optional[str] = None,
         block_load_func: tp.Optional[tp.Callable[[str], Block]] = None,
@@ -84,7 +84,10 @@ class TFModelEncode(ModelEncode):
             except AttributeError:
                 pass
         if not output_concat_func:
-            output_concat_func = np.concatenate if len(output_names) == 1 else get_lib().concat
+            if len(output_names) == 1:
+                output_concat_func = np.concatenate
+            else:
+                output_concat_func = get_lib().concat  # type: ignore
 
         self.schema = schema or model.schema
 

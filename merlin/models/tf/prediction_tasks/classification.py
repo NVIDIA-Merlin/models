@@ -105,7 +105,7 @@ class CategFeaturePrediction(Block):
     def __init__(
         self,
         schema: Schema,
-        feature_name: str = None,
+        feature_name: Optional[str] = None,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
         activation=None,
@@ -205,7 +205,7 @@ class MultiClassClassificationTask(PredictionTask):
     def call(self, inputs, training=False, **kwargs):
         return inputs
 
-    def metric_results(self, mode: str = None):
+    def metric_results(self, mode: str = "val"):
         dict_results = {}
         for metric in self.metrics:
             dict_results.update({metric.name: metric.result()})

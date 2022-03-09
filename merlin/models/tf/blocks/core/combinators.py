@@ -517,49 +517,6 @@ class TabularBlock(Block):
 
         return outputs
 
-    def __call__(  # type: ignore
-        self,
-        inputs: TabularData,
-        *args,
-        pre: Optional[BlockType] = None,
-        post: Optional[BlockType] = None,
-        merge_with: Optional[Union["TabularBlock", List["TabularBlock"]]] = None,
-        aggregation: Optional[TabularAggregationType] = None,
-        **kwargs,
-    ) -> TensorOrTabularData:
-        """We overwrite the call method in order to be able to do pre- and post-processing.
-
-        Parameters
-        ----------
-        inputs: TabularData
-            Input TabularData.
-        pre: TabularTransformationsType, optional
-            Transformations to apply before calling the forward method. If pre is None, this method
-            will check if `self.pre` is set.
-        post: TabularTransformationsType, optional
-            Transformations to apply after calling the forward method. If post is None, this method
-            will check if `self.post` is set.
-        merge_with: Union[TabularModule, List[TabularModule]]
-            Other TabularModule's to call and merge the outputs with.
-        aggregation: TabularAggregationType, optional
-            Aggregation to aggregate the output to a single Tensor.
-
-        Returns
-        -------
-        TensorOrTabularData (Tensor when aggregation is set, else TabularData)
-        """
-        inputs = self.pre_call(inputs, transformations=pre)
-
-        # This will call the `call` method implemented by the super class.
-        outputs = super().__call__(inputs, *args, **kwargs)  # noqa
-
-        if isinstance(outputs, dict):
-            outputs = self.post_call(
-                outputs, transformations=post, merge_with=merge_with, aggregation=aggregation
-            )
-
-        return outputs
-
     def _maybe_apply_transformations(
         self,
         inputs: TabularData,
@@ -730,6 +687,54 @@ class TabularBlock(Block):
         return right_shift_layer(self, other)
 
 
+# This is done like this to avoid mypy issues.
+def _tabular_call(  # type: ignore
+    self,
+    inputs: TabularData,
+    *args,
+    pre: Optional[BlockType] = None,
+    post: Optional[BlockType] = None,
+    merge_with: Optional[Union["TabularBlock", List["TabularBlock"]]] = None,
+    aggregation: Optional[TabularAggregationType] = None,
+    **kwargs,
+) -> TensorOrTabularData:
+    """We overwrite the call method in order to be able to do pre- and post-processing.
+
+    Parameters
+    ----------
+    inputs: TabularData
+        Input TabularData.
+    pre: TabularTransformationsType, optional
+        Transformations to apply before calling the forward method. If pre is None, this method
+        will check if `self.pre` is set.
+    post: TabularTransformationsType, optional
+        Transformations to apply after calling the forward method. If post is None, this method
+        will check if `self.post` is set.
+    merge_with: Union[TabularModule, List[TabularModule]]
+        Other TabularModule's to call and merge the outputs with.
+    aggregation: TabularAggregationType, optional
+        Aggregation to aggregate the output to a single Tensor.
+
+    Returns
+    -------
+    TensorOrTabularData (Tensor when aggregation is set, else TabularData)
+    """
+    inputs = self.pre_call(inputs, transformations=pre)
+
+    # This will call the `call` method implemented by the super class.
+    outputs = super().__call__(inputs, *args, **kwargs)  # type: ignore
+
+    if isinstance(outputs, dict):
+        outputs = self.post_call(
+            outputs, transformations=post, merge_with=merge_with, aggregation=aggregation
+        )
+
+    return outputs
+
+
+TabularBlock.__call__ = _tabular_call  # type: ignore
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Filter(TabularBlock):
     """Transformation that filters out certain features from `TabularData`."
@@ -745,31 +750,19 @@ class Filter(TabularBlock):
     @overload
     def __init__(
         self,
-        inputs: Schema,
-        name=None,
-        pop=False,
-        exclude=False,
-        add_to_context: bool = False,
-        **kwargs,
-    ):
-        ...
-
-    @overload
-    def __init__(
-        self,
-        inputs: Tags,
-        name=None,
-        pop=False,
-        exclude=False,
-        add_to_context: bool = False,
-        **kwargs,
-    ):
-        ...
-
-    @overload
-    def __init__(
-        self,
         inputs: Sequence[str],
+        name=None,
+        pop=False,
+        exclude=False,
+        add_to_context: bool = False,
+        **kwargs,
+    ):
+        ...
+
+    @overload
+    def __init__(
+        self,
+        inputs: Union[Schema, Tags],
         name=None,
         pop=False,
         exclude=False,

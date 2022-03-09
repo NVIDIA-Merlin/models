@@ -64,9 +64,9 @@ def MMOEBlock(
     if isinstance(outputs, ParallelPredictionBlock):
         output_names = outputs.task_names
     elif all(isinstance(x, PredictionTask) for x in outputs):
-        output_names = [o.task_name for o in outputs]
+        output_names = [o.task_name for o in outputs]  # type: ignore
     else:
-        output_names = outputs
+        output_names = outputs  # type: ignore
 
     experts = expert_block.repeat_in_parallel(
         num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
@@ -151,9 +151,9 @@ class CGCBlock(ParallelBlock):
         if isinstance(outputs, ParallelPredictionBlock):
             output_names = outputs.task_names
         elif all(isinstance(x, PredictionTask) for x in outputs):
-            output_names = [o.task_name for o in outputs]
+            output_names = [o.task_name for o in outputs]  # type: ignore
         else:
-            output_names = outputs
+            output_names = outputs  # type: ignore
         task_experts = dict(
             [
                 create_expert(expert_block, f"{task}/expert_{i}")

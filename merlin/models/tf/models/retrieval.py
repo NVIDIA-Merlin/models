@@ -76,7 +76,7 @@ def MatrixFactorizationModel(
             schema,
             metrics=metrics,
             softmax_temperature=softmax_temperature,
-            samplers=samplers,
+            samplers=list(samplers),
             loss=loss,
             **kwargs,
         )
@@ -165,7 +165,7 @@ def TwoTowerModel(
             schema,
             metrics=metrics,
             softmax_temperature=softmax_temperature,
-            samplers=samplers,
+            samplers=list(samplers),
             loss=loss,
             **kwargs,
         )
