@@ -198,7 +198,7 @@ def YoutubeDNNRetrievalModel(
     top_block: Block = MLPBlock([64]),
     num_sampled: int = 100,
     loss: Optional[LossType] = "categorical_crossentropy",
-    metrics=ranking_metrics(top_ks=[10, 20]),
+    metrics=ranking_metrics(top_ks=[10]),
     normalize: bool = True,
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
@@ -236,7 +236,7 @@ def YoutubeDNNRetrievalModel(
         Defaults to `categorical_crossentropy`.
     metrics: List[Metric]
         List of metrics to use.
-        Defaults to `ranking_metrics(top_ks=[10, 20])`
+        Defaults to `ranking_metrics(top_ks=[10])`
     normalize: bool
         Whether to normalize the embeddings.
         Defaults to True.
