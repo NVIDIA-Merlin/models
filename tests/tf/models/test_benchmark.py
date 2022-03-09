@@ -20,7 +20,7 @@ from merlin.models.tf.utils import testing_utils
 
 
 def test_ncf_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
-    model = ml.NCFModel(
+    model = ml.benchmark.NCFModel(
         ecommerce_data.schema,
         embedding_dim=64,
         mlp_block=ml.MLPBlock([64]),

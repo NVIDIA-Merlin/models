@@ -42,7 +42,17 @@ def NCFModel(
 
     References
     ----------
-    [1] Xiangnan, He, et al. "Neural Collaborative Filtering." arXiv:1708.05031 (2017).
+    [1] Xiangnan,
+        He, et al. "Neural Collaborative Filtering."
+        arXiv:1708.05031 (2017).
+    [2] Steffen, Rendle et al.
+        "Neural Collaborative Filtering vs. Matrix Factorization Revisited."
+        arXiv:2005.09683(2020)
+
+    Notes
+    -----
+    We note that  Rendle et al. [2] showed that properly initialized MF
+    significantly outperforms the NCF model.
 
     Parameters
     ----------
@@ -51,7 +61,7 @@ def NCFModel(
     embedding_dim : int
         Dimension of the embeddings
     mlp_block : MLPBlock
-        Stack of MLP layers to learn  non-linear interactions.
+        Stack of MLP layers to learn non-linear interactions from data.
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
 
