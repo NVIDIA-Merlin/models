@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
@@ -24,7 +24,7 @@ from ..blocks.core.transformations import L2Norm, PredictionsScaler
 from ..blocks.retrieval.base import ItemRetrievalScorer
 from ..blocks.sampling.base import ItemSampler
 from ..blocks.sampling.in_batch import InBatchSampler
-from ..core import Block, MetricOrMetricClass
+from ..core import Block, MetricOrMetrics
 from ..losses import LossType, loss_registry
 from ..metrics.ranking import ranking_metrics
 from .classification import MultiClassClassificationTask
@@ -41,9 +41,9 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         loss: Optional[LossType]
             Loss function.
             Defaults to `categorical_crossentropy`.
-        metrics: Sequence[MetricOrMetricClass]
+        metrics: MetricOrMetrics
             List of top-k ranking metrics.
-            Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
+            Defaults to a numver of ranking metrics.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
         extra_pre_call: Optional[PredictionBlock]
@@ -77,7 +77,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         self,
         schema: Schema,
         loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
+        metrics: MetricOrMetrics = DEFAULT_METRICS,
         samplers: List[ItemSampler] = (),
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
