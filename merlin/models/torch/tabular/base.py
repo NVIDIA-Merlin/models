@@ -340,7 +340,7 @@ class TabularModule(torch.nn.Module):
         )
 
         if _aggregation:
-            schema = getattr(self, "schema", None)
+            schema = getattr(self, "_schema", None)
             _aggregation.set_schema(schema)
             return _aggregation(outputs)
 
@@ -529,7 +529,7 @@ class TabularBlock(BlockBase, TabularModule, ABC):
             if self.post:
                 output_size = self.post.output_size(output_size)
             if self.aggregation:
-                schema = getattr(self, "schema", None)
+                schema = getattr(self, "_schema", None)
                 # self.aggregation.build(output_size, schema=schema)
                 self.aggregation.set_schema(schema)
                 output_size = self.aggregation.forward_output_size(output_size)
