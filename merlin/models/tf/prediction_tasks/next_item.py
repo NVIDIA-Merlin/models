@@ -35,7 +35,7 @@ from ..blocks.retrieval.base import ItemRetrievalScorer
 from ..blocks.sampling.cross_batch import PopularityBasedSampler
 from ..core import Block
 from ..losses.base import LossType
-from ..metrics.ranking import RankingMetric2, ranking_metrics
+from ..metrics.ranking import RankingMetric, ranking_metrics
 from .classification import CategFeaturePrediction, MultiClassClassificationTask
 
 LOG = logging.getLogger("merlin.models")
@@ -104,8 +104,8 @@ def ItemsPredictionSampled(
 
 def NextItemPredictionTask(
     schema: Schema,
-    loss: Optional[LossType] = "sparse_categorical_crossentropy",
-    metrics=ranking_metrics(top_ks=[10, 20]),
+    loss: Optional[LossType] = "categorical_crossentropy",
+    metrics=ranking_metrics(top_ks=[10]),
     weight_tying: bool = True,
     masking: bool = True,
     extra_pre_call: Optional[Block] = None,
@@ -129,7 +129,7 @@ def NextItemPredictionTask(
             Defaults to `sparse_categorical_crossentropy`.
         metrics: Sequence[MetricOrMetricClass]
             List of top-k ranking metrics.
-            Defaults to ranking_metrics(top_ks=[10, 20]).
+            Defaults to ranking_metrics(top_ks=[10]).
         weight_tying: bool
             The item_id embedding weights are shared with the prediction network layer.
             Defaults to True
@@ -199,7 +199,7 @@ def NextItemPredictionTask(
 
     pre_eval_topk = None
     if len(metrics) > 0:
-        ranking_metrics = list([metric for metric in metrics if isinstance(metric, RankingMetric2)])
+        ranking_metrics = list([metric for metric in metrics if isinstance(metric, RankingMetric)])
         if len(ranking_metrics) > 0:
             max_k = tf.reduce_max([metric.k for metric in metrics])
             pre_eval_topk = ItemsPredictionTopK(k=max_k)

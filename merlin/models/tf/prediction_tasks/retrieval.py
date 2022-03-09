@@ -71,7 +71,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
     """
 
     DEFAULT_LOSS = "categorical_crossentropy"
-    DEFAULT_METRICS = ranking_metrics(top_ks=[10, 20])
+    DEFAULT_METRICS = ranking_metrics(top_ks=[10])
 
     def __init__(
         self,

@@ -51,7 +51,7 @@ from merlin.models.utils.schema import (
 )
 from merlin.schema import Schema, Tags
 
-from .metrics.ranking import RankingMetric2
+from .metrics.ranking import RankingMetric
 from .typing import TabularData, TensorOrTabularData
 from .utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from .utils.tf_utils import (
@@ -1906,7 +1906,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             targets_eval = targets
 
             ranking_metrics = list(
-                [metric for metric in self.eval_metrics if isinstance(metric, RankingMetric2)]
+                [metric for metric in self.eval_metrics if isinstance(metric, RankingMetric)]
             )
 
             if len(ranking_metrics) > 0:
@@ -1956,7 +1956,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
                         ) = extract_topk(max_k, predictions, targets)
 
             for metric in self.eval_metrics:
-                if isinstance(metric, RankingMetric2) and metric.pre_sorted:
+                if isinstance(metric, RankingMetric) and metric.pre_sorted:
                     metric_state = metric.update_state(
                         targets_eval,
                         predictions_eval,
