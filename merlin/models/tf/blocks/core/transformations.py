@@ -68,7 +68,7 @@ class AsDenseFeatures(TabularBlock):
                 row_lengths = val[1][:, 0]
                 ragged = tf.RaggedTensor.from_row_lengths(values, row_lengths)
                 if self.max_seq_length:
-                    outputs[name] = tf.squeeze(ragged.to_tensor(shape=[None, self.max_seq_length]))
+                    outputs[name] = ragged.to_tensor(shape=[None, self.max_seq_length])
                 else:
                     outputs[name] = tf.squeeze(ragged.to_tensor())
             else:
