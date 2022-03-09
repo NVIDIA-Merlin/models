@@ -14,7 +14,7 @@ from merlin.schema import Schema
 def DLRMModel(
     schema: Schema,
     embedding_dim: int,
-    bottom_block: Block,
+    bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]

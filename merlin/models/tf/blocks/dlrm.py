@@ -27,7 +27,7 @@ from merlin.schema import Schema, Tags
 def DLRMBlock(
     schema: Schema,
     embedding_dim: int,
-    bottom_block: Block,
+    bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
 ) -> SequentialBlock:
     """Builds the DLRM architecture, as proposed in the following

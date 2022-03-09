@@ -40,7 +40,7 @@ if TYPE_CHECKING:
         TabularAggregationType,
     )
     from merlin.models.tf.models.base import Model, RetrievalModel
-    from merlin.models.tf.prediction_tasks.base import PredictionTask
+    from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 
 
 class PredictionOutput(NamedTuple):
@@ -357,7 +357,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         for b in blocks:
             if isinstance(b, Block):
-                if not b.has_schema:
+                if not b.has_schema and self.has_schema:
                     b._schema = self.schema
 
         output = SequentialBlock(
@@ -512,6 +512,45 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return SequentialBlock(
             [self, ParallelBlock(*_branches, post=post, aggregation=aggregation, **kwargs)]
         )
+
+    def to_model(
+        self,
+        schema: Schema,
+        input_block: Optional[Block] = None,
+        prediction_tasks: Optional[
+            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
+        ] = None,
+        **kwargs,
+    ) -> "Model":
+        """Wrap the block between inputs & outputs to create a model.
+
+        Parameters
+        ----------
+        schema: Schema
+            Schema to use for the model.
+        input_block: Optional[Block]
+            Block to use as input.
+        prediction_tasks: Optional[
+            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        ]
+            Prediction tasks to use.
+
+        """
+        from merlin.models.tf.blocks.core.inputs import InputBlock
+        from merlin.models.tf.models.base import Model
+        from merlin.models.tf.models.utils import parse_prediction_tasks
+
+        if is_input_block(self.first):
+            if input_block is not None:
+                raise ValueError("The block already includes an InputBlock")
+            input_block = self.first
+
+        aggregation = kwargs.pop("aggregation", "concat")
+        _input_block: Block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
+
+        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+
+        return Model(_input_block, self, prediction_tasks)
 
     def select_by_name(self, name: str) -> Optional["Block"]:
         if name == self.name:

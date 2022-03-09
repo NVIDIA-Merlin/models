@@ -80,7 +80,7 @@ class SequentialBlock(Block):
 
         super(SequentialBlock, self).__init__(**kwargs)
 
-        if getattr(layers[0], "schema", None):
+        if getattr(layers[0], "has_schema", None):
             super().set_schema(layers[0].schema)
 
         layers = copy.copy(layers) if copy_layers else layers
@@ -511,8 +511,8 @@ class TabularBlock(Block):
         )
 
         if _aggregation:
-            schema = getattr(self, "schema", None)
-            _aggregation.set_schema(schema)
+            if self.has_schema:
+                _aggregation.set_schema(self.schema)
             return _aggregation(outputs)
 
         return outputs
@@ -564,8 +564,8 @@ class TabularBlock(Block):
                 self.post.build(output_shapes)
                 output_shapes = self.post.compute_output_shape(output_shapes)
             if self.aggregation:
-                schema = getattr(self, "schema", None)
-                self.aggregation.set_schema(schema)
+                if self.has_schema:
+                    self.aggregation.set_schema(self.schema)
 
                 self.aggregation.build(output_shapes)
 
@@ -575,7 +575,7 @@ class TabularBlock(Block):
             self, config, ["pre", "post", "aggregation"]
         )
 
-        if self.schema:
+        if self.has_schema:
             config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
 
         return config
@@ -602,7 +602,7 @@ class TabularBlock(Block):
             if self.post:
                 output_shapes = self.post.compute_output_shape(output_shapes)
             if self.aggregation:
-                schema = getattr(self, "schema", None)
+                schema = getattr(self, "_schema", None)
                 self.aggregation.set_schema(schema)
                 output_shapes = self.aggregation.compute_output_shape(output_shapes)
 
@@ -686,6 +686,9 @@ class TabularBlock(Block):
     def __rrshift__(self, other):
         return right_shift_layer(self, other)
 
+    def super(self):
+        return super()
+
 
 # This is done like this to avoid mypy issues.
 def _tabular_call(  # type: ignore
@@ -722,7 +725,7 @@ def _tabular_call(  # type: ignore
     inputs = self.pre_call(inputs, transformations=pre)
 
     # This will call the `call` method implemented by the super class.
-    outputs = super().__call__(inputs, *args, **kwargs)  # type: ignore
+    outputs = self.super().__call__(inputs, *args, **kwargs)  # type: ignore
 
     if isinstance(outputs, dict):
         outputs = self.post_call(
@@ -896,7 +899,7 @@ class ParallelBlock(TabularBlock):
             )
 
         # Merge schemas if necessary.
-        if not schema and all(getattr(m, "schema", False) for m in self.parallel_values):
+        if not schema and all(getattr(m, "_schema", False) for m in self.parallel_values):
             if len(self.parallel_values) == 1:
                 self.set_schema(self.parallel_values[0].schema)
             else:

@@ -10,7 +10,7 @@ def parse_prediction_tasks(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-):
+) -> Union[PredictionTask, ParallelPredictionBlock]:
     if not prediction_tasks:
         prediction_tasks = PredictionTasks(schema)
     if isinstance(prediction_tasks, (list, tuple)):

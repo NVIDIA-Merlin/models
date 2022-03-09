@@ -164,7 +164,7 @@ class StochasticSwapNoise(TabularBlock):
         **kwargs,
     ) -> TensorOrTabularData:
         def augment(input_mask):
-            if self.schema:
+            if self._schema:
                 input_mask = input_mask or self.get_padding_mask_from_item_id(
                     inputs, self.pad_token
                 )

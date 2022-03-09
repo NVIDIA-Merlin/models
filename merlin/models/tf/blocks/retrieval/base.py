@@ -205,8 +205,6 @@ class ItemRetrievalScorer(Block):
         self._check_required_context_item_features_are_present()
         targets, predictions = outputs.targets, outputs.predictions
 
-        assert isinstance(predictions, tf.Tensor), "Predictions should be a tensor"
-
         if training:
             assert (
                 len(self.samplers) > 0
@@ -278,6 +276,8 @@ class ItemRetrievalScorer(Block):
             # To ensure that the output is always fp32, avoiding numerical
             # instabilities with mixed_float16 policy
             predictions = tf.cast(predictions, tf.float32)
+
+        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
 
         # Positives in the first column and negatives in the subsequent columns
         targets = tf.concat(

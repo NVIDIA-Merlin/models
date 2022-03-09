@@ -1,10 +1,11 @@
-from typing import Dict, Optional, Protocol, Union, runtime_checkable
+from typing import Dict, List, Optional, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
 
 import merlin.io
 from merlin.models.tf.blocks.core.base import Block, BlockContext
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from merlin.schema import Schema, Tags
@@ -62,9 +63,37 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         outputs = self.block(inputs, **kwargs)
         return outputs
 
-    # @property
-    # def inputs(self):
-    #     return self.block.inputs
+    @classmethod
+    def from_block(
+        cls,
+        block: Block,
+        schema: Schema,
+        input_block: Optional[Block] = None,
+        prediction_tasks: Optional[
+            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
+        ] = None,
+        **kwargs,
+    ) -> "Model":
+        """Create a model from a `block`
+
+        Parameters
+        ----------
+        block: Block
+            The block to wrap in-between an InputBlock and prediction task(s)
+        schema: Schema
+            Schema to use for the model.
+        input_block: Optional[Block]
+            Block to use as input.
+        prediction_tasks: Optional[
+            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        ]
+            Prediction tasks to use.
+
+        """
+
+        return block.to_model(
+            schema, input_block=input_block, prediction_tasks=prediction_tasks, **kwargs
+        )
 
     @property
     def first(self):

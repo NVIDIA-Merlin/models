@@ -277,6 +277,9 @@ class TupleAggregation(TabularAggregation, abc.ABC):
     def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
         raise NotImplementedError()
 
+    def super(self):
+        return super()
+
 
 def _tuple_aggregation_call(self, inputs: TabularData, *args, **kwargs):  # type: ignore
     if isinstance(inputs, tf.Tensor):
@@ -286,7 +289,7 @@ def _tuple_aggregation_call(self, inputs: TabularData, *args, **kwargs):  # type
         if not len(inputs) == 2:
             raise ValueError(f"Expected 2 inputs, got {len(inputs)}")
         left, right = tuple(inputs.values())
-    outputs = super().__call__(left, right, **kwargs)  # type: ignore
+    outputs = self.super().__call__(left, right, **kwargs)  # type: ignore
 
     return outputs
 

@@ -84,7 +84,7 @@ class TFModelEncode(ModelEncode):
             except AttributeError:
                 pass
         if not output_concat_func:
-            if len(output_names) == 1:
+            if len(output_names) == 1:  # type: ignore
                 output_concat_func = np.concatenate
             else:
                 output_concat_func = get_lib().concat  # type: ignore

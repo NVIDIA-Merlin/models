@@ -22,7 +22,7 @@ class SchemaMixin:
     def set_schema(self, schema=None):
         self.check_schema(schema=schema)
 
-        if schema and not getattr(self, "schema", None):
+        if schema and not getattr(self, "_schema", None):
             self._schema = schema
 
         return self
@@ -46,7 +46,7 @@ class SchemaMixin:
             self._schema = value
 
     def check_schema(self, schema=None):
-        if self.REQUIRES_SCHEMA and not getattr(self, "schema", None) and not schema:
+        if self.REQUIRES_SCHEMA and not getattr(self, "_schema", None) and not schema:
             raise ValueError(f"{self.__class__.__name__} requires a schema.")
 
     def __call__(self, *args, **kwargs):
