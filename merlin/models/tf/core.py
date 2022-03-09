@@ -1901,23 +1901,27 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions, targets=targets, sample_weight=sample_weight, training=training
         )
 
-        update_ops = []
-        if compute_metrics:
-            update_ops = self.calculate_metrics(
-                predictions, targets, loss=loss, forward=False, training=training
-            )
-
-            update_ops = [x for x in update_ops if x is not None]
-
-            with tf.control_dependencies([update_ops, compute_metrics]):
-                return tf.identity(loss)
+        loss = tf.cond(
+            compute_metrics,
+            lambda: self.attach_metrics_calculation_to_loss(predictions, targets, loss, training),
+            lambda: loss,
+        )
 
         return loss
+
+    def attach_metrics_calculation_to_loss(self, predictions, targets, loss, training):
+        update_ops = self.calculate_metrics(
+            predictions, targets, loss=loss, forward=False, training=training
+        )
+
+        update_ops = [x for x in update_ops if x is not None]
+
+        with tf.control_dependencies(update_ops):
+            return tf.identity(loss)
 
     def repr_add(self):
         return [("loss", self.loss)]
 
-    # @tf.function
     def calculate_metrics(
         self,
         predictions,
@@ -2379,6 +2383,7 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
     def __init__(self, train_metrics_steps=1, **kwargs):
         self.train_metrics_steps = train_metrics_steps
         self._is_fitting = False
+        self._is_first_batch = True
         super().__init__(**kwargs)
 
     def on_train_begin(self, logs=None):
@@ -2388,18 +2393,17 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
         self._is_fitting = False
 
     def on_epoch_begin(self, epoch, logs=None):
-        self.model._is_first_batch = True
+        self._is_first_batch = True
 
     def on_train_batch_begin(self, batch, logs=None):
-        self.model._should_compute_train_metrics_for_batch = (
-            self.model._is_first_batch or batch % self.train_metrics_steps == 0
-        )
+        value = self._is_first_batch or batch % self.train_metrics_steps == 0
+        self.model._should_compute_train_metrics_for_batch.assign(value)
 
     def on_train_batch_end(self, batch, logs=None):
-        self.model._is_first_batch = False
+        self._is_first_batch = False
 
     def on_test_begin(self, logs=None):
-        self.model._should_compute_eval_metrics_as_in_training = self._is_fitting
+        self.model._should_compute_eval_metrics_as_in_training.assign(self._is_fitting)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -2428,9 +2432,21 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         self._is_fitting = False
 
         # Initializing model control flags controled by MetricsComputeCallback()
-        self._should_compute_train_metrics_for_batch = False
-        self._should_compute_eval_metrics_as_in_training = False
-        self._is_first_batch = True
+        self._should_compute_train_metrics_for_batch = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_train_metrics_for_batch",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: False,
+        )
+
+        self._should_compute_eval_metrics_as_in_training = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_eval_metrics_as_in_training",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: False,
+        )
 
     def call(self, inputs, **kwargs):
         outputs = self.block(inputs, **kwargs)
