@@ -29,7 +29,7 @@ class OutputSizeMixin(SchemaMixin, abc.ABC):
         self.check_schema(schema=schema)
 
         self.input_size = input_size
-        if schema and not getattr(self, "schema", None):
+        if schema and not getattr(self, "_schema", None):
             self.schema = schema
 
         return self
