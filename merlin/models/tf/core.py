@@ -2398,7 +2398,9 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
         self._is_first_batch = True
 
     def on_train_batch_begin(self, batch, logs=None):
-        value = self._is_first_batch or batch % self.train_metrics_steps == 0
+        value = self.train_metrics_steps > 0 and (
+            self._is_first_batch or batch % self.train_metrics_steps == 0
+        )
         self.model._should_compute_train_metrics_for_batch.assign(value)
 
     def on_train_batch_end(self, batch, logs=None):
