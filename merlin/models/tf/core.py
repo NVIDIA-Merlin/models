@@ -42,7 +42,6 @@ from tensorflow.python.keras.utils import generic_utils
 
 import merlin.io
 from merlin.models.config.schema import SchemaMixin
-from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.misc_utils import filter_kwargs
 from merlin.models.utils.registry import Registry, RegistryMixin
@@ -2759,7 +2758,8 @@ class RetrievalModel(Model):
         import merlin.models.tf as ml
 
         if not (
-            getattr(self, "loss_block", None) and isinstance(self.loss_block, ItemRetrievalTask)
+            getattr(self, "loss_block", None)
+            and getattr(self.loss_block, "set_retrieval_cache_query", None)
         ):
             raise ValueError(
                 "Your retrieval model should contain an ItemRetrievalTask "
