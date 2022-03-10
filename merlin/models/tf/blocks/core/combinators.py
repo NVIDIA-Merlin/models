@@ -492,6 +492,7 @@ class ResidualBlock(WithShortcut):
         )
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DualEncoderBlock(ParallelBlock):
     def __init__(
         self,

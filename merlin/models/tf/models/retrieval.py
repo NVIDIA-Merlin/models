@@ -29,7 +29,7 @@ def MatrixFactorizationModel(
     ] = None,
     softmax_temperature: int = 1,
     loss: Optional[LossType] = "bpr",
-    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS["ranking"],
+    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Union[Model, RetrievalModel]:
@@ -109,7 +109,7 @@ def TwoTowerModel(
     ] = None,
     softmax_temperature: int = 1,
     loss: Optional[LossType] = "categorical_crossentropy",
-    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS["ranking"],
+    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Union[Model, RetrievalModel]:

@@ -1,14 +1,47 @@
+from collections import Sequence as SequenceCollection
 from typing import Dict, List, Optional, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
 
 import merlin.io
-from merlin.models.tf.blocks.core.base import Block, BlockContext
+from merlin.models.tf.blocks.core.base import Block, BlockContext, BlockType
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from merlin.schema import Schema, Tags
+
+
+class MetricsComputeCallback(tf.keras.callbacks.Callback):
+    def __init__(self, train_metrics_steps=1, **kwargs):
+        self.train_metrics_steps = train_metrics_steps
+        self._is_fitting = False
+        self._is_first_batch = True
+        super().__init__(**kwargs)
+
+    def on_train_begin(self, logs=None):
+        self._is_fitting = True
+
+    def on_train_end(self, logs=None):
+        self._is_fitting = False
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self._is_first_batch = True
+
+    def on_train_batch_begin(self, batch, logs=None):
+        value = self.train_metrics_steps > 0 and (
+            self._is_first_batch or batch % self.train_metrics_steps == 0
+        )
+        self.model._should_compute_train_metrics_for_batch.assign(value)
+
+    def on_train_batch_end(self, batch, logs=None):
+        self._is_first_batch = False
+
+    def on_test_begin(self, logs=None):
+        self.model._should_compute_eval_metrics_as_in_training.assign(self._is_fitting)
+
+    def on_test_end(self, logs=None):
+        self.model._should_compute_eval_metrics_as_in_training.assign(False)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -58,42 +91,31 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
         self.context = context
+        self._is_fitting = False
+
+        # Initializing model control flags controled by MetricsComputeCallback()
+        self._should_compute_train_metrics_for_batch = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_train_metrics_for_batch",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: False,
+        )
+        self._should_compute_eval_metrics_as_in_training = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_eval_metrics_as_in_training",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: False,
+        )
 
     def call(self, inputs, **kwargs):
         outputs = self.block(inputs, **kwargs)
         return outputs
 
-    @classmethod
-    def from_block(
-        cls,
-        block: Block,
-        schema: Schema,
-        input_block: Optional[Block] = None,
-        prediction_tasks: Optional[
-            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
-        ] = None,
-        **kwargs,
-    ) -> "Model":
-        """Create a model from a `block`
-
-        Parameters
-        ----------
-        block: Block
-            The block to wrap in-between an InputBlock and prediction task(s)
-        schema: Schema
-            Schema to use for the model.
-        input_block: Optional[Block]
-            Block to use as input.
-        prediction_tasks: Optional[
-            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
-        ]
-            Prediction tasks to use.
-
-        """
-
-        return block.to_model(
-            schema, input_block=input_block, prediction_tasks=prediction_tasks, **kwargs
-        )
+    # @property
+    # def inputs(self):
+    #     return self.block.inputs
 
     @property
     def first(self):
@@ -110,6 +132,36 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     @property
     def schema(self) -> Schema:
         return self.block.schema
+
+    @classmethod
+    def from_block(
+        cls,
+        block: BlockType,
+        schema: Schema,
+        input_block: Optional[BlockType] = None,
+        prediction_tasks: Optional[
+            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
+        ] = None,
+        **kwargs,
+    ) -> "Model":
+        """Create a model from a `block`
+        Parameters
+        ----------
+        block: BlockType
+            The block to wrap in-between an InputBlock and prediction task(s)
+        schema: Schema
+            Schema to use for the model.
+        input_block: Optional[Block]
+            Block to use as input.
+        prediction_tasks: Optional[
+            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        ]
+            Prediction tasks to use.
+        """
+
+        return block.to_model(
+            schema, input_block=input_block, prediction_tasks=prediction_tasks, **kwargs
+        )
 
     def compute_loss(
         self,
@@ -128,11 +180,12 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         inputs: Union[tf.Tensor, TabularData],
         targets: Union[tf.Tensor, TabularData],
         mode: str = "val",
-        forward=True,
+        forward: bool = True,
+        training: bool = False,
         **kwargs,
     ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
         return self.loss_block.calculate_metrics(
-            inputs, targets, mode=mode, forward=forward, **kwargs
+            inputs, targets, mode=mode, forward=forward, training=training, **kwargs
         )
 
     def metric_results(self, mode=None):
@@ -148,7 +201,12 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 targets = None
 
             predictions = self(inputs, training=True)
-            loss = self.compute_loss(predictions, targets, training=True, compute_metrics=True)
+            loss = self.compute_loss(
+                predictions,
+                targets,
+                training=True,
+                compute_metrics=self._should_compute_train_metrics_for_batch,
+            )
             tf.assert_rank(
                 loss,
                 0,
@@ -180,7 +238,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             gradients = tape.gradient(total_loss, self.trainable_variables)
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+
         metrics = self.loss_block.metric_result_dict()
+
         metrics["loss"] = loss
         metrics["regularization_loss"] = regularization_loss
         metrics["total_loss"] = total_loss
@@ -195,14 +255,22 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             targets = None
 
-        predictions = self(inputs, training=False)
-        loss = self.compute_loss(predictions, targets, training=False, compute_metrics=True)
-        tf.assert_rank(
-            loss,
-            0,
-            "The loss tensor should have rank 0. "
-            "Check if you are using a tf.keras.losses.Loss with 'reduction' "
-            "properly set",
+        def compute_loss_metrics(training):
+            predictions = self(inputs, training=training)
+            loss = self.compute_loss(predictions, targets, training=training, compute_metrics=True)
+            tf.assert_rank(
+                loss,
+                0,
+                "The loss tensor should have rank 0. "
+                "Check if you are using a tf.keras.losses.Loss with 'reduction' "
+                "properly set",
+            )
+            return loss
+
+        loss = tf.cond(
+            self._should_compute_eval_metrics_as_in_training,
+            lambda: compute_loss_metrics(training=True),
+            lambda: compute_loss_metrics(training=False),
         )
 
         # Casting regularization loss to fp16 if needed to match the main loss
@@ -238,6 +306,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         max_queue_size=10,
         workers=1,
         use_multiprocessing=False,
+        train_metrics_steps=1,
         **kwargs,
     ):
         # Check if merlin-dataset is passed
@@ -247,6 +316,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             from merlin.models.tf.dataset import Dataset
 
             x = Dataset(x, batch_size=batch_size, **kwargs)
+
+        callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
         return super().fit(
             x,
@@ -270,21 +341,34 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             use_multiprocessing,
         )
 
+    def _add_metrics_callback(self, callbacks, train_metrics_steps):
+        if callbacks is None:
+            callbacks = []
+
+        if isinstance(callbacks, SequenceCollection):
+            callbacks = list(callbacks)
+        else:
+            callbacks = [callbacks]
+
+        callback_types = [type(callback) for callback in callbacks]
+        if MetricsComputeCallback not in callback_types:
+            # Adding a callback to control metrics computation
+            callbacks.append(MetricsComputeCallback(train_metrics_steps))
+
+        return callbacks
+
     def batch_predict(
         self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
     ) -> merlin.io.Dataset:
         """Batched prediction using the Dask.
-
         Parameters
         ----------
         dataset: merlin.io.Dataset
             Dataset to predict on.
         batch_size: int
             Batch size to use for prediction.
-
         Returns merlin.io.Dataset
         -------
-
         """
         if hasattr(dataset, "schema"):
             if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
@@ -362,7 +446,6 @@ class RetrievalModel(Model):
         batch_size=None,
     ) -> merlin.io.Dataset:
         """Export query embeddings from the model.
-
         Parameters
         ----------
         dataset: merlin.io.Dataset
@@ -373,7 +456,6 @@ class RetrievalModel(Model):
             Tag to use for the query id.
         batch_size: int
             Batch size to use for embedding extraction.
-
         Returns
         -------
         merlin.io.Dataset
@@ -395,7 +477,6 @@ class RetrievalModel(Model):
         batch_size=None,
     ) -> merlin.io.Dataset:
         """Export item embeddings from the model.
-
         Parameters
         ----------
         dataset: merlin.io.Dataset
@@ -406,7 +487,6 @@ class RetrievalModel(Model):
             Tag to use for the item id.
         batch_size: int
             Batch size to use for embedding extraction.
-
         Returns
         -------
         merlin.io.Dataset
@@ -422,38 +502,45 @@ class RetrievalModel(Model):
 
     def load_topk_evaluation(self, data: merlin.io.Dataset, k: int, **kwargs):
         """Update the model with a top-k evaluation block.
-
         Parameters
         ----------
         data: merlin.io.Dataset
             Dataset of negatives to use for evaluation.
         k: int
             Number of negatives to retrieve.
-
         Returns
         -------
         SequentialBlock
         """
         import merlin.models.tf as ml
 
+        if not (
+            getattr(self, "loss_block", None)
+            and getattr(self.loss_block, "set_retrieval_cache_query", None)
+        ):
+            raise ValueError(
+                "Your retrieval model should contain an ItemRetrievalTask "
+                "in the end (loss_block)."
+            )
+
         topk_index = ml.TopKIndexBlock.from_block(
             self.retrieval_block.item_block(), data=data, k=k - 1, context=self.context, **kwargs
         )
+        self.loss_block.pre_eval_topk = topk_index
+
         # set cache_query to True in the ItemRetrievalScorer
-        self.loss_block.retrieval_scorer.cache_query = True  # type: ignore
-        self.loss_block.pre_metrics = topk_index  # type: ignore
+        self.loss_block.set_retrieval_cache_query(True)
+
         return self
 
     def to_top_k_recommender(self, data: merlin.io.Dataset, k: int, **kwargs) -> ModelBlock:
         """Convert the model to a Top-k Recommender.
-
         Parameters
         ----------
         data: merlin.io.Dataset
             Dataset to convert to a Top-k Recommender.
         k: int
             Number of recommendations to make.
-
         Returns
         -------
         SequentialBlock

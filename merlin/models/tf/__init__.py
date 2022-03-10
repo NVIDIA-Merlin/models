@@ -56,6 +56,7 @@ from merlin.models.tf.blocks.core.transformations import (
     AsDenseFeatures,
     AsSparseFeatures,
     ExpandDims,
+    LabelToOneHot,
     StochasticSwapNoise,
 )
 from merlin.models.tf.blocks.cross import CrossBlock
@@ -152,7 +153,7 @@ __all__ = [
     "Filter",
     "ParallelBlock",
     "StackFeatures",
-    "PredictionTask",
+    "LabelToOneHot" "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",

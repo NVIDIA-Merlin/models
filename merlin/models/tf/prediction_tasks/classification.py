@@ -20,9 +20,8 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 
-from merlin.models.tf.blocks.core.base import Block, MetricOrMetricClass
+from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
 from merlin.models.tf.losses import LossType, loss_registry
-from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.base import PredictionTask
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -30,6 +29,7 @@ from merlin.models.tf.utils.tf_utils import (
 )
 from merlin.models.utils.schema_utils import categorical_cardinalities
 from merlin.schema import Schema, Tags
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BinaryClassificationTask(PredictionTask):
@@ -144,9 +144,7 @@ class CategFeaturePrediction(Block):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = "sparse_categorical_crossentropy"
-    DEFAULT_METRICS = {
-        "multi-class": [tf.keras.metrics.Accuracy],
-    }
+    DEFAULT_METRICS = (tf.keras.metrics.Accuracy,)
 
     def __init__(
         self,
@@ -154,7 +152,7 @@ class MultiClassClassificationTask(PredictionTask):
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS["multi-class"],
+        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS,
         pre: Optional[Block] = None,
         **kwargs,
     ):

@@ -603,6 +603,7 @@ def name_fn(name, inp):
 
 
 MetricOrMetricClass = Union[tf.keras.metrics.Metric, Type[tf.keras.metrics.Metric]]
+MetricOrMetrics = Union[Sequence[MetricOrMetricClass], MetricOrMetricClass]
 
 
 @dataclass
