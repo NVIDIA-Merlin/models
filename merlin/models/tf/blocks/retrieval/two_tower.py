@@ -19,12 +19,12 @@ from typing import Optional
 
 import tensorflow as tf
 
+from merlin.models.tf.blocks.core.base import Block, BlockType
+from merlin.models.tf.blocks.core.combinators import ParallelBlock
+from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.blocks.retrieval.base import RetrievalMixin, TowerBlock
+from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.schema import Schema, Tags
-
-from ...core import Block, BlockType, ParallelBlock
-from ...features.embedding import EmbeddingOptions
-from ..core.inputs import InputBlock
-from .base import RetrievalMixin, TowerBlock
 
 LOG = logging.getLogger("merlin_models")
 

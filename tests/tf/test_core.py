@@ -67,7 +67,8 @@ def test_serialization_continuous_features(
     assert inputs.pre.__class__.__name__ == copy_layer.pre.__class__.__name__
     assert inputs.post.__class__.__name__ == copy_layer.post.__class__.__name__
     assert inputs.aggregation.__class__.__name__ == copy_layer.aggregation.__class__.__name__
-    assert inputs.schema == schema
+    if include_schema:
+        assert inputs.schema == schema
 
 
 class DummyFeaturesBlock(ml.Block):

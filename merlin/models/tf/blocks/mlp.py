@@ -18,10 +18,14 @@ from typing import List, Optional, Union
 
 import tensorflow as tf
 
+from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.blocks.core.combinators import ResidualBlock, SequentialBlock
+from merlin.models.tf.blocks.core.tabular import Filter, tabular_aggregation_registry
+from merlin.models.tf.utils.tf_utils import (
+    maybe_deserialize_keras_objects,
+    maybe_serialize_keras_objects,
+)
 from merlin.schema import Schema, Tags
-
-from ..core import Block, Filter, ResidualBlock, SequentialBlock, tabular_aggregation_registry
-from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 InitializerType = Union[str, tf.keras.initializers.Initializer]
 RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
@@ -272,9 +276,9 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
             inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
 
         if self.low_rank_dim is None:
-            return self.dense(inputs)
+            return self.dense(inputs)  # type: ignore
 
-        return self.dense(self.dense_u(inputs))
+        return self.dense(self.dense_u(inputs))  # type: ignore
 
     def compute_output_shape(self, input_shape):
         if isinstance(input_shape, dict):

@@ -16,12 +16,11 @@
 
 import torch
 
+from merlin.models.config.schema import requires_schema
+from merlin.models.torch.tabular.base import TabularAggregation, tabular_aggregation_registry
+from merlin.models.torch.typing import TabularData
+from merlin.models.torch.utils.torch_utils import calculate_batch_size_from_input_size
 from merlin.schema import Schema, Tags
-
-from ...config.schema import requires_schema
-from ..typing import TabularData
-from ..utils.torch_utils import calculate_batch_size_from_input_size
-from .base import TabularAggregation, tabular_aggregation_registry
 
 
 @tabular_aggregation_registry.register("concat")
@@ -128,7 +127,7 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
     def __init__(self, schema: Schema = None):
         super().__init__()
         self.stack = StackFeatures(axis=0)
-        self.schema = schema
+        self.set_schema(schema)
         self.item_id_col_name = None
 
     def forward(self, inputs: TabularData) -> torch.Tensor:

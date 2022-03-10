@@ -5,11 +5,11 @@ import numpy as np
 import tensorflow as tf
 
 from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
+from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.dataset import BatchedDataset
+from merlin.models.tf.models.base import Model, RetrievalModel
+from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Schema, Tags
-
-from ...utils.schema import select_targets
-from ..core import Block, Model, RetrievalModel
-from ..dataset import BatchedDataset
 
 
 class ModelEncode:
@@ -67,7 +67,7 @@ class TFModelEncode(ModelEncode):
     def __init__(
         self,
         model: tp.Union[Model, tf.keras.Model],
-        output_names: tp.List[str] = None,
+        output_names: tp.Optional[tp.List[str]] = None,
         batch_size: int = 512,
         save_path: tp.Optional[str] = None,
         block_load_func: tp.Optional[tp.Callable[[str], Block]] = None,
@@ -84,7 +84,10 @@ class TFModelEncode(ModelEncode):
             except AttributeError:
                 pass
         if not output_concat_func:
-            output_concat_func = np.concatenate if len(output_names) == 1 else get_lib().concat
+            if len(output_names) == 1:  # type: ignore
+                output_concat_func = np.concatenate
+            else:
+                output_concat_func = get_lib().concat  # type: ignore
 
         self.schema = schema or model.schema
 

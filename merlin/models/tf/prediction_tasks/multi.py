@@ -18,9 +18,8 @@ from typing import Dict, Optional, Union
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock
 from merlin.schema import Schema
-
-from ..core import ParallelPredictionBlock
 
 
 def PredictionTasks(

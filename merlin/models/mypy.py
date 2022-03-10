@@ -25,7 +25,7 @@ def default_function_hook(ctx: FunctionContext) -> Type:
 
 
 def merlin_connect_hook_tf(ctx: FunctionContext) -> Type:
-    SequentialBlock, Model, RetrievalModel = ctx.default_return_type.items
+    SequentialBlock, Model, RetrievalModel = ctx.default_return_type.items  # type: ignore
 
     model_like_blocks = [
         "merlin.models.tf.core.ParallelPredictionBlock",
@@ -40,7 +40,7 @@ def merlin_connect_hook_tf(ctx: FunctionContext) -> Type:
     ]
 
     if str(ctx.arg_types[0][-1]) in model_like_blocks:
-        if str(ctx.type) in retrieval_blocks:
+        if str(ctx.type) in retrieval_blocks:  # type: ignore
             return RetrievalModel
 
         return Model

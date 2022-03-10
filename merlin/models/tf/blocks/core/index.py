@@ -21,7 +21,7 @@ from tensorflow.python import to_dlpack
 
 import merlin.io
 from merlin.core.dispatch import DataFrameType
-from merlin.models.tf.core import Block, PredictionOutput
+from merlin.models.tf.blocks.core.base import Block, PredictionOutput
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.batch_utils import TFModelEncode
 from merlin.schema import Tags
@@ -91,10 +91,12 @@ class IndexBlock(Block):
     def update(self, values: tf.Tensor, ids: Optional[tf.Tensor] = None):
         if len(tf.shape(values)) != 2:
             raise ValueError(f"The candidates embeddings tensor must be 2D (got {values.shape}).")
-        if not ids:
-            ids = tf.range(values.shape[0])
+        _ids: tf.Tensor = ids if ids else tf.range(values.shape[0])
 
-        self.ids.assign(ids)
+        if self.ids:
+            self.ids.assign(_ids)
+        else:
+            self.ids = _ids
         self.values.assign(values)
         return self
 
@@ -137,7 +139,7 @@ class TopKIndexBlock(IndexBlock):
         super(TopKIndexBlock, self).__init__(values, ids, **kwargs)
 
     @classmethod
-    def from_block(
+    def from_block(  # type: ignore
         cls,
         block: Block,
         data: merlin.io.Dataset,
@@ -210,6 +212,7 @@ class TopKIndexBlock(IndexBlock):
             the scores for the top-k implicit negatives.
         """
         targets, predictions = outputs.targets, outputs.predictions
+        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         queries = self.context["query"]
         top_scores, _ = self(queries, k=self._k)
         predictions = tf.expand_dims(predictions[:, 0], -1)

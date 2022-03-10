@@ -17,7 +17,7 @@
 import tensorflow as tf
 from tensorflow.keras.losses import CategoricalCrossentropy, SparseCategoricalCrossentropy
 
-from .base import LossRegistryMixin
+from merlin.models.tf.losses.base import LossRegistryMixin
 
 
 @LossRegistryMixin.registry.register_with_multiple_names("sparse_categorical_crossentropy", "sce")

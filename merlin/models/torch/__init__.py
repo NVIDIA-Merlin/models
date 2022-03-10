@@ -13,37 +13,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from merlin.schema import Schema
-
-from .. import data
+from merlin.models import data
 
 # Block related imports
-from .block.base import Block, BlockBase, SequentialBlock, build_blocks, right_shift_block
-from .block.mlp import MLPBlock
+from merlin.models.torch.block.base import (
+    Block,
+    BlockBase,
+    SequentialBlock,
+    build_blocks,
+    right_shift_block,
+)
+from merlin.models.torch.block.mlp import MLPBlock
 
 # Features related imports
-from .features.continuous import ContinuousFeatures
-from .features.embedding import (
+from merlin.models.torch.features.continuous import ContinuousFeatures
+from merlin.models.torch.features.embedding import (
     EmbeddingFeatures,
     FeatureConfig,
     SoftEmbedding,
     SoftEmbeddingFeatures,
     TableConfig,
 )
-from .features.tabular import TabularFeatures
+from merlin.models.torch.features.tabular import TabularFeatures
 
 # Model related imports
-from .model.base import Head, Model, PredictionTask
-from .model.prediction_task import BinaryClassificationTask, RegressionTask
+from merlin.models.torch.model.base import Head, Model, PredictionTask
+from merlin.models.torch.model.prediction_task import BinaryClassificationTask, RegressionTask
 
 # Tabular related imports
-from .tabular.aggregation import (
+from merlin.models.torch.tabular.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
     ElementwiseSumItemMulti,
     StackFeatures,
 )
-from .tabular.base import (
+from merlin.models.torch.tabular.base import (
     AsTabular,
     FilterFeatures,
     MergeTabular,
@@ -53,7 +57,8 @@ from .tabular.base import (
     TabularModule,
     TabularTransformation,
 )
-from .tabular.transformations import StochasticSwapNoise, TabularLayerNorm
+from merlin.models.torch.tabular.transformations import StochasticSwapNoise, TabularLayerNorm
+from merlin.schema import Schema
 
 __all__ = [
     "Schema",

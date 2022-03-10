@@ -1,19 +1,20 @@
 from typing import List, Optional, Union
 
+from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.blocks.cross import CrossBlock
+from merlin.models.tf.blocks.dlrm import DLRMBlock
+from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.models.base import Model
+from merlin.models.tf.models.utils import parse_prediction_tasks
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.schema import Schema
-
-from ..blocks.core.inputs import InputBlock
-from ..blocks.cross import CrossBlock
-from ..blocks.dlrm import DLRMBlock
-from ..blocks.mlp import MLPBlock
-from ..core import Block, Model, ParallelPredictionBlock, PredictionTask
-from .utils import parse_prediction_tasks
 
 
 def DLRMModel(
     schema: Schema,
     embedding_dim: int,
-    bottom_block: Block = None,
+    bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]

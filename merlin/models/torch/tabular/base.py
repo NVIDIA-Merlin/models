@@ -21,13 +21,15 @@ from typing import Dict, List, Optional, Union
 
 import torch
 
+from merlin.models.torch.block.base import BlockBase, SequentialBlock, right_shift_block
+from merlin.models.torch.typing import TabularData, TensorOrTabularData
+from merlin.models.torch.utils.torch_utils import (
+    OutputSizeMixin,
+    calculate_batch_size_from_input_size,
+)
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.registry import Registry
 from merlin.schema import Schema
-
-from ..block.base import BlockBase, SequentialBlock, right_shift_block
-from ..typing import TabularData, TensorOrTabularData
-from ..utils.torch_utils import OutputSizeMixin, calculate_batch_size_from_input_size
 
 tabular_transformation_registry: Registry = Registry.class_registry("torch.tabular_transformations")
 tabular_aggregation_registry: Registry = Registry.class_registry("torch.tabular_aggregations")
@@ -299,7 +301,7 @@ class TabularModule(torch.nn.Module):
         self,
         inputs: TabularData,
         transformations: Optional[TabularTransformationsType] = None,
-        merge_with: Union["TabularModule", List["TabularModule"]] = None,
+        merge_with: Optional[Union["TabularModule", List["TabularModule"]]] = None,
         aggregation: Optional[TabularAggregationType] = None,
     ) -> TensorOrTabularData:
         """Method that's typically called after the forward method for post-processing.
@@ -338,7 +340,7 @@ class TabularModule(torch.nn.Module):
         )
 
         if _aggregation:
-            schema = getattr(self, "schema", None)
+            schema = getattr(self, "_schema", None)
             _aggregation.set_schema(schema)
             return _aggregation(outputs)
 
@@ -350,7 +352,7 @@ class TabularModule(torch.nn.Module):
         *args,
         pre: Optional[TabularTransformationsType] = None,
         post: Optional[TabularTransformationsType] = None,
-        merge_with: Union["TabularModule", List["TabularModule"]] = None,
+        merge_with: Optional[Union["TabularModule", List["TabularModule"]]] = None,
         aggregation: Optional[TabularAggregationType] = None,
         **kwargs,
     ) -> TensorOrTabularData:
@@ -483,7 +485,8 @@ class TabularBlock(BlockBase, TabularModule, ABC):
         schema: Optional[Schema] = None,
     ):
         super().__init__(pre=pre, post=post, aggregation=aggregation)
-        self.schema = schema
+        if schema:
+            self.set_schema(schema)
 
     def to_module(self, shape_or_module, device=None):
         shape = shape_or_module
@@ -527,7 +530,7 @@ class TabularBlock(BlockBase, TabularModule, ABC):
             if self.post:
                 output_size = self.post.output_size(output_size)
             if self.aggregation:
-                schema = getattr(self, "schema", None)
+                schema = getattr(self, "_schema", None)
                 # self.aggregation.build(output_size, schema=schema)
                 self.aggregation.set_schema(schema)
                 output_size = self.aggregation.forward_output_size(output_size)
@@ -573,8 +576,8 @@ class MergeTabular(TabularBlock):
             )
 
         # Merge schemas if necessary.
-        if not schema and all(getattr(m, "schema", False) for m in self.merge_values):
-            self.schema = reduce(lambda a, b: a + b, [m.schema for m in self.merge_values])
+        if not schema and all(getattr(m, "_schema", False) for m in self.merge_values):
+            self.set_schema(reduce(lambda a, b: a + b, [m.schema for m in self.merge_values]))
 
     @property
     def merge_values(self):

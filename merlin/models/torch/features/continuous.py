@@ -18,16 +18,15 @@ from typing import List, Optional
 
 import torch
 
-from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import Schema
-
-from ..tabular.base import (
+from merlin.models.torch.features.base import InputBlock
+from merlin.models.torch.tabular.base import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     FilterFeatures,
     TabularAggregationType,
     TabularTransformationType,
 )
-from .base import InputBlock
+from merlin.models.utils.doc_utils import docstring_parameter
+from merlin.schema import Schema
 
 
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)

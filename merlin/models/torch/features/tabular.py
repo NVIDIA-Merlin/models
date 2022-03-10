@@ -16,12 +16,11 @@
 
 from typing import List, Optional, Tuple, Type, Union
 
-from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import Schema, Tags, TagsType
-
-from ..block.base import SequentialBlock
-from ..block.mlp import MLPBlock
-from ..tabular.base import (
+from merlin.models.torch.block.base import SequentialBlock
+from merlin.models.torch.block.mlp import MLPBlock
+from merlin.models.torch.features.continuous import ContinuousFeatures
+from merlin.models.torch.features.embedding import EmbeddingFeatures, SoftEmbeddingFeatures
+from merlin.models.torch.tabular.base import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     AsTabular,
     MergeTabular,
@@ -29,9 +28,9 @@ from ..tabular.base import (
     TabularModule,
     TabularTransformationType,
 )
-from ..utils.torch_utils import get_output_sizes_from_schema
-from .continuous import ContinuousFeatures
-from .embedding import EmbeddingFeatures, SoftEmbeddingFeatures
+from merlin.models.torch.utils.torch_utils import get_output_sizes_from_schema
+from merlin.models.utils.doc_utils import docstring_parameter
+from merlin.schema import Schema, Tags, TagsType
 
 TABULAR_FEATURES_PARAMS_DOCSTRING = """
     continuous_module: TabularModule, optional

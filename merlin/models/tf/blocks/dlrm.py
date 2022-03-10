@@ -16,18 +16,18 @@
 
 from typing import Optional
 
+from merlin.models.tf.blocks.core.base import Block, Debug
+from merlin.models.tf.blocks.core.combinators import Filter, ParallelBlock, SequentialBlock
+from merlin.models.tf.blocks.interaction import DotProductInteraction
+from merlin.models.tf.features.continuous import ContinuousFeatures
+from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
 from merlin.schema import Schema, Tags
-
-from ..blocks.interaction import DotProductInteraction
-from ..core import Block, Debug, Filter, ParallelBlock, SequentialBlock
-from ..features.continuous import ContinuousFeatures
-from ..features.embedding import EmbeddingFeatures, EmbeddingOptions
 
 
 def DLRMBlock(
     schema: Schema,
     embedding_dim: int,
-    bottom_block: Block = None,
+    bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
 ) -> SequentialBlock:
     """Builds the DLRM architecture, as proposed in the following
@@ -96,10 +96,11 @@ def DLRMBlock(
                 "The bottom_block is required by DLRM when "
                 "continuous features are available in the schema"
             )
-        bottom_block = ContinuousFeatures.from_schema(con_schema).connect(bottom_block)
+        con = ContinuousFeatures.from_schema(con_schema)
+        bottom_block = con.connect(bottom_block)  # type: ignore
         interaction_inputs = ParallelBlock({"embeddings": embeddings, "bottom_block": bottom_block})
     else:
-        interaction_inputs = embeddings
+        interaction_inputs = embeddings  # type: ignore
 
     interaction_inputs = interaction_inputs.connect(Debug())
 

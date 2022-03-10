@@ -1,9 +1,8 @@
 from typing import List, Optional, Union
 
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.schema import Schema
-
-from ..core import ParallelPredictionBlock, PredictionTask
-from ..prediction_tasks.multi import PredictionTasks
 
 
 def parse_prediction_tasks(
@@ -11,7 +10,7 @@ def parse_prediction_tasks(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-):
+) -> Union[PredictionTask, ParallelPredictionBlock]:
     if not prediction_tasks:
         prediction_tasks = PredictionTasks(schema)
     if isinstance(prediction_tasks, (list, tuple)):

@@ -18,7 +18,7 @@ import pytest
 import torch
 
 import merlin.models.torch as ml
-from merlin.models.utils.schema import create_categorical_column
+from merlin.models.utils.schema_utils import create_categorical_column
 from merlin.schema import Schema, Tags
 
 

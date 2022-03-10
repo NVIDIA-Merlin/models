@@ -15,21 +15,21 @@
 #
 
 import logging
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Type, Union
 
+from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.blocks.core.base import Block, BlockType
+from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularAggregationType
+from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
-from merlin.schema import Schema, Tags, TagsType
-
-from ...core import Block, BlockType, ParallelBlock, TabularAggregationType
-from ...features.continuous import ContinuousFeatures
-from ...features.embedding import (
+from merlin.models.tf.features.continuous import ContinuousFeatures
+from merlin.models.tf.features.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
     SequenceEmbeddingFeatures,
 )
-from .aggregation import SequenceAggregation, SequenceAggregator
-from .masking import MaskingBlock, masking_registry
+from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin-models")
 
@@ -178,18 +178,18 @@ def InputBlock(
         pre = None
         if max_seq_length and seq:
             pre = AsDenseFeatures(max_seq_length)
-        branches["continuous"] = ContinuousFeatures.from_schema(
+        branches["continuous"] = ContinuousFeatures.from_schema(  # type: ignore
             schema,
             tags=continuous_tags,
             pre=pre,
         )
     if add_embedding_branch and schema.select_by_tag(categorical_tags).column_schemas:
-        emb_cls = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
+        emb_cls: Type[EmbeddingFeatures] = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
         emb_kwargs = {}
         if max_seq_length and seq:
             emb_kwargs["max_seq_length"] = max_seq_length
 
-        branches["categorical"] = emb_cls.from_schema(
+        branches["categorical"] = emb_cls.from_schema(  # type: ignore
             schema, tags=categorical_tags, options=embedding_options, **emb_kwargs
         )
 

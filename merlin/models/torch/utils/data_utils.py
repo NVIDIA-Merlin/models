@@ -21,10 +21,9 @@ import numpy as np
 from torch.utils.data import DataLoader as PyTorchDataLoader
 from torch.utils.data import Dataset, IterableDataset
 
+from merlin.models.utils import dependencies
 from merlin.models.utils.registry import Registry
 from merlin.schema import Schema, Tags
-
-from ...utils import dependencies
 
 logger = logging.getLogger(__name__)
 

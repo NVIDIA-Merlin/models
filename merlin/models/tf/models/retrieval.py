@@ -1,26 +1,20 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
+from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
+from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
+from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.losses import LossType
+from merlin.models.tf.metrics.ranking import ranking_metrics
+from merlin.models.tf.models.base import Model, RetrievalModel
+from merlin.models.tf.models.utils import parse_prediction_tasks
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
+from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.schema import Schema, Tags
-
-from ..blocks.core.aggregation import SequenceAggregation, SequenceAggregator
-from ..blocks.core.inputs import InputBlock
-from ..blocks.mlp import MLPBlock
-from ..blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
-from ..blocks.retrieval.two_tower import TwoTowerBlock
-from ..blocks.sampling.base import ItemSampler
-from ..core import (
-    Block,
-    BlockType,
-    MetricOrMetricClass,
-    Model,
-    ParallelPredictionBlock,
-    PredictionTask,
-)
-from ..losses import LossType
-from ..metrics.ranking import ranking_metrics
-from ..prediction_tasks.next_item import NextItemPredictionTask
-from ..prediction_tasks.retrieval import ItemRetrievalTask
-from .utils import parse_prediction_tasks
 
 
 def MatrixFactorizationModel(
@@ -35,10 +29,10 @@ def MatrixFactorizationModel(
     ] = None,
     softmax_temperature: int = 1,
     loss: Optional[LossType] = "bpr",
-    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS,
+    metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
-) -> Model:
+) -> Union[Model, RetrievalModel]:
     """Builds a matrix factorization model.
 
     Example Usage::
@@ -81,7 +75,7 @@ def MatrixFactorizationModel(
             schema,
             metrics=metrics,
             softmax_temperature=softmax_temperature,
-            samplers=samplers,
+            samplers=list(samplers),
             loss=loss,
             **kwargs,
         )
@@ -115,10 +109,10 @@ def TwoTowerModel(
     ] = None,
     softmax_temperature: int = 1,
     loss: Optional[LossType] = "categorical_crossentropy",
-    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS,
+    metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
-) -> Model:
+) -> Union[Model, RetrievalModel]:
     """Builds the Two-tower architecture, as proposed in [1].
 
     Example Usage::
@@ -170,7 +164,7 @@ def TwoTowerModel(
             schema,
             metrics=metrics,
             softmax_temperature=softmax_temperature,
-            samplers=samplers,
+            samplers=list(samplers),
             loss=loss,
             **kwargs,
         )

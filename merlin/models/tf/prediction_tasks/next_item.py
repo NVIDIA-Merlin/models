@@ -19,23 +19,25 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
-from merlin.schema import Schema, Tags
-
-from ...utils.schema import categorical_cardinalities
-from ..blocks.core.masking import MaskingHead
-from ..blocks.core.transformations import (
+from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.blocks.core.masking import MaskingHead
+from merlin.models.tf.blocks.core.transformations import (
     ItemsPredictionWeightTying,
     L2Norm,
     LabelToOneHot,
     PredictionsScaler,
     RemovePad3D,
 )
-from ..blocks.retrieval.base import ItemRetrievalScorer
-from ..blocks.sampling.cross_batch import PopularityBasedSampler
-from ..core import Block
-from ..losses.base import LossType
-from ..metrics.ranking import ranking_metrics
-from .classification import CategFeaturePrediction, MultiClassClassificationTask
+from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
+from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
+from merlin.models.tf.losses.base import LossType
+from merlin.models.tf.metrics.ranking import ranking_metrics
+from merlin.models.tf.prediction_tasks.classification import (
+    CategFeaturePrediction,
+    MultiClassClassificationTask,
+)
+from merlin.models.utils.schema_utils import categorical_cardinalities
+from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin.models")
 

@@ -20,12 +20,15 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 
+from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
+from merlin.models.tf.losses import LossType, loss_registry
+from merlin.models.tf.prediction_tasks.base import PredictionTask
+from merlin.models.tf.utils.tf_utils import (
+    maybe_deserialize_keras_objects,
+    maybe_serialize_keras_objects,
+)
+from merlin.models.utils.schema_utils import categorical_cardinalities
 from merlin.schema import Schema, Tags
-
-from ...utils.schema import categorical_cardinalities
-from ..core import Block, MetricOrMetrics, PredictionTask
-from ..losses import LossType, loss_registry
-from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -102,7 +105,7 @@ class CategFeaturePrediction(Block):
     def __init__(
         self,
         schema: Schema,
-        feature_name: str = None,
+        feature_name: Optional[str] = None,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
         activation=None,
@@ -141,9 +144,7 @@ class CategFeaturePrediction(Block):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = "sparse_categorical_crossentropy"
-    DEFAULT_METRICS = {
-        "multi-class": [tf.keras.metrics.Accuracy],
-    }
+    DEFAULT_METRICS = (tf.keras.metrics.Accuracy,)
 
     def __init__(
         self,
@@ -151,7 +152,7 @@ class MultiClassClassificationTask(PredictionTask):
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS["multi-class"],
+        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS,
         pre: Optional[Block] = None,
         **kwargs,
     ):
@@ -202,7 +203,7 @@ class MultiClassClassificationTask(PredictionTask):
     def call(self, inputs, training=False, **kwargs):
         return inputs
 
-    def metric_results(self, mode: str = None):
+    def metric_results(self, mode: str = "val"):
         dict_results = {}
         for metric in self.metrics:
             dict_results.update({metric.name: metric.result()})

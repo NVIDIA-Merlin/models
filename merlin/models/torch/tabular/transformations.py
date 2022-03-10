@@ -18,9 +18,9 @@ from typing import Dict, Optional
 
 import torch
 
-from ..features.embedding import FeatureConfig, TableConfig
-from ..typing import TabularData, TensorOrTabularData
-from .base import TabularTransformation, tabular_transformation_registry
+from merlin.models.torch.features.embedding import FeatureConfig, TableConfig
+from merlin.models.torch.tabular.base import TabularTransformation, tabular_transformation_registry
+from merlin.models.torch.typing import TabularData, TensorOrTabularData
 
 
 @tabular_transformation_registry.register_with_multiple_names("stochastic-swap-noise", "ssn")
@@ -39,7 +39,7 @@ class StochasticSwapNoise(TabularTransformation):
     def forward(  # type: ignore
         self, inputs: TensorOrTabularData, input_mask: Optional[torch.Tensor] = None, **kwargs
     ) -> TensorOrTabularData:
-        if self.schema:
+        if self._schema:
             input_mask = input_mask or self.get_padding_mask_from_item_id(inputs, self.pad_token)
         if isinstance(inputs, dict):
             return {key: self.augment(val, input_mask) for key, val in inputs.items()}

@@ -20,12 +20,12 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
+from merlin.models.tf.blocks.core.base import Block, PredictionOutput
+from merlin.models.tf.blocks.core.combinators import TabularBlock
+from merlin.models.tf.typing import TabularData, TensorOrTabularData
+from merlin.models.tf.utils.tf_utils import transform_label_to_onehot
+from merlin.models.utils.schema_utils import categorical_cardinalities
 from merlin.schema import Schema, Tags
-
-from ....utils.schema import categorical_cardinalities
-from ...core import Block, PredictionOutput, TabularBlock
-from ...typing import TabularData, TensorOrTabularData
-from ...utils.tf_utils import transform_label_to_onehot
 
 
 @Block.registry.register("as-sparse")
@@ -164,7 +164,7 @@ class StochasticSwapNoise(TabularBlock):
         **kwargs,
     ) -> TensorOrTabularData:
         def augment(input_mask):
-            if self.schema:
+            if self._schema:
                 input_mask = input_mask or self.get_padding_mask_from_item_id(
                     inputs, self.pad_token
                 )
@@ -357,6 +357,7 @@ class RemovePad3D(Block):
         non_pad_mask = targets != self.padding_idx
         targets = tf.boolean_mask(targets, non_pad_mask)
 
+        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         if len(tuple(predictions.get_shape())) == 3:
             predictions = tf.reshape(predictions, (-1, predictions.shape[-1]))
             predictions = tf.boolean_mask(
@@ -400,6 +401,7 @@ class PredictionsScaler(Block):
         self, outputs: PredictionOutput, training=True, **kwargs
     ) -> "PredictionOutput":
         targets, predictions = outputs.targets, outputs.predictions
+        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         if training:
             predictions = predictions * self.scale_factor
         return PredictionOutput(predictions, targets)

@@ -29,7 +29,7 @@ class LightFM:
     Example usage::
 
         # Get the movielens dataset
-        from merlin.models.utils.data_etl_utils import get_movielens
+        from merlin.models.data.movielens import get_movielens
 
         train, valid = get_movielens()
 

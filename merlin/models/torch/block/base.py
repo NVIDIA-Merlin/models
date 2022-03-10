@@ -23,16 +23,15 @@ from typing import List, Optional, Union
 import torch
 from torch.nn import Module
 
+from merlin.models.torch.utils import torch_utils
 from merlin.models.utils.misc_utils import filter_kwargs
-
-from ..utils import torch_utils
 
 LOG = logging.getLogger("merlin.models")
 
 
 class BlockBase(torch_utils.OutputSizeMixin, torch.nn.Module, metaclass=abc.ABCMeta):
     def to_model(self, prediction_task_or_head, inputs=None, **kwargs):
-        from ..model.base import Head, Model, PredictionTask
+        from merlin.models.torch.model.base import Head, Model, PredictionTask
 
         if isinstance(prediction_task_or_head, PredictionTask):
             head = prediction_task_or_head.to_head(self, inputs=inputs, **kwargs)
@@ -47,7 +46,7 @@ class BlockBase(torch_utils.OutputSizeMixin, torch.nn.Module, metaclass=abc.ABCM
         return Model(head, **kwargs)
 
     def as_tabular(self, name=None):
-        from ..tabular.base import AsTabular
+        from merlin.models.torch.tabular.base import AsTabular
 
         if not name:
             name = self.name
@@ -114,7 +113,7 @@ class SequentialBlock(BlockBase, torch.nn.Sequential):
             return first
 
     def add_module(self, name: str, module: Optional[Module]) -> None:
-        from ..tabular.base import FilterFeatures
+        from merlin.models.torch.tabular.base import FilterFeatures
 
         if isinstance(module, list):
             module = FilterFeatures(module)
@@ -173,7 +172,7 @@ class SequentialBlock(BlockBase, torch.nn.Sequential):
         return SequentialBlock(self, AsTabular(name))
 
     def __add__(self, other):
-        from ..tabular.base import merge_tabular
+        from merlin.models.torch.tabular.base import merge_tabular
 
         return merge_tabular(self, other)
 
@@ -232,7 +231,7 @@ class BuildableBlock(abc.ABC):
 
 
 def right_shift_block(self, other):
-    from ..tabular.base import FilterFeatures
+    from merlin.models.torch.tabular.base import FilterFeatures
 
     if isinstance(other, list):
         left_side = [FilterFeatures(other)]

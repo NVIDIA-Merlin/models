@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from typing import Dict, Optional
 
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 
-from ...typing import TabularData
-from .base import EmbeddingWithMetadata, ItemSampler
-from .queue import FIFOQueue
+from merlin.models.tf.blocks.sampling.base import EmbeddingWithMetadata, ItemSampler
+from merlin.models.tf.blocks.sampling.queue import FIFOQueue
+from merlin.models.tf.typing import TabularData
 
 
 class CachedCrossBatchSampler(ItemSampler):
@@ -68,14 +69,21 @@ class CachedCrossBatchSampler(ItemSampler):
         assert capacity > 0
         super().__init__(max_num_samples=capacity, **kwargs)
         self.ignore_last_batch_on_sample = ignore_last_batch_on_sample
-        self.item_metadata_dtypes = None
+        self.item_metadata_dtypes: Dict[str, tf.dtypes.DType] = {}
 
         self._last_batch_size = 0
-        self._item_embeddings_queue = None
+        self._item_embeddings_queue: Optional[FIFOQueue] = None
+
+    @property
+    def item_embeddings_queue(self) -> FIFOQueue:
+        if not self._item_embeddings_queue:
+            raise ValueError("Item embeddings queue is not initialized")
+
+        return self._item_embeddings_queue
 
     def _maybe_build(self, inputs: TabularData) -> None:
         items_metadata = inputs["metadata"]
-        if self.item_metadata_dtypes is None:
+        if not self.item_metadata_dtypes:
             self.item_metadata_dtypes = {
                 feat_name: items_metadata[feat_name].dtype for feat_name in items_metadata
             }
@@ -143,7 +151,7 @@ class CachedCrossBatchSampler(ItemSampler):
 
         return items_embeddings
 
-    def add(
+    def add(  # type: ignore
         self,
         inputs: TabularData,
         training: bool = True,
@@ -155,7 +163,7 @@ class CachedCrossBatchSampler(ItemSampler):
             items_embeddings = inputs["embeddings"]
             items_metadata = inputs["metadata"]
 
-            self._item_embeddings_queue.enqueue_many(items_embeddings)
+            self.item_embeddings_queue.enqueue_many(items_embeddings)
             for feat_name in items_metadata:
                 self.items_metadata_queue[feat_name].enqueue_many(items_metadata[feat_name])
 
@@ -163,7 +171,7 @@ class CachedCrossBatchSampler(ItemSampler):
 
     def sample(self) -> EmbeddingWithMetadata:
         self._check_built()
-        items_embeddings = self._item_embeddings_queue.list_all()
+        items_embeddings = self.item_embeddings_queue.list_all()
         items_metadata = {
             feat_name: self.items_metadata_queue[feat_name].list_all()
             for feat_name in self.items_metadata_queue
@@ -233,7 +241,7 @@ class CachedUniformSampler(CachedCrossBatchSampler):
             str(self.item_id_feature_name) in inputs["metadata"]
         ), "The 'item_id' metadata feature is required by UniformSampler."
 
-    def add(
+    def add(  # type: ignore
         self,
         inputs: TabularData,
         training: bool = True,
@@ -274,7 +282,7 @@ class CachedUniformSampler(CachedCrossBatchSampler):
 
             update_indices = tf.expand_dims(item_ids_idxs[existing_items_mask], -1)
             # Updating embeddings of existing items
-            self._item_embeddings_queue.update_by_indices(
+            self.item_embeddings_queue.update_by_indices(
                 indices=update_indices,
                 values=unique_items.embeddings[existing_items_mask],
             )
@@ -391,7 +399,7 @@ class PopularityBasedSampler(ItemSampler):
         max_id: int,
         min_id: int = 0,
         max_num_samples: int = 100,
-        seed: int = None,
+        seed: Optional[int] = None,
         item_id_feature_name: str = "item_id",
         **kwargs,
     ):
@@ -434,7 +442,7 @@ class PopularityBasedSampler(ItemSampler):
     def _required_features(self):
         return [self.item_id_feature_name]
 
-    def sample(self, item_weights) -> EmbeddingWithMetadata:
+    def sample(self, item_weights) -> EmbeddingWithMetadata:  # type: ignore
         sampled_ids, _, _ = tf.random.log_uniform_candidate_sampler(
             true_classes=tf.ones((1, 1), dtype=tf.int64),
             num_true=1,

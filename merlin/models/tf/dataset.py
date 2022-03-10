@@ -25,7 +25,7 @@ from packaging import version
 from merlin.core.dispatch import HAS_GPU
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
-from merlin.models.utils.schema import select_targets
+from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Tags
 
 LOG = logging.getLogger("merlin.models")
@@ -42,9 +42,9 @@ else:
 
 # noqa
 try:
-    from merlin.io import Dataset
+    from merlin.io import Dataset as _Dataset
 
-    merlin_dataset_class = Dataset
+    merlin_dataset_class = _Dataset
 except ImportError:
     merlin_dataset_class = None
 # pylint has issues with TF array ops, so disable checks until fixed:

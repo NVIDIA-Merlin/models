@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
-
 from merlin.schema import Schema, Tags
 
 
@@ -24,16 +22,23 @@ class SchemaMixin:
     def set_schema(self, schema=None):
         self.check_schema(schema=schema)
 
-        if schema and not getattr(self, "schema", None):
+        if schema and not getattr(self, "_schema", None):
             self._schema = schema
 
         return self
 
     @property
-    def schema(self) -> Optional[Schema]:
-        return getattr(self, "_schema", None)
+    def schema(self) -> Schema:
+        if not self.has_schema:
+            raise ValueError(f"{self.__class__.__name__} does not have a schema.")
 
-    @schema.setter
+        return self._schema
+
+    @property
+    def has_schema(self):
+        return getattr(self, "_schema", None) is not None
+
+    @schema.setter  # type: ignore
     def schema(self, value):
         if value:
             self.set_schema(value)
@@ -41,7 +46,7 @@ class SchemaMixin:
             self._schema = value
 
     def check_schema(self, schema=None):
-        if self.REQUIRES_SCHEMA and not getattr(self, "schema", None) and not schema:
+        if self.REQUIRES_SCHEMA and not getattr(self, "_schema", None) and not schema:
             raise ValueError(f"{self.__class__.__name__} requires a schema.")
 
     def __call__(self, *args, **kwargs):

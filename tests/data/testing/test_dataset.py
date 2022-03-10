@@ -16,7 +16,7 @@
 import pytest
 
 from merlin.models.data.synthetic import SyntheticData
-from merlin.models.utils.schema import filter_dict_by_schema
+from merlin.models.utils.schema_utils import filter_dict_by_schema
 from merlin.schema import Tags
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 

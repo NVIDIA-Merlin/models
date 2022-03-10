@@ -19,10 +19,9 @@ from typing import Dict, Union
 
 import torch
 
+from merlin.models.config.schema import SchemaMixin
+from merlin.models.torch.typing import TabularData
 from merlin.schema import Schema
-
-from ...config.schema import SchemaMixin
-from ..typing import TabularData
 
 
 class OutputSizeMixin(SchemaMixin, abc.ABC):
@@ -30,7 +29,7 @@ class OutputSizeMixin(SchemaMixin, abc.ABC):
         self.check_schema(schema=schema)
 
         self.input_size = input_size
-        if schema and not getattr(self, "schema", None):
+        if schema and not getattr(self, "_schema", None):
             self.schema = schema
 
         return self
@@ -47,7 +46,7 @@ class OutputSizeMixin(SchemaMixin, abc.ABC):
         raise NotImplementedError()
 
     def __rrshift__(self, other):
-        from ..block.base import right_shift_block
+        from merlin.models.torch.block.base import right_shift_block
 
         return right_shift_block(self, other)
 
@@ -105,7 +104,7 @@ class MetricsMixin:
         """
         raise NotImplementedError()
 
-    def compute_metrics(self, mode: str = None) -> Dict[str, Union[float, torch.Tensor]]:
+    def compute_metrics(self, mode: str = "val") -> Dict[str, Union[float, torch.Tensor]]:
         """Returns the current state of each metric.
 
         The state is typically updated each batch by calling the `calculate_metrics` method.

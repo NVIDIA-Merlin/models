@@ -19,8 +19,8 @@ from typing import List, Optional
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from ...core import EmbeddingWithMetadata
-from ...typing import TabularData
+from merlin.models.tf.blocks.core.base import EmbeddingWithMetadata
+from merlin.models.tf.typing import TabularData
 
 
 class ItemSampler(abc.ABC, Layer):
@@ -40,7 +40,7 @@ class ItemSampler(abc.ABC, Layer):
     def sample(self) -> EmbeddingWithMetadata:
         raise NotImplementedError()
 
-    def _check_inputs_batch_sizes(self, inputs: TabularData) -> bool:
+    def _check_inputs_batch_sizes(self, inputs: TabularData):
         embeddings_batch_size = tf.shape(inputs["embeddings"])[0]
         for feat_name in inputs["metadata"]:
             metadata_feat_batch_size = tf.shape(inputs["metadata"][feat_name])[0]

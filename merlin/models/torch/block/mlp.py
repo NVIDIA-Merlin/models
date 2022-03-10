@@ -17,7 +17,7 @@ from typing import List, Optional
 
 import torch
 
-from .base import BuildableBlock, SequentialBlock
+from merlin.models.torch.block.base import BuildableBlock, SequentialBlock
 
 
 class MLPBlock(BuildableBlock):

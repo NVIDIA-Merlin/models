@@ -17,11 +17,12 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
 
+from merlin.models.tf.blocks.core.aggregation import StackFeatures
+from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularBlock
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.typing import TabularData
 from merlin.schema import Schema
-
-from ..core import Block, ParallelBlock, ParallelPredictionBlock, PredictionTask, TabularBlock
-from ..typing import TabularData
-from .core.aggregation import StackFeatures
 
 
 class MMOEGate(Block):
@@ -63,9 +64,9 @@ def MMOEBlock(
     if isinstance(outputs, ParallelPredictionBlock):
         output_names = outputs.task_names
     elif all(isinstance(x, PredictionTask) for x in outputs):
-        output_names = [o.task_name for o in outputs]
+        output_names = [o.task_name for o in outputs]  # type: ignore
     else:
-        output_names = outputs
+        output_names = outputs  # type: ignore
 
     experts = expert_block.repeat_in_parallel(
         num_experts, prefix="expert_", aggregation=StackFeatures(axis=1)
@@ -100,7 +101,7 @@ class CGCGateTransformation(TabularBlock):
                 len(task_names) * num_task_experts + num_shared_experts, dim=dim
             )
 
-    def call(self, expert_outputs: TabularData, **kwargs) -> TabularData:
+    def call(self, expert_outputs: TabularData, **kwargs) -> TabularData:  # type: ignore
         outputs: TabularData = {}
 
         shortcut = expert_outputs.pop("shortcut")
@@ -150,9 +151,9 @@ class CGCBlock(ParallelBlock):
         if isinstance(outputs, ParallelPredictionBlock):
             output_names = outputs.task_names
         elif all(isinstance(x, PredictionTask) for x in outputs):
-            output_names = [o.task_name for o in outputs]
+            output_names = [o.task_name for o in outputs]  # type: ignore
         else:
-            output_names = outputs
+            output_names = outputs  # type: ignore
         task_experts = dict(
             [
                 create_expert(expert_block, f"{task}/expert_{i}")

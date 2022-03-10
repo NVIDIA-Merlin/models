@@ -70,7 +70,7 @@ def test_element_wise_sum_item_multi_no_col_group():
     with pytest.raises(ValueError) as excinfo:
         element_wise_op = ml.ElementwiseSumItemMulti()
         element_wise_op(None)
-    assert "requires a schema." in str(excinfo.value)
+    assert "ElementwiseSumItemMulti requires a schema." in str(excinfo.value)
 
 
 def test_element_wise_sum_item_multi_col_group_no_item_id(testing_data: SyntheticData):

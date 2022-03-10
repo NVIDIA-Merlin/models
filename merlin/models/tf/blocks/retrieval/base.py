@@ -19,11 +19,15 @@ from typing import List, Sequence, Union
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 
-from ....utils.constants import MIN_FLOAT
-from ...core import Block, EmbeddingWithMetadata, ModelBlock, PredictionOutput
-from ...typing import TabularData
-from ...utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
-from ..sampling.base import ItemSampler
+from merlin.models.tf.blocks.core.base import Block, EmbeddingWithMetadata, PredictionOutput
+from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.models.base import ModelBlock
+from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils.tf_utils import (
+    maybe_deserialize_keras_objects,
+    maybe_serialize_keras_objects,
+)
+from merlin.models.utils.constants import MIN_FLOAT
 
 LOG = logging.getLogger("merlin_models")
 
@@ -82,13 +86,13 @@ class ItemRetrievalScorer(Block):
         self.downscore_false_negatives = sampling_downscore_false_negatives
         self.false_negatives_score = sampling_downscore_false_negatives_value
         self.item_id_feature_name = item_id_feature_name
-        self.samplers = samplers
         self.query_name = query_name
         self.item_name = item_name
         self.cache_query = cache_query
 
-        if not isinstance(self.samplers, (list, tuple)):
-            self.samplers = (self.samplers,)
+        if not isinstance(samplers, (list, tuple)):
+            samplers = (samplers,)  # type: ignore
+        self.samplers = samplers
 
         self.set_required_features()
 
@@ -272,6 +276,8 @@ class ItemRetrievalScorer(Block):
             # To ensure that the output is always fp32, avoiding numerical
             # instabilities with mixed_float16 policy
             predictions = tf.cast(predictions, tf.float32)
+
+        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
 
         # Positives in the first column and negatives in the subsequent columns
         targets = tf.concat(

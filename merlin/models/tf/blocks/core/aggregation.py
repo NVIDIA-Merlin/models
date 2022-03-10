@@ -15,18 +15,18 @@
 #
 import abc
 from enum import Enum
-from typing import Union, overload
+from typing import Union
 
 import tensorflow as tf
 from tensorflow.python.keras.layers import Dot
 
+from merlin.models.config.schema import requires_schema
+from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.blocks.core.tabular import TabularAggregation
+from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils import tf_utils
+from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
 from merlin.schema import Schema, Tags
-
-from ....config.schema import requires_schema
-from ....utils.schema import schema_to_tensorflow_metadata_json
-from ...core import Block, TabularAggregation
-from ...typing import TabularData
-from ...utils import tf_utils
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
@@ -274,28 +274,28 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
 
 
 class TupleAggregation(TabularAggregation, abc.ABC):
-    @overload
-    def __call__(self, left: tf.Tensor, right: tf.Tensor, **kwargs):
-        ...
-
-    @overload
-    def __call__(self, inputs: TabularData, **kwargs):
-        ...
-
-    def __call__(self, inputs: TabularData, *args, **kwargs):
-        if isinstance(inputs, tf.Tensor):
-            left = inputs
-            right = args[0]
-        else:
-            if not len(inputs) == 2:
-                raise ValueError(f"Expected 2 inputs, got {len(inputs)}")
-            left, right = tuple(inputs.values())
-        outputs = super().__call__(left, right, **kwargs)
-
-        return outputs
-
-    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
         raise NotImplementedError()
+
+    def super(self):
+        return super()
+
+
+# This is done this way to avoid mypy crashing.
+def _tuple_aggregation_call(self, inputs: TabularData, *args, **kwargs):  # type: ignore
+    if isinstance(inputs, tf.Tensor):
+        left = inputs
+        right = args[0]
+    else:
+        if not len(inputs) == 2:
+            raise ValueError(f"Expected 2 inputs, got {len(inputs)}")
+        left, right = tuple(inputs.values())
+    outputs = self.super().__call__(left, right, **kwargs)  # type: ignore
+
+    return outputs
+
+
+TupleAggregation.__call__ = _tuple_aggregation_call  # type: ignore
 
 
 @TabularAggregation.registry.register_with_multiple_names("cosine", "cosine-similarity")
@@ -305,7 +305,7 @@ class CosineSimilarity(TupleAggregation):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
         self.dot = Dot(axes=1, normalize=True)
 
-    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
         out = self.dot([left, right])
 
         return out
@@ -317,7 +317,7 @@ class ElementWiseMultiply(TupleAggregation):
     def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
 
-    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
         out = tf.keras.layers.Multiply()([left, right])
 
         return out
