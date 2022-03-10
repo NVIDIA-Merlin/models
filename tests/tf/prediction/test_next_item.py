@@ -270,7 +270,6 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
         ecommerce_data._schema,
         softmax_temperature=2,
         samplers=samplers,
-        compute_train_metrics=False,
     )
     model = two_tower.connect(task)
 
@@ -303,10 +302,7 @@ def test_last_item_prediction_task(
         masking="clm",
         split_sparse=True,
     )
-    if sampled_softmax:
-        loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-    else:
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     task = ml.NextItemPredictionTask(
         schema=sequence_testing_data.schema,
         loss=loss,

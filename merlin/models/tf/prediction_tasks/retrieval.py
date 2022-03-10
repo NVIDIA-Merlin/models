@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
@@ -24,7 +24,7 @@ from ..blocks.core.transformations import L2Norm, PredictionsScaler
 from ..blocks.retrieval.base import ItemRetrievalScorer
 from ..blocks.sampling.base import ItemSampler
 from ..blocks.sampling.in_batch import InBatchSampler
-from ..core import Block, MetricOrMetricClass
+from ..core import Block, MetricOrMetrics
 from ..losses import LossType, loss_registry
 from ..metrics.ranking import ranking_metrics
 from .classification import MultiClassClassificationTask
@@ -41,9 +41,9 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         loss: Optional[LossType]
             Loss function.
             Defaults to `categorical_crossentropy`.
-        metrics: Sequence[MetricOrMetricClass]
+        metrics: MetricOrMetrics
             List of top-k ranking metrics.
-            Defaults to MultiClassClassificationTask.DEFAULT_METRICS["ranking"].
+            Defaults to a numver of ranking metrics.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
         extra_pre_call: Optional[PredictionBlock]
@@ -71,22 +71,20 @@ class ItemRetrievalTask(MultiClassClassificationTask):
     """
 
     DEFAULT_LOSS = "categorical_crossentropy"
-    DEFAULT_METRICS = ranking_metrics(top_ks=[10, 20])
+    DEFAULT_METRICS = ranking_metrics(top_ks=[10])
 
     def __init__(
         self,
         schema: Schema,
         loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
+        metrics: MetricOrMetrics = DEFAULT_METRICS,
         samplers: List[ItemSampler] = (),
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        train_metrics: Sequence[MetricOrMetricClass] = None,
         extra_pre_call: Optional[Block] = None,
         softmax_temperature: float = 1.0,
         normalize: bool = True,
-        compute_train_metrics: bool = False,
         cache_query: bool = False,
         **kwargs,
     ):
@@ -94,16 +92,14 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         self.cache_query = cache_query
         pre = self._build_prediction_call(samplers, normalize, softmax_temperature, extra_pre_call)
         self.loss = loss_registry.parse(loss)
-        self.compute_train_metrics = compute_train_metrics
 
         super().__init__(
             loss=self.loss,
-            metrics=list(metrics),
+            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
             pre=pre,
-            compute_train_metrics=compute_train_metrics,
             **kwargs,
         )
 
@@ -136,4 +132,24 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
     @property
     def retrieval_scorer(self):
-        return self.pre[0][1]
+        def find_retrieval_scorer_block(block):
+            if isinstance(block, ItemRetrievalScorer):
+                return block
+
+            if getattr(block, "layers", None):
+                for subblock in block.layers:
+                    result = find_retrieval_scorer_block(subblock)
+                    if result:
+                        return result
+
+            return None
+
+        result = find_retrieval_scorer_block(self.pre)
+
+        if result is None:
+            raise Exception("An ItemRetrievalScorer layer was not found in the model.")
+
+        return result
+
+    def set_retrieval_cache_query(self, value: bool):
+        self.retrieval_scorer.cache_query = value

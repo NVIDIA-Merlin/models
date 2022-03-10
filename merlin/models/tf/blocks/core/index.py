@@ -222,7 +222,8 @@ class TopKIndexBlock(IndexBlock):
             ],
             axis=1,
         )
-        return PredictionOutput(predictions, targets)
+        label_relevant_counts = tf.ones([tf.shape(predictions)[0]])
+        return PredictionOutput(predictions, targets, label_relevant_counts)
 
     def compute_output_shape(self, input_shape):
         batch_size = input_shape[0]

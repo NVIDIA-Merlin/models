@@ -19,7 +19,6 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
-from merlin.models.tf.blocks.retrieval.top_k import ItemsPredictionTopK
 from merlin.schema import Schema, Tags
 
 from ...utils.schema import categorical_cardinalities
@@ -27,6 +26,7 @@ from ..blocks.core.masking import MaskingHead
 from ..blocks.core.transformations import (
     ItemsPredictionWeightTying,
     L2Norm,
+    LabelToOneHot,
     PredictionsScaler,
     RemovePad3D,
 )
@@ -103,8 +103,8 @@ def ItemsPredictionSampled(
 
 def NextItemPredictionTask(
     schema: Schema,
-    loss: Optional[LossType] = "sparse_categorical_crossentropy",
-    metrics=ranking_metrics(top_ks=[10, 20]),
+    loss: Optional[LossType] = "categorical_crossentropy",
+    metrics=ranking_metrics(top_ks=[10]),
     weight_tying: bool = True,
     masking: bool = True,
     extra_pre_call: Optional[Block] = None,
@@ -116,7 +116,6 @@ def NextItemPredictionTask(
     sampled_softmax: bool = False,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
-    transform_to_onehot: bool = False,
 ) -> MultiClassClassificationTask:
     """
     Function to create the NextItemPrediction task with the right parameters.
@@ -127,9 +126,9 @@ def NextItemPredictionTask(
         loss: Optional[LossType]
             Loss function.
             Defaults to `sparse_categorical_crossentropy`.
-        metrics: Sequence[MetricOrMetricClass]
+        metrics: MetricOrMetrics
             List of top-k ranking metrics.
-            Defaults to ranking_metrics(top_ks=[10, 20], labels_onehot=True).
+            Defaults to ranking_metrics(top_ks=[10]).
         weight_tying: bool
             The item_id embedding weights are shared with the prediction network layer.
             Defaults to True
@@ -156,8 +155,6 @@ def NextItemPredictionTask(
         sampled_softmax: bool
             Compute the logits scores over all items of the catalog or
             generate a subset of candidates
-            When set to True, loss should be set to `tf.nn.softmax_cross_entropy_with_logits`
-            and metrics to `ranking_metrics(top_ks=..., labels_onehot=False)`
             Defaults to False
         num_sampled: int
             When sampled_softmax is enabled, specify the number of
@@ -167,9 +164,6 @@ def NextItemPredictionTask(
             The minimum id value to be sampled. Useful to ignore the first categorical
             encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
             Defaults to 0.
-        transform_to_onehot: bool
-            If set to True, transform the encoded integer representation of targets to one-hot one.
-            Default to False.
     Returns
     -------
         PredictionTask
@@ -182,11 +176,14 @@ def NextItemPredictionTask(
             schema, num_sampled=num_sampled, min_id=min_sampled_id
         )
 
-    elif weight_tying:
-        prediction_call = ItemsPredictionWeightTying(schema)
-
     else:
-        prediction_call = ItemsPrediction(schema)
+        if weight_tying:
+            prediction_call = ItemsPredictionWeightTying(schema)
+
+        else:
+            prediction_call = ItemsPrediction(schema)
+
+        prediction_call = prediction_call.connect(LabelToOneHot())
 
     if softmax_temperature != 1:
         prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
@@ -199,13 +196,6 @@ def NextItemPredictionTask(
     if normalize:
         prediction_call = L2Norm().connect(prediction_call)
 
-    pre_metrics = None
-    if len(metrics) > 0:
-        max_k = tf.reduce_max(sum([metric.top_ks for metric in metrics], []))
-        pre_metrics = ItemsPredictionTopK(
-            k=max_k, transform_to_onehot=transform_to_onehot or not sampled_softmax
-        )
-
     if extra_pre_call is not None:
         prediction_call = prediction_call.connect(extra_pre_call)
 
@@ -216,5 +206,4 @@ def NextItemPredictionTask(
         loss=loss,
         metrics=metrics,
         pre=prediction_call,
-        pre_metrics=pre_metrics,
     )

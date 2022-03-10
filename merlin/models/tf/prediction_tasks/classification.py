@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Optional, Sequence
+from typing import Optional
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -23,9 +23,8 @@ from tensorflow.python.keras.layers import Dense
 from merlin.schema import Schema, Tags
 
 from ...utils.schema import categorical_cardinalities
-from ..core import Block, MetricOrMetricClass, PredictionTask
+from ..core import Block, MetricOrMetrics, PredictionTask
 from ..losses import LossType, loss_registry
-from ..metrics.ranking import ranking_metrics
 from ..utils.tf_utils import maybe_deserialize_keras_objects, maybe_serialize_keras_objects
 
 
@@ -45,12 +44,12 @@ class BinaryClassificationTask(PredictionTask):
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS,
+        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS,
         **kwargs,
     ):
         output_layer = kwargs.pop("output_layer", None)
         super().__init__(
-            metrics=list(metrics),
+            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
@@ -61,7 +60,7 @@ class BinaryClassificationTask(PredictionTask):
             1, activation="linear", name=self.child_name("output_layer")
         )
         # To ensure that the output is always fp32, avoiding numerical
-        # instabilities with mixed_float16 policy
+        # instabilities with mixed_float16 (fp16) policy
         self.output_activation = tf.keras.layers.Activation(
             "sigmoid", dtype="float32", name="prediction"
         )
@@ -140,8 +139,7 @@ class CategFeaturePrediction(Block):
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = "sparse_categorical_crossentropy"
     DEFAULT_METRICS = {
-        "ranking": ranking_metrics(top_ks=[10, 20]),
-        "multi-class": (),
+        "multi-class": [tf.keras.metrics.Accuracy],
     }
 
     def __init__(
@@ -150,13 +148,13 @@ class MultiClassClassificationTask(PredictionTask):
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Sequence[MetricOrMetricClass] = DEFAULT_METRICS["ranking"],
+        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS["multi-class"],
         pre: Optional[Block] = None,
         **kwargs,
     ):
 
         super().__init__(
-            metrics=list(metrics),
+            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
@@ -204,13 +202,7 @@ class MultiClassClassificationTask(PredictionTask):
     def metric_results(self, mode: str = None):
         dict_results = {}
         for metric in self.metrics:
-            if hasattr(metric, "top_ks"):
-                topks = metric.top_ks
-                results = metric.result()
-                for i, k in enumerate(topks):
-                    dict_results[f"{metric.name}_{k}"] = results[i]
-            else:
-                dict_results.update({metric.name: metric.result()})
+            dict_results.update({metric.name: metric.result()})
 
         return dict_results
 
