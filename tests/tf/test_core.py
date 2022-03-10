@@ -78,7 +78,7 @@ class DummyFeaturesBlock(ml.Block):
         items = self.context[Tags.ITEM_ID]
         emb_table = self.context.get_embedding(Tags.ITEM_ID)
         item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
-        if len(item_embeddings.shape) == 3:
+        if tf.rank(item_embeddings) == 3:
             item_embeddings = tf.squeeze(item_embeddings)
 
         return inputs * item_embeddings

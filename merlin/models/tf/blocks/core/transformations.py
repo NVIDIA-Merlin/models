@@ -38,9 +38,9 @@ class AsSparseFeatures(TabularBlock):
                 values = val[0][:, 0]
                 row_lengths = val[1][:, 0]
 
-                if values.dtype == tf.float32:
+                if values.dtype.is_floating:
                     values = tf.cast(values, tf.int32)
-                if row_lengths.dtype == tf.float32:
+                if row_lengths.dtype.is_floating:
                     row_lengths = tf.cast(row_lengths, tf.int32)
 
                 outputs[name] = tf.RaggedTensor.from_row_lengths(values, row_lengths).to_sparse()
