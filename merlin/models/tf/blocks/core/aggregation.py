@@ -65,6 +65,8 @@ class ConcatFeatures(TabularAggregation):
 
     def compute_output_shape(self, input_shapes):
         agg_dim = sum([i[-1] for i in input_shapes.values()])
+        if isinstance(agg_dim, tf.TensorShape):
+            raise ValueError(f"Not possible to aggregate, received: {input_shapes}.")
         output_size = self._get_agg_output_size(input_shapes, agg_dim)
         return output_size
 

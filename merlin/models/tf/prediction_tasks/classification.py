@@ -74,6 +74,9 @@ class BinaryClassificationTask(PredictionTask):
     def call(self, inputs, training=False, **kwargs):
         return self.output_activation(self.output_layer(inputs))
 
+    def compute_output_shape(self, input_shape):
+        return self.output_layer.compute_output_shape(input_shape)
+
     def get_config(self):
         config = super().get_config()
         config = maybe_serialize_keras_objects(

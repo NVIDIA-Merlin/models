@@ -275,7 +275,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=batch_size), epochs=num_epochs)
+    losses = model.fit(ecommerce_data.dataset, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
@@ -283,7 +283,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
     item_dataset = Dataset(item_dataset)
     model = model.load_topk_evaluation(item_dataset, k=20)
-    _ = model.evaluate(ecommerce_data.tf_dataloader(batch_size=batch_size))
+    _ = model.evaluate(x=ecommerce_data.dataset, batch_size=50)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -299,6 +299,7 @@ def test_last_item_prediction_task(
         sequence_testing_data.schema,
         aggregation="concat",
         seq=False,
+        max_seq_length=4,
         masking="clm",
         split_sparse=True,
     )
@@ -313,13 +314,13 @@ def test_last_item_prediction_task(
 
     model = inputs.connect(ml.MLPBlock([64]), task)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    losses = model.fit(sequence_testing_data.tf_dataloader(batch_size=50), epochs=2)
+    losses = model.fit(sequence_testing_data.dataset, batch_size=50, epochs=2)
 
     assert len(losses.epoch) == 2
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
 
-    out = model(sequence_testing_data.tf_tensor_dict)
+    out = model({k: tf.cast(v, tf.int64) for k, v in sequence_testing_data.tf_tensor_dict.items()})
     assert out.shape[-1] == 51997
 
 

@@ -41,6 +41,7 @@ from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
 import merlin.io
+import merlin.models.tf as ml
 from merlin.models.config.schema import SchemaMixin
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.misc_utils import filter_kwargs
@@ -158,8 +159,21 @@ class BlockContext(Layer):
                 dtype = self._feature_dtypes.get(feature_name, tf.float32)
 
                 if len(tuple(shape)) == 2:
-                    var = tf.zeros([1, shape[-1]], dtype=dtype)
-                    shape = tf.TensorShape([None, shape[-1]])
+                    s = (
+                        shape[-1]
+                        if not isinstance(shape[-1], (tuple, tf.TensorShape))
+                        else int(shape[0][0] / shape[-1][0])
+                    )
+                    if s == 1:
+                        shape = tf.TensorShape(
+                            [
+                                None,
+                            ]
+                        )
+                        var = tf.zeros([1], dtype=dtype)
+                    else:
+                        shape = tf.TensorShape([None, s])
+                        var = tf.zeros([1, s], dtype=dtype)
                 elif tuple(shape) != (None,):
                     var = tf.zeros((shape), dtype=dtype)
                 else:
@@ -756,7 +770,8 @@ class SequentialBlock(Block):
 
     def call(self, inputs, training=False, **kwargs):
         if getattr(self, "_need_to_call_context", False):
-            self.context(inputs)
+            # convert sparse inputs to dense before storing them to the context?
+            self.context(ml.AsDenseFeatures()(inputs))
 
         outputs = inputs
         for i, layer in enumerate(self.layers):
@@ -2367,6 +2382,16 @@ class ModelBlock(Block, tf.keras.Model):
         outputs = self.block(inputs, **kwargs)
         return outputs
 
+    def build(self, input_shapes):
+        self.block.build(input_shapes)
+
+        if not hasattr(self.build, "_is_default"):
+            self._build_input_shape = input_shapes
+        self.built = True
+
+    def compute_output_shape(self, input_shape):
+        return self.block.compute_output_shape(input_shape)
+
     @property
     def schema(self) -> Schema:
         return self.block.schema
@@ -2543,7 +2568,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         with tf.GradientTape() as tape:
             if isinstance(inputs, tuple):
-                inputs, targets = inputs
+                if len(inputs) == 1:
+                    inputs = inputs[0]
+                    targets = None
+                else:
+                    inputs, targets = inputs
             else:
                 targets = None
 
@@ -2598,7 +2627,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         """Custom test step using the `compute_loss` method."""
 
         if isinstance(inputs, tuple):
-            inputs, targets = inputs
+            if len(inputs) == 1:
+                inputs = inputs[0]
+                targets = None
+            else:
+                inputs, targets = inputs
         else:
             targets = None
 
@@ -2660,9 +2693,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if hasattr(x, "to_ddf"):
             if not batch_size:
                 raise ValueError("batch_size must be specified when using merlin-dataset.")
-            from .dataset import Dataset
+            from .dataset import BatchedDataset
 
-            x = Dataset(x, batch_size=batch_size, **kwargs)
+            x = BatchedDataset(x, batch_size=batch_size, **kwargs)
 
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
@@ -2686,6 +2719,44 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             max_queue_size,
             workers,
             use_multiprocessing,
+        )
+
+    def evaluate(
+        self,
+        x=None,
+        y=None,
+        batch_size=None,
+        verbose=1,
+        sample_weight=None,
+        steps=None,
+        callbacks=None,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        return_dict=False,
+        **kwargs,
+    ):
+        # Check if merlin-dataset is passed
+        if hasattr(x, "to_ddf"):
+            if not batch_size:
+                raise ValueError("batch_size must be specified when using merlin-dataset.")
+            from .dataset import BatchedDataset
+
+            x = BatchedDataset(x, batch_size=batch_size, **kwargs)
+
+        return super().evaluate(
+            x,
+            y,
+            batch_size,
+            verbose,
+            sample_weight,
+            steps,
+            callbacks,
+            max_queue_size,
+            workers,
+            use_multiprocessing,
+            return_dict,
+            **kwargs,
         )
 
     def _add_metrics_callback(self, callbacks, train_metrics_steps):

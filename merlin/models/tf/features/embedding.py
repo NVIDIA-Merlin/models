@@ -24,15 +24,15 @@ from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 import merlin.io
-from merlin.schema import Schema, Tags, TagsType
-
-from ...utils.doc_utils import docstring_parameter
-from ...utils.schema import (
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSparseFeatures
+from merlin.models.utils.doc_utils import docstring_parameter
+from merlin.models.utils.schema import (
     categorical_cardinalities,
     categorical_domains,
     get_embedding_sizes_from_schema,
 )
-from ..blocks.core.transformations import AsSparseFeatures
+from merlin.schema import Schema, Tags, TagsType
+
 from ..core import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Block,
@@ -315,6 +315,7 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
     def __init__(
         self,
         feature_config: Dict[str, FeatureConfig],
+        max_seq_length: Optional[int] = None,
         mask_zero: bool = True,
         padding_idx: int = 0,
         pre: Optional[BlockType] = None,
@@ -322,15 +323,21 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
+        add_default_pre=True,
         **kwargs,
     ):
+        if add_default_pre:
+            embedding_pre = [Filter(list(feature_config.keys())), AsDenseFeatures(max_seq_length)]
+            pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
+
         super().__init__(
-            feature_config,
+            feature_config=feature_config,
             pre=pre,
             post=post,
             aggregation=aggregation,
-            schema=schema,
             name=name,
+            schema=schema,
+            add_default_pre=False,
             **kwargs,
         )
         self.padding_idx = padding_idx

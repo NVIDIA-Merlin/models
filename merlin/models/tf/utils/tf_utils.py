@@ -56,7 +56,7 @@ def calculate_batch_size_from_input_shapes(input_shapes):
 
     for val in input_shapes.values():
         if isinstance(val, tuple) and isinstance(val[0], tf.TensorShape):
-            values.append(val[0])
+            values.append(val[1])
         else:
             values.append(val)
 

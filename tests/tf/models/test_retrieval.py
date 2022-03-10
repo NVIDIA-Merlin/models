@@ -1,4 +1,5 @@
 import pytest
+import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
@@ -14,7 +15,7 @@ def test_matrix_factorization_model(music_streaming_data: SyntheticData, run_eag
     model = mm.MatrixFactorizationModel(music_streaming_data.schema, dim=64)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+    losses = model.fit(music_streaming_data.dataset, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
@@ -26,7 +27,8 @@ def test_two_tower_model(music_streaming_data: SyntheticData, run_eagerly, num_e
     model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([512, 256]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(music_streaming_data.tf_dataloader(batch_size=50), epochs=num_epochs)
+    data = music_streaming_data.dataset
+    losses = model.fit(data, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
@@ -84,14 +86,14 @@ def test_youtube_dnn_retrieval(
     sequence_testing_data: SyntheticData,
     run_eagerly: bool,
 ):
-    model = mm.YoutubeDNNRetrievalModel(schema=sequence_testing_data.schema)
+    model = mm.YoutubeDNNRetrievalModel(schema=sequence_testing_data.schema, max_seq_length=4)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(sequence_testing_data.tf_dataloader(batch_size=50), epochs=2)
+    losses = model.fit(sequence_testing_data.dataset, batch_size=50, epochs=2)
 
     assert len(losses.epoch) == 2
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
-    out = model(sequence_testing_data.tf_tensor_dict)
+    out = model({k: tf.cast(v, tf.int64) for k, v in sequence_testing_data.tf_tensor_dict.items()})
 
     assert out.shape[-1] == 51997

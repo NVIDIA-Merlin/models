@@ -99,9 +99,9 @@ class MaskingBlock(Block):
         )
 
         self.label_seq_trg_eval = tf.Variable(
-            tf.zeros(shape=[1, input_shapes[1]], dtype=tf.int32),
+            tf.zeros(shape=[1, input_shapes[1]], dtype=tf.int64),
             name="target_labels",
-            dtype=tf.int32,
+            dtype=tf.int64,
             trainable=False,
             shape=tf.TensorShape([None, input_shapes[1]]),
         )
@@ -170,6 +170,7 @@ class CausalLanguageModeling(MaskingBlock):
         self.train_on_last_item_seq_only = train_on_last_item_seq_only
 
     def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
+        items = tf.cast(tf.squeeze(items), tf.int64)
         if (self.eval_on_last_item_seq_only and not training) or (
             self.train_on_last_item_seq_only and training
         ):
@@ -177,7 +178,7 @@ class CausalLanguageModeling(MaskingBlock):
             last_item_sessions = tf.reduce_sum(tf.cast(mask_labels, items.dtype), axis=1) - 1
 
             rows_ids = tf.range(tf.shape(items)[0], dtype=items.dtype)
-            self.label_seq_trg_eval.assign(tf.zeros(tf.shape(items), dtype=tf.int32))
+            self.label_seq_trg_eval.assign(tf.zeros(tf.shape(items), dtype=tf.int64))
 
             indices = tf.concat(
                 [tf.expand_dims(rows_ids, 1), tf.expand_dims(last_item_sessions, 1)], axis=1
@@ -255,9 +256,9 @@ class MaskedLanguageModeling(MaskingBlock):
         )
         self.mlm_probability = mlm_probability
         self.labels = tf.Variable(
-            tf.zeros(shape=[1, 1], dtype=tf.int32),
+            tf.zeros(shape=[1, 1], dtype=tf.int64),
             name="target_labels",
-            dtype=tf.int32,
+            dtype=tf.int64,
             trainable=False,
             shape=tf.TensorShape([None, None]),
         )
@@ -276,8 +277,9 @@ class MaskedLanguageModeling(MaskingBlock):
         Compute the mask schema for masked language modeling task
         the function is based on HuggingFace's transformers/data/data_collator.py
         """
-        item_ids = tf.cast(item_ids, dtype=tf.int32)
-        self.labels.assign(tf.fill(tf.shape(item_ids), self.padding_idx))
+        item_ids = tf.squeeze(item_ids)
+        item_ids = tf.cast(item_ids, dtype=tf.int64)
+        self.labels.assign(tf.cast(tf.fill(tf.shape(item_ids), self.padding_idx), tf.int64))
         non_padded_mask = tf.cast(item_ids != self.padding_idx, self.labels.dtype)
         rows_ids = tf.range(tf.shape(item_ids)[0], dtype=tf.int64)
 

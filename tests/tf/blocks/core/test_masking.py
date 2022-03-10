@@ -26,7 +26,7 @@ from merlin.schema import Tags
 def test_masking_block(sequence_testing_data: SyntheticData, mask_block):
 
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
-    embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
+    embedding_block = ml.InputBlock(schema_list, aggregation="concat", max_seq_length=4, seq=True)
     model = embedding_block.connect(mask_block(), context=ml.BlockContext())
 
     batch = sequence_testing_data.tf_tensor_dict
@@ -49,7 +49,7 @@ def test_masking_schema_error(sequence_testing_data: SyntheticData):
 @pytest.mark.parametrize("mask_block", [ml.CausalLanguageModeling, ml.MaskedLanguageModeling])
 def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
-    embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
+    embedding_block = ml.InputBlock(schema_list, aggregation="concat", max_seq_length=4, seq=True)
     model = embedding_block.connect(mask_block(), context=ml.BlockContext())
 
     batch = sequence_testing_data.tf_tensor_dict
@@ -77,7 +77,7 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
 # Test at least one item is masked when training
 def test_at_least_one_masked_item_mlm(sequence_testing_data):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
-    embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
+    embedding_block = ml.InputBlock(schema_list, max_seq_length=4, aggregation="concat", seq=True)
     mask_block = ml.MaskedLanguageModeling()
     model = embedding_block.connect(mask_block, context=ml.BlockContext())
 
@@ -91,7 +91,7 @@ def test_at_least_one_masked_item_mlm(sequence_testing_data):
 # Check that not all items are masked when training
 def test_not_all_masked_lm(sequence_testing_data):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
-    embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
+    embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True, max_seq_length=4)
     mask_block = ml.MaskedLanguageModeling()
     model = embedding_block.connect(mask_block, context=ml.BlockContext())
 

@@ -161,7 +161,7 @@ def test_dcn_v2_serialization(ecommerce_data: SyntheticData, run_eagerly=True):
     )
     model = dcn_body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=1)
+    model.fit(ecommerce_data.dataset, batch_size=50, epochs=1)
 
     copy_model = test_utils.assert_serialization(model)
     test_utils.assert_loss_and_metrics_are_valid(copy_model, ecommerce_data.tf_features_and_targets)

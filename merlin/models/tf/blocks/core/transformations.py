@@ -37,6 +37,12 @@ class AsSparseFeatures(TabularBlock):
             if isinstance(val, tuple):
                 values = val[0][:, 0]
                 row_lengths = val[1][:, 0]
+
+                if values.dtype.is_floating:
+                    values = tf.cast(values, tf.int32)
+                if row_lengths.dtype.is_floating:
+                    row_lengths = tf.cast(row_lengths, tf.int32)
+
                 outputs[name] = tf.RaggedTensor.from_row_lengths(values, row_lengths).to_sparse()
             else:
                 outputs[name] = val
@@ -50,20 +56,44 @@ class AsSparseFeatures(TabularBlock):
 @Block.registry.register("as-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsDenseFeatures(TabularBlock):
+    def __init__(self, max_seq_length: Optional[int] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.max_seq_length = max_seq_length
+
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
             if isinstance(val, tuple):
                 values = val[0][:, 0]
                 row_lengths = val[1][:, 0]
-                outputs[name] = tf.RaggedTensor.from_row_lengths(values, row_lengths).to_tensor()
+                ragged = tf.RaggedTensor.from_row_lengths(values, row_lengths)
+                if self.max_seq_length:
+                    outputs[name] = ragged.to_tensor(shape=[None, self.max_seq_length])
+                else:
+                    outputs[name] = tf.squeeze(ragged.to_tensor())
             else:
-                outputs[name] = val
+                outputs[name] = tf.squeeze(val)
 
         return outputs
 
     def compute_output_shape(self, input_shape):
-        return input_shape
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shape)
+        outputs = {}
+
+        for key, val in input_shape.items():
+            if self.max_seq_length:
+                outputs[key] = tf.TensorShape((batch_size, self.max_seq_length))
+            else:
+                # TODO: What to do here?
+                raise ValueError("max_seq_length must be specified")
+
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({"max_seq_length": self.max_seq_length})
+
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

@@ -17,6 +17,7 @@
 import logging
 from typing import Dict, Optional, Tuple, Union
 
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.schema import Schema, Tags, TagsType
 
 from ...core import Block, BlockType, ParallelBlock, TabularAggregationType
@@ -39,6 +40,7 @@ def InputBlock(
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
     seq: bool = False,
+    max_seq_length: Optional[int] = None,
     add_continuous_branch: bool = True,
     continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
     continuous_projection: Optional[Block] = None,
@@ -136,6 +138,7 @@ def InputBlock(
             post,
             aggregation=agg,
             seq=True,
+            max_seq_length=max_seq_length,
             add_continuous_branch=add_continuous_branch,
             continuous_tags=continuous_tags,
             continuous_projection=continuous_projection,
@@ -172,15 +175,22 @@ def InputBlock(
         )
 
     if add_continuous_branch and schema.select_by_tag(continuous_tags).column_schemas:
+        pre = None
+        if max_seq_length and seq:
+            pre = AsDenseFeatures(max_seq_length)
         branches["continuous"] = ContinuousFeatures.from_schema(
             schema,
             tags=continuous_tags,
+            pre=pre,
         )
     if add_embedding_branch and schema.select_by_tag(categorical_tags).column_schemas:
         emb_cls = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
+        emb_kwargs = {}
+        if max_seq_length and seq:
+            emb_kwargs["max_seq_length"] = max_seq_length
 
         branches["categorical"] = emb_cls.from_schema(
-            schema, tags=categorical_tags, options=embedding_options
+            schema, tags=categorical_tags, options=embedding_options, **emb_kwargs
         )
 
     if continuous_projection:
