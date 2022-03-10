@@ -1,5 +1,4 @@
 import pytest
-
 import tensorflow as tf
 
 import merlin.models.tf as mm
@@ -87,7 +86,7 @@ def test_youtube_dnn_retrieval(
     sequence_testing_data: SyntheticData,
     run_eagerly: bool,
 ):
-    model = mm.YoutubeDNNRetrievalModel(schema=sequence_testing_data.schema)
+    model = mm.YoutubeDNNRetrievalModel(schema=sequence_testing_data.schema, max_seq_length=4)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(sequence_testing_data.dataset, batch_size=50, epochs=2)
