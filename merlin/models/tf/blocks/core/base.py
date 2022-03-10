@@ -317,8 +317,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Whether to use a residual connection or not.
 
         """
-
-        from merlin.models.tf.blocks.core.combinators import NoOp, ParallelBlock
+        from merlin.models.tf.blocks.core.base import NoOp
+        from merlin.models.tf.blocks.core.combinators import ParallelBlock
 
         repeated = {}
         iterator = names if names else range(num)
@@ -578,6 +578,24 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
     def __rrshift__(self, other):
         return right_shift_layer(self, other)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class NoOp(tf.keras.layers.Layer):
+    def call(self, inputs, **kwargs):
+        return inputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class Debug(tf.keras.layers.Layer):
+    def call(self, inputs, **kwargs):
+        return inputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 
 def name_fn(name, inp):

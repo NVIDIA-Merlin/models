@@ -25,10 +25,10 @@ from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableCon
 
 import merlin.io
 from merlin.models.tf.blocks.core.base import Block, BlockType
-from merlin.models.tf.blocks.core.combinators import (
+from merlin.models.tf.blocks.core.combinators import SequentialBlock
+from merlin.models.tf.blocks.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Filter,
-    SequentialBlock,
     TabularAggregationType,
     TabularBlock,
 )

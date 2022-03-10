@@ -16,8 +16,8 @@
 
 from typing import Optional
 
-from merlin.models.tf.blocks.core.base import Block
-from merlin.models.tf.blocks.core.combinators import Debug, Filter, ParallelBlock, SequentialBlock
+from merlin.models.tf.blocks.core.base import Block, Debug
+from merlin.models.tf.blocks.core.combinators import Filter, ParallelBlock, SequentialBlock
 from merlin.models.tf.blocks.interaction import DotProductInteraction
 from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions

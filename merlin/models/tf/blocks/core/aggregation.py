@@ -22,7 +22,7 @@ from tensorflow.python.keras.layers import Dot
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block
-from merlin.models.tf.blocks.core.combinators import TabularAggregation
+from merlin.models.tf.blocks.core.tabular import TabularAggregation
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
@@ -281,6 +281,7 @@ class TupleAggregation(TabularAggregation, abc.ABC):
         return super()
 
 
+# This is done this way to avoid mypy crashing.
 def _tuple_aggregation_call(self, inputs: TabularData, *args, **kwargs):  # type: ignore
     if isinstance(inputs, tf.Tensor):
         left = inputs

@@ -39,21 +39,19 @@ from merlin.models.tf.blocks.core.base import (
     Block,
     BlockContext,
     EmbeddingWithMetadata,
+    NoOp,
     right_shift_layer,
 )
 from merlin.models.tf.blocks.core.combinators import (
-    AsTabular,
     DualEncoderBlock,
-    Filter,
-    NoOp,
     ParallelBlock,
     ResidualBlock,
     SequentialBlock,
-    TabularBlock,
 )
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
+from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
 from merlin.models.tf.blocks.core.transformations import (
     AsDenseFeatures,
     AsSparseFeatures,
