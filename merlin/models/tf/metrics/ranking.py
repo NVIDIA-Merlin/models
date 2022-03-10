@@ -25,7 +25,7 @@ from tensorflow.keras.metrics import Mean
 from tensorflow.keras.metrics import get as get_metric
 
 from merlin.models.tf.metrics import metrics_registry
-from ..utils.tf_utils import extract_topk
+from merlin.models.tf.utils.tf_utils import extract_topk
 
 METRIC_PARAMETERS_DOCSTRING = """
     y_true : tf.Tensor
