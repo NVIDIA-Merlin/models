@@ -1,6 +1,7 @@
 import abc
+from collections import Sequence as SequenceCollection
 from collections import defaultdict
-from typing import Dict, List, Optional, Text, Union
+from typing import Dict, List, Optional, Sequence, Text, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -12,11 +13,13 @@ from merlin.models.tf.blocks.core.base import (
     BlockType,
     ContextMixin,
     MetricOrMetricClass,
+    MetricOrMetrics,
     PredictionOutput,
     _output_metrics,
     name_fn,
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
+from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin
@@ -48,9 +51,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self,
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
-        metrics: Optional[List[MetricOrMetricClass]] = None,
+        metrics: Optional[MetricOrMetrics] = None,
         pre: Optional[Block] = None,
-        pre_metrics: Optional[Block] = None,
+        pre_eval_topk: Optional[Block] = None,
         task_block: Optional[Layer] = None,
         prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
         label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
@@ -64,7 +67,13 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.task_block = task_block
         self._task_name = task_name
         self.pre = pre
-        self.pre_metrics = pre_metrics
+        self._pre_eval_topk = pre_eval_topk
+
+        if metrics is not None:
+            if isinstance(metrics, SequenceCollection):
+                metrics = list(metrics)
+            else:
+                metrics = [metrics]
 
         create_metrics = self._create_metrics
         self.eval_metrics = create_metrics(metrics) if metrics else []
@@ -72,6 +81,14 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.label_metrics = create_metrics(label_metrics) if label_metrics else []
         self.loss_metrics = create_metrics(loss_metrics) if loss_metrics else []
         self.compute_train_metrics = compute_train_metrics
+
+    @property
+    def pre_eval_topk(self):
+        return self._pre_eval_topk
+
+    @pre_eval_topk.setter
+    def pre_eval_topk(self, value):
+        self._pre_eval_topk = value
 
     def pre_call(self, inputs, **kwargs):
         x = inputs
@@ -100,7 +117,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def build_task(self, input_shape, schema: Schema, body: Block, **kwargs):
         return super().build(input_shape)
 
-    def _create_metrics(self, metrics: List[MetricOrMetricClass]) -> List[tf.keras.metrics.Metric]:
+    def _create_metrics(
+        self, metrics: Sequence[MetricOrMetricClass]
+    ) -> List[tf.keras.metrics.Metric]:
         outputs = []
         for metric in metrics:
             if not isinstance(metric, tf.keras.metrics.Metric):
@@ -155,22 +174,36 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions, targets=targets, sample_weight=sample_weight, training=training
         )
 
-        if compute_metrics:
-            if (not training) or (training and self.compute_train_metrics):
-                update_ops = self.calculate_metrics(predictions, targets, forward=False, loss=loss)
-
-                update_ops = [x for x in update_ops if x is not None]
-
-                with tf.control_dependencies(update_ops):
-                    return tf.identity(loss)
+        loss = tf.cond(
+            tf.convert_to_tensor(compute_metrics),
+            lambda: self.attach_metrics_calculation_to_loss(predictions, targets, loss, training),
+            lambda: loss,
+        )
 
         return loss
+
+    def attach_metrics_calculation_to_loss(self, predictions, targets, loss, training):
+        update_ops = self.calculate_metrics(
+            predictions, targets, loss=loss, forward=False, training=training
+        )
+
+        update_ops = [x for x in update_ops if x is not None]
+
+        with tf.control_dependencies(update_ops):
+            return tf.identity(loss)
 
     def repr_add(self):
         return [("loss", self.loss)]
 
     def calculate_metrics(
-        self, predictions, targets, sample_weight=None, forward=True, loss=None, **kwargs
+        self,
+        predictions,
+        targets,
+        sample_weight=None,
+        forward=True,
+        loss=None,
+        training=False,
+        **kwargs,
     ):
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
@@ -178,18 +211,88 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if forward:
             predictions = self(predictions)
 
-        if self.pre_metrics:
-            outputs = self.pre_metrics.call_outputs(
-                PredictionOutput(predictions, targets), **kwargs
-            )
-            targets, predictions = outputs.targets, outputs.predictions
-
         update_ops = []
 
-        for metric in self.eval_metrics:
-            update_ops.append(
-                metric.update_state(y_true=targets, y_pred=predictions, sample_weight=sample_weight)
+        label_relevant_counts_eval = None
+
+        if not training and self._pre_eval_topk:
+
+            outputs = self._pre_eval_topk.call_outputs(
+                PredictionOutput(predictions, targets), **kwargs
             )
+            targets, predictions, label_relevant_counts_eval = (
+                outputs.targets,
+                outputs.predictions,
+                outputs.label_relevant_counts,
+            )
+
+        if len(self.eval_metrics) > 0:
+            predictions_eval = predictions
+            targets_eval = targets
+
+            ranking_metrics = list(
+                [metric for metric in self.eval_metrics if isinstance(metric, RankingMetric)]
+            )
+
+            if len(ranking_metrics) > 0:
+
+                tf.assert_equal(
+                    tf.shape(targets),
+                    tf.shape(predictions),
+                    f"Predictions ({tf.shape(predictions)}) and targets ({tf.shape(targets)}) "
+                    f"should have the same shape. Check if targets were one-hot encoded "
+                    f"(with LabelToOneHot() block for example).",
+                )
+
+                max_k = tf.reduce_max([metric.k for metric in ranking_metrics])
+                tf.debugging.assert_greater_equal(
+                    tf.shape(predictions_eval)[-1],
+                    max_k,
+                    f"The max k for ranking metrics ({max_k}) is higher than "
+                    f"the number of predictions in this batch",
+                )
+
+                pre_sorted_ranking_metrics = list(
+                    [metric for metric in ranking_metrics if metric.pre_sorted]
+                )
+
+                if len(pre_sorted_ranking_metrics) > 0:
+
+                    if len(ranking_metrics) > len(pre_sorted_ranking_metrics):
+                        raise Exception(
+                            "If one of the ranking metrics is set to 'pre_sorted=True', all the "
+                            "other ranking metrics should have the same configuration to avoid "
+                            "sorting predictions twice."
+                        )
+
+                    if training or self._pre_eval_topk is None:
+                        # Checking the highest k used in ranking metrics
+                        max_k = tf.reduce_max([metric.k for metric in pre_sorted_ranking_metrics])
+                        # Pre-sorts predictions and targets (by prediction scores) only once
+                        # for all ranking metric (for performance optimization) and extracts
+                        # only the top-k predictions/targets.
+                        # The label_relevant_counts is necessary because when extracing the labels
+                        # from the top-k predictions some relevant items might not be included, but
+                        # the relevant count is necessary for many ranking metrics (recall, ndcg)
+                        (
+                            predictions_eval,
+                            targets_eval,
+                            label_relevant_counts_eval,
+                        ) = tf_utils.extract_topk(max_k, predictions, targets)
+
+            for metric in self.eval_metrics:
+                if isinstance(metric, RankingMetric) and metric.pre_sorted:
+                    metric_state = metric.update_state(
+                        targets_eval,
+                        predictions_eval,
+                        label_relevant_counts_eval,
+                        sample_weight=sample_weight,
+                    )
+                else:
+                    metric_state = metric.update_state(
+                        y_true=targets, y_pred=predictions, sample_weight=sample_weight
+                    )
+                update_ops.append(metric_state)
 
         for metric in self.prediction_metrics:
             update_ops.append(metric.update_state(predictions, sample_weight=sample_weight))

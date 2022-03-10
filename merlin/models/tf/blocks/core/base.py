@@ -46,6 +46,7 @@ if TYPE_CHECKING:
 class PredictionOutput(NamedTuple):
     predictions: Union[TabularData, tf.Tensor]
     targets: Union[TabularData, tf.Tensor]
+    label_relevant_counts: Optional[tf.Tensor] = None
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -135,8 +136,21 @@ class BlockContext(Layer):
                 dtype = self._feature_dtypes.get(feature_name, tf.float32)
 
                 if len(tuple(shape)) == 2:
-                    var = tf.zeros([1, shape[-1]], dtype=dtype)
-                    shape = tf.TensorShape([None, shape[-1]])
+                    s = (
+                        shape[-1]
+                        if not isinstance(shape[-1], (tuple, tf.TensorShape))
+                        else int(shape[0][0] / shape[-1][0])
+                    )
+                    if s == 1:
+                        shape = tf.TensorShape(
+                            [
+                                None,
+                            ]
+                        )
+                        var = tf.zeros([1], dtype=dtype)
+                    else:
+                        shape = tf.TensorShape([None, s])
+                        var = tf.zeros([1, s], dtype=dtype)
                 elif tuple(shape) != (None,):
                     var = tf.zeros((shape), dtype=dtype)
                 else:

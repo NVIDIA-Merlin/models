@@ -54,6 +54,16 @@ class ModelBlock(Block, tf.keras.Model):
         outputs = self.block(inputs, **kwargs)
         return outputs
 
+    def build(self, input_shapes):
+        self.block.build(input_shapes)
+
+        if not hasattr(self.build, "_is_default"):
+            self._build_input_shape = input_shapes
+        self.built = True
+
+    def compute_output_shape(self, input_shape):
+        return self.block.compute_output_shape(input_shape)
+
     @property
     def schema(self) -> Schema:
         return self.block.schema
@@ -196,7 +206,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         with tf.GradientTape() as tape:
             if isinstance(inputs, tuple):
-                inputs, targets = inputs
+                if len(inputs) == 1:
+                    inputs = inputs[0]
+                    targets = None
+                else:
+                    inputs, targets = inputs
             else:
                 targets = None
 
@@ -251,7 +265,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         """Custom test step using the `compute_loss` method."""
 
         if isinstance(inputs, tuple):
-            inputs, targets = inputs
+            if len(inputs) == 1:
+                inputs = inputs[0]
+                targets = None
+            else:
+                inputs, targets = inputs
         else:
             targets = None
 
@@ -356,6 +374,44 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             callbacks.append(MetricsComputeCallback(train_metrics_steps))
 
         return callbacks
+
+    def evaluate(
+        self,
+        x=None,
+        y=None,
+        batch_size=None,
+        verbose=1,
+        sample_weight=None,
+        steps=None,
+        callbacks=None,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        return_dict=False,
+        **kwargs,
+    ):
+        # Check if merlin-dataset is passed
+        if hasattr(x, "to_ddf"):
+            if not batch_size:
+                raise ValueError("batch_size must be specified when using merlin-dataset.")
+            from merlin.models.tf.dataset import BatchedDataset
+
+            x = BatchedDataset(x, batch_size=batch_size, **kwargs)
+
+        return super().evaluate(
+            x,
+            y,
+            batch_size,
+            verbose,
+            sample_weight,
+            steps,
+            callbacks,
+            max_queue_size,
+            workers,
+            use_multiprocessing,
+            return_dict,
+            **kwargs,
+        )
 
     def batch_predict(
         self, dataset: merlin.io.Dataset, batch_size: int, **kwargs

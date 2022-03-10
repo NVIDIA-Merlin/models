@@ -32,7 +32,7 @@ from merlin.models.tf.blocks.core.tabular import (
     TabularAggregationType,
     TabularBlock,
 )
-from merlin.models.tf.blocks.core.transformations import AsSparseFeatures
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSparseFeatures
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613

@@ -1,7 +1,7 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
-from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetricClass
+from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
@@ -29,7 +29,7 @@ def MatrixFactorizationModel(
     ] = None,
     softmax_temperature: int = 1,
     loss: Optional[LossType] = "bpr",
-    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS,
+    metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Union[Model, RetrievalModel]:
@@ -109,7 +109,7 @@ def TwoTowerModel(
     ] = None,
     softmax_temperature: int = 1,
     loss: Optional[LossType] = "categorical_crossentropy",
-    metrics: Sequence[MetricOrMetricClass] = ItemRetrievalTask.DEFAULT_METRICS,
+    metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Union[Model, RetrievalModel]:

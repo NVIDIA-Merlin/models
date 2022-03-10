@@ -20,6 +20,7 @@ from merlin.models.tf.blocks.core.tabular import (
     TabularAggregationType,
     TabularBlock,
 )
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
 from merlin.models.utils.misc_utils import filter_kwargs
@@ -200,14 +201,19 @@ class SequentialBlock(Block):
 
     def call(self, inputs, training=False, **kwargs):
         if getattr(self, "_need_to_call_context", False):
-            self.context(inputs)
+            # convert sparse inputs to dense before storing them to the context?
+            self.context(AsDenseFeatures()(inputs))
 
         outputs = inputs
         for i, layer in enumerate(self.layers):
             if i == len(self.layers) - 1:
                 filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
                 filtered_kwargs.update(
-                    filter_kwargs(kwargs, layer.call, filter_positional_or_keyword=False)
+                    filter_kwargs(
+                        {**dict(training=training), **kwargs},
+                        layer.call,
+                        filter_positional_or_keyword=False,
+                    )
                 )
             else:
                 filtered_kwargs = filter_kwargs(
