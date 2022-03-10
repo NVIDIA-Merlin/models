@@ -17,17 +17,11 @@
 import logging
 from typing import Dict, Optional, Tuple, Type, Union
 
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
-from merlin.schema import Schema, Tags, TagsType
-
-from ...core import Block, BlockType, ParallelBlock, TabularAggregationType
-from ...features.continuous import ContinuousFeatures
-from ...features.embedding import (
-from merlin.models.tf.blocks.base import Block, BlockType, ParallelBlock, TabularAggregationType
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularAggregationType
 from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import (
     ContinuousEmbedding,

@@ -313,9 +313,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if hasattr(x, "to_ddf"):
             if not batch_size:
                 raise ValueError("batch_size must be specified when using merlin-dataset.")
-            from merlin.models.tf.dataset import Dataset
+            from merlin.models.tf.dataset import BatchedDataset
 
-            x = Dataset(x, batch_size=batch_size, **kwargs)
+            x = BatchedDataset(x, batch_size=batch_size, **kwargs)
 
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 

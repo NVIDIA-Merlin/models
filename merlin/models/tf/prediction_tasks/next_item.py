@@ -29,7 +29,6 @@ from merlin.models.tf.blocks.core.transformations import (
     RemovePad3D,
 )
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
-from merlin.models.tf.blocks.retrieval.top_k import ItemsPredictionTopK
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 from merlin.models.tf.losses.base import LossType
 from merlin.models.tf.metrics.ranking import ranking_metrics

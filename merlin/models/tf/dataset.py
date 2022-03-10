@@ -25,7 +25,7 @@ from packaging import version
 from merlin.core.dispatch import HAS_GPU
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
-from merlin.models.utils.schema import select_targets
+from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Tags
 
 LOG = logging.getLogger("merlin.models")
