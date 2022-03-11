@@ -44,8 +44,19 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: SyntheticData, r
         metrics=metrics,
         loss="categorical_crossentropy",
     )
+<<<<<<< HEAD
     # Setting up evaluation
     model.set_retrieval_candidates_for_evaluation(ecommerce_data.dataset)
+=======
+
+    # Setting up evaluation
+    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
+    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
+    item_dataset = item_dataset.sort_values("item_id")
+    item_dataset = Dataset(item_dataset)
+    model.load_evaluation_candidates(item_dataset, k=5)
+
+>>>>>>> fix top-k evaluation of retrieval model
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     # Training
@@ -74,6 +85,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: SyntheticData, r
             assert losses.history[metric_name][1] <= losses.history[metric_name][0]
 
     _ = model.evaluate(ecommerce_data.tf_dataloader(batch_size=10))
+<<<<<<< HEAD
 
 
 def test_retrieval_evaluation_without_negatives(ecommerce_data: SyntheticData):
@@ -85,6 +97,8 @@ def test_retrieval_evaluation_without_negatives(ecommerce_data: SyntheticData):
         assert "You need to specify the set of negatives to use for evaluation" in str(
             exc_info.value
         )
+=======
+>>>>>>> fix top-k evaluation of retrieval model
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

@@ -232,9 +232,13 @@ class ItemRetrievalScorer(Block):
             If `training=True`, return the original inputs
         """
         if self.cache_query:
+<<<<<<< HEAD
             # enabled only during top-k evaluation
             self.context["query"].assign(inputs[self.query_name])
             self.context["positive_candidates_embeddings"].assign(inputs[self.item_name])
+=======
+            self.context["query"].assign(inputs[self.query_name])
+>>>>>>> fix top-k evaluation of retrieval model
 
         if training:
             return inputs

@@ -291,7 +291,14 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     model = two_tower.connect(task)
 
     # Setting up evaluation
+<<<<<<< HEAD
     model.set_retrieval_candidates_for_evaluation(ecommerce_data.dataset)
+=======
+    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
+    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
+    item_dataset = Dataset(item_dataset)
+    model.load_evaluation_candidates(item_dataset, k=5)
+>>>>>>> fix top-k evaluation of retrieval model
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 

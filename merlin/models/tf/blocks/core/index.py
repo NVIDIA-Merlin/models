@@ -214,7 +214,11 @@ class TopKIndexBlock(IndexBlock):
             the scores for the top-k implicit negatives.
         """
         queries = self.context["query"]
+<<<<<<< HEAD
         top_scores, top_ids = self(queries, k=self._k)
+=======
+        top_scores, top_ids = self(queries, k=self._k + 1)
+>>>>>>> fix top-k evaluation of retrieval model
 
         # remove accidental hits
         top_scores = tf_utils.rescore_false_negatives(
@@ -222,14 +226,19 @@ class TopKIndexBlock(IndexBlock):
         )
 
         # Update top-k scores with positives
+<<<<<<< HEAD
         positive_scores = tf.reduce_sum(
             queries * self.context["positive_candidates_embeddings"], axis=1, keepdims=True
         )
         predictions = tf.concat([positive_scores, top_scores], axis=-1)
+=======
+        predictions = tf.expand_dims(predictions[:, 0], -1)
+        predictions = tf.concat([predictions, top_scores], axis=-1)
+>>>>>>> fix top-k evaluation of retrieval model
         targets = tf.concat(
             [
                 tf.ones([tf.shape(predictions)[0], 1]),
-                tf.zeros([tf.shape(predictions)[0], self._k]),
+                tf.zeros([tf.shape(predictions)[0], self._k + 1]),
             ],
             axis=1,
         )

@@ -201,7 +201,11 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
     def calculate_metrics(
         self,
+<<<<<<< HEAD
         outputs: PredictionOutput,
+=======
+        outputs,
+>>>>>>> fix top-k evaluation of retrieval model
         sample_weight=None,
         forward=True,
         loss=None,
