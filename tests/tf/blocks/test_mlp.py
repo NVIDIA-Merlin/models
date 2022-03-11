@@ -28,7 +28,6 @@ from merlin.models.data.synthetic import SyntheticData
 @pytest.mark.parametrize(
     "normalization", [None, "batch_norm", tf.keras.layers.BatchNormalization()]
 )
-@pytest.mark.parametrize("no_activation_last_layer", [False, True])
 def test_mlp_block_yoochoose(
     testing_data: SyntheticData,
     dim,
