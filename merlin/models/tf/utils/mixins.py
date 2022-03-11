@@ -56,11 +56,7 @@ class MetricsMixin(abc.ABC):
 
     def calculate_metrics(
         self,
-<<<<<<< HEAD
         outputs: PredictionOutput,
-=======
-        outputs,
->>>>>>> fix top-k evaluation of retrieval model
         mode: str = "val",
         forward: bool = True,
         training: bool = False,
@@ -116,11 +112,7 @@ class ModelLikeBlock(Protocol):
 
     def calculate_metrics(
         self,
-<<<<<<< HEAD
         outputs: PredictionOutput,
-=======
-        outputs,
->>>>>>> fix top-k evaluation of retrieval model
         mode: str = "val",
         forward=True,
         training=False,

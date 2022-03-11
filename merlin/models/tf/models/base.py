@@ -502,12 +502,7 @@ class RetrievalModel(Model):
         self,
         *blocks: Union[Block, ModelLikeBlock],
         context: Optional[BlockContext] = None,
-<<<<<<< HEAD
         evaluation_candidates: merlin.io.Dataset = None,
-=======
-        evaluation_candidates=None,
-        evaluation_top_k=None,
->>>>>>> fix top-k evaluation of retrieval model
         **kwargs,
     ):
         super().__init__(*blocks, context=context, **kwargs)
@@ -516,10 +511,6 @@ class RetrievalModel(Model):
             raise ValueError("Model must contain a `RetrievalBlock`.")
 
         self.evaluation_candidates = evaluation_candidates
-<<<<<<< HEAD
-=======
-        self.evaluation_top_k = evaluation_top_k
->>>>>>> fix top-k evaluation of retrieval model
 
     @property
     def retrieval_block(self) -> RetrievalBlock:
@@ -597,7 +588,6 @@ class RetrievalModel(Model):
                 "in the end (loss_block)."
             )
 
-<<<<<<< HEAD
     def set_retrieval_candidates_for_evaluation(self, candidates: merlin.io.Dataset):
         self.evaluation_candidates = unique_rows_by_features(candidates, Tags.ITEM, Tags.ITEM_ID)
 
@@ -623,36 +613,7 @@ class RetrievalModel(Model):
             k=self._k,
             context=self.context,
             **kwargs,
-=======
-    def load_evaluation_candidates(self, candidates: merlin.io.Dataset, k: int, **kwargs):
-        self.evaluation_candidates = candidates
-        self.k = 10
-
-    def _load_topk_evaluation(self, data: merlin.io.Dataset, k: int, **kwargs):
-        """Update the model with a top-k evaluation block.
-        Parameters
-        ----------
-        data: merlin.io.Dataset
-            Dataset of negatives to use for evaluation.
-        k: int
-            Number of negatives to retrieve.
-        Returns
-        -------
-        SequentialBlock
-        """
-        import merlin.models.tf as ml
-
-        self.check_for_retrieval_task()
-        topk_index = ml.TopKIndexBlock.from_block(
-            self.retrieval_block.item_block(), data=data, k=k, context=self.context, **kwargs
->>>>>>> fix top-k evaluation of retrieval model
         )
-        self.loss_block.pre_eval_topk = topk_index  # type: ignore
-
-        # set cache_query to True in the ItemRetrievalScorer
-        self.loss_block.set_retrieval_cache_query(True)  # type: ignore
-
-        return self
 
     def to_top_k_recommender(self, data: merlin.io.Dataset, k: int, **kwargs) -> ModelBlock:
         """Convert the model to a Top-k Recommender.
