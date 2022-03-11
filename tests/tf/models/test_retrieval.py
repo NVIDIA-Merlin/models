@@ -51,7 +51,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: SyntheticData, r
     item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
     item_dataset = item_dataset.sort_values("item_id")
     item_dataset = Dataset(item_dataset)
-    model.load_evaluation_candidates(item_dataset, k=5)
+    model.set_evaluation_candidates(item_dataset, k=5)
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 

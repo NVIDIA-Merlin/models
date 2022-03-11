@@ -583,7 +583,7 @@ class RetrievalModel(Model):
                 "in the end (loss_block)."
             )
 
-    def load_evaluation_candidates(self, candidates: merlin.io.Dataset, k: int, **kwargs):
+    def set_evaluation_candidates(self, candidates: merlin.io.Dataset, k: int):
         self.evaluation_candidates = candidates
         self.k = 10
 

@@ -216,7 +216,7 @@ class TopKIndexBlock(IndexBlock):
         targets, predictions = outputs.targets, outputs.predictions
         assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         queries = self.context["query"]
-        top_scores, top_ids = self(queries, k=self._k + 1)
+        top_scores, top_ids = self(queries, k=self._k)
 
         # remove accidental hits
         top_scores = tf_utils.rescore_false_negatives(
@@ -229,7 +229,7 @@ class TopKIndexBlock(IndexBlock):
         targets = tf.concat(
             [
                 tf.ones([tf.shape(predictions)[0], 1]),
-                tf.zeros([tf.shape(predictions)[0], self._k + 1]),
+                tf.zeros([tf.shape(predictions)[0], self._k]),
             ],
             axis=1,
         )
