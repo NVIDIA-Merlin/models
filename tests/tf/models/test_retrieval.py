@@ -37,7 +37,7 @@ def test_two_tower_model(music_streaming_data: SyntheticData, run_eagerly, num_e
 def test_two_tower_retrieval_model_with_metrics(ecommerce_data: SyntheticData, run_eagerly):
     ecommerce_data._schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
-    metrics = [RecallAt(10), MRRAt(10), NDCGAt(10), AvgPrecisionAt(10), PrecisionAt(10)]
+    metrics = [RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)]
     model = mm.TwoTowerModel(
         schema=ecommerce_data.schema,
         query_tower=mm.MLPBlock([128, 64]),
@@ -46,21 +46,28 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: SyntheticData, r
         loss="categorical_crossentropy",
     )
 
+    # Setting up evaluation
+    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
+    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
+    item_dataset = item_dataset.sort_values("item_id")
+    item_dataset = Dataset(item_dataset)
+    model.load_evaluation_candidates(item_dataset, k=5)
+
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     # Training
     num_epochs = 2
     losses = model.fit(
-        ecommerce_data.tf_dataloader(batch_size=50),
+        ecommerce_data.tf_dataloader(batch_size=10),
         epochs=num_epochs,
         train_metrics_steps=3,
-        # validation_data=ecommerce_data.tf_dataloader(batch_size=50),
-        # validation_steps=3,
+        validation_data=ecommerce_data.tf_dataloader(batch_size=10),
+        validation_steps=3,
     )
     assert len(losses.epoch) == num_epochs
 
     # Checking train metrics
-    expected_metrics = ["recall_at_10", "mrr_at_10", "ndcg_10", "map_at_10", "precision_at_10"]
+    expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_5", "map_at_5", "precision_at_5"]
     expected_loss_metrics = ["loss", "regularization_loss", "total_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
     assert len(expected_metrics_all) == len(
@@ -73,12 +80,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: SyntheticData, r
         elif metric_name in expected_loss_metrics:
             assert losses.history[metric_name][1] <= losses.history[metric_name][0]
 
-    # Setting up evaluation
-    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
-    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
-    item_dataset = Dataset(item_dataset)
-    model = model.load_topk_evaluation(item_dataset, k=20)
-    _ = model.evaluate(ecommerce_data.tf_dataloader(batch_size=50))
+    _ = model.evaluate(ecommerce_data.tf_dataloader(batch_size=10))
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

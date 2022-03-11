@@ -405,7 +405,7 @@ class LogitsTemperatureScaler(Block):
         if training:
             assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
             predictions = predictions / self.temperature
-        return PredictionOutput(predictions, targets)
+        return PredictionOutput(predictions, targets, outputs.positive_item_ids)
 
     def compute_output_shape(self, input_shape):
         return input_shape
@@ -453,4 +453,4 @@ class LabelToOneHot(Block):
         num_classes = tf.shape(predictions)[-1]
         targets = transform_label_to_onehot(targets, num_classes)
 
-        return PredictionOutput(predictions, targets)
+        return PredictionOutput(predictions, targets, outputs.positive_item_ids)

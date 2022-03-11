@@ -155,6 +155,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         sample_weight: Optional[tf.Tensor] = None,
         **kwargs,
     ) -> tf.Tensor:
+        positive_item_ids = None
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
 
@@ -166,6 +167,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
                 PredictionOutput(predictions, targets), training=training, **kwargs
             )
             targets, predictions = outputs.targets, outputs.predictions
+            positive_item_ids = outputs.positive_item_ids
 
         if isinstance(targets, tf.Tensor) and len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
@@ -176,16 +178,18 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         loss = tf.cond(
             tf.convert_to_tensor(compute_metrics),
-            lambda: self.attach_metrics_calculation_to_loss(predictions, targets, loss, training),
+            lambda: self.attach_metrics_calculation_to_loss(
+                PredictionOutput(predictions, targets, positive_item_ids), loss, training
+            ),
             lambda: loss,
         )
 
         return loss
 
-    def attach_metrics_calculation_to_loss(self, predictions, targets, loss, training):
-        update_ops = self.calculate_metrics(
-            predictions, targets, loss=loss, forward=False, training=training
-        )
+    def attach_metrics_calculation_to_loss(
+        self, outputs: PredictionOutput, loss: tf.Tensor, training: bool
+    ):
+        update_ops = self.calculate_metrics(outputs, loss=loss, forward=False, training=training)
 
         update_ops = [x for x in update_ops if x is not None]
 
@@ -197,14 +201,14 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
     def calculate_metrics(
         self,
-        predictions,
-        targets,
+        outputs,
         sample_weight=None,
         forward=True,
         loss=None,
         training=False,
         **kwargs,
     ):
+        predictions, targets = outputs.predictions, outputs.targets
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
 
@@ -218,7 +222,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if not training and self._pre_eval_topk:
 
             outputs = self._pre_eval_topk.call_outputs(
-                PredictionOutput(predictions, targets), **kwargs
+                PredictionOutput(predictions, targets, outputs.positive_item_ids), **kwargs
             )
             targets, predictions, label_relevant_counts_eval = (
                 outputs.targets,

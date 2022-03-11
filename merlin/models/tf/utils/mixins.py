@@ -50,23 +50,21 @@ class MetricsMixin(abc.ABC):
 
     def calculate_metrics(
         self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
+        outputs,
         mode: str = "val",
         forward: bool = True,
         training: bool = False,
         **kwargs,
     ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
+
         """Calculate metrics on a batch of data, each metric is stateful and this updates the state.
 
         The state of each metric can be retrieved by calling the `metric_results` method.
 
         Parameters
         ----------
-        inputs: Union[tf.Tensor, TabularData]
-            TODO
-        targets: Union[tf.Tensor, TabularData]
-            TODO
+        outputs: PredictionOutput
+            The named tuple containing predictions and targets tensors
         forward: bool, default True
 
         mode: str, default="val"
@@ -108,8 +106,7 @@ class ModelLikeBlock(Protocol):
 
     def calculate_metrics(
         self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
+        outputs,
         mode: str = "val",
         forward=True,
         training=False,

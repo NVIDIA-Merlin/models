@@ -187,15 +187,14 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
     def calculate_metrics(
         self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
+        outputs,
         mode: str = "val",
         forward: bool = True,
         training: bool = False,
         **kwargs,
     ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
         return self.loss_block.calculate_metrics(
-            inputs, targets, mode=mode, forward=forward, training=training, **kwargs
+            outputs=outputs, mode=mode, forward=forward, training=training, **kwargs
         )
 
     def metric_results(self, mode=None):
@@ -398,6 +397,19 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             x = BatchedDataset(x, batch_size=batch_size, **kwargs)
 
+        # Check if top-k evaluation is set for RetrievalModel,
+        # if not set it to default BruteForce top-k evaluation
+        # using evaluation_candidates as indices.
+        if isinstance(self, RetrievalModel):
+            self.check_for_retrieval_task()
+            if not self.loss_block.pre_eval_topk:
+                if not self.evaluation_candidates:
+                    raise ValueError(
+                        "You need to specify the set of negatives to use for evaluation "
+                        "via `evaluation_candidates` argument"
+                    )
+                self = self._load_topk_evaluation(self.evaluation_candidates, k=self.k)
+
         return super().evaluate(
             x,
             y,
@@ -470,12 +482,17 @@ class RetrievalModel(Model):
         self,
         *blocks: Union[Block, ModelLikeBlock],
         context: Optional[BlockContext] = None,
+        evaluation_candidates=None,
+        evaluation_top_k=None,
         **kwargs,
     ):
         super().__init__(*blocks, context=context, **kwargs)
 
         if not any(isinstance(b, RetrievalBlock) for b in self.block):
             raise ValueError("Model must contain a `RetrievalBlock`.")
+
+        self.evaluation_candidates = evaluation_candidates
+        self.evaluation_top_k = evaluation_top_k
 
     @property
     def retrieval_block(self) -> RetrievalBlock:
@@ -556,7 +573,21 @@ class RetrievalModel(Model):
 
         return merlin.io.Dataset(embeddings)
 
-    def load_topk_evaluation(self, data: merlin.io.Dataset, k: int, **kwargs):
+    def check_for_retrieval_task(self):
+        if not (
+            getattr(self, "loss_block", None)
+            and getattr(self.loss_block, "set_retrieval_cache_query", None)
+        ):
+            raise ValueError(
+                "Your retrieval model should contain an ItemRetrievalTask "
+                "in the end (loss_block)."
+            )
+
+    def load_evaluation_candidates(self, candidates: merlin.io.Dataset, k: int, **kwargs):
+        self.evaluation_candidates = candidates
+        self.k = 10
+
+    def _load_topk_evaluation(self, data: merlin.io.Dataset, k: int, **kwargs):
         """Update the model with a top-k evaluation block.
         Parameters
         ----------
@@ -570,17 +601,9 @@ class RetrievalModel(Model):
         """
         import merlin.models.tf as ml
 
-        if not (
-            getattr(self, "loss_block", None)
-            and getattr(self.loss_block, "set_retrieval_cache_query", None)
-        ):
-            raise ValueError(
-                "Your retrieval model should contain an ItemRetrievalTask "
-                "in the end (loss_block)."
-            )
-
+        self.check_for_retrieval_task()
         topk_index = ml.TopKIndexBlock.from_block(
-            self.retrieval_block.item_block(), data=data, k=k - 1, context=self.context, **kwargs
+            self.retrieval_block.item_block(), data=data, k=k, context=self.context, **kwargs
         )
         self.loss_block.pre_eval_topk = topk_index
 

@@ -34,15 +34,24 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     inbatch_sampler = ml.InBatchSampler()
 
     item_retrieval_scorer = ml.ItemRetrievalScorer(
-        samplers=[cached_batches_sampler, inbatch_sampler], sampling_downscore_false_negatives=False
+        samplers=[cached_batches_sampler, inbatch_sampler],
+        sampling_downscore_false_negatives=False,
+        context=ml.BlockContext(),
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
+    positive_items = tf.random.uniform(shape=(10,), minval=1, maxval=100, dtype=tf.int32)
 
     # First batch
     output_scores1 = item_retrieval_scorer.call_outputs(
-        PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
+        PredictionOutput(
+            {
+                "query": users_embeddings,
+                "item": items_embeddings,
+            },
+            targets=positive_items,
+        ),
         training=True,
     ).predictions
     expected_num_samples_inbatch = batch_size
@@ -55,7 +64,13 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
 
     # Second batch
     output_scores2 = item_retrieval_scorer.call_outputs(
-        PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
+        PredictionOutput(
+            {
+                "query": users_embeddings,
+                "item": items_embeddings,
+            },
+            targets=positive_items,
+        ),
         training=True,
     ).predictions
     expected_num_samples_cached += batch_size
@@ -98,11 +113,14 @@ def test_item_retrieval_scorer_no_sampler():
     with pytest.raises(Exception) as excinfo:
         users_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
         items_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
+        positive_items = tf.random.uniform(shape=(10,), minval=1, maxval=100, dtype=tf.int32)
         item_retrieval_scorer = ml.ItemRetrievalScorer(
-            samplers=[], sampling_downscore_false_negatives=False
+            samplers=[], sampling_downscore_false_negatives=False, context=ml.BlockContext()
         )
         item_retrieval_scorer.call_outputs(
-            PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
+            PredictionOutput(
+                {"query": users_embeddings, "item": items_embeddings}, targets=positive_items
+            ),
             training=True,
         )
     assert "At least one sampler is required by ItemRetrievalScorer for negative sampling" in str(
@@ -273,16 +291,18 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     )
     model = two_tower.connect(task)
 
+    # Setting up evaluation
+    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
+    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
+    item_dataset = Dataset(item_dataset)
+    model.load_evaluation_candidates(item_dataset, k=5)
+
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(ecommerce_data.dataset, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
-    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
-    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
-    item_dataset = Dataset(item_dataset)
-    model = model.load_topk_evaluation(item_dataset, k=20)
     _ = model.evaluate(x=ecommerce_data.dataset, batch_size=50)
 
 
