@@ -28,6 +28,7 @@ from merlin.models.data.synthetic import SyntheticData
 @pytest.mark.parametrize(
     "normalization", [None, "batch_norm", tf.keras.layers.BatchNormalization()]
 )
+@pytest.mark.parametrize("no_activation_last_layer", [False, True])
 def test_mlp_block_yoochoose(
     testing_data: SyntheticData,
     dim,
@@ -60,6 +61,7 @@ def test_mlp_block_yoochoose(
     assert list(outputs.shape) == [100, dim]
     assert mlp.layers[0].units == dim
     assert mlp.layers[0].dense.activation.__name__ == activation
+
     if dropout:
         assert mlp.layers[1].rate == dropout
     if normalization:
@@ -67,3 +69,15 @@ def test_mlp_block_yoochoose(
             normalization = tf.keras.layers.BatchNormalization()
 
         assert mlp.layers[-1].__class__.__name__ == normalization.__class__.__name__
+
+
+@pytest.mark.parametrize("no_activation_last_layer", [False, True])
+@pytest.mark.parametrize("dims", [[32], [64, 32]])
+def test_mlp_block_no_activation_last_layer(no_activation_last_layer, dims):
+    mlp = ml.MLPBlock(dims, activation="relu", no_activation_last_layer=no_activation_last_layer)
+
+    for idx, layer in enumerate(mlp.layers):
+        if no_activation_last_layer and idx == len(mlp.layers) - 1:
+            assert layer.dense.activation.__name__ == "linear"
+        else:
+            assert layer.dense.activation.__name__ == "relu"

@@ -22,6 +22,7 @@ import tensorflow as tf
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.retrieval.base import RetrievalMixin, TowerBlock
 from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.schema import Schema, Tags
@@ -92,7 +93,7 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
                     "required by item-tower"
                 )
             item_tower_inputs = InputBlock(item_schema, embedding_options=embedding_options)
-            _item_tower = item_tower_inputs.connect(_item_tower)
+            _item_tower = item_tower_inputs.connect(_item_tower).connect(L2Norm())
         if not getattr(query_tower, "inputs", None):
             query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
             if not query_schema:
@@ -101,7 +102,7 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
                     "required by query-tower"
                 )
             query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
-            query_tower = query_inputs.connect(query_tower)
+            query_tower = query_inputs.connect(query_tower).connect(L2Norm())
         branches = {"query": TowerBlock(query_tower), "item": TowerBlock(_item_tower)}
 
         super().__init__(branches, post=post, **kwargs)

@@ -43,6 +43,7 @@ def MLPBlock(
     dropout: Optional[float] = None,
     normalization: Optional[Union[str, tf.keras.layers.Layer]] = None,
     filter: Optional[Union[Schema, Tags, List[str], "Filter"]] = None,
+    no_activation_last_layer: bool = False,
     block_name: str = "MLPBlock",
     **kwargs
 ) -> SequentialBlock:
@@ -77,13 +78,19 @@ def MLPBlock(
         The normalization layer to use.
     filter: Schema, Tag, List[str], or Filter
         The filter to apply to the inputs of the MLP.
+    no_activation_last_layer: bool
+        Ensures that no activation function (i.e. 'linear') is used in the output of the
+        layer MLP layer
     block_name: str
         The name of the block.
     """
 
     block_layers = []
 
-    for dim in dimensions:
+    for idx, dim in enumerate(dimensions):
+        if no_activation_last_layer and idx == len(dimensions) - 1:
+            activation = "linear"
+
         block_layers.append(
             _Dense(
                 dim,
