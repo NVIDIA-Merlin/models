@@ -166,6 +166,8 @@ def TwoTowerModel(
             softmax_temperature=softmax_temperature,
             samplers=list(samplers),
             loss=loss,
+            # Two-tower outputs are already L2-normalized
+            normalize=False,
             **kwargs,
         )
 
