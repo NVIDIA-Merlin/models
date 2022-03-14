@@ -1,0 +1,109 @@
+﻿merlin.models.tf.Block
+======================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: Block
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Block.__init__
+      ~Block.add_loss
+      ~Block.add_metric
+      ~Block.add_update
+      ~Block.add_variable
+      ~Block.add_weight
+      ~Block.apply
+      ~Block.as_tabular
+      ~Block.build
+      ~Block.call
+      ~Block.call_outputs
+      ~Block.check_schema
+      ~Block.compute_mask
+      ~Block.compute_output_shape
+      ~Block.compute_output_signature
+      ~Block.connect
+      ~Block.connect_branch
+      ~Block.connect_debug_block
+      ~Block.connect_with_residual
+      ~Block.connect_with_shortcut
+      ~Block.copy
+      ~Block.count_params
+      ~Block.finalize_state
+      ~Block.from_config
+      ~Block.from_layer
+      ~Block.get_config
+      ~Block.get_input_at
+      ~Block.get_input_mask_at
+      ~Block.get_input_shape_at
+      ~Block.get_item_ids_from_inputs
+      ~Block.get_losses_for
+      ~Block.get_output_at
+      ~Block.get_output_mask_at
+      ~Block.get_output_shape_at
+      ~Block.get_padding_mask_from_item_id
+      ~Block.get_updates_for
+      ~Block.get_weights
+      ~Block.parse
+      ~Block.parse_block
+      ~Block.prepare
+      ~Block.register_features
+      ~Block.repeat
+      ~Block.repeat_in_parallel
+      ~Block.select_by_name
+      ~Block.set_schema
+      ~Block.set_weights
+      ~Block.to_model
+      ~Block.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Block.REQUIRES_SCHEMA
+      ~Block.activity_regularizer
+      ~Block.compute_dtype
+      ~Block.context
+      ~Block.dtype
+      ~Block.dtype_policy
+      ~Block.dynamic
+      ~Block.has_schema
+      ~Block.inbound_nodes
+      ~Block.input
+      ~Block.input_mask
+      ~Block.input_shape
+      ~Block.input_spec
+      ~Block.losses
+      ~Block.metrics
+      ~Block.name
+      ~Block.name_scope
+      ~Block.non_trainable_variables
+      ~Block.non_trainable_weights
+      ~Block.outbound_nodes
+      ~Block.output
+      ~Block.output_mask
+      ~Block.output_shape
+      ~Block.registry
+      ~Block.schema
+      ~Block.stateful
+      ~Block.submodules
+      ~Block.supports_masking
+      ~Block.trainable
+      ~Block.trainable_variables
+      ~Block.trainable_weights
+      ~Block.updates
+      ~Block.variable_dtype
+      ~Block.variables
+      ~Block.weights
+   
+   

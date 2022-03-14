@@ -1,0 +1,22 @@
+﻿merlin.models.tf.EmbeddingWithMetadata
+======================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: EmbeddingWithMetadata
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~EmbeddingWithMetadata.__init__
+   
+   
+
+   
+   
+   

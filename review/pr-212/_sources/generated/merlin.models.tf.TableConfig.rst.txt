@@ -1,0 +1,22 @@
+﻿merlin.models.tf.TableConfig
+============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: TableConfig
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~TableConfig.__init__
+   
+   
+
+   
+   
+   
