@@ -60,7 +60,7 @@ def QueryItemIdsEmbeddingsBlock(
         post = rename_features
 
     embeddings_blocks = EmbeddingFeatures.from_schema(
-        query_item_schema, post=post, options=embedding_options, **kwargs
+        query_item_schema, post=post, embedding_options=embedding_options, **kwargs
     )
 
     return embeddings_blocks
