@@ -1,5 +1,5 @@
-Welcome to Merlin Models documentation!
-============================================
+Merlin Models
+=============
 
 .. toctree::
    :maxdepth: 2
