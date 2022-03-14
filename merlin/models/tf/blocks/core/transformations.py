@@ -386,14 +386,15 @@ class SamplingBiasCorrection(Block):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class PredictionsScaler(Block):
-    def __init__(self, scale_factor: float, **kwargs):
-        super(PredictionsScaler, self).__init__(**kwargs)
-        self.scale_factor = scale_factor
+class LogitsTemperatureScaler(Block):
+    def __init__(self, temperature: float, **kwargs):
+        super(LogitsTemperatureScaler, self).__init__(**kwargs)
+        self.temperature = temperature
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
         if not training:
-            return inputs * self.scale_factor
+            assert isinstance(inputs, tf.Tensor), "Predictions must be a tensor"
+            return inputs / self.temperature
         else:
             return inputs
 
@@ -401,9 +402,9 @@ class PredictionsScaler(Block):
         self, outputs: PredictionOutput, training=True, **kwargs
     ) -> "PredictionOutput":
         targets, predictions = outputs.targets, outputs.predictions
-        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         if training:
-            predictions = predictions * self.scale_factor
+            assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
+            predictions = predictions / self.temperature
         return PredictionOutput(predictions, targets)
 
     def compute_output_shape(self, input_shape):

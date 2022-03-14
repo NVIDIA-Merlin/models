@@ -28,7 +28,7 @@ def MatrixFactorizationModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    softmax_temperature: int = 1,
+    logits_temperature: int = 1,
     loss: Optional[LossType] = "bpr",
     metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
@@ -57,8 +57,8 @@ def MatrixFactorizationModel(
         The optional `Block` to apply on both outputs of Two-tower model
     prediction_tasks: optional
         The optional `PredictionTask` or list of `PredictionTask` to apply on the model.
-    softmax_temperature: float
-        Parameter used to reduce model overconfidence, so that softmax(logits / T).
+    logits_temperature: float
+        Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
     loss: Optional[LossType]
         Loss function.
@@ -75,7 +75,7 @@ def MatrixFactorizationModel(
         prediction_tasks = ItemRetrievalTask(
             schema,
             metrics=metrics,
-            softmax_temperature=softmax_temperature,
+            logits_temperature=logits_temperature,
             samplers=list(samplers),
             loss=loss,
             **kwargs,
@@ -113,7 +113,7 @@ def TwoTowerModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    softmax_temperature: int = 1,
+    logits_temperature: int = 1.0,
     loss: Optional[LossType] = "categorical_crossentropy",
     metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
@@ -160,8 +160,8 @@ def TwoTowerModel(
         The optional `Block` to apply on both outputs of Two-tower model
     prediction_tasks: optional
         The optional `PredictionTask` or list of `PredictionTask` to apply on the model.
-    softmax_temperature: float
-        Parameter used to reduce model overconfidence, so that softmax(logits / T).
+    logits_temperature: float
+        Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
     loss: Optional[LossType]
         Loss function.
@@ -178,7 +178,7 @@ def TwoTowerModel(
         prediction_tasks = ItemRetrievalTask(
             schema,
             metrics=metrics,
-            softmax_temperature=softmax_temperature,
+            logits_temperature=logits_temperature,
             samplers=list(samplers),
             loss=loss,
             # Two-tower outputs are already L2-normalized
@@ -214,7 +214,7 @@ def YoutubeDNNRetrievalModel(
     normalize: bool = True,
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
-    softmax_temperature: float = 1,
+    logits_temperature: float = 1.0,
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
 ) -> Model:
     """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
@@ -256,8 +256,8 @@ def YoutubeDNNRetrievalModel(
         The optional `Block` to apply before the model.
     task_block: Optional[Block]
         The optional `Block` to apply on the model.
-    softmax_temperature: float
-        Parameter used to reduce model overconfidence, so that softmax(logits / T).
+    logits_temperature: float
+        Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
     seq_aggregator: Block
         The `Block` to aggregate the sequence of features.
@@ -282,7 +282,7 @@ def YoutubeDNNRetrievalModel(
         sampled_softmax=True,
         extra_pre_call=extra_pre_call,
         task_block=task_block,
-        softmax_temperature=softmax_temperature,
+        logits_temperature=logits_temperature,
         normalize=normalize,
         num_sampled=num_sampled,
     )
