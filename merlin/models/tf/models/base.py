@@ -403,12 +403,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if isinstance(self, RetrievalModel):
             self.check_for_retrieval_task()
             if not self.loss_block.pre_eval_topk:
-                if not self.evaluation_candidates:
-                    raise ValueError(
-                        "You need to specify the set of negatives to use for evaluation "
-                        "via `evaluation_candidates` argument"
-                    )
-                self = self._load_topk_evaluation(self.evaluation_candidates, k=self.k)
+                self = self._load_topk_evaluation()
 
         return super().evaluate(
             x,
@@ -482,8 +477,7 @@ class RetrievalModel(Model):
         self,
         *blocks: Union[Block, ModelLikeBlock],
         context: Optional[BlockContext] = None,
-        evaluation_candidates=None,
-        evaluation_top_k=None,
+        evaluation_candidates: merlin.io.Dataset = None,
         **kwargs,
     ):
         super().__init__(*blocks, context=context, **kwargs)
@@ -492,7 +486,6 @@ class RetrievalModel(Model):
             raise ValueError("Model must contain a `RetrievalBlock`.")
 
         self.evaluation_candidates = evaluation_candidates
-        self.evaluation_top_k = evaluation_top_k
 
     @property
     def retrieval_block(self) -> RetrievalBlock:
@@ -585,25 +578,25 @@ class RetrievalModel(Model):
 
     def set_evaluation_candidates(self, candidates: merlin.io.Dataset, k: int):
         self.evaluation_candidates = candidates
-        self.k = 10
+        self.k = k
 
-    def _load_topk_evaluation(self, data: merlin.io.Dataset, k: int, **kwargs):
-        """Update the model with a top-k evaluation block.
-        Parameters
-        ----------
-        data: merlin.io.Dataset
-            Dataset of negatives to use for evaluation.
-        k: int
-            Number of negatives to retrieve.
-        Returns
-        -------
-        SequentialBlock
-        """
+    def _load_topk_evaluation(self, **kwargs):
+        """Update the model with a top-k evaluation block."""
         import merlin.models.tf as ml
 
         self.check_for_retrieval_task()
+        if not self.evaluation_candidates:
+            raise ValueError(
+                "You need to specify the set of negatives to use for evaluation "
+                "via `set_evaluation_candidates` method"
+            )
+
         topk_index = ml.TopKIndexBlock.from_block(
-            self.retrieval_block.item_block(), data=data, k=k, context=self.context, **kwargs
+            self.retrieval_block.item_block(),
+            data=self.evaluation_candidates,
+            k=self.k,
+            context=self.context,
+            **kwargs,
         )
         self.loss_block.pre_eval_topk = topk_index
 

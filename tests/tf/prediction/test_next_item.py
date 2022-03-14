@@ -295,7 +295,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
     item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
     item_dataset = Dataset(item_dataset)
-    model.set_evaluation_candidates(item_dataset, k=5)
+    model.set_evaluation_candidates(item_dataset, k=10)
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 

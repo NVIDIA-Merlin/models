@@ -49,7 +49,6 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: SyntheticData, r
     # Setting up evaluation
     item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
     item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
-    item_dataset = item_dataset.sort_values("item_id")
     item_dataset = Dataset(item_dataset)
     model.set_evaluation_candidates(item_dataset, k=5)
 
