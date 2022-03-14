@@ -4,9 +4,10 @@ from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, Sequen
 from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
-from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.models.base import Model, RetrievalModel
@@ -27,7 +28,7 @@ def MatrixFactorizationModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    softmax_temperature: int = 1,
+    logits_temperature: int = 1,
     loss: Optional[LossType] = "bpr",
     metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
@@ -56,8 +57,8 @@ def MatrixFactorizationModel(
         The optional `Block` to apply on both outputs of Two-tower model
     prediction_tasks: optional
         The optional `PredictionTask` or list of `PredictionTask` to apply on the model.
-    softmax_temperature: float
-        Parameter used to reduce model overconfidence, so that softmax(logits / T).
+    logits_temperature: float
+        Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
     loss: Optional[LossType]
         Loss function.
@@ -74,14 +75,14 @@ def MatrixFactorizationModel(
         prediction_tasks = ItemRetrievalTask(
             schema,
             metrics=metrics,
-            softmax_temperature=softmax_temperature,
+            logits_temperature=logits_temperature,
             samplers=list(samplers),
             loss=loss,
             **kwargs,
         )
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    two_tower = MatrixFactorizationBlock(
+    two_tower = QueryItemIdsEmbeddingsBlock(
         schema=schema,
         dim=dim,
         query_id_tag=query_id_tag,
@@ -102,12 +103,17 @@ def TwoTowerModel(
     item_tower: Optional[Block] = None,
     query_tower_tag=Tags.USER,
     item_tower_tag=Tags.ITEM,
-    embedding_dim_default: Optional[int] = 64,
+    embedding_options: EmbeddingOptions = EmbeddingOptions(
+        embedding_dims=None,
+        embedding_dim_default=64,
+        infer_embedding_sizes=False,
+        infer_embedding_sizes_multiplier=2.0,
+    ),
     post: Optional[BlockType] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    softmax_temperature: int = 1,
+    logits_temperature: int = 1.0,
     loss: Optional[LossType] = "categorical_crossentropy",
     metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
@@ -139,14 +145,23 @@ def TwoTowerModel(
         The tag to select query features, by default `Tags.USER`
     item_tower_tag: Tag
         The tag to select item features, by default `Tags.ITEM`
-    embedding_dim_default: Optional[int], optional
-        Dimension of the embeddings, by default 64
+    embedding_options : EmbeddingOptions
+        Options for the input embeddings.
+        - embedding_dims: Optional[Dict[str, int]] - The dimension of the
+        embedding table for each feature (key), by default {}
+        - embedding_dim_default: int - Default dimension of the embedding
+        table, when the feature is not found in ``embedding_dims``, by default 64
+        - infer_embedding_sizes : bool, Automatically defines the embedding
+        dimension from the feature cardinality in the schema, by default False
+        - infer_embedding_sizes_multiplier: int. Multiplier used by the heuristic
+        to infer the embedding dimension from its cardinality. Generally
+        reasonable values range between 2.0 and 10.0. By default 2.0.
     post: Optional[Block], optional
         The optional `Block` to apply on both outputs of Two-tower model
     prediction_tasks: optional
         The optional `PredictionTask` or list of `PredictionTask` to apply on the model.
-    softmax_temperature: float
-        Parameter used to reduce model overconfidence, so that softmax(logits / T).
+    logits_temperature: float
+        Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
     loss: Optional[LossType]
         Loss function.
@@ -163,9 +178,11 @@ def TwoTowerModel(
         prediction_tasks = ItemRetrievalTask(
             schema,
             metrics=metrics,
-            softmax_temperature=softmax_temperature,
+            logits_temperature=logits_temperature,
             samplers=list(samplers),
             loss=loss,
+            # Two-tower outputs are already L2-normalized
+            normalize=False,
             **kwargs,
         )
 
@@ -176,7 +193,7 @@ def TwoTowerModel(
         item_tower=item_tower,
         query_tower_tag=query_tower_tag,
         item_tower_tag=item_tower_tag,
-        embedding_dim_default=embedding_dim_default,
+        embedding_options=embedding_options,
         post=post,
         **kwargs,
     )
@@ -197,7 +214,7 @@ def YoutubeDNNRetrievalModel(
     normalize: bool = True,
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
-    softmax_temperature: float = 1,
+    logits_temperature: float = 1.0,
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
 ) -> Model:
     """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
@@ -239,8 +256,8 @@ def YoutubeDNNRetrievalModel(
         The optional `Block` to apply before the model.
     task_block: Optional[Block]
         The optional `Block` to apply on the model.
-    softmax_temperature: float
-        Parameter used to reduce model overconfidence, so that softmax(logits / T).
+    logits_temperature: float
+        Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
     seq_aggregator: Block
         The `Block` to aggregate the sequence of features.
@@ -265,7 +282,7 @@ def YoutubeDNNRetrievalModel(
         sampled_softmax=True,
         extra_pre_call=extra_pre_call,
         task_block=task_block,
-        softmax_temperature=softmax_temperature,
+        logits_temperature=logits_temperature,
         normalize=normalize,
         num_sampled=num_sampled,
     )

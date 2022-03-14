@@ -19,7 +19,7 @@ import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
 from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
-from merlin.models.tf.blocks.core.transformations import L2Norm, PredictionsScaler
+from merlin.models.tf.blocks.core.transformations import L2Norm, LogitsTemperatureScaler
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
@@ -56,8 +56,8 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         task_block: Block
             The `Block` that applies additional layers op to inputs.
             Defaults to None.
-        softmax_temperature: float
-            Parameter used to reduce model overconfidence, so that softmax(logits / T).
+        logits_temperature: float
+            Parameter used to reduce the model overconfidence, so that logits / T.
             Defaults to 1.
         normalize: bool
             Apply L2 normalization before computing dot interactions.
@@ -82,14 +82,14 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         extra_pre_call: Optional[Block] = None,
-        softmax_temperature: float = 1.0,
+        logits_temperature: float = 1.0,
         normalize: bool = True,
         cache_query: bool = False,
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.cache_query = cache_query
-        pre = self._build_prediction_call(samplers, normalize, softmax_temperature, extra_pre_call)
+        pre = self._build_prediction_call(samplers, normalize, logits_temperature, extra_pre_call)
         self.loss = loss_registry.parse(loss)
 
         super().__init__(
@@ -106,7 +106,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         self,
         samplers: Sequence[ItemSampler],
         normalize: bool,
-        softmax_temperature: float,
+        logits_temperature: float,
         extra_pre_call: Optional[Block] = None,
     ):
         if samplers is None or len(samplers) == 0:
@@ -121,8 +121,8 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         if normalize:
             prediction_call = L2Norm().connect(prediction_call)
 
-        if softmax_temperature != 1:
-            prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
+        if logits_temperature != 1:
+            prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
 
         if extra_pre_call is not None:
             prediction_call = prediction_call.connect(extra_pre_call)

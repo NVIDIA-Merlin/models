@@ -25,7 +25,7 @@ from merlin.models.tf.blocks.core.transformations import (
     ItemsPredictionWeightTying,
     L2Norm,
     LabelToOneHot,
-    PredictionsScaler,
+    LogitsTemperatureScaler,
     RemovePad3D,
 )
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
@@ -113,7 +113,7 @@ def NextItemPredictionTask(
     target_name: Optional[str] = None,
     task_name: Optional[str] = None,
     task_block: Optional[Layer] = None,
-    softmax_temperature: float = 1,
+    logits_temperature: float = 1.0,
     normalize: bool = True,
     sampled_softmax: bool = False,
     num_sampled: int = 100,
@@ -148,8 +148,8 @@ def NextItemPredictionTask(
         task_block: Block
             The `Block` that applies additional layers op to inputs.
             Defaults to None.
-        softmax_temperature: float
-            Parameter used to reduce the model overconfidence, so that softmax(logits / T).
+        logits_temperature: float
+            Parameter used to reduce the model overconfidence, so that logits / T.
             Defaults to 1.
         normalize: bool
             Apply L2 normalization before computing dot interactions.
@@ -187,8 +187,8 @@ def NextItemPredictionTask(
 
         prediction_call = prediction_call.connect(LabelToOneHot())
 
-    if softmax_temperature != 1:
-        prediction_call = prediction_call.connect(PredictionsScaler(1.0 / softmax_temperature))
+    if logits_temperature != 1:
+        prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
 
     if masking:
         prediction_call = MaskingHead(item_id_feature_name=item_id_feature_name).connect(

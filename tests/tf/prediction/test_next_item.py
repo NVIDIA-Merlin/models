@@ -221,7 +221,7 @@ def test_retrieval_task_inbatch_cached_samplers(
     model = two_tower.connect(
         ml.ItemRetrievalTask(
             music_streaming_data._schema,
-            softmax_temperature=2,
+            logits_temperature=2,
             samplers=samplers,
             loss="bpr",
         )
@@ -268,7 +268,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     ]
     task = ml.ItemRetrievalTask(
         ecommerce_data._schema,
-        softmax_temperature=2,
+        logits_temperature=2,
         samplers=samplers,
     )
     model = two_tower.connect(task)
@@ -286,7 +286,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     _ = model.evaluate(x=ecommerce_data.dataset, batch_size=50)
 
 
-@pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize("run_eagerly", [True])
 @pytest.mark.parametrize("weight_tying", [True, False])
 @pytest.mark.parametrize("sampled_softmax", [True, False])
 def test_last_item_prediction_task(
@@ -310,6 +310,7 @@ def test_last_item_prediction_task(
         masking=True,
         weight_tying=weight_tying,
         sampled_softmax=sampled_softmax,
+        logits_temperature=0.5,
     )
 
     model = inputs.connect(ml.MLPBlock([64]), task)
@@ -336,7 +337,7 @@ def test_retrieval_task_inbatch_default_sampler(
     assert batch_size == 100
 
     model = two_tower.connect(
-        ml.ItemRetrievalTask(music_streaming_data.schema, softmax_temperature=2, loss="bpr")
+        ml.ItemRetrievalTask(music_streaming_data.schema, logits_temperature=2, loss="bpr")
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)

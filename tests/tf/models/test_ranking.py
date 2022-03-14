@@ -62,6 +62,12 @@ def test_dcn_model_single_task_from_pred_task(
         depth=3,
         deep_block=ml.MLPBlock([64]),
         stacked=stacked,
+        embedding_options=ml.EmbeddingOptions(
+            embedding_dims=None,
+            embedding_dim_default=64,
+            infer_embedding_sizes=True,
+            infer_embedding_sizes_multiplier=2.0,
+        ),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 
