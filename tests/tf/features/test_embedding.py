@@ -76,7 +76,10 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: SyntheticData):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
-        schema, embedding_dims={"item_id": 100}, embedding_dim_default=64
+        schema,
+        embedding_options=ml.EmbeddingOptions(
+            embedding_dims={"item_id": 100}, embedding_dim_default=64
+        ),
     )
 
     embeddings = emb_module(testing_data.tf_tensor_dict)
