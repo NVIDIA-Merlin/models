@@ -15,10 +15,12 @@
 #
 from typing import List, Optional, Union
 
-from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
-from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from merlin.models.tf.blocks.retrieval.matrix_factorization import (
+    MatrixFactorizationBlock,
+    QueryItemIdsEmbeddingsBlock,
+)
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
@@ -72,10 +74,9 @@ def NCFModel(
 
     """
 
-    mlp_branch = MatrixFactorizationBlock(schema, dim=embedding_dim).connect(mlp_block)
-    mf_branch = MatrixFactorizationBlock(
-        schema, dim=embedding_dim, aggregation=ElementWiseMultiply()
-    )
+    mlp_branch = QueryItemIdsEmbeddingsBlock(schema, dim=embedding_dim).connect(mlp_block)
+    mf_branch = MatrixFactorizationBlock(schema, dim=embedding_dim, **kwargs)
+
     ncf = ParallelBlock({"mf": mf_branch, "mlp": mlp_branch}, aggregation="concat")
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)

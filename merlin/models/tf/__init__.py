@@ -65,7 +65,10 @@ from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
 from merlin.models.tf.blocks.interaction import DotProductInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
-from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from merlin.models.tf.blocks.retrieval.matrix_factorization import (
+    MatrixFactorizationBlock,
+    QueryItemIdsEmbeddingsBlock,
+)
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.cross_batch import (
