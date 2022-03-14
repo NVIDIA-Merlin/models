@@ -83,7 +83,10 @@ def test_layer_norm(tabular_schema, torch_tabular_data, layer_norm):
     schema = tabular_schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
-        schema, embedding_dims={"item_id": 100}, embedding_dim_default=64, post=layer_norm
+        schema,
+        embedding_dims={"item_id": 100},
+        embedding_dim_default=64,
+        post=layer_norm,
     )
 
     out = emb_module(torch_tabular_data)

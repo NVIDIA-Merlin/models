@@ -190,7 +190,7 @@ def InputBlock(
             emb_kwargs["max_seq_length"] = max_seq_length
 
         branches["categorical"] = emb_cls.from_schema(  # type: ignore
-            schema, tags=categorical_tags, options=embedding_options, **emb_kwargs
+            schema, tags=categorical_tags, embedding_options=embedding_options, **emb_kwargs
         )
 
     if continuous_projection:

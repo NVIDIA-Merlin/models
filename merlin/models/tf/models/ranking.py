@@ -5,6 +5,7 @@ from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
@@ -71,6 +72,12 @@ def DCNModel(
     deep_block: Block = MLPBlock([512, 256]),
     stacked=True,
     input_block: Optional[Block] = None,
+    embedding_options: EmbeddingOptions = EmbeddingOptions(
+        embedding_dims=None,
+        embedding_dim_default=64,
+        infer_embedding_sizes=False,
+        infer_embedding_sizes_multiplier=2.0,
+    ),
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
@@ -103,6 +110,17 @@ def DCNModel(
         Whether to use the stacked version of the model or the parallel version.
     input_block : Block, optional
         The `Block` to use as the input layer, by default None
+    embedding_options : EmbeddingOptions
+        Options for the input embeddings.
+        - embedding_dims: Optional[Dict[str, int]] - The dimension of the
+        embedding table for each feature (key), by default {}
+        - embedding_dim_default: int - Default dimension of the embedding
+        table, when the feature is not found in ``embedding_dims``, by default 64
+        - infer_embedding_sizes : bool, Automatically defines the embedding
+        dimension from the feature cardinality in the schema, by default False
+        - infer_embedding_sizes_multiplier: int. Multiplier used by the heuristic
+        to infer the embedding dimension from its cardinality. Generally
+        reasonable values range between 2.0 and 10.0. By default 2.0.
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
 
@@ -118,7 +136,9 @@ def DCNModel(
     """
 
     aggregation = kwargs.pop("aggregation", "concat")
-    input_block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
+    input_block = input_block or InputBlock(
+        schema, aggregation=aggregation, embedding_options=embedding_options, **kwargs
+    )
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     if stacked:
         dcn_body = input_block.connect(CrossBlock(depth), deep_block)

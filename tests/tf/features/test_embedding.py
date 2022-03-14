@@ -76,9 +76,7 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: SyntheticData):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
-        schema,
-        embedding_dims={"item_id": 100},
-        options=ml.EmbeddingOptions(embedding_dim_default=64),
+        schema, embedding_dims={"item_id": 100}, embedding_dim_default=64
     )
 
     embeddings = emb_module(testing_data.tf_tensor_dict)
@@ -95,7 +93,7 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Synthe
 
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema,
-        options=ml.EmbeddingOptions(
+        embedding_options=ml.EmbeddingOptions(
             infer_embedding_sizes=True, infer_embedding_sizes_multiplier=3.0
         ),
     )
@@ -119,7 +117,7 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Syntheti
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema,
-        options=ml.EmbeddingOptions(
+        embedding_options=ml.EmbeddingOptions(
             embeddings_initializers={
                 "item_id": init_ops_v2.TruncatedNormal(mean=ITEM_MEAN, stddev=ITEM_STD),
                 "categories": init_ops_v2.TruncatedNormal(mean=CATEGORY_MEAN, stddev=CATEGORY_STD),

@@ -7,6 +7,7 @@ from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.models.base import Model, RetrievalModel
@@ -102,7 +103,12 @@ def TwoTowerModel(
     item_tower: Optional[Block] = None,
     query_tower_tag=Tags.USER,
     item_tower_tag=Tags.ITEM,
-    embedding_dim_default: Optional[int] = 64,
+    embedding_options: EmbeddingOptions = EmbeddingOptions(
+        embedding_dims=None,
+        embedding_dim_default=64,
+        infer_embedding_sizes=False,
+        infer_embedding_sizes_multiplier=2.0,
+    ),
     post: Optional[BlockType] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
@@ -139,8 +145,17 @@ def TwoTowerModel(
         The tag to select query features, by default `Tags.USER`
     item_tower_tag: Tag
         The tag to select item features, by default `Tags.ITEM`
-    embedding_dim_default: Optional[int], optional
-        Dimension of the embeddings, by default 64
+    embedding_options : EmbeddingOptions
+        Options for the input embeddings.
+        - embedding_dims: Optional[Dict[str, int]] - The dimension of the
+        embedding table for each feature (key), by default {}
+        - embedding_dim_default: int - Default dimension of the embedding
+        table, when the feature is not found in ``embedding_dims``, by default 64
+        - infer_embedding_sizes : bool, Automatically defines the embedding
+        dimension from the feature cardinality in the schema, by default False
+        - infer_embedding_sizes_multiplier: int. Multiplier used by the heuristic
+        to infer the embedding dimension from its cardinality. Generally
+        reasonable values range between 2.0 and 10.0. By default 2.0.
     post: Optional[Block], optional
         The optional `Block` to apply on both outputs of Two-tower model
     prediction_tasks: optional
@@ -178,7 +193,7 @@ def TwoTowerModel(
         item_tower=item_tower,
         query_tower_tag=query_tower_tag,
         item_tower_tag=item_tower_tag,
-        embedding_dim_default=embedding_dim_default,
+        embedding_options=embedding_options,
         post=post,
         **kwargs,
     )
