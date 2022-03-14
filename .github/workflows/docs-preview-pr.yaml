@@ -39,7 +39,7 @@ jobs:
               console.log("Request to GitHub API for Pages failed with message: " + err)
             }
             core.setOutput('html_url', '')
-            core.setOutput('branch', '')``
+            core.setOutput('branch', '')
 
   # Identify the dir for the HTML.
   store-html:
