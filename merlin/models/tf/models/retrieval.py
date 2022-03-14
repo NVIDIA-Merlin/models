@@ -4,7 +4,7 @@ from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, Sequen
 from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
-from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.features.embedding import EmbeddingOptions
@@ -82,7 +82,7 @@ def MatrixFactorizationModel(
         )
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    two_tower = MatrixFactorizationBlock(
+    two_tower = QueryItemIdsEmbeddingsBlock(
         schema=schema,
         dim=dim,
         query_id_tag=query_id_tag,

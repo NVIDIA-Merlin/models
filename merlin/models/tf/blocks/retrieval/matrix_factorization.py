@@ -16,6 +16,7 @@
 import logging
 from typing import Any, Callable, Dict, Optional
 
+from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.blocks.core.transformations import RenameFeatures
 from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
 from merlin.schema import Schema, Tags
@@ -23,7 +24,7 @@ from merlin.schema import Schema, Tags
 LOG = logging.getLogger("merlin_models")
 
 
-def MatrixFactorizationBlock(
+def QueryItemIdsEmbeddingsBlock(
     schema: Schema,
     dim: int,
     query_id_tag=Tags.USER_ID,
@@ -31,6 +32,21 @@ def MatrixFactorizationBlock(
     embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
     **kwargs,
 ):
+    """Buidls Query and Item ids embeddings
+
+    Parameters
+    ----------
+    schema: Schema
+        The `Schema` with the input features
+    dim: int
+        The dimension of the embeddings.
+    query_id_tag : Tag
+        The tag to select query features, by default `Tags.USER`
+    item_id_tag : Tag
+        The tag to select item features, by default `Tags.ITEM`
+    embeddings_initializers: Dict[str, Callable[[Any], None]]
+        A dictionary of initializers for embeddings.
+    """
     query_item_schema = schema.select_by_tag(query_id_tag) + schema.select_by_tag(item_id_tag)
     embedding_options = EmbeddingOptions(
         embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
@@ -43,8 +59,28 @@ def MatrixFactorizationBlock(
     else:
         post = rename_features
 
-    matrix_factorization = EmbeddingFeatures.from_schema(
+    embeddings_blocks = EmbeddingFeatures.from_schema(
         query_item_schema, post=post, embedding_options=embedding_options, **kwargs
     )
 
-    return matrix_factorization
+    return embeddings_blocks
+
+
+def MatrixFactorizationBlock(
+    schema: Schema,
+    dim: int,
+    query_id_tag=Tags.USER_ID,
+    item_id_tag=Tags.ITEM_ID,
+    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
+    aggregation=ElementWiseMultiply(),
+    **kwargs,
+):
+    return QueryItemIdsEmbeddingsBlock(
+        schema=schema,
+        dim=dim,
+        query_id_tag=query_id_tag,
+        item_id_tag=item_id_tag,
+        embeddings_initializers=embeddings_initializers,
+        aggregation=aggregation,
+        **kwargs,
+    )
