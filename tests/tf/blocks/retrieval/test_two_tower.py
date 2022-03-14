@@ -87,6 +87,12 @@ def test_two_tower_block(testing_data: SyntheticData):
     assert len(outputs) == 2
     for key in ["item", "query"]:
         assert list(outputs[key].shape) == [100, 128]
+        tf.debugging.assert_near(
+            tf.reduce_mean(tf.reduce_sum(tf.square(outputs[key]), axis=-1)),
+            1.0,
+            message="The TwoTowerBlock outputs should be L2-normalized, as "
+            "that is a good practice.",
+        )
 
 
 def test_two_tower_block_tower_save(testing_data: SyntheticData, tmp_path):

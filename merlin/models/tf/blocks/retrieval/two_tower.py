@@ -22,6 +22,7 @@ import tensorflow as tf
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.retrieval.base import RetrievalMixin, TowerBlock
 from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.schema import Schema, Tags
@@ -48,8 +49,17 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
         The tag to select query features, by default `Tags.USER`
     item_tower_tag : Tag
         The tag to select item features, by default `Tags.ITEM`
-    embedding_dim_default : Optional[int], optional
-        Dimension of the embeddings, by default 64
+    embedding_options : EmbeddingOptions
+        Options for the input embeddings.
+        - embedding_dims: Optional[Dict[str, int]] - The dimension of the
+        embedding table for each feature (key), by default None
+        - embedding_dim_default: int - Default dimension of the embedding
+        table, when the feature is not found in ``embedding_dims``, by default 64
+        - infer_embedding_sizes : bool, Automatically defines the embedding
+        dimension from the feature cardinality in the schema, by default False
+        - infer_embedding_sizes_multiplier: int. Multiplier used by the heuristic
+        to infer the embedding dimension from its cardinality. Generally
+        reasonable values range between 2.0 and 10.0. By default 2.0.
     post: Optional[Block], optional
         The optional `Block` to apply on both outputs of Two-tower model
 
@@ -73,7 +83,12 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
         item_tower: Optional[Block] = None,
         query_tower_tag=Tags.USER,
         item_tower_tag=Tags.ITEM,
-        embedding_dim_default: Optional[int] = 64,
+        embedding_options: EmbeddingOptions = EmbeddingOptions(
+            embedding_dims=None,
+            embedding_dim_default=64,
+            infer_embedding_sizes=False,
+            infer_embedding_sizes_multiplier=2.0,
+        ),
         post: Optional[BlockType] = None,
         **kwargs,
     ):
@@ -83,7 +98,6 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
             raise ValueError("The query_tower is required by TwoTower")
 
         _item_tower: Block = item_tower or query_tower.copy()
-        embedding_options = EmbeddingOptions(embedding_dim_default=embedding_dim_default)
         if not getattr(_item_tower, "inputs", None):
             item_schema = schema.select_by_tag(item_tower_tag) if item_tower_tag else schema
             if not item_schema:
@@ -92,7 +106,7 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
                     "required by item-tower"
                 )
             item_tower_inputs = InputBlock(item_schema, embedding_options=embedding_options)
-            _item_tower = item_tower_inputs.connect(_item_tower)
+            _item_tower = item_tower_inputs.connect(_item_tower).connect(L2Norm())
         if not getattr(query_tower, "inputs", None):
             query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
             if not query_schema:
@@ -101,7 +115,7 @@ class TwoTowerBlock(ParallelBlock, RetrievalMixin):
                     "required by query-tower"
                 )
             query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
-            query_tower = query_inputs.connect(query_tower)
+            query_tower = query_inputs.connect(query_tower).connect(L2Norm())
         branches = {"query": TowerBlock(query_tower), "item": TowerBlock(_item_tower)}
 
         super().__init__(branches, post=post, **kwargs)

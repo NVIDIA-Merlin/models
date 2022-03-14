@@ -53,6 +53,7 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
 
 @dataclass
 class EmbeddingOptions:
+    embedding_dims: Optional[Dict[str, int]] = None
     embedding_dim_default: Optional[int] = 64
     infer_embedding_sizes: bool = False
     infer_embedding_sizes_multiplier: float = 2.0
@@ -106,8 +107,7 @@ class EmbeddingFeatures(TabularBlock):
     def from_schema(  # type: ignore
         cls,
         schema: Schema,
-        embedding_dims: Optional[Dict[str, int]] = None,
-        options: EmbeddingOptions = EmbeddingOptions(),
+        embedding_options: EmbeddingOptions = EmbeddingOptions(),
         tags: Optional[TagsType] = None,
         max_sequence_length: Optional[int] = None,
         **kwargs,
@@ -117,18 +117,19 @@ class EmbeddingFeatures(TabularBlock):
         if tags:
             schema_copy = schema_copy.select_by_tag(tags)
 
-        if options.infer_embedding_sizes:
+        embedding_dims = embedding_options.embedding_dims
+        if embedding_options.infer_embedding_sizes:
             embedding_dims = schema_utils.get_embedding_sizes_from_schema(
-                schema, options.infer_embedding_sizes_multiplier
+                schema, embedding_options.infer_embedding_sizes_multiplier
             )
 
         embedding_dims = embedding_dims or {}
-        embeddings_initializers = options.embeddings_initializers or {}
+        embeddings_initializers = embedding_options.embeddings_initializers or {}
 
         emb_config = {}
         cardinalities = schema_utils.categorical_cardinalities(schema)
         for key, cardinality in cardinalities.items():
-            embedding_size = embedding_dims.get(key, options.embedding_dim_default)
+            embedding_size = embedding_dims.get(key, embedding_options.embedding_dim_default)
             embedding_initializer = embeddings_initializers.get(key, None)
             emb_config[key] = (cardinality, embedding_size, embedding_initializer)
 
@@ -144,7 +145,7 @@ class EmbeddingFeatures(TabularBlock):
                     vocabulary_size=vocab_size,
                     dim=dim,
                     name=table_name,
-                    combiner=options.combiner,
+                    combiner=embedding_options.combiner,
                     initializer=emb_initilizer,
                 )
                 tables[table_name] = table

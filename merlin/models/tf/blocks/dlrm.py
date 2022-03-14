@@ -87,7 +87,7 @@ def DLRMBlock(
         )
 
     embeddings = EmbeddingFeatures.from_schema(
-        cat_schema, options=EmbeddingOptions(embedding_dim_default=embedding_dim)
+        cat_schema, embedding_options=EmbeddingOptions(embedding_dim_default=embedding_dim)
     )
 
     if len(con_schema) > 0:
