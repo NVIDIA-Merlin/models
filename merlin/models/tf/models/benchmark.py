@@ -15,13 +15,14 @@
 #
 from typing import List, Optional, Union
 
+from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
+from merlin.models.tf.blocks.core.combinators import ParallelBlock
+from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from merlin.models.tf.models.base import Model
+from merlin.models.tf.models.utils import parse_prediction_tasks
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.schema import Schema
-
-from ..blocks.core.aggregation import ElementWiseMultiply
-from ..blocks.mlp import MLPBlock
-from ..blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
-from ..core import Model, ParallelBlock, ParallelPredictionBlock, PredictionTask
-from .utils import parse_prediction_tasks
 
 
 def NCFModel(

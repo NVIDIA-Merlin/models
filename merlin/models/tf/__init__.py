@@ -84,10 +84,9 @@ from merlin.models.tf.features.embedding import (
     SequenceEmbeddingFeatures,
     TableConfig,
 )
-<<<<<<< HEAD
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
-from .models import benchmark
+from merlin.models.tf.models import benchmark
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.tf.models.ranking import DCNModel, DLRMModel
 from merlin.models.tf.models.retrieval import (
@@ -107,19 +106,6 @@ from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.tf.utils import repr_utils
 
 # Must happen before any importing of tensorflow to curtail mem usage
-=======
-from .losses import LossType
-from .metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
-from .models import benchmark
-from .models.ranking import DCNModel, DLRMModel
-from .models.retrieval import MatrixFactorizationModel, TwoTowerModel, YoutubeDNNRetrievalModel
-from .prediction_tasks.classification import BinaryClassificationTask, MultiClassClassificationTask
-from .prediction_tasks.multi import PredictionTasks
-from .prediction_tasks.next_item import NextItemPredictionTask
-from .prediction_tasks.regression import RegressionTask
-from .prediction_tasks.retrieval import ItemRetrievalTask
-from .utils import repr_utils
->>>>>>> fix PR comments
 
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr
