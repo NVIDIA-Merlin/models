@@ -1,4 +1,4 @@
-# Retrieval Models
+# Available Models: Overview
 
 ## Matrix Factorization
 
