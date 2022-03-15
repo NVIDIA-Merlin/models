@@ -25,11 +25,12 @@ from merlin.core.dispatch import HAS_GPU
 from merlin.models.loader.utils import device_mem_size
 
 
-def configure_tensorflow(memory_allocation=None, device=None):
+def configure_tensorflow(memory_allocation=None, device=None, dynamic_memory_growth=True):
     total_gpu_mem_mb = device_mem_size(kind="total", cpu=(not HAS_GPU)) / (1024 ** 2)
 
     if memory_allocation is None:
         memory_allocation = os.environ.get("TF_MEMORY_ALLOCATION", 0.5)
+    dynamic_memory_growth = bool(os.environ.get("TF_DYNAMIC_MEMORY_GROWTH", dynamic_memory_growth))
 
     if float(memory_allocation) < 1:
         memory_allocation = total_gpu_mem_mb * float(memory_allocation)
@@ -45,6 +46,8 @@ def configure_tensorflow(memory_allocation=None, device=None):
         raise ImportError("TensorFlow is not configured for GPU")
     if HAS_GPU:
         try:
+            if dynamic_memory_growth and hasattr(tf.config.experimental, "set_memory_growth"):
+                tf.config.experimental.set_memory_growth(tf_devices[device], True)
             tf.config.set_logical_device_configuration(
                 tf_devices[device],
                 [tf.config.LogicalDeviceConfiguration(memory_limit=memory_allocation)],
