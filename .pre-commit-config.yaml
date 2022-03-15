@@ -17,6 +17,11 @@ repos:
     rev: v0.3.1
     hooks:
       - id: absolufy-imports
+ - repo: https://github.com/econchick/interrogate
+        rev: 1.5.0
+        hooks:
+        - id: interrogate
+          args: [-viImMpPsSCn, -f, "25.0", merlin]
   # yaml formatting
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v2.3.0
