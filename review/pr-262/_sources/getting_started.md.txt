@@ -15,9 +15,9 @@
     </a>
 </p>
 
-NVIDIA Merlin Models provides standard models for Recommender Systems. The
-models are high quality implementations that range from classic Machine Learning
-models, to more advanced Deep Learning models.
+NVIDIA Merlin Models provides standard models for recommender systems. The
+models are high quality implementations that range from classic machine learning
+models, to more advanced deep learning models.
 
 ## Highlights
 
@@ -37,20 +37,19 @@ TODO&mdash;Does this apply?
 
 ## Installation
 
-TODO&mdash;Perhaps something more detailed than the README.md at the root of the
-repository?
-
 ### Installing with pip
 
-FIXME
+```shell
+pip install merlin-models
+```
 
 ### Installing with conda
 
-FIXME
+```shell
+conda install -c nvidia merlin-models
+```
 
 ### Installing with Docker
-
-FIXME: True?
 
 Merlin Models is installed in the following NVIDIA Merlin Docker containers that
 are available in the NVIDIA container repository:
@@ -70,7 +69,7 @@ are available in the NVIDIA container repository:
 > GPU support for Docker. You can use the NGC links referenced in the preceding
 > table to get more information about how to launch and run these containers.
 
-### Feedback and Support
+## Feedback and Support
 
 If you'd like to contribute to the project, see the
 [CONTRIBUTING.md](https://github.com/NVIDIA-Merlin/models/blob/main/CONTRIBUTING.md)
