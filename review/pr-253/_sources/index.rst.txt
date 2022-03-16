@@ -6,6 +6,8 @@ Welcome to Merlin Models documentation!
    :caption: Contents:
 
    Getting Started <getting_started>
+   models_overview
+
 
 
 Indices and tables
