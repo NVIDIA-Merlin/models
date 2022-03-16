@@ -398,8 +398,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             x = BatchedDataset(x, batch_size=batch_size, **kwargs)
 
-        # Check if top-k evaluation is set for RetrievalModel,
-        # if not set it to default BruteForce top-k evaluation
+        # Load BruteForce top-k evaluation
         # using evaluation_candidates as indices.
         if isinstance(self, RetrievalModel):
             self.check_for_retrieval_task()

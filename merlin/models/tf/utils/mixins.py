@@ -13,12 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from __future__ import annotations
+
 import abc
-from typing import Dict, Protocol, Union, runtime_checkable
+from typing import TYPE_CHECKING, Dict, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
 
 from merlin.models.tf.typing import TabularData
+
+if TYPE_CHECKING:
+    from merlin.models.tf.blocks.corer.base import PredictionOutput
 
 
 class LossMixin(abc.ABC):
@@ -50,7 +56,7 @@ class MetricsMixin(abc.ABC):
 
     def calculate_metrics(
         self,
-        outputs,
+        outputs: PredictionOutput,
         mode: str = "val",
         forward: bool = True,
         training: bool = False,
@@ -106,7 +112,7 @@ class ModelLikeBlock(Protocol):
 
     def calculate_metrics(
         self,
-        outputs,
+        outputs: PredictionOutput,
         mode: str = "val",
         forward=True,
         training=False,

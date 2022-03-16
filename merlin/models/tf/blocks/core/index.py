@@ -177,8 +177,8 @@ class TopKIndexBlock(IndexBlock):
             Note, this will be inferred automatically if the block contains
             a schema with an item-id Tag.
         pre:  Optional[Block]
-            Optional pre-call block to apply apply same post-processing steps
-            between positive and negative scores.
+            Optional pre-call block to apply same post-processing steps
+            between positive and negative scores for evaluation.
             Defaults to None.
         """
         return super().from_block(
