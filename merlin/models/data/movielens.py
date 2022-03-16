@@ -10,7 +10,7 @@ from nvtabular import ops
 
 import merlin.io
 
-# Get dataframe library - cudf or pandas
+# Get dataframe library - cuDF or pandas
 from merlin.core.dispatch import get_lib
 from merlin.core.utils import download_file
 
@@ -347,15 +347,18 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         feats_item = cat_features["movieId"] >> ops.AddMetadata(tags=["item_id", "item"])
         feats_userId = cat_features["userId"] >> ops.AddMetadata(tags=["user_id", "user"])
         feats_genres = cat_features["genres"] >> ops.AddMetadata(tags=["item"])
-        feats_te_user = te_features_norm[
-            [
-                "TE_userId_rating",
-                "TE_age_rating",
-                "TE_gender_rating",
-                "TE_occupation_rating",
-                "TE_zipcode_rating",
+        feats_te_user = (
+            te_features_norm[
+                [
+                    "TE_userId_rating",
+                    "TE_age_rating",
+                    "TE_gender_rating",
+                    "TE_occupation_rating",
+                    "TE_zipcode_rating",
+                ]
             ]
-        ] >> ops.AddMetadata(tags=["user"])
+            >> ops.AddMetadata(tags=["user"])
+        )
         feats_te_item = te_features_norm[["TE_movieId_rating"]] >> ops.AddMetadata(tags=["item"])
         feats_user = joined[["age", "gender", "occupation", "zipcode"]] >> ops.AddMetadata(
             tags=["item"]
