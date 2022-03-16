@@ -135,9 +135,7 @@ class TopKIndexBlock(IndexBlock):
             The candidates ids.
     """
 
-    def __init__(
-        self, k, values: tf.Tensor, ids: Optional[tf.Tensor] = None, pre: Block = None, **kwargs
-    ):
+    def __init__(self, k, values: tf.Tensor, ids: Optional[tf.Tensor] = None, **kwargs):
         self._k = k
         super(TopKIndexBlock, self).__init__(values, ids, **kwargs)
         self.false_negatives_score = MIN_FLOAT
@@ -149,7 +147,6 @@ class TopKIndexBlock(IndexBlock):
         data: merlin.io.Dataset,
         k: int = 20,
         id_column: Optional[str] = None,
-        pre: Block = None,
         **kwargs,
     ) -> "TopKIndexBlock":
         """

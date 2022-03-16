@@ -201,7 +201,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
     def calculate_metrics(
         self,
-        outputs,
+        outputs: PredictionOutput,
         sample_weight=None,
         forward=True,
         loss=None,

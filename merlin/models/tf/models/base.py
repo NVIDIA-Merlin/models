@@ -597,20 +597,11 @@ class RetrievalModel(Model):
                 "via `set_retrieval_candidates_for_evaluation` method"
             )
 
-        # Retrieve the pre-blocks defined
-        # on top of the ItemRetrievalScorer
-        # in the ItemRetrievalTask
-        if isinstance(self.loss_block.pre, SequentialBlock):
-            pre = SequentialBlock(self.loss_block.pre[1:])
-        else:
-            pre = None
-
         topk_index = ml.TopKIndexBlock.from_block(
             self.retrieval_block.item_block(),
             data=self.evaluation_candidates,
             k=self._k,
             context=self.context,
-            pre=pre,
             **kwargs,
         )
         self.loss_block.pre_eval_topk = topk_index
