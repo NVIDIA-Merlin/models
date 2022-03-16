@@ -133,12 +133,19 @@ class TopKIndexBlock(IndexBlock):
             The pre-computed embedddings of candidates.
         ids: tf.Tensor
             The candidates ids.
+        pre:  Optional[Block]
+            Optional pre-call block to apply apply same post-processing steps
+            between positive and negative scores.
+            Defaults to None.
     """
 
-    def __init__(self, k, values: tf.Tensor, ids: Optional[tf.Tensor] = None, **kwargs):
+    def __init__(
+        self, k, values: tf.Tensor, ids: Optional[tf.Tensor] = None, pre: Block = None, **kwargs
+    ):
         self._k = k
         super(TopKIndexBlock, self).__init__(values, ids, **kwargs)
         self.false_negatives_score = MIN_FLOAT
+        self.pre = pre
 
     @classmethod
     def from_block(  # type: ignore
@@ -147,6 +154,7 @@ class TopKIndexBlock(IndexBlock):
         data: merlin.io.Dataset,
         k: int = 20,
         id_column: Optional[str] = None,
+        pre: Block = None,
         **kwargs,
     ) -> "TopKIndexBlock":
         """
@@ -168,8 +176,14 @@ class TopKIndexBlock(IndexBlock):
             The candidates ids column name.
             Note, this will be inferred automatically if the block contains
             a schema with an item-id Tag.
+        pre:  Optional[Block]
+            Optional pre-call block to apply apply same post-processing steps
+            between positive and negative scores.
+            Defaults to None.
         """
-        return super().from_block(block=block, data=data, id_column=id_column, k=k, **kwargs)
+        return super().from_block(
+            block=block, data=data, id_column=id_column, k=k, pre=pre, **kwargs
+        )
 
     def call(self, inputs: tf.Tensor, k=None, **kwargs) -> Union[tf.Tensor, tf.Tensor]:
         """
@@ -222,6 +236,12 @@ class TopKIndexBlock(IndexBlock):
         top_scores = tf_utils.rescore_false_negatives(
             outputs.positive_item_ids, top_ids, top_scores, self.false_negatives_score
         )
+
+        # Apply pre.call_outputs to process negatives scores similar to positives
+        if self.pre:
+            top_scores = self.pre.call_outputs(
+                PredictionOutput(top_scores, None), training=False
+            ).predictions
 
         # Update top-k scores with positives
         predictions = tf.expand_dims(predictions[:, 0], -1)

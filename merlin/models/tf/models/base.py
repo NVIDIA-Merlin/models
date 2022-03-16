@@ -597,6 +597,7 @@ class RetrievalModel(Model):
             data=self.evaluation_candidates,
             k=self.k,
             context=self.context,
+            pre=self.loss_block.pre,
             **kwargs,
         )
         self.loss_block.pre_eval_topk = topk_index
