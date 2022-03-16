@@ -27,7 +27,7 @@ from merlin.schema import Tags
 
 
 def test_matrix_factorization_block(music_streaming_data: SyntheticData):
-    mf = ml.MatrixFactorizationBlock(music_streaming_data.schema, dim=128)
+    mf = ml.QueryItemIdsEmbeddingsBlock(music_streaming_data.schema, dim=128)
 
     outputs = mf(music_streaming_data.tf_tensor_dict)
 
