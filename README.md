@@ -2,166 +2,74 @@
 
 [![stability-alpha](https://img.shields.io/badge/stability-alpha-f4d03f.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#alpha)
 
+The Merlin Models library provides standard models for recommender systems with an aim for high quality implementations
+that range from classic machine learning models to highly-advanced deep learning models.
 
-The Merlin Models library will provide standard models for Recommender Systems, aiming for high quality implementations
-from classic Machine Learning models, to more advanced Deep Learning models.
-
-The goal of this library is make it easy for users in industry to train and deploy recommender models, with best
-practices baked into the library. This will let users in industry easily train standard models against their own
-dataset, getting high performance GPU accelerated models into production. This will also let researchers to build custom
-models by incorporating standard components of deep learning recommender models, and then benchmark their new models on
+The goal of this library is to make it easy for users in industry to train and deploy recommender models with the best
+practices that are already baked into the library. The library simplifies how users in industry can train standard models against their own
+dataset and put high-performance, GPU-accelerated models into production. The library also enables researchers to build custom
+models by incorporating standard components of deep learning recommender models and then researchers can benchmark the new models on
 example offline
 datasets.
 
-## Retrieval Models
+## Installation
 
-### Matrix Factorization
+### Installing Merlin Models with pip
 
-![img.png](docs/img/mf.png)
 
-```python
-import merlin.models.tf as ml
-
-ml.MatrixFactorizationBlock(schema, dim=256).connect(ml.ItemRetrievalTask())
+```shell
+pip install merlin-models
 ```
 
-### YouTube DNN
+### Installing Merlin Models with conda
 
-Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube Recommendations.” In Proceedings of the 10th ACM Conference on Recommender Systems, 191–98. Boston Massachusetts USA: ACM, 2016. https://doi.org/10.1145/2959100.2959190.
-
-
-![img.png](docs/img/youtube-dnn.png)
-
-```python
-import merlin.models.tf as ml
-
-model = ml.YoutubeDNNRetrieval(schema, top_layer=ml.MLPBlock([64]))
+```shell
+conda install -c nvidia merlin-models
 ```
 
-### Two Tower
+### Docker Containers that include Merlin Models
 
-Yi, Xinyang, Ji Yang, Lichan Hong, Derek Zhiyuan Cheng, Lukasz Heldt, Aditee Kumthekar, Zhe Zhao, Li Wei, and Ed Chi.
-“Sampling-Bias-Corrected Neural Modeling for Large Corpus Item Recommendations.” In Proceedings of the 13th ACM
-Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019. https://doi.org/10.1145/3298689.3346996.
+Merlin Models is pre-installed in the NVIDIA Merlin Docker containers that are available in the [NVIDIA container repository](https://ngc.nvidia.com/catalog/containers/nvidia:merlin) in three different containers:
 
-![img.png](docs/img/two-tower.png)
+<!-- prettier-ignore-start -->
 
-High-level API:
+| Container Name             | Container Location | Functionality |
+| -------------------------- | ------------------ | ------------- |
+| merlin-tensorflow-training | [https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-tensorflow-training](https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-tensorflow-training) | Transformers4Rec, NVTabular, TensorFlow, and HugeCTR Tensorflow Embedding plugin |
+| merlin-pytorch-training    | [https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-pytorch-training](https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-pytorch-training)    | Transformers4Rec, NVTabular and PyTorch
+| merlin-inference           | [https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-inference](https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-inference)           | Transformers4Rec, NVTabular, PyTorch, and Triton Inference |  |
 
-```python
-import merlin.models.tf as ml
 
-block = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
-model = block.connect(ml.ItemRetrievalTask())
-```
+<!-- prettier-ignore-end -->
 
-Low-level API:
+To use these Docker containers, you'll first need to install the [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-docker) to provide GPU support for Docker. You can use the NGC links referenced in the table above to obtain more information about how to launch and run these containers.
 
-```python
-import merlin.models.tf as ml
-from merlin.schema import Tags
+<!-- Need core benefits, Common use cases, or Highlights -->
 
-user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER), ml.MLPBlock([512, 256]))
-item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM), ml.MLPBlock([512, 256]))
-two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower})
-model = two_tower.connect(ml.ItemRetrievalTask())
-```
+## Core Features
 
-## Ranking
+To learn about the core features of Merlin Models, see the [Retrieval Models](docs/source/retrieval_models.md) page.
+The key retrieval models are as follows:
 
-### DLRM
+* Matrix factorization
+* YouTube DNN retrieval
+* Two tower
+* Ranking models such as DLRM and DCN-V2
+* Multi-task learning with Mixture-of-experts or Progressive layered extraction
 
-Naumov, Maxim, Dheevatsa Mudigere, Hao-Jun Michael Shi, Jianyu Huang, Narayanan Sundaraman, Jongsoo Park, Xiaodong Wang,
-et al. “Deep Learning Recommendation Model for Personalization and Recommendation Systems.” ArXiv:1906.00091 [Cs], May
-31, 2019. http://arxiv.org/abs/1906.00091.
+<!--
+## Sample Notebooks
 
-![img.png](docs/img/dlrm.png)
+* Link to each notebook directory when #190 is merged.
+-->
 
-High-level API:
+## Feedback and Support
 
-```python
-import merlin.models.tf as ml
+If you'd like to contribute to the library directly, see the [CONTRIBUTING.md](CONTRIBUTING.md) file.
+We're particularly interested in contributions or feature requests for our feature engineering and preprocessing operations.
+To further advance our Merlin Roadmap, we encourage you to share all the details regarding your recommender system pipeline in this [survey](https://developer.nvidia.com/merlin-devzone-survey).
 
-dlrm = ml.DLRMBlock(
-    schema,
-    embedding_dim=32,
-    bottom_block=ml.MLPBlock([512, 128]),
-    top_block=ml.MLPBlock([512, 128])
-)
-model = dlrm.connect(ml.BinaryClassificationTask(schema))
-```
-
-Low-level API:
-
-```python
-import merlin.models.tf as ml
-
-dlrm_inputs = ml.ContinuousEmbedding(
-    ml.InputBlock(schema, embedding_dim_default=128),
-    embedding_block=ml.MLPBlock([512, 128]),
-    aggregation="stack"
-)
-dlrm = dlrm_inputs.apply(ml.DotProductInteraction(), ml.MLPBlock([512, 128]))
-  ```
-
-### DCN-V2
-
-Wang, Ruoxi, Rakesh Shivanna, Derek Z. Cheng, Sagar Jain, Dong Lin, Lichan Hong, and Ed H. Chi. “DCN V2: Improved Deep &
-Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” ArXiv:2008.13535 [Cs, Stat], October 20, 2020. http://arxiv.org/abs/2008.13535.
-
-![img.png](docs/img/dcn-v2.png)
-
-```python
-import merlin.models.tf as ml
-
-prediction_task = ml.BinaryClassificationTask(schema)
-cross = ml.CrossBlock(3)
-deep_cross_a = ml.InputBlock(schema).connect(
-    cross, ml.MLPBlock([512, 256]), prediction_task
-)
-
-deep_cross_b = ml.InputBlock(schema).branch(
-    cross, ml.MLPBlock([512, 256]), aggregation="concat"
-).connect(prediction_task)
-
-b_with_shortcut = ml.InputBlock(schema).connect(cross).connect_with_shortcut(
-    ml.MLPBlock([512, 256]), aggregation="concat"
-).connect(prediction_task)
-```
-
-## Multi-task Learning
-
-### Mixture-of-experts
-Ma, Jiaqi, Zhe Zhao, Xinyang Yi, Jilin Chen, Lichan Hong, and Ed H. Chi. “Modeling Task Relationships in Multi-Task Learning with Multi-Gate Mixture-of-Experts,” 2018, 1930–39. https://doi.org/10.1145/3219819.3220007.
-
-![MMOE](docs/img/mmoe.png)
-
-High-level API:
-```python
-import merlin.models.tf as ml
-
-inputs = ml.InputBlock(schema)
-prediction_tasks = ml.PredictionTasks(schema)
-block = ml.MLPBlock([64])
-mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
-model = inputs.connect(block, mmoe, prediction_tasks)
-```
-
-### Progressive layered extraction
-Tang, Hongyan, Junning Liu, Ming Zhao, and Xudong Gong. “Progressive Layered Extraction (PLE): A Novel Multi-Task Learning (MTL) Model for Personalized Recommendations.” In Fourteenth ACM Conference on Recommender Systems, 269–78. Virtual Event Brazil: ACM, 2020. https://doi.org/10.1145/3383313.3412236.
-
-![Progressive layered extraction](docs/img/ple.png)
-
-High-level API:
-```python
-import merlin.models.tf as ml
-
-inputs = ml.InputBlock(schema)
-prediction_tasks = ml.PredictionTasks(schema)
-block = ml.MLPBlock([64])
-cgc = ml.CGCBlock(
-    prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=2
-)
-model = inputs.connect(ml.MLPBlock([64]), cgc, prediction_tasks)
-```
-
+<!-- TODO
+If you're interested in learning more about how Merlin Models works, see our documentation.
+We also have API documentation that outlines the specifics of the available calls within the library.
+-->
