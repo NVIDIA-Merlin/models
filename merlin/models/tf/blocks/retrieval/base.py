@@ -109,6 +109,15 @@ class ItemRetrievalScorer(Block):
                     shape=tf.TensorShape([None, query_shape[-1]]),
                 )
             )
+            self.context.add_variable(
+                tf.Variable(
+                    initial_value=tf.zeros([1, query_shape[-1]], dtype=tf.float32),
+                    name="positive_candidates_embeddings",
+                    trainable=False,
+                    validate_shape=False,
+                    shape=tf.TensorShape([None, query_shape[-1]]),
+                )
+            )
         super().build(input_shapes)
 
     def set_required_features(self):
@@ -167,7 +176,9 @@ class ItemRetrievalScorer(Block):
             If `training=True`, return the original inputs
         """
         if self.cache_query:
+            # enabled only during top-k evaluation
             self.context["query"].assign(inputs[self.query_name])
+            self.context["positive_candidates_embeddings"].assign(inputs[self.item_name])
 
         if training:
             return inputs

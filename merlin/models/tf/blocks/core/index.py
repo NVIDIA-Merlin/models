@@ -133,10 +133,6 @@ class TopKIndexBlock(IndexBlock):
             The pre-computed embedddings of candidates.
         ids: tf.Tensor
             The candidates ids.
-        pre:  Optional[Block]
-            Optional pre-call block to apply apply same post-processing steps
-            between positive and negative scores.
-            Defaults to None.
     """
 
     def __init__(
@@ -145,7 +141,6 @@ class TopKIndexBlock(IndexBlock):
         self._k = k
         super(TopKIndexBlock, self).__init__(values, ids, **kwargs)
         self.false_negatives_score = MIN_FLOAT
-        self.pre = pre
 
     @classmethod
     def from_block(  # type: ignore
@@ -176,14 +171,8 @@ class TopKIndexBlock(IndexBlock):
             The candidates ids column name.
             Note, this will be inferred automatically if the block contains
             a schema with an item-id Tag.
-        pre:  Optional[Block]
-            Optional pre-call block to apply same post-processing steps
-            between positive and negative scores for evaluation.
-            Defaults to None.
         """
-        return super().from_block(
-            block=block, data=data, id_column=id_column, k=k, pre=pre, **kwargs
-        )
+        return super().from_block(block=block, data=data, id_column=id_column, k=k, **kwargs)
 
     def call(self, inputs: tf.Tensor, k=None, **kwargs) -> Union[tf.Tensor, tf.Tensor]:
         """
@@ -227,8 +216,6 @@ class TopKIndexBlock(IndexBlock):
             2D Tensors with the one-hot representation of true targets and
             the scores for the top-k implicit negatives.
         """
-        targets, predictions = outputs.targets, outputs.predictions
-        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         queries = self.context["query"]
         top_scores, top_ids = self(queries, k=self._k)
 
@@ -237,15 +224,11 @@ class TopKIndexBlock(IndexBlock):
             outputs.positive_item_ids, top_ids, top_scores, self.false_negatives_score
         )
 
-        # Apply pre.call_outputs to process negatives scores similar to positives
-        if self.pre:
-            top_scores = self.pre.call_outputs(
-                PredictionOutput(top_scores, None), training=False
-            ).predictions
-
         # Update top-k scores with positives
-        predictions = tf.expand_dims(predictions[:, 0], -1)
-        predictions = tf.concat([predictions, top_scores], axis=-1)
+        positive_scores = tf.reduce_sum(
+            queries * self.context["positive_candidates_embeddings"], axis=1, keepdims=True
+        )
+        predictions = tf.concat([positive_scores, top_scores], axis=-1)
         targets = tf.concat(
             [
                 tf.ones([tf.shape(predictions)[0], 1]),
