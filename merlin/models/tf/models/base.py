@@ -6,6 +6,7 @@ import tensorflow as tf
 import merlin.io
 from merlin.models.tf.blocks.core.base import Block, BlockContext, BlockType
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
+from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
@@ -577,9 +578,14 @@ class RetrievalModel(Model):
                 "in the end (loss_block)."
             )
 
-    def set_evaluation_candidates(self, candidates: merlin.io.Dataset, k: int):
-        self.evaluation_candidates = candidates
-        self.k = k
+    def set_retrieval_candidates_for_evaluation(self, candidates: merlin.io.Dataset):
+        unique_canidates = self._ensure_unique(candidates, Tags.ITEM, Tags.ITEM_ID)
+        self.evaluation_candidates = merlin.io.Dataset(unique_canidates)
+
+        ranking_metrics = list(
+            [metric for metric in self.loss_block.eval_metrics if isinstance(metric, RankingMetric)]
+        )
+        self._k = tf.reduce_max([metric.k for metric in ranking_metrics])
 
     def _load_topk_evaluation(self, **kwargs):
         """Update the model with a top-k evaluation block."""
@@ -589,13 +595,13 @@ class RetrievalModel(Model):
         if not self.evaluation_candidates:
             raise ValueError(
                 "You need to specify the set of negatives to use for evaluation "
-                "via `set_evaluation_candidates` method"
+                "via `set_retrieval_candidates_for_evaluation` method"
             )
 
         topk_index = ml.TopKIndexBlock.from_block(
             self.retrieval_block.item_block(),
             data=self.evaluation_candidates,
-            k=self.k,
+            k=self._k,
             context=self.context,
             pre=self.loss_block.pre,
             **kwargs,

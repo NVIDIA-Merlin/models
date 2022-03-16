@@ -2,7 +2,6 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as mm
-from merlin.io.dataset import Dataset
 from merlin.models.data.synthetic import SyntheticData
 from merlin.models.tf.metrics.ranking import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
 from merlin.schema import Tags
@@ -45,13 +44,8 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: SyntheticData, r
         metrics=metrics,
         loss="categorical_crossentropy",
     )
-
     # Setting up evaluation
-    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
-    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
-    item_dataset = Dataset(item_dataset)
-    model.set_evaluation_candidates(item_dataset, k=5)
-
+    model.set_retrieval_candidates_for_evaluation(ecommerce_data.dataset)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     # Training
@@ -80,6 +74,17 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: SyntheticData, r
             assert losses.history[metric_name][1] <= losses.history[metric_name][0]
 
     _ = model.evaluate(ecommerce_data.tf_dataloader(batch_size=10))
+
+
+def test_retrieval_evaluation_without_negatives(ecommerce_data: SyntheticData):
+    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([64]))
+    model.compile(optimizer="adam", run_eagerly=True)
+    model.fit(ecommerce_data.tf_dataloader(batch_size=50))
+    with pytest.raises(ValueError) as exc_info:
+        model.evaluate(ecommerce_data.tf_dataloader(batch_size=50))
+        assert "You need to specify the set of negatives to use for evaluation" in str(
+            exc_info.value
+        )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

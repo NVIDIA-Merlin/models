@@ -18,7 +18,6 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
-from merlin.io.dataset import Dataset
 from merlin.models.data.synthetic import SyntheticData
 from merlin.models.tf.blocks.core.base import PredictionOutput
 from merlin.schema import Tags
@@ -292,10 +291,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     model = two_tower.connect(task)
 
     # Setting up evaluation
-    item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
-    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
-    item_dataset = Dataset(item_dataset)
-    model.set_evaluation_candidates(item_dataset, k=10)
+    model.set_retrieval_candidates_for_evaluation(ecommerce_data.dataset)
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
