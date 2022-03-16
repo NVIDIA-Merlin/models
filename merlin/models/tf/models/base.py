@@ -402,8 +402,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         # using evaluation_candidates as indices.
         if isinstance(self, RetrievalModel):
             self.check_for_retrieval_task()
-            if not self.loss_block.pre_eval_topk:
-                self = self._load_topk_evaluation()
+            # We need to load the top-k indices at each call of the evaluate()
+            # to ensure most updated pre-computed embeddings are loaded.
+            self = self._load_topk_evaluation()
 
         return super().evaluate(
             x,
