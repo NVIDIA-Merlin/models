@@ -14,12 +14,7 @@ from merlin.models.tf.blocks.core.base import (
     is_input_block,
     right_shift_layer,
 )
-from merlin.models.tf.blocks.core.tabular import (
-    AsTabular,
-    Filter,
-    TabularAggregationType,
-    TabularBlock,
-)
+from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType, TabularBlock
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
@@ -504,45 +499,3 @@ class ResidualBlock(WithShortcut):
             strict=strict,
             **kwargs,
         )
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class DualEncoderBlock(ParallelBlock):
-    def __init__(
-        self,
-        left: Union[TabularBlock, tf.keras.layers.Layer],
-        right: Union[TabularBlock, tf.keras.layers.Layer],
-        pre: Optional[BlockType] = None,
-        post: Optional[BlockType] = None,
-        aggregation: Optional[TabularAggregationType] = None,
-        schema: Optional[Schema] = None,
-        left_name: str = "left",
-        right_name: str = "right",
-        name: Optional[str] = None,
-        strict: bool = False,
-        **kwargs,
-    ):
-        if not getattr(left, "is_tabular", False):
-            left = SequentialBlock([left, AsTabular(left_name)])
-        if not getattr(right, "is_tabular", False):
-            right = SequentialBlock([right, AsTabular(right_name)])
-
-        towers = {left_name: left, right_name: right}
-
-        super().__init__(
-            towers,
-            pre=pre,
-            post=post,
-            aggregation=aggregation,
-            schema=schema,
-            name=name,
-            strict=strict,
-            **kwargs,
-        )
-
-    @classmethod
-    def from_config(cls, config, **kwargs):
-        output = ParallelBlock.from_config(config, **kwargs)
-        output.__class__ = cls
-
-        return output

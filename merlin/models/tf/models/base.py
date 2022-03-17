@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Protocol, Union, runtime_checkable
 import tensorflow as tf
 
 import merlin.io
-from merlin.models.tf.blocks.core.base import Block, BlockContext, BlockType
+from merlin.models.tf.blocks.core.base import Block, BlockContext
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
@@ -147,9 +147,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     @classmethod
     def from_block(
         cls,
-        block: BlockType,
+        block: Block,
         schema: Schema,
-        input_block: Optional[BlockType] = None,
+        input_block: Optional[Block] = None,
         prediction_tasks: Optional[
             Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
         ] = None,
@@ -158,7 +158,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         """Create a model from a `block`
         Parameters
         ----------
-        block: BlockType
+        block: Block
             The block to wrap in-between an InputBlock and prediction task(s)
         schema: Schema
             Schema to use for the model.
@@ -335,6 +335,15 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             x = BatchedDataset(x, batch_size=batch_size, **kwargs)
 
+        if hasattr(validation_data, "to_ddf"):
+            if not batch_size:
+                raise ValueError("batch_size must be specified when using merlin-dataset.")
+            from merlin.models.tf.dataset import BatchedDataset
+
+            validation_data = BatchedDataset(
+                validation_data, batch_size=batch_size, shuffle=False, **kwargs
+            )
+
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
         return super().fit(
@@ -396,7 +405,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 raise ValueError("batch_size must be specified when using merlin-dataset.")
             from merlin.models.tf.dataset import BatchedDataset
 
-            x = BatchedDataset(x, batch_size=batch_size, **kwargs)
+            x = BatchedDataset(x, batch_size=batch_size, shuffle=False, **kwargs)
 
         # Load BruteForce top-k evaluation
         # using evaluation_candidates as indices.
@@ -604,10 +613,10 @@ class RetrievalModel(Model):
             context=self.context,
             **kwargs,
         )
-        self.loss_block.pre_eval_topk = topk_index
+        self.loss_block.pre_eval_topk = topk_index  # type: ignore
 
         # set cache_query to True in the ItemRetrievalScorer
-        self.loss_block.set_retrieval_cache_query(True)
+        self.loss_block.set_retrieval_cache_query(True)  # type: ignore
 
         return self
 
