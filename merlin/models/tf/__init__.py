@@ -83,7 +83,14 @@ from merlin.models.tf.features.embedding import (
     TableConfig,
 )
 from merlin.models.tf.losses import LossType
-from merlin.models.tf.metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
+from merlin.models.tf.metrics.ranking import (
+    AvgPrecisionAt,
+    MRRAt,
+    NDCGAt,
+    PrecisionAt,
+    RecallAt,
+    ranking_metrics,
+)
 from merlin.models.tf.models import benchmark
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.tf.models.ranking import DCNModel, DLRMModel
@@ -161,6 +168,8 @@ __all__ = [
     "ItemRetrievalScorer",
     "NextItemPredictionTask",
     "NDCGAt",
+    "PrecisionAt",
+    "MRRAt",
     "AvgPrecisionAt",
     "RecallAt",
     "ranking_metrics",
