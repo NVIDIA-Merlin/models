@@ -46,6 +46,7 @@ if TYPE_CHECKING:
 class PredictionOutput(NamedTuple):
     predictions: Union[TabularData, tf.Tensor]
     targets: Union[TabularData, tf.Tensor]
+    positive_item_ids: Optional[tf.Tensor] = None
     label_relevant_counts: Optional[tf.Tensor] = None
 
 
@@ -253,7 +254,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return []
 
     def as_tabular(self, name=None) -> "Block":
-        from merlin.models.tf.blocks.core.combinators import AsTabular, SequentialBlock
+        from merlin.models.tf.blocks.core.combinators import SequentialBlock
+        from merlin.models.tf.blocks.core.tabular import AsTabular
 
         if not name:
             name = self.name

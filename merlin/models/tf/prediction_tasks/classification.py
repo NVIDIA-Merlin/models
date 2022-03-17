@@ -144,7 +144,7 @@ class CategFeaturePrediction(Block):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class MultiClassClassificationTask(PredictionTask):
     DEFAULT_LOSS = "sparse_categorical_crossentropy"
-    DEFAULT_METRICS = (tf.keras.metrics.Accuracy,)
+    DEFAULT_METRICS: MetricOrMetrics = (tf.keras.metrics.Accuracy,)
 
     def __init__(
         self,
