@@ -415,6 +415,14 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             # to ensure most updated pre-computed embeddings are loaded.
             self = self._load_topk_evaluation()
 
+        # Load BruteForce top-k evaluation
+        # using evaluation_candidates as indices.
+        if isinstance(self, RetrievalModel):
+            self.check_for_retrieval_task()
+            # We need to load the top-k indices at each call of the evaluate()
+            # to ensure most updated pre-computed embeddings are loaded.
+            self = self._load_topk_evaluation()
+
         return super().evaluate(
             x,
             y,
