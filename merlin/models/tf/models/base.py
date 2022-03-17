@@ -11,6 +11,7 @@ from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, Pred
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from merlin.schema import Schema, Tags
+from models.utils.dataset import unique_by_tag
 
 
 class MetricsComputeCallback(tf.keras.callbacks.Callback):
@@ -540,7 +541,7 @@ class RetrievalModel(Model):
 
         get_user_emb = QueryEmbeddings(self, batch_size=batch_size)
 
-        dataset = self._ensure_unique(dataset, query_tag, query_id_tag)
+        dataset = unique_by_tag(dataset, query_tag, query_id_tag).to_ddf()
         embeddings = dataset.map_partitions(get_user_emb)
 
         return merlin.io.Dataset(embeddings)
@@ -571,7 +572,7 @@ class RetrievalModel(Model):
 
         get_item_emb = ItemEmbeddings(self, batch_size=batch_size)
 
-        dataset = self._ensure_unique(dataset, item_tag, item_id_tag)
+        dataset = unique_by_tag(dataset, item_tag, item_id_tag).to_ddf()
         embeddings = dataset.map_partitions(get_item_emb)
 
         return merlin.io.Dataset(embeddings)

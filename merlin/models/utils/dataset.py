@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -47,6 +48,18 @@ def dataset_to_coo(dataset: Dataset):
     itemids = _to_numpy(df[item_id_column])
     targets = _to_numpy(df[target_column]) if target_column else np.ones(len(userids))
     return coo_matrix((targets.astype("float32"), (userids, itemids)))
+
+
+def unique_by_tag(dataset: Dataset, tag: Union[str, Tags], id_tag: Union[str, Tags]):
+    # Check if merlin-dataset is passed
+    ddf = dataset.to_ddf() if hasattr(dataset, "to_ddf") else dataset
+
+    columns = dataset.schema.select_by_tag(tag).column_names
+    if columns:
+        id_col = dataset.schema.select_by_tag(id_tag).first.name
+        ddf = ddf[columns].groupby(id_col).agg("first").reset_index()
+
+    return Dataset(ddf)
 
 
 def _to_numpy(series):
