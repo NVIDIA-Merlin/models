@@ -148,3 +148,24 @@ def test_expand_dims_axis_as_dict():
     assert list(expanded_inputs["cont_feat1"].shape) == [NUM_ROWS]
     assert list(expanded_inputs["cont_feat2"].shape) == [1, NUM_ROWS]
     assert list(expanded_inputs["multi_hot_categ_feat"].shape) == [NUM_ROWS, 1, 4]
+
+
+def test_categorical_one_hot_encoding():
+
+    NUM_ROWS = 100
+    MAX_LEN = 4
+    cardinalities = {"cat1": 200, "cat2": 1000, "cat3": 50}
+    inputs = {}
+    for cat, cardinality in cardinalities.items():
+        inputs[cat] = tf.random.uniform((NUM_ROWS, 1), minval=1, maxval=cardinality, dtype=tf.int32)
+    inputs["cat3"] = tf.random.uniform(
+        (NUM_ROWS, MAX_LEN), minval=1, maxval=cardinalities["cat3"], dtype=tf.int32
+    )
+
+    outputs = ml.CategoricalOneHot(cardinalities=cardinalities)(inputs)
+
+    assert list(outputs["cat1"].shape) == [NUM_ROWS, 200]
+    assert list(outputs["cat2"].shape) == [NUM_ROWS, 1000]
+    assert list(outputs["cat3"].shape) == [NUM_ROWS, MAX_LEN, 50]
+
+    assert inputs["cat1"][0].numpy() == tf.where(outputs["cat1"][0, :] == 1).numpy()[0]

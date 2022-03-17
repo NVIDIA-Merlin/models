@@ -436,6 +436,52 @@ class ItemsPredictionWeightTying(Block):
         return logits
 
 
+@Block.registry.register_with_multiple_names("categorical_to_onehot")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class CategoricalOneHot(Block):
+    """
+    Transform categorical features (2-D and 3-D tensors) to a one-hot representation.
+
+    Parameters:
+    ----------
+    cardinalities: dict
+        The dictionary of categorical features cardinalities.
+        It can be infered from the schema using:
+        ```
+        from merlin.models.utils import schema_utils
+        schema_utils.categorical_cardinalities(schema)
+        ```
+        Defaults to None.
+    """
+
+    def __init__(self, cardinalities: dict, **kwargs):
+        super().__init__(**kwargs)
+        self.cardinalities = cardinalities
+
+    def build(self, input_shapes):
+        super(CategoricalOneHot, self).build(input_shapes)
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = tf.squeeze(tf.one_hot(val, self.cardinalities[name]))
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        outputs = {}
+        for key, val in input_shape.items():
+            if len(val) == 3:
+                outputs[key] = tf.TensorShape((val[0], val[1], self.cardinalities[key]))
+            else:
+                outputs[key] = tf.TensorShape((val[0], self.cardinalities[key]))
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config["caridinalities"] = self.cardinalities
+        return config
+
+
 @Block.registry.register_with_multiple_names("label_to_onehot")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class LabelToOneHot(Block):
