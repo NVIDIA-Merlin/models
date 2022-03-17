@@ -501,7 +501,7 @@ class RetrievalModel(Model):
         columns = dataset.schema.select_by_tag(tag).column_names
         if columns:
             id_col = dataset.schema.select_by_tag(id_tag).first.name
-            ddf = ddf[columns].groupby(id_col).agg("first").reset_index()
+            ddf = ddf[columns].drop_duplicates(id_col, keep="first")
 
         return ddf
 
