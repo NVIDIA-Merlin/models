@@ -102,6 +102,35 @@ def maybe_deserialize_keras_objects(
     return config
 
 
+def rescore_false_negatives(
+    positive_item_ids: tf.Tensor,
+    neg_samples_item_ids: tf.Tensor,
+    negative_scores: tf.Tensor,
+    false_negatives_score: float,
+):
+    """
+    Zeroes the logits of accidental negatives.
+    """
+    # Removing dimensions of size 1 from the shape of the item ids, if applicable
+    positive_item_ids = tf.cast(tf.squeeze(positive_item_ids), neg_samples_item_ids.dtype)
+    neg_samples_item_ids = tf.squeeze(neg_samples_item_ids)
+
+    # Reshapes positive and negative ids so that false_negatives_mask matches the scores shape
+    false_negatives_mask = tf.equal(
+        tf.expand_dims(positive_item_ids, -1), tf.expand_dims(neg_samples_item_ids, 0)
+    )
+
+    # Setting a very small value for false negatives (accidental hits) so that it has
+    # negligicle effect on the loss functions
+    negative_scores = tf.where(
+        false_negatives_mask,
+        tf.ones_like(negative_scores) * false_negatives_score,
+        negative_scores,
+    )
+
+    return tf.squeeze(negative_scores)
+
+
 def extract_topk(k, predictions, labels):
     # Computes the number of relevant items per row (before extracting only the top-k)
     label_relevant_counts = tf.reduce_sum(labels, axis=-1)
