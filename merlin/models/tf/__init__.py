@@ -42,12 +42,7 @@ from merlin.models.tf.blocks.core.base import (
     NoOp,
     right_shift_layer,
 )
-from merlin.models.tf.blocks.core.combinators import (
-    DualEncoderBlock,
-    ParallelBlock,
-    ResidualBlock,
-    SequentialBlock,
-)
+from merlin.models.tf.blocks.core.combinators import ParallelBlock, ResidualBlock, SequentialBlock
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
@@ -64,7 +59,7 @@ from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
 from merlin.models.tf.blocks.interaction import DotProductInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
-from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
+from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, ItemRetrievalScorer
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
     QueryItemIdsEmbeddingsBlock,
@@ -164,7 +159,8 @@ __all__ = [
     "Filter",
     "ParallelBlock",
     "StackFeatures",
-    "LabelToOneHot" "PredictionTask",
+    "LabelToOneHot",
+    "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",

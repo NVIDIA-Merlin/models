@@ -14,56 +14,61 @@
 # limitations under the License.
 #
 import logging
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Union
 
 from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.blocks.core.transformations import RenameFeatures
+from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock
 from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
 from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin_models")
 
 
-def QueryItemIdsEmbeddingsBlock(
-    schema: Schema,
-    dim: int,
-    query_id_tag=Tags.USER_ID,
-    item_id_tag=Tags.ITEM_ID,
-    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
-    **kwargs,
-):
-    """Buidls Query and Item ids embeddings
+class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
+    def __init__(
+        self,
+        schema: Schema,
+        dim: int,
+        query_id_tag=Tags.USER_ID,
+        item_id_tag=Tags.ITEM_ID,
+        embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
+        **kwargs,
+    ):
+        query_schema = schema.select_by_tag(query_id_tag)
+        item_schema = schema.select_by_tag(item_id_tag)
+        embedding_options = EmbeddingOptions(
+            embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
+        )
 
-    Parameters
-    ----------
-    schema: Schema
-        The `Schema` with the input features
-    dim: int
-        The dimension of the embeddings.
-    query_id_tag : Tag
-        The tag to select query features, by default `Tags.USER`
-    item_id_tag : Tag
-        The tag to select item features, by default `Tags.ITEM`
-    embeddings_initializers: Dict[str, Callable[[Any], None]]
-        A dictionary of initializers for embeddings.
-    """
-    query_item_schema = schema.select_by_tag(query_id_tag) + schema.select_by_tag(item_id_tag)
-    embedding_options = EmbeddingOptions(
-        embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
-    )
+        rename_features = RenameFeatures(
+            {query_id_tag: "query", item_id_tag: "item"}, schema=schema
+        )
+        post = kwargs.pop("post", None)
+        if post:
+            post = rename_features.connect(post)
+        else:
+            post = rename_features
 
-    rename_features = RenameFeatures({query_id_tag: "query", item_id_tag: "item"}, schema=schema)
-    post = kwargs.pop("post", None)
-    if post:
-        post = rename_features.connect(post)
-    else:
-        post = rename_features
+        embedding = lambda s: EmbeddingFeatures.from_schema(  # noqa
+            s, embedding_options=embedding_options
+        )
 
-    embeddings_blocks = EmbeddingFeatures.from_schema(
-        query_item_schema, post=post, embedding_options=embedding_options, **kwargs
-    )
+        super().__init__(  # type: ignore
+            embedding(query_schema), embedding(item_schema), post=post, **kwargs
+        )
 
-    return embeddings_blocks
+    def export_embedding_table(self, table_name: Union[str, Tags], export_path: str, gpu=True):
+        if table_name in ("item", Tags.ITEM_ID):
+            return self.item_block().block.export_embedding_table(table_name, export_path, gpu=gpu)
+
+        return self.query_block().block.export_embedding_table(table_name, export_path, gpu=gpu)
+
+    def embedding_table_df(self, table_name: Union[str, Tags], gpu=True):
+        if table_name in ("item", Tags.ITEM_ID):
+            return self.item_block().block.embedding_table_df(table_name, gpu=gpu)
+
+        return self.query_block().block.embedding_table_df(table_name, gpu=gpu)
 
 
 def MatrixFactorizationBlock(
