@@ -33,10 +33,9 @@ from recommonmark.parser import CommonMarkParser
 
 sys.path.insert(0, os.path.abspath("../../"))
 
-
 # -- Project information -----------------------------------------------------
 
-project = "Merlin models"
+project = "Merlin Models"
 copyright = "2022, NVIDIA"
 author = "NVIDIA"
 
@@ -91,5 +90,7 @@ intersphinx_mapping = {
     "distributed": ("https://distributed.dask.org/en/latest/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
 }
+
+autodoc_mock_imports = ["merlin", "nvtabular", "mypy", "torch", "torchmetrics"]
 
 autodoc_inherit_docstrings = False
