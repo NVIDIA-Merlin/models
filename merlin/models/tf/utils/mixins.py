@@ -13,12 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from __future__ import annotations
+
 import abc
-from typing import Dict, Protocol, Union, runtime_checkable
+from typing import TYPE_CHECKING, Dict, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
 
 from merlin.models.tf.typing import TabularData
+
+if TYPE_CHECKING:
+    from merlin.models.tf.blocks.corer.base import PredictionOutput
 
 
 class LossMixin(abc.ABC):
@@ -50,23 +56,21 @@ class MetricsMixin(abc.ABC):
 
     def calculate_metrics(
         self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
+        outputs: PredictionOutput,
         mode: str = "val",
         forward: bool = True,
         training: bool = False,
         **kwargs,
     ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
+
         """Calculate metrics on a batch of data, each metric is stateful and this updates the state.
 
         The state of each metric can be retrieved by calling the `metric_results` method.
 
         Parameters
         ----------
-        inputs: Union[tf.Tensor, TabularData]
-            TODO
-        targets: Union[tf.Tensor, TabularData]
-            TODO
+        outputs: PredictionOutput
+            The named tuple containing predictions and targets tensors
         forward: bool, default True
 
         mode: str, default="val"
@@ -108,8 +112,7 @@ class ModelLikeBlock(Protocol):
 
     def calculate_metrics(
         self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
+        outputs: PredictionOutput,
         mode: str = "val",
         forward=True,
         training=False,
