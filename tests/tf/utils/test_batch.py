@@ -39,3 +39,20 @@ def test_two_tower_embedding_extraction(ecommerce_data: SyntheticData):
     user_embs_ddf = user_embs.compute(scheduler="synchronous")
 
     assert len(list(user_embs_ddf.columns)) == 13 + 128
+
+
+def test_two_tower_extracted_embeddings_are_equal(ecommerce_data: SyntheticData):
+    import numpy as np
+
+    two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([64, 128]))
+
+    model = two_tower.connect(
+        ml.ItemRetrievalTask(ecommerce_data.schema, target_name="click", metrics=[])
+    )
+    model.compile(run_eagerly=True, optimizer="adam")
+    model.fit(ecommerce_data.dataset, batch_size=50, epochs=1)
+
+    item_embs_1 = model.item_embeddings(ecommerce_data.dataset, batch_size=10)
+    item_embs_2 = model.item_embeddings(ecommerce_data.dataset, batch_size=10)
+
+    np.testing.assert_array_equal(item_embs_1.compute().values, item_embs_2.compute().values)

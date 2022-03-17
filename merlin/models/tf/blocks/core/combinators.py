@@ -187,10 +187,18 @@ class SequentialBlock(Block):
 
     @property
     def losses(self):
-        values = set()
+        values, _val_names = [], set()
         for layer in self.layers:
-            values.update(layer.losses)
-        return list(values)
+            losses = layer.losses
+            for loss in losses:
+                if isinstance(loss, tf.Tensor):
+                    if loss.ref() not in _val_names:
+                        _val_names.add(loss.ref())
+                        values.append(loss)
+                    else:
+                        raise ValueError(f"Loss should be a Tensor, found: {loss}")
+
+        return values
 
     @property
     def regularizers(self):
