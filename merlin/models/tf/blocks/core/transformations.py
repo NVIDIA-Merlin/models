@@ -451,7 +451,6 @@ class CategoricalOneHot(Block):
         from merlin.models.utils import schema_utils
         schema_utils.categorical_cardinalities(schema)
         ```
-        Defaults to None.
     """
 
     def __init__(self, cardinalities: dict, **kwargs):

@@ -162,7 +162,7 @@ __all__ = [
     "ParallelBlock",
     "StackFeatures",
     "FMPairwiseInteraction",
-    "CategoricalOneHot",
+    "LabelToOneHot",
     "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
