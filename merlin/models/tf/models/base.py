@@ -335,6 +335,15 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             x = BatchedDataset(x, batch_size=batch_size, **kwargs)
 
+        if hasattr(validation_data, "to_ddf"):
+            if not batch_size:
+                raise ValueError("batch_size must be specified when using merlin-dataset.")
+            from merlin.models.tf.dataset import BatchedDataset
+
+            validation_data = BatchedDataset(
+                validation_data, batch_size=batch_size, shuffle=False, **kwargs
+            )
+
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
         return super().fit(
@@ -396,7 +405,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 raise ValueError("batch_size must be specified when using merlin-dataset.")
             from merlin.models.tf.dataset import BatchedDataset
 
-            x = BatchedDataset(x, batch_size=batch_size, **kwargs)
+            x = BatchedDataset(x, batch_size=batch_size, shuffle=False, **kwargs)
 
         # Load BruteForce top-k evaluation
         # using evaluation_candidates as indices.
