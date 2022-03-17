@@ -15,7 +15,7 @@
 #
 
 # Adapted from source code: https://github.com/karlhigley/ranking-metrics-torch
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 import tensorflow as tf
 from keras.utils import losses_utils, metrics_utils
@@ -153,7 +153,7 @@ def ndcg_at(
     """
     gains = dcg_at(y_true, y_pred, k=k, log_base=log_base)
     perfect_labels_sorting = tf.cast(
-        tf.cast(tf.expand_dims(tf.range(k), 0), label_relevant_counts.dtype)
+        tf.cast(tf.expand_dims(tf.range(k), 0), label_relevant_counts.dtype)  # type: ignore
         < tf.expand_dims(label_relevant_counts, -1),
         backend.floatx(),
     )
@@ -306,7 +306,7 @@ class NDCGAt(RankingMetric):
 
 
 def ranking_metrics(top_ks: Sequence[int], **kwargs) -> Sequence[RankingMetric]:
-    metrics = []
+    metrics: List[RankingMetric] = []
     for k in top_ks:
         metrics.extend([RecallAt(k), MRRAt(k), NDCGAt(k), AvgPrecisionAt(k), PrecisionAt(k)])
     return metrics

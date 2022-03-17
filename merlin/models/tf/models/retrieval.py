@@ -28,7 +28,7 @@ def MatrixFactorizationModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    logits_temperature: int = 1,
+    logits_temperature: float = 1.0,
     loss: Optional[LossType] = "bpr",
     metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
@@ -68,7 +68,7 @@ def MatrixFactorizationModel(
 
     Returns
     -------
-    Model
+    Union[Model, RetrievalModel]
     """
 
     if not prediction_tasks:
@@ -113,7 +113,7 @@ def TwoTowerModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    logits_temperature: int = 1.0,
+    logits_temperature: float = 1.0,
     loss: Optional[LossType] = "categorical_crossentropy",
     metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
@@ -171,7 +171,7 @@ def TwoTowerModel(
 
     Returns
     -------
-    Model
+    Union[Model, RetrievalModel]
     """
 
     if not prediction_tasks:

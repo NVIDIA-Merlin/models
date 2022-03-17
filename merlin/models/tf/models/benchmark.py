@@ -15,8 +15,8 @@
 #
 from typing import List, Optional, Union
 
+from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
-from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
     QueryItemIdsEmbeddingsBlock,
@@ -30,7 +30,7 @@ from merlin.schema import Schema
 def NCFModel(
     schema: Schema,
     embedding_dim: int,
-    mlp_block: MLPBlock,
+    mlp_block: Block,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,

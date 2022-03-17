@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Protocol, Union, runtime_checkable
 import tensorflow as tf
 
 import merlin.io
-from merlin.models.tf.blocks.core.base import Block, BlockContext, BlockType
+from merlin.models.tf.blocks.core.base import Block, BlockContext
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
@@ -146,9 +146,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     @classmethod
     def from_block(
         cls,
-        block: BlockType,
+        block: Block,
         schema: Schema,
-        input_block: Optional[BlockType] = None,
+        input_block: Optional[Block] = None,
         prediction_tasks: Optional[
             Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
         ] = None,
@@ -157,7 +157,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         """Create a model from a `block`
         Parameters
         ----------
-        block: BlockType
+        block: Block
             The block to wrap in-between an InputBlock and prediction task(s)
         schema: Schema
             Schema to use for the model.
@@ -582,10 +582,10 @@ class RetrievalModel(Model):
         topk_index = ml.TopKIndexBlock.from_block(
             self.retrieval_block.item_block(), data=data, k=k - 1, context=self.context, **kwargs
         )
-        self.loss_block.pre_eval_topk = topk_index
+        self.loss_block.pre_eval_topk = topk_index  # type: ignore
 
         # set cache_query to True in the ItemRetrievalScorer
-        self.loss_block.set_retrieval_cache_query(True)
+        self.loss_block.set_retrieval_cache_query(True)  # type: ignore
 
         return self
 

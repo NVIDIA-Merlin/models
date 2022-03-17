@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
@@ -77,7 +77,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         schema: Schema,
         loss: Optional[LossType] = DEFAULT_LOSS,
         metrics: MetricOrMetrics = DEFAULT_METRICS,
-        samplers: List[ItemSampler] = (),
+        samplers: Sequence[ItemSampler] = (),
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
