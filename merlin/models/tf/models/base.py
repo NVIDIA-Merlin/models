@@ -10,8 +10,8 @@ from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
+from merlin.models.utils.dataset import unique_by_tag
 from merlin.schema import Schema, Tags
-from models.utils.dataset import unique_by_tag
 
 
 class MetricsComputeCallback(tf.keras.callbacks.Callback):
