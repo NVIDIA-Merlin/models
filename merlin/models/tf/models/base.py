@@ -417,19 +417,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             # to ensure most updated pre-computed embeddings are loaded.
             self = self._load_topk_evaluation()
 
-        # Check if top-k evaluation is set for RetrievalModel,
-        # if not set it to default BruteForce top-k evaluation
-        # using evaluation_candidates as indices.
-        if isinstance(self, RetrievalModel):
-            self.check_for_retrieval_task()
-            if not self.loss_block.pre_eval_topk:
-                if not self.evaluation_candidates:
-                    raise ValueError(
-                        "You need to specify the set of negatives to use for evaluation "
-                        "via `evaluation_candidates` argument"
-                    )
-                self = self._load_topk_evaluation(self.evaluation_candidates, k=self.k)
-
         return super().evaluate(
             x,
             y,
@@ -614,6 +601,12 @@ class RetrievalModel(Model):
             context=self.context,
             **kwargs,
         )
+        self.loss_block.pre_eval_topk = topk_index  # type: ignore
+
+        # set cache_query to True in the ItemRetrievalScorer
+        self.loss_block.set_retrieval_cache_query(True)  # type: ignore
+
+        return self
 
     def to_top_k_recommender(self, data: merlin.io.Dataset, k: int, **kwargs) -> ModelBlock:
         """Convert the model to a Top-k Recommender.
