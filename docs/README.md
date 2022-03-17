@@ -17,6 +17,9 @@ Refer to the following instructions to build the docs.
 
    ```sh
    cd models
+   python3 -m virtualenv -p=python3.9 env
+   source env/bin/activate
+   pip install -r requirements/base.txt
    pip install -r requirements/dev.txt
    ```
 

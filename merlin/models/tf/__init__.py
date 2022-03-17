@@ -65,7 +65,10 @@ from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
 from merlin.models.tf.blocks.interaction import DotProductInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
-from merlin.models.tf.blocks.retrieval.matrix_factorization import MatrixFactorizationBlock
+from merlin.models.tf.blocks.retrieval.matrix_factorization import (
+    MatrixFactorizationBlock,
+    QueryItemIdsEmbeddingsBlock,
+)
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.cross_batch import (
@@ -86,6 +89,7 @@ from merlin.models.tf.features.embedding import (
 )
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
+from merlin.models.tf.models import benchmark
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.tf.models.ranking import DCNModel, DLRMModel
 from merlin.models.tf.models.retrieval import (

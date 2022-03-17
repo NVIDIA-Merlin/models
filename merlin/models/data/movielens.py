@@ -207,7 +207,9 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
             "Western",
         ]
 
-        movies = pd.read_csv(os.path.join(local_filename, "ml-100k/u.item"), names=cols, sep="|")
+        movies = pd.read_csv(
+            os.path.join(local_filename, "ml-100k/u.item"), names=cols, sep="|", encoding="latin1"
+        )
         for col in genres_:
             movies[col] = movies[col].replace(1, col)
             movies[col] = movies[col].replace(0, np.nan)
