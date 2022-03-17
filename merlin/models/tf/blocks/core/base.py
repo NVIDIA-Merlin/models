@@ -253,7 +253,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return []
 
     def as_tabular(self, name=None) -> "Block":
-        from merlin.models.tf.blocks.core.combinators import AsTabular, SequentialBlock
+        from merlin.models.tf.blocks.core.combinators import SequentialBlock
+        from merlin.models.tf.blocks.core.tabular import AsTabular
 
         if not name:
             name = self.name
