@@ -6,6 +6,7 @@ import tensorflow as tf
 import merlin.io
 from merlin.models.tf.blocks.core.base import Block, BlockContext, BlockType
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
+from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
@@ -331,9 +332,13 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if hasattr(x, "to_ddf"):
             if not batch_size:
                 raise ValueError("batch_size must be specified when using merlin-dataset.")
-            from merlin.models.tf.dataset import BatchedDataset
 
             x = BatchedDataset(x, batch_size=batch_size, **kwargs)
+
+        if hasattr(validation_data, "to_ddf"):
+            validation_data = BatchedDataset(
+                validation_data, batch_size=batch_size, shuffle=False, **kwargs
+            )
 
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
