@@ -104,12 +104,18 @@ def test_two_tower_block_tower_save(testing_data: SyntheticData, tmp_path):
     query_tower_copy = tf.keras.models.load_model(str(tmp_path / "query_tower"))
     weights = zip(query_tower.get_weights(), query_tower_copy.get_weights())
     assert all([np.array_equal(w1, w2) for w1, w2 in weights])
+    assert set(query_tower_copy.schema.column_names) == set(
+        query_tower_copy._saved_model_inputs_spec.keys()
+    )
 
     item_tower = two_tower.item_block()
     item_tower.save(str(tmp_path / "item_tower"))
     item_tower_copy = tf.keras.models.load_model(str(tmp_path / "item_tower"))
     weights = zip(item_tower.get_weights(), item_tower_copy.get_weights())
     assert all([np.array_equal(w1, w2) for w1, w2 in weights])
+    assert set(item_tower_copy.schema.column_names) == set(
+        item_tower_copy._saved_model_inputs_spec.keys()
+    )
 
 
 def test_two_tower_block_serialization(testing_data: SyntheticData):
