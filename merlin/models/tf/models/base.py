@@ -502,19 +502,6 @@ class RetrievalModel(Model):
     def retrieval_block(self) -> RetrievalBlock:
         return next(b for b in self.block if isinstance(b, RetrievalBlock))
 
-    def _ensure_unique(
-        self, dataset: merlin.io.Dataset, tag: Union[str, Tags], id_tag: Union[str, Tags]
-    ):
-        # Check if merlin-dataset is passed
-        ddf = dataset.to_ddf() if hasattr(dataset, "to_ddf") else dataset
-
-        columns = dataset.schema.select_by_tag(tag).column_names
-        if columns:
-            id_col = dataset.schema.select_by_tag(id_tag).first.name
-            ddf = ddf[columns].drop_duplicates(id_col, keep="first")
-
-        return ddf
-
     def query_embeddings(
         self,
         dataset: merlin.io.Dataset,
