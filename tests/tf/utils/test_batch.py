@@ -55,4 +55,7 @@ def test_two_tower_extracted_embeddings_are_equal(ecommerce_data: SyntheticData)
     item_embs_1 = model.item_embeddings(ecommerce_data.dataset, batch_size=10)
     item_embs_2 = model.item_embeddings(ecommerce_data.dataset, batch_size=10)
 
-    np.testing.assert_array_equal(item_embs_1.compute().values, item_embs_2.compute().values)
+    np.testing.assert_array_equal(
+        item_embs_1.to_ddf().compute().to_pandas().values,
+        item_embs_2.to_ddf().compute().to_pandas().values,
+    )
