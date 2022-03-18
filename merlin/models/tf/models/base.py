@@ -10,7 +10,7 @@ from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
-from merlin.models.utils.dataset import unique_by_tag
+from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
 
@@ -541,7 +541,7 @@ class RetrievalModel(Model):
 
         get_user_emb = QueryEmbeddings(self, batch_size=batch_size)
 
-        dataset = unique_by_tag(dataset, query_tag, query_id_tag).to_ddf()
+        dataset = unique_rows_by_features(dataset, query_tag, query_id_tag).to_ddf()
         embeddings = dataset.map_partitions(get_user_emb)
 
         return merlin.io.Dataset(embeddings)
@@ -572,7 +572,7 @@ class RetrievalModel(Model):
 
         get_item_emb = ItemEmbeddings(self, batch_size=batch_size)
 
-        dataset = unique_by_tag(dataset, item_tag, item_id_tag).to_ddf()
+        dataset = unique_rows_by_features(dataset, item_tag, item_id_tag).to_ddf()
         embeddings = dataset.map_partitions(get_item_emb)
 
         return merlin.io.Dataset(embeddings)

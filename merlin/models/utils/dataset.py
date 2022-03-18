@@ -50,13 +50,15 @@ def dataset_to_coo(dataset: Dataset):
     return coo_matrix((targets.astype("float32"), (userids, itemids)))
 
 
-def unique_by_tag(dataset: Dataset, tag: Union[str, Tags], id_tag: Union[str, Tags]):
+def unique_rows_by_features(
+    dataset: Dataset, features_tag: Union[str, Tags], grouping_tag: Union[str, Tags]
+):
     # Check if merlin-dataset is passed
     ddf = dataset.to_ddf() if hasattr(dataset, "to_ddf") else dataset
 
-    columns = dataset.schema.select_by_tag(tag).column_names
+    columns = dataset.schema.select_by_tag(features_tag).column_names
     if columns:
-        id_col = dataset.schema.select_by_tag(id_tag).first.name
+        id_col = dataset.schema.select_by_tag(grouping_tag).first.name
         ddf = ddf[columns].drop_duplicates(id_col, keep="first")
 
     return Dataset(ddf)
