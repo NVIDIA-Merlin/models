@@ -575,8 +575,7 @@ class RetrievalModel(Model):
             )
 
     def set_retrieval_candidates_for_evaluation(self, candidates: merlin.io.Dataset):
-        unique_canidates = self._ensure_unique(candidates, Tags.ITEM, Tags.ITEM_ID)
-        self.evaluation_candidates = merlin.io.Dataset(unique_canidates)
+        self.evaluation_candidates = unique_rows_by_features(candidates, Tags.ITEM, Tags.ITEM_ID)
 
         ranking_metrics = list(
             [metric for metric in self.loss_block.eval_metrics if isinstance(metric, RankingMetric)]
