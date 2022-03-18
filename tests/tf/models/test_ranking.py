@@ -36,10 +36,11 @@ def test_simple_model(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=T
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_mf_model_signle_task_from_pred_task(ecommerce_data, run_eagerly, num_epochs=5):
+def test_mf_model_signle_binary_task(ecommerce_data, run_eagerly, num_epochs=5):
     model = ml.MatrixFactorizationModel(
         ecommerce_data.schema,
         dim=64,
+        aggregation="cosine",
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 
