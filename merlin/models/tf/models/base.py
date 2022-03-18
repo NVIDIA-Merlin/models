@@ -341,6 +341,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 raise ValueError("batch_size must be specified when using merlin-dataset.")
             from merlin.models.tf.dataset import BatchedDataset
 
+            kwargs.pop("shuffle", None)
             validation_data = BatchedDataset(
                 validation_data, batch_size=batch_size, shuffle=False, **kwargs
             )
