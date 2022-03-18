@@ -32,23 +32,28 @@ from merlin.schema import Tags
 class IndexBlock(Block):
     def __init__(self, values: tf.Tensor, ids: Optional[tf.Tensor] = None, **kwargs):
         super(IndexBlock, self).__init__(**kwargs)
-        self.values = values
-        self.ids = ids
+        self.values = tf.Variable(
+            values,
+            name="values",
+            trainable=False,
+            dtype=values.dtype,
+            validate_shape=False,
+            shape=tf.TensorShape([None, tf.shape(values)[-1]]),
+        )
+        self.ids = tf.Variable(
+            ids,
+            name="ids",
+            trainable=False,
+            dtype=tf.int64,
+            validate_shape=False,
+            shape=tf.TensorShape([None]),
+        )
 
     @classmethod
     def from_dataset(
         cls, data: merlin.io.Dataset, check_unique_ids: bool = True, **kwargs
     ) -> "IndexBlock":
-        if hasattr(data, "to_ddf"):
-            data = data.to_ddf()
-        if check_unique_ids:
-            cls._check_unique_ids(data=data)
-        values = tf_utils.df_to_tensor(data)
-        ids = tf_utils.df_to_tensor(data.index)
-
-        if len(ids.shape) == 2:
-            ids = tf.squeeze(ids)
-
+        ids, values = cls.extract_ids_embeddings(data, check_unique_ids)
         return cls(values=values, ids=ids, **kwargs)
 
     @classmethod
@@ -68,6 +73,32 @@ class IndexBlock(Block):
             Note, this will be inferred automatically if the block contains
             a schema with an item-id Tag.
         """
+        embedding_df = cls.get_candidates_dataset(block, data, id_column)
+        return cls.from_dataset(embedding_df, **kwargs)
+
+    @staticmethod
+    def _check_unique_ids(data: DataFrameType):
+        if data.index.to_series().nunique() != data.shape[0]:
+            raise ValueError("Please make sure that `data` contains unique indices")
+
+    @classmethod
+    def extract_ids_embeddings(cls, data: merlin.io.Dataset, check_unique_ids: bool = True):
+        if hasattr(data, "to_ddf"):
+            data = data.to_ddf()
+        if check_unique_ids:
+            cls._check_unique_ids(data=data)
+        values = tf_utils.df_to_tensor(data)
+        ids = tf_utils.df_to_tensor(data.index)
+
+        if len(ids.shape) == 2:
+            ids = tf.squeeze(ids)
+
+        return ids, values
+
+    @classmethod
+    def get_candidates_dataset(
+        cls, block: Block, data: merlin.io.Dataset, id_column: Optional[str] = None
+    ):
         if not id_column and getattr(block, "schema", None):
             tagged = block.schema.select_by_tag(Tags.ITEM_ID)
             if tagged.column_schemas:
@@ -76,28 +107,27 @@ class IndexBlock(Block):
         model_encode = TFModelEncode(model=block, output_concat_func=np.concatenate)
 
         data = data.to_ddf()
-        block_outputs = data.map_partitions(
-            model_encode, filter_input_columns=[id_column]
-        ).compute()
+        embedding_df = data.map_partitions(model_encode, filter_input_columns=[id_column]).compute()
 
-        block_outputs.set_index(id_column, inplace=True)
+        embedding_df.set_index(id_column, inplace=True)
+        return embedding_df
 
-        return cls.from_dataset(block_outputs, **kwargs)
-
-    @staticmethod
-    def _check_unique_ids(data: DataFrameType):
-        if data.index.to_series().nunique() != data.shape[0]:
-            raise ValueError("Please make sure that `data` contains unique indices")
+    def update_from_block(
+        self,
+        block: Block,
+        data: merlin.io.Dataset,
+        id_column: Optional[str] = None,
+        check_unique_ids: bool = True,
+    ):
+        embedding_df = IndexBlock.get_candidates_dataset(block, data, id_column)
+        ids, embeddings = IndexBlock.extract_ids_embeddings(embedding_df, check_unique_ids)
+        self.update(embeddings, ids)
 
     def update(self, values: tf.Tensor, ids: Optional[tf.Tensor] = None):
         if len(tf.shape(values)) != 2:
             raise ValueError(f"The candidates embeddings tensor must be 2D (got {values.shape}).")
-        _ids: tf.Tensor = ids if ids else tf.range(values.shape[0])
-
-        if self.ids:
-            self.ids.assign(_ids)
-        else:
-            self.ids = _ids
+        _ids: tf.Tensor = ids if ids is not None else tf.range(values.shape[0])
+        self.ids.assign(_ids)
         self.values.assign(values)
         return self
 
