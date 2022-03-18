@@ -16,6 +16,8 @@
 
 import tensorflow as tf
 
+from merlin.models.tf.blocks.core.base import Block
+
 _INTERACTION_TYPES = (None, "field_all", "field_each", "field_interaction")
 
 
@@ -190,7 +192,7 @@ class XDeepFmOuterProduct(tf.keras.layers.Layer):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class FMPairwiseInteraction(tf.keras.layers.Layer):
+class FMPairwiseInteraction(Block):
     """Compute pairwise (2nd-order) feature interactions like defined in
     Factorized Machine [1].
 

@@ -6,17 +6,16 @@ from merlin.models.tf.blocks.core.aggregation import ConcatFeatures, StackFeatur
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
-from merlin.models.tf.blocks.core.tabular import TabularBlock
 from merlin.models.tf.blocks.core.transformations import CategoricalOneHot
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.utils import schema_utils
 from merlin.schema import Schema
 
 
@@ -169,8 +168,9 @@ def DeepFMModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
+    embedding_option_kwargs: dict = {},
     **kwargs
-):
+) -> Model:
     """DeepFM-model architecture.
 
     Example Usage::
@@ -190,30 +190,40 @@ def DeepFMModel(
         The `Schema` with the input features
     embedding_dim : int
         Dimension of the embeddings
-    deep_block : Block
+    deep_block : Optional[Block]
         The `Block` that learns high-ordeer feature interactions
+        Defaults to MLPBlock([64, 128])
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
-
+        Defaults to None
+    embedding_option_kwargs: Optional[dict]
+        Additional arguments to provide to `EmbeddingOptions` object
+        for embeddings tables setting.
+        Defaults to {}
     Returns
     -------
     Model
 
     """
     num_features = len(schema.column_names)
-    cardinalities = schema_utils.categorical_cardinalities(schema)
 
     input_block = InputBlock(
-        schema, embedding_options=EmbeddingOptions(embedding_dim_default=embedding_dim), **kwargs
+        schema,
+        embedding_options=EmbeddingOptions(
+            embedding_dim_default=embedding_dim, **embedding_option_kwargs
+        ),
+        **kwargs
     )
 
-    pairwise_block = TabularBlock(StackFeatures(axis=-1)).connect(FMPairwiseInteraction())
-    deep_block = TabularBlock(ConcatFeatures()).connect(deep_block)
-    first_order_block = CategoricalOneHot(cardinalities).connect(
-        [
-            TabularBlock(ConcatFeatures()),
-            tf.keras.layers.Dense(units=num_features, activation=None, use_bias=True),
-        ]
+    pairwise_block = FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1))
+    deep_block = deep_block.prepare(aggregation=ConcatFeatures())
+
+    branches = {
+        "categorical": CategoricalOneHot(schema),
+        "continuous": ContinuousFeatures.from_schema(schema),
+    }
+    first_order_block = ParallelBlock(branches, aggregation="concat").connect(
+        tf.keras.layers.Dense(units=num_features, activation=None, use_bias=True)
     )
 
     deep_pairwise = input_block.connect_branch(pairwise_block, deep_block, aggregation="concat")

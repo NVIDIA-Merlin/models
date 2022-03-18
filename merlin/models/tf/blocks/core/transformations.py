@@ -20,11 +20,12 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
+from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils.tf_utils import transform_label_to_onehot
-from merlin.models.utils.schema_utils import categorical_cardinalities
+from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
 
@@ -418,7 +419,7 @@ class ItemsPredictionWeightTying(Block):
         super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        self.num_classes = categorical_cardinalities(schema)[self.item_id_feature_name]
+        self.num_classes = schema_utils.categorical_cardinalities(schema)[self.item_id_feature_name]
 
     def build(self, input_shape):
         self.bias = self.add_weight(
@@ -438,24 +439,22 @@ class ItemsPredictionWeightTying(Block):
 
 @Block.registry.register_with_multiple_names("categorical_to_onehot")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
+@requires_schema
 class CategoricalOneHot(Block):
     """
     Transform categorical features (2-D and 3-D tensors) to a one-hot representation.
 
     Parameters:
     ----------
-    cardinalities: dict
-        The dictionary of categorical features cardinalities.
-        It can be infered from the schema using:
-        ```
-        from merlin.models.utils import schema_utils
-        schema_utils.categorical_cardinalities(schema)
-        ```
+    schema : Optional[Schema]
+        The `Schema` with the input features
     """
 
-    def __init__(self, cardinalities: dict, **kwargs):
+    def __init__(self, schema: Schema = None, **kwargs):
         super().__init__(**kwargs)
-        self.cardinalities = cardinalities
+        if schema:
+            self.set_schema(schema)
+        self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
 
     def build(self, input_shapes):
         super(CategoricalOneHot, self).build(input_shapes)
@@ -477,7 +476,8 @@ class CategoricalOneHot(Block):
 
     def get_config(self):
         config = super().get_config()
-        config["caridinalities"] = self.cardinalities
+        if self.schema:
+            config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         return config
 
 

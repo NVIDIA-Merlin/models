@@ -151,10 +151,18 @@ def test_expand_dims_axis_as_dict():
 
 
 def test_categorical_one_hot_encoding():
-
     NUM_ROWS = 100
     MAX_LEN = 4
-    cardinalities = {"cat1": 200, "cat2": 1000, "cat3": 50}
+
+    s = Schema(
+        [
+            create_categorical_column("cat1", num_items=200, tags=[Tags.CATEGORICAL]),
+            create_categorical_column("cat2", num_items=1000, tags=[Tags.CATEGORICAL]),
+            create_categorical_column("cat3", num_items=50, tags=[Tags.CATEGORICAL]),
+        ]
+    )
+
+    cardinalities = {"cat1": 201, "cat2": 1001, "cat3": 51}
     inputs = {}
     for cat, cardinality in cardinalities.items():
         inputs[cat] = tf.random.uniform((NUM_ROWS, 1), minval=1, maxval=cardinality, dtype=tf.int32)
@@ -162,10 +170,10 @@ def test_categorical_one_hot_encoding():
         (NUM_ROWS, MAX_LEN), minval=1, maxval=cardinalities["cat3"], dtype=tf.int32
     )
 
-    outputs = ml.CategoricalOneHot(cardinalities=cardinalities)(inputs)
+    outputs = ml.CategoricalOneHot(schema=s)(inputs)
 
-    assert list(outputs["cat1"].shape) == [NUM_ROWS, 200]
-    assert list(outputs["cat2"].shape) == [NUM_ROWS, 1000]
-    assert list(outputs["cat3"].shape) == [NUM_ROWS, MAX_LEN, 50]
+    assert list(outputs["cat1"].shape) == [NUM_ROWS, 201]
+    assert list(outputs["cat2"].shape) == [NUM_ROWS, 1001]
+    assert list(outputs["cat3"].shape) == [NUM_ROWS, MAX_LEN, 51]
 
     assert inputs["cat1"][0].numpy() == tf.where(outputs["cat1"][0, :] == 1).numpy()[0]
