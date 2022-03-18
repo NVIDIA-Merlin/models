@@ -10,6 +10,7 @@ from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
+from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
 
@@ -502,19 +503,6 @@ class RetrievalModel(Model):
     def retrieval_block(self) -> RetrievalBlock:
         return next(b for b in self.block if isinstance(b, RetrievalBlock))
 
-    def _ensure_unique(
-        self, dataset: merlin.io.Dataset, tag: Union[str, Tags], id_tag: Union[str, Tags]
-    ):
-        # Check if merlin-dataset is passed
-        ddf = dataset.to_ddf() if hasattr(dataset, "to_ddf") else dataset
-
-        columns = dataset.schema.select_by_tag(tag).column_names
-        if columns:
-            id_col = dataset.schema.select_by_tag(id_tag).first.name
-            ddf = ddf[columns].drop_duplicates(id_col, keep="first")
-
-        return ddf
-
     def query_embeddings(
         self,
         dataset: merlin.io.Dataset,
@@ -541,7 +529,7 @@ class RetrievalModel(Model):
 
         get_user_emb = QueryEmbeddings(self, batch_size=batch_size)
 
-        dataset = self._ensure_unique(dataset, query_tag, query_id_tag)
+        dataset = unique_rows_by_features(dataset, query_tag, query_id_tag).to_ddf()
         embeddings = dataset.map_partitions(get_user_emb)
 
         return merlin.io.Dataset(embeddings)
@@ -572,7 +560,7 @@ class RetrievalModel(Model):
 
         get_item_emb = ItemEmbeddings(self, batch_size=batch_size)
 
-        dataset = self._ensure_unique(dataset, item_tag, item_id_tag)
+        dataset = unique_rows_by_features(dataset, item_tag, item_id_tag).to_ddf()
         embeddings = dataset.map_partitions(get_item_emb)
 
         return merlin.io.Dataset(embeddings)
@@ -588,8 +576,7 @@ class RetrievalModel(Model):
             )
 
     def set_retrieval_candidates_for_evaluation(self, candidates: merlin.io.Dataset):
-        unique_canidates = self._ensure_unique(candidates, Tags.ITEM, Tags.ITEM_ID)
-        self.evaluation_candidates = merlin.io.Dataset(unique_canidates)
+        self.evaluation_candidates = unique_rows_by_features(candidates, Tags.ITEM, Tags.ITEM_ID)
 
         ranking_metrics = list(
             [metric for metric in self.loss_block.eval_metrics if isinstance(metric, RankingMetric)]

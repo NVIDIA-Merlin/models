@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 import merlin.models.tf as ml
@@ -52,7 +53,11 @@ def test_two_tower_extracted_embeddings_are_equal(ecommerce_data: SyntheticData)
     model.compile(run_eagerly=True, optimizer="adam")
     model.fit(ecommerce_data.dataset, batch_size=50, epochs=1)
 
-    item_embs_1 = model.item_embeddings(ecommerce_data.dataset, batch_size=10)
-    item_embs_2 = model.item_embeddings(ecommerce_data.dataset, batch_size=10)
+    item_embs_1 = model.item_embeddings(ecommerce_data.dataset, batch_size=10).compute()
+    item_embs_2 = model.item_embeddings(ecommerce_data.dataset, batch_size=10).compute()
 
-    np.testing.assert_array_equal(item_embs_1.compute().values, item_embs_2.compute().values)
+    if not isinstance(item_embs_1, pd.DataFrame):
+        item_embs_1 = item_embs_1.to_pandas()
+        item_embs_2 = item_embs_2.to_pandas()
+
+    np.testing.assert_array_equal(item_embs_1.values, item_embs_2.values)
