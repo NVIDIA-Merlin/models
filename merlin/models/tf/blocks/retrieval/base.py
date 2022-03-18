@@ -26,7 +26,7 @@ from merlin.models.tf.blocks.core.base import (
     PredictionOutput,
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
-from merlin.models.tf.blocks.core.tabular import TabularAggregationType
+from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
@@ -68,7 +68,13 @@ class DualEncoderBlock(ParallelBlock):
         strict: bool = False,
         **kwargs,
     ):
-        branches = {"query": TowerBlock(query_block), "item": TowerBlock(item_block)}
+        self._query_block = TowerBlock(query_block)
+        self._item_block = TowerBlock(item_block)
+
+        branches = {
+            "query": Filter(query_block.schema).connect(self._query_block),
+            "item": Filter(item_block.schema).connect(self._item_block),
+        }
 
         super().__init__(
             branches,
@@ -82,14 +88,10 @@ class DualEncoderBlock(ParallelBlock):
         )
 
     def query_block(self) -> TowerBlock:
-        query_tower = self["query"]
-
-        return query_tower
+        return self._query_block
 
     def item_block(self) -> TowerBlock:
-        item_tower = self["item"]
-
-        return item_tower
+        return self._item_block
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
