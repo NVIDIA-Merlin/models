@@ -205,8 +205,6 @@ def DeepFMModel(
     Model
 
     """
-    num_features = len(schema.column_names)
-
     input_block = InputBlock(
         schema,
         embedding_options=EmbeddingOptions(
@@ -223,7 +221,7 @@ def DeepFMModel(
         "continuous": ContinuousFeatures.from_schema(schema),
     }
     first_order_block = ParallelBlock(branches, aggregation="concat").connect(
-        tf.keras.layers.Dense(units=num_features, activation=None, use_bias=True)
+        tf.keras.layers.Dense(units=1, activation=None, use_bias=True)
     )
 
     deep_pairwise = input_block.connect_branch(pairwise_block, deep_block, aggregation="concat")
