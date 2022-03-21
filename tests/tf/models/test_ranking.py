@@ -71,6 +71,21 @@ def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run
     )
 
 
+def test_deep_fm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
+    model = ml.DeepFMModel(
+        ecommerce_data.schema,
+        embedding_dim=64,
+    )
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(ecommerce_data.dataset, batch_size=50, epochs=num_epochs)
+    metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
+    testing_utils.assert_binary_classification_loss_metrics(
+        losses, metrics, target_name="click", num_epochs=num_epochs
+    )
+
+
 @pytest.mark.parametrize("stacked", [True, False])
 def test_dcn_model_single_task_from_pred_task(
     ecommerce_data, stacked, num_epochs=5, run_eagerly=True
