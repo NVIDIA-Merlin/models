@@ -14,12 +14,19 @@
 # limitations under the License.
 #
 import logging
-from typing import List, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 
-from merlin.models.tf.blocks.core.base import Block, EmbeddingWithMetadata, PredictionOutput
+from merlin.models.tf.blocks.core.base import (
+    Block,
+    BlockType,
+    EmbeddingWithMetadata,
+    PredictionOutput,
+)
+from merlin.models.tf.blocks.core.combinators import ParallelBlock
+from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
@@ -29,6 +36,7 @@ from merlin.models.tf.utils.tf_utils import (
     rescore_false_negatives,
 )
 from merlin.models.utils.constants import MIN_FLOAT
+from merlin.schema import Schema
 
 LOG = logging.getLogger("merlin_models")
 
@@ -44,6 +52,54 @@ class RetrievalMixin:
 
     def item_block(self) -> TowerBlock:
         raise NotImplementedError()
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class DualEncoderBlock(ParallelBlock):
+    def __init__(
+        self,
+        query_block: Block,
+        item_block: Block,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        strict: bool = False,
+        **kwargs,
+    ):
+        self._query_block = TowerBlock(query_block)
+        self._item_block = TowerBlock(item_block)
+
+        branches = {
+            "query": Filter(query_block.schema).connect(self._query_block),
+            "item": Filter(item_block.schema).connect(self._item_block),
+        }
+
+        super().__init__(
+            branches,
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+            schema=schema,
+            name=name,
+            strict=strict,
+            **kwargs,
+        )
+
+    def query_block(self) -> TowerBlock:
+        return self._query_block
+
+    def item_block(self) -> TowerBlock:
+        return self._item_block
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        inputs, config = cls.parse_config(config, custom_objects)
+        output = ParallelBlock(inputs, **config)
+        output.__class__ = cls
+
+        return output
 
 
 @Block.registry.register_with_multiple_names("item_retrieval_scorer")

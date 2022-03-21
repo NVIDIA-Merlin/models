@@ -273,9 +273,10 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         dataset = _validate_dataset(
             paths_or_dataset, batch_size, buffer_size, engine, device, reader_kwargs
         )
-        schema = _get_schema(dataset) if not schema else schema
+        if schema:
+            dataset.schema = schema
         cat_names, cont_names, label_names = _validate_schema(
-            feature_columns, cat_names, cont_names, label_names, schema=schema
+            feature_columns, cat_names, cont_names, label_names, schema=dataset.schema
         )
 
         device = device or 0
