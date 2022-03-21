@@ -16,6 +16,8 @@
 
 import tensorflow as tf
 
+from merlin.models.tf.blocks.core.base import Block
+
 _INTERACTION_TYPES = (None, "field_all", "field_each", "field_interaction")
 
 
@@ -187,3 +189,49 @@ class XDeepFmOuterProduct(tf.keras.layers.Layer):
 
     def compute_output_shape(self, input_shapes):
         return (input_shapes[0][0], self.dim, input_shapes[0][2])
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class FMPairwiseInteraction(Block):
+    """Compute pairwise (2nd-order) feature interactions like defined in
+    Factorized Machine [1].
+
+    References
+    ----------
+    [1] Steffen, Rendle, "Factorization Machines" IEEE International
+    Conference on Data Mining, 2010. https://ieeexplore.ieee.org/document/5694074
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def build(self, input_shapes):
+        if len(input_shapes) != 3:
+            raise ValueError("Found shape {} without 3 dimensions".format(input_shapes))
+        super(FMPairwiseInteraction, self).build(input_shapes)
+
+    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+        """
+        Parameters
+        ----------
+        inputs : array-like(tf.Tensor)
+          A 3-D tensor of shape (bs, n_features, embedding_dim)
+          containing the stacked embeddings of input features.
+
+        Returns
+        -------
+        A 2-D tensor of shape (bs, K) containing pairwise interactions
+        """
+        assert len(inputs.shape) == 3, "inputs should be a 3-D tensor"
+
+        # sum_square part
+        summed_square = tf.square(tf.reduce_sum(inputs, 1))
+
+        # square_sum part
+        squared_sum = tf.reduce_sum(tf.square(inputs), 1)
+
+        # second order
+        return 0.5 * tf.subtract(summed_square, squared_sum)
+
+    def compute_output_shape(self, input_shapes):
+        return (input_shapes[0], input_shapes[2])
