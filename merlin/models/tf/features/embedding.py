@@ -25,7 +25,7 @@ from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableCon
 
 import merlin.io
 from merlin.models.tf.blocks.core.base import Block, BlockType
-from merlin.models.tf.blocks.core.combinators import SequentialBlock
+from merlin.models.tf.blocks.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.blocks.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Filter,
@@ -373,18 +373,38 @@ class SequenceEmbeddingFeatures(EmbeddingFeatures):
 
 
 def ContinuousEmbedding(
-    inputs: Block,
+    inputs: Union[Block, Dict[str, Block]],
     embedding_block: Block,
-    aggregation=None,
+    aggregation: Optional["TabularAggregationType"] = None,
     continuous_aggregation="concat",
-    name: str = "continuous",
+    name: str = "continuous_projection",
     **kwargs,
 ) -> SequentialBlock:
+    """Routes continuous features to an embedding block.
+
+    Parameters
+    ----------
+    inputs: Union[Block, Dict[str, Block]]
+        The input block or dictionary of input blocks.
+    embedding_block: Block
+        The embedding block to use.
+    aggregation: Optional[TabularAggregationType]
+        The aggregation to use.
+    continuous_aggregation: str
+        The aggregation to use for continuous features.
+    name: str
+        The name of the block.
+
+    Returns
+    -------
+    SequentialBlock
+    """
+    _inputs: Block = ParallelBlock(inputs) if isinstance(inputs, dict) else inputs
     continuous_embedding = Filter(Tags.CONTINUOUS, aggregation=continuous_aggregation).connect(
         embedding_block
     )
 
-    outputs = inputs.connect_branch(
+    outputs = _inputs.connect_branch(
         continuous_embedding.as_tabular(name), add_rest=True, aggregation=aggregation, **kwargs
     )
 
@@ -392,6 +412,19 @@ def ContinuousEmbedding(
 
 
 def serialize_table_config(table_config: TableConfig) -> Dict[str, Any]:
+    """Serialize a table config to a dictionary.
+
+    Parameters
+    ----------
+    table_config: TableConfig
+        The table config to serialize.
+
+    Returns
+    -------
+    dict
+        The serialized table config.
+    """
+
     table = deepcopy(table_config.__dict__)
     if "initializer" in table:
         table["initializer"] = tf.keras.initializers.serialize(table["initializer"])
@@ -402,6 +435,19 @@ def serialize_table_config(table_config: TableConfig) -> Dict[str, Any]:
 
 
 def deserialize_table_config(table_params: Dict[str, Any]) -> TableConfig:
+    """Deserialize a table config from a dictionary.
+
+    Parameters
+    ----------
+    table_params: dict
+        The serialized table config
+
+    Returns
+    -------
+    TableConfig
+
+    """
+
     if "initializer" in table_params and table_params["initializer"]:
         table_params["initializer"] = tf.keras.initializers.deserialize(table_params["initializer"])
     if "optimizer" in table_params and table_params["optimizer"]:
@@ -412,6 +458,18 @@ def deserialize_table_config(table_params: Dict[str, Any]) -> TableConfig:
 
 
 def serialize_feature_config(feature_config: FeatureConfig) -> Dict[str, Any]:
+    """Serialize a feature config to a dictionary.
+
+    Parameters
+    ----------
+    feature_config: FeatureConfig
+        The feature config to serialize.
+
+    Returns
+    -------
+    dict
+
+    """
     outputs = {}
 
     for key, val in feature_config.items():
