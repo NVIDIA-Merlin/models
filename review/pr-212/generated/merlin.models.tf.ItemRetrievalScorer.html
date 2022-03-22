@@ -38,6 +38,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Available Models: Overview</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="../api.html#model-constructors">Model Constructors</a></li>
@@ -78,7 +79,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api.html#dataset-constructors">Dataset Constructors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#metrics">Metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#sampling">Sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#some-other-types-constructors">Some Other Types Constructors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#losses">Losses</a></li>
 </ul>
 </li>
@@ -314,25 +314,22 @@ Defaults to <cite>item_id</cite></p></li>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat_in_parallel</span></code>([num, prefix, names, …])</p></td>
 <td><p>Repeat the block num times in parallel.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ItemRetrievalScorer.rescore_false_negatives" title="merlin.models.tf.ItemRetrievalScorer.rescore_false_negatives"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rescore_false_negatives</span></code></a>(positive_item_ids, …)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_name</span></code>(name)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_name</span></code>(name)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ItemRetrievalScorer.set_required_features" title="merlin.models.tf.ItemRetrievalScorer.set_required_features"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_required_features</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ItemRetrievalScorer.set_required_features" title="merlin.models.tf.ItemRetrievalScorer.set_required_features"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_required_features</span></code></a>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_schema</span></code>([schema])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_schema</span></code>([schema])</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
 <td><p>Sets the weights of the layer, from NumPy arrays.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_model</span></code>(schema[, input_block, prediction_tasks])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_model</span></code>(schema[, input_block, prediction_tasks])</p></td>
 <td><p>Wrap the block between inputs &amp; outputs to create a model.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
 <td><p>Decorator to automatically enter the module name scope.</p></td>
 </tr>
 </tbody>
@@ -520,11 +517,6 @@ Return tensor is 2D (batch size, 1 + #negatives)</p>
 <dl class="py method">
 <dt id="merlin.models.tf.ItemRetrievalScorer.get_batch_items_metadata">
 <code class="sig-name descname"><span class="pre">get_batch_items_metadata</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/retrieval/base.html#ItemRetrievalScorer.get_batch_items_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ItemRetrievalScorer.get_batch_items_metadata" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="merlin.models.tf.ItemRetrievalScorer.rescore_false_negatives">
-<code class="sig-name descname"><span class="pre">rescore_false_negatives</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">positive_item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neg_samples_item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negative_scores</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/retrieval/base.html#ItemRetrievalScorer.rescore_false_negatives"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ItemRetrievalScorer.rescore_false_negatives" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">

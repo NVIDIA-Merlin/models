@@ -36,6 +36,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../models_overview.html">Available Models: Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../api.html">API Documentation</a></li>
 </ul>
 
@@ -80,12 +81,7 @@
     <span class="n">is_input_block</span><span class="p">,</span>
     <span class="n">right_shift_layer</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.tabular</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">AsTabular</span><span class="p">,</span>
-    <span class="n">Filter</span><span class="p">,</span>
-    <span class="n">TabularAggregationType</span><span class="p">,</span>
-    <span class="n">TabularBlock</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.tabular</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">TabularAggregationType</span><span class="p">,</span> <span class="n">TabularBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils</span> <span class="kn">import</span> <span class="n">tf_utils</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">schema_utils</span>
@@ -253,10 +249,18 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">losses</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">values</span><span class="p">,</span> <span class="n">_val_names</span> <span class="o">=</span> <span class="p">[],</span> <span class="nb">set</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
-            <span class="n">values</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">losses</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+            <span class="n">losses</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">losses</span>
+            <span class="k">for</span> <span class="n">loss</span> <span class="ow">in</span> <span class="n">losses</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">loss</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_val_names</span><span class="p">:</span>
+                        <span class="n">_val_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">ref</span><span class="p">())</span>
+                        <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loss should be a Tensor, found: </span><span class="si">{</span><span class="n">loss</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">values</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">regularizers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -562,48 +566,6 @@
             <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span></div></div>
-
-
-<div class="viewcode-block" id="DualEncoderBlock"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">DualEncoderBlock</span><span class="p">(</span><span class="n">ParallelBlock</span><span class="p">):</span>
-<div class="viewcode-block" id="DualEncoderBlock.__init__"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">left</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">TabularBlock</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">],</span>
-        <span class="n">right</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">TabularBlock</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">],</span>
-        <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Schema</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">left_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;left&quot;</span><span class="p">,</span>
-        <span class="n">right_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;right&quot;</span><span class="p">,</span>
-        <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-    <span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="s2">&quot;is_tabular&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
-            <span class="n">left</span> <span class="o">=</span> <span class="n">SequentialBlock</span><span class="p">([</span><span class="n">left</span><span class="p">,</span> <span class="n">AsTabular</span><span class="p">(</span><span class="n">left_name</span><span class="p">)])</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">right</span><span class="p">,</span> <span class="s2">&quot;is_tabular&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
-            <span class="n">right</span> <span class="o">=</span> <span class="n">SequentialBlock</span><span class="p">([</span><span class="n">right</span><span class="p">,</span> <span class="n">AsTabular</span><span class="p">(</span><span class="n">right_name</span><span class="p">)])</span>
-
-        <span class="n">towers</span> <span class="o">=</span> <span class="p">{</span><span class="n">left_name</span><span class="p">:</span> <span class="n">left</span><span class="p">,</span> <span class="n">right_name</span><span class="p">:</span> <span class="n">right</span><span class="p">}</span>
-
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">towers</span><span class="p">,</span>
-            <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
-            <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
-            <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span>
-            <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
-<div class="viewcode-block" id="DualEncoderBlock.from_config"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock.from_config">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">output</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">=</span> <span class="bp">cls</span>
-
-        <span class="k">return</span> <span class="n">output</span></div></div>
 </pre></div>
 
            </div>

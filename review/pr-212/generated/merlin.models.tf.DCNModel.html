@@ -38,6 +38,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Available Models: Overview</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="../api.html#model-constructors">Model Constructors</a><ul class="current">
@@ -57,7 +58,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api.html#dataset-constructors">Dataset Constructors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#metrics">Metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#sampling">Sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#some-other-types-constructors">Some Other Types Constructors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#losses">Losses</a></li>
 </ul>
 </li>
@@ -146,7 +146,7 @@ of the Web Conference 2021. 2021. <a class="reference external" href="https://ar
 <li><p><strong>deep_block</strong> (<a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a><em>, </em><em>optional</em>) – The <cite>Block</cite> to use as the deep part of the model (typically a <cite>MLPBlock</cite>)</p></li>
 <li><p><strong>stacked</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether to use the stacked version of the model or the parallel version.</p></li>
 <li><p><strong>input_block</strong> (<a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a><em>, </em><em>optional</em>) – The <cite>Block</cite> to use as the input layer, by default None</p></li>
-<li><p><strong>embedding_options</strong> (<a class="reference internal" href="merlin.models.tf.EmbeddingOptions.html#merlin.models.tf.EmbeddingOptions" title="merlin.models.tf.EmbeddingOptions"><em>EmbeddingOptions</em></a>) – Options for the input embeddings.
+<li><p><strong>embedding_options</strong> (<em>EmbeddingOptions</em>) – Options for the input embeddings.
 - embedding_dims: Optional[Dict[str, int]] - The dimension of the
 embedding table for each feature (key), by default {}
 - embedding_dim_default: int - Default dimension of the embedding

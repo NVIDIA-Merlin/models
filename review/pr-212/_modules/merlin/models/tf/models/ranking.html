@@ -36,6 +36,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../models_overview.html">Available Models: Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../api.html">API Documentation</a></li>
 </ul>
 
@@ -66,11 +67,18 @@
   <h1>Source code for merlin.models.tf.models.ranking</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.aggregation</span> <span class="kn">import</span> <span class="n">ConcatFeatures</span><span class="p">,</span> <span class="n">StackFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.inputs</span> <span class="kn">import</span> <span class="n">InputBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">CategoricalOneHot</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.cross</span> <span class="kn">import</span> <span class="n">CrossBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.dlrm</span> <span class="kn">import</span> <span class="n">DLRMBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.interaction</span> <span class="kn">import</span> <span class="n">FMPairwiseInteraction</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.mlp</span> <span class="kn">import</span> <span class="n">MLPBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.features.continuous</span> <span class="kn">import</span> <span class="n">ContinuousFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.features.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingOptions</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.base</span> <span class="kn">import</span> <span class="n">Model</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.utils</span> <span class="kn">import</span> <span class="n">parse_prediction_tasks</span>
@@ -218,6 +226,80 @@
 
 <span class="k">def</span> <span class="nf">YoutubeDNNRankingModel</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">DeepFMModel</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
+    <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">deep_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">]),</span>
+    <span class="n">prediction_tasks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">]</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">embedding_option_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
+    <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;DeepFM-model architecture.</span>
+
+<span class="sd">    Example Usage::</span>
+<span class="sd">        depp_fm = DeepFMModel(schema, embedding_dim=64, deep_block=MLPBlock([256, 64]))</span>
+<span class="sd">        depp_fm.compile(optimizer=&quot;adam&quot;)</span>
+<span class="sd">        depp_fm.fit(train_data, epochs=10)</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    [1] Huifeng, Guo, et al.</span>
+<span class="sd">        &quot;DeepFM: A Factorization-Machine based Neural Network for CTR Prediction&quot;</span>
+<span class="sd">        arXiv:1703.04247  (2017).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    schema : Schema</span>
+<span class="sd">        The `Schema` with the input features</span>
+<span class="sd">    embedding_dim : int</span>
+<span class="sd">        Dimension of the embeddings</span>
+<span class="sd">    deep_block : Optional[Block]</span>
+<span class="sd">        The `Block` that learns high-ordeer feature interactions</span>
+<span class="sd">        Defaults to MLPBlock([64, 128])</span>
+<span class="sd">    prediction_tasks: optional</span>
+<span class="sd">        The prediction tasks to be used, by default this will be inferred from the Schema.</span>
+<span class="sd">        Defaults to None</span>
+<span class="sd">    embedding_option_kwargs: Optional[dict]</span>
+<span class="sd">        Additional arguments to provide to `EmbeddingOptions` object</span>
+<span class="sd">        for embeddings tables setting.</span>
+<span class="sd">        Defaults to {}</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Model</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">input_block</span> <span class="o">=</span> <span class="n">InputBlock</span><span class="p">(</span>
+        <span class="n">schema</span><span class="p">,</span>
+        <span class="n">embedding_options</span><span class="o">=</span><span class="n">EmbeddingOptions</span><span class="p">(</span>
+            <span class="n">embedding_dim_default</span><span class="o">=</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="o">**</span><span class="n">embedding_option_kwargs</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span>
+
+    <span class="n">pairwise_block</span> <span class="o">=</span> <span class="n">FMPairwiseInteraction</span><span class="p">()</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="n">aggregation</span><span class="o">=</span><span class="n">StackFeatures</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">deep_block</span> <span class="o">=</span> <span class="n">deep_block</span><span class="o">.</span><span class="n">prepare</span><span class="p">(</span><span class="n">aggregation</span><span class="o">=</span><span class="n">ConcatFeatures</span><span class="p">())</span>
+
+    <span class="n">branches</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;categorical&quot;</span><span class="p">:</span> <span class="n">CategoricalOneHot</span><span class="p">(</span><span class="n">schema</span><span class="p">),</span>
+        <span class="s2">&quot;continuous&quot;</span><span class="p">:</span> <span class="n">ContinuousFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="n">first_order_block</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">units</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">deep_pairwise</span> <span class="o">=</span> <span class="n">input_block</span><span class="o">.</span><span class="n">connect_branch</span><span class="p">(</span><span class="n">pairwise_block</span><span class="p">,</span> <span class="n">deep_block</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span><span class="p">)</span>
+    <span class="n">deep_fm</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">(</span>
+        <span class="p">{</span><span class="s2">&quot;deep_pairwise&quot;</span><span class="p">:</span> <span class="n">deep_pairwise</span><span class="p">,</span> <span class="s2">&quot;first_order&quot;</span><span class="p">:</span> <span class="n">first_order_block</span><span class="p">},</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span>
+    <span class="p">)</span>
+
+    <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">parse_prediction_tasks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">deep_fm</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">prediction_tasks</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model</span>
 </pre></div>
 
            </div>

@@ -36,6 +36,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../models_overview.html">Available Models: Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../api.html">API Documentation</a></li>
 </ul>
 
@@ -81,7 +82,7 @@
 <span class="c1">#</span>
 
 <span class="c1"># Adapted from source code: https://github.com/karlhigley/ranking-metrics-torch</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">keras.utils</span> <span class="kn">import</span> <span class="n">losses_utils</span><span class="p">,</span> <span class="n">metrics_utils</span>
@@ -219,7 +220,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">gains</span> <span class="o">=</span> <span class="n">dcg_at</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">log_base</span><span class="o">=</span><span class="n">log_base</span><span class="p">)</span>
     <span class="n">perfect_labels_sorting</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="n">label_relevant_counts</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="n">label_relevant_counts</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
         <span class="o">&lt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">label_relevant_counts</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
         <span class="n">backend</span><span class="o">.</span><span class="n">floatx</span><span class="p">(),</span>
     <span class="p">)</span>
@@ -372,7 +373,7 @@
 
 
 <div class="viewcode-block" id="ranking_metrics"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ranking_metrics.html#merlin.models.tf.ranking_metrics">[docs]</a><span class="k">def</span> <span class="nf">ranking_metrics</span><span class="p">(</span><span class="n">top_ks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">]:</span>
-    <span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">top_ks</span><span class="p">:</span>
         <span class="n">metrics</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">RecallAt</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">MRRAt</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">NDCGAt</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">AvgPrecisionAt</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">PrecisionAt</span><span class="p">(</span><span class="n">k</span><span class="p">)])</span>
     <span class="k">return</span> <span class="n">metrics</span></div>

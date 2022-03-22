@@ -17,7 +17,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="merlin.models.tf.Model" href="generated/merlin.models.tf.Model.html" />
-    <link rel="prev" title="Merlin Models | Documentation" href="getting_started.html" /> 
+    <link rel="prev" title="Available Models: Overview" href="models_overview.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -38,6 +38,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models_overview.html">Available Models: Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Documentation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#tensorflow-models">TensorFlow Models</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#model-constructors">Model Constructors</a><ul>
@@ -102,7 +103,10 @@
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ContinuousEmbedding.html">merlin.models.tf.ContinuousEmbedding</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#dataset-constructors">Dataset Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dataset-constructors">Dataset Constructors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.dataset.BatchedDataset.html">merlin.models.tf.dataset.BatchedDataset</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#metrics">Metrics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.NDCGAt.html">merlin.models.tf.NDCGAt</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AvgPrecisionAt.html">merlin.models.tf.AvgPrecisionAt</a></li>
@@ -116,14 +120,6 @@
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CachedCrossBatchSampler.html">merlin.models.tf.CachedCrossBatchSampler</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CachedUniformSampler.html">merlin.models.tf.CachedUniformSampler</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.PopularityBasedSampler.html">merlin.models.tf.PopularityBasedSampler</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#some-other-types-constructors">Some Other Types Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.NoOp.html">merlin.models.tf.NoOp</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.EmbeddingOptions.html">merlin.models.tf.EmbeddingOptions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.FeatureConfig.html">merlin.models.tf.FeatureConfig</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.TableConfig.html">merlin.models.tf.TableConfig</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.EmbeddingWithMetadata.html">merlin.models.tf.EmbeddingWithMetadata</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#losses">Losses</a><ul>
@@ -162,7 +158,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#demonstration-utility-functions">Demonstration Utility Functions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#miscellaneous-utility-functions">Miscellaneous Utility Functions</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.filter_kwargs.html">merlin.models.utils.misc_utils.filter_kwargs</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.safe_json.html">merlin.models.utils.misc_utils.safe_json</a></li>
@@ -187,7 +182,19 @@
 <li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.display_list_by_prefix.html">merlin.models.utils.registry.display_list_by_prefix</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#schema-functions">Schema Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#schema-functions">Schema Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.select_targets.html">merlin.models.utils.schema_utils.select_targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_categorical_column.html">merlin.models.utils.schema_utils.create_categorical_column</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_continuous_column.html">merlin.models.utils.schema_utils.create_continuous_column</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html">merlin.models.utils.schema_utils.filter_dict_by_schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_cardinalities.html">merlin.models.utils.schema_utils.categorical_cardinalities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_domains.html">merlin.models.utils.schema_utils.categorical_domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -450,6 +457,9 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.dataset.BatchedDataset.html#merlin.models.tf.dataset.BatchedDataset" title="merlin.models.tf.dataset.BatchedDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.tf.dataset.BatchedDataset</span></code></a>(…)</p></td>
+<td><p>Infinite generator used to asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular <cite>Dataset</cite>.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -498,32 +508,6 @@
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.PopularityBasedSampler.html#merlin.models.tf.PopularityBasedSampler" title="merlin.models.tf.PopularityBasedSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PopularityBasedSampler</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Provides a popularity-based negative sampling for the softmax layer to ensure training efficiency when the catalog of items is very large.</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="some-other-types-constructors">
-<h3>Some Other Types Constructors<a class="headerlink" href="#some-other-types-constructors" title="Permalink to this headline"></a></h3>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.NoOp.html#merlin.models.tf.NoOp" title="merlin.models.tf.NoOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NoOp</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.EmbeddingOptions.html#merlin.models.tf.EmbeddingOptions" title="merlin.models.tf.EmbeddingOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EmbeddingOptions</span></code></a>(embedding_dims, …)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.FeatureConfig.html#merlin.models.tf.FeatureConfig" title="merlin.models.tf.FeatureConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FeatureConfig</span></code></a>(table, max_sequence_length, …)</p></td>
-<td><p>Configuration data for one embedding feature.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.TableConfig.html#merlin.models.tf.TableConfig" title="merlin.models.tf.TableConfig"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TableConfig</span></code></a>(vocabulary_size, dim, …)</p></td>
-<td><p>Configuration data for one embedding table.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.EmbeddingWithMetadata.html#merlin.models.tf.EmbeddingWithMetadata" title="merlin.models.tf.EmbeddingWithMetadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EmbeddingWithMetadata</span></code></a>(embeddings, metadata)</p></td>
-<td><p></p></td>
 </tr>
 </tbody>
 </table>
@@ -640,17 +624,6 @@
 </div>
 <div class="section" id="utilities">
 <h2>Utilities<a class="headerlink" href="#utilities" title="Permalink to this headline"></a></h2>
-<div class="section" id="demonstration-utility-functions">
-<h3>Demonstration Utility Functions<a class="headerlink" href="#demonstration-utility-functions" title="Permalink to this headline"></a></h3>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-</tbody>
-</table>
-</div>
 <div class="section" id="miscellaneous-utility-functions">
 <h3>Miscellaneous Utility Functions<a class="headerlink" href="#miscellaneous-utility-functions" title="Permalink to this headline"></a></h3>
 <table class="longtable docutils align-default">
@@ -730,6 +703,36 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.select_targets.html#merlin.models.utils.schema_utils.select_targets" title="merlin.models.utils.schema_utils.select_targets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.select_targets</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html#merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json" title="merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html#merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema" title="merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</span></code></a>(value)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_categorical_column.html#merlin.models.utils.schema_utils.create_categorical_column" title="merlin.models.utils.schema_utils.create_categorical_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.create_categorical_column</span></code></a>(…)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_continuous_column.html#merlin.models.utils.schema_utils.create_continuous_column" title="merlin.models.utils.schema_utils.create_continuous_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.create_continuous_column</span></code></a>(name)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html#merlin.models.utils.schema_utils.filter_dict_by_schema" title="merlin.models.utils.schema_utils.filter_dict_by_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.filter_dict_by_schema</span></code></a>(…)</p></td>
+<td><p>Filters out entries from input_dict, returns a dictionary where every entry corresponds to a column in the schema</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_cardinalities.html#merlin.models.utils.schema_utils.categorical_cardinalities" title="merlin.models.utils.schema_utils.categorical_cardinalities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.categorical_cardinalities</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_domains.html#merlin.models.utils.schema_utils.categorical_domains" title="merlin.models.utils.schema_utils.categorical_domains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.categorical_domains</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html#merlin.models.utils.schema_utils.get_embedding_sizes_from_schema" title="merlin.models.utils.schema_utils.get_embedding_sizes_from_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality" title="merlin.models.utils.schema_utils.get_embedding_size_from_cardinality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</span></code></a>(…)</p></td>
+<td><p></p></td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -739,7 +742,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="getting_started.html" class="btn btn-neutral float-left" title="Merlin Models | Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="models_overview.html" class="btn btn-neutral float-left" title="Available Models: Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="generated/merlin.models.tf.Model.html" class="btn btn-neutral float-right" title="merlin.models.tf.Model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

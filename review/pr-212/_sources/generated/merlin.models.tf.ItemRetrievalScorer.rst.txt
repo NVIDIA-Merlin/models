@@ -58,7 +58,6 @@
       ~ItemRetrievalScorer.register_features
       ~ItemRetrievalScorer.repeat
       ~ItemRetrievalScorer.repeat_in_parallel
-      ~ItemRetrievalScorer.rescore_false_negatives
       ~ItemRetrievalScorer.select_by_name
       ~ItemRetrievalScorer.set_required_features
       ~ItemRetrievalScorer.set_schema

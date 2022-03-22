@@ -36,6 +36,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../models_overview.html">Available Models: Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../api.html">API Documentation</a></li>
 </ul>
 
@@ -80,20 +81,29 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">embedding_ops</span>
 
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">EmbeddingWithMetadata</span><span class="p">,</span> <span class="n">PredictionOutput</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Block</span><span class="p">,</span>
+    <span class="n">BlockType</span><span class="p">,</span>
+    <span class="n">EmbeddingWithMetadata</span><span class="p">,</span>
+    <span class="n">PredictionOutput</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.tabular</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">TabularAggregationType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.base</span> <span class="kn">import</span> <span class="n">ItemSampler</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.base</span> <span class="kn">import</span> <span class="n">ModelBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">maybe_deserialize_keras_objects</span><span class="p">,</span>
     <span class="n">maybe_serialize_keras_objects</span><span class="p">,</span>
+    <span class="n">rescore_false_negatives</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils.constants</span> <span class="kn">import</span> <span class="n">MIN_FLOAT</span>
+<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span>
 
 <span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 
@@ -109,6 +119,54 @@
 
     <span class="k">def</span> <span class="nf">item_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TowerBlock</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="DualEncoderBlock"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DualEncoderBlock</span><span class="p">(</span><span class="n">ParallelBlock</span><span class="p">):</span>
+<div class="viewcode-block" id="DualEncoderBlock.__init__"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query_block</span><span class="p">:</span> <span class="n">Block</span><span class="p">,</span>
+        <span class="n">item_block</span><span class="p">:</span> <span class="n">Block</span><span class="p">,</span>
+        <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Schema</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_query_block</span> <span class="o">=</span> <span class="n">TowerBlock</span><span class="p">(</span><span class="n">query_block</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_item_block</span> <span class="o">=</span> <span class="n">TowerBlock</span><span class="p">(</span><span class="n">item_block</span><span class="p">)</span>
+
+        <span class="n">branches</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;query&quot;</span><span class="p">:</span> <span class="n">Filter</span><span class="p">(</span><span class="n">query_block</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_query_block</span><span class="p">),</span>
+            <span class="s2">&quot;item&quot;</span><span class="p">:</span> <span class="n">Filter</span><span class="p">(</span><span class="n">item_block</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_item_block</span><span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">branches</span><span class="p">,</span>
+            <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
+            <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
+            <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span>
+            <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">strict</span><span class="o">=</span><span class="n">strict</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="DualEncoderBlock.query_block"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock.query_block">[docs]</a>    <span class="k">def</span> <span class="nf">query_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TowerBlock</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_block</span></div>
+
+<div class="viewcode-block" id="DualEncoderBlock.item_block"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock.item_block">[docs]</a>    <span class="k">def</span> <span class="nf">item_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TowerBlock</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_item_block</span></div>
+
+<div class="viewcode-block" id="DualEncoderBlock.from_config"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock.from_config">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">parse_config</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">custom_objects</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">=</span> <span class="bp">cls</span>
+
+        <span class="k">return</span> <span class="n">output</span></div></div>
 
 
 <div class="viewcode-block" id="ItemRetrievalScorer"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer">[docs]</a><span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;item_retrieval_scorer&quot;</span><span class="p">)</span>
@@ -174,6 +232,15 @@
                     <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]),</span>
                 <span class="p">)</span>
             <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                    <span class="n">initial_value</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="n">query_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;positive_candidates_embeddings&quot;</span><span class="p">,</span>
+                    <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">validate_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ItemRetrievalScorer.set_required_features"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.set_required_features">[docs]</a>    <span class="k">def</span> <span class="nf">set_required_features</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -232,7 +299,9 @@
 <span class="sd">            If `training=True`, return the original inputs</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">])</span>
+            <span class="c1"># enabled only during top-k evaluation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="s2">&quot;positive_candidates_embeddings&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">inputs</span>
@@ -270,6 +339,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_required_context_item_features_are_present</span><span class="p">()</span>
         <span class="n">targets</span><span class="p">,</span> <span class="n">predictions</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">targets</span><span class="p">,</span> <span class="n">outputs</span><span class="o">.</span><span class="n">predictions</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">targets</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
             <span class="k">assert</span> <span class="p">(</span>
@@ -333,8 +407,8 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">neg_items_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">neg_items_ids_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-                <span class="n">negative_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rescore_false_negatives</span><span class="p">(</span>
-                    <span class="n">positive_item_ids</span><span class="p">,</span> <span class="n">neg_items_ids</span><span class="p">,</span> <span class="n">negative_scores</span>
+                <span class="n">negative_scores</span> <span class="o">=</span> <span class="n">rescore_false_negatives</span><span class="p">(</span>
+                    <span class="n">positive_item_ids</span><span class="p">,</span> <span class="n">neg_items_ids</span><span class="p">,</span> <span class="n">negative_scores</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">false_negatives_score</span>
                 <span class="p">)</span>
 
             <span class="n">predictions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">positive_scores</span><span class="p">,</span> <span class="n">negative_scores</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
@@ -356,31 +430,11 @@
             <span class="p">],</span>
             <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">PredictionOutput</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">PredictionOutput</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ItemRetrievalScorer.get_batch_items_metadata"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.get_batch_items_metadata">[docs]</a>    <span class="k">def</span> <span class="nf">get_batch_items_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="n">feat_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="n">feat_name</span><span class="p">]</span> <span class="k">for</span> <span class="n">feat_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_required_features</span><span class="p">}</span>
         <span class="k">return</span> <span class="n">result</span></div>
-
-<div class="viewcode-block" id="ItemRetrievalScorer.rescore_false_negatives"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.rescore_false_negatives">[docs]</a>    <span class="k">def</span> <span class="nf">rescore_false_negatives</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positive_item_ids</span><span class="p">,</span> <span class="n">neg_samples_item_ids</span><span class="p">,</span> <span class="n">negative_scores</span><span class="p">):</span>
-        <span class="c1"># Removing dimensions of size 1 from the shape of the item ids, if applicable</span>
-        <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">positive_item_ids</span><span class="p">),</span> <span class="n">neg_samples_item_ids</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">neg_samples_item_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">neg_samples_item_ids</span><span class="p">)</span>
-
-        <span class="c1"># Reshapes positive and negative ids so that false_negatives_mask matches the scores shape</span>
-        <span class="n">false_negatives_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">positive_item_ids</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">neg_samples_item_ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Setting a very small value for false negatives (accidental hits) so that it has</span>
-        <span class="c1"># negligicle effect on the loss functions</span>
-        <span class="n">negative_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-            <span class="n">false_negatives_mask</span><span class="p">,</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">negative_scores</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">false_negatives_score</span><span class="p">,</span>
-            <span class="n">negative_scores</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">negative_scores</span></div>
 
 <div class="viewcode-block" id="ItemRetrievalScorer.get_config"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>

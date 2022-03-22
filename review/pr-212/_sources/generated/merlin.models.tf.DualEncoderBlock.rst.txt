@@ -57,12 +57,14 @@
       ~DualEncoderBlock.get_padding_mask_from_item_id
       ~DualEncoderBlock.get_updates_for
       ~DualEncoderBlock.get_weights
+      ~DualEncoderBlock.item_block
       ~DualEncoderBlock.parse
       ~DualEncoderBlock.parse_block
       ~DualEncoderBlock.parse_config
       ~DualEncoderBlock.post_call
       ~DualEncoderBlock.pre_call
       ~DualEncoderBlock.prepare
+      ~DualEncoderBlock.query_block
       ~DualEncoderBlock.register_features
       ~DualEncoderBlock.repeat
       ~DualEncoderBlock.repeat_in_parallel

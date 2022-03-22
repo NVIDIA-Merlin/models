@@ -36,6 +36,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../models_overview.html">Available Models: Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../api.html">API Documentation</a></li>
 </ul>
 
@@ -70,11 +71,13 @@
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">import</span> <span class="nn">merlin.io</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockContext</span><span class="p">,</span> <span class="n">BlockType</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockContext</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">SequentialBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.metrics.ranking</span> <span class="kn">import</span> <span class="n">RankingMetric</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">PredictionTask</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.mixins</span> <span class="kn">import</span> <span class="n">LossMixin</span><span class="p">,</span> <span class="n">MetricsMixin</span><span class="p">,</span> <span class="n">ModelLikeBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils.dataset</span> <span class="kn">import</span> <span class="n">unique_rows_by_features</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 
@@ -212,9 +215,9 @@
 <div class="viewcode-block" id="Model.from_block"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Model.html#merlin.models.tf.Model.from_block">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_block</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">block</span><span class="p">:</span> <span class="n">BlockType</span><span class="p">,</span>
+        <span class="n">block</span><span class="p">:</span> <span class="n">Block</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
-        <span class="n">input_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">prediction_tasks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
             <span class="n">Union</span><span class="p">[</span><span class="s2">&quot;PredictionTask&quot;</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="s2">&quot;PredictionTask&quot;</span><span class="p">],</span> <span class="s2">&quot;ParallelPredictionBlock&quot;</span><span class="p">]</span>
         <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -223,7 +226,7 @@
         <span class="sd">&quot;&quot;&quot;Create a model from a `block`</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        block: BlockType</span>
+<span class="sd">        block: Block</span>
 <span class="sd">            The block to wrap in-between an InputBlock and prediction task(s)</span>
 <span class="sd">        schema: Schema</span>
 <span class="sd">            Schema to use for the model.</span>
@@ -253,15 +256,14 @@
 
 <div class="viewcode-block" id="Model.calculate_metrics"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Model.html#merlin.models.tf.Model.calculate_metrics">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_metrics</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">],</span>
-        <span class="n">targets</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">],</span>
+        <span class="n">outputs</span><span class="p">,</span>
         <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;val&quot;</span><span class="p">,</span>
         <span class="n">forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_block</span><span class="o">.</span><span class="n">calculate_metrics</span><span class="p">(</span>
-            <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="n">training</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="n">outputs</span><span class="o">=</span><span class="n">outputs</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">forward</span><span class="o">=</span><span class="n">forward</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="n">training</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="Model.metric_results"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.Model.html#merlin.models.tf.Model.metric_results">[docs]</a>    <span class="k">def</span> <span class="nf">metric_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -401,6 +403,16 @@
 
             <span class="n">x</span> <span class="o">=</span> <span class="n">BatchedDataset</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">validation_data</span><span class="p">,</span> <span class="s2">&quot;to_ddf&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">batch_size</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;batch_size must be specified when using merlin-dataset.&quot;</span><span class="p">)</span>
+            <span class="kn">from</span> <span class="nn">merlin.models.tf.dataset</span> <span class="kn">import</span> <span class="n">BatchedDataset</span>
+
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;shuffle&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">validation_data</span> <span class="o">=</span> <span class="n">BatchedDataset</span><span class="p">(</span>
+                <span class="n">validation_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+
         <span class="n">callbacks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_metrics_callback</span><span class="p">(</span><span class="n">callbacks</span><span class="p">,</span> <span class="n">train_metrics_steps</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
@@ -462,7 +474,15 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;batch_size must be specified when using merlin-dataset.&quot;</span><span class="p">)</span>
             <span class="kn">from</span> <span class="nn">merlin.models.tf.dataset</span> <span class="kn">import</span> <span class="n">BatchedDataset</span>
 
-            <span class="n">x</span> <span class="o">=</span> <span class="n">BatchedDataset</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">BatchedDataset</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Load BruteForce top-k evaluation</span>
+        <span class="c1"># using evaluation_candidates as indices.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">RetrievalModel</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_for_retrieval_task</span><span class="p">()</span>
+            <span class="c1"># We need to load the top-k indices at each call of the evaluate()</span>
+            <span class="c1"># to ensure most updated pre-computed embeddings are loaded.</span>
+            <span class="bp">self</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_topk_evaluation</span><span class="p">()</span>
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span>
             <span class="n">x</span><span class="p">,</span>
@@ -536,6 +556,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="n">blocks</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Block</span><span class="p">,</span> <span class="n">ModelLikeBlock</span><span class="p">],</span>
         <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockContext</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">evaluation_candidates</span><span class="p">:</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">blocks</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">context</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -543,22 +564,11 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">RetrievalBlock</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Model must contain a `RetrievalBlock`.&quot;</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_candidates</span> <span class="o">=</span> <span class="n">evaluation_candidates</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">retrieval_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalBlock</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">b</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">RetrievalBlock</span><span class="p">))</span>
-
-    <span class="k">def</span> <span class="nf">_ensure_unique</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">id_tag</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">]</span>
-    <span class="p">):</span>
-        <span class="c1"># Check if merlin-dataset is passed</span>
-        <span class="n">ddf</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;to_ddf&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">dataset</span>
-
-        <span class="n">columns</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
-        <span class="k">if</span> <span class="n">columns</span><span class="p">:</span>
-            <span class="n">id_col</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">id_tag</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">name</span>
-            <span class="n">ddf</span> <span class="o">=</span> <span class="n">ddf</span><span class="p">[</span><span class="n">columns</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">id_col</span><span class="p">)</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="s2">&quot;first&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
-
-        <span class="k">return</span> <span class="n">ddf</span>
 
     <span class="k">def</span> <span class="nf">query_embeddings</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -586,7 +596,7 @@
 
         <span class="n">get_user_emb</span> <span class="o">=</span> <span class="n">QueryEmbeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 
-        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_unique</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">query_tag</span><span class="p">,</span> <span class="n">query_id_tag</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">unique_rows_by_features</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">query_tag</span><span class="p">,</span> <span class="n">query_id_tag</span><span class="p">)</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span>
         <span class="n">embeddings</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map_partitions</span><span class="p">(</span><span class="n">get_user_emb</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span>
@@ -617,25 +627,12 @@
 
         <span class="n">get_item_emb</span> <span class="o">=</span> <span class="n">ItemEmbeddings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 
-        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_unique</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">item_tag</span><span class="p">,</span> <span class="n">item_id_tag</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">unique_rows_by_features</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">item_tag</span><span class="p">,</span> <span class="n">item_id_tag</span><span class="p">)</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span>
         <span class="n">embeddings</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map_partitions</span><span class="p">(</span><span class="n">get_item_emb</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">load_topk_evaluation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Update the model with a top-k evaluation block.</span>
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        data: merlin.io.Dataset</span>
-<span class="sd">            Dataset of negatives to use for evaluation.</span>
-<span class="sd">        k: int</span>
-<span class="sd">            Number of negatives to retrieve.</span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        SequentialBlock</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
-
+    <span class="k">def</span> <span class="nf">check_for_retrieval_task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
             <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;loss_block&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_block</span><span class="p">,</span> <span class="s2">&quot;set_retrieval_cache_query&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -645,13 +642,36 @@
                 <span class="s2">&quot;in the end (loss_block).&quot;</span>
             <span class="p">)</span>
 
-        <span class="n">topk_index</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">TopKIndexBlock</span><span class="o">.</span><span class="n">from_block</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_block</span><span class="o">.</span><span class="n">item_block</span><span class="p">(),</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="k">def</span> <span class="nf">set_retrieval_candidates_for_evaluation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidates</span><span class="p">:</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_candidates</span> <span class="o">=</span> <span class="n">unique_rows_by_features</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span>
+
+        <span class="n">ranking_metrics</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">metric</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_block</span><span class="o">.</span><span class="n">eval_metrics</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">RankingMetric</span><span class="p">)]</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">loss_block</span><span class="o">.</span><span class="n">pre_eval_topk</span> <span class="o">=</span> <span class="n">topk_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_k</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">([</span><span class="n">metric</span><span class="o">.</span><span class="n">k</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">ranking_metrics</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_load_topk_evaluation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Update the model with a top-k evaluation block.&quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_for_retrieval_task</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluation_candidates</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;You need to specify the set of negatives to use for evaluation &quot;</span>
+                <span class="s2">&quot;via `set_retrieval_candidates_for_evaluation` method&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">topk_index</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">TopKIndexBlock</span><span class="o">.</span><span class="n">from_block</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_block</span><span class="o">.</span><span class="n">item_block</span><span class="p">(),</span>
+            <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">evaluation_candidates</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_k</span><span class="p">,</span>
+            <span class="n">context</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_block</span><span class="o">.</span><span class="n">pre_eval_topk</span> <span class="o">=</span> <span class="n">topk_index</span>  <span class="c1"># type: ignore</span>
 
         <span class="c1"># set cache_query to True in the ItemRetrievalScorer</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">loss_block</span><span class="o">.</span><span class="n">set_retrieval_cache_query</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_block</span><span class="o">.</span><span class="n">set_retrieval_cache_query</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
 
         <span class="k">return</span> <span class="bp">self</span>
 

@@ -108,7 +108,7 @@ Dataset Constructors
 .. autosummary::
    :toctree: generated
 
-   merlin.models.tf.dataset.Dataset
+   merlin.models.tf.dataset.BatchedDataset
 
 Metrics
 ~~~~~~~
@@ -134,20 +134,6 @@ Sampling
    PopularityBasedSampler
 
  
-Some Other Types Constructors
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated
-
-   Schema
-   Tags
-   NoOp
-   EmbeddingOptions
-   FeatureConfig
-   TableConfig
-   EmbeddingWithMetadata
-
 Losses
 ~~~~~~
 
@@ -210,14 +196,6 @@ Loader Utility Functions for TensorFlow
 Utilities
 ---------
 
-Demonstration Utility Functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated
-
-    merlin.models.utils.data_etl_utils.movielens_download_etl
-
 
 Miscellaneous Utility Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -257,13 +235,13 @@ Schema Functions
 .. autosummary::
    :toctree: generated
 
-   merlin.models.utils.schema.select_targets
-   merlin.models.utils.schema.schema_to_tensorflow_metadata_json
-   merlin.models.utils.schema.tensorflow_metadata_json_to_schema
-   merlin.models.utils.schema.create_categorical_column
-   merlin.models.utils.schema.create_continuous_column
-   merlin.models.utils.schema.filter_dict_by_schema
-   merlin.models.utils.schema.categorical_cardinalities
-   merlin.models.utils.schema.categorical_domains
-   merlin.models.utils.schema.get_embedding_sizes_from_schema
-   merlin.models.utils.schema.get_embedding_size_from_cardinality
+   merlin.models.utils.schema_utils.select_targets
+   merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json
+   merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema
+   merlin.models.utils.schema_utils.create_categorical_column
+   merlin.models.utils.schema_utils.create_continuous_column
+   merlin.models.utils.schema_utils.filter_dict_by_schema
+   merlin.models.utils.schema_utils.categorical_cardinalities
+   merlin.models.utils.schema_utils.categorical_domains
+   merlin.models.utils.schema_utils.get_embedding_sizes_from_schema
+   merlin.models.utils.schema_utils.get_embedding_size_from_cardinality

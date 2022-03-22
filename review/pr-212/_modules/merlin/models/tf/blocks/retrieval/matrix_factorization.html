@@ -36,6 +36,7 @@
               <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../models_overview.html">Available Models: Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../api.html">API Documentation</a></li>
 </ul>
 
@@ -80,56 +81,61 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.aggregation</span> <span class="kn">import</span> <span class="n">ElementWiseMultiply</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">RenameFeatures</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.base</span> <span class="kn">import</span> <span class="n">DualEncoderBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.features.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingFeatures</span><span class="p">,</span> <span class="n">EmbeddingOptions</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 <span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">QueryItemIdsEmbeddingsBlock</span><span class="p">(</span>
-    <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
-    <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">query_id_tag</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">,</span>
-    <span class="n">item_id_tag</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">,</span>
-    <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Buidls Query and Item ids embeddings</span>
+<span class="k">class</span> <span class="nc">QueryItemIdsEmbeddingsBlock</span><span class="p">(</span><span class="n">DualEncoderBlock</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
+        <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">query_id_tag</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">,</span>
+        <span class="n">item_id_tag</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">,</span>
+        <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">query_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">query_id_tag</span><span class="p">)</span>
+        <span class="n">item_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">item_id_tag</span><span class="p">)</span>
+        <span class="n">embedding_options</span> <span class="o">=</span> <span class="n">EmbeddingOptions</span><span class="p">(</span>
+            <span class="n">embedding_dim_default</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span> <span class="n">embeddings_initializers</span><span class="o">=</span><span class="n">embeddings_initializers</span>
+        <span class="p">)</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    schema: Schema</span>
-<span class="sd">        The `Schema` with the input features</span>
-<span class="sd">    dim: int</span>
-<span class="sd">        The dimension of the embeddings.</span>
-<span class="sd">    query_id_tag : Tag</span>
-<span class="sd">        The tag to select query features, by default `Tags.USER`</span>
-<span class="sd">    item_id_tag : Tag</span>
-<span class="sd">        The tag to select item features, by default `Tags.ITEM`</span>
-<span class="sd">    embeddings_initializers: Dict[str, Callable[[Any], None]]</span>
-<span class="sd">        A dictionary of initializers for embeddings.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">query_item_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">query_id_tag</span><span class="p">)</span> <span class="o">+</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">item_id_tag</span><span class="p">)</span>
-    <span class="n">embedding_options</span> <span class="o">=</span> <span class="n">EmbeddingOptions</span><span class="p">(</span>
-        <span class="n">embedding_dim_default</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span> <span class="n">embeddings_initializers</span><span class="o">=</span><span class="n">embeddings_initializers</span>
-    <span class="p">)</span>
+        <span class="n">rename_features</span> <span class="o">=</span> <span class="n">RenameFeatures</span><span class="p">(</span>
+            <span class="p">{</span><span class="n">query_id_tag</span><span class="p">:</span> <span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="n">item_id_tag</span><span class="p">:</span> <span class="s2">&quot;item&quot;</span><span class="p">},</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span>
+        <span class="p">)</span>
+        <span class="n">post</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;post&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">post</span><span class="p">:</span>
+            <span class="n">post</span> <span class="o">=</span> <span class="n">rename_features</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">post</span> <span class="o">=</span> <span class="n">rename_features</span>
 
-    <span class="n">rename_features</span> <span class="o">=</span> <span class="n">RenameFeatures</span><span class="p">({</span><span class="n">query_id_tag</span><span class="p">:</span> <span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="n">item_id_tag</span><span class="p">:</span> <span class="s2">&quot;item&quot;</span><span class="p">},</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
-    <span class="n">post</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;post&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">post</span><span class="p">:</span>
-        <span class="n">post</span> <span class="o">=</span> <span class="n">rename_features</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">post</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">post</span> <span class="o">=</span> <span class="n">rename_features</span>
+        <span class="n">embedding</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">EmbeddingFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span>  <span class="c1"># noqa</span>
+            <span class="n">s</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span>
+        <span class="p">)</span>
 
-    <span class="n">embeddings_blocks</span> <span class="o">=</span> <span class="n">EmbeddingFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span>
-        <span class="n">query_item_schema</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-    <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
+            <span class="n">embedding</span><span class="p">(</span><span class="n">query_schema</span><span class="p">),</span> <span class="n">embedding</span><span class="p">(</span><span class="n">item_schema</span><span class="p">),</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">embeddings_blocks</span>
+    <span class="k">def</span> <span class="nf">export_embedding_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">export_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;item&quot;</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_block</span><span class="p">()</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">export_embedding_table</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">export_path</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_block</span><span class="p">()</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">export_embedding_table</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">export_path</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">embedding_table_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;item&quot;</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_block</span><span class="p">()</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">embedding_table_df</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">query_block</span><span class="p">()</span><span class="o">.</span><span class="n">block</span><span class="o">.</span><span class="n">embedding_table_df</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="MatrixFactorizationBlock"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.MatrixFactorizationBlock.html#merlin.models.tf.MatrixFactorizationBlock">[docs]</a><span class="k">def</span> <span class="nf">MatrixFactorizationBlock</span><span class="p">(</span>
