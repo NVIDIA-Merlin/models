@@ -351,19 +351,27 @@ class ItemRetrievalScorer(Block):
             predictions = tf.cast(predictions, tf.float32)
 
         assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
-
-        # Positives in the first column and negatives in the subsequent columns
-        targets = tf.concat(
-            [
-                tf.ones([tf.shape(predictions)[0], 1], dtype=predictions.dtype),
-                tf.zeros(
-                    [tf.shape(predictions)[0], tf.shape(predictions)[1] - 1],
-                    dtype=predictions.dtype,
-                ),
-            ],
-            axis=1,
-        )
-        return PredictionOutput(predictions, targets, positive_item_ids=positive_item_ids)
+        # prepare targets for computing the loss and metrics
+        if isinstance(targets, tf.Tensor):
+            # Converts target ids to one-hot representation
+            num_classes = tf.shape(predictions)[-1]
+            targets_one_hot = tf.one_hot(tf.reshape(targets, (-1,)), num_classes)
+            return PredictionOutput(
+                predictions, targets_one_hot, positive_item_ids=positive_item_ids
+            )
+        else:
+            # Positives in the first column and negatives in the subsequent columns
+            targets = tf.concat(
+                [
+                    tf.ones([tf.shape(predictions)[0], 1], dtype=predictions.dtype),
+                    tf.zeros(
+                        [tf.shape(predictions)[0], tf.shape(predictions)[1] - 1],
+                        dtype=predictions.dtype,
+                    ),
+                ],
+                axis=1,
+            )
+            return PredictionOutput(predictions, targets, positive_item_ids=positive_item_ids)
 
     def get_batch_items_metadata(self):
         result = {feat_name: self.context[feat_name] for feat_name in self._required_features}

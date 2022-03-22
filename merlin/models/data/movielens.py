@@ -13,6 +13,7 @@ import merlin.io
 # Get dataframe library - cuDF or pandas
 from merlin.core.dispatch import get_lib
 from merlin.core.utils import download_file
+from merlin.schema import Tags
 
 df_lib = get_lib()
 
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def get_movielens(path=None, variant="ml-25m"):
+def get_movielens(path=None, variant="ml-25m", user_sessions=False, max_length=None):
     """Gets the movielens dataset for use with merlin-models
 
     This function will return a tuple of train/test merlin.io.Dataset objects for the
@@ -34,8 +35,12 @@ def get_movielens(path=None, variant="ml-25m"):
     path : str
         The path to download the files locally to. If not set will default to
         the 'merlin-models-data` directory in your home folder
-    variant : "ml-25m" or "ml-100k"
-        Which variant of the movielens dataset to use. Must be either "ml-25m" or "ml-100k"
+    variant : "ml-1m" "ml-25m" or "ml-100k"
+        Which variant of the movielens dataset to use. Must be either "ml-1m", "ml-25m" or "ml-100k"
+    user_sessions: Bool
+        If enabled, group the movielens data into a set of daily user sessions.
+        Currently, this option is only supported for "ml-1m" variant.
+        Defaults to False
 
     Returns
     -------
@@ -50,7 +55,13 @@ def get_movielens(path=None, variant="ml-25m"):
     variant_path = os.path.join(path, variant)
     if not os.path.exists(variant_path):
         os.makedirs(variant_path)
-        movielens_download_etl(path, variant)
+        if not user_sessions:
+            movielens_download_etl(path, variant)
+        else:
+            assert (
+                variant == "ml-1m"
+            ), "We are currently supporting only the 'ML-1m' variant for session data"
+            movielens_session_download_etl(path, variant, max_length=max_length)
 
     train = merlin.io.Dataset(os.path.join(variant_path, "train"), engine="parquet")
     valid = merlin.io.Dataset(os.path.join(variant_path, "valid"), engine="parquet")
@@ -80,7 +91,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
         outputdir = local_filename
     if name == "ml-25m":
         download_file(
-            "http://files.grouplens.org/datasets/movielens/ml-25m.zip",
+            "https://files.grouplens.org/datasets/movielens/ml-25m.zip",
             os.path.join(local_filename, "ml-25m.zip"),
         )
         movies = df_lib.read_csv(os.path.join(local_filename, name, "movies.csv"))
@@ -143,7 +154,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
 
     elif name == "ml-100k":
         download_file(
-            "http://files.grouplens.org/datasets/movielens/ml-100k.zip",
+            "https://files.grouplens.org/datasets/movielens/ml-100k.zip",
             os.path.join(local_filename, "ml-100k.zip"),
         )
         logger.info("starting ETL..")
@@ -416,3 +427,154 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
     workflow.save(os.path.join(outputdir, name, "workflow"))
 
     logger.info("saving the workflow..")
+
+
+def movielens_session_download_etl(local_filename, name="ml-1m", outputdir=None, max_length=None):
+    """This funct does the preliminary preprocessing on movielens dataset
+    and converts the csv files to parquet files and saves to disk. Then,
+    using NVTabular, it does feature engineering on the parquet files to
+    generate daily user sessions and saves the processed files to disk.
+    Parameters
+    ----------
+    local_filename : str
+        path for downloading the raw dataset in and storing the converted
+        parquet files.
+    name : str
+        The name of the Movielens dataset. Currently Movielens 1M is supported.
+        Default "ml-1m""
+    outputdir : str, optional
+        path for saving the processed parquet files generated from NVTabular
+        workflow. If not provided, local_filename is used as outputdir.
+        Default to None
+    max_length: int
+        If set, truncate the sessions to last `max_length` interacted movies.
+        Default to None
+    """
+    local_filename = os.path.abspath(local_filename)
+    if outputdir is None:
+        outputdir = local_filename
+    # Download data
+    download_file(
+        "https://files.grouplens.org/datasets/movielens/%s.zip" % name,
+        os.path.join(local_filename, "%s.zip" % name),
+    )
+    if name == "ml-1m":
+
+        # Convert .dat files to parquet format
+        users = pd.read_csv(
+            os.path.join(local_filename, "ml-1m/users.dat"),
+            sep="::",
+            names=["userId", "gender", "age", "occupation", "zipcode"],
+        )
+        users.to_parquet(os.path.join(local_filename, name, "users.parquet"))
+        movies = pd.read_csv(
+            os.path.join(local_filename, "ml-1m/movies.dat"),
+            names=["movieId", "title", "genres"],
+            sep="::",
+        )
+        movies["genres"] = movies["genres"].str.split("|")
+        movies.to_parquet(os.path.join(local_filename, name, "movies.parquet"))
+        ratings = pd.read_csv(
+            os.path.join(local_filename, "ml-1m/ratings.dat"),
+            sep="::",
+            names=["userId", "movieId", "rating", "timestamp"],
+        )
+        ratings.to_parquet(os.path.join(local_filename, name, "ratings.parquet"))
+        # Get global variable needed for nvt workflow
+        min_day = ratings["timestamp"].min() // 86400
+
+        logger.info("starting ETL..")
+        # NVTabular pipeline
+        # join with movies and users features
+        joined = (
+            ["userId", "movieId", "rating", "timestamp"]
+            >> ops.JoinExternal(movies, on=["movieId"])
+            >> ops.JoinExternal(users, on=["userId"])
+        )
+        # encode categorical features
+        cat_features = joined >> ops.Categorify(dtype="int32")
+
+        # Get day column from timestamps
+        def create_day_column(ts, df):
+            day = ts // 86400
+            day = day - min_day
+            return day
+
+        day_feature = (
+            ["timestamp"] >> ops.LambdaOp(create_day_column) >> ops.Rename(f=lambda x: "day")
+        )
+        # add tags
+        feats_item = cat_features["movieId"] >> ops.AddMetadata(tags=[Tags.ITEM_ID, Tags.ITEM])
+        feats_userId = cat_features["userId"] >> ops.AddMetadata(tags=[Tags.USER_ID, Tags.USER])
+        feats_genres = cat_features["genres"] >> ops.AddMetadata(tags=[Tags.ITEM, Tags.SEQUENCE])
+        feats_user = cat_features["gender", "age", "occupation", "zipcode"] >> ops.AddMetadata(
+            tags=Tags.USER
+        )
+        # group by user and day
+        features = (
+            cat_features + day_feature + feats_item + feats_genres + feats_userId + feats_user
+        )
+        groupby_features = features >> nvt.ops.Groupby(
+            groupby_cols=["userId", "day"],
+            sort_cols=["timestamp"],
+            aggs={
+                "movieId": ["list", "count"],
+                "timestamp": ["list"],
+                "genres": ["list"],
+                "gender": ["first"],
+                "age": ["first"],
+                "occupation": ["first"],
+                "zipcode": ["first"],
+            },
+            name_sep="-",
+        )
+        if max_length:
+            # Truncate sessions to the last interacted `max_length` movies
+            groupby_features_list = groupby_features["movieId-list"] >> ops.AddMetadata(
+                tags=[Tags.SEQUENCE]
+            )
+            groupby_features_truncated = (
+                groupby_features_list
+                >> nvt.ops.ListSlice(-max_length, pad=True)
+                >> nvt.ops.Rename(postfix="_truncated")
+            )
+            # Apply workflow
+            workflow = nvt.Workflow(groupby_features + groupby_features_truncated)
+        else:
+            workflow = nvt.Workflow(groupby_features)
+        train_dataset = nvt.Dataset([os.path.join(local_filename, name, "ratings.parquet")])
+        workflow.fit(train_dataset)
+        user_sessions = workflow.transform(train_dataset)
+        logger.info("saving the workflow..")
+        # save the workflow
+        workflow.save(os.path.join(local_filename, name, "workflow"))
+        # Save the processed data and correspondin schema
+        user_sessions.to_parquet(
+            output_path=os.path.join(local_filename, name),
+            out_files_per_proc=1,
+            shuffle=False,
+        )
+
+        # Post-processing to create train / validation sets
+        user_sessions_gdf = user_sessions.compute()
+
+        # flatten the nested list of genres
+        def flatten_genres(g):
+            if len(g) > 0:
+                return np.concatenate(g).ravel()
+            else:
+                return []
+
+        user_sessions_gdf["genres-list"] = (
+            user_sessions_gdf["genres-list"].to_pandas().map(flatten_genres)
+        )
+        # split data by `day`
+        max_day = user_sessions_gdf.day.max()
+        valid = user_sessions_gdf[user_sessions_gdf.day > max_day - 200]
+        train = user_sessions_gdf[user_sessions_gdf.day <= max_day - 200]
+
+        # save train and validation
+        os.makedirs(os.path.join(local_filename, name, "train"), exist_ok=True)
+        train.to_parquet(os.path.join(local_filename, name, "train", "train.parquet"))
+        os.makedirs(os.path.join(local_filename, name, "valid"), exist_ok=True)
+        valid.to_parquet(os.path.join(local_filename, name, "valid", "valid.parquet"))
