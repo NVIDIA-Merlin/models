@@ -48,7 +48,7 @@ To use these Docker containers, you'll first need to install the [NVIDIA Contain
 
 ## Core Features
 
-To learn about the core features of Merlin Models, see the [Retrieval Models](docs/source/retrieval_models.md) page.
+To learn about the core features of Merlin Models, see the [Models Overview](docs/source/models_overview.md) page.
 The key retrieval models are as follows:
 
 * Matrix factorization
