@@ -3,7 +3,7 @@ import numpy as np
 import nvtabular as nvt
 
 
-def workflow_fit_transform(outputs, train_path, test_path, output_path, workflow_name):
+def workflow_fit_transform(outputs, train_path, test_path, output_path, workflow_name=None):
     workflow = nvt.Workflow(outputs)
 
     train_dataset = nvt.Dataset(train_path)
@@ -14,10 +14,13 @@ def workflow_fit_transform(outputs, train_path, test_path, output_path, workflow
     workflow.transform(train_dataset).to_parquet(output_path=output_path + "/train/")
 
     workflow.transform(test_dataset).to_parquet(output_path=output_path + "/test/")
+
     if workflow_name is None:
         workflow_name = "workflow"
     else:
-        workflow.save(workflow_name)
+        workflow_name = workflow_name
+    # save workflow to the pwd
+    workflow.save(workflow_name)
 
 
 def save_results(model_name, model):
