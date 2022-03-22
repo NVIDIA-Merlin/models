@@ -24,6 +24,7 @@ from merlin.core.dispatch import DataFrameType
 from merlin.models.tf.blocks.core.base import Block, PredictionOutput
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.batch_utils import TFModelEncode
+from merlin.models.utils.constants import MIN_FLOAT
 from merlin.schema import Tags
 
 
@@ -137,6 +138,7 @@ class TopKIndexBlock(IndexBlock):
     def __init__(self, k, values: tf.Tensor, ids: Optional[tf.Tensor] = None, **kwargs):
         self._k = k
         super(TopKIndexBlock, self).__init__(values, ids, **kwargs)
+        self.false_negatives_score = MIN_FLOAT
 
     @classmethod
     def from_block(  # type: ignore
@@ -211,13 +213,19 @@ class TopKIndexBlock(IndexBlock):
             2D Tensors with the one-hot representation of true targets and
             the scores for the top-k implicit negatives.
         """
-        targets, predictions = outputs.targets, outputs.predictions
-        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         queries = self.context["query"]
-        top_scores, _ = self(queries, k=self._k)
-        predictions = tf.expand_dims(predictions[:, 0], -1)
-        predictions = tf.concat([predictions, top_scores], axis=-1)
-        # Positives in the first column and negatives in the subsequent columns
+        top_scores, top_ids = self(queries, k=self._k)
+
+        # remove accidental hits
+        top_scores = tf_utils.rescore_false_negatives(
+            outputs.positive_item_ids, top_ids, top_scores, self.false_negatives_score
+        )
+
+        # Update top-k scores with positives
+        positive_scores = tf.reduce_sum(
+            queries * self.context["positive_candidates_embeddings"], axis=1, keepdims=True
+        )
+        predictions = tf.concat([positive_scores, top_scores], axis=-1)
         targets = tf.concat(
             [
                 tf.ones([tf.shape(predictions)[0], 1]),
@@ -225,8 +233,14 @@ class TopKIndexBlock(IndexBlock):
             ],
             axis=1,
         )
+
+        # Sort the updated scores
+        predictions_sorted, targets_sorted, _ = tf_utils.extract_topk(self._k, predictions, targets)
         label_relevant_counts = tf.ones([tf.shape(predictions)[0]])
-        return PredictionOutput(predictions, targets, label_relevant_counts)
+
+        return PredictionOutput(
+            predictions_sorted, targets_sorted, label_relevant_counts=label_relevant_counts
+        )
 
     def compute_output_shape(self, input_shape):
         batch_size = input_shape[0]

@@ -1,10 +1,17 @@
 from typing import List, Optional, Union
 
+import tensorflow as tf
+
+from merlin.models.tf.blocks.core.aggregation import ConcatFeatures, StackFeatures
 from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.blocks.core.transformations import CategoricalOneHot
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
+from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
@@ -152,3 +159,77 @@ def DCNModel(
 
 def YoutubeDNNRankingModel(schema: Schema) -> Model:
     raise NotImplementedError()
+
+
+def DeepFMModel(
+    schema: Schema,
+    embedding_dim: int,
+    deep_block: Optional[Block] = MLPBlock([64, 128]),
+    prediction_tasks: Optional[
+        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+    ] = None,
+    embedding_option_kwargs: dict = {},
+    **kwargs
+) -> Model:
+    """DeepFM-model architecture.
+
+    Example Usage::
+        depp_fm = DeepFMModel(schema, embedding_dim=64, deep_block=MLPBlock([256, 64]))
+        depp_fm.compile(optimizer="adam")
+        depp_fm.fit(train_data, epochs=10)
+
+    References
+    ----------
+    [1] Huifeng, Guo, et al.
+        "DeepFM: A Factorization-Machine based Neural Network for CTR Prediction"
+        arXiv:1703.04247  (2017).
+
+    Parameters
+    ----------
+    schema : Schema
+        The `Schema` with the input features
+    embedding_dim : int
+        Dimension of the embeddings
+    deep_block : Optional[Block]
+        The `Block` that learns high-ordeer feature interactions
+        Defaults to MLPBlock([64, 128])
+    prediction_tasks: optional
+        The prediction tasks to be used, by default this will be inferred from the Schema.
+        Defaults to None
+    embedding_option_kwargs: Optional[dict]
+        Additional arguments to provide to `EmbeddingOptions` object
+        for embeddings tables setting.
+        Defaults to {}
+    Returns
+    -------
+    Model
+
+    """
+    input_block = InputBlock(
+        schema,
+        embedding_options=EmbeddingOptions(
+            embedding_dim_default=embedding_dim, **embedding_option_kwargs
+        ),
+        **kwargs
+    )
+
+    pairwise_block = FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1))
+    deep_block = deep_block.prepare(aggregation=ConcatFeatures())
+
+    branches = {
+        "categorical": CategoricalOneHot(schema),
+        "continuous": ContinuousFeatures.from_schema(schema),
+    }
+    first_order_block = ParallelBlock(branches, aggregation="concat").connect(
+        tf.keras.layers.Dense(units=1, activation=None, use_bias=True)
+    )
+
+    deep_pairwise = input_block.connect_branch(pairwise_block, deep_block, aggregation="concat")
+    deep_fm = ParallelBlock(
+        {"deep_pairwise": deep_pairwise, "first_order": first_order_block}, aggregation="concat"
+    )
+
+    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+    model = deep_fm.connect(prediction_tasks)
+
+    return model

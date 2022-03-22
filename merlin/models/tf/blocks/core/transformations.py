@@ -20,11 +20,12 @@ from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
+from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils.tf_utils import transform_label_to_onehot
-from merlin.models.utils.schema_utils import categorical_cardinalities
+from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
 
@@ -405,7 +406,7 @@ class LogitsTemperatureScaler(Block):
         if training:
             assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
             predictions = predictions / self.temperature
-        return PredictionOutput(predictions, targets)
+        return PredictionOutput(predictions, targets, outputs.positive_item_ids)
 
     def compute_output_shape(self, input_shape):
         return input_shape
@@ -418,7 +419,7 @@ class ItemsPredictionWeightTying(Block):
         super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        self.num_classes = categorical_cardinalities(schema)[self.item_id_feature_name]
+        self.num_classes = schema_utils.categorical_cardinalities(schema)[self.item_id_feature_name]
 
     def build(self, input_shape):
         self.bias = self.add_weight(
@@ -434,6 +435,50 @@ class ItemsPredictionWeightTying(Block):
         logits = tf.nn.bias_add(logits, self.bias)
 
         return logits
+
+
+@Block.registry.register_with_multiple_names("categorical_to_onehot")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+@requires_schema
+class CategoricalOneHot(Block):
+    """
+    Transform categorical features (2-D and 3-D tensors) to a one-hot representation.
+
+    Parameters:
+    ----------
+    schema : Optional[Schema]
+        The `Schema` with the input features
+    """
+
+    def __init__(self, schema: Schema = None, **kwargs):
+        super().__init__(**kwargs)
+        if schema:
+            self.set_schema(schema)
+        self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
+
+    def build(self, input_shapes):
+        super(CategoricalOneHot, self).build(input_shapes)
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = tf.squeeze(tf.one_hot(val, self.cardinalities[name]))
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        outputs = {}
+        for key, val in input_shape.items():
+            if len(val) == 3:
+                outputs[key] = tf.TensorShape((val[0], val[1], self.cardinalities[key]))
+            else:
+                outputs[key] = tf.TensorShape((val[0], self.cardinalities[key]))
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        if self.schema:
+            config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
+        return config
 
 
 @Block.registry.register_with_multiple_names("label_to_onehot")
@@ -453,4 +498,4 @@ class LabelToOneHot(Block):
         num_classes = tf.shape(predictions)[-1]
         targets = transform_label_to_onehot(targets, num_classes)
 
-        return PredictionOutput(predictions, targets)
+        return PredictionOutput(predictions, targets, outputs.positive_item_ids)

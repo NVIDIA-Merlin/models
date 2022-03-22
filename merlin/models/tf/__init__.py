@@ -42,12 +42,7 @@ from merlin.models.tf.blocks.core.base import (
     NoOp,
     right_shift_layer,
 )
-from merlin.models.tf.blocks.core.combinators import (
-    DualEncoderBlock,
-    ParallelBlock,
-    ResidualBlock,
-    SequentialBlock,
-)
+from merlin.models.tf.blocks.core.combinators import ParallelBlock, ResidualBlock, SequentialBlock
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
@@ -55,6 +50,7 @@ from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
 from merlin.models.tf.blocks.core.transformations import (
     AsDenseFeatures,
     AsSparseFeatures,
+    CategoricalOneHot,
     ExpandDims,
     LabelToOneHot,
     StochasticSwapNoise,
@@ -62,9 +58,9 @@ from merlin.models.tf.blocks.core.transformations import (
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
-from merlin.models.tf.blocks.interaction import DotProductInteraction
+from merlin.models.tf.blocks.interaction import DotProductInteraction, FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
-from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
+from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, ItemRetrievalScorer
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
     QueryItemIdsEmbeddingsBlock,
@@ -88,10 +84,17 @@ from merlin.models.tf.features.embedding import (
     TableConfig,
 )
 from merlin.models.tf.losses import LossType
-from merlin.models.tf.metrics.ranking import AvgPrecisionAt, NDCGAt, RecallAt, ranking_metrics
+from merlin.models.tf.metrics.ranking import (
+    AvgPrecisionAt,
+    MRRAt,
+    NDCGAt,
+    PrecisionAt,
+    RecallAt,
+    ranking_metrics,
+)
 from merlin.models.tf.models import benchmark
 from merlin.models.tf.models.base import Model, RetrievalModel
-from merlin.models.tf.models.ranking import DCNModel, DLRMModel
+from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
     TwoTowerModel,
@@ -150,6 +153,7 @@ __all__ = [
     "MatrixFactorizationBlock",
     "AsDenseFeatures",
     "AsSparseFeatures",
+    "CategoricalOneHot",
     "ElementwiseSum",
     "ElementwiseSumItemMulti",
     "AsTabular",
@@ -157,7 +161,9 @@ __all__ = [
     "Filter",
     "ParallelBlock",
     "StackFeatures",
-    "LabelToOneHot" "PredictionTask",
+    "FMPairwiseInteraction",
+    "LabelToOneHot",
+    "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",
@@ -165,6 +171,8 @@ __all__ = [
     "ItemRetrievalScorer",
     "NextItemPredictionTask",
     "NDCGAt",
+    "PrecisionAt",
+    "MRRAt",
     "AvgPrecisionAt",
     "RecallAt",
     "ranking_metrics",
@@ -189,6 +197,7 @@ __all__ = [
     "MatrixFactorizationModel",
     "DLRMModel",
     "DCNModel",
+    "DeepFMModel",
     "losses",
     "LossType",
 ]

@@ -175,6 +175,7 @@ def data_iterator_func(schema, batch_size: int = 512):
             cat_names=cat_cols,
             cont_names=cont_cols,
             label_names=targets,
+            shuffle=False,
         )
 
     return data_iterator
