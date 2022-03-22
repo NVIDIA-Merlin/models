@@ -10,7 +10,7 @@ from nvtabular import ops
 
 import merlin.io
 
-# Get dataframe library - cudf or pandas
+# Get dataframe library - cuDF or pandas
 from merlin.core.dispatch import get_lib
 from merlin.core.utils import download_file
 
@@ -289,10 +289,108 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
             + age_bucket
             + ["title"]
         )
+    elif name == "ml-1m":
+        download_file(
+            "https://files.grouplens.org/datasets/movielens/ml-1m.zip",
+            os.path.join(local_filename, "ml-1m.zip"),
+        )
 
+        users = pd.read_csv(
+            os.path.join(local_filename, "ml-1m/users.dat"),
+            sep="::",
+            names=["userId", "gender", "age", "occupation", "zipcode"],
+        )
+        ratings = pd.read_csv(
+            os.path.join(local_filename, "ml-1m/ratings.dat"),
+            sep="::",
+            names=["userId", "movieId", "rating", "timestamp"],
+        )
+        movies = pd.read_csv(
+            os.path.join(local_filename, "ml-1m/movies.dat"),
+            names=["movieId", "title", "genres"],
+            sep="::",
+        )
+        movies["genres"] = movies["genres"].str.split("|")
+        movies.to_parquet(os.path.join(local_filename, name, "movies_converted.parquet"))
+        users.to_parquet(os.path.join(local_filename, name, "users_converted.parquet"))
+        ratings = ratings.sample(len(ratings), replace=False)
+        # split the train_df as training and validation data sets.
+        num_valid = int(len(ratings) * 0.2)
+        train = ratings[:-num_valid]
+        valid = ratings[-num_valid:]
+        train.to_parquet(os.path.join(local_filename, name, "train.parquet"))
+        valid.to_parquet(os.path.join(local_filename, name, "valid.parquet"))
+
+        logger.info("starting ETL..")
+
+        movies = df_lib.read_parquet(os.path.join(local_filename, name, "movies_converted.parquet"))
+        users = df_lib.read_parquet(os.path.join(local_filename, name, "users_converted.parquet"))
+        joined = (
+            ["userId", "movieId"]
+            >> ops.JoinExternal(movies, on=["movieId"])
+            >> ops.JoinExternal(users, on=["userId"])
+        )
+        cat_features = joined >> ops.Categorify(dtype="int32")
+        label = nvt.ColumnSelector(["rating"])
+
+        # Columns to apply to
+        cats = nvt.ColumnSelector(["movieId", "userId"])
+
+        # Target Encode movieId column
+        te_features = cats + joined[
+            ["age", "gender", "occupation", "zipcode"]
+        ] >> ops.TargetEncoding(label, kfold=5, p_smooth=20)
+        te_features_norm = te_features >> ops.NormalizeMinMax()
+
+        # count encode `userId`
+        count_logop_feat = (
+            ["userId"] >> ops.JoinGroupby(cont_cols=["movieId"], stats=["count"]) >> ops.LogOp()
+        )
+        feats_item = cat_features["movieId"] >> ops.AddMetadata(tags=["item_id", "item"])
+        feats_userId = cat_features["userId"] >> ops.AddMetadata(tags=["user_id", "user"])
+        feats_genres = cat_features["genres"] >> ops.AddMetadata(tags=["item"])
+        feats_te_user = (
+            te_features_norm[
+                [
+                    "TE_userId_rating",
+                    "TE_age_rating",
+                    "TE_gender_rating",
+                    "TE_occupation_rating",
+                    "TE_zipcode_rating",
+                ]
+            ]
+            >> ops.AddMetadata(tags=["user"])
+        )
+        feats_te_item = te_features_norm[["TE_movieId_rating"]] >> ops.AddMetadata(tags=["item"])
+        feats_user = joined[["age", "gender", "occupation", "zipcode"]] >> ops.AddMetadata(
+            tags=["item"]
+        )
+
+        feats_target = (
+            nvt.ColumnSelector(["rating"])
+            >> ops.LambdaOp(lambda col: (col > 3).astype("int32"))
+            >> ops.AddMetadata(tags=["binary_classification", "target"])
+            >> nvt.ops.Rename(name="rating_binary")
+        )
+        target_orig = (
+            ["rating"]
+            >> ops.LambdaOp(lambda col: col.astype("float32"))
+            >> ops.AddMetadata(tags=["regression", "target"])
+        )
+        workflow = nvt.Workflow(
+            cat_features
+            + te_features_norm
+            + feats_te_user
+            + feats_te_item
+            + feats_item
+            + feats_userId
+            + feats_genres
+            + feats_target
+            + target_orig
+        )
     else:
         raise ValueError(
-            "Unknown dataset name. Only Movielens 25M and 100k datasets are supported."
+            "Unknown dataset name. Only Movielens 25M, 1M and 100k datasets are supported."
         )
 
     train_dataset = nvt.Dataset([os.path.join(local_filename, name, "train.parquet")])
