@@ -14,20 +14,29 @@
 # limitations under the License.
 #
 import logging
-from typing import List, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 
-from merlin.models.tf.blocks.core.base import Block, EmbeddingWithMetadata, PredictionOutput
+from merlin.models.tf.blocks.core.base import (
+    Block,
+    BlockType,
+    EmbeddingWithMetadata,
+    PredictionOutput,
+)
+from merlin.models.tf.blocks.core.combinators import ParallelBlock
+from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
+    rescore_false_negatives,
 )
 from merlin.models.utils.constants import MIN_FLOAT
+from merlin.schema import Schema
 
 LOG = logging.getLogger("merlin_models")
 
@@ -43,6 +52,54 @@ class RetrievalMixin:
 
     def item_block(self) -> TowerBlock:
         raise NotImplementedError()
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class DualEncoderBlock(ParallelBlock):
+    def __init__(
+        self,
+        query_block: Block,
+        item_block: Block,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        strict: bool = False,
+        **kwargs,
+    ):
+        self._query_block = TowerBlock(query_block)
+        self._item_block = TowerBlock(item_block)
+
+        branches = {
+            "query": Filter(query_block.schema).connect(self._query_block),
+            "item": Filter(item_block.schema).connect(self._item_block),
+        }
+
+        super().__init__(
+            branches,
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+            schema=schema,
+            name=name,
+            strict=strict,
+            **kwargs,
+        )
+
+    def query_block(self) -> TowerBlock:
+        return self._query_block
+
+    def item_block(self) -> TowerBlock:
+        return self._item_block
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        inputs, config = cls.parse_config(config, custom_objects)
+        output = ParallelBlock(inputs, **config)
+        output.__class__ = cls
+
+        return output
 
 
 @Block.registry.register_with_multiple_names("item_retrieval_scorer")
@@ -108,6 +165,15 @@ class ItemRetrievalScorer(Block):
                     shape=tf.TensorShape([None, query_shape[-1]]),
                 )
             )
+            self.context.add_variable(
+                tf.Variable(
+                    initial_value=tf.zeros([1, query_shape[-1]], dtype=tf.float32),
+                    name="positive_candidates_embeddings",
+                    trainable=False,
+                    validate_shape=False,
+                    shape=tf.TensorShape([None, query_shape[-1]]),
+                )
+            )
         super().build(input_shapes)
 
     def set_required_features(self):
@@ -166,7 +232,9 @@ class ItemRetrievalScorer(Block):
             If `training=True`, return the original inputs
         """
         if self.cache_query:
-            self.context["query"].assign(inputs["query"])
+            # enabled only during top-k evaluation
+            self.context["query"].assign(inputs[self.query_name])
+            self.context["positive_candidates_embeddings"].assign(inputs[self.item_name])
 
         if training:
             return inputs
@@ -204,6 +272,11 @@ class ItemRetrievalScorer(Block):
         """
         self._check_required_context_item_features_are_present()
         targets, predictions = outputs.targets, outputs.predictions
+
+        if isinstance(targets, tf.Tensor):
+            positive_item_ids = targets
+        else:
+            positive_item_ids = self.context[self.item_id_feature_name]
 
         if training:
             assert (
@@ -267,8 +340,8 @@ class ItemRetrievalScorer(Block):
                 else:
                     neg_items_ids = tf.concat(neg_items_ids_list, axis=0)
 
-                negative_scores = self.rescore_false_negatives(
-                    positive_item_ids, neg_items_ids, negative_scores
+                negative_scores = rescore_false_negatives(
+                    positive_item_ids, neg_items_ids, negative_scores, self.false_negatives_score
                 )
 
             predictions = tf.concat([positive_scores, negative_scores], axis=-1)
@@ -290,31 +363,11 @@ class ItemRetrievalScorer(Block):
             ],
             axis=1,
         )
-        return PredictionOutput(predictions, targets)
+        return PredictionOutput(predictions, targets, positive_item_ids=positive_item_ids)
 
     def get_batch_items_metadata(self):
         result = {feat_name: self.context[feat_name] for feat_name in self._required_features}
         return result
-
-    def rescore_false_negatives(self, positive_item_ids, neg_samples_item_ids, negative_scores):
-        # Removing dimensions of size 1 from the shape of the item ids, if applicable
-        positive_item_ids = tf.cast(tf.squeeze(positive_item_ids), neg_samples_item_ids.dtype)
-        neg_samples_item_ids = tf.squeeze(neg_samples_item_ids)
-
-        # Reshapes positive and negative ids so that false_negatives_mask matches the scores shape
-        false_negatives_mask = tf.equal(
-            tf.expand_dims(positive_item_ids, -1), tf.expand_dims(neg_samples_item_ids, 0)
-        )
-
-        # Setting a very small value for false negatives (accidental hits) so that it has
-        # negligicle effect on the loss functions
-        negative_scores = tf.where(
-            false_negatives_mask,
-            tf.ones_like(negative_scores) * self.false_negatives_score,
-            negative_scores,
-        )
-
-        return negative_scores
 
     def get_config(self):
         config = super().get_config()

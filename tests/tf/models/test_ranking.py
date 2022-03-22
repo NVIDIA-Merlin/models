@@ -35,6 +35,24 @@ def test_simple_model(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=T
     )
 
 
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_mf_model_signle_binary_task(ecommerce_data, run_eagerly, num_epochs=5):
+    model = ml.MatrixFactorizationModel(
+        ecommerce_data.schema,
+        dim=64,
+        aggregation="cosine",
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(ecommerce_data.dataset, batch_size=50, epochs=num_epochs)
+    metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
+    testing_utils.assert_binary_classification_loss_metrics(
+        losses, metrics, target_name="click", num_epochs=num_epochs
+    )
+
+
 def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
     model = ml.DLRMModel(
         ecommerce_data.schema,
@@ -42,6 +60,21 @@ def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run
         bottom_block=ml.MLPBlock([64]),
         top_block=ml.MLPBlock([32]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(ecommerce_data.dataset, batch_size=50, epochs=num_epochs)
+    metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
+    testing_utils.assert_binary_classification_loss_metrics(
+        losses, metrics, target_name="click", num_epochs=num_epochs
+    )
+
+
+def test_deep_fm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
+    model = ml.DeepFMModel(
+        ecommerce_data.schema,
+        embedding_dim=64,
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)

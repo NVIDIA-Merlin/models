@@ -46,6 +46,7 @@ if TYPE_CHECKING:
 class PredictionOutput(NamedTuple):
     predictions: Union[TabularData, tf.Tensor]
     targets: Union[TabularData, tf.Tensor]
+    positive_item_ids: Optional[tf.Tensor] = None
     label_relevant_counts: Optional[tf.Tensor] = None
 
 
@@ -253,7 +254,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return []
 
     def as_tabular(self, name=None) -> "Block":
-        from merlin.models.tf.blocks.core.combinators import AsTabular, SequentialBlock
+        from merlin.models.tf.blocks.core.combinators import SequentialBlock
+        from merlin.models.tf.blocks.core.tabular import AsTabular
 
         if not name:
             name = self.name
@@ -366,6 +368,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         """
         from merlin.models.tf.blocks.core.combinators import SequentialBlock
         from merlin.models.tf.models.base import Model, RetrievalBlock, RetrievalModel
+        from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 
         blocks = [self.parse(b) for b in block]
 
@@ -379,8 +382,10 @@ class Block(SchemaMixin, ContextMixin, Layer):
         )
 
         if isinstance(blocks[-1], ModelLikeBlock):
-            if any(isinstance(b, RetrievalBlock) for b in blocks) or isinstance(
-                self, RetrievalBlock
+            if (
+                any(isinstance(b, RetrievalBlock) for b in blocks)
+                or isinstance(self, RetrievalBlock)
+                and any(isinstance(b, ItemRetrievalTask) for b in blocks)
             ):
                 return RetrievalModel(output)
 
@@ -463,7 +468,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
         ----------
         append: bool
             Whether to append the debug block to the block or to prepend it.
-
         """
         from merlin.models.tf.blocks.core.combinators import Debug, SequentialBlock
 
