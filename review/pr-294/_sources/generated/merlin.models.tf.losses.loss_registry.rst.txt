@@ -1,0 +1,6 @@
+﻿merlin.models.tf.losses.loss\_registry
+======================================
+
+.. currentmodule:: merlin.models.tf.losses
+
+.. autodata:: loss_registry
