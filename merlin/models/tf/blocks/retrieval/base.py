@@ -378,7 +378,7 @@ class ItemRetrievalScorer(Block):
 
         assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         # prepare targets for computing the loss and metrics
-        if isinstance(targets, tf.Tensor):
+        if self.sampled_softmax_mode and not training:
             # Converts target ids to one-hot representation
             num_classes = tf.shape(predictions)[-1]
             targets_one_hot = tf.one_hot(tf.reshape(targets, (-1,)), num_classes)

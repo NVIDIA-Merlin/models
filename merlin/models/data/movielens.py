@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def get_movielens(path=None, variant="ml-25m", user_sessions=False, max_length=None):
+def get_movielens(
+    path=None, variant="ml-25m", daily_user_sequences=False, max_length=None, min_length=1
+):
     """Gets the movielens dataset for use with merlin-models
 
     This function will return a tuple of train/test merlin.io.Dataset objects for the
@@ -37,11 +39,18 @@ def get_movielens(path=None, variant="ml-25m", user_sessions=False, max_length=N
         the 'merlin-models-data` directory in your home folder
     variant : "ml-1m" "ml-25m" or "ml-100k"
         Which variant of the movielens dataset to use. Must be either "ml-1m", "ml-25m" or "ml-100k"
-    user_sessions: Bool
-        If enabled, group the movielens data into a set of daily user sessions.
+    daily_user_sequences: Bool
+        If enabled, group the movielens data into a set of daily user sequences.
         Currently, this option is only supported for "ml-1m" variant.
         Defaults to False
-
+    max_length: int
+        Specific to sequential ETL. If set, truncate the sessions
+        to last `max_length` interacted movies.
+        Defaults to None
+    min_length: int
+        Specific to sequential ETL. Filter out the sessions with
+        less than `min_length` interacted movies.
+        Defaults to 1
     Returns
     -------
     tuple
@@ -55,13 +64,15 @@ def get_movielens(path=None, variant="ml-25m", user_sessions=False, max_length=N
     variant_path = os.path.join(path, variant)
     if not os.path.exists(variant_path):
         os.makedirs(variant_path)
-        if not user_sessions:
+        if not daily_user_sequences:
             movielens_download_etl(path, variant)
         else:
             assert (
                 variant == "ml-1m"
-            ), "We are currently supporting only the 'ML-1m' variant for session data"
-            movielens_session_download_etl(path, variant, max_length=max_length)
+            ), "We are currently supporting only the 'ML-1m' variant for sequence ETL"
+            movielens_download_and_sequence_etl(
+                path, variant, max_length=max_length, min_length=min_length
+            )
 
     train = merlin.io.Dataset(os.path.join(variant_path, "train"), engine="parquet")
     valid = merlin.io.Dataset(os.path.join(variant_path, "valid"), engine="parquet")
@@ -429,7 +440,9 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
     logger.info("saving the workflow..")
 
 
-def movielens_session_download_etl(local_filename, name="ml-1m", outputdir=None, max_length=None):
+def movielens_download_and_sequence_etl(
+    local_filename, name="ml-1m", outputdir=None, max_length=None, min_length=1
+):
     """This funct does the preliminary preprocessing on movielens dataset
     and converts the csv files to parquet files and saves to disk. Then,
     using NVTabular, it does feature engineering on the parquet files to
@@ -449,6 +462,9 @@ def movielens_session_download_etl(local_filename, name="ml-1m", outputdir=None,
     max_length: int
         If set, truncate the sessions to last `max_length` interacted movies.
         Default to None
+    min_length: int
+        Filter out the sessions with less than `min_length` interacted movies.
+        Default to 1
     """
     local_filename = os.path.abspath(local_filename)
     if outputdir is None:
@@ -481,7 +497,7 @@ def movielens_session_download_etl(local_filename, name="ml-1m", outputdir=None,
         )
         ratings.to_parquet(os.path.join(local_filename, name, "ratings.parquet"))
         # Get global variable needed for nvt workflow
-        min_day = ratings["timestamp"].min() // 86400
+        min_day = ratings["timestamp"].min() // 60 * 60 * 24
 
         logger.info("starting ETL..")
         # NVTabular pipeline
@@ -528,9 +544,14 @@ def movielens_session_download_etl(local_filename, name="ml-1m", outputdir=None,
             },
             name_sep="-",
         )
+        # Filter sessions with less than min_length interacations
+        # (last item is reserved for prediction task)
+        filtered_sessions = groupby_features >> nvt.ops.Filter(
+            f=lambda df: df["movieId-count"] >= min_length
+        )
         if max_length:
             # Truncate sessions to the last interacted `max_length` movies
-            groupby_features_list = groupby_features["movieId-list"] >> ops.AddMetadata(
+            groupby_features_list = filtered_sessions["movieId-list"] >> ops.AddMetadata(
                 tags=[Tags.SEQUENCE]
             )
             groupby_features_truncated = (
@@ -539,16 +560,16 @@ def movielens_session_download_etl(local_filename, name="ml-1m", outputdir=None,
                 >> nvt.ops.Rename(postfix="_truncated")
             )
             # Apply workflow
-            workflow = nvt.Workflow(groupby_features + groupby_features_truncated)
+            workflow = nvt.Workflow(filtered_sessions + groupby_features_truncated)
         else:
-            workflow = nvt.Workflow(groupby_features)
+            workflow = nvt.Workflow(filtered_sessions)
         train_dataset = nvt.Dataset([os.path.join(local_filename, name, "ratings.parquet")])
         workflow.fit(train_dataset)
         user_sessions = workflow.transform(train_dataset)
         logger.info("saving the workflow..")
         # save the workflow
         workflow.save(os.path.join(local_filename, name, "workflow"))
-        # Save the processed data and correspondin schema
+        # Save the processed data and corresponding schema
         user_sessions.to_parquet(
             output_path=os.path.join(local_filename, name),
             out_files_per_proc=1,
