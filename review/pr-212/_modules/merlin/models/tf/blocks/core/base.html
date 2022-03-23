@@ -536,7 +536,8 @@
 <span class="sd">        append: bool</span>
 <span class="sd">            Whether to append the debug block to the block or to prepend it.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">Debug</span><span class="p">,</span> <span class="n">SequentialBlock</span>
+        <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Debug</span>
+        <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">SequentialBlock</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">append</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">SequentialBlock</span><span class="p">([</span><span class="n">Debug</span><span class="p">(),</span> <span class="bp">self</span><span class="p">])</span>
