@@ -1,17 +1,14 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
-
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Available Models: Overview &mdash; Merlin Models  documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>Available Models: Overview &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
-  
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
@@ -19,6 +16,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Documentation" href="api.html" />
     <link rel="prev" title="Merlin Models | Documentation" href="getting_started.html" /> 
 </head>
 
@@ -37,7 +35,7 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Available Models: Overview</a><ul>
@@ -56,6 +54,7 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
 </ul>
 
         </div>
@@ -106,9 +105,9 @@
     text-align: unset;
 }
 </style>
-<section id="available-models-overview">
+<div class="section" id="available-models-overview">
 <h1>Available Models: Overview<a class="headerlink" href="#available-models-overview" title="Permalink to this headline"></a></h1>
-<section id="matrix-factorization">
+<div class="section" id="matrix-factorization">
 <h2>Matrix Factorization<a class="headerlink" href="#matrix-factorization" title="Permalink to this headline"></a></h2>
 <p><img alt="User-item matrix broken down into a user matrix and an item matrix." src="_images/mf.png" /></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
@@ -116,8 +115,8 @@
 <span class="n">ml</span><span class="o">.</span><span class="n">MatrixFactorizationBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">ItemRetrievalTask</span><span class="p">())</span>
 </pre></div>
 </div>
-</section>
-<section id="youtube-dnn">
+</div>
+<div class="section" id="youtube-dnn">
 <h2>YouTube DNN<a class="headerlink" href="#youtube-dnn" title="Permalink to this headline"></a></h2>
 <p>Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube Recommendations.” In Proceedings of the 10th ACM Conference on Recommender Systems, 191–98. Boston Massachusetts USA: ACM, 2016. <a class="reference external" href="https://doi.org/10.1145/2959100.2959190">https://doi.org/10.1145/2959100.2959190</a>.</p>
 <p><img alt="Sample network architecture for YouTube DNN." src="_images/youtube-dnn.png" /></p>
@@ -126,8 +125,8 @@
 <span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">YoutubeDNNRetrieval</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">top_layer</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]))</span>
 </pre></div>
 </div>
-</section>
-<section id="two-tower">
+</div>
+<div class="section" id="two-tower">
 <h2>Two Tower<a class="headerlink" href="#two-tower" title="Permalink to this headline"></a></h2>
 <p>Yi, Xinyang, Ji Yang, Lichan Hong, Derek Zhiyuan Cheng, Lukasz Heldt, Aditee Kumthekar, Zhe Zhao, Li Wei, and Ed Chi.
 “Sampling-Bias-Corrected Neural Modeling for Large Corpus Item Recommendations.” In Proceedings of the 13th ACM
@@ -150,10 +149,10 @@ Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019. <a c
 <span class="n">model</span> <span class="o">=</span> <span class="n">two_tower</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">ItemRetrievalTask</span><span class="p">())</span>
 </pre></div>
 </div>
-</section>
-<section id="ranking">
+</div>
+<div class="section" id="ranking">
 <h2>Ranking<a class="headerlink" href="#ranking" title="Permalink to this headline"></a></h2>
-<section id="deep-learning-recommender-model">
+<div class="section" id="deep-learning-recommender-model">
 <h3>Deep Learning Recommender Model<a class="headerlink" href="#deep-learning-recommender-model" title="Permalink to this headline"></a></h3>
 <p>Naumov, Maxim, Dheevatsa Mudigere, Hao-Jun Michael Shi, Jianyu Huang, Narayanan Sundaraman, Jongsoo Park, Xiaodong Wang,
 et al. “Deep Learning Recommendation Model for Personalization and Recommendation Systems.” ArXiv:1906.00091 [Cs], May 31, 2019. <a class="reference external" href="http://arxiv.org/abs/1906.00091">http://arxiv.org/abs/1906.00091</a>.</p>
@@ -181,8 +180,8 @@ et al. “Deep Learning Recommendation Model for Personalization and Recommendat
 <span class="n">dlrm</span> <span class="o">=</span> <span class="n">dlrm_inputs</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">DotProductInteraction</span><span class="p">(),</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">128</span><span class="p">]))</span>
 </pre></div>
 </div>
-</section>
-<section id="dcn-v2">
+</div>
+<div class="section" id="dcn-v2">
 <h3>DCN-V2<a class="headerlink" href="#dcn-v2" title="Permalink to this headline"></a></h3>
 <p>Wang, Ruoxi, Rakesh Shivanna, Derek Z. Cheng, Sagar Jain, Dong Lin, Lichan Hong, and Ed H. Chi. “DCN V2: Improved Deep &amp;
 Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” ArXiv:2008.13535 [Cs, Stat], October 20, 2020. <a class="reference external" href="http://arxiv.org/abs/2008.13535">http://arxiv.org/abs/2008.13535</a>.</p>
@@ -204,11 +203,11 @@ Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” A
 <span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">prediction_task</span><span class="p">)</span>
 </pre></div>
 </div>
-</section>
-</section>
-<section id="multi-task-learning">
+</div>
+</div>
+<div class="section" id="multi-task-learning">
 <h2>Multi-task Learning<a class="headerlink" href="#multi-task-learning" title="Permalink to this headline"></a></h2>
-<section id="mixture-of-experts">
+<div class="section" id="mixture-of-experts">
 <h3>Mixture-of-experts<a class="headerlink" href="#mixture-of-experts" title="Permalink to this headline"></a></h3>
 <p>Ma, Jiaqi, Zhe Zhao, Xinyang Yi, Jilin Chen, Lichan Hong, and Ed H. Chi. “Modeling Task Relationships in Multi-Task Learning with Multi-Gate Mixture-of-Experts,” 2018, 1930–39. <a class="reference external" href="https://doi.org/10.1145/3219819.3220007">https://doi.org/10.1145/3219819.3220007</a>.</p>
 <p><img alt="Sample architecture for a mixture-of-experts model." src="_images/mmoe.png" /></p>
@@ -222,8 +221,8 @@ Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” A
 <span class="n">model</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">mmoe</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
 </pre></div>
 </div>
-</section>
-<section id="progressive-layered-extraction">
+</div>
+<div class="section" id="progressive-layered-extraction">
 <h3>Progressive Layered Extraction<a class="headerlink" href="#progressive-layered-extraction" title="Permalink to this headline"></a></h3>
 <p>Tang, Hongyan, Junning Liu, Ming Zhao, and Xudong Gong. “Progressive Layered Extraction (PLE): A Novel Multi-Task Learning (MTL) Model for Personalized Recommendations.” In Fourteenth ACM Conference on Recommender Systems, 269–78. Virtual Event Brazil: ACM, 2020. <a class="reference external" href="https://doi.org/10.1145/3383313.3412236">https://doi.org/10.1145/3383313.3412236</a>.</p>
 <p><img alt="Sample architecture for a progressive layered extraction model." src="_images/ple.png" /></p>
@@ -239,15 +238,16 @@ Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” A
 <span class="n">model</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span> <span class="n">cgc</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
 </pre></div>
 </div>
-</section>
-</section>
-</section>
+</div>
+</div>
+</div>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="getting_started.html" class="btn btn-neutral float-left" title="Merlin Models | Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api.html" class="btn btn-neutral float-right" title="API Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

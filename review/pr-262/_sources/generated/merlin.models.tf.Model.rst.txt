@@ -1,0 +1,124 @@
+﻿merlin.models.tf.Model
+======================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: Model
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Model.__init__
+      ~Model.add_loss
+      ~Model.add_metric
+      ~Model.add_update
+      ~Model.add_variable
+      ~Model.add_weight
+      ~Model.apply
+      ~Model.batch_predict
+      ~Model.build
+      ~Model.calculate_metrics
+      ~Model.call
+      ~Model.compile
+      ~Model.compute_loss
+      ~Model.compute_mask
+      ~Model.compute_metrics
+      ~Model.compute_output_shape
+      ~Model.compute_output_signature
+      ~Model.count_params
+      ~Model.evaluate
+      ~Model.evaluate_generator
+      ~Model.finalize_state
+      ~Model.fit
+      ~Model.fit_generator
+      ~Model.from_block
+      ~Model.from_config
+      ~Model.get_config
+      ~Model.get_input_at
+      ~Model.get_input_mask_at
+      ~Model.get_input_shape_at
+      ~Model.get_layer
+      ~Model.get_losses_for
+      ~Model.get_output_at
+      ~Model.get_output_mask_at
+      ~Model.get_output_shape_at
+      ~Model.get_updates_for
+      ~Model.get_weights
+      ~Model.load_weights
+      ~Model.make_predict_function
+      ~Model.make_test_function
+      ~Model.make_train_function
+      ~Model.metric_results
+      ~Model.predict
+      ~Model.predict_generator
+      ~Model.predict_on_batch
+      ~Model.predict_step
+      ~Model.reset_metrics
+      ~Model.reset_states
+      ~Model.save
+      ~Model.save_spec
+      ~Model.save_weights
+      ~Model.set_weights
+      ~Model.summary
+      ~Model.test_on_batch
+      ~Model.test_step
+      ~Model.to_json
+      ~Model.to_yaml
+      ~Model.train_on_batch
+      ~Model.train_step
+      ~Model.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Model.activity_regularizer
+      ~Model.compute_dtype
+      ~Model.distribute_strategy
+      ~Model.dtype
+      ~Model.dtype_policy
+      ~Model.dynamic
+      ~Model.first
+      ~Model.inbound_nodes
+      ~Model.input
+      ~Model.input_mask
+      ~Model.input_shape
+      ~Model.input_spec
+      ~Model.last
+      ~Model.layers
+      ~Model.loss_block
+      ~Model.losses
+      ~Model.metrics
+      ~Model.metrics_names
+      ~Model.name
+      ~Model.name_scope
+      ~Model.non_trainable_variables
+      ~Model.non_trainable_weights
+      ~Model.outbound_nodes
+      ~Model.output
+      ~Model.output_mask
+      ~Model.output_shape
+      ~Model.run_eagerly
+      ~Model.schema
+      ~Model.state_updates
+      ~Model.stateful
+      ~Model.submodules
+      ~Model.supports_masking
+      ~Model.trainable
+      ~Model.trainable_variables
+      ~Model.trainable_weights
+      ~Model.updates
+      ~Model.variable_dtype
+      ~Model.variables
+      ~Model.weights
+   
+   

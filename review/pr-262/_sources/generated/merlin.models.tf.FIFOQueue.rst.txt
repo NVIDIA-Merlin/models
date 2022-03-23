@@ -1,0 +1,95 @@
+﻿merlin.models.tf.FIFOQueue
+==========================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: FIFOQueue
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~FIFOQueue.__init__
+      ~FIFOQueue.add_loss
+      ~FIFOQueue.add_metric
+      ~FIFOQueue.add_update
+      ~FIFOQueue.add_variable
+      ~FIFOQueue.add_weight
+      ~FIFOQueue.apply
+      ~FIFOQueue.build
+      ~FIFOQueue.call
+      ~FIFOQueue.clear
+      ~FIFOQueue.compute_mask
+      ~FIFOQueue.compute_output_shape
+      ~FIFOQueue.compute_output_signature
+      ~FIFOQueue.count
+      ~FIFOQueue.count_params
+      ~FIFOQueue.dequeue
+      ~FIFOQueue.dequeue_many
+      ~FIFOQueue.enqueue
+      ~FIFOQueue.enqueue_many
+      ~FIFOQueue.finalize_state
+      ~FIFOQueue.from_config
+      ~FIFOQueue.get_config
+      ~FIFOQueue.get_input_at
+      ~FIFOQueue.get_input_mask_at
+      ~FIFOQueue.get_input_shape_at
+      ~FIFOQueue.get_losses_for
+      ~FIFOQueue.get_output_at
+      ~FIFOQueue.get_output_mask_at
+      ~FIFOQueue.get_output_shape_at
+      ~FIFOQueue.get_updates_for
+      ~FIFOQueue.get_values_by_indices
+      ~FIFOQueue.get_weights
+      ~FIFOQueue.index_of
+      ~FIFOQueue.list_all
+      ~FIFOQueue.set_weights
+      ~FIFOQueue.update_by_indices
+      ~FIFOQueue.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~FIFOQueue.activity_regularizer
+      ~FIFOQueue.compute_dtype
+      ~FIFOQueue.dtype
+      ~FIFOQueue.dtype_policy
+      ~FIFOQueue.dynamic
+      ~FIFOQueue.graph
+      ~FIFOQueue.inbound_nodes
+      ~FIFOQueue.input
+      ~FIFOQueue.input_mask
+      ~FIFOQueue.input_shape
+      ~FIFOQueue.input_spec
+      ~FIFOQueue.losses
+      ~FIFOQueue.metrics
+      ~FIFOQueue.name
+      ~FIFOQueue.name_scope
+      ~FIFOQueue.non_trainable_variables
+      ~FIFOQueue.non_trainable_weights
+      ~FIFOQueue.outbound_nodes
+      ~FIFOQueue.output
+      ~FIFOQueue.output_mask
+      ~FIFOQueue.output_shape
+      ~FIFOQueue.scope_name
+      ~FIFOQueue.stateful
+      ~FIFOQueue.submodules
+      ~FIFOQueue.supports_masking
+      ~FIFOQueue.trainable
+      ~FIFOQueue.trainable_variables
+      ~FIFOQueue.trainable_weights
+      ~FIFOQueue.updates
+      ~FIFOQueue.variable_dtype
+      ~FIFOQueue.variables
+      ~FIFOQueue.weights
+   
+   
