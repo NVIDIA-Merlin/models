@@ -43,6 +43,8 @@ LOG = logging.getLogger("merlin_models")
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class TowerBlock(ModelBlock):
+    """TowerBlock to wrap item or query tower"""
+
     pass
 
 
@@ -68,6 +70,27 @@ class DualEncoderBlock(ParallelBlock):
         strict: bool = False,
         **kwargs,
     ):
+        """Prepare Query and Item towers of a Retrieval block
+
+        Parameters
+        ----------
+        query_block : Block
+             The `Block` that combines user features
+        item_block : Block
+            The optional `Block` that combines items features.
+        pre : Optional[BlockType], optional
+            The optional `Block` to apply before `call` of Two-tower
+        post : Optional[BlockType], optional
+            The optional `Block` to apply on both outputs of Two-tower model
+        aggregation : Optional[TabularAggregationType], optional
+            Aggregation to apply after processing the `call`-method to output a single Tensor.
+        schema : Optional[Schema], optional
+            The `Schema` with the input features.
+        name : Optional[str], optional
+            Name of the layer.
+        strict : bool, optional
+            If enabled, check that the input of ParallelBlock is a dictionary.
+        """
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 
@@ -136,6 +159,7 @@ class ItemRetrievalScorer(Block):
         query_name: str = "query",
         item_name: str = "item",
         cache_query: bool = False,
+        sampled_softmax_mode: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -150,6 +174,7 @@ class ItemRetrievalScorer(Block):
         if not isinstance(samplers, (list, tuple)):
             samplers = (samplers,)  # type: ignore
         self.samplers = samplers
+        self.sampled_softmax_mode = sampled_softmax_mode
 
         self.set_required_features()
 
@@ -217,7 +242,9 @@ class ItemRetrievalScorer(Block):
         self, inputs: Union[tf.Tensor, TabularData], training: bool = True, **kwargs
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs["query"]), uses dot product to score
-            the positive item (inputs["item"] or  self.context.get_embedding(self.item_column))
+            the positive item (inputs["item"]).
+            For sampled-softmax mode, logits are computed by multiplying query vector
+            and item embeddings (self.context.get_embedding(self.item_column)))
         Parameters
         ----------
         inputs : Union[tf.Tensor, TabularData]
@@ -239,10 +266,8 @@ class ItemRetrievalScorer(Block):
         if training:
             return inputs
 
-        if isinstance(inputs, tf.Tensor):
-            embedding_table = self.context.get_embedding(self.item_id_feature_name)
-            all_scores = tf.matmul(inputs, tf.transpose(embedding_table))
-            return all_scores
+        if self.sampled_softmax_mode:
+            return self.get_logits_for_sampled_softmax(inputs)
 
         self._check_input_from_two_tower(inputs)
         positive_scores = tf.reduce_sum(
@@ -273,7 +298,7 @@ class ItemRetrievalScorer(Block):
         self._check_required_context_item_features_are_present()
         targets, predictions = outputs.targets, outputs.predictions
 
-        if isinstance(targets, tf.Tensor):
+        if self.sampled_softmax_mode or isinstance(targets, tf.Tensor):
             positive_item_ids = targets
         else:
             positive_item_ids = self.context[self.item_id_feature_name]
@@ -283,12 +308,12 @@ class ItemRetrievalScorer(Block):
                 len(self.samplers) > 0
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
 
-            if isinstance(predictions, dict):
-                batch_items_embeddings = predictions[self.item_name]
-            else:
-                embedding_table = self.context.get_embedding(self.item_id_feature_name)
-                batch_items_embeddings = embedding_ops.embedding_lookup(embedding_table, targets)
-                predictions = {self.query_name: predictions, self.item_name: batch_items_embeddings}
+            if self.sampled_softmax_mode:
+                predictions = self.prepare_query_item_vectors_for_sampled_softmax(
+                    predictions, targets
+                )
+
+            batch_items_embeddings = predictions[self.item_name]
             batch_items_metadata = self.get_batch_items_metadata()
 
             positive_scores = tf.reduce_sum(
@@ -304,6 +329,7 @@ class ItemRetrievalScorer(Block):
             for sampler in self.samplers:
                 input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
                 if "item_weights" in sampler._call_fn_args:
+                    embedding_table = self.context.get_embedding(self.item_id_feature_name)
                     neg_items = sampler(input_data.__dict__, item_weights=embedding_table)
                 else:
                     neg_items = sampler(input_data.__dict__)
@@ -372,6 +398,28 @@ class ItemRetrievalScorer(Block):
                 axis=1,
             )
             return PredictionOutput(predictions, targets, positive_item_ids=positive_item_ids)
+
+    def get_logits_for_sampled_softmax(self, inputs):
+        if not isinstance(inputs, tf.Tensor):
+            raise ValueError(
+                f"Inputs to Sampled Softmax block should be tensors, got {type(inputs)}"
+            )
+        embedding_table = self.context.get_embedding(self.item_id_feature_name)
+        all_scores = tf.matmul(inputs, tf.transpose(embedding_table))
+        return all_scores
+
+    def prepare_query_item_vectors_for_sampled_softmax(
+        self, predictions: tf.Tensor, targets: tf.Tensor
+    ):
+        # extract positive items embeddings
+        if not isinstance(predictions, tf.Tensor):
+            raise ValueError(
+                f"Inputs to Sampled Softmax block should be tensors, got {type(predictions)}"
+            )
+        embedding_table = self.context.get_embedding(self.item_id_feature_name)
+        batch_items_embeddings = embedding_ops.embedding_lookup(embedding_table, targets)
+        predictions = {self.query_name: predictions, self.item_name: batch_items_embeddings}
+        return predictions
 
     def get_batch_items_metadata(self):
         result = {feat_name: self.context[feat_name] for feat_name in self._required_features}
