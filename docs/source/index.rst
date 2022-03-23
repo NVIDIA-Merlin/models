@@ -7,8 +7,7 @@ Welcome to Merlin Models documentation!
 
    Getting Started <getting_started>
    models_overview
-
-
+   API Documentation <api>
 
 Indices and tables
 ==================
