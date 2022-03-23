@@ -469,7 +469,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
         append: bool
             Whether to append the debug block to the block or to prepend it.
         """
-        from merlin.models.tf.blocks.core.combinators import Debug, SequentialBlock
+        from merlin.models.tf.blocks.core.base import Debug
+        from merlin.models.tf.blocks.core.combinators import SequentialBlock
 
         if not append:
             return SequentialBlock([Debug(), self])
