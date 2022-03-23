@@ -20,10 +20,10 @@ from typing import Optional
 import tensorflow as tf
 
 from merlin.models.tf.blocks.core.base import Block, BlockType
-from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, RetrievalMixin
-from merlin.models.tf.features.embedding import EmbeddingOptions
+from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin_models")
@@ -82,12 +82,7 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
         item_tower: Optional[Block] = None,
         query_tower_tag=Tags.USER,
         item_tower_tag=Tags.ITEM,
-        embedding_options: EmbeddingOptions = EmbeddingOptions(
-            embedding_dims=None,
-            embedding_dim_default=64,
-            infer_embedding_sizes=False,
-            infer_embedding_sizes_multiplier=2.0,
-        ),
+        embedding_options: Optional[EmbeddingOptions] = None,
         post: Optional[BlockType] = None,
         **kwargs,
     ):

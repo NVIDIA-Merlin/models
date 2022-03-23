@@ -117,13 +117,21 @@ def filter_dict_by_schema(input_dict, schema):
     return {k: v for k, v in input_dict.items() if k in column_names}
 
 
+def categorical_cardinality(column_schema: ColumnSchema) -> Optional[int]:
+    if Tags.CATEGORICAL in column_schema.tags:
+        domain = column_schema.int_domain
+        if domain:
+            return domain.max + 1
+
+    return None
+
+
 def categorical_cardinalities(schema) -> Dict[str, int]:
     outputs = {}
     for col in schema:
-        if Tags.CATEGORICAL in col.tags:
-            domain = col.int_domain
-            if domain:
-                outputs[col.name] = domain.max + 1
+        maybe_cardinality = categorical_cardinality(col)
+        if maybe_cardinality:
+            outputs[col.name] = maybe_cardinality
 
     return outputs
 
@@ -139,6 +147,10 @@ def categorical_domains(schema) -> Dict[str, str]:
             outputs[col.name] = name
 
     return outputs
+
+
+def get_embedding_size_from_col(column_schema: ColumnSchema, multiplier: float = 2.0):
+    return get_embedding_size_from_cardinality(categorical_cardinality(column_schema), multiplier)
 
 
 def get_embedding_sizes_from_schema(schema: Schema, multiplier: float = 2.0):

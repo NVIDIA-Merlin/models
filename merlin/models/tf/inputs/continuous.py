@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import List, Optional
+from typing import List, Optional, Sequence, overload, Union
 
 import tensorflow as tf
 
@@ -26,7 +26,7 @@ from merlin.models.tf.blocks.core.tabular import (
     TabularBlock,
 )
 from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import Schema
+from merlin.schema import Schema, Tags
 
 
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
@@ -41,9 +41,35 @@ class ContinuousFeatures(TabularBlock):
     {tabular_module_parameters}
     """
 
+    @overload
+    def __init__(
+            self,
+            inputs: Sequence[str],
+            pre: Optional[BlockType] = None,
+            post: Optional[BlockType] = None,
+            aggregation: Optional[TabularAggregationType] = None,
+            schema: Optional[Schema] = None,
+            name: Optional[str] = None,
+            **kwargs
+    ):
+        ...
+
+    @overload
+    def __init__(
+            self,
+            inputs: Union[Schema, Tags],
+            pre: Optional[BlockType] = None,
+            post: Optional[BlockType] = None,
+            aggregation: Optional[TabularAggregationType] = None,
+            schema: Optional[Schema] = None,
+            name: Optional[str] = None,
+            **kwargs
+    ):
+        ...
+
     def __init__(
         self,
-        features: List[str],
+        inputs,
         pre: Optional[BlockType] = None,
         post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
@@ -60,11 +86,7 @@ class ContinuousFeatures(TabularBlock):
             is_input=True,
             **kwargs
         )
-        self.filter_features = Filter(features)
-
-    @classmethod
-    def from_features(cls, features, **kwargs):
-        return cls(features, **kwargs)
+        self.filter_features = Filter(inputs, schema=schema)
 
     def call(self, inputs, *args, **kwargs):
         cont_features = self.filter_features(inputs)

@@ -32,14 +32,14 @@ def test_continuous_features(tf_con_features):
 def test_continuous_features_yoochoose(testing_data: SyntheticData):
     schema = testing_data.schema.select_by_tag(Tags.CONTINUOUS)
 
-    inputs = ml.ContinuousFeatures.from_schema(schema)
+    inputs = ml.ContinuousFeatures(schema)
     outputs = inputs(testing_data.tf_tensor_dict)
 
     assert sorted(list(outputs.keys())) == sorted(schema.column_names)
 
 
 def test_serialization_continuous_features(testing_data: SyntheticData):
-    inputs = ml.ContinuousFeatures.from_schema(testing_data.schema)
+    inputs = ml.ContinuousFeatures(testing_data.schema)
 
     copy_layer = testing_utils.assert_serialization(inputs)
 
@@ -50,7 +50,7 @@ def test_serialization_continuous_features(testing_data: SyntheticData):
 def test_continuous_features_yoochoose_model(testing_data: SyntheticData, run_eagerly):
     schema = testing_data.schema.select_by_tag(Tags.CONTINUOUS)
 
-    inputs = ml.ContinuousFeatures.from_schema(schema, aggregation="concat")
+    inputs = ml.ContinuousFeatures(schema, aggregation="concat")
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
     testing_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)

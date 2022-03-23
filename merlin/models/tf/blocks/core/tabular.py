@@ -533,7 +533,10 @@ class Filter(TabularBlock):
         self, inputs, name=None, pop=False, exclude=False, add_to_context: bool = False, **kwargs
     ):
         if isinstance(inputs, Tags):
-            self.feature_names = inputs
+            if "schema" in kwargs and kwargs["schema"] is not None:
+                self.feature_names = kwargs["schema"].select_by_tag(inputs).column_names
+            else:
+                self.feature_names = inputs
         else:
             self.feature_names = list(inputs.column_names) if isinstance(inputs, Schema) else inputs
         super().__init__(name=name, **kwargs)

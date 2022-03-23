@@ -44,7 +44,16 @@ from merlin.models.tf.blocks.core.base import (
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, ResidualBlock, SequentialBlock
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
-from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.inputs.continuous import ContinuousFeatures
+from merlin.models.tf.inputs.embedding import (
+    ContinuousEmbedding,
+    EmbeddingFeatures,
+    EmbeddingOptions,
+    FeatureConfig,
+    SequenceEmbeddingFeatures,
+    TableConfig,
+)
 from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
 from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
 from merlin.models.tf.blocks.core.transformations import (
@@ -74,15 +83,6 @@ from merlin.models.tf.blocks.sampling.cross_batch import (
 )
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.blocks.sampling.queue import FIFOQueue
-from merlin.models.tf.features.continuous import ContinuousFeatures
-from merlin.models.tf.features.embedding import (
-    ContinuousEmbedding,
-    EmbeddingFeatures,
-    EmbeddingOptions,
-    FeatureConfig,
-    SequenceEmbeddingFeatures,
-    TableConfig,
-)
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import (
     AvgPrecisionAt,

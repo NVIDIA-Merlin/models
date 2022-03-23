@@ -23,8 +23,8 @@ from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularAggregationType
 from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
-from merlin.models.tf.features.continuous import ContinuousFeatures
-from merlin.models.tf.features.embedding import (
+from merlin.models.tf.inputs.continuous import ContinuousFeatures
+from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
@@ -36,23 +36,23 @@ LOG = logging.getLogger("merlin-models")
 
 
 def InputBlock(
-    schema: Schema,
-    branches: Optional[Dict[str, Block]] = None,
-    post: Optional[BlockType] = None,
-    aggregation: Optional[TabularAggregationType] = None,
-    seq: bool = False,
-    max_seq_length: Optional[int] = None,
-    add_continuous_branch: bool = True,
-    continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
-    continuous_projection: Optional[Block] = None,
-    add_embedding_branch: bool = True,
-    embedding_options: EmbeddingOptions = EmbeddingOptions(),
-    categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
-    sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
-    split_sparse: bool = False,
-    masking: Optional[Union[str, MaskingBlock]] = None,
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
-    **kwargs,
+        schema: Schema,
+        branches: Optional[Dict[str, Block]] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        seq: bool = False,
+        max_seq_length: Optional[int] = None,
+        add_continuous_branch: bool = True,
+        continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
+        continuous_projection: Optional[Block] = None,
+        add_embedding_branch: bool = True,
+        embedding_options: Optional[EmbeddingOptions] = None,
+        categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
+        sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
+        split_sparse: bool = False,
+        masking: Optional[Union[str, MaskingBlock]] = None,
+        seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+        **kwargs,
 ) -> Block:
     """The entry block of the model to process input features from a schema.
 
@@ -118,21 +118,24 @@ def InputBlock(
     """
     input_kwargs = locals()
     _branches: Dict[str, Block] = branches or {}
+    _embedding_options = embedding_options or EmbeddingOptions(schema)
 
     if split_sparse:
         input_kwargs["branches"] = _branches
+        input_kwargs["embedding_options"] = _embedding_options
         for to_del in ["split_sparse", "kwargs"]:
             del input_kwargs[to_del]
 
         return _split_sparse(**input_kwargs, **kwargs)
 
     if add_continuous_branch and schema.select_by_tag(continuous_tags).column_schemas:
-        _branches[InputBranches.CONTINUOUS.value] = _continuous_branch(
-            schema, continuous_tags, max_seq_length, seq
+        _branches[InputBranches.CONTINUOUS.value] = ContinuousFeatures(
+            schema.select_by_tag(continuous_tags),
+            pre=AsDenseFeatures(max_seq_length) if max_seq_length and seq else None,
         )
     if add_embedding_branch and schema.select_by_tag(categorical_tags).column_schemas:
-        _branches[InputBranches.CATEGORICAL.value] = _categorical_branch(
-            schema, categorical_tags, embedding_options, max_seq_length, seq
+        _branches[InputBranches.CATEGORICAL.value] = CategoricalBlock(
+            embedding_options, max_seq_length, seq
         )
 
     out_kwargs = dict(post=post, aggregation=aggregation)
@@ -148,21 +151,22 @@ class InputBranches(str, Enum):
     SPARSE = "sparse"
 
 
-def _sparse_branch(
-    schema: Optional[Schema] = None,
-    branches: Optional[Dict[str, Block]] = None,
-    post: Optional[BlockType] = None,
-    aggregation: Optional[TabularAggregationType] = None,
-    max_seq_length: Optional[int] = None,
-    add_continuous_branch: bool = True,
-    continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
-    continuous_projection: Optional[Block] = None,
-    add_embedding_branch: bool = True,
-    embedding_options: EmbeddingOptions = EmbeddingOptions(),
-    categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
-    masking: Optional[Union[str, MaskingBlock]] = None,
+def SparseBranch(
+        schema: Schema,
+        branches: Optional[Dict[str, Block]] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        max_seq_length: Optional[int] = None,
+        add_continuous_branch: bool = True,
+        continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
+        continuous_projection: Optional[Block] = None,
+        add_embedding_branch: bool = True,
+        embedding_options: Optional[EmbeddingOptions] = None,
+        categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
+        masking: Optional[Union[str, MaskingBlock]] = None,
 ) -> InputBlock:
     kwargs = locals()
+    kwargs["embedding_options"] = embedding_options or EmbeddingOptions(schema)
     masking = kwargs.pop("masking", None)
     sparse_branch = InputBlock(seq=True, split_sparse=False, **kwargs)
     if masking:
@@ -174,21 +178,21 @@ def _sparse_branch(
 
 
 def _split_sparse(
-    schema: Schema,
-    branches: Dict[str, Block],
-    post: Optional[BlockType] = None,
-    aggregation: Optional[TabularAggregationType] = None,
-    seq: bool = False,
-    max_seq_length: Optional[int] = None,
-    add_continuous_branch: bool = True,
-    continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
-    continuous_projection: Optional[Block] = None,
-    add_embedding_branch: bool = True,
-    embedding_options: EmbeddingOptions = EmbeddingOptions(),
-    categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
-    sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
-    masking: Optional[Union[str, MaskingBlock]] = None,
+        schema: Schema,
+        branches: Dict[str, Block],
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        seq: bool = False,
+        max_seq_length: Optional[int] = None,
+        add_continuous_branch: bool = True,
+        continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
+        continuous_projection: Optional[Block] = None,
+        add_embedding_branch: bool = True,
+        embedding_options: Optional[EmbeddingOptions] = None,
+        categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
+        sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
+        seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+        masking: Optional[Union[str, MaskingBlock]] = None,
 ) -> InputBlock:
     sparse_schema = schema.select_by_tag(sequential_tags)
     context_schema = schema.remove_by_tag(sequential_tags)
@@ -204,22 +208,24 @@ def _split_sparse(
             "default `concat` will be used to merge sequential features"
         )
         aggregation = "concat"
-    agg = aggregation
 
     input_kwargs = dict(
         branches=branches,
         post=post,
-        aggregation=agg,
+        aggregation=aggregation,
         add_continuous_branch=add_continuous_branch,
         continuous_tags=continuous_tags,
         continuous_projection=continuous_projection,
         add_embedding_branch=add_embedding_branch,
-        embedding_options=embedding_options,
         categorical_tags=categorical_tags,
     )
 
-    sparse_branch = _sparse_branch(
-        sparse_schema, max_seq_length=max_seq_length, masking=masking, **input_kwargs
+    sparse_branch = SparseBranch(
+        sparse_schema,
+        max_seq_length=max_seq_length,
+        embedding_options=embedding_options.select_by_schema(sparse_schema) if embedding_options else None,
+        masking=masking,
+        **input_kwargs
     )
 
     if not seq:
@@ -230,30 +236,21 @@ def _split_sparse(
 
     branches[InputBranches.SPARSE.value] = sparse_branch
 
-    return InputBlock(context_schema, seq=False, split_sparse=False, **input_kwargs)
-
-
-def _continuous_branch(schema: Schema, continuous_tags, max_seq_length, seq):
-    pre = None
-    if max_seq_length and seq:
-        pre = AsDenseFeatures(max_seq_length)
-    continuous_branch = ContinuousFeatures.from_schema(
-        schema,
-        tags=continuous_tags,
-        pre=pre,
+    return InputBlock(
+        context_schema,
+        embedding_options=embedding_options.select_by_schema(context_schema) if embedding_options else None,
+        seq=False,
+        split_sparse=False,
+        **input_kwargs
     )
 
-    return continuous_branch
 
-
-def _categorical_branch(schema, categorical_tags, embedding_options, max_seq_length, seq):
+def CategoricalBlock(embedding_options: EmbeddingOptions, max_seq_length: int, seq: bool):
     emb_cls: Type[EmbeddingFeatures] = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
     emb_kwargs = {}
     if max_seq_length and seq:
         emb_kwargs["max_seq_length"] = max_seq_length
 
-    categorical_branch = emb_cls.from_schema(  # type: ignore
-        schema, tags=categorical_tags, embedding_options=embedding_options, **emb_kwargs
-    )
+    categorical_branch = emb_cls(embedding_options, **emb_kwargs)
 
     return categorical_branch

@@ -2,12 +2,12 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
-from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
-from merlin.models.tf.features.embedding import EmbeddingOptions
+from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.models.base import Model, RetrievalModel
@@ -103,12 +103,7 @@ def TwoTowerModel(
     item_tower: Optional[Block] = None,
     query_tower_tag=Tags.USER,
     item_tower_tag=Tags.ITEM,
-    embedding_options: EmbeddingOptions = EmbeddingOptions(
-        embedding_dims=None,
-        embedding_dim_default=64,
-        infer_embedding_sizes=False,
-        infer_embedding_sizes_multiplier=2.0,
-    ),
+    embedding_options: Optional[EmbeddingOptions] = None,
     post: Optional[BlockType] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
