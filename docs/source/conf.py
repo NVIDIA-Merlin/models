@@ -51,6 +51,7 @@ extensions = [
     "sphinx_markdown_tables",
     "nbsphinx",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
     "sphinx.ext.githubpages",
     "sphinx.ext.napoleon",
@@ -92,6 +93,12 @@ intersphinx_mapping = {
     "merlin-core": ("https://nvidia-merlin.github.io/core/", None),
 }
 
-autodoc_mock_imports = ["merlin", "nvtabular", "mypy", "torch", "torchmetrics"]
-
 autodoc_inherit_docstrings = False
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": False,
+    "member-order": "bysource",
+}
+
+autosummary_generate = True
