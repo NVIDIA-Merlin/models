@@ -28,12 +28,16 @@ def DLRMModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
 ) -> Model:
-    """DLRM-model architecture.
+    """DLRM-model architecture. Proposed by Facebook in 2019.
+
+    TODO: Add 3 sentence summary about this model. When would you want to use this?
 
     Example Usage::
         dlrm = DLRMModel(schema, embedding_dim=64, bottom_block=MLPBlock([256, 64]))
         dlrm.compile(optimizer="adam")
         dlrm.fit(train_data, epochs=10)
+
+    TODO: Link to tutorial
 
     References
     ----------

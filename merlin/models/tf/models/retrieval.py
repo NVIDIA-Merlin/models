@@ -36,38 +36,52 @@ def MatrixFactorizationModel(
 ) -> Union[Model, RetrievalModel]:
     """Builds a matrix factorization model.
 
+    TODO: Add 3 sentence summary about this model. When would you want to use this?
+
     Example Usage::
         mf = MatrixFactorizationModel(schema, dim=128)
         mf.compile(optimizer="adam")
         mf.fit(train_data, epochs=10)
 
+    TODO: Make sure it can link to the Schema & Tags
+    TODO: Link to tutorial
+
     Parameters
     ----------
     schema: Schema
-        The `Schema` with the input features
+        The `Schema` with the input features.
     dim: int
         The dimension of the embeddings.
+        The optimal value of this parameter typically depends on your dataset size.
+        Smaller values consume less memory and train more quickly.
+        Larger values give the model more expressive power to model the interactions between users and items, and can
+        produce a more accurate model, but at the cost of memory consumption and CPU/GPU usage.
     query_id_tag : Tag
-        The tag to select query features, by default `Tags.USER`
+        The tag to select the query feature, by default `Tags.USER`
     item_id_tag : Tag
-        The tag to select item features, by default `Tags.ITEM`
+        The tag to select the item feature, by default `Tags.ITEM`
     embeddings_initializers: Dict[str, Callable[[Any], None]]
+        TODO: List different popular initializers, and how to provide them. Type-hint is wrong now.
         A dictionary of initializers for embeddings.
     post: Optional[Block], optional
-        The optional `Block` to apply on both outputs of Two-tower model
-    prediction_tasks: optional
+        The optional `Block` to apply on both the user- and item-embedding.
+    prediction_tasks: Optional[PredictionTask]
         The optional `PredictionTask` or list of `PredictionTask` to apply on the model.
+        TODO: add default.
     logits_temperature: float
         Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
     loss: Optional[LossType]
         Loss function.
         Defaults to `bpr`.
+        TODO: List out some other possible loss functions.
     samplers: List[ItemSampler]
         List of samplers for negative sampling, by default `[InBatchSampler()]`
+        TODO: call out that this is used in ItemRetrievalTask when no prediction_tasks are provided.
 
     Returns
     -------
+    TODO: Explain in what instances either option is returned.
     Union[Model, RetrievalModel]
     """
 
@@ -97,6 +111,103 @@ def MatrixFactorizationModel(
     return model
 
 
+def YoutubeDNNRetrievalModel(
+    schema: Schema,
+    max_seq_length: int,
+    aggregation: str = "concat",
+    top_block: Block = MLPBlock([64]),
+    num_sampled: int = 100,
+    loss: Optional[LossType] = "categorical_crossentropy",
+    metrics=ranking_metrics(top_ks=[10]),
+    normalize: bool = True,
+    extra_pre_call: Optional[Block] = None,
+    task_block: Optional[Block] = None,
+    logits_temperature: float = 1.0,
+    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+) -> Model:
+    """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
+
+    TODO: Add 3 sentence summary about this model. When would you want to use this?
+
+    Example Usage::
+        model = YoutubeDNNRetrievalModel(schema, num_sampled=100)
+        model.compile(optimizer="adam")
+        model.fit(train_data, epochs=10)
+
+    TODO: Link to tutorial.
+
+    References
+    ----------
+    [1] Covington, Paul, Jay Adams, and Emre Sargin.
+        "Deep neural networks for youtube recommendations."
+        Proceedings of the 10th ACM conference on recommender systems. 2016.
+
+
+    Parameters
+    ----------
+    schema: Schema
+        The `Schema` with the input features.
+    aggregation: str
+        The aggregation method to use for the sequence of features.
+        Defaults to `concat`.
+        TODO: Why would the user do something different here?
+    top_block: Block
+        The `Block` that combines the top features
+        TODO: Explain where this fits in the model
+    num_sampled: int
+        The number of negative samples to use in the sampled-softmax.
+        Defaults to 100.
+        TODO: Explain a little how/why to tweak this number. What happens?
+    loss: Optional[LossType]
+        Loss function.
+        Defaults to `categorical_crossentropy`.
+        TODO: List options here
+    metrics: List[Metric]
+        List of metrics to use.
+        Defaults to `ranking_metrics(top_ks=[10])`
+        TODO: What metrics make sense here?
+    normalize: bool
+        Whether to normalize the embeddings.
+        Defaults to True.
+    extra_pre_call: Optional[Block]
+        The optional `Block` to apply before the model.
+    task_block: Optional[Block]
+        The optional `Block` to apply on the model.
+    logits_temperature: float
+        Parameter used to reduce model overconfidence, so that logits / T.
+        Defaults to 1.
+    seq_aggregator: Block
+        The `Block` to aggregate the sequence of features.
+        TODO: List options. mean, sqrt, ...
+    """
+
+    inputs = InputBlock(
+        schema,
+        aggregation=aggregation,
+        seq=False,
+        max_seq_length=max_seq_length,
+        masking="clm",
+        split_sparse=True,
+        seq_aggregator=seq_aggregator,
+    )
+
+    task = NextItemPredictionTask(
+        schema=schema,
+        loss=loss,
+        metrics=metrics,
+        masking=True,
+        weight_tying=False,
+        sampled_softmax=True,
+        extra_pre_call=extra_pre_call,
+        task_block=task_block,
+        logits_temperature=logits_temperature,
+        normalize=normalize,
+        num_sampled=num_sampled,
+    )
+
+    return inputs.connect(top_block, task)
+
+
 def TwoTowerModel(
     schema: Schema,
     query_tower: Block,
@@ -120,11 +231,17 @@ def TwoTowerModel(
     **kwargs,
 ) -> Union[Model, RetrievalModel]:
     """Builds the Two-tower architecture, as proposed in [1].
+    You can think of this model as a matrix-factorization model with both user- and item-features.
+
+    TODO: Add 3 sentence summary about this model. When would you want to use this?
+    - Works better for larger datasets
 
     Example Usage::
         two_tower = TwoTowerModel(schema, MLPBlock([256, 64]))
         two_tower.compile(optimizer="adam")
         two_tower.fit(train_data, epochs=10)
+
+    TODO: Link to tutorial
 
     References
     ----------
@@ -135,9 +252,9 @@ def TwoTowerModel(
     Parameters
     ----------
     schema: Schema
-        The `Schema` with the input features
+        The `Schema` with the input features.
     query_tower: Block
-        The `Block` that combines user features
+        The `Block` that combines user features.
     item_tower: Optional[Block], optional
         The optional `Block` that combines items features.
         If not provided, a copy of the query_tower is used.
@@ -160,17 +277,21 @@ def TwoTowerModel(
         The optional `Block` to apply on both outputs of Two-tower model
     prediction_tasks: optional
         The optional `PredictionTask` or list of `PredictionTask` to apply on the model.
+        TODO: Explain what happens when no prediction-taks is provided
     logits_temperature: float
         Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
     loss: Optional[LossType]
         Loss function.
         Defaults to `categorical_crossentropy`.
+        TODO: List other options here.
     samplers: List[ItemSampler]
         List of samplers for negative sampling, by default `[InBatchSampler()]`
+        TODO: Explain this is only relevant when no prediction-taks is provided
 
     Returns
     -------
+    TODO: Explain in what instances either option is returned.
     Union[Model, RetrievalModel]
     """
 
@@ -201,90 +322,3 @@ def TwoTowerModel(
     model = two_tower.connect(prediction_tasks)
 
     return model
-
-
-def YoutubeDNNRetrievalModel(
-    schema: Schema,
-    max_seq_length: int,
-    aggregation: str = "concat",
-    top_block: Block = MLPBlock([64]),
-    num_sampled: int = 100,
-    loss: Optional[LossType] = "categorical_crossentropy",
-    metrics=ranking_metrics(top_ks=[10]),
-    normalize: bool = True,
-    extra_pre_call: Optional[Block] = None,
-    task_block: Optional[Block] = None,
-    logits_temperature: float = 1.0,
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
-) -> Model:
-    """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
-
-    Example Usage::
-        model = YoutubeDNNRetrievalModel(schema, num_sampled=100)
-        model.compile(optimizer="adam")
-        model.fit(train_data, epochs=10)
-
-    References
-    ----------
-    [1] Covington, Paul, Jay Adams, and Emre Sargin.
-        "Deep neural networks for youtube recommendations."
-        Proceedings of the 10th ACM conference on recommender systems. 2016.
-
-
-    Parameters
-    ----------
-    schema: Schema
-        The `Schema` with the input features
-    aggregation: str
-        The aggregation method to use for the sequence of features.
-        Defaults to `concat`.
-    top_block: Block
-        The `Block` that combines the top features
-    num_sampled: int
-        The number of negative samples to use in the sampled-softmax.
-        Defaults to 100.
-    loss: Optional[LossType]
-        Loss function.
-        Defaults to `categorical_crossentropy`.
-    metrics: List[Metric]
-        List of metrics to use.
-        Defaults to `ranking_metrics(top_ks=[10])`
-    normalize: bool
-        Whether to normalize the embeddings.
-        Defaults to True.
-    extra_pre_call: Optional[Block]
-        The optional `Block` to apply before the model.
-    task_block: Optional[Block]
-        The optional `Block` to apply on the model.
-    logits_temperature: float
-        Parameter used to reduce model overconfidence, so that logits / T.
-        Defaults to 1.
-    seq_aggregator: Block
-        The `Block` to aggregate the sequence of features.
-    """
-
-    inputs = InputBlock(
-        schema,
-        aggregation=aggregation,
-        seq=False,
-        max_seq_length=max_seq_length,
-        masking="clm",
-        split_sparse=True,
-        seq_aggregator=seq_aggregator,
-    )
-
-    task = NextItemPredictionTask(
-        schema=schema,
-        loss=loss,
-        metrics=metrics,
-        masking=True,
-        weight_tying=False,
-        sampled_softmax=True,
-        extra_pre_call=extra_pre_call,
-        task_block=task_block,
-        logits_temperature=logits_temperature,
-        normalize=normalize,
-        num_sampled=num_sampled,
-    )
-
-    return inputs.connect(top_block, task)
