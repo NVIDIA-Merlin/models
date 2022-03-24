@@ -415,7 +415,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             self.check_for_retrieval_task()
             # We need to load the top-k indices at each call of the evaluate()
             # to ensure most updated pre-computed embeddings are loaded.
-            self = self._load_topk_evaluation()
+            self = self._load_or_update_candidates_index()
 
         return super().evaluate(
             x,
@@ -583,7 +583,7 @@ class RetrievalModel(Model):
         )
         self._k = tf.reduce_max([metric.k for metric in ranking_metrics])
 
-    def _load_topk_evaluation(self, **kwargs):
+    def _load_or_update_candidates_index(self, **kwargs):
         """Update the model with a top-k evaluation block."""
         import merlin.models.tf as ml
 
@@ -594,14 +594,20 @@ class RetrievalModel(Model):
                 "via `set_retrieval_candidates_for_evaluation` method"
             )
 
-        topk_index = ml.TopKIndexBlock.from_block(
-            self.retrieval_block.item_block(),
-            data=self.evaluation_candidates,
-            k=self._k,
-            context=self.context,
-            **kwargs,
-        )
-        self.loss_block.pre_eval_topk = topk_index  # type: ignore
+        if self.loss_block.pre_eval_topk is None:
+            topk_index = ml.TopKIndexBlock.from_block(
+                self.retrieval_block.item_block(),
+                data=self.evaluation_candidates,
+                k=self._k,
+                context=self.context,
+                **kwargs,
+            )
+            self.loss_block.pre_eval_topk = topk_index  # type: ignore
+        else:
+            if not self._should_compute_eval_metrics_as_in_training:
+                self.loss_block.pre_eval_topk.update_from_block(
+                    self.retrieval_block.item_block(), self.evaluation_candidates
+                )
 
         # set cache_query to True in the ItemRetrievalScorer
         self.loss_block.set_retrieval_cache_query(True)  # type: ignore
