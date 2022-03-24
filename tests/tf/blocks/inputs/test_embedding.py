@@ -19,20 +19,18 @@ from tensorflow.python.ops import init_ops_v2
 
 import merlin.models.tf as ml
 from merlin.models.data.synthetic import SyntheticData
+from merlin.models.tf.inputs.embedding import EmbeddingTable
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
 def test_embedding_features(tf_cat_features):
-    dim = 15
-    feature_config = {
-        f: ml.FeatureConfig(ml.TableConfig(100, dim, name=f, initializer=None))
-        for f in tf_cat_features.keys()
-    }
-    embeddings = ml.EmbeddingFeatures(feature_config)(tf_cat_features)
+    options = ml.EmbeddingTableOptions(dim=64)
+    embedding_tables = {f: EmbeddingTable(f, 100, options) for f in tf_cat_features.keys()}
+    embeddings = ml.EmbeddingFeatures(embedding_tables)(tf_cat_features)
 
-    assert list(embeddings.keys()) == list(feature_config.keys())
-    assert all([emb.shape[-1] == dim for emb in embeddings.values()])
+    assert list(embeddings.keys()) == list(embedding_tables.keys())
+    assert all([emb.shape[-1] == options.dim for emb in embeddings.values()])
 
 
 def test_embedding_features_yoochoose(testing_data: SyntheticData):
@@ -44,7 +42,7 @@ def test_embedding_features_yoochoose(testing_data: SyntheticData):
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
     assert all(emb.shape[-1] == 64 for emb in embeddings.values())
     max_value = list(schema.select_by_name("item_id"))[0].int_domain.max
-    assert emb_module.embedding_tables["item_id"].shape[0] == max_value + 1
+    assert emb_module.embeddings["item_id"].embedding_table.shape[0] == max_value + 1
 
 
 def test_serialization_embedding_features(testing_data: SyntheticData):
@@ -52,14 +50,7 @@ def test_serialization_embedding_features(testing_data: SyntheticData):
 
     copy_layer = testing_utils.assert_serialization(inputs)
 
-    assert list(inputs.feature_config.keys()) == list(copy_layer.feature_config.keys())
-
-    from merlin.models.tf.features.embedding import serialize_table_config as ser
-
-    assert all(
-        ser(inputs.feature_config[key].table) == ser(copy_layer.feature_config[key].table)
-        for key in copy_layer.feature_config
-    )
+    assert list(inputs.embeddings.keys()) == list(copy_layer.embeddings.keys())
 
 
 @testing_utils.mark_run_eagerly_modes

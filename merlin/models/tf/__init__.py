@@ -50,9 +50,7 @@ from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
-    FeatureConfig,
-    SequenceEmbeddingFeatures,
-    TableConfig,
+    EmbeddingTableOptions,
 )
 from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
 from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
@@ -144,10 +142,8 @@ __all__ = [
     "TabularBlock",
     "ContinuousFeatures",
     "EmbeddingFeatures",
-    "SequenceEmbeddingFeatures",
     "EmbeddingOptions",
-    "FeatureConfig",
-    "TableConfig",
+    "EmbeddingTableOptions",
     "ParallelPredictionBlock",
     "TwoTowerBlock",
     "MatrixFactorizationBlock",

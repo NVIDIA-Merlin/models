@@ -43,6 +43,7 @@ from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSpar
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import ColumnSchema, Schema, Tags, TagsType
@@ -62,7 +63,7 @@ class EmbeddingTable(Block):
             self,
             name: str,
             vocabulary_size: int,
-            options: "TableOptions",
+            options: "EmbeddingTableOptions",
             context: Optional[BlockContext] = None,
             **kwargs
     ):
@@ -89,7 +90,7 @@ class EmbeddingTable(Block):
             name=self._name,
             trainable=True,
             initializer=self.options.initialize(),
-            shape=(self.vocabulary_size, self.dim),
+            shape=(self.vocabulary_size, self.options.dim),
         )
 
     def call(self, inputs):
@@ -103,7 +104,7 @@ class EmbeddingTable(Block):
             if self.options.max_seq_length:
                 out = tf.gather(self.embedding_table, tf.cast(inputs, tf.int32))
             else:
-                if len(self.shape) > 1:
+                if len(inputs.shape) > 1:
                     # TODO: Check if it is correct to retrieve only the 1st element
                     # of second dim for non-sequential multi-hot categ features
                     out = tf.gather(self.embedding_table, tf.cast(inputs, tf.int32)[:, 0])
@@ -116,33 +117,54 @@ class EmbeddingTable(Block):
 
         return out
 
-    def compute_output_shape(self, input_shapes):
-        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
-
+    def compute_output_shape(self, input_shape):
         if self.options.max_seq_length:
-            return tf.TensorShape(batch_size, self.options.max_seq_length, self.dim)
+            return tf.TensorShape(input_shape[0], self.options.max_seq_length, self.options.dim)
 
-        return tf.TensorShape([batch_size, self.dim])
+        return tf.TensorShape([input_shape[0], self.options.dim])
+
+    def get_config(self):
+        config = super().get_config()
+        config.update(
+            {
+                "name": self._name,
+                "vocabulary_size": self.vocabulary_size,
+                "options": self.options.get_config(),
+            }
+        )
+
+        return config
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        config["options"] = EmbeddingTableOptions.from_config(config["options"], custom_objects=custom_objects)
+
+        return cls(**config)
 
 
-def truncated_normal_initializer(options: "TableOptions"):
-    return init_ops_v2.TruncatedNormal(mean=0.0, stddev=1 / math.sqrt(options.dim))
+def truncated_normal_initializer(dim: int):
+    return init_ops_v2.TruncatedNormal(mean=0.0, stddev=1 / math.sqrt(dim))
 
 
 InitializerFn = Callable[[int], Union[Initializer, tf.Tensor]]
 
 
 @dataclass
-class TableOptions:
+class EmbeddingTableOptions:
     dim: int
     initializer: InitializerFn = truncated_normal_initializer
     block_cls: Type[Block] = EmbeddingTable
     combiner: str = "mean"
-    extra_options: Dict[str, Any] = field(default_factory=dict)
     max_seq_length: Optional[int] = None
+    extra_options: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def infer_dim(cls, col: Union[ColumnSchema, int], multiplier: float = 2.0, **kwargs) -> "TableOptions":
+    def infer_dim(
+            cls,
+            col: Union[ColumnSchema, int],
+            multiplier: float = 2.0,
+            **kwargs
+    ) -> "EmbeddingTableOptions":
         if isinstance(col, ColumnSchema):
             dim = schema_utils.get_embedding_size_from_col(col, multiplier=multiplier)
         elif isinstance(col, int):
@@ -152,7 +174,7 @@ class TableOptions:
 
         return cls(dim=dim, **kwargs)
 
-    def to_block(self, column_schema: ColumnSchema, **kwargs) -> "EmbeddingTable":
+    def to_block(self, column_schema: ColumnSchema, **kwargs) -> Block:
         cardinality = schema_utils.categorical_cardinality(column_schema)
         if not cardinality:
             raise ValueError("Cannot infer cardinality for column {}".format(column_schema.name))
@@ -161,12 +183,28 @@ class TableOptions:
     def initialize(self) -> Union[Initializer, tf.Tensor]:
         return self.initializer(self.dim)
 
+    def get_config(self):
+        out = self.__dict__
+        out["initializer"] = tf.keras.initializers.serialize(out["initializer"])
+
+        return out
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        config["initializer"] = tf.keras.initializers.deserialize(config["initializer"])
+
+        return cls(**config)
+
+
+# TODO: What do to with these parameters for sequential?
+# mask_zero: bool = True,
+# padding_idx: int = 0,
 
 class EmbeddingOptions:
     def __init__(
             self,
             schema: Schema,
-            custom_tables: Dict[str, Union[TableOptions, EmbeddingTable]] = None,
+            custom_tables: Dict[str, Union[EmbeddingTableOptions, EmbeddingTable]] = None,
             default_embedding_dim: int = 64,
             infer_embedding_sizes: bool = False,
             infer_embedding_sizes_multiplier: float = 2.0,
@@ -176,13 +214,16 @@ class EmbeddingOptions:
             max_seq_length: Optional[int] = None,
     ):
         self.schema = schema
-        self._tables: Dict[str, TableOptions] = {}
-        self._features: Dict[str, TableOptions] = {}
+        self._tables: Dict[str, EmbeddingTableOptions] = {}
+        self._features: Dict[str, EmbeddingTableOptions] = {}
         self._feature_mapping: Dict[str, str] = {}
         self._max_seq_length = max_seq_length
+        _custom_tables = custom_tables or {}
 
         domains = schema_utils.categorical_domains(schema)
-        for name, col in schema.column_schemas:
+        for name, col in schema.column_schemas.items():
+            if name not in domains:
+                continue
             table_name = domains[name]
             if table_name not in self._tables:
                 table_kwargs = dict(
@@ -190,22 +231,26 @@ class EmbeddingOptions:
                     combiner=default_combiner,
                     initializer=default_initializer
                 )
-                if table_name in custom_tables:
-                    table = custom_tables[table_name]
+                if table_name in _custom_tables:
+                    table = _custom_tables[table_name]
                 elif infer_embedding_sizes:
-                    table = TableOptions.infer_dim(col, multiplier=infer_embedding_sizes_multiplier, **table_kwargs)
+                    table = EmbeddingTableOptions.infer_dim(
+                        col,
+                        multiplier=infer_embedding_sizes_multiplier,
+                        **table_kwargs
+                    )
                 else:
-                    table = TableOptions(dim=default_embedding_dim, **table_kwargs)
+                    table = EmbeddingTableOptions(dim=default_embedding_dim, **table_kwargs)
 
                 self._tables[table_name] = table
 
             self._features[name] = self._tables[table_name]
             self._feature_mapping[name] = table_name
 
-    def set_table(self, name: str, table: TableOptions):
+    def set_table(self, name: str, table: EmbeddingTableOptions):
         self._tables[name] = table
 
-    def set_feature(self, name: str, table: TableOptions):
+    def set_feature(self, name: str, table: EmbeddingTableOptions):
         self._features[name] = table
 
     def to_blocks(self) -> Dict[str, Block]:
@@ -226,11 +271,11 @@ class EmbeddingOptions:
         return EmbeddingOptions(schema, custom_tables=self._tables)
 
     @property
-    def features(self) -> Dict[str, TableOptions]:
+    def features(self) -> Dict[str, EmbeddingTableOptions]:
         return self._features
 
     @property
-    def tables(self) -> Dict[str, TableOptions]:
+    def tables(self) -> Dict[str, EmbeddingTableOptions]:
         return self._tables
 
     @property
@@ -277,11 +322,17 @@ class EmbeddingFeatures(TabularBlock):
     ):
         if isinstance(embeddings, EmbeddingOptions):
             self.embeddings = embeddings.to_blocks()
-        else:
+        elif isinstance(embeddings, dict) and all(isinstance(v, EmbeddingTable) for v in embeddings.values()):
             self.embeddings = embeddings
+        else:
+            raise ValueError(
+                f"`embeddings` must be an EmbeddingOptions or a dictionary from feature_name to EmbeddingTable ",
+                f"but got {embeddings} of type {type(embeddings)}"
+            )
 
         if add_default_pre:
-            embedding_pre = [Filter(list(self.embeddings.keys())), AsSparseFeatures()]
+            convert_lists = AsDenseFeatures(self.max_seq_length) if self.max_seq_length else AsSparseFeatures()
+            embedding_pre = [Filter(list(self.embeddings.keys())), convert_lists]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
 
         super().__init__(
@@ -293,6 +344,19 @@ class EmbeddingFeatures(TabularBlock):
             is_input=True,
             **kwargs,
         )
+
+    @classmethod
+    def from_schema(cls, schema: Schema, tags=None, allow_none=True, **kwargs):
+        _schema = schema.select_by_tag(tags) if tags else schema
+        if not _schema.column_schemas:
+            if allow_none:
+                return None
+            else:
+                raise ValueError(f"No columns found in schema {schema}")
+
+        options = EmbeddingOptions(schema, **kwargs)
+
+        return cls(options, schema=_schema)
 
     def build(self, input_shapes):
         for name, table in self.embeddings.items():
@@ -312,7 +376,7 @@ class EmbeddingFeatures(TabularBlock):
     def compute_call_output_shape(self, input_shapes):
         output_shapes = {}
         for name, val in input_shapes.items():
-            output_shapes[name] = self.embeddings[name].compute_call_output_shape(val)
+            output_shapes[name] = self.embeddings[name].compute_output_shape(val)
 
         return output_shapes
 
@@ -344,122 +408,26 @@ class EmbeddingFeatures(TabularBlock):
         df.to_parquet(export_path)
 
     def get_config(self):
-        config = super().get_config()
-
-        feature_configs = {}
-
-        for key, val in self.feature_config.items():
-            feature_config_dict = dict(name=val.name, max_sequence_length=val.max_sequence_length)
-
-            feature_config_dict["table"] = serialize_table_config(val.table)
-            feature_configs[key] = feature_config_dict
-
-        config["feature_config"] = feature_configs
+        config = tf_utils.maybe_serialize_keras_objects(self, super().get_config(), "embeddings")
 
         return config
 
     @classmethod
     def from_config(cls, config):
-        # Deserialize feature_config
-        feature_configs, table_configs = {}, {}
-        for key, val in config["feature_config"].items():
-            feature_params = deepcopy(val)
-            table_params = feature_params["table"]
-            if "name" in table_configs:
-                feature_params["table"] = table_configs["name"]
-            else:
-                table = deserialize_table_config(table_params)
-                if table.name:
-                    table_configs[table.name] = table
-                feature_params["table"] = table
-            feature_configs[key] = FeatureConfig(**feature_params)
-        config["feature_config"] = feature_configs
+        config = tf_utils.maybe_deserialize_keras_objects(config, "embeddings")
 
         # Set `add_default_pre to False` since pre will be provided from the config
         config["add_default_pre"] = False
 
         return super().from_config(config)
 
+    @property
+    def max_seq_length(self) -> Optional[int]:
+        return list(self.embeddings.values())[0].options.max_seq_length
 
-@docstring_parameter(
-    tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING,
-    embedding_features_parameters=EMBEDDING_FEATURES_PARAMS_DOCSTRING,
-)
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class SequenceEmbeddingFeatures(EmbeddingFeatures):
-    """Input block for embedding-lookups for categorical features. This module produces 3-D tensors,
-    this is useful for sequential models like transformers.
-    Parameters
-    ----------
-    {embedding_features_parameters}
-    padding_idx: int
-        The symbol to use for padding.
-    {tabular_module_parameters}
-    """
-
-    def __init__(
-            self,
-            feature_config: Dict[str, FeatureConfig],
-            max_seq_length: Optional[int] = None,
-            mask_zero: bool = True,
-            padding_idx: int = 0,
-            pre: Optional[BlockType] = None,
-            post: Optional[BlockType] = None,
-            aggregation: Optional[TabularAggregationType] = None,
-            schema: Optional[Schema] = None,
-            name: Optional[str] = None,
-            add_default_pre=True,
-            **kwargs,
-    ):
-        if add_default_pre:
-            embedding_pre = [Filter(list(feature_config.keys())), AsDenseFeatures(max_seq_length)]
-            pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
-
-        super().__init__(
-            feature_config=feature_config,
-            pre=pre,
-            post=post,
-            aggregation=aggregation,
-            name=name,
-            schema=schema,
-            add_default_pre=False,
-            **kwargs,
-        )
-        self.padding_idx = padding_idx
-        self.mask_zero = mask_zero
-
-    def lookup_feature(self, name, val, **kwargs):
-        return super(SequenceEmbeddingFeatures, self).lookup_feature(
-            name, val, output_sequence=True
-        )
-
-    def compute_call_output_shape(self, input_shapes):
-        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
-        sequence_length = input_shapes[list(self.feature_config.keys())[0]][1]
-
-        output_shapes = {}
-        for name, val in input_shapes.items():
-            output_shapes[name] = tf.TensorShape(
-                [batch_size, sequence_length, self.feature_config[name].table.dim]
-            )
-
-        return output_shapes
-
-    def compute_mask(self, inputs, mask=None):
-        if not self.mask_zero:
-            return None
-        outputs = {}
-        for key, val in inputs.items():
-            outputs[key] = tf.not_equal(val, self.padding_idx)
-
-        return outputs
-
-    def get_config(self):
-        config = super().get_config()
-        config["mask_zero"] = self.mask_zero
-        config["padding_idx"] = self.padding_idx
-
-        return config
+    @property
+    def is_sequential(self) -> bool:
+        return self.max_seq_length is not None
 
 
 def ContinuousEmbedding(
@@ -497,73 +465,5 @@ def ContinuousEmbedding(
     outputs = _inputs.connect_branch(
         continuous_embedding.as_tabular(name), add_rest=True, aggregation=aggregation, **kwargs
     )
-
-    return outputs
-
-
-def serialize_table_config(table_config: TableConfig) -> Dict[str, Any]:
-    """Serialize a table config to a dictionary.
-
-    Parameters
-    ----------
-    table_config: TableConfig
-        The table config to serialize.
-
-    Returns
-    -------
-    dict
-        The serialized table config.
-    """
-
-    table = deepcopy(table_config.__dict__)
-    if "initializer" in table:
-        table["initializer"] = tf.keras.initializers.serialize(table["initializer"])
-    if "optimizer" in table:
-        table["optimizer"] = tf.keras.optimizers.serialize(table["optimizer"])
-
-    return table
-
-
-def deserialize_table_config(table_params: Dict[str, Any]) -> TableConfig:
-    """Deserialize a table config from a dictionary.
-
-    Parameters
-    ----------
-    table_params: dict
-        The serialized table config
-
-    Returns
-    -------
-    TableConfig
-
-    """
-
-    if "initializer" in table_params and table_params["initializer"]:
-        table_params["initializer"] = tf.keras.initializers.deserialize(table_params["initializer"])
-    if "optimizer" in table_params and table_params["optimizer"]:
-        table_params["optimizer"] = tf.keras.optimizers.deserialize(table_params["optimizer"])
-    table = TableConfig(**table_params)
-
-    return table
-
-def serialize_feature_config(feature_config: FeatureConfig) -> Dict[str, Any]:
-    """Serialize a feature config to a dictionary.
-
-    Parameters
-    ----------
-    feature_config: FeatureConfig
-        The feature config to serialize.
-
-    Returns
-    -------
-    dict
-
-    """
-    outputs = {}
-
-    for key, val in feature_config.items():
-        feature_config_dict = dict(name=val.name, max_sequence_length=val.max_sequence_length)
-        feature_config_dict["table"] = serialize_table_config(feature_config_dict["table"])
-        outputs[key] = feature_config_dict
 
     return outputs

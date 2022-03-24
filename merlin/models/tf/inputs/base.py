@@ -24,14 +24,9 @@ from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, Sequen
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularAggregationType
 from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, CategoricalOneHot
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
-from merlin.models.tf.inputs.embedding import (
-    ContinuousEmbedding,
-    EmbeddingFeatures,
-    EmbeddingOptions,
-    SequenceEmbeddingFeatures,
-)
+from merlin.models.tf.inputs.embedding import ContinuousEmbedding, EmbeddingFeatures, EmbeddingOptions
 from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin-models")
@@ -48,13 +43,12 @@ def InputBlock(
         add_continuous_branch: bool = True,
         continuous_projection: Optional[Block] = None,
         categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
-        add_one_hot_encoding_branch: bool = False,
         add_embedding_branch: bool = True,
         embedding_options: Optional[EmbeddingOptions] = None,
         sequence_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
         add_sequence_branch: bool = False,
+        seq_aggregator: Optional[Union[str, SequenceAggregation, Block]] = None,
         masking: Optional[Union[str, MaskingBlock]] = None,
-        seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
         **kwargs,
 ) -> Block:
     """The entry block of the model to process input features from a schema.
@@ -103,7 +97,8 @@ def InputBlock(
         specified Block.
         Defaults to None
     add_embedding_branch: bool
-        If set, add the branch to process categorical features
+        If true, add an embedding-table for each categorical features.
+        If false, One-hot encoding is used to represent each categorical feature instead.
         Defaults to True
     categorical_tags: Optional[Union[TagsType, Tuple[Tags]]]
         Tags to filter the continuous features
@@ -123,9 +118,12 @@ def InputBlock(
         Defaults to SequenceAggregator("mean")
     """
     _branches: Dict[str, Block] = branches or {}
-    _embedding_options: EmbeddingOptions = embedding_options or EmbeddingOptions(schema)
+    if embedding_options:
+        _embedding_options = embedding_options
+    else:
+        _embedding_options = EmbeddingOptions(schema)
 
-    if add_sequence_branch:
+    if add_sequence_branch and schema.select_by_tag(sequence_tags).column_schemas:
         _params_dict: Dict[str, Any] = locals()  # This contains all input parameters
         _params_dict["branches"] = _branches
         _params_dict["embedding_options"] = _embedding_options
@@ -142,8 +140,8 @@ def InputBlock(
     if schema.select_by_tag(categorical_tags).column_schemas:
         if add_embedding_branch:
             _branches[InputBranches.CATEGORICAL.value] = EmbeddingFeatures(embedding_options)
-        elif add_one_hot_encoding_branch:
-            raise NotImplementedError("One-hot encoding is not implemented yet")
+        else:
+            _branches[InputBranches.CATEGORICAL.value] = CategoricalOneHot(schema.select_by_tag(categorical_tags))
 
     out_kwargs = dict(post=post, aggregation=aggregation)
     if continuous_projection:
@@ -263,14 +261,3 @@ def SequentialInputBlockWithContext(
         split_sparse=False,
         **input_kwargs
     )
-
-
-def CategoricalBlock(embedding_options: EmbeddingOptions, max_seq_length: int, seq: bool):
-    emb_cls: Type[EmbeddingFeatures] = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
-    emb_kwargs = {}
-    if max_seq_length and seq:
-        emb_kwargs["max_seq_length"] = max_seq_length
-
-    categorical_branch = emb_cls(embedding_options, **emb_kwargs)
-
-    return categorical_branch
