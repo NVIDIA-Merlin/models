@@ -323,6 +323,9 @@ class ElementWiseMultiply(TupleAggregation):
         return out
 
 
+SequenceAggregationType = Union[str, "SequenceAggregation", Block]
+
+
 class SequenceAggregation(Enum):
     MEAN = tf.reduce_mean
     SUM = tf.reduce_sum
@@ -334,6 +337,14 @@ class SequenceAggregation(Enum):
 
     def __eq__(self, o: object) -> bool:
         return str(o) == str(self)
+
+    @classmethod
+    def parse(cls, agg: SequenceAggregationType):
+        from tensorflow.keras.layers import Layer
+        if isinstance(agg, Layer):
+            return agg
+
+        return SequenceAggregator(agg)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

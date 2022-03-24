@@ -92,7 +92,7 @@ class EmbeddingTable(Block):
             shape=(self.vocabulary_size, self.dim),
         )
 
-    def call(self, inputs, output_sequence=False):
+    def call(self, inputs):
         dtype = backend.dtype(inputs)
         if dtype != "int32" and dtype != "int64":
             inputs = tf.cast(inputs, "int32")
@@ -100,7 +100,7 @@ class EmbeddingTable(Block):
         if isinstance(inputs, tf.SparseTensor):
             out = tf.nn.safe_embedding_lookup_sparse(self.embedding_table, inputs, None, combiner=self.combiner)
         else:
-            if output_sequence:
+            if self.options.max_seq_length:
                 out = tf.gather(self.embedding_table, tf.cast(inputs, tf.int32))
             else:
                 if len(self.shape) > 1:
@@ -119,6 +119,9 @@ class EmbeddingTable(Block):
     def compute_output_shape(self, input_shapes):
         batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
 
+        if self.options.max_seq_length:
+            return tf.TensorShape(batch_size, self.options.max_seq_length, self.dim)
+
         return tf.TensorShape([batch_size, self.dim])
 
 
@@ -136,6 +139,7 @@ class TableOptions:
     block_cls: Type[Block] = EmbeddingTable
     combiner: str = "mean"
     extra_options: Dict[str, Any] = field(default_factory=dict)
+    max_seq_length: Optional[int] = None
 
     @classmethod
     def infer_dim(cls, col: Union[ColumnSchema, int], multiplier: float = 2.0, **kwargs) -> "TableOptions":
@@ -169,11 +173,13 @@ class EmbeddingOptions:
             default_block_cls: Type[Block] = EmbeddingTable,
             default_combiner: str = "mean",
             default_initializer: InitializerFn = truncated_normal_initializer,
+            max_seq_length: Optional[int] = None,
     ):
         self.schema = schema
         self._tables: Dict[str, TableOptions] = {}
         self._features: Dict[str, TableOptions] = {}
         self._feature_mapping: Dict[str, str] = {}
+        self._max_seq_length = max_seq_length
 
         domains = schema_utils.categorical_domains(schema)
         for name, col in schema.column_schemas:
@@ -230,6 +236,16 @@ class EmbeddingOptions:
     @property
     def feature_mapping(self) -> Dict[str, str]:
         return self._feature_mapping
+
+    @property
+    def max_seq_length(self) -> Optional[int]:
+        return self._max_seq_length
+
+    @max_seq_length.setter
+    def max_seq_length(self, value: Optional[int]):
+        self._max_seq_length = value
+        for table in self._tables.values():
+            table.max_seq_length = value
 
 
 @docstring_parameter(
@@ -294,11 +310,9 @@ class EmbeddingFeatures(TabularBlock):
         return embedded_outputs
 
     def compute_call_output_shape(self, input_shapes):
-        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
-
         output_shapes = {}
         for name, val in input_shapes.items():
-            output_shapes[name] = tf.TensorShape([batch_size, self.feature_config[name].table.dim])
+            output_shapes[name] = self.embeddings[name].compute_call_output_shape(val)
 
         return output_shapes
 

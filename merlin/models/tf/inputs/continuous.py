@@ -18,6 +18,8 @@ from typing import List, Optional, Sequence, overload, Union
 
 import tensorflow as tf
 
+from merlin.models.utils import schema_utils
+
 from merlin.models.tf.blocks.core.base import BlockType
 from merlin.models.tf.blocks.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
@@ -25,6 +27,7 @@ from merlin.models.tf.blocks.core.tabular import (
     TabularAggregationType,
     TabularBlock,
 )
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema, Tags
 
@@ -49,6 +52,7 @@ class ContinuousFeatures(TabularBlock):
             post: Optional[BlockType] = None,
             aggregation: Optional[TabularAggregationType] = None,
             schema: Optional[Schema] = None,
+            max_seq_length: Optional[int] = None,
             name: Optional[str] = None,
             **kwargs
     ):
@@ -62,6 +66,7 @@ class ContinuousFeatures(TabularBlock):
             post: Optional[BlockType] = None,
             aggregation: Optional[TabularAggregationType] = None,
             schema: Optional[Schema] = None,
+            max_seq_length: Optional[int] = None,
             name: Optional[str] = None,
             **kwargs
     ):
@@ -74,9 +79,19 @@ class ContinuousFeatures(TabularBlock):
         post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
+        max_seq_length: Optional[int] = None,
         name: Optional[str] = None,
         **kwargs
     ):
+        if isinstance(inputs, Schema):
+            if not inputs.column_schemas:
+                raise ValueError("Schema must contain at least one column")
+            max_seq_length = schema_utils.max_value_count(schema)
+
+        if max_seq_length:
+            as_dense = AsDenseFeatures(max_seq_length)
+            pre = as_dense if pre is None else [pre, as_dense]
+
         super().__init__(
             pre=pre,
             post=post,
@@ -106,7 +121,7 @@ class ContinuousFeatures(TabularBlock):
     def get_config(self):
         config = super().get_config()
 
-        config["features"] = self.filter_features.feature_names
+        config["inputs"] = self.filter_features.feature_names
 
         return config
 

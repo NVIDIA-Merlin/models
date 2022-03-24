@@ -1,6 +1,6 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
-from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator, SequenceAggregationType
 from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
@@ -200,7 +200,7 @@ def TwoTowerModel(
 
 def YoutubeDNNRetrievalModel(
     schema: Schema,
-    max_seq_length: int,
+    max_seq_length: Optional[int] = None,
     aggregation: str = "concat",
     top_block: Block = MLPBlock([64]),
     num_sampled: int = 100,
@@ -210,7 +210,7 @@ def YoutubeDNNRetrievalModel(
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
     logits_temperature: float = 1.0,
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+    seq_aggregator: SequenceAggregationType = SequenceAggregation.MEAN,
 ) -> Model:
     """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
 
@@ -230,6 +230,8 @@ def YoutubeDNNRetrievalModel(
     ----------
     schema: Schema
         The `Schema` with the input features
+    max_seq_length: Optional[int]
+        The maximum length of the sequences, by default it will be inferred from the schema.
     aggregation: str
         The aggregation method to use for the sequence of features.
         Defaults to `concat`.
@@ -264,7 +266,7 @@ def YoutubeDNNRetrievalModel(
         seq=False,
         max_seq_length=max_seq_length,
         masking="clm",
-        split_sparse=True,
+        split_sequence=True,
         seq_aggregator=seq_aggregator,
     )
 

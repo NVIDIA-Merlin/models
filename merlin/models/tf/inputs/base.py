@@ -16,7 +16,9 @@
 
 import logging
 from enum import Enum
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Dict, Optional, Tuple, Type, Union, Any
+
+from merlin.models.utils import schema_utils
 
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType
@@ -42,14 +44,15 @@ def InputBlock(
         aggregation: Optional[TabularAggregationType] = None,
         seq: bool = False,
         max_seq_length: Optional[int] = None,
-        add_continuous_branch: bool = True,
         continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
+        add_continuous_branch: bool = True,
         continuous_projection: Optional[Block] = None,
+        categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
+        add_one_hot_encoding_branch: bool = False,
         add_embedding_branch: bool = True,
         embedding_options: Optional[EmbeddingOptions] = None,
-        categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
-        sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
-        split_sparse: bool = False,
+        sequence_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
+        add_sequence_branch: bool = False,
         masking: Optional[Union[str, MaskingBlock]] = None,
         seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
         **kwargs,
@@ -57,9 +60,9 @@ def InputBlock(
     """The entry block of the model to process input features from a schema.
 
     This function creates continuous and embedding layers, and connects them via `ParallelBlock`.
-        If aggregation argument is not set, it returns a dictionary of multiple tensors
-        each corresponds to an input feature.
-        Otherwise, it merges the tensors into one using the aggregation method.
+    If aggregation argument is not set, it returns a dictionary of multiple tensors
+    each corresponds to an input feature.
+    Otherwise, it merges the tensors into one using the aggregation method.
 
     Example usage::
 
@@ -86,6 +89,9 @@ def InputBlock(
         as sequences (e.g. for sequential recommendation) and `seq=False` to treat sparse
         features as multi-hot categorical representations.
         Defaults to False
+    max_seq_length: Optional[int]
+        Maximum sequence length to use for sequence features.
+        This will be inferred from the schema if not set and `seq=True`.
     add_continuous_branch: bool
         If set, add the branch to process continuous features
         Defaults to True
@@ -102,41 +108,42 @@ def InputBlock(
     categorical_tags: Optional[Union[TagsType, Tuple[Tags]]]
         Tags to filter the continuous features
         Defaults to (Tags.CATEGORICAL,)
-    sequential_tags: Optional[Union[TagsType, Tuple[Tags]]]
-        Tags to filter the sparse features
-        Defaults to (Tags.SEQUENCE,)
-    split_sparse: Optional[bool]
+    add_sequence_branch: bool
         When True, separate the processing of context (2-D) and sparse features (3-D).
-        Defaults to False
+        Defaults to False. The tags to use to split the sequence are specified in `sequential_tags`.
+    sequence_tags: Optional[Union[TagsType, Tuple[Tags]]]
+        Tags to use when splitting the sequence features.
+        Defaults to (Tags.SEQUENCE,)
     masking: Optional[Union[str, MaskSequence]], optional
         If set, Apply masking to the input embeddings and compute masked labels.
         Defaults to None
     seq_aggregator: Block
         If non-sequential model (seq=False):
-        aggregate the sparse features tensor along the sequence axis.
-        Defaults to SequenceAggregator('mean')
+        aggregate the sparse features' tensor along the sequence axis.
+        Defaults to SequenceAggregator("mean")
     """
-    input_kwargs = locals()
     _branches: Dict[str, Block] = branches or {}
-    _embedding_options = embedding_options or EmbeddingOptions(schema)
+    _embedding_options: EmbeddingOptions = embedding_options or EmbeddingOptions(schema)
 
-    if split_sparse:
-        input_kwargs["branches"] = _branches
-        input_kwargs["embedding_options"] = _embedding_options
-        for to_del in ["split_sparse", "kwargs"]:
-            del input_kwargs[to_del]
+    if add_sequence_branch:
+        _params_dict: Dict[str, Any] = locals()  # This contains all input parameters
+        _params_dict["branches"] = _branches
+        _params_dict["embedding_options"] = _embedding_options
+        for to_del in ["add_sequence_branch", "kwargs"]:
+            del _params_dict[to_del]
 
-        return _split_sparse(**input_kwargs, **kwargs)
+        return SequentialInputBlockWithContext(**_params_dict, **kwargs)
 
     if add_continuous_branch and schema.select_by_tag(continuous_tags).column_schemas:
         _branches[InputBranches.CONTINUOUS.value] = ContinuousFeatures(
             schema.select_by_tag(continuous_tags),
-            pre=AsDenseFeatures(max_seq_length) if max_seq_length and seq else None,
+            max_seq_length=max_seq_length,
         )
-    if add_embedding_branch and schema.select_by_tag(categorical_tags).column_schemas:
-        _branches[InputBranches.CATEGORICAL.value] = CategoricalBlock(
-            embedding_options, max_seq_length, seq
-        )
+    if schema.select_by_tag(categorical_tags).column_schemas:
+        if add_embedding_branch:
+            _branches[InputBranches.CATEGORICAL.value] = EmbeddingFeatures(embedding_options)
+        elif add_one_hot_encoding_branch:
+            raise NotImplementedError("One-hot encoding is not implemented yet")
 
     out_kwargs = dict(post=post, aggregation=aggregation)
     if continuous_projection:
@@ -148,15 +155,16 @@ def InputBlock(
 class InputBranches(str, Enum):
     CONTINUOUS = "continuous"
     CATEGORICAL = "categorical"
-    SPARSE = "sparse"
+    SEQUENCE = "sequence"
 
 
-def SparseBranch(
+def SequentialInputBlock(
         schema: Schema,
+        max_seq_length: Optional[int] = None,
+        seq_aggregator: Optional[Union[str, SequenceAggregation, Block]] = None,
         branches: Optional[Dict[str, Block]] = None,
         post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
-        max_seq_length: Optional[int] = None,
         add_continuous_branch: bool = True,
         continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
         continuous_projection: Optional[Block] = None,
@@ -165,39 +173,52 @@ def SparseBranch(
         categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
         masking: Optional[Union[str, MaskingBlock]] = None,
 ) -> InputBlock:
-    kwargs = locals()
-    kwargs["embedding_options"] = embedding_options or EmbeddingOptions(schema)
-    masking = kwargs.pop("masking", None)
-    sparse_branch = InputBlock(seq=True, split_sparse=False, **kwargs)
-    if masking:
-        if isinstance(masking, str):
-            masking = masking_registry.parse(masking)()
-        sparse_branch = sparse_branch.connect(masking)
+    if not max_seq_length:
+        max_seq_length = schema_utils.max_value_count(schema)
 
-    return sparse_branch
+        if not max_seq_length:
+            raise ValueError("max_seq_length couldn't be inferred, please provide it explicitly.")
+
+    if embedding_options is None:
+        embedding_options = EmbeddingOptions(schema)
+    else:
+        embedding_options = embedding_options.select_by_schema(schema)
+    embedding_options.max_seq_length = max_seq_length
+    _params_dict = locals()
+    _masking = _params_dict.pop("masking", None)
+
+    block = InputBlock(seq=True, split_sequence=False, **_params_dict)
+    if _masking:
+        if isinstance(_masking, str):
+            _masking = masking_registry.parse(_masking)()
+        block = block.connect(_masking)
+
+    if not seq_aggregator:
+        block = block.connect(SequenceAggregation.parse(seq_aggregator))
+
+    return block
 
 
-def _split_sparse(
+def SequentialInputBlockWithContext(
         schema: Schema,
-        branches: Dict[str, Block],
+        sequence_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
+        max_seq_length: Optional[int] = None,
+        seq_aggregator: Optional[Union[str, SequenceAggregation, Block]] = None,
+        branches: Optional[Dict[str, Block]] = None,
         post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
-        seq: bool = False,
-        max_seq_length: Optional[int] = None,
         add_continuous_branch: bool = True,
         continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
         continuous_projection: Optional[Block] = None,
         add_embedding_branch: bool = True,
         embedding_options: Optional[EmbeddingOptions] = None,
         categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
-        sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
-        seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
         masking: Optional[Union[str, MaskingBlock]] = None,
 ) -> InputBlock:
-    sparse_schema = schema.select_by_tag(sequential_tags)
-    context_schema = schema.remove_by_tag(sequential_tags)
+    sequence_schema = schema.select_by_tag(sequence_tags)
+    context_schema = schema.remove_by_tag(sequence_tags)
 
-    if not sparse_schema:
+    if not sequence_schema:
         raise ValueError(
             "Please make sure that schema has features tagged as 'sequence' when"
             "`split_context` is set to True"
@@ -220,25 +241,24 @@ def _split_sparse(
         categorical_tags=categorical_tags,
     )
 
-    sparse_branch = SparseBranch(
-        sparse_schema,
-        max_seq_length=max_seq_length,
-        embedding_options=embedding_options.select_by_schema(sparse_schema) if embedding_options else None,
+    sparse_branch = SequentialInputBlock(
+        sequence_schema,
+        max_seq_length,
+        embedding_options=embedding_options,
         masking=masking,
+        seq_aggregator=seq_aggregator,
         **input_kwargs
     )
-
-    if not seq:
-        sparse_branch = sparse_branch.connect(seq_aggregator)
 
     if not context_schema:
         return sparse_branch
 
-    branches[InputBranches.SPARSE.value] = sparse_branch
+    branches[InputBranches.SEQUENCE.value] = sparse_branch
 
     return InputBlock(
         context_schema,
-        embedding_options=embedding_options.select_by_schema(context_schema) if embedding_options else None,
+        branches=branches,
+        embedding_options=embedding_options,
         seq=False,
         split_sparse=False,
         **input_kwargs

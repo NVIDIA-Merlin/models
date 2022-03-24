@@ -49,13 +49,13 @@ def tensorflow_metadata_json_to_schema(value):
 
 
 def create_categorical_column(
-    name,
-    num_items,
-    dtype=np.int32,
-    tags=None,
-    properties=None,
-    min_value_count=None,
-    max_value_count=None,
+        name,
+        num_items,
+        dtype=np.int32,
+        tags=None,
+        properties=None,
+        min_value_count=None,
+        max_value_count=None,
 ):
     properties = properties or {}
     if num_items:
@@ -87,12 +87,14 @@ def create_categorical_column(
 
 
 def create_continuous_column(
-    name,
-    dtype=np.float32,
-    tags=None,
-    properties=None,
-    min_value=None,
-    max_value=None,
+        name,
+        dtype=np.float32,
+        tags=None,
+        properties=None,
+        min_value=None,
+        max_value=None,
+        min_value_count=None,
+        max_value_count=None,
 ):
     properties = properties or {}
     domain = {}
@@ -102,12 +104,29 @@ def create_continuous_column(
         domain["max"] = max_value
     if domain:
         properties["domain"] = domain
+    value_count = {}
+    is_list, is_ragged = False, False
+    if min_value_count is not None:
+        value_count["min"] = min_value_count
+    if max_value_count is not None:
+        value_count["max"] = max_value_count
+    if value_count:
+        properties["value_count"] = value_count
+        is_list = True
+        is_ragged = min_value_count != max_value_count
 
     tags = tags or []
     if Tags.CONTINUOUS not in tags:
         tags.append(Tags.CONTINUOUS)
 
-    return ColumnSchema(name=name, tags=tags, properties=properties, dtype=dtype)
+    return ColumnSchema(
+        name=name,
+        tags=tags,
+        properties=properties,
+        dtype=dtype,
+        is_list=is_list,
+        is_ragged=is_ragged
+    )
 
 
 def filter_dict_by_schema(input_dict, schema):
@@ -126,7 +145,7 @@ def categorical_cardinality(column_schema: ColumnSchema) -> Optional[int]:
     return None
 
 
-def categorical_cardinalities(schema) -> Dict[str, int]:
+def categorical_cardinalities(schema: Schema) -> Dict[str, int]:
     outputs = {}
     for col in schema:
         maybe_cardinality = categorical_cardinality(col)
@@ -136,7 +155,7 @@ def categorical_cardinalities(schema) -> Dict[str, int]:
     return outputs
 
 
-def categorical_domains(schema) -> Dict[str, str]:
+def categorical_domains(schema: Schema) -> Dict[str, str]:
     outputs = {}
     for col in schema:
         if Tags.CATEGORICAL in col.tags:
@@ -147,6 +166,25 @@ def categorical_domains(schema) -> Dict[str, str]:
             outputs[col.name] = name
 
     return outputs
+
+
+def max_value_count(schema: Schema) -> Optional[int]:
+    """Returns the maximum value count across all categorical columns
+
+    Parameters
+    ----------
+    schema: Schema
+        Schema to check
+
+    Returns
+    -------
+    Optional[int]
+    """
+
+    if all(col.value_count for col in schema):
+        return max(col.value_count.max for col in schema)
+
+    return None
 
 
 def get_embedding_size_from_col(column_schema: ColumnSchema, multiplier: float = 2.0):
