@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>merlin.models.data.synthetic &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../models_overview.html">Available Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>merlin.models.data.synthetic</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for merlin.models.data.synthetic</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright (c) 2021, NVIDIA CORPORATION.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1">#</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">randint</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">import</span> <span class="nn">merlin.io</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">schema_utils</span>
+<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
+<span class="kn">from</span> <span class="nn">merlin.schema.io.tensorflow_metadata</span> <span class="kn">import</span> <span class="n">TensorflowMetadata</span>
+
+<span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;merlin-models&quot;</span><span class="p">)</span>
+<span class="n">HERE</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+
+
+<span class="k">def</span> <span class="nf">_read_data</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">num_rows</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">num_rows</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">num_rows</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">df</span>
+
+
+<div class="viewcode-block" id="SyntheticData"><a class="viewcode-back" href="../../../../generated/merlin.models.data.synthetic.SyntheticData.html#merlin.models.data.synthetic.SyntheticData">[docs]</a><span class="k">class</span> <span class="nc">SyntheticData</span><span class="p">:</span>
+    <span class="n">DATASETS</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;ecommerce&quot;</span><span class="p">:</span> <span class="n">HERE</span> <span class="o">/</span> <span class="s2">&quot;ecommerce/small&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;e-commerce&quot;</span><span class="p">:</span> <span class="n">HERE</span> <span class="o">/</span> <span class="s2">&quot;ecommerce/small&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ecommerce-large&quot;</span><span class="p">:</span> <span class="n">HERE</span> <span class="o">/</span> <span class="s2">&quot;ecommerce/large&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;e-commerce-large&quot;</span><span class="p">:</span> <span class="n">HERE</span> <span class="o">/</span> <span class="s2">&quot;ecommerce/large&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;music_streaming&quot;</span><span class="p">:</span> <span class="n">HERE</span> <span class="o">/</span> <span class="s2">&quot;music_streaming&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;music-streaming&quot;</span><span class="p">:</span> <span class="n">HERE</span> <span class="o">/</span> <span class="s2">&quot;music_streaming&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;social&quot;</span><span class="p">:</span> <span class="n">HERE</span> <span class="o">/</span> <span class="s2">&quot;social&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;testing&quot;</span><span class="p">:</span> <span class="n">HERE</span> <span class="o">/</span> <span class="s2">&quot;testing&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sequence_testing&quot;</span><span class="p">:</span> <span class="n">HERE</span> <span class="o">/</span> <span class="s2">&quot;sequence_testing&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">FILE_NAME</span> <span class="o">=</span> <span class="s2">&quot;data.parquet&quot;</span>
+
+<div class="viewcode-block" id="SyntheticData.__init__"><a class="viewcode-back" href="../../../../generated/merlin.models.data.synthetic.SyntheticData.html#merlin.models.data.synthetic.SyntheticData.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">schema_file_name</span><span class="o">=</span><span class="s2">&quot;schema.json&quot;</span><span class="p">,</span>
+        <span class="n">num_rows</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">read_data_fn</span><span class="o">=</span><span class="n">_read_data</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DATASETS</span><span class="p">[</span><span class="n">data</span><span class="p">]</span>  <span class="c1"># type: ignore</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dir</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FILE_NAME</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dir</span><span class="p">,</span> <span class="n">schema_file_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_rows</span> <span class="o">=</span> <span class="n">num_rows</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_read_data_fn</span> <span class="o">=</span> <span class="n">read_data_fn</span></div>
+
+<div class="viewcode-block" id="SyntheticData.from_schema"><a class="viewcode-back" href="../../../../generated/merlin.models.data.synthetic.SyntheticData.html#merlin.models.data.synthetic.SyntheticData.from_schema">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_schema</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
+        <span class="n">output_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">num_rows</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">min_session_length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">max_session_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;SyntheticData&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">output_dir</span><span class="p">:</span>
+            <span class="n">output_dir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;schema.json&quot;</span><span class="p">)):</span>
+            <span class="n">schema_utils</span><span class="o">.</span><span class="n">schema_to_tensorflow_metadata_json</span><span class="p">(</span>
+                <span class="n">schema</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="s2">&quot;schema.json&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">generate_interactions</span><span class="p">(</span><span class="n">num_rows</span><span class="p">,</span> <span class="n">min_session_length</span><span class="p">,</span> <span class="n">max_session_length</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">output</span></div>
+
+<div class="viewcode-block" id="SyntheticData.read_schema"><a class="viewcode-back" href="../../../../generated/merlin.models.data.synthetic.SyntheticData.html#merlin.models.data.synthetic.SyntheticData.read_schema">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">read_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Schema</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">_schema_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;schema.json&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">else</span> <span class="n">path</span>
+
+        <span class="k">if</span> <span class="n">_schema_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pb&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_schema_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pbtxt&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">TensorflowMetadata</span><span class="o">.</span><span class="n">from_proto_text_file</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">_schema_path</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">_schema_path</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to_merlin_schema</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">tensorflow_metadata_json_to_schema</span><span class="p">(</span><span class="n">_schema_path</span><span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Schema</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_data_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_path</span><span class="p">,</span> <span class="n">num_rows</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_rows</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SyntheticData.generate_interactions"><a class="viewcode-back" href="../../../../generated/merlin.models.data.synthetic.SyntheticData.html#merlin.models.data.synthetic.SyntheticData.generate_interactions">[docs]</a>    <span class="k">def</span> <span class="nf">generate_interactions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">num_rows</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">min_session_length</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">max_session_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">generate_user_item_interactions</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="n">num_rows</span><span class="p">,</span> <span class="n">min_session_length</span><span class="p">,</span> <span class="n">max_session_length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">FILE_NAME</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">data</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tf_tensor_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s2">&quot;list&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tf_features_and_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_out_targets</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tf_tensor_dict</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">torch_tensor_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">torch</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s2">&quot;list&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">torch_features_and_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pull_out_targets</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">torch_tensor_dict</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SyntheticData.tf_dataloader"><a class="viewcode-back" href="../../../../generated/merlin.models.data.synthetic.SyntheticData.html#merlin.models.data.synthetic.SyntheticData.tf_dataloader">[docs]</a>    <span class="k">def</span> <span class="nf">tf_dataloader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+        <span class="c1"># TODO: return tf NVTabular loader</span>
+
+        <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataframe</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="s2">&quot;list&quot;</span><span class="p">)</span>
+        <span class="n">tensors</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pull_out_targets</span><span class="p">(</span><span class="n">tensors</span><span class="p">))</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">dataset</span></div>
+
+<div class="viewcode-block" id="SyntheticData.torch_dataloader"><a class="viewcode-back" href="../../../../generated/merlin.models.data.synthetic.SyntheticData.html#merlin.models.data.synthetic.SyntheticData.torch_dataloader">[docs]</a>    <span class="k">def</span> <span class="nf">torch_dataloader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">50</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;return torch NVTabular loader&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_pull_out_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">target_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">target_name</span> <span class="ow">in</span> <span class="n">target_names</span><span class="p">:</span>
+            <span class="n">targets</span><span class="p">[</span><span class="n">target_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">target_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span></div>
+
+
+<span class="k">def</span> <span class="nf">generate_user_item_interactions</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
+    <span class="n">num_interactions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">min_session_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">max_session_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Util function to generate synthetic data of user-item interactions from a schema object,</span>
+<span class="sd">    it supports the generation of conditional user, item and session features.</span>
+
+<span class="sd">    The schema should include a few tags:</span>
+<span class="sd">    - `Tags.SESSION_ID` to tag the session-id feature.</span>
+<span class="sd">    - `Tags.USER_ID` for user-id feature.</span>
+<span class="sd">    - `Tags.ITEM_ID` for item-id feature.</span>
+
+<span class="sd">    It supports both, GPU-based and CPU-based, generation.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    ----------</span>
+<span class="sd">    schema: Schema</span>
+<span class="sd">        schema object describing the columns to generate.</span>
+<span class="sd">    num_interactions: int</span>
+<span class="sd">        number of interaction rows to generate.</span>
+<span class="sd">    max_session_length: Optional[int]</span>
+<span class="sd">        The maximum length of the multi-hot/sequence features</span>
+<span class="sd">    min_session_length: int</span>
+<span class="sd">        The minimum length of the multi-hot/sequence features</span>
+<span class="sd">    device: str</span>
+<span class="sd">        device to use for generating data.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    data: DataFrame</span>
+<span class="sd">       DataFrame with synthetic generated rows,</span>
+<span class="sd">       If `cpu`, the function returns a Pandas dataframe,</span>
+<span class="sd">       otherwise, it returns a cudf dataframe.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">_array</span>
+        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">_frame</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">cudf</span> <span class="k">as</span> <span class="nn">_frame</span>
+        <span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">_array</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">_frame</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+    <span class="n">processed_cols</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># get session cols</span>
+    <span class="n">session_id_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">SESSION_ID</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">session_id_cols</span><span class="p">:</span>
+        <span class="n">session_id_col</span> <span class="o">=</span> <span class="n">session_id_cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">session_id_col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_array</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+            <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">lognormal</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">num_interactions</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="n">session_id_col</span><span class="o">.</span><span class="n">int_domain</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+        <span class="n">features</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">SESSION</span><span class="p">)</span><span class="o">.</span><span class="n">remove_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">SESSION_ID</span><span class="p">))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">generate_conditional_features</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">features</span><span class="p">,</span>
+            <span class="n">session_id_col</span><span class="p">,</span>
+            <span class="n">min_session_length</span><span class="o">=</span><span class="n">min_session_length</span><span class="p">,</span>
+            <span class="n">max_session_length</span><span class="o">=</span><span class="n">max_session_length</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">processed_cols</span> <span class="o">+=</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">features</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">session_id_col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="c1"># get USER cols</span>
+    <span class="n">user_id_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">user_id_cols</span><span class="p">:</span>
+        <span class="n">user_id_col</span> <span class="o">=</span> <span class="n">user_id_cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">user_id_col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_array</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+            <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">lognormal</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">num_interactions</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="n">user_id_col</span><span class="o">.</span><span class="n">int_domain</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">)</span><span class="o">.</span><span class="n">remove_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">))</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">generate_conditional_features</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">features</span><span class="p">,</span>
+            <span class="n">user_id_col</span><span class="p">,</span>
+            <span class="n">min_session_length</span><span class="o">=</span><span class="n">min_session_length</span><span class="p">,</span>
+            <span class="n">max_session_length</span><span class="o">=</span><span class="n">max_session_length</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">processed_cols</span> <span class="o">+=</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">features</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">user_id_col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="c1"># get ITEM cols</span>
+    <span class="n">item_id_col</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">is_list_feature</span> <span class="o">=</span> <span class="n">item_id_col</span><span class="o">.</span><span class="n">is_list</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_list_feature</span><span class="p">:</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">num_interactions</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_interactions</span><span class="p">,</span> <span class="n">item_id_col</span><span class="o">.</span><span class="n">value_count</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>  <span class="c1"># type: ignore</span>
+    <span class="n">data</span><span class="p">[</span><span class="n">item_id_col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_array</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+            <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">lognormal</span><span class="p">(</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="n">item_id_col</span><span class="o">.</span><span class="n">int_domain</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">)</span><span class="o">.</span><span class="n">remove_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">))</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">generate_conditional_features</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">,</span>
+        <span class="n">features</span><span class="p">,</span>
+        <span class="n">item_id_col</span><span class="p">,</span>
+        <span class="n">min_session_length</span><span class="o">=</span><span class="n">min_session_length</span><span class="p">,</span>
+        <span class="n">max_session_length</span><span class="o">=</span><span class="n">max_session_length</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">processed_cols</span> <span class="o">+=</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">features</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">item_id_col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+    <span class="c1"># Get remaining features</span>
+    <span class="n">remaining</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">without</span><span class="p">(</span><span class="n">processed_cols</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">remaining</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">):</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">num_interactions</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">remaining</span><span class="o">.</span><span class="n">remove_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">):</span>
+        <span class="n">is_int_feature</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)</span>
+        <span class="n">is_list_feature</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">is_list</span>
+        <span class="k">if</span> <span class="n">is_list_feature</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">generate_random_list_feature</span><span class="p">(</span>
+                <span class="n">feature</span><span class="p">,</span> <span class="n">num_interactions</span><span class="p">,</span> <span class="n">min_session_length</span><span class="p">,</span> <span class="n">max_session_length</span><span class="p">,</span> <span class="n">device</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">is_int_feature</span><span class="p">:</span>
+            <span class="n">domain</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">int_domain</span>
+            <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span> <span class="o">=</span> <span class="p">(</span><span class="n">domain</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">domain</span><span class="o">.</span><span class="n">max</span><span class="p">)</span> <span class="k">if</span> <span class="n">domain</span> <span class="k">else</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_interactions</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">domain</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">float_domain</span>
+            <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span> <span class="o">=</span> <span class="p">(</span><span class="n">domain</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">domain</span><span class="o">.</span><span class="n">max</span><span class="p">)</span> <span class="k">if</span> <span class="n">domain</span> <span class="k">else</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+            <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_interactions</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span>
+
+
+<span class="k">def</span> <span class="nf">generate_conditional_features</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span>
+    <span class="n">features</span><span class="p">,</span>
+    <span class="n">parent_feature</span><span class="p">,</span>
+    <span class="n">min_session_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">max_session_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate features conditioned by the value of `parent_feature` feature</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">_array</span>
+        <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">_frame</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">cudf</span> <span class="k">as</span> <span class="nn">_frame</span>
+        <span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">_array</span>
+
+    <span class="n">num_interactions</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">features</span><span class="p">:</span>
+        <span class="n">is_int_feature</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)</span>
+        <span class="n">is_list_feature</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">is_list</span>
+
+        <span class="k">if</span> <span class="n">is_list_feature</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">generate_random_list_feature</span><span class="p">(</span>
+                <span class="n">feature</span><span class="p">,</span> <span class="n">num_interactions</span><span class="p">,</span> <span class="n">min_session_length</span><span class="p">,</span> <span class="n">max_session_length</span><span class="p">,</span> <span class="n">device</span>
+            <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">is_int_feature</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_frame</span><span class="o">.</span><span class="n">cut</span><span class="p">(</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">parent_feature</span><span class="o">.</span><span class="n">name</span><span class="p">],</span>
+                <span class="n">feature</span><span class="o">.</span><span class="n">int_domain</span><span class="o">.</span><span class="n">max</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">labels</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">int_domain</span><span class="o">.</span><span class="n">max</span><span class="p">)),</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+                <span class="n">feature</span><span class="o">.</span><span class="n">float_domain</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">float_domain</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">num_interactions</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span>
+
+
+<span class="k">def</span> <span class="nf">generate_random_list_feature</span><span class="p">(</span>
+    <span class="n">feature</span><span class="p">,</span>
+    <span class="n">num_interactions</span><span class="p">,</span>
+    <span class="n">min_session_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">max_session_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">_array</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">cupy</span> <span class="k">as</span> <span class="nn">_array</span>
+
+    <span class="n">is_int_feature</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_int_feature</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">max_session_length</span><span class="p">:</span>
+            <span class="n">padded_array</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_interactions</span><span class="p">):</span>
+                <span class="n">list_length</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="n">min_session_length</span><span class="p">,</span> <span class="n">max_session_length</span><span class="p">)</span>
+                <span class="n">actual_values</span> <span class="o">=</span> <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                    <span class="mi">1</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">int_domain</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="p">(</span><span class="n">list_length</span><span class="p">,)</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+                <span class="n">padded_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_array</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                        <span class="n">actual_values</span><span class="p">,</span>
+                        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_session_length</span> <span class="o">-</span> <span class="n">list_length</span><span class="p">],</span>
+                        <span class="n">constant_values</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">_array</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">padded_array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_length</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">value_count</span><span class="o">.</span><span class="n">max</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">int_domain</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="p">(</span><span class="n">num_interactions</span><span class="p">,</span> <span class="n">list_length</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">_array</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">max_session_length</span><span class="p">:</span>
+            <span class="n">padded_array</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_interactions</span><span class="p">):</span>
+                <span class="n">list_length</span> <span class="o">=</span> <span class="n">randint</span><span class="p">(</span><span class="n">min_session_length</span><span class="p">,</span> <span class="n">max_session_length</span><span class="p">)</span>
+                <span class="n">actual_values</span> <span class="o">=</span> <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+                    <span class="n">feature</span><span class="o">.</span><span class="n">float_domain</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">float_domain</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="p">(</span><span class="n">list_length</span><span class="p">,)</span>
+                <span class="p">)</span>
+
+                <span class="n">padded_array</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_array</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                        <span class="n">actual_values</span><span class="p">,</span>
+                        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_session_length</span> <span class="o">-</span> <span class="n">list_length</span><span class="p">],</span>
+                        <span class="n">constant_values</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">_array</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">padded_array</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_length</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">value_count</span><span class="o">.</span><span class="n">max</span>
+            <span class="k">return</span> <span class="n">_array</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+                <span class="n">feature</span><span class="o">.</span><span class="n">float_domain</span><span class="o">.</span><span class="n">min</span><span class="p">,</span>
+                <span class="n">feature</span><span class="o">.</span><span class="n">float_domain</span><span class="o">.</span><span class="n">max</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">num_interactions</span><span class="p">,</span> <span class="n">list_length</span><span class="p">),</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

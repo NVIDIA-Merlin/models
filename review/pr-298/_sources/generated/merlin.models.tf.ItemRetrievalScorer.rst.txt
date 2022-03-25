@@ -1,0 +1,112 @@
+﻿merlin.models.tf.ItemRetrievalScorer
+====================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: ItemRetrievalScorer
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ItemRetrievalScorer.__init__
+      ~ItemRetrievalScorer.add_features_to_context
+      ~ItemRetrievalScorer.add_loss
+      ~ItemRetrievalScorer.add_metric
+      ~ItemRetrievalScorer.add_update
+      ~ItemRetrievalScorer.add_variable
+      ~ItemRetrievalScorer.add_weight
+      ~ItemRetrievalScorer.apply
+      ~ItemRetrievalScorer.as_tabular
+      ~ItemRetrievalScorer.build
+      ~ItemRetrievalScorer.call
+      ~ItemRetrievalScorer.call_outputs
+      ~ItemRetrievalScorer.check_schema
+      ~ItemRetrievalScorer.compute_mask
+      ~ItemRetrievalScorer.compute_output_shape
+      ~ItemRetrievalScorer.compute_output_signature
+      ~ItemRetrievalScorer.connect
+      ~ItemRetrievalScorer.connect_branch
+      ~ItemRetrievalScorer.connect_debug_block
+      ~ItemRetrievalScorer.connect_with_residual
+      ~ItemRetrievalScorer.connect_with_shortcut
+      ~ItemRetrievalScorer.copy
+      ~ItemRetrievalScorer.count_params
+      ~ItemRetrievalScorer.finalize_state
+      ~ItemRetrievalScorer.from_config
+      ~ItemRetrievalScorer.from_layer
+      ~ItemRetrievalScorer.get_batch_items_metadata
+      ~ItemRetrievalScorer.get_config
+      ~ItemRetrievalScorer.get_input_at
+      ~ItemRetrievalScorer.get_input_mask_at
+      ~ItemRetrievalScorer.get_input_shape_at
+      ~ItemRetrievalScorer.get_item_ids_from_inputs
+      ~ItemRetrievalScorer.get_losses_for
+      ~ItemRetrievalScorer.get_output_at
+      ~ItemRetrievalScorer.get_output_mask_at
+      ~ItemRetrievalScorer.get_output_shape_at
+      ~ItemRetrievalScorer.get_padding_mask_from_item_id
+      ~ItemRetrievalScorer.get_updates_for
+      ~ItemRetrievalScorer.get_weights
+      ~ItemRetrievalScorer.parse
+      ~ItemRetrievalScorer.parse_block
+      ~ItemRetrievalScorer.prepare
+      ~ItemRetrievalScorer.register_features
+      ~ItemRetrievalScorer.repeat
+      ~ItemRetrievalScorer.repeat_in_parallel
+      ~ItemRetrievalScorer.select_by_name
+      ~ItemRetrievalScorer.set_required_features
+      ~ItemRetrievalScorer.set_schema
+      ~ItemRetrievalScorer.set_weights
+      ~ItemRetrievalScorer.to_model
+      ~ItemRetrievalScorer.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ItemRetrievalScorer.REQUIRES_SCHEMA
+      ~ItemRetrievalScorer.activity_regularizer
+      ~ItemRetrievalScorer.compute_dtype
+      ~ItemRetrievalScorer.context
+      ~ItemRetrievalScorer.dtype
+      ~ItemRetrievalScorer.dtype_policy
+      ~ItemRetrievalScorer.dynamic
+      ~ItemRetrievalScorer.has_schema
+      ~ItemRetrievalScorer.inbound_nodes
+      ~ItemRetrievalScorer.input
+      ~ItemRetrievalScorer.input_mask
+      ~ItemRetrievalScorer.input_shape
+      ~ItemRetrievalScorer.input_spec
+      ~ItemRetrievalScorer.losses
+      ~ItemRetrievalScorer.metrics
+      ~ItemRetrievalScorer.name
+      ~ItemRetrievalScorer.name_scope
+      ~ItemRetrievalScorer.non_trainable_variables
+      ~ItemRetrievalScorer.non_trainable_weights
+      ~ItemRetrievalScorer.outbound_nodes
+      ~ItemRetrievalScorer.output
+      ~ItemRetrievalScorer.output_mask
+      ~ItemRetrievalScorer.output_shape
+      ~ItemRetrievalScorer.registry
+      ~ItemRetrievalScorer.schema
+      ~ItemRetrievalScorer.stateful
+      ~ItemRetrievalScorer.submodules
+      ~ItemRetrievalScorer.supports_masking
+      ~ItemRetrievalScorer.trainable
+      ~ItemRetrievalScorer.trainable_variables
+      ~ItemRetrievalScorer.trainable_weights
+      ~ItemRetrievalScorer.updates
+      ~ItemRetrievalScorer.variable_dtype
+      ~ItemRetrievalScorer.variables
+      ~ItemRetrievalScorer.weights
+   
+   
