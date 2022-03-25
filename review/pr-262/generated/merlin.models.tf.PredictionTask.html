@@ -88,7 +88,6 @@
           <li><a href="../api.html">API Documentation</a> &raquo;</li>
       <li>merlin.models.tf.PredictionTask</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/generated/merlin.models.tf.PredictionTask.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -130,11 +129,20 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>metrics</strong> – List of Keras metrics to be evaluated.</p></li>
-<li><p><strong>prediction_metrics</strong> – List of Keras metrics used to summarize the predictions.</p></li>
-<li><p><strong>label_metrics</strong> – List of Keras metrics used to summarize the labels.</p></li>
-<li><p><strong>loss_metrics</strong> – List of Keras metrics used to summarize the loss.</p></li>
-<li><p><strong>name</strong> – Optional task name.</p></li>
+<li><p><strong>target_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em><em>, </em><em>optional</em>) – Label name, by default None</p></li>
+<li><p><strong>task_name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em><em>, </em><em>optional</em>) – Task name, by default None</p></li>
+<li><p><strong>metrics</strong> (<em>Optional</em><em>[</em><em>MetricOrMetrics</em><em>]</em><em>, </em><em>optional</em>) – List of Keras metrics to be evaluated, by default None</p></li>
+<li><p><strong>pre</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a><em>]</em><em>, </em><em>optional</em>) – Optional block to transform predictions before computing loss and metrics,
+by default None</p></li>
+<li><p><strong>pre_eval_topk</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a><em>]</em><em>, </em><em>optional</em>) – Optional block to apply additional transform predictions before computing
+top-k evaluation loss and metrics, by default None</p></li>
+<li><p><strong>task_block</strong> (<em>Optional</em><em>[</em><em>Layer</em><em>]</em><em>, </em><em>optional</em>) – Optional block to apply to inputs before computing predictions,
+by default None</p></li>
+<li><p><strong>prediction_metrics</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>tf.keras.metrics.Metric</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – List of Keras metrics used to summarize the predictions, by default None</p></li>
+<li><p><strong>label_metrics</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>tf.keras.metrics.Metric</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – List of Keras metrics used to summarize the labels, by default None</p></li>
+<li><p><strong>loss_metrics</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>tf.keras.metrics.Metric</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – List of Keras metrics used to summarize the loss, by default None</p></li>
+<li><p><strong>compute_train_metrics</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>]</em><em>, </em><em>optional</em>) – Enable computing metrics during training, by default True</p></li>
+<li><p><strong>name</strong> (<em>Optional</em><em>[</em><em>Text</em><em>]</em><em>, </em><em>optional</em>) – Task name, by default None</p></li>
 </ul>
 </dd>
 </dl>
@@ -181,7 +189,7 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.PredictionTask.calculate_metrics" title="merlin.models.tf.PredictionTask.calculate_metrics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_metrics</span></code></a>(outputs[, sample_weight, …])</p></td>
-<td><p></p></td>
+<td><p>Method to compute the metrics.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code>(inputs, *args, **kwargs)</p></td>
 <td><p>This is where the layer’s logic lives.</p></td>
@@ -190,7 +198,7 @@
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.PredictionTask.compute_loss" title="merlin.models.tf.PredictionTask.compute_loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_loss</span></code></a>(predictions, targets[, …])</p></td>
-<td><p></p></td>
+<td><p>Method to compute the loss and metrics during training/evaluation.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
 <td><p>Computes an output mask tensor.</p></td>
@@ -244,13 +252,13 @@
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.PredictionTask.metric_results" title="merlin.models.tf.PredictionTask.metric_results"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_results</span></code></a>([mode])</p></td>
-<td><p></p></td>
+<td><p>Computes and returns the  computed metric values</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.PredictionTask.pre_call" title="merlin.models.tf.PredictionTask.pre_call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pre_call</span></code></a>(inputs, **kwargs)</p></td>
-<td><p></p></td>
+<td><p>Apply PredictionTask to inputs to get predictions scores</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.PredictionTask.pre_loss" title="merlin.models.tf.PredictionTask.pre_loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pre_loss</span></code></a>(outputs, **kwargs)</p></td>
-<td><p></p></td>
+<td><p>Apply <cite>call_outputs</cite> method of <cite>pre</cite> block to transform predictions and targets before computing loss and metrics.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.PredictionTask.repr_add" title="merlin.models.tf.PredictionTask.repr_add"><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_add</span></code></a>()</p></td>
 <td><p></p></td>
@@ -381,17 +389,42 @@
 
 <dl class="py method">
 <dt id="merlin.models.tf.PredictionTask.pre_call">
-<code class="sig-name descname"><span class="pre">pre_call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.pre_call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.pre_call" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<code class="sig-name descname"><span class="pre">pre_call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">,</span> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.pre_call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.pre_call" title="Permalink to this definition"></a></dt>
+<dd><p>Apply PredictionTask to inputs to get predictions scores</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>inputs</strong> (<em>TensorOrTabularData</em>) – inputs of the prediction task</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tf.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.PredictionTask.pre_loss">
 <code class="sig-name descname"><span class="pre">pre_loss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.blocks.core.base.PredictionOutput</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">merlin.models.tf.blocks.core.base.PredictionOutput</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.pre_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.pre_loss" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Apply <cite>call_outputs</cite> method of <cite>pre</cite> block to transform predictions and targets
+before computing loss and metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>outputs</strong> (<em>PredictionOutput</em>) – The named tuple containing predictions and targets tensors</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The named tuple containing transformed predictions and targets tensors</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>PredictionOutput</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.PredictionTask.build_task">
-<code class="sig-name descname"><span class="pre">build_task</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://nvidia-merlin.github.io/core/api/merlin.schema.html#merlin.schema.Schema" title="(in merlin-core)"><span class="pre">merlin.schema.schema.Schema</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.blocks.core.base.Block</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.build_task"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.build_task" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">build_task</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.schema.schema.Schema</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">body</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.blocks.core.base.Block</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.build_task"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.build_task" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -406,8 +439,28 @@
 
 <dl class="py method">
 <dt id="merlin.models.tf.PredictionTask.compute_loss">
-<code class="sig-name descname"><span class="pre">compute_loss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_weight</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.compute_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.compute_loss" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<code class="sig-name descname"><span class="pre">compute_loss</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compute_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_weight</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.compute_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.compute_loss" title="Permalink to this definition"></a></dt>
+<dd><p>Method to compute the loss and metrics during
+training/evaluation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> (<em>tf.Tesor</em>) – The tensor of prediction scores.</p></li>
+<li><p><strong>targets</strong> (<em>_type_</em>) – The tensor of true labels.</p></li>
+<li><p><strong>training</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>, </em><em>optional</em>) – Compute loss in <cite>training</cite> mode,
+by default False.</p></li>
+<li><p><strong>compute_metrics</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>, </em><em>optional</em>) – Compute metrics in addition to the loss,
+by default False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tf.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.PredictionTask.attach_metrics_calculation_to_loss">
@@ -421,13 +474,47 @@
 
 <dl class="py method">
 <dt id="merlin.models.tf.PredictionTask.calculate_metrics">
-<code class="sig-name descname"><span class="pre">calculate_metrics</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.blocks.core.base.PredictionOutput</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.calculate_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.calculate_metrics" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<code class="sig-name descname"><span class="pre">calculate_metrics</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">merlin.models.tf.blocks.core.base.PredictionOutput</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_weight</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">forward</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">tensorflow.python.framework.ops.Tensor</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.calculate_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.calculate_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Method to compute the metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>outputs</strong> (<em>PredictionOutput</em>) – The named tuple containing predictions and targets tensors</p></li>
+<li><p><strong>forward</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>, </em><em>optional</em>) – Apply the <cite>call</cite> of Prediction Task, by default True</p></li>
+<li><p><strong>loss</strong> (<em>tf.Tensor</em><em>, </em><em>optional</em>) – The loss value to attach the metric to, by default None</p></li>
+<li><p><strong>training</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>, </em><em>optional</em>) – Compute metrics in <cite>training</cite> mode,
+by default False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>_description_</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>_type_</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.10)"><strong>Exception</strong></a> – _description_</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.PredictionTask.metric_results">
 <code class="sig-name descname"><span class="pre">metric_results</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">'val'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.metric_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.metric_results" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Computes and returns the  computed metric values</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>optional</em>) – string prefix to indicate the mode used to compute metrics,
+by default “val”</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dictionary of scalar metrics</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.PredictionTask.metric_result_dict">

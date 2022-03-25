@@ -88,7 +88,6 @@
           <li><a href="../api.html">API Documentation</a> &raquo;</li>
       <li>merlin.models.tf.ItemRetrievalTask</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/generated/merlin.models.tf.ItemRetrievalTask.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -199,7 +198,7 @@ Defaults to True.</p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_metrics</span></code>(outputs[, sample_weight, …])</p></td>
-<td><p></p></td>
+<td><p>Method to compute the metrics.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code>(inputs[, training])</p></td>
 <td><p></p></td>
@@ -208,7 +207,7 @@ Defaults to True.</p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_loss</span></code>(predictions, targets[, …])</p></td>
-<td><p></p></td>
+<td><p>Method to compute the loss and metrics during training/evaluation.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
 <td><p>Computes an output mask tensor.</p></td>
@@ -268,10 +267,10 @@ Defaults to True.</p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pre_call</span></code>(inputs, **kwargs)</p></td>
-<td><p></p></td>
+<td><p>Apply PredictionTask to inputs to get predictions scores</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pre_loss</span></code>(outputs, **kwargs)</p></td>
-<td><p></p></td>
+<td><p>Apply <cite>call_outputs</cite> method of <cite>pre</cite> block to transform predictions and targets before computing loss and metrics.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_add</span></code>()</p></td>
 <td><p></p></td>
