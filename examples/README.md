@@ -17,7 +17,7 @@ You can run the example notebooks by [installing Merlin Models](https://github.c
 - [Merlin-Tensorflow-Training](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training) (contains Merlin Core, Merlin Models, NVTabular and TensorFlow)
 - [Merlin-Inference](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-inference) (contains Merlin Core, Merlin Models, Merlin Systems, NVTabular, TensorFlow and Triton Inference Server)
 
-To run the example notebooks using Docker containers, do the following:
+To run the example notebooks using docker containers, do the following:
 
 1. Pull the container by running the following command:
    
