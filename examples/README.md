@@ -2,6 +2,15 @@
 
 We have created a collection of Jupyter notebooks based on different datasets. These example notebooks demonstrate how to use Merlin Models with TensorFlow.
 
+## Available Example Notebooks
+
+1. **[Getting Started](01-getting-started.ipynb)**: It provides a getting started with Merlin Models. We will train [Facebook's DLRM](https://arxiv.org/pdf/1906.00091.pdf) architecture with only 3 commands.
+
+2. **[Merlin Models and NVTabular: Applying To your own dataset](02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb)**: We will take a look on the `schema` to connect ETL and training step. It will help to apply Merlin Models to your own dataset structures.
+
+3. **[Exploring different Models](Exploring-different-models.ipynb)**: We will explore different ranking model architectures, such as [Neural Collaborative Filtering (NCF)](https://arxiv.org/pdf/1708.05031.pdf), MLP, [DRLM](https://arxiv.org/abs/1906.00091) and [Deep & Cross Network (DCN)](https://arxiv.org/pdf/1708.05123.pdf)
+
+
 ## Running the Example Notebooks
 
 You can run the example notebooks by [installing Merlin Models](https://github.com/NVIDIA-Merlin/models#installation) and other required libraries. Alternatively, Docker containers are available on http://ngc.nvidia.com/catalog/containers/ with pre-installed versions. Depending on which example you want to run, you should use any one of these Docker containers:
@@ -35,11 +44,5 @@ To run the example notebooks using Docker containers, do the following:
 
 4. Once in the server, navigate to the ```/models/``` directory and try out the examples.
 
-## Available Example Notebooks
 
-1. **[Getting Started](01-getting-started.ipynb)**: It provides a getting started with Merlin Models. We will train [Facebook's DLRM](https://arxiv.org/pdf/1906.00091.pdf) architecture with only 3 commands.
-
-2. **[Merlin Models and NVTabular: Applying To your own dataset](02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb)**: We will take a look on the `schema` to connect ETL and training step. It will help to apply Merlin Models to your own dataset structures.
-
-3. **[Exploring different Models](Exploring-different-models.ipynb)**: We will explore different ranking model architectures, such as [Neural Collaborative Filtering (NCF)](https://arxiv.org/pdf/1708.05031.pdf), MLP, [DRLM](https://arxiv.org/abs/1906.00091) and [Deep & Cross Network (DCN)](https://arxiv.org/pdf/1708.05123.pdf)
 
