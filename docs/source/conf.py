@@ -27,11 +27,17 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
+import subprocess
 import sys
 
+from natsort import natsorted
 from recommonmark.parser import CommonMarkParser
 
 sys.path.insert(0, os.path.abspath("../../"))
+
+repodir = os.path.abspath(os.path.join(__file__, r"../../.."))
+gitdir = os.path.join(repodir, r".git")
+
 
 # -- Project information -----------------------------------------------------
 
@@ -46,11 +52,13 @@ author = "NVIDIA"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx_multiversion",
     "sphinx_rtd_theme",
     "recommonmark",
     "sphinx_markdown_tables",
     "nbsphinx",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
     "sphinx.ext.githubpages",
     "sphinx.ext.napoleon",
@@ -78,20 +86,37 @@ html_theme = "sphinx_rtd_theme"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ["../../images"]
-# html_extra_path = ["images"]
+html_static_path = []
 
 source_parsers = {".md": CommonMarkParser}
 source_suffix = [".rst", ".md"]
+
+nbsphinx_allow_errors = True
+html_show_sourcelink = False
+
+if os.path.exists(gitdir):
+    tag_refs = subprocess.check_output(["git", "tag", "-l", "v*"]).decode("utf-8").split()
+    tag_refs = natsorted(tag_refs)[-6:]
+    smv_tag_whitelist = r"^(" + r"|".join(tag_refs) + r")$"
+else:
+    smv_tag_whitelist = r"^v.*$"
+
+smv_branch_whitelist = r"^main$"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "cudf": ("https://docs.rapids.ai/api/cudf/stable/", None),
     "distributed": ("https://distributed.dask.org/en/latest/", None),
     "torch": ("https://pytorch.org/docs/stable/", None),
-    "merlin-core": ("https://nvidia-merlin.github.io/core/", None),
+    "merlin-core": ("https://nvidia-merlin.github.io/main/core/", None),
 }
 
-autodoc_mock_imports = ["merlin", "nvtabular", "mypy", "torch", "torchmetrics"]
-
 autodoc_inherit_docstrings = False
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": False,
+    "member-order": "bysource",
+}
+
+autosummary_generate = True
