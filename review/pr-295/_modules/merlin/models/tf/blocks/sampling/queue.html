@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>merlin.models.tf.blocks.sampling.queue &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../../../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../../../" src="../../../../../../_static/documentation_options.js"></script>
+        <script src="../../../../../../_static/jquery.js"></script>
+        <script src="../../../../../../_static/underscore.js"></script>
+        <script src="../../../../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../../../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../models_overview.html">Available Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../api.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../../../index.html">Module code</a> &raquo;</li>
+      <li>merlin.models.tf.blocks.sampling.queue</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for merlin.models.tf.blocks.sampling.queue</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2021, NVIDIA CORPORATION.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1">#</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.layers.base</span> <span class="kn">import</span> <span class="n">Layer</span>
+
+
+<div class="viewcode-block" id="FIFOQueue"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue">[docs]</a><span class="k">class</span> <span class="nc">FIFOQueue</span><span class="p">(</span><span class="n">Layer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fixed size FIFO queue for caching input tensors</span>
+<span class="sd">    over the batches. The storage is a fixed size tf.Variable()</span>
+<span class="sd">    and some pointers are used to emulate the `queue()` / `dequeue()`</span>
+<span class="sd">    ops. As soon as maximum capacity is reached, the oldest examples</span>
+<span class="sd">    are removed from the queue to add the current beach ones.</span>
+<span class="sd">    As an example use case, the `FIFOQueue` is used by</span>
+<span class="sd">    `CachedCrossBatchSampler` to cache item embeddings and item metadata features.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        capacity : int</span>
+<span class="sd">            Maximum number of examples to store</span>
+<span class="sd">        dtype : tf.DType</span>
+<span class="sd">            The dtype of tensor that will be stored (e.g. tf.int32, tf.float32)</span>
+<span class="sd">        dims : List[int], optional</span>
+<span class="sd">            The dimension of the tensor examples, by default [], which means each example</span>
+<span class="sd">            is a scalar.</span>
+<span class="sd">        queue_name : str, optional</span>
+<span class="sd">            This is string is concat with the tf.Variable() name to allow differentiating in the</span>
+<span class="sd">            graph the FIFO Queue storages, by default &quot;&quot;</span>
+<span class="sd">        initialize_tensor : tf.Tensor, optional</span>
+<span class="sd">            Allows for initializing the storage with values, by default None which initializes</span>
+<span class="sd">            the storage with -1.</span>
+<span class="sd">            P.s. It is important that for categorical features the storage Variable is not</span>
+<span class="sd">            initialized with a valid categorical value (e.g. values &gt;= 0), so that `index_of()`</span>
+<span class="sd">            works properly</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FIFOQueue.__init__"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">capacity</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">,</span>
+        <span class="n">dims</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">queue_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">initialize_tensor</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">capacity</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">FIFOQueue</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span> <span class="o">=</span> <span class="n">capacity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue_dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dims</span> <span class="o">=</span> <span class="n">dims</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue_name</span> <span class="o">=</span> <span class="n">queue_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tensor</span> <span class="o">=</span> <span class="n">initialize_tensor</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">initialize_tensor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initialize_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">capacity</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="n">initialize_tensor</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">queue_name</span><span class="si">}</span><span class="s2">/fifo_queue_storage&quot;</span><span class="p">,</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">synchronization</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableSynchronization</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">capacity</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">queue_dtype</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="FIFOQueue.enqueue"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.enqueue">[docs]</a>    <span class="k">def</span> <span class="nf">enqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Enqueues an example into the queue</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        val : tf.Tensor</span>
+<span class="sd">            Tensor to be stored in the queue. Its shape should match the `dims`</span>
+<span class="sd">            set in the queue constructor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">),</span> <span class="s2">&quot;The rank of val and self.dims should match&quot;</span>
+        <span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="s2">&quot;The shape of val and self.dims should match&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_check_input_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">values</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;The rank of values (ignoring the first dim which is the number of examples) and &quot;</span>
+            <span class="s2">&quot;self.dims should match&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;The shape of values (ignoring the first dim which is the number of examples) and &quot;</span>
+            <span class="s2">&quot;self.dims should match&quot;</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="FIFOQueue.enqueue_many"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.enqueue_many">[docs]</a>    <span class="k">def</span> <span class="nf">enqueue_many</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vals</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Enqueues many examples into the queue.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        val : tf.Tensor</span>
+<span class="sd">            Tensor with the examples to be stored in the queue.</span>
+<span class="sd">            The first dim of `vals` is the number of examples.</span>
+<span class="sd">            From the second dim, its shape should match the `dims`</span>
+<span class="sd">            set in the queue constructor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_input_values</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+
+        <span class="c1"># if values are larger than the queue capacity N, enqueueing only the last N items</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">capacity</span> <span class="p">:]</span>
+        <span class="n">num_vals</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">vals</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="n">next_pos_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span>
+        <span class="n">next_pos_end</span> <span class="o">=</span> <span class="n">next_pos_start</span> <span class="o">+</span> <span class="n">num_vals</span>
+        <span class="k">if</span> <span class="n">next_pos_end</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="n">next_pos_start</span><span class="p">:</span><span class="n">next_pos_end</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="n">next_pos_start</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="ow">and</span> <span class="n">next_pos_end</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">next_pos_end</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_overplus_items</span> <span class="o">=</span> <span class="n">next_pos_end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span>
+            <span class="n">next_pos_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="n">next_pos_start</span><span class="p">:</span><span class="n">next_pos_end</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">vals</span><span class="p">[:</span> <span class="n">num_vals</span> <span class="o">-</span> <span class="n">num_overplus_items</span><span class="p">])</span>
+
+            <span class="n">next_pos_start</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">next_pos_end</span> <span class="o">=</span> <span class="n">num_overplus_items</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="n">next_pos_start</span><span class="p">:</span><span class="n">next_pos_end</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="n">num_vals</span> <span class="o">-</span> <span class="n">num_overplus_items</span> <span class="p">:])</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span> <span class="ow">or</span> <span class="n">next_pos_end</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">next_pos_end</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">next_pos_end</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FIFOQueue.dequeue"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.dequeue">[docs]</a>    <span class="k">def</span> <span class="nf">dequeue</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Dequeues a single example from the queue</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.Tensor</span>
+<span class="sd">            A single example of the queue</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        IndexError</span>
+<span class="sd">            The queue is empty</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;The queue is empty&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">val</span></div>
+
+<div class="viewcode-block" id="FIFOQueue.dequeue_many"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.dequeue_many">[docs]</a>    <span class="k">def</span> <span class="nf">dequeue_many</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Dequeues many examples from the queue</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : int</span>
+<span class="sd">            Number of examples to sample from the queue</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.Tensor</span>
+<span class="sd">            A tensor with N examples, being the first dim equal to N</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        IndexError</span>
+<span class="sd">            The queue is empty</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            The number of elements to dequeue must be greater than 0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;The queue is empty&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The number of elements to dequeue must be greater than 0.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">next_pos_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span>
+        <span class="n">next_pos_end</span> <span class="o">=</span> <span class="n">next_pos_start</span> <span class="o">+</span> <span class="n">n</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="p">:</span>
+            <span class="n">next_pos_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">next_pos_end</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">next_pos_end</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span><span class="p">:</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="n">next_pos_start</span><span class="p">:</span><span class="n">next_pos_end</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_missing_items</span> <span class="o">=</span> <span class="n">next_pos_end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span>
+            <span class="n">next_pos_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span>
+            <span class="n">vals1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="n">next_pos_start</span><span class="p">:</span><span class="n">next_pos_end</span><span class="p">]</span>
+
+            <span class="n">next_pos_start</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">next_pos_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">num_missing_items</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">)</span>
+            <span class="n">vals2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="n">next_pos_start</span><span class="p">:</span><span class="n">next_pos_end</span><span class="p">]</span>
+
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">vals1</span><span class="p">,</span> <span class="n">vals2</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">next_pos_end</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">vals</span></div>
+
+<div class="viewcode-block" id="FIFOQueue.list_all"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.list_all">[docs]</a>    <span class="k">def</span> <span class="nf">list_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns all items in the queue, sorted by the</span>
+<span class="sd">        order they were added (FIFO)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.Tensor</span>
+<span class="sd">            Returns a tensor with all examples added to the queue</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Returns empty Tensor when queue is empty</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="p">:],</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">]],</span>
+                <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="FIFOQueue.count"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.count">[docs]</a>    <span class="k">def</span> <span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns the number of examples added to the queue</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            The number of examples added to the queue</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">capacity</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span></div>
+
+<div class="viewcode-block" id="FIFOQueue.clear"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Removes all examples from the queue&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_pointer</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_available_pointer</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">at_full_capacity</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FIFOQueue.index_of"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.index_of">[docs]</a>    <span class="k">def</span> <span class="nf">index_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Retrieves the indices of the input ids if they exist in the queue,</span>
+<span class="sd">        and -1 indicates the id was not found.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ids : tf.Tensor</span>
+<span class="sd">            1D tensor with the search ids</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.Tensor</span>
+<span class="sd">            1D tensor with the same size of the input ids, containing the indices of the</span>
+<span class="sd">            ids in the queue (-1 if not found)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue_dtype</span> <span class="ow">in</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int16</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">],</span> <span class="p">(</span>
+            <span class="s2">&quot;The index_of method is only available for queues with an int dtype &quot;</span>
+            <span class="s2">&quot;(tf.int8, tf.int16, tf.int32, tf.int64)&quot;</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="p">[]</span>
+        <span class="p">),</span> <span class="s2">&quot;The index_of method is only available for queues of scalars (dims=[])&quot;</span>
+
+        <span class="c1"># item_ids_indices = tf.where(tf.equal(ids, self.storage))</span>
+        <span class="n">equal_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="c1"># Artificially adding a first zero column so that index 0 is returned if</span>
+        <span class="c1"># there is not an equal value (1) row-wise</span>
+        <span class="n">equal_tensor_extended</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">equal_tensor</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">equal_tensor</span><span class="p">],</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Subtracting the indices to account for the first collumn added, so that</span>
+        <span class="c1"># values not found become -1</span>
+        <span class="n">item_ids_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">equal_tensor_extended</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">item_ids_indices</span></div>
+
+<div class="viewcode-block" id="FIFOQueue.get_values_by_indices"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.get_values_by_indices">[docs]</a>    <span class="k">def</span> <span class="nf">get_values_by_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Retrieves values of the queue based on their index</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        indices : tf.Tensor</span>
+<span class="sd">            Indices to retrieve</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.Tensor</span>
+<span class="sd">            Values corresponding to the indices</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="FIFOQueue.update_by_indices"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue.update_by_indices">[docs]</a>    <span class="k">def</span> <span class="nf">update_by_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Update values of the queue for specific indices</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        indices : tf.Tensor</span>
+<span class="sd">            Indices to update</span>
+<span class="sd">        values : tf.Tensor</span>
+<span class="sd">            Update values</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_input_values</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">indices</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">values</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s2">&quot;The number of indices and values should match&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage</span><span class="o">.</span><span class="n">scatter_nd_update</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
