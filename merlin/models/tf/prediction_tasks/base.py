@@ -20,7 +20,7 @@ from merlin.models.tf.blocks.core.base import (
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.metrics.ranking import RankingMetric
-from merlin.models.tf.typing import TabularData
+from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin
 from merlin.models.utils.misc_utils import filter_kwargs
@@ -34,17 +34,31 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
     Parameters
     ----------
-    metrics:
-        List of Keras metrics to be evaluated.
-    prediction_metrics:
-        List of Keras metrics used to summarize the predictions.
-    label_metrics:
-        List of Keras metrics used to summarize the labels.
-    loss_metrics:
-        List of Keras metrics used to summarize the loss.
-    name:
-        Optional task name.
-
+    target_name : Optional[str], optional
+        Label name, by default None
+    task_name : Optional[str], optional
+        Task name, by default None
+    metrics : Optional[MetricOrMetrics], optional
+        List of Keras metrics to be evaluated, by default None
+    pre : Optional[Block], optional
+        Optional block to transform predictions before computing loss and metrics,
+        by default None
+    pre_eval_topk : Optional[Block], optional
+        Optional block to apply additional transform predictions before computing
+        top-k evaluation loss and metrics, by default None
+    task_block : Optional[Layer], optional
+        Optional block to apply to inputs before computing predictions,
+        by default None
+    prediction_metrics : Optional[List[tf.keras.metrics.Metric]], optional
+        List of Keras metrics used to summarize the predictions, by default None
+    label_metrics : Optional[List[tf.keras.metrics.Metric]], optional
+        List of Keras metrics used to summarize the labels, by default None
+    loss_metrics : Optional[List[tf.keras.metrics.Metric]], optional
+        List of Keras metrics used to summarize the loss, by default None
+    compute_train_metrics : Optional[bool], optional
+        Enable computing metrics during training, by default True
+    name : Optional[Text], optional
+        Task name, by default None
     """
 
     def __init__(
@@ -87,10 +101,28 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return self._pre_eval_topk
 
     @pre_eval_topk.setter
-    def pre_eval_topk(self, value):
+    def pre_eval_topk(self, value: Block):
+        """Set pre_eval_topk Block
+
+        Parameters
+        ----------
+        value : Block
+            The block for top-k evaluation
+        """
         self._pre_eval_topk = value
 
-    def pre_call(self, inputs, **kwargs):
+    def pre_call(self, inputs: TensorOrTabularData, **kwargs) -> tf.Tensor:
+        """Apply PredictionTask to inputs to get predictions scores
+
+        Parameters
+        ----------
+        inputs : TensorOrTabularData
+            inputs of the prediction task
+
+        Returns
+        -------
+        tf.Tensor
+        """
         x = inputs
 
         if self.task_block:
@@ -102,6 +134,19 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return x
 
     def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
+        """Apply `call_outputs` method of `pre` block to transform predictions and targets
+        before computing loss and metrics.
+
+        Parameters
+        ----------
+        outputs : PredictionOutput
+            The named tuple containing predictions and targets tensors
+
+        Returns
+        -------
+        PredictionOutput
+             The named tuple containing transformed predictions and targets tensors
+        """
         out = self.pre.call_outputs(outputs, **kwargs) if self.pre else outputs
 
         return out
@@ -148,13 +193,34 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
     def compute_loss(  # type: ignore
         self,
-        predictions,
-        targets,
+        predictions: tf.Tensor,
+        targets: tf.Tensor,
         training: bool = False,
         compute_metrics=False,
         sample_weight: Optional[tf.Tensor] = None,
         **kwargs,
     ) -> tf.Tensor:
+        """Method to compute the loss and metrics during
+        training/evaluation.
+
+
+        Parameters
+        ----------
+        predictions : tf.Tesor
+            The tensor of prediction scores.
+        targets : _type_
+            The tensor of true labels.
+        training : bool, optional
+            Compute loss in `training` mode,
+            by default False.
+        compute_metrics : bool, optional
+            Compute metrics in addition to the loss,
+            by default False
+
+        Returns
+        -------
+        tf.Tensor
+        """
         positive_item_ids = None
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
@@ -172,6 +238,18 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if isinstance(targets, tf.Tensor) and len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
 
+        label_relevant_counts_eval = None
+        if not training and self._pre_eval_topk:
+            # During eval, the retrievaltask only returns positve scores
+            # so we need to retrieve top-k negative scores to compute the loss
+            outputs = self._pre_eval_topk.call_outputs(
+                PredictionOutput(predictions, targets, outputs.positive_item_ids), **kwargs
+            )
+            targets, predictions, label_relevant_counts_eval = (
+                outputs.targets,
+                outputs.predictions,
+                outputs.label_relevant_counts,
+            )
         loss = self._compute_loss(
             predictions, targets=targets, sample_weight=sample_weight, training=training
         )
@@ -179,7 +257,11 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         loss = tf.cond(
             tf.convert_to_tensor(compute_metrics),
             lambda: self.attach_metrics_calculation_to_loss(
-                PredictionOutput(predictions, targets, positive_item_ids), loss, training
+                PredictionOutput(
+                    predictions, targets, positive_item_ids, label_relevant_counts_eval
+                ),
+                loss,
+                training,
             ),
             lambda: loss,
         )
@@ -202,13 +284,41 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def calculate_metrics(
         self,
         outputs: PredictionOutput,
-        sample_weight=None,
-        forward=True,
-        loss=None,
-        training=False,
+        sample_weight: Optional[tf.Tensor] = None,
+        forward: Optional[bool] = True,
+        loss: Optional[tf.Tensor] = None,
+        training: Optional[bool] = False,
         **kwargs,
     ):
-        predictions, targets = outputs.predictions, outputs.targets
+        """Method to compute the metrics.
+
+        Parameters
+        ----------
+        outputs : PredictionOutput
+            The named tuple containing predictions and targets tensors
+        forward : bool, optional
+            Apply the `call` of Prediction Task, by default True
+        loss : tf.Tensor, optional
+            The loss value to attach the metric to, by default None
+        training : bool, optional
+            Compute metrics in `training` mode,
+            by default False
+
+        Returns
+        -------
+        _type_
+            _description_
+
+        Raises
+        ------
+        Exception
+            _description_
+        """
+        predictions, targets, label_relevant_counts_eval = (
+            outputs.predictions,
+            outputs.targets,
+            outputs.label_relevant_counts,
+        )
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
 
@@ -216,20 +326,6 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             predictions = self(predictions)
 
         update_ops = []
-
-        label_relevant_counts_eval = None
-
-        if not training and self._pre_eval_topk:
-
-            outputs = self._pre_eval_topk.call_outputs(
-                PredictionOutput(predictions, targets, outputs.positive_item_ids), **kwargs
-            )
-            targets, predictions, label_relevant_counts_eval = (
-                outputs.targets,
-                outputs.predictions,
-                outputs.label_relevant_counts,
-            )
-
         if len(self.eval_metrics) > 0:
             predictions_eval = predictions
             targets_eval = targets
@@ -312,6 +408,19 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return update_ops
 
     def metric_results(self, mode: str = "val"):
+        """Computes and returns the  computed metric values
+
+        Parameters
+        ----------
+        mode : str, optional
+            string prefix to indicate the mode used to compute metrics,
+            by default "val"
+
+        Returns
+        -------
+        dict
+            dictionary of scalar metrics
+        """
         return {metric.name: metric.result() for metric in self.metrics}
 
     def metric_result_dict(self, mode=None):
@@ -437,6 +546,21 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
         loss_reduction=tf.reduce_mean,
         **kwargs,
     ) -> "ParallelPredictionBlock":
+        """Built Multi-task prediction Block from schema
+
+        Parameters
+        ----------
+        schema : Schema
+            The `Schema` with the input features
+        task_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional
+            Task blocks to be used for prediction, by default None
+        task_weight_dict : Optional[Dict[str, float]], optional
+            Weights for each task, by default None
+        bias_block : Optional[Layer], optional
+            Bias block to be used for prediction, by default None
+        loss_reduction : _type_, optional
+            Reduction function for loss, by default tf.reduce_mean
+        """
         task_weight_dict = task_weight_dict or {}
 
         task_weights, tasks = cls.get_tasks_from_schema(schema, task_weight_dict)
