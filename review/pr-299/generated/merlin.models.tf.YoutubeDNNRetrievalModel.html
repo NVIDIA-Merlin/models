@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>merlin.models.tf.YoutubeDNNRetrievalModel &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="merlin.models.tf.Block" href="merlin.models.tf.Block.html" />
+    <link rel="prev" title="merlin.models.tf.TwoTowerModel" href="merlin.models.tf.TwoTowerModel.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Available Models: Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../api.html#model-constructors">Model Constructors</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.Model.html">merlin.models.tf.Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.DCNModel.html">merlin.models.tf.DCNModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.DLRMModel.html">merlin.models.tf.DLRMModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.MatrixFactorizationModel.html">merlin.models.tf.MatrixFactorizationModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.TwoTowerModel.html">merlin.models.tf.TwoTowerModel</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">merlin.models.tf.YoutubeDNNRetrievalModel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#block-constructors">Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#masking-block-constructors">Masking Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#modeling-task-constructors">Modeling Task Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#transformation-block-constructors">Transformation Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#functions-for-blocks">Functions for Blocks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#dataset-constructors">Dataset Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#metrics">Metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#sampling">Sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#losses">Losses</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#data">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#loaders">Loaders</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../api.html">API Documentation</a> &raquo;</li>
+      <li>merlin.models.tf.YoutubeDNNRetrievalModel</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="merlin-models-tf-youtubednnretrievalmodel">
+<h1>merlin.models.tf.YoutubeDNNRetrievalModel<a class="headerlink" href="#merlin-models-tf-youtubednnretrievalmodel" title="Permalink to this headline"></a></h1>
+<dl class="py function">
+<dt id="merlin.models.tf.YoutubeDNNRetrievalModel">
+<code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">YoutubeDNNRetrievalModel</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/models/retrieval.html#YoutubeDNNRetrievalModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.YoutubeDNNRetrievalModel" title="Permalink to this definition"></a></dt>
+<dd><p>Build the Youtube-DNN retrieval model. More details of the model can be found in [1].</p>
+<dl class="simple">
+<dt>Example Usage::</dt><dd><p>model = YoutubeDNNRetrievalModel(schema, num_sampled=100)
+model.compile(optimizer=”adam”)
+model.fit(train_data, epochs=10)</p>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<dl class="simple">
+<dt>[1] Covington, Paul, Jay Adams, and Emre Sargin.</dt><dd><p>“Deep neural networks for youtube recommendations.”
+Proceedings of the 10th ACM conference on recommender systems. 2016.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
+<li><p><strong>aggregation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – The aggregation method to use for the sequence of features.
+Defaults to <cite>concat</cite>.</p></li>
+<li><p><strong>top_block</strong> (<a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a>) – The <cite>Block</cite> that combines the top features</p></li>
+<li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of negative samples to use in the sampled-softmax.
+Defaults to 100.</p></li>
+<li><p><strong>loss</strong> (<em>Optional</em><em>[</em><em>LossType</em><em>]</em>) – Loss function.
+Defaults to <cite>categorical_crossentropy</cite>.</p></li>
+<li><p><strong>metrics</strong> (<em>List</em><em>[</em><em>Metric</em><em>]</em>) – List of metrics to use.
+Defaults to <cite>ranking_metrics(top_ks=[10])</cite></p></li>
+<li><p><strong>normalize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether to normalize the embeddings.
+Defaults to True.</p></li>
+<li><p><strong>extra_pre_call</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a><em>]</em>) – The optional <cite>Block</cite> to apply before the model.</p></li>
+<li><p><strong>task_block</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a><em>]</em>) – The optional <cite>Block</cite> to apply on the model.</p></li>
+<li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
+Defaults to 1.</p></li>
+<li><p><strong>seq_aggregator</strong> (<a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a>) – The <cite>Block</cite> to aggregate the sequence of features.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="merlin.models.tf.TwoTowerModel.html" class="btn btn-neutral float-left" title="merlin.models.tf.TwoTowerModel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.Block.html" class="btn btn-neutral float-right" title="merlin.models.tf.Block" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
