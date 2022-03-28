@@ -1,15 +1,16 @@
 # Merlin Models Example Notebooks
 
-We have created a collection of Jupyter notebooks based on different datasets. These example notebooks demonstrate how to use Merlin Models with TensorFlow.
+The example notebooks demonstrate how to use Merlin Models with TensorFlow on a variety of datasets.
 
-## Available Example Notebooks
+## Inventory
 
-1. **[Getting Started](01-getting-started.ipynb)**: It provides a getting started with Merlin Models. We will train [Facebook's DLRM](https://arxiv.org/pdf/1906.00091.pdf) architecture with only 3 commands.
+1. **[Getting Started](01-Getting-started.ipynb)**: It provides a getting started with Merlin Models by training [Facebook's DLRM](https://arxiv.org/pdf/1906.00091.pdf) architecture with only 3 commands.
 
-2. **[Merlin Models and NVTabular: Applying To your own dataset](02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb)**: We will take a look on the `schema` to connect ETL and training step. It will help to apply Merlin Models to your own dataset structures.
+2. **[Merlin Models and NVTabular: Applying To your own dataset](02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb)**: It demonstrates how the `schema` connects the ETL and training step. It will help to apply Merlin Models to your own dataset structures.
 
-3. **[Exploring different Models](Exploring-different-models.ipynb)**: We will explore different ranking model architectures, such as [Neural Collaborative Filtering (NCF)](https://arxiv.org/pdf/1708.05031.pdf), MLP, [DRLM](https://arxiv.org/abs/1906.00091) and [Deep & Cross Network (DCN)](https://arxiv.org/pdf/1708.05123.pdf)
+3. **[Exploring different Ranking Models](03-Exploring-different-models.ipynb)**: The example will explore different ranking model architectures, such as [Neural Collaborative Filtering (NCF)](https://arxiv.org/pdf/1708.05031.pdf), MLP, [DRLM](https://arxiv.org/abs/1906.00091), and [Deep & Cross Network (DCN)](https://arxiv.org/pdf/1708.05123.pdf).
 
+4. **[Retrieval Model](04-Retrieval-Model.ipynb)**: It trains a [Two Tower architecture](https://dl.acm.org/doi/abs/10.1145/3366423.3380130) as a item retrieval task with Merlin Models.
 
 ## Running the Example Notebooks
 
@@ -21,13 +22,13 @@ To run the example notebooks using docker containers, do the following:
 
 1. Pull the container by running the following command:
    
-   ```
+   ```shell
    docker run --runtime=nvidia --rm -it -p 8888:8888 -p 8797:8787 -p 8796:8786 --ipc=host <docker container> /bin/bash
    ```
 
    **NOTES**: 
    
-   - If you are running on Docker version 19 and higher, change ```--runtime=nvidia``` to ```--gpus all```.
+   - If you are running on Docker version 19 and higher, change `--runtime=nvidia` to `--gpus all`.
   
   The container will open a shell when the run command execution is completed. You will have to start JupyterLab on the Docker container. It should look similar to this:
    ```
