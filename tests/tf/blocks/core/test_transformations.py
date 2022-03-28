@@ -177,3 +177,24 @@ def test_categorical_one_hot_encoding():
     assert list(outputs["cat3"].shape) == [NUM_ROWS, MAX_LEN, 51]
 
     assert inputs["cat1"][0].numpy() == tf.where(outputs["cat1"][0, :] == 1).numpy()[0]
+
+
+def test_cross_product():
+    from merlin.models.tf.blocks.core.transformations import CrossFeatures
+
+    NUM_ROWS = 100
+
+    cardinalities = {"cat1": 21, "cat2": 11, "cat3": 6}
+    inputs = {}
+    for cat, cardinality in cardinalities.items():
+        inputs[cat] = tf.random.uniform((NUM_ROWS, 1), minval=1, maxval=cardinality, dtype=tf.int32)
+
+    n_buckets = 1000
+    cross_features = CrossFeatures(
+        keys=[["cat1", "cat2"], ["cat1", "cat2", "cat3"]], hash_bucket_size=n_buckets
+    )
+
+    outputs = cross_features(inputs)
+    for name, out in outputs.items():
+        assert out.shape[-1] == n_buckets
+        assert name in ["cat1_cat2", "cat1_cat2_cat3"]

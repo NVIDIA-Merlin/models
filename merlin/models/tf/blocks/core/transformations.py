@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
@@ -32,6 +32,10 @@ from merlin.schema import Schema, Tags
 @Block.registry.register("as-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsSparseFeatures(TabularBlock):
+    """
+    Convert inputs to sparse tensors.
+    """
+
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
@@ -57,6 +61,14 @@ class AsSparseFeatures(TabularBlock):
 @Block.registry.register("as-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsDenseFeatures(TabularBlock):
+    """Convert sparse inputs to dense tensors
+
+    Parameters
+    ----------
+    max_seq_length : int
+        The maximum length of multi-hot features.
+    """
+
     def __init__(self, max_seq_length: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
         self.max_seq_length = max_seq_length
@@ -99,6 +111,17 @@ class AsDenseFeatures(TabularBlock):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RenameFeatures(TabularBlock):
+    """Rename input features
+
+    Parameters
+    ----------
+    renames: dict
+        Mapping with new features names.
+    schema: Schema, optional
+        The `Schema` with input features,
+        by default None
+    """
+
     def __init__(
         self, renames: Dict[Union[str, Tags], str], schema: Optional[Schema] = None, **kwargs
     ):
@@ -308,6 +331,8 @@ class ExpandDims(TabularBlock):
 @Block.registry.register_with_multiple_names("l2-norm")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class L2Norm(TabularBlock):
+    """Apply L2-normalization to input tensors along a given axis"""
+
     def __init__(self, **kwargs):
         super(L2Norm, self).__init__(**kwargs)
 
@@ -388,6 +413,15 @@ class SamplingBiasCorrection(Block):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class LogitsTemperatureScaler(Block):
+    """Scale the logits higher or lower,
+    this is often used to reduce the overconfidence of the model.
+
+    Parameters
+    ----------
+    temperature : float
+        Divide the logits by this scaler.
+    """
+
     def __init__(self, temperature: float, **kwargs):
         super(LogitsTemperatureScaler, self).__init__(**kwargs)
         self.temperature = temperature
@@ -415,6 +449,23 @@ class LogitsTemperatureScaler(Block):
 @Block.registry.register_with_multiple_names("weight-tying")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemsPredictionWeightTying(Block):
+    """Tying the item embedding weights with the output projection layer matrix [1]
+    The output logits are obtained by multiplying the output vector by the item-ids embeddings.
+
+    Parameters
+    ----------
+        schema : Schema
+            The `Schema` with the input features
+        bias_initializer : str, optional
+            Initializer to use on the bias vector, by default "zeros"
+
+    References:
+    -----------
+    [1] Hakan, Inan et al.
+        "Tying word vectors and word classifiers: A loss framework for language modeling"
+        arXiv:1611.01462
+    """
+
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
@@ -484,6 +535,8 @@ class CategoricalOneHot(Block):
 @Block.registry.register_with_multiple_names("label_to_onehot")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class LabelToOneHot(Block):
+    """Transform the categorical encoded labels into a one-hot representation"""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -499,3 +552,53 @@ class LabelToOneHot(Block):
         targets = transform_label_to_onehot(targets, num_classes)
 
         return PredictionOutput(predictions, targets, outputs.positive_item_ids)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class CrossFeatures(TabularBlock):
+    """Transformation performing crosses of categorical features
+    based on the provided keys.
+
+    Parameters
+    ----------
+    keys : List[List[str]]
+        Iterable of column names identifying the features to be crossed
+    hash_bucket_size : int
+        The number of buckets for feature crossing.
+    """
+
+    def __init__(self, keys: List[List[str]], hash_bucket_size: int, **kwargs):
+        self.keys = keys
+        self.hash_bucket_size = hash_bucket_size
+        super().__init__(**kwargs)
+
+    def build(self, input_shape):
+        self.cross_layers = {}
+        for cross_keys in self.keys:
+            cross_column = tf.feature_column.crossed_column(
+                cross_keys, hash_bucket_size=self.hash_bucket_size
+            )
+            cross_layer = tf.keras.layers.DenseFeatures(
+                tf.feature_column.indicator_column(cross_column)
+            )
+            self.cross_layers["_".join(cross_keys)] = cross_layer
+
+        return super().build(input_shape)
+
+    def compute_output_shape(self, input_shape):
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shape)
+        out_shapes = {}
+        for name in self.cross_layers.keys():
+            out_shapes[name] = tf.TensorShape((batch_size, self.hash_bucket_size))
+        return out_shapes
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, layer in self.cross_layers.items():
+            outputs[name] = layer(inputs)
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        config["keys"] = self.keys
+        return config

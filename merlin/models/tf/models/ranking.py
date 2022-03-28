@@ -6,7 +6,7 @@ from merlin.models.tf.blocks.core.aggregation import ConcatFeatures, StackFeatur
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
-from merlin.models.tf.blocks.core.transformations import CategoricalOneHot
+from merlin.models.tf.blocks.core.transformations import CategoricalOneHot, CrossFeatures
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
@@ -191,7 +191,7 @@ def DeepFMModel(
     embedding_dim : int
         Dimension of the embeddings
     deep_block : Optional[Block]
-        The `Block` that learns high-ordeer feature interactions
+        The `Block` that learns high-order feature interactions
         Defaults to MLPBlock([64, 128])
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
@@ -231,5 +231,101 @@ def DeepFMModel(
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     model = deep_fm.connect(prediction_tasks)
+
+    return model
+
+
+def WideAndDeepModel(
+    schema: Schema,
+    embedding_dim: int,
+    keys: List[List[str]],
+    hash_bucket_size: Optional[int] = 1000,
+    deep_block: Optional[Block] = None,
+    prediction_tasks: Optional[
+        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+    ] = None,
+    embedding_option_kwargs: dict = {},
+    **kwargs
+) -> Model:
+    """Experimental implementation of Wide&Deep model [1];
+    The wide and deep components are trained with a single
+    optimizer in this first implementation.
+    If deep_block is not provided, the model is equivalent to
+    a linear model with cross-product interactions.
+
+    Example usage::
+        model = ml.WideAndDeepModel(
+        schema,
+        embedding_dim=64,
+        keys=[['item_category', 'item_intention'], ['country', 'gender', 'device']],
+        deep_block=ml.MLPBlock([64, 128])
+    )
+
+    References:
+    -----------
+    [1] Heng-Tze, Cheng et al.
+        "Wide & Deep Learning for Recommender Systems" arXiv:1606.07792.
+
+    Parameters
+    ----------
+    schema : Schema
+        The `Schema` with the input features
+    embedding_dim : int
+        The embedding dimension
+    keys : List[List[str]]
+        List of column names for cross-product transformation
+    hash_bucket_size : Optional[int], optional
+        number of buckets for features cross interaction, by default 1e4
+    deep_block : Block, optional
+        The `Block` that learns high-order feature interactions, by default None
+    prediction_tasks : optional
+        The prediction tasks to be used, by default this will be inferred from the Schema,
+        by default None
+    embedding_option_kwargs : dict, optional
+        Additional arguments to provide to `EmbeddingOptions` object
+        for embeddings tables setting, by default {}
+
+    Returns
+    -------
+    Model
+        Wide&Deep model class.
+
+    Raises
+    ------
+    ValueError
+        Make sure the cross features keys are present in the schema
+    """
+    if not all([key in schema.column_names for key_pair in keys for key in key_pair]):
+        raise ValueError("Make sure the cross features keys are present in the schema")
+    # wide block
+    cross_features = CrossFeatures(keys, hash_bucket_size)
+    branches = {
+        "categorical": CategoricalOneHot(schema),
+        "continuous": ContinuousFeatures.from_schema(schema),
+    }
+    base_features = ParallelBlock(branches, aggregation="concat")
+    wide_inputs = ParallelBlock(
+        {"cross": cross_features, "base": base_features}, aggregation="concat"
+    )
+    wide_block = wide_inputs.connect(tf.keras.layers.Dense(units=1, activation=None, use_bias=True))
+
+    if deep_block is not None:
+        deep_inputs = InputBlock(
+            schema,
+            embedding_options=EmbeddingOptions(
+                embedding_dim_default=embedding_dim, **embedding_option_kwargs
+            ),
+            **kwargs
+        )
+        deep_block = deep_inputs.connect(deep_block)
+
+        wide_and_deep = ParallelBlock(
+            {"deep": deep_block, "wide": wide_block}, aggregation="concat"
+        )
+    else:
+        wide_and_deep = wide_block
+
+    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+    model = wide_and_deep.connect(prediction_tasks)
 
     return model
