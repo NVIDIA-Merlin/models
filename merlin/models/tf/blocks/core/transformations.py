@@ -601,4 +601,5 @@ class CrossFeatures(TabularBlock):
     def get_config(self):
         config = super().get_config()
         config["keys"] = self.keys
+        config["hash_bucket_size"] = self.hash_bucket_size
         return config
