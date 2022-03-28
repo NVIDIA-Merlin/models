@@ -18,7 +18,7 @@ In our initial releases, Merlin Models features a TensorFlow API. The PyTorch AP
 
 To learn about the core features of Merlin Models, see the [Models Overview](docs/source/models_overview.md) page.
 
-**[RecSys models zoo](https://nvidia-merlin.github.io/models/main/models_overview.html)** - We provide a high-level API for classic and state-of-the-art deep learning architectures for recommender models. That includes Retrieval (e.g. Matrix Factorization, Two tower, YouTube DNN, ..) and Ranking (e.g. DLRM, DCN-v2, DeepFM, ...) models.
+**[RecSys models provided](https://nvidia-merlin.github.io/models/main/models_overview.html)**  - We provide a high-level API for classic and state-of-the-art deep learning architectures for recommender models including both Retrieval (e.g. Matrix Factorization, Two tower, YouTube DNN, ..) and Ranking (e.g. DLRM, DCN-v2, DeepFM, ...) models.
 
 **Building blocks** - Within Merlin Models, recommender models are built based on reusable building blocks, making it easy to combine those blocks to define new architectures. It provides model definition blocks (MLP layers, Factorization Layers, input blocks, negative samplers, loss functions), training models (data loaders from Parquet files) and evaluation (e.g. ranking metrics).
 
@@ -44,6 +44,7 @@ Note: Installing Merlin Models with `pip` will not install some additional GPU d
 Merlin Models is pre-installed in the NVIDIA Merlin Docker containers that are available in the [NVIDIA container repository](https://ngc.nvidia.com/catalog/containers/nvidia:merlin). There are six different containers:
 
 
+%TODO: Do not include the list of components within each Container here (to avoid updating multiple places when needed), but rather keep them in a Merlin top-level readme.
 <!-- prettier-ignore-start -->
 
 | Container Name             | Container Location | Functionality |
@@ -106,14 +107,7 @@ eval_metrics = model.evaluate(valid_ds, return_dict=True)
 -->
 
 ## Notebook Examples and Tutorials
-The [examples](https://github.com/NVIDIA-Merlin/models/tree/main/examples) folder includes a series of notebooks to help you getting familiar with Merlin Models. You can explore them in the following order: 
-* [01-Getting-started.ipynb](https://github.com/NVIDIA-Merlin/models/blob/main/examples/01-Getting-started.ipynb): Understand Merlin Models high-level API by defining and training a [DLRM](https://arxiv.org/pdf/1906.00091.pdf) model. 
-
-* [02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb](https://github.com/NVIDIA-Merlin/models/blob/main/examples/02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb): Use the ETL output of NVTabular to define and train a model on your own dataset.
-
-* [03-Exploring-different-models.ipynb](https://github.com/NVIDIA-Merlin/models/blob/main/examples/03-Exploring-different-models.ipynb): Train different ranking models using the [Ali-CCP: Alibaba Click and Conversion Prediction](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1) dataset
-
-* [04-Retrieval-Model.ipynb](https://github.com/NVIDIA-Merlin/models/blob/main/examples/04-Retrieval-Model.ipynb): Learn about two-stage recommender systems and implement a Two-tower retrieval model using in-batch negative sampling.
+The [examples](https://github.com/NVIDIA-Merlin/models/tree/main/examples) folder includes a series of notebooks to help you getting familiar with Merlin Models. You can learn more about these notebooks in this [examples' readme](https://github.com/NVIDIA-Merlin/models/tree/main/examples#merlin-models-example-notebooks) doc.
 
 
 ## Feedback and Support
