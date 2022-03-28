@@ -3,17 +3,18 @@ import numpy as np
 import nvtabular as nvt
 
 
-def workflow_fit_transform(outputs, train_path, test_path, output_path, workflow_name=None):
+def workflow_fit_transform(outputs, train_path, valid_path, output_path, workflow_name=None):
+    """fits and transforms datasets applying NVT workflow"""
     workflow = nvt.Workflow(outputs)
 
     train_dataset = nvt.Dataset(train_path)
-    test_dataset = nvt.Dataset(test_path)
+    valid_dataset = nvt.Dataset(valid_path)
 
     workflow.fit(train_dataset)
 
     workflow.transform(train_dataset).to_parquet(output_path=output_path + "/train/")
 
-    workflow.transform(test_dataset).to_parquet(output_path=output_path + "/test/")
+    workflow.transform(valid_dataset).to_parquet(output_path=output_path + "/valid/")
 
     if workflow_name is None:
         workflow_name = "workflow"
@@ -24,6 +25,7 @@ def workflow_fit_transform(outputs, train_path, test_path, output_path, workflow
 
 
 def save_results(model_name, model):
+    """a funct to save valudation accurracy results in a text file"""
     with open("results.txt", "a") as f:
         f.write(model_name)
         f.write("\n")
@@ -33,6 +35,7 @@ def save_results(model_name, model):
 
 
 def create_bar_chart(text_file_name, models_name):
+    """a func to plot barcharts via parsing the  accurracy results in a text file"""
     auc = []
     with open(text_file_name, "r") as infile:
         for line in infile:
