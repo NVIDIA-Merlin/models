@@ -569,6 +569,29 @@
         <span class="n">logs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">set_logs</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">set_logs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">logs</span>
+
+
+<span class="k">if</span> <span class="n">merlin_dataset_class</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">sample_batch</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">merlin_dataset_class</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Util function to generate a batch of input tensors from a merlin.io.dataset instance</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data: merlin.io.dataset</span>
+<span class="sd">            A Dataset object.</span>
+<span class="sd">        batch_size: int</span>
+<span class="sd">            Number of samples to return.</span>
+<span class="sd">        shuffle: bool</span>
+<span class="sd">            Whether to sample a random batch or not, by default False.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        -------</span>
+<span class="sd">        batch: Dict[tf.tensor]</span>
+<span class="sd">            dictionary of input tensors.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">BatchedDataset</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">)))[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">batch</span>
 </pre></div>
 
            </div>
