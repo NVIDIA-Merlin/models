@@ -96,8 +96,15 @@ def maybe_deserialize_keras_objects(
         if maybe_val:
             if isinstance(maybe_val, list):
                 config[key] = [fn(v, custom_objects=custom_objects) for v in maybe_val]
+            elif isinstance(maybe_val, dict):
+                if "class_name" in maybe_val:
+                    config[key] = fn(maybe_val, custom_objects=custom_objects)
+                else:
+                    config[key] = {
+                        k: fn(v, custom_objects=custom_objects) for k, v in maybe_val.items()
+                    }
             else:
-                config[key] = fn(maybe_val, custom_objects=custom_objects)
+                raise ValueError(f"Unexpected type for {key}")
 
     return config
 

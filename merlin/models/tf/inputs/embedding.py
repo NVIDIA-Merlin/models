@@ -14,21 +14,20 @@
 # limitations under the License.
 #
 
-from copy import copy, deepcopy
 import math
+from copy import copy, deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Optional, Union, Type, List
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 import tensorflow as tf
-from tensorflow.python.ops import init_ops_v2
-
-from merlin.models.tf import BlockContext
 from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
+from tensorflow.python.ops import init_ops_v2
 from tensorflow.python.ops.init_ops_v2 import Initializer
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 import merlin.io
+from merlin.models.tf import BlockContext
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.blocks.core.tabular import (
@@ -60,12 +59,12 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingTable(Block):
     def __init__(
-            self,
-            name: str,
-            vocabulary_size: int,
-            options: "EmbeddingTableOptions",
-            context: Optional[BlockContext] = None,
-            **kwargs
+        self,
+        name: str,
+        vocabulary_size: int,
+        options: "EmbeddingTableOptions",
+        context: Optional[BlockContext] = None,
+        **kwargs,
     ):
         super().__init__(context=context, name=name, **kwargs)
         self._name = name
@@ -83,10 +82,8 @@ class EmbeddingTable(Block):
         return super().build(input_shapes)
 
     def _create_embedding_table(self, input_shape):
-        add_fn = (
-            self.context.add_embedding_weight if hasattr(self, "_context") else self.add_weight
-        )
-        self.embedding_table = add_fn(
+        add_fn = self.context.add_embedding_weight if hasattr(self, "_context") else self.add_weight
+        self.table = add_fn(
             name=self._name,
             trainable=True,
             initializer=self.options.initialize(),
@@ -99,17 +96,19 @@ class EmbeddingTable(Block):
             inputs = tf.cast(inputs, "int32")
 
         if isinstance(inputs, tf.SparseTensor):
-            out = tf.nn.safe_embedding_lookup_sparse(self.embedding_table, inputs, None, combiner=self.combiner)
+            out = tf.nn.safe_embedding_lookup_sparse(
+                self.table, inputs, None, combiner=self.combiner
+            )
         else:
             if self.options.max_seq_length:
-                out = tf.gather(self.embedding_table, tf.cast(inputs, tf.int32))
+                out = tf.gather(self.table, tf.cast(inputs, tf.int32))
             else:
                 if len(inputs.shape) > 1:
                     # TODO: Check if it is correct to retrieve only the 1st element
                     # of second dim for non-sequential multi-hot categ features
-                    out = tf.gather(self.embedding_table, tf.cast(inputs, tf.int32)[:, 0])
+                    out = tf.gather(self.table, tf.cast(inputs, tf.int32)[:, 0])
                 else:
-                    out = tf.gather(self.embedding_table, tf.cast(inputs, tf.int32))
+                    out = tf.gather(self.table, tf.cast(inputs, tf.int32))
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
             # this is mathematically equivalent but is faster.
@@ -137,7 +136,9 @@ class EmbeddingTable(Block):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        config["options"] = EmbeddingTableOptions.from_config(config["options"], custom_objects=custom_objects)
+        config["options"] = EmbeddingTableOptions.from_config(
+            config["options"], custom_objects=custom_objects
+        )
 
         return cls(**config)
 
@@ -160,10 +161,7 @@ class EmbeddingTableOptions:
 
     @classmethod
     def infer_dim(
-            cls,
-            col: Union[ColumnSchema, int],
-            multiplier: float = 2.0,
-            **kwargs
+        cls, col: Union[ColumnSchema, int], multiplier: float = 2.0, **kwargs
     ) -> "EmbeddingTableOptions":
         if isinstance(col, ColumnSchema):
             dim = schema_utils.get_embedding_size_from_col(col, multiplier=multiplier)
@@ -181,11 +179,14 @@ class EmbeddingTableOptions:
         return self.block_cls(column_schema.name, cardinality, options=self, **kwargs)
 
     def initialize(self) -> Union[Initializer, tf.Tensor]:
+        if isinstance(self.initializer, Initializer):
+            return self.initializer
+
         return self.initializer(self.dim)
 
     def get_config(self):
         out = self.__dict__
-        out["initializer"] = tf.keras.initializers.serialize(out["initializer"])
+        out["initializer"] = tf.keras.initializers.serialize(self.initialize())
 
         return out
 
@@ -200,18 +201,19 @@ class EmbeddingTableOptions:
 # mask_zero: bool = True,
 # padding_idx: int = 0,
 
+
 class EmbeddingOptions:
     def __init__(
-            self,
-            schema: Schema,
-            custom_tables: Dict[str, Union[EmbeddingTableOptions, EmbeddingTable]] = None,
-            default_embedding_dim: int = 64,
-            infer_embedding_sizes: bool = False,
-            infer_embedding_sizes_multiplier: float = 2.0,
-            default_block_cls: Type[Block] = EmbeddingTable,
-            default_combiner: str = "mean",
-            default_initializer: InitializerFn = truncated_normal_initializer,
-            max_seq_length: Optional[int] = None,
+        self,
+        schema: Schema,
+        custom_tables: Dict[str, Union[EmbeddingTableOptions, EmbeddingTable]] = None,
+        default_embedding_dim: int = 64,
+        infer_embedding_sizes: bool = False,
+        infer_embedding_sizes_multiplier: float = 2.0,
+        default_block_cls: Type[Block] = EmbeddingTable,
+        default_combiner: str = "mean",
+        default_initializer: InitializerFn = truncated_normal_initializer,
+        max_seq_length: Optional[int] = None,
     ):
         self.schema = schema
         self._tables: Dict[str, EmbeddingTableOptions] = {}
@@ -229,15 +231,13 @@ class EmbeddingOptions:
                 table_kwargs = dict(
                     block_cls=default_block_cls,
                     combiner=default_combiner,
-                    initializer=default_initializer
+                    initializer=default_initializer,
                 )
                 if table_name in _custom_tables:
                     table = _custom_tables[table_name]
                 elif infer_embedding_sizes:
                     table = EmbeddingTableOptions.infer_dim(
-                        col,
-                        multiplier=infer_embedding_sizes_multiplier,
-                        **table_kwargs
+                        col, multiplier=infer_embedding_sizes_multiplier, **table_kwargs
                     )
                 else:
                     table = EmbeddingTableOptions(dim=default_embedding_dim, **table_kwargs)
@@ -257,10 +257,11 @@ class EmbeddingOptions:
         blocks: Dict[str, Block] = {}
         feature_to_blocks: Dict[str, Block] = {}
         for name, col in self.schema.column_schemas.items():
-            table_name = self._feature_mapping[name]
-            if table_name not in blocks:
-                blocks[table_name] = self._tables[table_name].to_block(col)
-            feature_to_blocks[name] = blocks[table_name]
+            if name in self._feature_mapping:
+                table_name = self._feature_mapping[name]
+                if table_name not in blocks:
+                    blocks[table_name] = self._tables[table_name].to_block(col)
+                feature_to_blocks[name] = blocks[table_name]
 
         return feature_to_blocks
 
@@ -310,28 +311,34 @@ class EmbeddingFeatures(TabularBlock):
     """
 
     def __init__(
-            self,
-            embeddings: Union[EmbeddingOptions, Dict[str, EmbeddingTable]],
-            pre: Optional[BlockType] = None,
-            post: Optional[BlockType] = None,
-            aggregation: Optional[TabularAggregationType] = None,
-            schema: Optional[Schema] = None,
-            name=None,
-            add_default_pre=True,
-            **kwargs,
+        self,
+        embeddings: Union[EmbeddingOptions, Dict[str, EmbeddingTable]],
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        name=None,
+        add_default_pre=True,
+        **kwargs,
     ):
         if isinstance(embeddings, EmbeddingOptions):
             self.embeddings = embeddings.to_blocks()
-        elif isinstance(embeddings, dict) and all(isinstance(v, EmbeddingTable) for v in embeddings.values()):
+            if not schema:
+                schema = embeddings.schema
+        elif isinstance(embeddings, dict) and all(
+            isinstance(v, EmbeddingTable) for v in embeddings.values()
+        ):
             self.embeddings = embeddings
         else:
             raise ValueError(
                 f"`embeddings` must be an EmbeddingOptions or a dictionary from feature_name to EmbeddingTable ",
-                f"but got {embeddings} of type {type(embeddings)}"
+                f"but got {embeddings} of type {type(embeddings)}",
             )
 
         if add_default_pre:
-            convert_lists = AsDenseFeatures(self.max_seq_length) if self.max_seq_length else AsSparseFeatures()
+            convert_lists = (
+                AsDenseFeatures(self.max_seq_length) if self.max_seq_length else AsSparseFeatures()
+            )
             embedding_pre = [Filter(list(self.embeddings.keys())), convert_lists]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
 
@@ -408,13 +415,13 @@ class EmbeddingFeatures(TabularBlock):
         df.to_parquet(export_path)
 
     def get_config(self):
-        config = tf_utils.maybe_serialize_keras_objects(self, super().get_config(), "embeddings")
+        config = tf_utils.maybe_serialize_keras_objects(self, super().get_config(), ["embeddings"])
 
         return config
 
     @classmethod
     def from_config(cls, config):
-        config = tf_utils.maybe_deserialize_keras_objects(config, "embeddings")
+        config = tf_utils.maybe_deserialize_keras_objects(config, ["embeddings"])
 
         # Set `add_default_pre to False` since pre will be provided from the config
         config["add_default_pre"] = False
@@ -429,14 +436,17 @@ class EmbeddingFeatures(TabularBlock):
     def is_sequential(self) -> bool:
         return self.max_seq_length is not None
 
+    def __getitem__(self, item):
+        return self.embeddings[item]
+
 
 def ContinuousEmbedding(
-        inputs: Union[Block, Dict[str, Block]],
-        embedding_block: Block,
-        aggregation: Optional["TabularAggregationType"] = None,
-        continuous_aggregation="concat",
-        name: str = "continuous_projection",
-        **kwargs,
+    inputs: Union[Block, Dict[str, Block]],
+    embedding_block: Block,
+    aggregation: Optional["TabularAggregationType"] = None,
+    continuous_aggregation="concat",
+    name: str = "continuous_projection",
+    **kwargs,
 ) -> SequentialBlock:
     """Routes continuous features to an embedding block.
 

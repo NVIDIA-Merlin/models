@@ -14,11 +14,9 @@
 # limitations under the License.
 #
 
-from typing import List, Optional, Sequence, overload, Union
+from typing import List, Optional, Sequence, Union, overload
 
 import tensorflow as tf
-
-from merlin.models.utils import schema_utils
 
 from merlin.models.tf.blocks.core.base import BlockType
 from merlin.models.tf.blocks.core.tabular import (
@@ -28,6 +26,7 @@ from merlin.models.tf.blocks.core.tabular import (
     TabularBlock,
 )
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema, Tags
 
@@ -46,29 +45,29 @@ class ContinuousFeatures(TabularBlock):
 
     @overload
     def __init__(
-            self,
-            inputs: Sequence[str],
-            pre: Optional[BlockType] = None,
-            post: Optional[BlockType] = None,
-            aggregation: Optional[TabularAggregationType] = None,
-            schema: Optional[Schema] = None,
-            max_seq_length: Optional[int] = None,
-            name: Optional[str] = None,
-            **kwargs
+        self,
+        inputs: Sequence[str],
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        max_seq_length: Optional[int] = None,
+        name: Optional[str] = None,
+        **kwargs
     ):
         ...
 
     @overload
     def __init__(
-            self,
-            inputs: Union[Schema, Tags],
-            pre: Optional[BlockType] = None,
-            post: Optional[BlockType] = None,
-            aggregation: Optional[TabularAggregationType] = None,
-            schema: Optional[Schema] = None,
-            max_seq_length: Optional[int] = None,
-            name: Optional[str] = None,
-            **kwargs
+        self,
+        inputs: Union[Schema, Tags],
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        max_seq_length: Optional[int] = None,
+        name: Optional[str] = None,
+        **kwargs
     ):
         ...
 
@@ -86,7 +85,7 @@ class ContinuousFeatures(TabularBlock):
         if isinstance(inputs, Schema):
             if not inputs.column_schemas:
                 raise ValueError("Schema must contain at least one column")
-            max_seq_length = schema_utils.max_value_count(schema)
+            max_seq_length = schema_utils.max_value_count(inputs)
 
         if max_seq_length:
             as_dense = AsDenseFeatures(max_seq_length)
