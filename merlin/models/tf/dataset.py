@@ -140,6 +140,12 @@ def _get_schema(dataset):
 
 class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
     """
+    Override class to customize data loading for backward compatibility with
+    older NVTabular releases.
+
+    In most cases, when you use the `merlin.io.Dataset` class, data loading
+    for model training and evaluation is performed automatically by Merlin Models.
+
     Infinite generator used to asynchronously iterate through CSV or Parquet
     dataframes on GPU by leveraging an NVTabular `Dataset`. Applies preprocessing
     via NVTabular `Workflow` objects and outputs tabular dictionaries of TensorFlow
