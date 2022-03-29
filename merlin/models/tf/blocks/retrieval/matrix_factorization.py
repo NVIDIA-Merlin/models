@@ -16,7 +16,7 @@
 import logging
 from typing import Any, Callable, Dict, Optional, Union
 
-from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
+from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
 from merlin.models.tf.blocks.core.transformations import RenameFeatures
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock
 from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
@@ -26,6 +26,23 @@ LOG = logging.getLogger("merlin_models")
 
 
 class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
+    """
+    An encoder for user ids and item ids
+
+    Parameters
+    ----------
+    schema : Schema
+        The `Schema` with the input features
+    dim : int
+        Dimension of the user and item embeddings
+    query_id_tag : _type_, optional
+        The tag to select the user id feature, by default `Tags.USER_ID`
+    item_id_tag : _type_, optional
+        The tag to select the item id feature, by default `Tags.ITEM_ID`
+    embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]], optional
+        Dict where keys are feature names and values are callable to initialize embedding tables
+    """
+
     def __init__(
         self,
         schema: Schema,
@@ -51,7 +68,7 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
             post = rename_features
 
         embedding = lambda s: EmbeddingFeatures.from_schema(  # noqa
-            s, embedding_options=embedding_options
+            s, embedding_options=embedding_options, aggregation="concat"
         )
 
         super().__init__(  # type: ignore
@@ -77,9 +94,36 @@ def MatrixFactorizationBlock(
     query_id_tag=Tags.USER_ID,
     item_id_tag=Tags.ITEM_ID,
     embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
-    aggregation=ElementWiseMultiply(),
+    aggregation=CosineSimilarity(),
     **kwargs,
 ):
+    """
+    Returns a block for Matrix Factorization, which created the user and
+    item embeddings based on the `schema` and computes the dot product
+    between user and item L2-norm embeddings
+
+    Parameters
+    ----------
+    schema : Schema
+        The `Schema` with the input features
+    dim : int
+        Dimension of the user and item embeddings
+    query_id_tag : _type_, optional
+        The tag to select the user id feature, by default `Tags.USER_ID`
+    item_id_tag : _type_, optional
+        The tag to select the item id feature, by default `Tags.ITEM_ID`
+    embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]], optional
+        Dict where keys are feature names and values are callable to initialize
+        embedding tables
+    aggregation : _type_, optional
+        Aggregation of the user and item embeddings, by default CosineSimilarity()
+
+    Returns
+    -------
+    QueryItemIdsEmbeddingsBlock
+        A block that encodes user ids and item ids into embeddings and computes their
+        dot product
+    """
     return QueryItemIdsEmbeddingsBlock(
         schema=schema,
         dim=dim,
