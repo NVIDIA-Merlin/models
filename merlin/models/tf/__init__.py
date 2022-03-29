@@ -74,6 +74,7 @@ from merlin.models.tf.blocks.sampling.cross_batch import (
 )
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.blocks.sampling.queue import FIFOQueue
+from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import (
     ContinuousEmbedding,
@@ -200,4 +201,5 @@ __all__ = [
     "DeepFMModel",
     "losses",
     "LossType",
+    "sample_batch",
 ]
