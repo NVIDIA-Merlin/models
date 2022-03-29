@@ -40,11 +40,16 @@ class IndexBlock(Block):
             validate_shape=False,
             shape=tf.TensorShape([None, tf.shape(values)[-1]]),
         )
+        if ids is not None:
+            id_dtype = ids.dtype
+        else:
+            id_dtype = tf.int64
+
         self.ids = tf.Variable(
             ids,
             name="ids",
             trainable=False,
-            dtype=tf.int64,
+            dtype=id_dtype,
             validate_shape=False,
             shape=tf.TensorShape([None]),
         )
