@@ -33,10 +33,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../getting_started.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../models_overview.html">Available Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../models_overview.html">Standard Models: Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../api.html">API Documentation</a></li>
 </ul>
 
@@ -207,6 +207,12 @@
 
 <div class="viewcode-block" id="BatchedDataset"><a class="viewcode-back" href="../../../../generated/merlin.models.tf.dataset.BatchedDataset.html#merlin.models.tf.dataset.BatchedDataset">[docs]</a><span class="k">class</span> <span class="nc">BatchedDataset</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">Sequence</span><span class="p">,</span> <span class="n">DataLoader</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Override class to customize data loading for backward compatibility with</span>
+<span class="sd">    older NVTabular releases.</span>
+
+<span class="sd">    In most cases, when you use the `merlin.io.Dataset` class, data loading</span>
+<span class="sd">    for model training and evaluation is performed automatically by Merlin Models.</span>
+
 <span class="sd">    Infinite generator used to asynchronously iterate through CSV or Parquet</span>
 <span class="sd">    dataframes on GPU by leveraging an NVTabular `Dataset`. Applies preprocessing</span>
 <span class="sd">    via NVTabular `Workflow` objects and outputs tabular dictionaries of TensorFlow</span>
