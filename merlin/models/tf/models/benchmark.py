@@ -15,6 +15,7 @@
 #
 from typing import List, Optional, Union
 
+from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
@@ -75,7 +76,9 @@ def NCFModel(
     """
 
     mlp_branch = QueryItemIdsEmbeddingsBlock(schema, dim=embedding_dim).connect(mlp_block)
-    mf_branch = MatrixFactorizationBlock(schema, dim=embedding_dim, **kwargs)
+    mf_branch = MatrixFactorizationBlock(
+        schema, dim=embedding_dim, aggregation=ElementWiseMultiply(), **kwargs
+    )
 
     ncf = ParallelBlock({"mf": mf_branch, "mlp": mlp_branch}, aggregation="concat")
 
