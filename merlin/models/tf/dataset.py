@@ -499,6 +499,7 @@ class DatasetValidator(tf.keras.callbacks.Callback):
 
 
 if merlin_dataset_class:
+
     def sample_batch(data: merlin_dataset_class, batch_size: int, shuffle: bool = False):
         """Util function to generate a batch of input tensors from a merlin.io.dataset instance
 
