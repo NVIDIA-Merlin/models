@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Available Models: Overview &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>Standard Models: Overview &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
@@ -35,10 +35,10 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Available Models: Overview</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Standard Models: Overview</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#matrix-factorization">Matrix Factorization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#youtube-dnn">YouTube DNN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#two-tower">Two Tower</a></li>
@@ -71,7 +71,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Available Models: Overview</li>
+      <li>Standard Models: Overview</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -104,8 +104,8 @@
     text-align: unset;
 }
 </style>
-<div class="section" id="available-models-overview">
-<h1>Available Models: Overview<a class="headerlink" href="#available-models-overview" title="Permalink to this headline"></a></h1>
+<div class="section" id="standard-models-overview">
+<h1>Standard Models: Overview<a class="headerlink" href="#standard-models-overview" title="Permalink to this headline"></a></h1>
 <div class="section" id="matrix-factorization">
 <h2>Matrix Factorization<a class="headerlink" href="#matrix-factorization" title="Permalink to this headline"></a></h2>
 <p><img alt="User-item matrix broken down into a user matrix and an item matrix." src="_images/mf.png" /></p>
@@ -117,7 +117,10 @@
 </div>
 <div class="section" id="youtube-dnn">
 <h2>YouTube DNN<a class="headerlink" href="#youtube-dnn" title="Permalink to this headline"></a></h2>
-<p>Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube Recommendations.” In Proceedings of the 10th ACM Conference on Recommender Systems, 191–98. Boston Massachusetts USA: ACM, 2016. <a class="reference external" href="https://doi.org/10.1145/2959100.2959190">https://doi.org/10.1145/2959100.2959190</a>.</p>
+<p>Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube
+Recommendations.” In Proceedings of the 10th ACM Conference on Recommender
+Systems, 191–98. Boston Massachusetts USA: ACM, 2016.
+<a class="reference external" href="https://doi.org/10.1145/2959100.2959190">https://doi.org/10.1145/2959100.2959190</a>.</p>
 <p><img alt="Sample network architecture for YouTube DNN." src="_images/youtube-dnn.png" /></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
 
@@ -127,9 +130,11 @@
 </div>
 <div class="section" id="two-tower">
 <h2>Two Tower<a class="headerlink" href="#two-tower" title="Permalink to this headline"></a></h2>
-<p>Yi, Xinyang, Ji Yang, Lichan Hong, Derek Zhiyuan Cheng, Lukasz Heldt, Aditee Kumthekar, Zhe Zhao, Li Wei, and Ed Chi.
-“Sampling-Bias-Corrected Neural Modeling for Large Corpus Item Recommendations.” In Proceedings of the 13th ACM
-Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019. <a class="reference external" href="https://doi.org/10.1145/3298689.3346996">https://doi.org/10.1145/3298689.3346996</a>.</p>
+<p>Yi, Xinyang, Ji Yang, Lichan Hong, Derek Zhiyuan Cheng, Lukasz Heldt, Aditee
+Kumthekar, Zhe Zhao, Li Wei, and Ed Chi. “Sampling-Bias-Corrected Neural
+Modeling for Large Corpus Item Recommendations.” In Proceedings of the 13th ACM
+Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019.
+<a class="reference external" href="https://doi.org/10.1145/3298689.3346996">https://doi.org/10.1145/3298689.3346996</a>.</p>
 <p><img alt="Sample network architecture for two tower retrieval model." src="_images/two-tower.png" /></p>
 <p>High-level API:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
@@ -153,8 +158,10 @@ Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019. <a c
 <h2>Ranking<a class="headerlink" href="#ranking" title="Permalink to this headline"></a></h2>
 <div class="section" id="deep-learning-recommender-model">
 <h3>Deep Learning Recommender Model<a class="headerlink" href="#deep-learning-recommender-model" title="Permalink to this headline"></a></h3>
-<p>Naumov, Maxim, Dheevatsa Mudigere, Hao-Jun Michael Shi, Jianyu Huang, Narayanan Sundaraman, Jongsoo Park, Xiaodong Wang,
-et al. “Deep Learning Recommendation Model for Personalization and Recommendation Systems.” ArXiv:1906.00091 [Cs], May 31, 2019. <a class="reference external" href="http://arxiv.org/abs/1906.00091">http://arxiv.org/abs/1906.00091</a>.</p>
+<p>Naumov, Maxim, Dheevatsa Mudigere, Hao-Jun Michael Shi, Jianyu Huang, Narayanan
+Sundaraman, Jongsoo Park, Xiaodong Wang, et al. “Deep Learning Recommendation
+Model for Personalization and Recommendation Systems.” ArXiv:1906.00091 [Cs],
+May 31, 2019. <a class="reference external" href="http://arxiv.org/abs/1906.00091">http://arxiv.org/abs/1906.00091</a>.</p>
 <p><img alt="Sample architecture for DLRM." src="_images/dlrm.png" /></p>
 <p>High-level API:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
@@ -182,8 +189,10 @@ et al. “Deep Learning Recommendation Model for Personalization and Recommendat
 </div>
 <div class="section" id="dcn-v2">
 <h3>DCN-V2<a class="headerlink" href="#dcn-v2" title="Permalink to this headline"></a></h3>
-<p>Wang, Ruoxi, Rakesh Shivanna, Derek Z. Cheng, Sagar Jain, Dong Lin, Lichan Hong, and Ed H. Chi. “DCN V2: Improved Deep &amp;
-Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” ArXiv:2008.13535 [Cs, Stat], October 20, 2020. <a class="reference external" href="http://arxiv.org/abs/2008.13535">http://arxiv.org/abs/2008.13535</a>.</p>
+<p>Wang, Ruoxi, Rakesh Shivanna, Derek Z. Cheng, Sagar Jain, Dong Lin, Lichan Hong,
+and Ed H. Chi. “DCN V2: Improved Deep &amp; Cross Network and Practical Lessons for
+Web-Scale Learning to Rank Systems.” ArXiv:2008.13535 [Cs, Stat], October
+20, 2020. <a class="reference external" href="http://arxiv.org/abs/2008.13535">http://arxiv.org/abs/2008.13535</a>.</p>
 <p><img alt="Visualization of DCN-V2." src="_images/dcn-v2.png" /></p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
 
@@ -208,7 +217,9 @@ Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” A
 <h2>Multi-task Learning<a class="headerlink" href="#multi-task-learning" title="Permalink to this headline"></a></h2>
 <div class="section" id="mixture-of-experts">
 <h3>Mixture-of-experts<a class="headerlink" href="#mixture-of-experts" title="Permalink to this headline"></a></h3>
-<p>Ma, Jiaqi, Zhe Zhao, Xinyang Yi, Jilin Chen, Lichan Hong, and Ed H. Chi. “Modeling Task Relationships in Multi-Task Learning with Multi-Gate Mixture-of-Experts,” 2018, 1930–39. <a class="reference external" href="https://doi.org/10.1145/3219819.3220007">https://doi.org/10.1145/3219819.3220007</a>.</p>
+<p>Ma, Jiaqi, Zhe Zhao, Xinyang Yi, Jilin Chen, Lichan Hong, and Ed H. Chi.
+“Modeling Task Relationships in Multi-Task Learning with Multi-Gate
+Mixture-of-Experts,” 2018, 1930–39. <a class="reference external" href="https://doi.org/10.1145/3219819.3220007">https://doi.org/10.1145/3219819.3220007</a>.</p>
 <p><img alt="Sample architecture for a mixture-of-experts model." src="_images/mmoe.png" /></p>
 <p>High-level API:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
@@ -223,7 +234,10 @@ Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” A
 </div>
 <div class="section" id="progressive-layered-extraction">
 <h3>Progressive Layered Extraction<a class="headerlink" href="#progressive-layered-extraction" title="Permalink to this headline"></a></h3>
-<p>Tang, Hongyan, Junning Liu, Ming Zhao, and Xudong Gong. “Progressive Layered Extraction (PLE): A Novel Multi-Task Learning (MTL) Model for Personalized Recommendations.” In Fourteenth ACM Conference on Recommender Systems, 269–78. Virtual Event Brazil: ACM, 2020. <a class="reference external" href="https://doi.org/10.1145/3383313.3412236">https://doi.org/10.1145/3383313.3412236</a>.</p>
+<p>Tang, Hongyan, Junning Liu, Ming Zhao, and Xudong Gong. “Progressive Layered
+Extraction (PLE): A Novel Multi-Task Learning (MTL) Model for Personalized
+Recommendations.” In Fourteenth ACM Conference on Recommender Systems, 269–78.
+Virtual Event Brazil: ACM, 2020. <a class="reference external" href="https://doi.org/10.1145/3383313.3412236">https://doi.org/10.1145/3383313.3412236</a>.</p>
 <p><img alt="Sample architecture for a progressive layered extraction model." src="_images/ple.png" /></p>
 <p>High-level API:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>

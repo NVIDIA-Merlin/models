@@ -9,68 +9,51 @@ TensorFlow Models
 .. currentmodule:: merlin.models.tf
 
 
-Model Constructors
-~~~~~~~~~~~~~~~~~~
+Ranking Model Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated
 
-   Model
    DCNModel
    DLRMModel
+
+Retrieval Model Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated
+
    MatrixFactorizationModel
    TwoTowerModel
    YoutubeDNNRetrievalModel
 
-
-Block Constructors
-~~~~~~~~~~~~~~~~~~
-
+Input Block Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: generated
 
-   Block
    InputBlock
-   CrossBlock
-   DLRMBlock
-   DotProductInteraction
-   ParallelPredictionBlock
-   MLPBlock
-   DenseResidualBlock
-   MMOEGate
-   MMOEBlock
-   MatrixFactorizationBlock
-   DualEncoderBlock
-   SequentialBlock
-   ResidualBlock
-   CGCBlock
-   TabularBlock
    ContinuousFeatures
+   ContinuousEmbedding
    EmbeddingFeatures
    SequenceEmbeddingFeatures
-   TwoTowerBlock
-   AsDenseFeatures
-   AsSparseFeatures
-   AsTabular
-   Filter
-   ItemRetrievalScorer
-   StochasticSwapNoise
-   FIFOQueue
 
-Masking Block Constructors
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Model Building Block Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated
 
-   CausalLanguageModeling
-   MaskedLanguageModeling
+   DLRMBlock
+   MLPBlock
+   CrossBlock
+   TwoTowerBlock
+   MatrixFactorizationBlock
+   DotProductInteraction
 
-
-Modeling Task Constructors
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. currentmodule:: merlin.models.tf
+Modeling Prediction Task Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated
@@ -83,6 +66,31 @@ Modeling Task Constructors
    ItemRetrievalTask
    NextItemPredictionTask
 
+Model Pipeline Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated
+
+   SequentialBlock
+   ParallelBlock
+   ParallelPredictionBlock
+   DenseResidualBlock
+   DualEncoderBlock
+   ResidualBlock
+   TabularBlock
+   Filter
+
+
+Masking Block Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated
+
+   CausalLanguageModeling
+   MaskedLanguageModeling
+
 
 Transformation Block Constructors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -91,24 +99,28 @@ Transformation Block Constructors
    :toctree: generated
 
    ExpandDims
+   AsDenseFeatures
+   AsSparseFeatures
+   StochasticSwapNoise
+   AsTabular
 
-
-Functions for Blocks
-~~~~~~~~~~~~~~~~~~~~
+Multi-Task Block Constructors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated
 
-   ContinuousEmbedding
+   MMOEBlock
+   CGCBlock
 
-
-Dataset Constructors
-~~~~~~~~~~~~~~~~~~~~
+Data Loader Customization Constructor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: generated
 
    merlin.models.tf.dataset.BatchedDataset
+
 
 Metrics
 ~~~~~~~
@@ -133,7 +145,7 @@ Sampling
    CachedUniformSampler
    PopularityBasedSampler
 
- 
+
 Losses
 ~~~~~~
 
@@ -152,8 +164,27 @@ Losses
    TOP1Loss
    TOP1maxLoss
    TOP1v2Loss
-   loss_registry
- 
+
+
+Schema Functions
+----------------
+
+.. currentmodule:: merlin.models.utils
+
+.. autosummary::
+   :toctree: generated
+
+   merlin.models.utils.schema_utils.select_targets
+   merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json
+   merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema
+   merlin.models.utils.schema_utils.create_categorical_column
+   merlin.models.utils.schema_utils.create_continuous_column
+   merlin.models.utils.schema_utils.filter_dict_by_schema
+   merlin.models.utils.schema_utils.categorical_cardinalities
+   merlin.models.utils.schema_utils.categorical_domains
+   merlin.models.utils.schema_utils.get_embedding_sizes_from_schema
+   merlin.models.utils.schema_utils.get_embedding_size_from_cardinality
+
 
 Data
 ----
@@ -165,15 +196,6 @@ Data
 
    merlin.models.data.synthetic.SyntheticData
 
-Loaders
--------
-
-.. autosummary::
-   :toctree: generated
-
-   merlin.models.loader.backend.ChunkQueue
-   merlin.models.loader.backend.DataLoader
-   merlin.models.loader.shuffle.Shuffle
 
 Loader Utility Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -228,20 +250,3 @@ Registry Functions
    merlin.models.utils.registry.RegistryMixin
    merlin.models.utils.registry.display_list_by_prefix
 
-
-Schema Functions
-----------------
-
-.. autosummary::
-   :toctree: generated
-
-   merlin.models.utils.schema_utils.select_targets
-   merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json
-   merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema
-   merlin.models.utils.schema_utils.create_categorical_column
-   merlin.models.utils.schema_utils.create_continuous_column
-   merlin.models.utils.schema_utils.filter_dict_by_schema
-   merlin.models.utils.schema_utils.categorical_cardinalities
-   merlin.models.utils.schema_utils.categorical_domains
-   merlin.models.utils.schema_utils.get_embedding_sizes_from_schema
-   merlin.models.utils.schema_utils.get_embedding_size_from_cardinality

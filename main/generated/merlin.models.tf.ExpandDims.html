@@ -16,8 +16,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="merlin.models.tf.ContinuousEmbedding" href="merlin.models.tf.ContinuousEmbedding.html" />
-    <link rel="prev" title="merlin.models.tf.NextItemPredictionTask" href="merlin.models.tf.NextItemPredictionTask.html" /> 
+    <link rel="next" title="merlin.models.tf.AsDenseFeatures" href="merlin.models.tf.AsDenseFeatures.html" />
+    <link rel="prev" title="merlin.models.tf.MaskedLanguageModeling" href="merlin.models.tf.MaskedLanguageModeling.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -35,32 +35,38 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Available Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="../api.html#model-constructors">Model Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#block-constructors">Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#ranking-model-constructors">Ranking Model Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#retrieval-model-constructors">Retrieval Model Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#input-block-constructors">Input Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#model-building-block-constructors">Model Building Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#modeling-prediction-task-constructors">Modeling Prediction Task Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#model-pipeline-constructors">Model Pipeline Constructors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#masking-block-constructors">Masking Block Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#modeling-task-constructors">Modeling Task Constructors</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="../api.html#transformation-block-constructors">Transformation Block Constructors</a><ul class="current">
 <li class="toctree-l4 current"><a class="current reference internal" href="#">merlin.models.tf.ExpandDims</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.AsDenseFeatures.html">merlin.models.tf.AsDenseFeatures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.AsSparseFeatures.html">merlin.models.tf.AsSparseFeatures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.StochasticSwapNoise.html">merlin.models.tf.StochasticSwapNoise</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.AsTabular.html">merlin.models.tf.AsTabular</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#functions-for-blocks">Functions for Blocks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#dataset-constructors">Dataset Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#multi-task-block-constructors">Multi-Task Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#data-loader-customization-constructor">Data Loader Customization Constructor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#metrics">Metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#sampling">Sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#losses">Losses</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#data">Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#loaders">Loaders</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 </ul>
 </li>
 </ul>
@@ -493,8 +499,8 @@ the dict keys will be expanded, in the dimension specified as the dict values.</
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="merlin.models.tf.NextItemPredictionTask.html" class="btn btn-neutral float-left" title="merlin.models.tf.NextItemPredictionTask" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="merlin.models.tf.ContinuousEmbedding.html" class="btn btn-neutral float-right" title="merlin.models.tf.ContinuousEmbedding" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="merlin.models.tf.MaskedLanguageModeling.html" class="btn btn-neutral float-left" title="merlin.models.tf.MaskedLanguageModeling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.AsDenseFeatures.html" class="btn btn-neutral float-right" title="merlin.models.tf.AsDenseFeatures" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

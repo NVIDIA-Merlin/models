@@ -16,8 +16,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="merlin.models.tf.DualEncoderBlock" href="merlin.models.tf.DualEncoderBlock.html" />
-    <link rel="prev" title="merlin.models.tf.MMOEBlock" href="merlin.models.tf.MMOEBlock.html" /> 
+    <link rel="next" title="merlin.models.tf.DotProductInteraction" href="merlin.models.tf.DotProductInteraction.html" />
+    <link rel="prev" title="merlin.models.tf.TwoTowerBlock" href="merlin.models.tf.TwoTowerBlock.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -35,58 +35,39 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Available Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="../api.html#model-constructors">Model Constructors</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="../api.html#block-constructors">Block Constructors</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.Block.html">merlin.models.tf.Block</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.InputBlock.html">merlin.models.tf.InputBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.CrossBlock.html">merlin.models.tf.CrossBlock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#ranking-model-constructors">Ranking Model Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#retrieval-model-constructors">Retrieval Model Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#input-block-constructors">Input Block Constructors</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../api.html#model-building-block-constructors">Model Building Block Constructors</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.DLRMBlock.html">merlin.models.tf.DLRMBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.DotProductInteraction.html">merlin.models.tf.DotProductInteraction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.ParallelPredictionBlock.html">merlin.models.tf.ParallelPredictionBlock</a></li>
 <li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.MLPBlock.html">merlin.models.tf.MLPBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.DenseResidualBlock.html">merlin.models.tf.DenseResidualBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.MMOEGate.html">merlin.models.tf.MMOEGate</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.MMOEBlock.html">merlin.models.tf.MMOEBlock</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">merlin.models.tf.MatrixFactorizationBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.DualEncoderBlock.html">merlin.models.tf.DualEncoderBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.SequentialBlock.html">merlin.models.tf.SequentialBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.ResidualBlock.html">merlin.models.tf.ResidualBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.CGCBlock.html">merlin.models.tf.CGCBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.TabularBlock.html">merlin.models.tf.TabularBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.ContinuousFeatures.html">merlin.models.tf.ContinuousFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.EmbeddingFeatures.html">merlin.models.tf.EmbeddingFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.SequenceEmbeddingFeatures.html">merlin.models.tf.SequenceEmbeddingFeatures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.CrossBlock.html">merlin.models.tf.CrossBlock</a></li>
 <li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.TwoTowerBlock.html">merlin.models.tf.TwoTowerBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.AsDenseFeatures.html">merlin.models.tf.AsDenseFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.AsSparseFeatures.html">merlin.models.tf.AsSparseFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.AsTabular.html">merlin.models.tf.AsTabular</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.Filter.html">merlin.models.tf.Filter</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.ItemRetrievalScorer.html">merlin.models.tf.ItemRetrievalScorer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.StochasticSwapNoise.html">merlin.models.tf.StochasticSwapNoise</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.FIFOQueue.html">merlin.models.tf.FIFOQueue</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">merlin.models.tf.MatrixFactorizationBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.DotProductInteraction.html">merlin.models.tf.DotProductInteraction</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#modeling-prediction-task-constructors">Modeling Prediction Task Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#model-pipeline-constructors">Model Pipeline Constructors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#masking-block-constructors">Masking Block Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#modeling-task-constructors">Modeling Task Constructors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#transformation-block-constructors">Transformation Block Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#functions-for-blocks">Functions for Blocks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#dataset-constructors">Dataset Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#multi-task-block-constructors">Multi-Task Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#data-loader-customization-constructor">Data Loader Customization Constructor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#metrics">Metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#sampling">Sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#losses">Losses</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#data">Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#loaders">Loaders</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 </ul>
 </li>
 </ul>
@@ -143,8 +124,31 @@
 <h1>merlin.models.tf.MatrixFactorizationBlock<a class="headerlink" href="#merlin-models-tf-matrixfactorizationblock" title="Permalink to this headline"></a></h1>
 <dl class="py function">
 <dt id="merlin.models.tf.MatrixFactorizationBlock">
-<code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">MatrixFactorizationBlock</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/retrieval/matrix_factorization.html#MatrixFactorizationBlock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.MatrixFactorizationBlock" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">MatrixFactorizationBlock</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">schema:</span> <span class="pre">merlin.schema.schema.Schema,</span> <span class="pre">dim:</span> <span class="pre">int,</span> <span class="pre">query_id_tag=&lt;Tags.USER_ID:</span> <span class="pre">'user_id'&gt;,</span> <span class="pre">item_id_tag=&lt;Tags.ITEM_ID:</span> <span class="pre">'item_id'&gt;,</span> <span class="pre">embeddings_initializers:</span> <span class="pre">Optional[Dict[str,</span> <span class="pre">Callable[[Any],</span> <span class="pre">None]]]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">aggregation=CosineSimilarity(</span>&#160;&#160; <span class="pre">(dot):</span> <span class="pre">&lt;tensorflow.python.keras.layers.merge.Dot</span> <span class="pre">object&gt;</span> <span class="pre">),</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/retrieval/matrix_factorization.html#MatrixFactorizationBlock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.MatrixFactorizationBlock" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a block for Matrix Factorization, which created the user and
+item embeddings based on the <cite>schema</cite> and computes the dot product
+between user and item L2-norm embeddings</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
+<li><p><strong>dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Dimension of the user and item embeddings</p></li>
+<li><p><strong>query_id_tag</strong> (<em>_type_</em><em>, </em><em>optional</em>) – The tag to select the user id feature, by default <cite>Tags.USER_ID</cite></p></li>
+<li><p><strong>item_id_tag</strong> (<em>_type_</em><em>, </em><em>optional</em>) – The tag to select the item id feature, by default <cite>Tags.ITEM_ID</cite></p></li>
+<li><p><strong>embeddings_initializers</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>Callable</em><em>[</em><em>[</em><em>Any</em><em>]</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a><em>]</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Dict where keys are feature names and values are callable to initialize
+embedding tables</p></li>
+<li><p><strong>aggregation</strong> (<em>_type_</em><em>, </em><em>optional</em>) – Aggregation of the user and item embeddings, by default CosineSimilarity()</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A block that encodes user ids and item ids into embeddings and computes their
+dot product</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>QueryItemIdsEmbeddingsBlock</p>
+</dd>
+</dl>
+</dd></dl>
 
 </div>
 
@@ -152,8 +156,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="merlin.models.tf.MMOEBlock.html" class="btn btn-neutral float-left" title="merlin.models.tf.MMOEBlock" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="merlin.models.tf.DualEncoderBlock.html" class="btn btn-neutral float-right" title="merlin.models.tf.DualEncoderBlock" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="merlin.models.tf.TwoTowerBlock.html" class="btn btn-neutral float-left" title="merlin.models.tf.TwoTowerBlock" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.DotProductInteraction.html" class="btn btn-neutral float-right" title="merlin.models.tf.DotProductInteraction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
