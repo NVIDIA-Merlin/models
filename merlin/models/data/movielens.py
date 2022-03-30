@@ -309,6 +309,7 @@ def movielens_download_etl(local_filename, name="ml-25m", outputdir=None):
             os.path.join(local_filename, "ml-1m/movies.dat"),
             names=["movieId", "title", "genres"],
             sep="::",
+            encoding="latin1",
         )
         movies["genres"] = movies["genres"].str.split("|")
         movies.to_parquet(os.path.join(local_filename, name, "movies_converted.parquet"))
