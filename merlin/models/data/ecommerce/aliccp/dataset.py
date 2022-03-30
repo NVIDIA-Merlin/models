@@ -19,6 +19,7 @@ def convert_alliccp(
     file_size: int = 10000,
     max_num_rows: Optional[int] = None,
     pickle_common_features=True,
+    output_dir: Optional[Union[str, Path]] = None,
 ):
     """
     Convert Ali-CPP data to parquet files.
@@ -54,6 +55,7 @@ def convert_alliccp(
             is_train=True,
             max_num_rows=max_num_rows,
             pickle_common_features=pickle_common_features,
+            output_dir=output_dir,
         )
     if convert_test:
         _convert_data(
@@ -62,6 +64,7 @@ def convert_alliccp(
             is_train=False,
             max_num_rows=max_num_rows,
             pickle_common_features=pickle_common_features,
+            output_dir=output_dir,
         )
 
     return data_dir
@@ -177,9 +180,15 @@ def _convert_common_features(common_path, pickle_path=None):
 
 
 def _convert_data(
-    data_dir, file_size, is_train=True, pickle_common_features=True, max_num_rows=None
+    data_dir,
+    file_size,
+    is_train=True,
+    pickle_common_features=True,
+    max_num_rows=None,
+    output_dir=None,
 ):
     data_type = "train" if is_train else "test"
+    output_dir = output_dir or data_dir
 
     common_path = os.path.join(data_dir, data_type, f"common_features_{data_type}.csv")
     path = os.path.join(data_dir, data_type, f"sample_skeleton_{data_type}.csv")
@@ -227,9 +236,13 @@ def _convert_data(
 
                 df.columns = cols
 
+                out_dir = os.path.join(str(output_dir), data_type)
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+
                 index = int((i / file_size) - 1)
                 df.to_parquet(
-                    os.path.join(data_dir, data_type, f"{data_type}_{index}.parquet"),
+                    os.path.join(out_dir, f"{data_type}_{index}.parquet"),
                     overwrite=True,
                 )
                 current = []
