@@ -16,40 +16,43 @@
 
 import logging
 from enum import Enum
-from typing import Dict, Optional, Tuple, Type, Union, Any
+from typing import Any, Dict, Optional, Tuple, Union
 
-from merlin.models.utils import schema_utils
-
-from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.blocks.core.aggregation import SequenceAggregation
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularAggregationType
 from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, CategoricalOneHot
+from merlin.models.tf.blocks.core.transformations import CategoricalOneHot
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
-from merlin.models.tf.inputs.embedding import ContinuousEmbedding, EmbeddingFeatures, EmbeddingOptions
+from merlin.models.tf.inputs.embedding import (
+    ContinuousEmbedding,
+    EmbeddingFeatures,
+    EmbeddingOptions,
+)
+from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin-models")
 
 
 def InputBlock(
-        schema: Schema,
-        branches: Optional[Dict[str, Block]] = None,
-        post: Optional[BlockType] = None,
-        aggregation: Optional[TabularAggregationType] = None,
-        seq: bool = False,
-        max_seq_length: Optional[int] = None,
-        continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
-        add_continuous_branch: bool = True,
-        continuous_projection: Optional[Block] = None,
-        categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
-        add_embedding_branch: bool = True,
-        embedding_options: Optional[EmbeddingOptions] = None,
-        sequence_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
-        add_sequence_branch: bool = False,
-        seq_aggregator: Optional[Union[str, SequenceAggregation, Block]] = None,
-        masking: Optional[Union[str, MaskingBlock]] = None,
-        **kwargs,
+    schema: Schema,
+    branches: Optional[Dict[str, Block]] = None,
+    post: Optional[BlockType] = None,
+    aggregation: Optional[TabularAggregationType] = None,
+    seq: bool = False,
+    max_seq_length: Optional[int] = None,
+    continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
+    add_continuous_branch: bool = True,
+    continuous_projection: Optional[Block] = None,
+    categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
+    add_embedding_branch: bool = True,
+    embedding_options: Optional[EmbeddingOptions] = None,
+    sequence_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
+    add_sequence_branch: bool = False,
+    seq_aggregator: Optional[Union[str, SequenceAggregation, Block]] = None,
+    masking: Optional[Union[str, MaskingBlock]] = None,
+    **kwargs,
 ) -> Block:
     """The entry block of the model to process input features from a schema.
 
@@ -141,7 +144,9 @@ def InputBlock(
         if add_embedding_branch:
             _branches[InputBranches.CATEGORICAL.value] = EmbeddingFeatures(embedding_options)
         else:
-            _branches[InputBranches.CATEGORICAL.value] = CategoricalOneHot(schema.select_by_tag(categorical_tags))
+            _branches[InputBranches.CATEGORICAL.value] = CategoricalOneHot(
+                schema.select_by_tag(categorical_tags)
+            )
 
     out_kwargs = dict(post=post, aggregation=aggregation)
     if continuous_projection:
@@ -157,19 +162,19 @@ class InputBranches(str, Enum):
 
 
 def SequentialInputBlock(
-        schema: Schema,
-        max_seq_length: Optional[int] = None,
-        seq_aggregator: Optional[Union[str, SequenceAggregation, Block]] = None,
-        branches: Optional[Dict[str, Block]] = None,
-        post: Optional[BlockType] = None,
-        aggregation: Optional[TabularAggregationType] = None,
-        add_continuous_branch: bool = True,
-        continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
-        continuous_projection: Optional[Block] = None,
-        add_embedding_branch: bool = True,
-        embedding_options: Optional[EmbeddingOptions] = None,
-        categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
-        masking: Optional[Union[str, MaskingBlock]] = None,
+    schema: Schema,
+    max_seq_length: Optional[int] = None,
+    seq_aggregator: Optional[Union[str, SequenceAggregation, Block]] = None,
+    branches: Optional[Dict[str, Block]] = None,
+    post: Optional[BlockType] = None,
+    aggregation: Optional[TabularAggregationType] = None,
+    add_continuous_branch: bool = True,
+    continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
+    continuous_projection: Optional[Block] = None,
+    add_embedding_branch: bool = True,
+    embedding_options: Optional[EmbeddingOptions] = None,
+    categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
+    masking: Optional[Union[str, MaskingBlock]] = None,
 ) -> InputBlock:
     if not max_seq_length:
         max_seq_length = schema_utils.max_value_count(schema)
@@ -198,20 +203,20 @@ def SequentialInputBlock(
 
 
 def SequentialInputBlockWithContext(
-        schema: Schema,
-        sequence_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
-        max_seq_length: Optional[int] = None,
-        seq_aggregator: Optional[Union[str, SequenceAggregation, Block]] = None,
-        branches: Optional[Dict[str, Block]] = None,
-        post: Optional[BlockType] = None,
-        aggregation: Optional[TabularAggregationType] = None,
-        add_continuous_branch: bool = True,
-        continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
-        continuous_projection: Optional[Block] = None,
-        add_embedding_branch: bool = True,
-        embedding_options: Optional[EmbeddingOptions] = None,
-        categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
-        masking: Optional[Union[str, MaskingBlock]] = None,
+    schema: Schema,
+    sequence_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
+    max_seq_length: Optional[int] = None,
+    seq_aggregator: Optional[Union[str, SequenceAggregation, Block]] = None,
+    branches: Optional[Dict[str, Block]] = None,
+    post: Optional[BlockType] = None,
+    aggregation: Optional[TabularAggregationType] = None,
+    add_continuous_branch: bool = True,
+    continuous_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CONTINUOUS,),
+    continuous_projection: Optional[Block] = None,
+    add_embedding_branch: bool = True,
+    embedding_options: Optional[EmbeddingOptions] = None,
+    categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
+    masking: Optional[Union[str, MaskingBlock]] = None,
 ) -> InputBlock:
     sequence_schema = schema.select_by_tag(sequence_tags)
     context_schema = schema.remove_by_tag(sequence_tags)
@@ -239,19 +244,19 @@ def SequentialInputBlockWithContext(
         categorical_tags=categorical_tags,
     )
 
-    sparse_branch = SequentialInputBlock(
+    sequence_branch = SequentialInputBlock(
         sequence_schema,
         max_seq_length,
         embedding_options=embedding_options,
         masking=masking,
         seq_aggregator=seq_aggregator,
-        **input_kwargs
+        **input_kwargs,
     )
 
     if not context_schema:
-        return sparse_branch
+        return sequence_branch
 
-    branches[InputBranches.SEQUENCE.value] = sparse_branch
+    branches[InputBranches.SEQUENCE.value] = sequence_branch
 
     return InputBlock(
         context_schema,
@@ -259,5 +264,5 @@ def SequentialInputBlockWithContext(
         embedding_options=embedding_options,
         seq=False,
         split_sparse=False,
-        **input_kwargs
+        **input_kwargs,
     )

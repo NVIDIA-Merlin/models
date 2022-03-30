@@ -15,7 +15,6 @@
 #
 
 import math
-from copy import copy, deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
@@ -24,7 +23,6 @@ from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
 from tensorflow.python.ops import init_ops_v2
 from tensorflow.python.ops.init_ops_v2 import Initializer
-from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 import merlin.io
 from merlin.models.tf import BlockContext
@@ -45,7 +43,7 @@ from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import ColumnSchema, Schema, Tags, TagsType
+from merlin.schema import ColumnSchema, Schema, Tags
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     feature_config: Dict[str, FeatureConfig]
@@ -58,6 +56,22 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingTable(Block):
+    """
+    This block is used to create a single embedding table for a single feature.
+
+    Parameters
+    ----------
+    name: str
+        The name of embedding table.
+    vocabulary_size: int
+        The size of the vocabulary.
+    options: EmbeddingTableOptions
+        The options for the embedding table.
+    context: BlockContext
+        The context for the embedding table.
+
+    """
+
     def __init__(
         self,
         name: str,
@@ -152,6 +166,25 @@ InitializerFn = Callable[[int], Union[Initializer, tf.Tensor]]
 
 @dataclass
 class EmbeddingTableOptions:
+    """
+    Options for the EmbeddingTable.
+
+    Parameters
+    ----------
+    dim: int
+        The dimension of the embedding table.
+    initializer: InitializerFn, optional
+        The initializer to use for the embedding table.
+    block_cls: Block, optional
+        The block class to use for the embedding table.
+    combiner: str, optional
+        The combiner to use for the embedding table.
+    max_seq_length: int, optional
+        The maximum length of the sequence.
+    extra_options: Dict[str, Any], optional
+        Extra options for the embedding table.
+    """
+
     dim: int
     initializer: InitializerFn = truncated_normal_initializer
     block_cls: Type[Block] = EmbeddingTable
@@ -203,6 +236,33 @@ class EmbeddingTableOptions:
 
 
 class EmbeddingOptions:
+    """
+    Options for the Embedding block.
+
+    Parameters
+    ----------
+    schema: Schema
+        The schema that contains the features of the embedding table.
+    custom_tables: Dict[str, Union[EmbeddingTableOptions, EmbeddingTable]], optional
+        Custom embedding tables.
+    default_embedding_dim: int
+        The default embedding dimension.
+    infer_embedding_sizes: bool
+        Whether to infer the embedding dimension from the schema.
+    infer_embedding_sizes_multiplier: float
+        The multiplier to use when inferring the embedding dimension.
+        Defaults to 2.0.
+    default_block_cls: Type[Block], optional
+        The default block class to use for the embedding table.
+    default_combiner: str, optional
+        The default combiner to use for the embedding table.
+    default_initializer: InitializerFn
+        The default initializer to use for the embedding table.
+        Defaults to truncated_normal_initializer.
+    max_seq_length: int, optional
+        The maximum length of the sequence.
+    """
+
     def __init__(
         self,
         schema: Schema,
@@ -331,7 +391,8 @@ class EmbeddingFeatures(TabularBlock):
             self.embeddings = embeddings
         else:
             raise ValueError(
-                f"`embeddings` must be an EmbeddingOptions or a dictionary from feature_name to EmbeddingTable ",
+                "`embeddings` must be an EmbeddingOptions or a dictionary ",
+                "from feature_name to EmbeddingTable ",
                 f"but got {embeddings} of type {type(embeddings)}",
             )
 

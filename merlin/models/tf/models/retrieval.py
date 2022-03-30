@@ -1,6 +1,6 @@
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
-from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator, SequenceAggregationType
+from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregationType
 from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
@@ -23,7 +23,8 @@ def MatrixFactorizationModel(
     dim: int,
     query_id_tag=Tags.USER_ID,
     item_id_tag=Tags.ITEM_ID,
-    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
+    query_embedding_initializer=None,
+    item_embedding_initializer=None,
     post: Optional[BlockType] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
@@ -87,7 +88,8 @@ def MatrixFactorizationModel(
         dim=dim,
         query_id_tag=query_id_tag,
         item_id_tag=item_id_tag,
-        embeddings_initializers=embeddings_initializers,
+        query_embedding_initializer=query_embedding_initializer,
+        item_embedding_initializer=item_embedding_initializer,
         post=post,
         **kwargs,
     )
