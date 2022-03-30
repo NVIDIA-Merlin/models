@@ -1,0 +1,6 @@
+﻿merlin.models.tf.MatrixFactorizationBlock
+=========================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: MatrixFactorizationBlock
