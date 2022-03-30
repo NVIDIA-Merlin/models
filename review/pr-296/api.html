@@ -16,8 +16,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="merlin.models.tf.Model" href="generated/merlin.models.tf.Model.html" />
-    <link rel="prev" title="Available Models: Overview" href="models_overview.html" /> 
+    <link rel="next" title="merlin.models.tf.DCNModel" href="generated/merlin.models.tf.DCNModel.html" />
+    <link rel="prev" title="Standard Models: Overview" href="models_overview.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -35,57 +35,41 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="models_overview.html">Available Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models_overview.html">Standard Models: Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Documentation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#tensorflow-models">TensorFlow Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#model-constructors">Model Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.Model.html">merlin.models.tf.Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ranking-model-constructors">Ranking Model Constructors</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DCNModel.html">merlin.models.tf.DCNModel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DLRMModel.html">merlin.models.tf.DLRMModel</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#retrieval-model-constructors">Retrieval Model Constructors</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationModel.html">merlin.models.tf.MatrixFactorizationModel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.TwoTowerModel.html">merlin.models.tf.TwoTowerModel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.YoutubeDNNRetrievalModel.html">merlin.models.tf.YoutubeDNNRetrievalModel</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#block-constructors">Block Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.Block.html">merlin.models.tf.Block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#input-block-constructors">Input Block Constructors</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.InputBlock.html">merlin.models.tf.InputBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CrossBlock.html">merlin.models.tf.CrossBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DLRMBlock.html">merlin.models.tf.DLRMBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DotProductInteraction.html">merlin.models.tf.DotProductInteraction</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ParallelPredictionBlock.html">merlin.models.tf.ParallelPredictionBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MLPBlock.html">merlin.models.tf.MLPBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DenseResidualBlock.html">merlin.models.tf.DenseResidualBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MMOEGate.html">merlin.models.tf.MMOEGate</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MMOEBlock.html">merlin.models.tf.MMOEBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationBlock.html">merlin.models.tf.MatrixFactorizationBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DualEncoderBlock.html">merlin.models.tf.DualEncoderBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.SequentialBlock.html">merlin.models.tf.SequentialBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ResidualBlock.html">merlin.models.tf.ResidualBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CGCBlock.html">merlin.models.tf.CGCBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.TabularBlock.html">merlin.models.tf.TabularBlock</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ContinuousFeatures.html">merlin.models.tf.ContinuousFeatures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ContinuousEmbedding.html">merlin.models.tf.ContinuousEmbedding</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.EmbeddingFeatures.html">merlin.models.tf.EmbeddingFeatures</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.SequenceEmbeddingFeatures.html">merlin.models.tf.SequenceEmbeddingFeatures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#model-building-block-constructors">Model Building Block Constructors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DLRMBlock.html">merlin.models.tf.DLRMBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MLPBlock.html">merlin.models.tf.MLPBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CrossBlock.html">merlin.models.tf.CrossBlock</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.TwoTowerBlock.html">merlin.models.tf.TwoTowerBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AsDenseFeatures.html">merlin.models.tf.AsDenseFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AsSparseFeatures.html">merlin.models.tf.AsSparseFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AsTabular.html">merlin.models.tf.AsTabular</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.Filter.html">merlin.models.tf.Filter</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ItemRetrievalScorer.html">merlin.models.tf.ItemRetrievalScorer</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.StochasticSwapNoise.html">merlin.models.tf.StochasticSwapNoise</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.FIFOQueue.html">merlin.models.tf.FIFOQueue</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationBlock.html">merlin.models.tf.MatrixFactorizationBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DotProductInteraction.html">merlin.models.tf.DotProductInteraction</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#masking-block-constructors">Masking Block Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CausalLanguageModeling.html">merlin.models.tf.CausalLanguageModeling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MaskedLanguageModeling.html">merlin.models.tf.MaskedLanguageModeling</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#modeling-task-constructors">Modeling Task Constructors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#modeling-prediction-task-constructors">Modeling Prediction Task Constructors</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.PredictionTasks.html">merlin.models.tf.PredictionTasks</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.PredictionTask.html">merlin.models.tf.PredictionTask</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.BinaryClassificationTask.html">merlin.models.tf.BinaryClassificationTask</a></li>
@@ -95,15 +79,36 @@
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.NextItemPredictionTask.html">merlin.models.tf.NextItemPredictionTask</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#model-pipeline-constructors">Model Pipeline Constructors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.SequentialBlock.html">merlin.models.tf.SequentialBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ParallelBlock.html">merlin.models.tf.ParallelBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ParallelPredictionBlock.html">merlin.models.tf.ParallelPredictionBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DenseResidualBlock.html">merlin.models.tf.DenseResidualBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DualEncoderBlock.html">merlin.models.tf.DualEncoderBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ResidualBlock.html">merlin.models.tf.ResidualBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.TabularBlock.html">merlin.models.tf.TabularBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.Filter.html">merlin.models.tf.Filter</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#masking-block-constructors">Masking Block Constructors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CausalLanguageModeling.html">merlin.models.tf.CausalLanguageModeling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MaskedLanguageModeling.html">merlin.models.tf.MaskedLanguageModeling</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#transformation-block-constructors">Transformation Block Constructors</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ExpandDims.html">merlin.models.tf.ExpandDims</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AsDenseFeatures.html">merlin.models.tf.AsDenseFeatures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AsSparseFeatures.html">merlin.models.tf.AsSparseFeatures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.StochasticSwapNoise.html">merlin.models.tf.StochasticSwapNoise</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AsTabular.html">merlin.models.tf.AsTabular</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#functions-for-blocks">Functions for Blocks</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ContinuousEmbedding.html">merlin.models.tf.ContinuousEmbedding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-task-block-constructors">Multi-Task Block Constructors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MMOEBlock.html">merlin.models.tf.MMOEBlock</a></li>
+<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CGCBlock.html">merlin.models.tf.CGCBlock</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#dataset-constructors">Dataset Constructors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-loader-customization-constructor">Data Loader Customization Constructor</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.dataset.BatchedDataset.html">merlin.models.tf.dataset.BatchedDataset</a></li>
 </ul>
 </li>
@@ -133,19 +138,25 @@
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1Loss.html">merlin.models.tf.losses.TOP1Loss</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1maxLoss.html">merlin.models.tf.losses.TOP1maxLoss</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1v2Loss.html">merlin.models.tf.losses.TOP1v2Loss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.loss_registry.html">merlin.models.tf.losses.loss_registry</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#schema-functions">Schema Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.select_targets.html">merlin.models.utils.schema_utils.select_targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_categorical_column.html">merlin.models.utils.schema_utils.create_categorical_column</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_continuous_column.html">merlin.models.utils.schema_utils.create_continuous_column</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html">merlin.models.utils.schema_utils.filter_dict_by_schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_cardinalities.html">merlin.models.utils.schema_utils.categorical_cardinalities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_domains.html">merlin.models.utils.schema_utils.categorical_domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#data">Data</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.data.synthetic.SyntheticData.html">merlin.models.data.synthetic.SyntheticData</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#loaders">Loaders</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.loader.backend.ChunkQueue.html">merlin.models.loader.backend.ChunkQueue</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.loader.backend.DataLoader.html">merlin.models.loader.backend.DataLoader</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.loader.shuffle.Shuffle.html">merlin.models.loader.shuffle.Shuffle</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#loader-utility-functions">Loader Utility Functions</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.loader.utils.device_mem_size.html">merlin.models.loader.utils.device_mem_size</a></li>
 </ul>
@@ -180,19 +191,6 @@
 <li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.Registry.html">merlin.models.utils.registry.Registry</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.RegistryMixin.html">merlin.models.utils.registry.RegistryMixin</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.display_list_by_prefix.html">merlin.models.utils.registry.display_list_by_prefix</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#schema-functions">Schema Functions</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.select_targets.html">merlin.models.utils.schema_utils.select_targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_categorical_column.html">merlin.models.utils.schema_utils.create_categorical_column</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_continuous_column.html">merlin.models.utils.schema_utils.create_continuous_column</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html">merlin.models.utils.schema_utils.filter_dict_by_schema</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_cardinalities.html">merlin.models.utils.schema_utils.categorical_cardinalities</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_domains.html">merlin.models.utils.schema_utils.categorical_domains</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</a></li>
 </ul>
 </li>
 </ul>
@@ -250,93 +248,59 @@
 <h1>API Documentation<a class="headerlink" href="#api-documentation" title="Permalink to this headline"></a></h1>
 <div class="section" id="tensorflow-models">
 <h2>TensorFlow Models<a class="headerlink" href="#tensorflow-models" title="Permalink to this headline"></a></h2>
-<div class="section" id="model-constructors">
-<h3>Model Constructors<a class="headerlink" href="#model-constructors" title="Permalink to this headline"></a></h3>
+<div class="section" id="ranking-model-constructors">
+<h3>Ranking Model Constructors<a class="headerlink" href="#ranking-model-constructors" title="Permalink to this headline"></a></h3>
 <table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.Model.html#merlin.models.tf.Model" title="merlin.models.tf.Model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Model</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DCNModel.html#merlin.models.tf.DCNModel" title="merlin.models.tf.DCNModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DCNModel</span></code></a>(schema, depth[, deep_block, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DCNModel.html#merlin.models.tf.DCNModel" title="merlin.models.tf.DCNModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DCNModel</span></code></a>(schema, depth[, deep_block, …])</p></td>
 <td><p>Create a model using the archicture proposed in DCN V2: Improved Deep &amp; Cross Network [1].</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMModel.html#merlin.models.tf.DLRMModel" title="merlin.models.tf.DLRMModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMModel</span></code></a>(schema, embedding_dim[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMModel.html#merlin.models.tf.DLRMModel" title="merlin.models.tf.DLRMModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMModel</span></code></a>(schema, embedding_dim[, …])</p></td>
 <td><p>DLRM-model architecture.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationModel.html#merlin.models.tf.MatrixFactorizationModel" title="merlin.models.tf.MatrixFactorizationModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MatrixFactorizationModel</span></code></a>(schema, dim[, …])</p></td>
+</tbody>
+</table>
+</div>
+<div class="section" id="retrieval-model-constructors">
+<h3>Retrieval Model Constructors<a class="headerlink" href="#retrieval-model-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationModel.html#merlin.models.tf.MatrixFactorizationModel" title="merlin.models.tf.MatrixFactorizationModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MatrixFactorizationModel</span></code></a>(schema, dim[, …])</p></td>
 <td><p>Builds a matrix factorization model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.TwoTowerModel.html#merlin.models.tf.TwoTowerModel" title="merlin.models.tf.TwoTowerModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TwoTowerModel</span></code></a>(schema, query_tower[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.TwoTowerModel.html#merlin.models.tf.TwoTowerModel" title="merlin.models.tf.TwoTowerModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TwoTowerModel</span></code></a>(schema, query_tower[, …])</p></td>
 <td><p>Builds the Two-tower architecture, as proposed in [1].</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.YoutubeDNNRetrievalModel.html#merlin.models.tf.YoutubeDNNRetrievalModel" title="merlin.models.tf.YoutubeDNNRetrievalModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">YoutubeDNNRetrievalModel</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.YoutubeDNNRetrievalModel.html#merlin.models.tf.YoutubeDNNRetrievalModel" title="merlin.models.tf.YoutubeDNNRetrievalModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">YoutubeDNNRetrievalModel</span></code></a></p></td>
 <td><p>Build the Youtube-DNN retrieval model.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="block-constructors">
-<h3>Block Constructors<a class="headerlink" href="#block-constructors" title="Permalink to this headline"></a></h3>
+<div class="section" id="input-block-constructors">
+<h3>Input Block Constructors<a class="headerlink" href="#input-block-constructors" title="Permalink to this headline"></a></h3>
 <table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Block</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Core abstraction in Merlin models.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.InputBlock.html#merlin.models.tf.InputBlock" title="merlin.models.tf.InputBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputBlock</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.InputBlock.html#merlin.models.tf.InputBlock" title="merlin.models.tf.InputBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InputBlock</span></code></a></p></td>
 <td><p>The entry block of the model to process input features from a schema.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.CrossBlock.html#merlin.models.tf.CrossBlock" title="merlin.models.tf.CrossBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CrossBlock</span></code></a>([depth, filter, low_rank_dim, …])</p></td>
-<td><p>This block provides a way to create high-order feature interactions</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMBlock.html#merlin.models.tf.DLRMBlock" title="merlin.models.tf.DLRMBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMBlock</span></code></a>(schema, embedding_dim[, …])</p></td>
-<td><p>Builds the DLRM architecture, as proposed in the following <a href="#id15"><span class="problematic" id="id16">`paper https://arxiv.org/pdf/1906.00091.pdf`_</span></a> <a href="#id17"><span class="problematic" id="id1">[1]_</span></a>.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DotProductInteraction.html#merlin.models.tf.DotProductInteraction" title="merlin.models.tf.DotProductInteraction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DotProductInteraction</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock" title="merlin.models.tf.ParallelPredictionBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParallelPredictionBlock</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Multi-task prediction block.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MLPBlock.html#merlin.models.tf.MLPBlock" title="merlin.models.tf.MLPBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MLPBlock</span></code></a>(dimensions[, activation, use_bias, …])</p></td>
-<td><p>A block that applies a multi-layer perceptron to the input.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DenseResidualBlock.html#merlin.models.tf.DenseResidualBlock" title="merlin.models.tf.DenseResidualBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DenseResidualBlock</span></code></a>([low_rank_dim, …])</p></td>
-<td><p>A block that applies a dense residual block to the input.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MMOEGate.html#merlin.models.tf.MMOEGate" title="merlin.models.tf.MMOEGate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MMOEGate</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MMOEBlock.html#merlin.models.tf.MMOEBlock" title="merlin.models.tf.MMOEBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MMOEBlock</span></code></a>(outputs, expert_block, num_experts)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationBlock.html#merlin.models.tf.MatrixFactorizationBlock" title="merlin.models.tf.MatrixFactorizationBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MatrixFactorizationBlock</span></code></a></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock" title="merlin.models.tf.DualEncoderBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DualEncoderBlock</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock" title="merlin.models.tf.SequentialBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SequentialBlock</span></code></a>(*args, **kwargs)</p></td>
-<td><p>The SequentialLayer represents a sequence of Keras layers. It is a Keras Layer that can be used instead of tf.keras.layers.Sequential, which is actually a Keras Model. In contrast to keras Sequential, this layer can be used as a pure Layer in tf.functions and when exporting SavedModels, without having to pre-declare input and output shapes. In turn, this layer is usable as a preprocessing layer for TF Agents Networks, and can be exported via PolicySaver. Usage::.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ResidualBlock.html#merlin.models.tf.ResidualBlock" title="merlin.models.tf.ResidualBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResidualBlock</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.CGCBlock.html#merlin.models.tf.CGCBlock" title="merlin.models.tf.CGCBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CGCBlock</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.TabularBlock.html#merlin.models.tf.TabularBlock" title="merlin.models.tf.TabularBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TabularBlock</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Layer that’s specialized for tabular-data by integrating many often used operations.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures" title="merlin.models.tf.ContinuousFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuousFeatures</span></code></a>(*args, **kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures" title="merlin.models.tf.ContinuousFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuousFeatures</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Input block for continuous features.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ContinuousEmbedding.html#merlin.models.tf.ContinuousEmbedding" title="merlin.models.tf.ContinuousEmbedding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuousEmbedding</span></code></a>(inputs, embedding_block)</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures" title="merlin.models.tf.EmbeddingFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">EmbeddingFeatures</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Input block for embedding-lookups for categorical features.</p></td>
@@ -344,52 +308,40 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.SequenceEmbeddingFeatures.html#merlin.models.tf.SequenceEmbeddingFeatures" title="merlin.models.tf.SequenceEmbeddingFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SequenceEmbeddingFeatures</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Input block for embedding-lookups for categorical features. This module produces 3-D tensors, this is useful for sequential models like transformers. :param feature_config: This specifies what TableConfig to use for each feature. For shared embeddings, the same                        TableConfig can be used for multiple features. :type feature_config: Dict[str, FeatureConfig] :param item_id: The name of the feature that’s used for the item_id. :type item_id: str, optional :param padding_idx: The symbol to use for padding. :type padding_idx: int :param pre: Transformations to apply on the inputs when the module is called (so <strong>before</strong> <cite>call</cite>). :type pre: Union[str, TabularTransformation, List[str], List[TabularTransformation]], optional :param post: Transformations to apply on the inputs after the module is called (so <strong>after</strong> <cite>call</cite>). :type post: Union[str, TabularTransformation, List[str], List[TabularTransformation]], optional :param aggregation: Aggregation to apply after processing the <cite>call</cite>-method to output a single Tensor.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.TwoTowerBlock.html#merlin.models.tf.TwoTowerBlock" title="merlin.models.tf.TwoTowerBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TwoTowerBlock</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Builds the Two-tower architecture, as proposed in the following <a href="#id18"><span class="problematic" id="id19">`paper https://doi.org/10.1145/3298689.3346996`_</span></a> [Xinyang19].</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.AsDenseFeatures.html#merlin.models.tf.AsDenseFeatures" title="merlin.models.tf.AsDenseFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsDenseFeatures</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.AsSparseFeatures.html#merlin.models.tf.AsSparseFeatures" title="merlin.models.tf.AsSparseFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsSparseFeatures</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.AsTabular.html#merlin.models.tf.AsTabular" title="merlin.models.tf.AsTabular"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsTabular</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Converts a Tensor to TabularData by converting it to a dictionary.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.Filter.html#merlin.models.tf.Filter" title="merlin.models.tf.Filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Filter</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Transformation that filters out certain features from <cite>TabularData</cite>.”</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ItemRetrievalScorer.html#merlin.models.tf.ItemRetrievalScorer" title="merlin.models.tf.ItemRetrievalScorer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ItemRetrievalScorer</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Block for ItemRetrieval, which expects query/user and item embeddings as input and uses dot product to score the positive item (inputs[“item”]) and also sampled negative items (during training). :param samplers: List of item samplers that provide negative samples when <cite>training=True</cite> :type samplers: List[ItemSampler], optional :param sampling_downscore_false_negatives: Identify false negatives (sampled item ids equal to the positive item and downscore them                                            to the <cite>sampling_downscore_false_negatives_value</cite>), by default True :type sampling_downscore_false_negatives: bool, optional :param sampling_downscore_false_negatives_value: Value to be used to downscore false negatives when                                                  <cite>sampling_downscore_false_negatives=True</cite>, by default <cite>np.finfo(np.float32).min / 100.0</cite> :type sampling_downscore_false_negatives_value: int, optional :param item_id_feature_name: Name of the column containing the item ids                              Defaults to <cite>item_id</cite> :type item_id_feature_name: str :param query_name: Identify query tower for query/user embeddings, by default ‘query’ :type query_name: str :param item_name: Identify item tower for item embeddings, by default’item’ :type item_name: str.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.StochasticSwapNoise.html#merlin.models.tf.StochasticSwapNoise" title="merlin.models.tf.StochasticSwapNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StochasticSwapNoise</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Applies Stochastic replacement of sequence features</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.FIFOQueue.html#merlin.models.tf.FIFOQueue" title="merlin.models.tf.FIFOQueue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FIFOQueue</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Fixed size FIFO queue for caching input tensors over the batches.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="masking-block-constructors">
-<h3>Masking Block Constructors<a class="headerlink" href="#masking-block-constructors" title="Permalink to this headline"></a></h3>
+<div class="section" id="model-building-block-constructors">
+<h3>Model Building Block Constructors<a class="headerlink" href="#model-building-block-constructors" title="Permalink to this headline"></a></h3>
 <table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.CausalLanguageModeling.html#merlin.models.tf.CausalLanguageModeling" title="merlin.models.tf.CausalLanguageModeling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CausalLanguageModeling</span></code></a>(*args, **kwargs)</p></td>
-<td><p>In Causal Language Modeling (clm) you predict the next item based on past positions of the sequence. Future positions are masked. :param padding_idx: Index of padding item, used for masking and for getting batch of sequences                     with the same length. Defaults to 0 :type padding_idx: int :param eval_on_last_item_seq_only: When set to True, predict only the last non-padded item during evaluation                                    Defaults to True :type eval_on_last_item_seq_only: bool :param item_id_feature_name: Name of the column containing the item ids                              Defaults to <cite>item_id</cite> :type item_id_feature_name: str :param train_on_last_item_seq_only: predict only the last item during training. Defaults to True. :type train_on_last_item_seq_only: Optional[bool].</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMBlock.html#merlin.models.tf.DLRMBlock" title="merlin.models.tf.DLRMBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMBlock</span></code></a>(schema, embedding_dim[, …])</p></td>
+<td><p>Builds the DLRM architecture, as proposed in the following <a href="#id15"><span class="problematic" id="id16">`paper https://arxiv.org/pdf/1906.00091.pdf`_</span></a> <a href="#id17"><span class="problematic" id="id1">[1]_</span></a>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MaskedLanguageModeling.html#merlin.models.tf.MaskedLanguageModeling" title="merlin.models.tf.MaskedLanguageModeling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MaskedLanguageModeling</span></code></a>(*args, **kwargs)</p></td>
-<td><p>In Masked Language Modeling (mlm) you randomly select some positions of the sequence to be predicted, which are masked. During training, the Transformer layer is allowed to use positions on the right (future info). During inference, all past items are visible for the Transformer layer, which tries to predict the next item. :param {mask_sequence_parameters}: :param mlm_probability: Probability of an item to be selected (masked) as a label of the given sequence. p.s. We enforce that at least one item is masked for each sequence, so that the network can                         learn something with it. Defaults to 0.15 :type mlm_probability: Optional[float].</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MLPBlock.html#merlin.models.tf.MLPBlock" title="merlin.models.tf.MLPBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MLPBlock</span></code></a>(dimensions[, activation, use_bias, …])</p></td>
+<td><p>A block that applies a multi-layer perceptron to the input.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.CrossBlock.html#merlin.models.tf.CrossBlock" title="merlin.models.tf.CrossBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CrossBlock</span></code></a>([depth, filter, low_rank_dim, …])</p></td>
+<td><p>This block provides a way to create high-order feature interactions</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.TwoTowerBlock.html#merlin.models.tf.TwoTowerBlock" title="merlin.models.tf.TwoTowerBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TwoTowerBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Builds the Two-tower architecture, as proposed in the following <a href="#id18"><span class="problematic" id="id19">`paper https://doi.org/10.1145/3298689.3346996`_</span></a> [Xinyang19].</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationBlock.html#merlin.models.tf.MatrixFactorizationBlock" title="merlin.models.tf.MatrixFactorizationBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MatrixFactorizationBlock</span></code></a>(schema, dim[, …])</p></td>
+<td><p>Returns a block for Matrix Factorization, which created the user and item embeddings based on the <cite>schema</cite> and computes the dot product between user and item L2-norm embeddings</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DotProductInteraction.html#merlin.models.tf.DotProductInteraction" title="merlin.models.tf.DotProductInteraction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DotProductInteraction</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="modeling-task-constructors">
-<h3>Modeling Task Constructors<a class="headerlink" href="#modeling-task-constructors" title="Permalink to this headline"></a></h3>
+<div class="section" id="modeling-prediction-task-constructors">
+<h3>Modeling Prediction Task Constructors<a class="headerlink" href="#modeling-prediction-task-constructors" title="Permalink to this headline"></a></h3>
 <table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
@@ -420,6 +372,58 @@
 </tbody>
 </table>
 </div>
+<div class="section" id="model-pipeline-constructors">
+<h3>Model Pipeline Constructors<a class="headerlink" href="#model-pipeline-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock" title="merlin.models.tf.SequentialBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SequentialBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>The SequentialLayer represents a sequence of Keras layers. It is a Keras Layer that can be used instead of tf.keras.layers.Sequential, which is actually a Keras Model. In contrast to keras Sequential, this layer can be used as a pure Layer in tf.functions and when exporting SavedModels, without having to pre-declare input and output shapes. In turn, this layer is usable as a preprocessing layer for TF Agents Networks, and can be exported via PolicySaver. Usage::.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock" title="merlin.models.tf.ParallelBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParallelBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Merge multiple layers or TabularModule’s into a single output of TabularData.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock" title="merlin.models.tf.ParallelPredictionBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParallelPredictionBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Multi-task prediction block.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DenseResidualBlock.html#merlin.models.tf.DenseResidualBlock" title="merlin.models.tf.DenseResidualBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DenseResidualBlock</span></code></a>([low_rank_dim, …])</p></td>
+<td><p>A block that applies a dense residual block to the input.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock" title="merlin.models.tf.DualEncoderBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DualEncoderBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.ResidualBlock.html#merlin.models.tf.ResidualBlock" title="merlin.models.tf.ResidualBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResidualBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.TabularBlock.html#merlin.models.tf.TabularBlock" title="merlin.models.tf.TabularBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TabularBlock</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Layer that’s specialized for tabular-data by integrating many often used operations.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.Filter.html#merlin.models.tf.Filter" title="merlin.models.tf.Filter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Filter</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Transformation that filters out certain features from <cite>TabularData</cite>.”</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="masking-block-constructors">
+<h3>Masking Block Constructors<a class="headerlink" href="#masking-block-constructors" title="Permalink to this headline"></a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.CausalLanguageModeling.html#merlin.models.tf.CausalLanguageModeling" title="merlin.models.tf.CausalLanguageModeling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CausalLanguageModeling</span></code></a>(*args, **kwargs)</p></td>
+<td><p>In Causal Language Modeling (clm) you predict the next item based on past positions of the sequence. Future positions are masked. :param padding_idx: Index of padding item, used for masking and for getting batch of sequences                     with the same length. Defaults to 0 :type padding_idx: int :param eval_on_last_item_seq_only: When set to True, predict only the last non-padded item during evaluation                                    Defaults to True :type eval_on_last_item_seq_only: bool :param item_id_feature_name: Name of the column containing the item ids                              Defaults to <cite>item_id</cite> :type item_id_feature_name: str :param train_on_last_item_seq_only: predict only the last item during training. Defaults to True. :type train_on_last_item_seq_only: Optional[bool].</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MaskedLanguageModeling.html#merlin.models.tf.MaskedLanguageModeling" title="merlin.models.tf.MaskedLanguageModeling"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MaskedLanguageModeling</span></code></a>(*args, **kwargs)</p></td>
+<td><p>In Masked Language Modeling (mlm) you randomly select some positions of the sequence to be predicted, which are masked. During training, the Transformer layer is allowed to use positions on the right (future info). During inference, all past items are visible for the Transformer layer, which tries to predict the next item. :param {mask_sequence_parameters}: :param mlm_probability: Probability of an item to be selected (masked) as a label of the given sequence. p.s. We enforce that at least one item is masked for each sequence, so that the network can                         learn something with it. Defaults to 0.15 :type mlm_probability: Optional[float].</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="section" id="transformation-block-constructors">
 <h3>Transformation Block Constructors<a class="headerlink" href="#transformation-block-constructors" title="Permalink to this headline"></a></h3>
 <table class="longtable docutils align-default">
@@ -431,25 +435,40 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ExpandDims.html#merlin.models.tf.ExpandDims" title="merlin.models.tf.ExpandDims"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExpandDims</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Expand dims of selected input tensors. Example::.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.AsDenseFeatures.html#merlin.models.tf.AsDenseFeatures" title="merlin.models.tf.AsDenseFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsDenseFeatures</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.AsSparseFeatures.html#merlin.models.tf.AsSparseFeatures" title="merlin.models.tf.AsSparseFeatures"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsSparseFeatures</span></code></a>(*args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.StochasticSwapNoise.html#merlin.models.tf.StochasticSwapNoise" title="merlin.models.tf.StochasticSwapNoise"><code class="xref py py-obj docutils literal notranslate"><span class="pre">StochasticSwapNoise</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Applies Stochastic replacement of sequence features</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.AsTabular.html#merlin.models.tf.AsTabular" title="merlin.models.tf.AsTabular"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AsTabular</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Converts a Tensor to TabularData by converting it to a dictionary.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="functions-for-blocks">
-<h3>Functions for Blocks<a class="headerlink" href="#functions-for-blocks" title="Permalink to this headline"></a></h3>
+<div class="section" id="multi-task-block-constructors">
+<h3>Multi-Task Block Constructors<a class="headerlink" href="#multi-task-block-constructors" title="Permalink to this headline"></a></h3>
 <table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.ContinuousEmbedding.html#merlin.models.tf.ContinuousEmbedding" title="merlin.models.tf.ContinuousEmbedding"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ContinuousEmbedding</span></code></a>(inputs, embedding_block)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MMOEBlock.html#merlin.models.tf.MMOEBlock" title="merlin.models.tf.MMOEBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MMOEBlock</span></code></a>(outputs, expert_block, num_experts)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.CGCBlock.html#merlin.models.tf.CGCBlock" title="merlin.models.tf.CGCBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CGCBlock</span></code></a>(*args, **kwargs)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="dataset-constructors">
-<h3>Dataset Constructors<a class="headerlink" href="#dataset-constructors" title="Permalink to this headline"></a></h3>
+<div class="section" id="data-loader-customization-constructor">
+<h3>Data Loader Customization Constructor<a class="headerlink" href="#data-loader-customization-constructor" title="Permalink to this headline"></a></h3>
 <table class="longtable docutils align-default">
 <colgroup>
 <col style="width: 10%" />
@@ -457,7 +476,7 @@
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.dataset.BatchedDataset.html#merlin.models.tf.dataset.BatchedDataset" title="merlin.models.tf.dataset.BatchedDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.tf.dataset.BatchedDataset</span></code></a>(…)</p></td>
-<td><p>Infinite generator used to asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular <cite>Dataset</cite>.</p></td>
+<td><p>Override class to customize data loading for backward compatibility with older NVTabular releases.</p></td>
 </tr>
 </tbody>
 </table>
@@ -549,12 +568,50 @@
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1v2Loss.html#merlin.models.tf.losses.TOP1v2Loss" title="merlin.models.tf.losses.TOP1v2Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1v2Loss</span></code></a>([reduction, name])</p></td>
 <td><p>An adapted version of the TOP pairwise loss proposed in <a href="#id29"><span class="problematic" id="id11">[1]_</span></a>, but following the current GRU4Rec implementation <a href="#id30"><span class="problematic" id="id12">[2]_</span></a>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.loss_registry.html#merlin.models.tf.losses.loss_registry" title="merlin.models.tf.losses.loss_registry"><code class="xref py py-obj docutils literal notranslate"><span class="pre">loss_registry</span></code></a></p></td>
-<td><p>Dict-like class for managing function registrations.</p></td>
-</tr>
 </tbody>
 </table>
 </div>
+</div>
+<div class="section" id="schema-functions">
+<h2>Schema Functions<a class="headerlink" href="#schema-functions" title="Permalink to this headline"></a></h2>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.select_targets.html#merlin.models.utils.schema_utils.select_targets" title="merlin.models.utils.schema_utils.select_targets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.select_targets</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html#merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json" title="merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html#merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema" title="merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</span></code></a>(value)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_categorical_column.html#merlin.models.utils.schema_utils.create_categorical_column" title="merlin.models.utils.schema_utils.create_categorical_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.create_categorical_column</span></code></a>(…)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_continuous_column.html#merlin.models.utils.schema_utils.create_continuous_column" title="merlin.models.utils.schema_utils.create_continuous_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.create_continuous_column</span></code></a>(name)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html#merlin.models.utils.schema_utils.filter_dict_by_schema" title="merlin.models.utils.schema_utils.filter_dict_by_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.filter_dict_by_schema</span></code></a>(…)</p></td>
+<td><p>Filters out entries from input_dict, returns a dictionary where every entry corresponds to a column in the schema</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_cardinalities.html#merlin.models.utils.schema_utils.categorical_cardinalities" title="merlin.models.utils.schema_utils.categorical_cardinalities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.categorical_cardinalities</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_domains.html#merlin.models.utils.schema_utils.categorical_domains" title="merlin.models.utils.schema_utils.categorical_domains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.categorical_domains</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html#merlin.models.utils.schema_utils.get_embedding_sizes_from_schema" title="merlin.models.utils.schema_utils.get_embedding_sizes_from_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</span></code></a>(schema)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality" title="merlin.models.utils.schema_utils.get_embedding_size_from_cardinality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</span></code></a>(…)</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="data">
 <h2>Data<a class="headerlink" href="#data" title="Permalink to this headline"></a></h2>
@@ -566,26 +623,6 @@
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.data.synthetic.SyntheticData.html#merlin.models.data.synthetic.SyntheticData" title="merlin.models.data.synthetic.SyntheticData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.data.synthetic.SyntheticData</span></code></a>(…)</p></td>
 <td><p></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="loaders">
-<h2>Loaders<a class="headerlink" href="#loaders" title="Permalink to this headline"></a></h2>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.loader.backend.ChunkQueue.html#merlin.models.loader.backend.ChunkQueue" title="merlin.models.loader.backend.ChunkQueue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.loader.backend.ChunkQueue</span></code></a>(…)</p></td>
-<td><p>This class takes partitions (parts) from an NVTabular dataset</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.loader.backend.DataLoader.html#merlin.models.loader.backend.DataLoader" title="merlin.models.loader.backend.DataLoader"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.loader.backend.DataLoader</span></code></a>(…)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.loader.shuffle.Shuffle.html#merlin.models.loader.shuffle.Shuffle" title="merlin.models.loader.shuffle.Shuffle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.loader.shuffle.Shuffle</span></code></a>(value)</p></td>
-<td><p>An enumeration.</p></td>
 </tr>
 </tbody>
 </table>
@@ -694,55 +731,14 @@
 </tbody>
 </table>
 </div>
-<div class="section" id="schema-functions">
-<h2>Schema Functions<a class="headerlink" href="#schema-functions" title="Permalink to this headline"></a></h2>
-<table class="longtable docutils align-default">
-<colgroup>
-<col style="width: 10%" />
-<col style="width: 90%" />
-</colgroup>
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.select_targets.html#merlin.models.utils.schema_utils.select_targets" title="merlin.models.utils.schema_utils.select_targets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.select_targets</span></code></a>(schema)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html#merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json" title="merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</span></code></a>(schema)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html#merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema" title="merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</span></code></a>(value)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_categorical_column.html#merlin.models.utils.schema_utils.create_categorical_column" title="merlin.models.utils.schema_utils.create_categorical_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.create_categorical_column</span></code></a>(…)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_continuous_column.html#merlin.models.utils.schema_utils.create_continuous_column" title="merlin.models.utils.schema_utils.create_continuous_column"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.create_continuous_column</span></code></a>(name)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html#merlin.models.utils.schema_utils.filter_dict_by_schema" title="merlin.models.utils.schema_utils.filter_dict_by_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.filter_dict_by_schema</span></code></a>(…)</p></td>
-<td><p>Filters out entries from input_dict, returns a dictionary where every entry corresponds to a column in the schema</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_cardinalities.html#merlin.models.utils.schema_utils.categorical_cardinalities" title="merlin.models.utils.schema_utils.categorical_cardinalities"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.categorical_cardinalities</span></code></a>(schema)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_domains.html#merlin.models.utils.schema_utils.categorical_domains" title="merlin.models.utils.schema_utils.categorical_domains"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.categorical_domains</span></code></a>(schema)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html#merlin.models.utils.schema_utils.get_embedding_sizes_from_schema" title="merlin.models.utils.schema_utils.get_embedding_sizes_from_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</span></code></a>(schema)</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality" title="merlin.models.utils.schema_utils.get_embedding_size_from_cardinality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</span></code></a>(…)</p></td>
-<td><p></p></td>
-</tr>
-</tbody>
-</table>
-</div>
 </div>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="models_overview.html" class="btn btn-neutral float-left" title="Available Models: Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="generated/merlin.models.tf.Model.html" class="btn btn-neutral float-right" title="merlin.models.tf.Model" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="models_overview.html" class="btn btn-neutral float-left" title="Standard Models: Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="generated/merlin.models.tf.DCNModel.html" class="btn btn-neutral float-right" title="merlin.models.tf.DCNModel" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

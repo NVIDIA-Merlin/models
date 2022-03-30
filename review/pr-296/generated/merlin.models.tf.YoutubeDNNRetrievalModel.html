@@ -16,7 +16,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="merlin.models.tf.Block" href="merlin.models.tf.Block.html" />
+    <link rel="next" title="merlin.models.tf.InputBlock" href="merlin.models.tf.InputBlock.html" />
     <link rel="prev" title="merlin.models.tf.TwoTowerModel" href="merlin.models.tf.TwoTowerModel.html" /> 
 </head>
 
@@ -35,37 +35,36 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Available Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="../api.html#model-constructors">Model Constructors</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.Model.html">merlin.models.tf.Model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.DCNModel.html">merlin.models.tf.DCNModel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.DLRMModel.html">merlin.models.tf.DLRMModel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#ranking-model-constructors">Ranking Model Constructors</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../api.html#retrieval-model-constructors">Retrieval Model Constructors</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.MatrixFactorizationModel.html">merlin.models.tf.MatrixFactorizationModel</a></li>
 <li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.TwoTowerModel.html">merlin.models.tf.TwoTowerModel</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">merlin.models.tf.YoutubeDNNRetrievalModel</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#block-constructors">Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#input-block-constructors">Input Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#model-building-block-constructors">Model Building Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#modeling-prediction-task-constructors">Modeling Prediction Task Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#model-pipeline-constructors">Model Pipeline Constructors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#masking-block-constructors">Masking Block Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#modeling-task-constructors">Modeling Task Constructors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#transformation-block-constructors">Transformation Block Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#functions-for-blocks">Functions for Blocks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#dataset-constructors">Dataset Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#multi-task-block-constructors">Multi-Task Block Constructors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api.html#data-loader-customization-constructor">Data Loader Customization Constructor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#metrics">Metrics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#sampling">Sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api.html#losses">Losses</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#data">Data</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#loaders">Loaders</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#registry-functions">Registry Functions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 </ul>
 </li>
 </ul>
@@ -142,7 +141,7 @@ Proceedings of the 10th ACM conference on recommender systems. 2016.</p>
 <li><p><strong>schema</strong> (<em>Schema</em>) – The <cite>Schema</cite> with the input features</p></li>
 <li><p><strong>aggregation</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – The aggregation method to use for the sequence of features.
 Defaults to <cite>concat</cite>.</p></li>
-<li><p><strong>top_block</strong> (<a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a>) – The <cite>Block</cite> that combines the top features</p></li>
+<li><p><strong>top_block</strong> (<em>Block</em>) – The <cite>Block</cite> that combines the top features</p></li>
 <li><p><strong>num_sampled</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of negative samples to use in the sampled-softmax.
 Defaults to 100.</p></li>
 <li><p><strong>loss</strong> (<em>Optional</em><em>[</em><em>LossType</em><em>]</em>) – Loss function.
@@ -151,11 +150,11 @@ Defaults to <cite>categorical_crossentropy</cite>.</p></li>
 Defaults to <cite>ranking_metrics(top_ks=[10])</cite></p></li>
 <li><p><strong>normalize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether to normalize the embeddings.
 Defaults to True.</p></li>
-<li><p><strong>extra_pre_call</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a><em>]</em>) – The optional <cite>Block</cite> to apply before the model.</p></li>
-<li><p><strong>task_block</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a><em>]</em>) – The optional <cite>Block</cite> to apply on the model.</p></li>
+<li><p><strong>extra_pre_call</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply before the model.</p></li>
+<li><p><strong>task_block</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply on the model.</p></li>
 <li><p><strong>logits_temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Parameter used to reduce model overconfidence, so that logits / T.
 Defaults to 1.</p></li>
-<li><p><strong>seq_aggregator</strong> (<a class="reference internal" href="merlin.models.tf.Block.html#merlin.models.tf.Block" title="merlin.models.tf.Block"><em>Block</em></a>) – The <cite>Block</cite> to aggregate the sequence of features.</p></li>
+<li><p><strong>seq_aggregator</strong> (<em>Block</em>) – The <cite>Block</cite> to aggregate the sequence of features.</p></li>
 </ul>
 </dd>
 </dl>
@@ -168,7 +167,7 @@ Defaults to 1.</p></li>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="merlin.models.tf.TwoTowerModel.html" class="btn btn-neutral float-left" title="merlin.models.tf.TwoTowerModel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="merlin.models.tf.Block.html" class="btn btn-neutral float-right" title="merlin.models.tf.Block" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="merlin.models.tf.InputBlock.html" class="btn btn-neutral float-right" title="merlin.models.tf.InputBlock" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
