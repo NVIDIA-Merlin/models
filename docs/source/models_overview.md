@@ -1,4 +1,4 @@
-# Available Models: Overview
+# Standard Models: Overview
 
 ## Matrix Factorization
 
@@ -12,7 +12,10 @@ ml.MatrixFactorizationBlock(schema, dim=256).connect(ml.ItemRetrievalTask())
 
 ## YouTube DNN
 
-Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube Recommendations.” In Proceedings of the 10th ACM Conference on Recommender Systems, 191–98. Boston Massachusetts USA: ACM, 2016. <https://doi.org/10.1145/2959100.2959190>.
+Covington, Paul, Jay Adams, and Emre Sargin. “Deep Neural Networks for YouTube
+Recommendations.” In Proceedings of the 10th ACM Conference on Recommender
+Systems, 191–98. Boston Massachusetts USA: ACM, 2016.
+<https://doi.org/10.1145/2959100.2959190>.
 
 ![Sample network architecture for YouTube DNN.](../img/youtube-dnn.png)
 
@@ -24,9 +27,11 @@ model = ml.YoutubeDNNRetrieval(schema, top_layer=ml.MLPBlock([64]))
 
 ## Two Tower
 
-Yi, Xinyang, Ji Yang, Lichan Hong, Derek Zhiyuan Cheng, Lukasz Heldt, Aditee Kumthekar, Zhe Zhao, Li Wei, and Ed Chi.
-“Sampling-Bias-Corrected Neural Modeling for Large Corpus Item Recommendations.” In Proceedings of the 13th ACM
-Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019. <https://doi.org/10.1145/3298689.3346996>.
+Yi, Xinyang, Ji Yang, Lichan Hong, Derek Zhiyuan Cheng, Lukasz Heldt, Aditee
+Kumthekar, Zhe Zhao, Li Wei, and Ed Chi. “Sampling-Bias-Corrected Neural
+Modeling for Large Corpus Item Recommendations.” In Proceedings of the 13th ACM
+Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019.
+<https://doi.org/10.1145/3298689.3346996>.
 
 ![Sample network architecture for two tower retrieval model.](../img/two-tower.png)
 
@@ -55,8 +60,10 @@ model = two_tower.connect(ml.ItemRetrievalTask())
 
 ### Deep Learning Recommender Model
 
-Naumov, Maxim, Dheevatsa Mudigere, Hao-Jun Michael Shi, Jianyu Huang, Narayanan Sundaraman, Jongsoo Park, Xiaodong Wang,
-et al. “Deep Learning Recommendation Model for Personalization and Recommendation Systems.” ArXiv:1906.00091 [Cs], May 31, 2019. <http://arxiv.org/abs/1906.00091>.
+Naumov, Maxim, Dheevatsa Mudigere, Hao-Jun Michael Shi, Jianyu Huang, Narayanan
+Sundaraman, Jongsoo Park, Xiaodong Wang, et al. “Deep Learning Recommendation
+Model for Personalization and Recommendation Systems.” ArXiv:1906.00091 [Cs],
+May 31, 2019. <http://arxiv.org/abs/1906.00091>.
 
 ![Sample architecture for DLRM.](../img/dlrm.png)
 
@@ -89,8 +96,10 @@ dlrm = dlrm_inputs.apply(ml.DotProductInteraction(), ml.MLPBlock([512, 128]))
 
 ### DCN-V2
 
-Wang, Ruoxi, Rakesh Shivanna, Derek Z. Cheng, Sagar Jain, Dong Lin, Lichan Hong, and Ed H. Chi. “DCN V2: Improved Deep &
-Cross Network and Practical Lessons for Web-Scale Learning to Rank Systems.” ArXiv:2008.13535 [Cs, Stat], October 20, 2020. <http://arxiv.org/abs/2008.13535>.
+Wang, Ruoxi, Rakesh Shivanna, Derek Z. Cheng, Sagar Jain, Dong Lin, Lichan Hong,
+and Ed H. Chi. “DCN V2: Improved Deep & Cross Network and Practical Lessons for
+Web-Scale Learning to Rank Systems.” ArXiv:2008.13535 [Cs, Stat], October
+20, 2020. <http://arxiv.org/abs/2008.13535>.
 
 ![Visualization of DCN-V2.](../img/dcn-v2.png)
 
@@ -115,7 +124,10 @@ b_with_shortcut = ml.InputBlock(schema).connect(cross).connect_with_shortcut(
 ## Multi-task Learning
 
 ### Mixture-of-experts
-Ma, Jiaqi, Zhe Zhao, Xinyang Yi, Jilin Chen, Lichan Hong, and Ed H. Chi. “Modeling Task Relationships in Multi-Task Learning with Multi-Gate Mixture-of-Experts,” 2018, 1930–39. <https://doi.org/10.1145/3219819.3220007>.
+
+Ma, Jiaqi, Zhe Zhao, Xinyang Yi, Jilin Chen, Lichan Hong, and Ed H. Chi.
+“Modeling Task Relationships in Multi-Task Learning with Multi-Gate
+Mixture-of-Experts,” 2018, 1930–39. <https://doi.org/10.1145/3219819.3220007>.
 
 ![Sample architecture for a mixture-of-experts model.](../img/mmoe.png)
 
@@ -133,7 +145,10 @@ model = inputs.connect(block, mmoe, prediction_tasks)
 
 ### Progressive Layered Extraction
 
-Tang, Hongyan, Junning Liu, Ming Zhao, and Xudong Gong. “Progressive Layered Extraction (PLE): A Novel Multi-Task Learning (MTL) Model for Personalized Recommendations.” In Fourteenth ACM Conference on Recommender Systems, 269–78. Virtual Event Brazil: ACM, 2020. <https://doi.org/10.1145/3383313.3412236>.
+Tang, Hongyan, Junning Liu, Ming Zhao, and Xudong Gong. “Progressive Layered
+Extraction (PLE): A Novel Multi-Task Learning (MTL) Model for Personalized
+Recommendations.” In Fourteenth ACM Conference on Recommender Systems, 269–78.
+Virtual Event Brazil: ACM, 2020. <https://doi.org/10.1145/3383313.3412236>.
 
 ![Sample architecture for a progressive layered extraction model.](../img/ple.png)
 
