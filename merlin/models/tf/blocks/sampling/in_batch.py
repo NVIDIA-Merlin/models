@@ -65,7 +65,7 @@ class InBatchSampler(ItemSampler):
         if self._batch_size is None:
             self.set_batch_size(input_shapes["embeddings"][0])
 
-    def call(self, inputs: TabularData, training=True) -> EmbeddingWithMetadata:
+    def call(self, inputs: TabularData, training=False) -> EmbeddingWithMetadata:
         """Returns the item embeddings and item metadata from
         the current batch.
         The implementation is very simple, as it just returns the current
@@ -96,7 +96,7 @@ class InBatchSampler(ItemSampler):
         items_embeddings = self.sample()
         return items_embeddings
 
-    def add(self, inputs: TabularData, training=True) -> None:  # type: ignore
+    def add(self, inputs: TabularData, training=False) -> None:  # type: ignore
         self._check_inputs_batch_sizes(inputs)
         self._last_batch_items_embeddings = inputs["embeddings"]
         self._last_batch_items_metadata = inputs["metadata"]

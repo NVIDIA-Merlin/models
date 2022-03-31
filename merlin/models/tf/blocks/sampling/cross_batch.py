@@ -118,7 +118,7 @@ class CachedCrossBatchSampler(ItemSampler):
                 "so that it is built before calling add() or sample() directly"
             )
 
-    def call(self, inputs: TabularData, training=True) -> EmbeddingWithMetadata:
+    def call(self, inputs: TabularData, training=False) -> EmbeddingWithMetadata:
         """Adds the current batch to the FIFO queue cache and samples all items
         embeddings from the last N cached batches.
 
@@ -154,7 +154,7 @@ class CachedCrossBatchSampler(ItemSampler):
     def add(  # type: ignore
         self,
         inputs: TabularData,
-        training: bool = True,
+        training: bool = False,
     ) -> None:
         self._check_built()
 
@@ -244,7 +244,7 @@ class CachedUniformSampler(CachedCrossBatchSampler):
     def add(  # type: ignore
         self,
         inputs: TabularData,
-        training: bool = True,
+        training: bool = False,
     ) -> None:
         """Updates the FIFO queue with batch item embeddings (for items whose ids were
         already added to the queue) and adds to the queue the items seen for the first time
@@ -419,11 +419,11 @@ class PopularityBasedSampler(ItemSampler):
             self.item_id_feature_name in inputs["metadata"]
         ), "The 'item_id' metadata feature is required by PopularityBasedSampler."
 
-    def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=True):
+    def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=False):
         pass
 
     def call(
-        self, inputs: TabularData, item_weights: tf.Tensor, training=True
+        self, inputs: TabularData, item_weights: tf.Tensor, training=False
     ) -> EmbeddingWithMetadata:
         if training:
             self._check_inputs(inputs)

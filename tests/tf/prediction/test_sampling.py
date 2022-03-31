@@ -27,7 +27,7 @@ def test_inbatch_sampler():
     inbatch_sampler = ml.InBatchSampler()
 
     input_data = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
-    output_data = inbatch_sampler(input_data.__dict__)
+    output_data = inbatch_sampler(input_data.__dict__, training=True)
 
     tf.assert_equal(input_data.embeddings, output_data.embeddings)
     for feat_name in output_data.metadata:
@@ -40,7 +40,7 @@ def test_inbatch_sampler_no_metadata_features():
     inbatch_sampler = ml.InBatchSampler()
 
     input_data = ml.EmbeddingWithMetadata(embeddings=embeddings, metadata={})
-    output_data = inbatch_sampler(input_data.__dict__)
+    output_data = inbatch_sampler(input_data.__dict__, training=True)
 
     tf.assert_equal(input_data.embeddings, output_data.embeddings)
     assert output_data.metadata == {}
@@ -55,7 +55,7 @@ def test_inbatch_sampler_metadata_diff_shape():
     input_data = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
 
     with pytest.raises(Exception) as excinfo:
-        _ = inbatch_sampler(input_data.__dict__)
+        _ = inbatch_sampler(input_data.__dict__, training=True)
     assert "The batch size (first dim) of embedding" in str(excinfo.value)
 
 
@@ -72,7 +72,7 @@ def test_popularity_sampler():
     )
 
     input_data = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
-    output_data = popularity_sampler(input_data.__dict__, item_weights)
+    output_data = popularity_sampler(input_data.__dict__, item_weights, training=True)
 
     assert len(tf.unique_with_counts(output_data.metadata["item_id"])[0]) == num_sampled
     tf.assert_equal(
@@ -92,7 +92,7 @@ def test_popularity_sampler_no_item_id():
     input_data_0 = ml.EmbeddingWithMetadata(item_embeddings, metadata={})
 
     with pytest.raises(AssertionError) as excinfo:
-        _ = popularity_sampler(input_data_0.__dict__, item_weights)
+        _ = popularity_sampler(input_data_0.__dict__, item_weights, training=True)
     assert "The 'item_id' metadata feature is required by PopularityBasedSampler" in str(
         excinfo.value
     )
@@ -109,7 +109,7 @@ def test_popularity_sampler_weights_dim_diff_max_num_samples():
     input_data_0 = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
 
     with pytest.raises(Exception) as excinfo:
-        _ = popularity_sampler(input_data_0.__dict__, item_weights)
+        _ = popularity_sampler(input_data_0.__dict__, item_weights, training=True)
     assert "The first dimension of the items embeddings (50)" in str(excinfo.value)
 
 
@@ -128,7 +128,7 @@ def test_cached_batches_sampler_add_sample_single_batch(ignore_last_batch_on_sam
     input_data = ml.EmbeddingWithMetadata(
         item_embeddings, {"item_id": item_ids, "image": item_image_embeddings}
     )
-    output_data = cached_batches_sampler(input_data.__dict__)
+    output_data = cached_batches_sampler(input_data.__dict__, training=True)
 
     if ignore_last_batch_on_sample:
         tf.assert_equal(tf.shape(output_data.embeddings)[0], 0)
@@ -150,7 +150,7 @@ def test_cached_batches_sampler_add_sample_only_item_embedding():
     item_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
 
     input_data = ml.EmbeddingWithMetadata(item_embeddings, {})
-    output_data = cached_batches_sampler(input_data.__dict__)
+    output_data = cached_batches_sampler(input_data.__dict__, training=True)
 
     tf.assert_equal(output_data.embeddings, item_embeddings)
     assert output_data.metadata == {}
@@ -169,7 +169,7 @@ def test_cached_batches_sampler_add_diff_item_emb_metadata():
     input_data = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
 
     with pytest.raises(Exception) as excinfo:
-        _ = cached_batches_sampler(input_data.__dict__)
+        _ = cached_batches_sampler(input_data.__dict__, training=True)
     assert "The batch size (first dim) of embedding" in str(excinfo.value)
 
 
@@ -213,7 +213,7 @@ def test_cached_batches_sampler_multiple_batches(ignore_last_batch_on_sample):
         batches_items_ids_list.append(item_ids)
 
         input_data = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
-        output_data = cached_batches_sampler(input_data.__dict__)
+        output_data = cached_batches_sampler(input_data.__dict__, training=True)
         expected_sampled_items = min(
             batch_size * (step - 1 if ignore_last_batch_on_sample else step), num_expected_samples
         )
@@ -263,7 +263,7 @@ def test_cached_uniform_sampler_adds_or_updates_items():
     item_ids0 = tf.constant([0, 0, 1, 1], dtype=tf.int32)
     item_embeddings0 = tf.random.uniform(shape=(4, 5), dtype=tf.float32)
     input_data_0 = ml.EmbeddingWithMetadata(item_embeddings0, {"item_id": item_ids0})
-    output_data_0 = uniform_sampler(input_data_0.__dict__)
+    output_data_0 = uniform_sampler(input_data_0.__dict__, training=True)
     assert tuple(output_data_0.embeddings.shape) == (2, 5)
     tf.assert_equal(output_data_0.metadata["item_id"], [0, 1])
     tf.assert_equal(
@@ -275,7 +275,7 @@ def test_cached_uniform_sampler_adds_or_updates_items():
     item_ids1 = tf.range(0, 10)
     item_embeddings1 = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
     input_data_1 = ml.EmbeddingWithMetadata(item_embeddings1, {"item_id": item_ids1})
-    output_data_1 = uniform_sampler(input_data_1.__dict__)
+    output_data_1 = uniform_sampler(input_data_1.__dict__, training=True)
     assert tuple(output_data_1.embeddings.shape) == (10, 5)
     tf.assert_equal(output_data_1.metadata["item_id"], item_ids1)
     tf.assert_equal(output_data_1.embeddings, item_embeddings1)
@@ -284,7 +284,7 @@ def test_cached_uniform_sampler_adds_or_updates_items():
     item_ids2 = tf.range(7, 13)
     item_embeddings2 = tf.random.uniform(shape=(6, 5), dtype=tf.float32)
     input_data_2 = ml.EmbeddingWithMetadata(item_embeddings2, {"item_id": item_ids2})
-    output_data_2 = uniform_sampler(input_data_2.__dict__)
+    output_data_2 = uniform_sampler(input_data_2.__dict__, training=True)
     assert tuple(output_data_2.embeddings.shape) == (13, 5)
     tf.assert_equal(
         output_data_2.metadata["item_id"], tf.concat([item_ids1[:7], item_ids2], axis=0)
@@ -297,7 +297,7 @@ def test_cached_uniform_sampler_adds_or_updates_items():
     item_ids3 = tf.range(0, 3)
     item_embeddings3 = tf.random.uniform(shape=(3, 5), dtype=tf.float32)
     input_data_3 = ml.EmbeddingWithMetadata(item_embeddings3, {"item_id": item_ids3})
-    output_data_3 = uniform_sampler(input_data_3.__dict__)
+    output_data_3 = uniform_sampler(input_data_3.__dict__, training=True)
     assert tuple(output_data_3.embeddings.shape) == (13, 5)
     tf.assert_equal(
         output_data_3.metadata["item_id"],
@@ -313,7 +313,7 @@ def test_cached_uniform_sampler_adds_or_updates_items():
     item_ids4 = tf.range(13, 17)
     item_embeddings4 = tf.random.uniform(shape=(4, 5), dtype=tf.float32)
     input_data_4 = ml.EmbeddingWithMetadata(item_embeddings4, {"item_id": item_ids4})
-    output_data_4 = uniform_sampler(input_data_4.__dict__)
+    output_data_4 = uniform_sampler(input_data_4.__dict__, training=True)
     assert tuple(output_data_4.embeddings.shape) == (queue_capacity, 5)
     tf.assert_equal(
         output_data_4.metadata["item_id"],
@@ -341,7 +341,7 @@ def test_cached_uniform_sampler_expected_number_examples(ignore_last_batch_on_sa
         item_ids = tf.range(step * batch_size, (step * batch_size) + 10)
         item_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
         input_data = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})
-        output_data = uniform_sampler(input_data.__dict__)
+        output_data = uniform_sampler(input_data.__dict__, training=True)
 
         expected_samples = batch_size * (step - 1 if ignore_last_batch_on_sample else step)
         assert tuple(output_data.embeddings.shape) == (expected_samples, 5)
@@ -356,7 +356,7 @@ def test_cached_uniform_sampler_no_item_id():
     input_data_0 = ml.EmbeddingWithMetadata(item_embeddings, metadata={})
 
     with pytest.raises(AssertionError) as excinfo:
-        _ = uniform_sampler(input_data_0.__dict__)
+        _ = uniform_sampler(input_data_0.__dict__, training=True)
     assert "The 'item_id' metadata feature is required by UniformSampler" in str(excinfo.value)
 
 

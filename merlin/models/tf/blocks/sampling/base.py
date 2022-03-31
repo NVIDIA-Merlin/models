@@ -33,7 +33,7 @@ class ItemSampler(abc.ABC, Layer):
         self.set_max_num_samples(max_num_samples)
 
     @abc.abstractmethod
-    def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=True):
+    def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=False):
         raise NotImplementedError()
 
     @abc.abstractmethod

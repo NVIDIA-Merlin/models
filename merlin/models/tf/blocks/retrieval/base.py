@@ -304,9 +304,11 @@ class ItemRetrievalScorer(Block):
             for sampler in self.samplers:
                 input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
                 if "item_weights" in sampler._call_fn_args:
-                    neg_items = sampler(input_data.__dict__, item_weights=embedding_table)
+                    neg_items = sampler(
+                        input_data.__dict__, item_weights=embedding_table, training=True
+                    )
                 else:
-                    neg_items = sampler(input_data.__dict__)
+                    neg_items = sampler(input_data.__dict__, training=True)
 
                 if tf.shape(neg_items.embeddings)[0] > 0:
                     # Accumulates sampled negative items from all samplers
