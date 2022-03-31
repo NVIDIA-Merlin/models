@@ -221,11 +221,13 @@ def test_item_retrieval_scorer_only_positive_when_not_training():
 def test_retrieval_task_inbatch_cached_samplers(
     music_streaming_data: Dataset, run_eagerly, ignore_last_batch_on_sample
 ):
+    batch_size = 100
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
-    batch_size = music_streaming_data.tf_tensor_dict["item_id"].shape[0]
-    assert batch_size == 100
+    batch_inputs = ml.sample_batch(
+        music_streaming_data, batch_size=batch_size, include_targets=False
+    )
 
     cached_batches_sampler = ml.CachedCrossBatchSampler(
         capacity=batch_size * 2,
@@ -247,7 +249,7 @@ def test_retrieval_task_inbatch_cached_samplers(
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     for batch_step in range(1, 4):
-        output = model(music_streaming_data.tf_tensor_dict, training=True)
+        output = model(batch_inputs, training=True)
         output = model.loss_block.pre.call_outputs(
             PredictionOutput(output, {}), training=True
         ).predictions
@@ -337,7 +339,9 @@ def test_last_item_prediction_task(
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
 
-    batch = ml.sample_batch(sequence_testing_data, batch_size=50, include_targets=False)
+    batch = ml.sample_batch(
+        sequence_testing_data, batch_size=50, include_targets=False, to_dense=True
+    )
     out = model({k: tf.cast(v, tf.int64) for k, v in batch.items()})
     assert out.shape[-1] == 51997
 
@@ -347,11 +351,13 @@ def test_last_item_prediction_task(
 def test_retrieval_task_inbatch_default_sampler(
     music_streaming_data: Dataset, run_eagerly, ignore_last_batch_on_sample
 ):
+    batch_size = 100
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
-    batch_size = music_streaming_data.tf_tensor_dict["item_id"].shape[0]
-    assert batch_size == 100
+    batch_inputs = ml.sample_batch(
+        music_streaming_data, batch_size=batch_size, include_targets=False
+    )
 
     model = two_tower.connect(
         ml.ItemRetrievalTask(music_streaming_data.schema, logits_temperature=2, loss="bpr")
@@ -360,7 +366,7 @@ def test_retrieval_task_inbatch_default_sampler(
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     for _ in range(1, 4):
-        output = model(music_streaming_data.tf_tensor_dict, training=True)
+        output = model(batch_inputs, training=True)
         output = model.loss_block.pre.call_outputs(
             PredictionOutput(output, {}), training=True
         ).predictions

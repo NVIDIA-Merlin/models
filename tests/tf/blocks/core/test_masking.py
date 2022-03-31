@@ -52,7 +52,9 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", max_seq_length=4, seq=True)
     model = embedding_block.connect(mask_block(), context=ml.BlockContext())
 
-    batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
+    batch = ml.sample_batch(
+        sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
+    )
     _ = model(batch, training=False)
 
     # Get last non-padded label from input
@@ -95,7 +97,9 @@ def test_not_all_masked_lm(sequence_testing_data):
     mask_block = ml.MaskedLanguageModeling()
     model = embedding_block.connect(mask_block, context=ml.BlockContext())
 
-    batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
+    batch = ml.sample_batch(
+        sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
+    )
     _ = model(batch, training=True)
 
     trgt_mask = tf.cast(model.context.get_mask(), tf.int32)

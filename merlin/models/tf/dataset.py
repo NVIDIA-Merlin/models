@@ -505,9 +505,14 @@ class DatasetValidator(tf.keras.callbacks.Callback):
 
 
 if merlin_dataset_class:
+    from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 
     def sample_batch(
-        data: merlin_dataset_class, batch_size: int, shuffle: bool = False, include_targets=True
+        data: merlin_dataset_class,
+        batch_size: int,
+        shuffle: bool = False,
+        include_targets: bool = True,
+        to_dense: bool = False,
     ):
         """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
@@ -521,13 +526,16 @@ if merlin_dataset_class:
             Whether to sample a random batch or not, by default False.
         include_targets: bool
             Whether to include the targets in the returned batch, by default True.
-
+        to_dense: bool
+            Whether to convert the tuple of sparse tensors into dense tensors, by default False.
         Returns:
         -------
         batch: Dict[tf.tensor]
             dictionary of input tensors.
         """
-        batch = next(iter(BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)))
+        inputs, targets = next(iter(BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)))
+        if to_dense:
+            inputs = AsDenseFeatures()(inputs)
         if not include_targets:
-            batch = batch[0]
-        return batch
+            return inputs
+        return inputs, targets
