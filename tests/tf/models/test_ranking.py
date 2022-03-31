@@ -88,7 +88,9 @@ def test_deep_fm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_wide_and_deep_model_single_task_from_pred_task(ecommerce_data, run_eagerly, num_epochs=5):
-    model = ml.WideAndDeepModel(
+    from merlin.models.tf.models.ranking import WideAndDeepModel
+
+    model = WideAndDeepModel(
         ecommerce_data.schema,
         embedding_dim=64,
         keys=[["item_category", "item_intention"]],
@@ -105,8 +107,10 @@ def test_wide_and_deep_model_single_task_from_pred_task(ecommerce_data, run_eage
 
 
 def test_wide_and_deep_model_wrong_keys(ecommerce_data):
+    from merlin.models.tf.models.ranking import WideAndDeepModel
+
     with pytest.raises(ValueError) as exc_info:
-        ml.WideAndDeepModel(ecommerce_data.schema, embedding_dim=64, keys=[["item_1", "item_2"]])
+        WideAndDeepModel(ecommerce_data.schema, embedding_dim=64, keys=[["item_1", "item_2"]])
     assert "Make sure the cross features keys are present in the schema" in str(exc_info.value)
 
 

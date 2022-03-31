@@ -559,6 +559,10 @@ class CrossFeatures(TabularBlock):
     """Transformation performing crosses of categorical features
     based on the provided keys.
 
+    There are some open questions in this experimental implementation:
+    #TODO : remove the dependency with tensorflow input api
+    #TODO : Add possibility of loading cross keys from schema
+
     Parameters
     ----------
     keys : List[List[str]]

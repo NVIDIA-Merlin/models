@@ -248,8 +248,6 @@ def WideAndDeepModel(
     **kwargs
 ) -> Model:
     """Experimental implementation of Wide&Deep model [1];
-    The wide and deep components are trained with a single
-    optimizer in this first implementation.
     If deep_block is not provided, the model is equivalent to
     a linear model with cross-product interactions.
 
@@ -260,6 +258,9 @@ def WideAndDeepModel(
         keys=[['item_category', 'item_intention'], ['country', 'gender', 'device']],
         deep_block=ml.MLPBlock([64, 128])
     )
+
+    #TODO : Implementation of a BlocksOptimizer class that accepts different optimizers
+    #  for different subsets of the model’s blocks
 
     References:
     -----------
