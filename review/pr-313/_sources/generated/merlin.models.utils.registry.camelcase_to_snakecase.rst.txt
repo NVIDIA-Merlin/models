@@ -1,0 +1,6 @@
+﻿merlin.models.utils.registry.camelcase\_to\_snakecase
+=====================================================
+
+.. currentmodule:: merlin.models.utils.registry
+
+.. autofunction:: camelcase_to_snakecase
