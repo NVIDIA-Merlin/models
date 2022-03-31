@@ -18,7 +18,7 @@ from merlin.io import Dataset
     ],
 )
 def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks):
-    music_streaming_data._schema = music_streaming_data.schema.without("like")
+    music_streaming_data.schema = music_streaming_data.schema.without("like")
 
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema, task_blocks=task_blocks)
@@ -29,7 +29,7 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks):
 
     # assert 0 <= step["loss"] <= 1 # test failing with loss greater than 1
     assert step["loss"] >= 0
-    assert len(step) == 12
+    assert len(step) == 8
     if task_blocks:
         blocks = list(model.loss_block.task_blocks.values())
         assert blocks[0] != blocks[1]
