@@ -20,23 +20,25 @@ import tensorflow as tf
 from tensorflow.keras.losses import Loss
 
 from merlin.models.tf.losses.base import LossRegistryMixin
+from merlin.models.utils.constants import MAX_FLOAT, MIN_FLOAT
 
 
 class PairwiseLoss(Loss, LossRegistryMixin):
     """Base class for pairwise losses"""
 
-    def _check_only_one_positive_label_per_example(self, y_true: tf.Tensor):
-        """Checks if there is only one positive label per example
+    def _check_max_one_positive_label_per_example(self, y_true: tf.Tensor):
+        """Checks if there is at most one positive label per example
 
         Parameters
         ----------
         y_true : tf.Tensor
             Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
         """
-        tf.assert_equal(
-            tf.reduce_sum(y_true, axis=1),
-            tf.ones_like(y_true[:, 0]),
-            message="Only one positive label is allowed per example",
+        tf.debugging.assert_less_equal(
+            tf.reduce_max(tf.reduce_sum(y_true, axis=1)),
+            1.0,
+            message="The batch contains more examples with more than one positive item,"
+            " which is not supported by the pairwise losses.",
         )
 
     def _get_positives_negatives_scores(
@@ -59,16 +61,48 @@ class PairwiseLoss(Loss, LossRegistryMixin):
         y_pred = tf.convert_to_tensor(y_pred)
         y_true = tf.cast(y_true, y_pred.dtype)
 
-        self._check_only_one_positive_label_per_example(y_true)
+        self._check_max_one_positive_label_per_example(y_true)
 
-        positives_mask = tf.cast(y_true, tf.bool)
-        positives_scores = tf.expand_dims(tf.boolean_mask(y_pred, positives_mask), -1)
+        # Mask that checks if there is a positive available for the example.
+        # During training that is ensured when using `ItemRetrievalScorer` but during
+        # evaluation only the top-k retrieved items are provided, and chances are
+        # that the positive item is not among the top-k, resulting in a row with only
+        # negatvies
+        valid_rows_with_positive_mask = tf.cast(tf.reduce_sum(y_true, axis=1), tf.bool)
+        y_pred_valid_rows = tf.boolean_mask(y_pred, valid_rows_with_positive_mask)
+        y_true_valid_rows = tf.boolean_mask(y_true, valid_rows_with_positive_mask)
+
+        # Extracting the positive (only one) and the negatives scores in separate tensors
+        positives_mask = tf.cast(y_true_valid_rows, tf.bool)
+        positives_scores = tf.expand_dims(tf.boolean_mask(y_pred_valid_rows, positives_mask), -1)
         negatives_scores = tf.reshape(
-            tf.boolean_mask(y_pred, tf.logical_not(positives_mask)),
-            (tf.shape(y_pred)[0], tf.shape(y_pred)[1] - 1),
+            tf.boolean_mask(y_pred_valid_rows, tf.logical_not(positives_mask)),
+            (tf.shape(y_pred_valid_rows)[0], tf.shape(y_pred_valid_rows)[1] - 1),
         )
 
-        return positives_scores, negatives_scores
+        # Initializing the positive and negative scores with very large and small values
+        # respectively, so that for examples that does not include the positive (e.g. during eval)
+        # the difference between the large positive and small negative scores lead to 0 loss
+        # for this example
+        positive_large_scores = tf.fill(
+            value=tf.constant(MAX_FLOAT, dtype=y_pred.dtype), dims=(tf.shape(y_pred)[0], 1)
+        )
+        negatives_small_scores = tf.fill(
+            value=tf.constant(MIN_FLOAT, dtype=y_pred.dtype),
+            dims=(tf.shape(y_pred)[0], tf.shape(y_pred)[1] - 1),
+        )
+
+        update_indices = tf.expand_dims(
+            tf.boolean_mask(tf.range(tf.shape(y_true)[0]), valid_rows_with_positive_mask), -1
+        )
+        positives_scores_final = tf.tensor_scatter_nd_update(
+            positive_large_scores, update_indices, positives_scores
+        )
+        negatives_scores_final = tf.tensor_scatter_nd_update(
+            negatives_small_scores, update_indices, negatives_scores
+        )
+
+        return positives_scores_final, negatives_scores_final
 
 
 @LossRegistryMixin.registry.register("bpr")
