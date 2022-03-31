@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import nvtabular as nvt
 
@@ -35,6 +34,8 @@ def save_results(model_name, model):
 
 
 def create_bar_chart(text_file_name, models_name):
+    import matplotlib.pyplot as plt
+
     """a func to plot barcharts via parsing the  accurracy results in a text file"""
     auc = []
     with open(text_file_name, "r") as infile:
