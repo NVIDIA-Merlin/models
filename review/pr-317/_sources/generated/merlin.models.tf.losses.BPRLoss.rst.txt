@@ -1,0 +1,32 @@
+﻿merlin.models.tf.losses.BPRLoss
+===============================
+
+.. currentmodule:: merlin.models.tf.losses
+
+.. autoclass:: BPRLoss
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BPRLoss.__init__
+      ~BPRLoss.call
+      ~BPRLoss.from_config
+      ~BPRLoss.get_config
+      ~BPRLoss.parse
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BPRLoss.registry
+   
+   

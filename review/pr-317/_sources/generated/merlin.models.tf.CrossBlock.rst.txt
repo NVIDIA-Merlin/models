@@ -1,0 +1,6 @@
+﻿merlin.models.tf.CrossBlock
+===========================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: CrossBlock
