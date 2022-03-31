@@ -1,0 +1,32 @@
+﻿merlin.models.tf.losses.HingeLoss
+=================================
+
+.. currentmodule:: merlin.models.tf.losses
+
+.. autoclass:: HingeLoss
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~HingeLoss.__init__
+      ~HingeLoss.call
+      ~HingeLoss.from_config
+      ~HingeLoss.get_config
+      ~HingeLoss.parse
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~HingeLoss.registry
+   
+   
