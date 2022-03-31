@@ -29,8 +29,8 @@ def test_ncf_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=num_epochs)
-    metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
+    losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
+    metrics = model.evaluate(ecommerce_data, batch_size=50, return_dict=True)
     testing_utils.assert_binary_classification_loss_metrics(
         losses, metrics, target_name="click", num_epochs=num_epochs
     )

@@ -1,7 +1,7 @@
 import pytest
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 
 
 @pytest.mark.parametrize(
@@ -17,7 +17,7 @@ from merlin.models.data.synthetic import SyntheticData
         },
     ],
 )
-def test_model_with_multiple_tasks(music_streaming_data: SyntheticData, task_blocks):
+def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks):
     music_streaming_data._schema = music_streaming_data.schema.without("like")
 
     inputs = ml.InputBlock(music_streaming_data.schema)
@@ -25,7 +25,7 @@ def test_model_with_multiple_tasks(music_streaming_data: SyntheticData, task_blo
     model = inputs.connect(ml.MLPBlock([64]), prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
 
-    step = model.train_step(music_streaming_data.tf_features_and_targets)
+    step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     # assert 0 <= step["loss"] <= 1 # test failing with loss greater than 1
     assert step["loss"] >= 0
@@ -35,20 +35,20 @@ def test_model_with_multiple_tasks(music_streaming_data: SyntheticData, task_blo
         assert blocks[0] != blocks[1]
 
 
-def test_mmoe_head(music_streaming_data: SyntheticData):
+def test_mmoe_head(music_streaming_data: Dataset):
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
     mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
     model = inputs.connect(ml.MLPBlock([64]), mmoe, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
 
-    step = model.train_step(music_streaming_data.tf_features_and_targets)
+    step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     assert step["loss"] >= 0
     assert len(step) == 12
 
 
-def test_ple_head(music_streaming_data: SyntheticData):
+def test_ple_head(music_streaming_data: Dataset):
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
     cgc = ml.CGCBlock(
@@ -57,7 +57,7 @@ def test_ple_head(music_streaming_data: SyntheticData):
     model = inputs.connect(ml.MLPBlock([64]), cgc, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
 
-    step = model.train_step(music_streaming_data.tf_features_and_targets)
+    step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     assert step["loss"] >= 0
     assert len(step) == 12

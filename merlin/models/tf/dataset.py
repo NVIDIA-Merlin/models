@@ -506,8 +506,10 @@ class DatasetValidator(tf.keras.callbacks.Callback):
 
 if merlin_dataset_class:
 
-    def sample_batch(data: merlin_dataset_class, batch_size: int, shuffle: bool = False):
-        """Util function to generate a batch of input tensors from a merlin.io.dataset instance
+    def sample_batch(
+        data: merlin_dataset_class, batch_size: int, shuffle: bool = False, include_targets=True
+    ):
+        """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
         Parameters
         ----------
@@ -517,11 +519,15 @@ if merlin_dataset_class:
             Number of samples to return.
         shuffle: bool
             Whether to sample a random batch or not, by default False.
+        include_targets: bool
+            Whether to include the targets in the returned batch, by default True.
 
         Returns:
         -------
         batch: Dict[tf.tensor]
             dictionary of input tensors.
         """
-        batch = next(iter(BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)))[0]
+        batch = next(iter(BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)))
+        if not include_targets:
+            batch = batch[0]
         return batch

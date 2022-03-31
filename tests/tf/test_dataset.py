@@ -25,7 +25,6 @@ import merlin.models.tf as ml
 import merlin.models.tf.dataset as tf_dataloader
 from merlin.core.dispatch import make_df
 from merlin.io.dataset import Dataset
-from merlin.models.data.synthetic import SyntheticData
 
 
 def test_nested_list():
@@ -264,7 +263,7 @@ def test_validater(batch_size):
     assert np.isclose(true_auc, estimated_auc, rtol=1e-6)
 
 
-def test_model_with_sparse_inputs(music_streaming_data: SyntheticData):
+def test_model_with_sparse_inputs(music_streaming_data: Dataset):
     item_id_schema = music_streaming_data.schema.select_by_name(["user_id", "item_genres"])
     inputs = ml.InputBlock(item_id_schema)
     model = inputs.connect(ml.MLPBlock([64]), context=ml.BlockContext())

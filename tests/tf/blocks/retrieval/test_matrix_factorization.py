@@ -16,20 +16,20 @@
 import os
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 from merlin.schema import Tags
 
 
-def test_matrix_factorization_block(music_streaming_data: SyntheticData):
+def test_matrix_factorization_block(music_streaming_data: Dataset):
     mf = ml.QueryItemIdsEmbeddingsBlock(music_streaming_data.schema, dim=128)
 
-    outputs = mf(music_streaming_data.tf_tensor_dict)
+    outputs = mf(ml.sample_batch(music_streaming_data, batch_size=100, include_targets=False))
 
     assert "query" in outputs
     assert "item" in outputs
 
 
-def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
+def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tmp_path):
     import pandas as pd
 
     from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
@@ -41,7 +41,7 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
     model = mf.connect(ml.BinaryClassificationTask("like"))
     model.compile(optimizer="adam")
 
-    model.fit(music_streaming_data.tf_dataloader(), epochs=5)
+    model.fit(music_streaming_data, epochs=5, batch_size=100)
 
     item_embedding_parquet = str(tmp_path / "items.parquet")
     mf.export_embedding_table(Tags.ITEM_ID, item_embedding_parquet, gpu=False)

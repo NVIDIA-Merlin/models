@@ -18,24 +18,24 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 from merlin.schema import Tags
 
 
 @pytest.mark.parametrize("mask_block", [ml.CausalLanguageModeling, ml.MaskedLanguageModeling])
-def test_masking_block(sequence_testing_data: SyntheticData, mask_block):
+def test_masking_block(sequence_testing_data: Dataset, mask_block):
 
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", max_seq_length=4, seq=True)
     model = embedding_block.connect(mask_block(), context=ml.BlockContext())
 
-    batch = sequence_testing_data.tf_tensor_dict
+    batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
     masked_input = model(batch)
     assert masked_input.shape[-1] == 148
     assert masked_input.shape[1] == 4
 
 
-def test_masking_schema_error(sequence_testing_data: SyntheticData):
+def test_masking_schema_error(sequence_testing_data: Dataset):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
     model = embedding_block.connect(ml.MLPBlock([64]), context=ml.BlockContext())
@@ -52,7 +52,7 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", max_seq_length=4, seq=True)
     model = embedding_block.connect(mask_block(), context=ml.BlockContext())
 
-    batch = sequence_testing_data.tf_tensor_dict
+    batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
     _ = model(batch, training=False)
 
     # Get last non-padded label from input
@@ -81,7 +81,7 @@ def test_at_least_one_masked_item_mlm(sequence_testing_data):
     mask_block = ml.MaskedLanguageModeling()
     model = embedding_block.connect(mask_block, context=ml.BlockContext())
 
-    batch = sequence_testing_data.tf_tensor_dict
+    batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
     _ = model(batch, training=True)
 
     trgt_mask = tf.cast(model.context.get_mask(), tf.int32)
@@ -95,7 +95,7 @@ def test_not_all_masked_lm(sequence_testing_data):
     mask_block = ml.MaskedLanguageModeling()
     model = embedding_block.connect(mask_block, context=ml.BlockContext())
 
-    batch = sequence_testing_data.tf_tensor_dict
+    batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
     _ = model(batch, training=True)
 
     trgt_mask = tf.cast(model.context.get_mask(), tf.int32)

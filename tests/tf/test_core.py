@@ -5,7 +5,7 @@ import tensorflow as tf
 from tensorflow.keras import mixed_precision
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io.dataset import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -47,7 +47,7 @@ def test_tabular_block(tf_con_features):
 @pytest.mark.parametrize("aggregation", [None, "concat"])
 @pytest.mark.parametrize("include_schema", [True, False])
 def test_serialization_continuous_features(
-    testing_data: SyntheticData, pre, post, aggregation, include_schema
+    testing_data: Dataset, pre, post, aggregation, include_schema
 ):
     schema = None
     if include_schema:
@@ -58,7 +58,7 @@ def test_serialization_continuous_features(
     copy_layer = testing_utils.assert_serialization(inputs)
 
     keep_cols = ["user_id", "item_id", "event_hour_sin", "event_hour_cos"]
-    tf_tabular_data = testing_data.tf_tensor_dict
+    tf_tabular_data = ml.sample_batch(testing_data, batch_size=100, include_targets=False)
     for k in list(tf_tabular_data.keys()):
         if k not in keep_cols:
             del tf_tabular_data[k]
@@ -92,11 +92,11 @@ class DummyFeaturesBlock(ml.Block):
         return self.context.get_embedding(Tags.ITEM_ID)
 
 
-def test_block_context(ecommerce_data: SyntheticData):
+def test_block_context(ecommerce_data: Dataset):
     inputs = ml.InputBlock(ecommerce_data.schema)
     dummy = DummyFeaturesBlock()
     model = inputs.connect(ml.MLPBlock([64]), dummy, context=ml.BlockContext())
-    out = model(ecommerce_data.tf_tensor_dict)
+    out = model(ml.sample_batch(ecommerce_data, batch_size=100, include_targets=False))
 
     embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)
     assert (
@@ -108,7 +108,7 @@ def test_block_context(ecommerce_data: SyntheticData):
 
 
 @pytest.mark.parametrize("run_eagerly", [True])
-def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, tmp_path):
+def test_block_context_model(ecommerce_data: Dataset, run_eagerly: bool, tmp_path):
     dummy = DummyFeaturesBlock()
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),
@@ -118,7 +118,7 @@ def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, t
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    model.fit(ecommerce_data.dataset, batch_size=50, epochs=1)
+    model.fit(ecommerce_data, batch_size=50, epochs=1)
     model.save(str(tmp_path))
 
     copy_model = tf.keras.models.load_model(str(tmp_path))
@@ -131,7 +131,7 @@ def test_block_context_model(ecommerce_data: SyntheticData, run_eagerly: bool, t
     # copy_model.fit(ecommerce_data.tf_dataloader(), epochs=1)
 
 
-def test_simple_model(ecommerce_data: SyntheticData):
+def test_simple_model(ecommerce_data: Dataset):
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),
         ml.MLPBlock([64]),
@@ -140,11 +140,11 @@ def test_simple_model(ecommerce_data: SyntheticData):
 
     copy_model = testing_utils.assert_serialization(model)
     testing_utils.assert_loss_and_metrics_are_valid(
-        copy_model, ecommerce_data.tf_features_and_targets
+        copy_model, ml.sample_batch(ecommerce_data, batch_size=100)
     )
 
 
-def test_block_to_model(ecommerce_data: SyntheticData):
+def test_block_to_model(ecommerce_data: Dataset):
     embedding_options = ml.EmbeddingOptions(embedding_dim_default=32)
     model = ml.MLPBlock([64]).to_model(
         ecommerce_data.schema,
@@ -154,7 +154,7 @@ def test_block_to_model(ecommerce_data: SyntheticData):
 
     copy_model = testing_utils.assert_serialization(model)
     testing_utils.assert_loss_and_metrics_are_valid(
-        copy_model, ecommerce_data.tf_features_and_targets
+        copy_model, ml.sample_batch(ecommerce_data, batch_size=100)
     )
 
     assert all(
@@ -162,7 +162,7 @@ def test_block_to_model(ecommerce_data: SyntheticData):
     )
 
 
-def test_model_from_block(ecommerce_data: SyntheticData):
+def test_model_from_block(ecommerce_data: Dataset):
     model = ml.Model.from_block(
         ml.MLPBlock([64]),
         ecommerce_data.schema,
@@ -171,11 +171,11 @@ def test_model_from_block(ecommerce_data: SyntheticData):
 
     copy_model = testing_utils.assert_serialization(model)
     testing_utils.assert_loss_and_metrics_are_valid(
-        copy_model, ecommerce_data.tf_features_and_targets
+        copy_model, ml.sample_batch(ecommerce_data, batch_size=100)
     )
 
 
-def test_block_with_input_to_model(ecommerce_data: SyntheticData):
+def test_block_with_input_to_model(ecommerce_data: Dataset):
     inputs = ml.InputBlock(ecommerce_data.schema)
     block = inputs.connect(ml.MLPBlock([64]))
 
@@ -187,7 +187,7 @@ def test_block_with_input_to_model(ecommerce_data: SyntheticData):
     assert "The block already includes an InputBlock" in str(excinfo.value)
 
 
-def test_wrong_model(ecommerce_data: SyntheticData):
+def test_wrong_model(ecommerce_data: Dataset):
     with pytest.raises(ValueError) as excinfo:
         ml.Model(
             ml.InputBlock(ecommerce_data.schema),
@@ -197,7 +197,7 @@ def test_wrong_model(ecommerce_data: SyntheticData):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_block_context_model_fp16(ecommerce_data: SyntheticData, run_eagerly: bool, num_epochs=2):
+def test_block_context_model_fp16(ecommerce_data: Dataset, run_eagerly: bool, num_epochs=2):
     mixed_precision.set_global_policy("mixed_float16")
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),
@@ -206,6 +206,6 @@ def test_block_context_model_fp16(ecommerce_data: SyntheticData, run_eagerly: bo
     )
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     mixed_precision.set_global_policy("float32")
-    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=64), epochs=2)
+    losses = model.fit(ecommerce_data, batch_size=100, epochs=2)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])

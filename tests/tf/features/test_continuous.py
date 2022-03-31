@@ -17,7 +17,7 @@
 import pytest
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -29,16 +29,16 @@ def test_continuous_features(tf_con_features):
     assert list(con.keys()) == features
 
 
-def test_continuous_features_yoochoose(testing_data: SyntheticData):
-    schema = testing_data.schema.select_by_tag(Tags.CONTINUOUS)
+def test_continuous_features_yoochoose(testing_data: Dataset):
+    schema = testing_data.schema.select_by_tag([Tags.CONTINUOUS])
 
     inputs = ml.ContinuousFeatures.from_schema(schema)
-    outputs = inputs(testing_data.tf_tensor_dict)
+    outputs = inputs(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert sorted(list(outputs.keys())) == sorted(schema.column_names)
 
 
-def test_serialization_continuous_features(testing_data: SyntheticData):
+def test_serialization_continuous_features(testing_data: Dataset):
     inputs = ml.ContinuousFeatures.from_schema(testing_data.schema)
 
     copy_layer = testing_utils.assert_serialization(inputs)
@@ -47,10 +47,10 @@ def test_serialization_continuous_features(testing_data: SyntheticData):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_continuous_features_yoochoose_model(testing_data: SyntheticData, run_eagerly):
-    schema = testing_data.schema.select_by_tag(Tags.CONTINUOUS)
+def test_continuous_features_yoochoose_model(music_streaming_data: Dataset, run_eagerly):
+    schema = music_streaming_data.schema.select_by_tag(Tags.CONTINUOUS)
 
     inputs = ml.ContinuousFeatures.from_schema(schema, aggregation="concat")
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
-    testing_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)
+    testing_utils.assert_body_works_in_model(music_streaming_data, body, run_eagerly)

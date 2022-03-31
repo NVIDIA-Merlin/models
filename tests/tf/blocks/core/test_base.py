@@ -15,12 +15,12 @@
 #
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 
 
-def test_sequential_block_yoochoose(testing_data: SyntheticData):
+def test_sequential_block_yoochoose(testing_data: Dataset):
     body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
 
-    outputs = body(testing_data.tf_tensor_dict)
+    outputs = body(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert list(outputs.shape) == [100, 64]

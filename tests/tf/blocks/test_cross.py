@@ -16,7 +16,7 @@
 
 import pytest
 
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 
 tf = pytest.importorskip("tensorflow")
 ml = pytest.importorskip("merlin.models.tf")
@@ -66,18 +66,18 @@ def test_cross_0_layers():
     assert "Number of cross layers (depth) should be positive but is" in str(excinfo.value)
 
 
-def test_cross_with_inputs_to_be_concat(testing_data: SyntheticData):
+def test_cross_with_inputs_to_be_concat(testing_data: Dataset):
     inputs = ml.InputBlock(
         testing_data.schema,
         embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
     )
     cross = ml.CrossBlock(depth=1, inputs=inputs)
-    output = cross(testing_data.tf_tensor_dict)
+    output = cross(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert list(output.shape) == [100, 518]
 
 
-def test_dcn_v2_stacked(testing_data: SyntheticData):
+def test_dcn_v2_stacked(testing_data: Dataset):
 
     dcn_body = (
         ml.InputBlock(
@@ -89,12 +89,12 @@ def test_dcn_v2_stacked(testing_data: SyntheticData):
         .connect(ml.MLPBlock([512, 256]))
     )
 
-    output = dcn_body(testing_data.tf_tensor_dict)
+    output = dcn_body(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert list(output.shape) == [100, 256]
 
 
-def test_dcn_v2_stacked_low_rank(testing_data: SyntheticData):
+def test_dcn_v2_stacked_low_rank(testing_data: Dataset):
 
     dcn_body = (
         ml.InputBlock(
@@ -106,30 +106,31 @@ def test_dcn_v2_stacked_low_rank(testing_data: SyntheticData):
         .connect(ml.MLPBlock([512, 256]))
     )
 
-    output = dcn_body(testing_data.tf_tensor_dict)
+    output = dcn_body(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert list(output.shape) == [100, 256]
 
 
-def test_dcn_v2_parallel(testing_data: SyntheticData):
+def test_dcn_v2_parallel(testing_data: Dataset):
     input_layer = ml.InputBlock(
         testing_data.schema,
         embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
         aggregation="concat",
     )
 
-    concat_input_dim = input_layer(testing_data.tf_tensor_dict).shape[-1]
+    features = ml.sample_batch(testing_data, batch_size=100, include_targets=False)
+    concat_input_dim = input_layer(features).shape[-1]
     mlp_layers = [512, 256]
     dcn_body = input_layer.connect_branch(
         ml.CrossBlock(3), ml.MLPBlock(mlp_layers), aggregation="concat"
     )
 
-    output = dcn_body(testing_data.tf_tensor_dict)
+    output = dcn_body(features)
 
     assert list(output.shape) == [100, concat_input_dim + mlp_layers[-1]]
 
 
-def test_dcn_v2_train_eval(ecommerce_data: SyntheticData, num_epochs=5, run_eagerly=True):
+def test_dcn_v2_train_eval(ecommerce_data: Dataset, num_epochs=5, run_eagerly=True):
     dcn_body = (
         ml.InputBlock(
             ecommerce_data.schema,
@@ -142,14 +143,14 @@ def test_dcn_v2_train_eval(ecommerce_data: SyntheticData, num_epochs=5, run_eage
     model = dcn_body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=num_epochs)
-    metrics = model.evaluate(*ecommerce_data.tf_features_and_targets, return_dict=True)
+    losses = model.fit(ecommerce_data, epochs=num_epochs, batch_size=50)
+    metrics = model.evaluate(*ml.sample_batch(ecommerce_data, batch_size=100), return_dict=True)
     test_utils.assert_binary_classification_loss_metrics(
         losses, metrics, target_name="click", num_epochs=num_epochs
     )
 
 
-def test_dcn_v2_serialization(ecommerce_data: SyntheticData, run_eagerly=True):
+def test_dcn_v2_serialization(ecommerce_data: Dataset, run_eagerly=True):
     dcn_body = (
         ml.InputBlock(
             ecommerce_data.schema,
@@ -161,7 +162,9 @@ def test_dcn_v2_serialization(ecommerce_data: SyntheticData, run_eagerly=True):
     )
     model = dcn_body.connect(ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    model.fit(ecommerce_data.dataset, batch_size=50, epochs=1)
+    model.fit(ecommerce_data, batch_size=50, epochs=1)
 
     copy_model = test_utils.assert_serialization(model)
-    test_utils.assert_loss_and_metrics_are_valid(copy_model, ecommerce_data.tf_features_and_targets)
+    test_utils.assert_loss_and_metrics_are_valid(
+        copy_model, ml.sample_batch(ecommerce_data, batch_size=100)
+    )
