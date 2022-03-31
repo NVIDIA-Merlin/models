@@ -1,15 +1,13 @@
 # Merlin Models 
-
-[![stability-alpha](https://img.shields.io/badge/stability-alpha-f4d03f.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#alpha)
-
+[![PyPI version shields.io](https://img.shields.io/pypi/v/merlin-models.svg)](https://pypi.python.org/pypi/merlin-models/)
+![GitHub License](https://img.shields.io/github/license/NVIDIA-Merlin/models)
 [![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://nvidia-merlin.github.io/models/main/)
 
-The Merlin Models library provides standard models for recommender systems with an aim for high quality implementations
+The Merlin Models library provides standard models for recommender systems with an aim for high-quality implementations
 that range from classic machine learning models to highly-advanced deep learning models.
 
-The goal of this library is to make it easy for users in industry to train and deploy recommender models with the best
-practices that are already baked into the library. The library simplifies how users in industry can train standard models against their own
-dataset and put high-performance, GPU-accelerated models into production. The library also enables researchers to build custom
+The goal of this library is to make it easy for users in the industry to train and deploy recommender models with the best
+practices that are already baked into the library. The library simplifies how users in the industry can train standard models against their dataset and put high-performance, GPU-accelerated models into production. The library also enables researchers to build custom
 models by incorporating standard components of deep learning recommender models and then researchers can benchmark the new models on
 example offline
 datasets.
@@ -22,7 +20,7 @@ To learn about the core features of Merlin Models, see the [Models Overview](doc
 
 **[RecSys models zoo](https://nvidia-merlin.github.io/models/main/models_overview.html)** - We provide a high-level API for classic and state-of-the-art deep learning architectures for recommender models. That includes Retrieval (e.g. Matrix Factorization, Two tower, YouTube DNN, ..) and Ranking (e.g. DLRM, DCN-v2, DeepFM, ...) models.
 
-**Building blocks** - Merlin Models is build based on reusable building blocks. That makes it easy to combine those blocks to define new architectures. We have model definition building blocks (MLP layers, Factorization Layers, input blocks, negative samplers, loss functions), training models (data loaders from Parquet files) and evaluation (e.g. ranking metrics).
+**Building blocks** - Within Merlin Models, recommender models are built based on reusable building blocks, making it easy to combine those blocks to define new architectures. It provides model definition blocks (MLP layers, Factorization Layers, input blocks, negative samplers, loss functions), training models (data loaders from Parquet files) and evaluation (e.g. ranking metrics).
 
 **Integration with Merlin platform** - Merlin Models is deeply integrated with the other Merlin components, for example with NVTabular for pre-processing and Merlin Systems for inference, making it straightforward to build performant end-to-end recsys pipelines.
 
@@ -35,24 +33,17 @@ To learn about the core features of Merlin Models, see the [Models Overview](doc
 
 ### Installing Merlin Models with pip
 
-
+Merlin Models can be installed with `pip` by running the following command:
 ```shell
 pip install merlin-models
 ```
-%todo : clarify that gpu-based dependencies are not supported (like core datalaoder)
-%todo add merlin-models to pip index
+Note: Installing Merlin Models with `pip` will not install some additional GPU dependencies (like CUDA Toolkit). Prefer Docker where possible.
 
-### Installing Merlin Models with conda
-
-```shell
-conda install -c nvidia merlin-models
-```
-%todo: support conda installation?
 ### Docker Containers that include Merlin Models
 
-Merlin Models is pre-installed in the NVIDIA Merlin Docker containers that are available in the [NVIDIA container repository](https://ngc.nvidia.com/catalog/containers/nvidia:merlin) in three different containers:
+Merlin Models is pre-installed in the NVIDIA Merlin Docker containers that are available in the [NVIDIA container repository](https://ngc.nvidia.com/catalog/containers/nvidia:merlin). There are six different containers:
 
-%TODO: Do not include the list of components within each Container here (to avoid updating multiple places when needed), but rather keep them in a Merlin top-level readme.
+
 <!-- prettier-ignore-start -->
 
 | Container Name             | Container Location | Functionality |
@@ -68,8 +59,11 @@ To use these Docker containers, you'll first need to install the [NVIDIA Contain
 
 ### Installing project from Source
 
-%TODO: Add steps of cloning the repo + running pip install -e 
-
+Merlin Models can be installed from source by running the following commands: 
+```
+git clone https://github.com/NVIDIA-Merlin/models
+cd models && pip install -e .
+```
 <!-- Need core benefits, Common use cases, or Highlights -->
 
 ## Getting Started
