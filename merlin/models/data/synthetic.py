@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import difflib
 import logging
 import os
 import pathlib
@@ -44,7 +45,7 @@ KNOWN_DATASETS: Dict[str, Path] = {
 
 def generate_data(
     input: Union[Schema, Path, str],
-    num_rows: Optional[int] = None,
+    num_rows: int,
     min_session_length=5,
     max_session_length=None,
     device="cpu",
@@ -53,6 +54,9 @@ def generate_data(
     if isinstance(input, str):
         if input in KNOWN_DATASETS:
             input = KNOWN_DATASETS[input]
+        elif not os.path.exists(input):
+            closest_match = difflib.get_close_matches(input, KNOWN_DATASETS.keys(), n=1)
+            raise ValueError(f"Unknown dataset {input}, did you mean: {closest_match[0]}?")
 
         schema = get_schema(input)
     elif isinstance(input, Schema):

@@ -22,14 +22,14 @@ from merlin.schema import Tags
 
 
 def test_tabular_sequence_testing_data():
-    tabular_testing_data = generate_data("testing")
+    tabular_testing_data = generate_data("testing", 100)
     assert isinstance(tabular_testing_data, Dataset)
 
     assert len(tabular_testing_data.schema) == 11
 
 
 def test_tabular_music_data():
-    tabular_music_data = generate_data("music_streaming")
+    tabular_music_data = generate_data("music-streaming", 100)
     assert isinstance(tabular_music_data, Dataset)
 
 
