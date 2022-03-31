@@ -19,7 +19,7 @@ from merlin.schema import Tags
 
 
 def test_alternating_least_squares(music_streaming_data: Dataset):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
     model = AlternatingLeastSquares(factors=128, iterations=15, regularization=0.01)
     model.fit(music_streaming_data)
