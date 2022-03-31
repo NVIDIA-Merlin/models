@@ -10,24 +10,29 @@ from nvtabular import ops as nvt_ops
 
 import merlin.io
 from merlin.core.utils import download_file
+from merlin.models.data import BASE_PATH
 from merlin.schema import Tags
 
 
 def get_criteo(path=None, num_days=2):
     if path is None:
-        path = os.environ.get("INPUT_DATA_DIR", os.path.expanduser("~/merlin-models-data/criteo/"))
+        path = os.path.join(BASE_PATH, "criteo")
 
-    maybe_download(path, num_days)
+    raw_data_path = os.path.join(path, "orig")
+    maybe_download(raw_data_path, num_days)
 
     variant_path = os.path.join(path, f"{num_days}-days")
+    variant_path_fn = lambda x: os.path.join(variant_path, x)  # noqa
     if not os.path.exists(variant_path):
-        os.makedirs(variant_path)
-        raw_data_path = os.path.join(path, "raw")
-        prepare_criteo(path, raw_data_path, num_days)
-        transform_criteo(raw_data_path, variant_path)
+        os.makedirs(variant_path_fn("raw"))
+        prepare_criteo(raw_data_path, variant_path_fn("raw"), num_days)
+
+    if not (os.path.exists(variant_path_fn("train")) and os.path.exists(variant_path_fn("valid"))):
+        transform_criteo(variant_path_fn("raw"), variant_path)
 
     train = merlin.io.Dataset(os.path.join(variant_path, "train"), engine="parquet")
     valid = merlin.io.Dataset(os.path.join(variant_path, "valid"), engine="parquet")
+
     return train, valid
 
 
@@ -109,11 +114,14 @@ def transform_criteo(
     raw_data_path: Union[str, Path], output_path: Union[str, Path], num_buckets=10000000
 ):
     continuous = ["I" + str(x) for x in range(1, 14)]
-    categorical = ["C" + str(x) for x in range(1, 27)]
+    categorical = ["C" + str(x) for x in list(range(1, 21)) + list(range(22, 27))]
+    # It's a reasonable guess that C21 is the item-id col.
+    # This is only used to generate synthetic data
+    item_id = ["C21"] >> nvt_ops.AddMetadata(tags=[Tags.ITEM_ID])
     targets = ["label"] >> nvt_ops.AddMetadata(tags=["target", Tags.BINARY_CLASSIFICATION])
 
     categorify_op = nvt_ops.Categorify(max_size=num_buckets)
-    cat_features = categorical >> categorify_op
+    cat_features = categorical + item_id >> categorify_op
     cont_features = (
         continuous >> nvt_ops.FillMissing() >> nvt_ops.Clip(min_value=0) >> nvt_ops.Normalize()
     )

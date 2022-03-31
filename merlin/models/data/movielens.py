@@ -13,6 +13,7 @@ import merlin.io
 # Get dataframe library - cuDF or pandas
 from merlin.core.dispatch import get_lib
 from merlin.core.utils import download_file
+from merlin.models.data import BASE_PATH
 
 df_lib = get_lib()
 
@@ -43,9 +44,7 @@ def get_movielens(path=None, variant="ml-25m"):
         A tuple consisting of a merlin.io.Dataset for the training dataset and validation dataset
     """
     if path is None:
-        path = os.environ.get(
-            "INPUT_DATA_DIR", os.path.expanduser("~/merlin-models-data/movielens/")
-        )
+        path = os.path.join(BASE_PATH, "movielens")
 
     variant_path = os.path.join(path, variant)
     if not os.path.exists(variant_path):

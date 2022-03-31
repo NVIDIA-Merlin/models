@@ -53,6 +53,7 @@ class SyntheticData:
         "social": HERE / "social",
         "testing": HERE / "testing",
         "sequence_testing": HERE / "sequence_testing",
+        "criteo": HERE / "advertising/criteo/transformed",
     }
     FILE_NAME = "data.parquet"
 
@@ -60,7 +61,7 @@ class SyntheticData:
         self,
         data: Union[str, Path],
         device: str = "cpu",
-        schema_file_name="schema.json",
+        schema_file_name=None,
         num_rows=None,
         read_data_fn=_read_data,
     ):
@@ -69,8 +70,8 @@ class SyntheticData:
 
         self._dir = str(data)
         self.data_path = os.path.join(self._dir, self.FILE_NAME)
-        self.schema_path = os.path.join(self._dir, schema_file_name)
-        self._schema = self.read_schema(self.schema_path)
+        schema_path = os.path.join(self._dir, schema_file_name) if schema_file_name else self._dir
+        self._schema = self.read_schema(schema_path)
         self.device = device
         self._num_rows = num_rows
         self._read_data_fn = read_data_fn
@@ -84,6 +85,7 @@ class SyntheticData:
         num_rows=100,
         min_session_length=5,
         max_session_length=None,
+        save_data=True,
     ) -> "SyntheticData":
         if not output_dir:
             output_dir = tempfile.mkdtemp()
@@ -94,21 +96,27 @@ class SyntheticData:
             )
 
         output = cls(output_dir, device=device)
-        output.generate_interactions(num_rows, min_session_length, max_session_length)
+        output.generate_interactions(
+            num_rows, min_session_length, max_session_length, save=save_data
+        )
 
         return output
 
     @classmethod
     def read_schema(cls, path: Union[str, Path]) -> Schema:
         path = str(path)
-        _schema_path = os.path.join(path, "schema.json") if os.path.isdir(path) else path
+        if os.path.isdir(path):
+            if os.path.exists(os.path.join(path, "schema.json")):
+                path = os.path.join(path, "schema.json")
+            else:
+                path = os.path.join(path, "schema.pbtxt")
 
-        if _schema_path.endswith(".pb") or _schema_path.endswith(".pbtxt"):
+        if path.endswith(".pb") or path.endswith(".pbtxt"):
             return TensorflowMetadata.from_proto_text_file(
-                os.path.dirname(_schema_path), os.path.basename(_schema_path)
+                os.path.dirname(path), os.path.basename(path)
             ).to_merlin_schema()
 
-        return schema_utils.tensorflow_metadata_json_to_schema(_schema_path)
+        return schema_utils.tensorflow_metadata_json_to_schema(path)
 
     @property
     def schema(self) -> Schema:
@@ -123,7 +131,7 @@ class SyntheticData:
         return merlin.io.Dataset(self.dataframe, schema=self.schema)
 
     def generate_interactions(
-        self, num_rows=100, min_session_length=5, max_session_length=None, save=True
+        self, num_rows=100, min_session_length=5, max_session_length=None, save=False
     ):
         data = generate_user_item_interactions(
             self.schema, num_rows, min_session_length, max_session_length, self.device
@@ -131,57 +139,57 @@ class SyntheticData:
         if save:
             data.to_parquet(os.path.join(self._dir, self.FILE_NAME))
 
-        return data
+        return merlin.io.Dataset(data)
 
-    @property
-    def tf_tensor_dict(self):
-        import tensorflow as tf
-
-        data = self.dataframe.to_dict("list")
-
-        return {key: tf.convert_to_tensor(value) for key, value in data.items()}
-
-    @property
-    def tf_features_and_targets(self):
-        return self._pull_out_targets(self.tf_tensor_dict)
-
-    @property
-    def torch_tensor_dict(self):
-        import torch
-
-        data = self.dataframe.to_dict("list")
-
-        return {key: torch.tensor(value).to(self.device) for key, value in data.items()}
-
-    @property
-    def torch_features_and_targets(self):
-        return self._pull_out_targets(self.torch_tensor_dict)
-
-    def tf_dataloader(self, batch_size=50):
-        # TODO: return tf NVTabular loader
-
-        import tensorflow as tf
-
-        data = self.dataframe.to_dict("list")
-        tensors = {key: tf.convert_to_tensor(value) for key, value in data.items()}
-        dataset = tf.data.Dataset.from_tensor_slices(self._pull_out_targets(tensors)).batch(
-            batch_size=batch_size
-        )
-
-        return dataset
-
-    def torch_dataloader(self, batch_size=50):
-        """return torch NVTabular loader"""
-        raise NotImplementedError()
-
-    def _pull_out_targets(self, inputs):
-        target_names = self.schema.select_by_tag(Tags.TARGET).column_names
-        targets = {}
-
-        for target_name in target_names:
-            targets[target_name] = inputs.pop(target_name, None)
-
-        return inputs, targets
+    # @property
+    # def tf_tensor_dict(self):
+    #     import tensorflow as tf
+    #
+    #     data = self.dataframe.to_dict("list")
+    #
+    #     return {key: tf.convert_to_tensor(value) for key, value in data.items()}
+    #
+    # @property
+    # def tf_features_and_targets(self):
+    #     return self._pull_out_targets(self.tf_tensor_dict)
+    #
+    # @property
+    # def torch_tensor_dict(self):
+    #     import torch
+    #
+    #     data = self.dataframe.to_dict("list")
+    #
+    #     return {key: torch.tensor(value).to(self.device) for key, value in data.items()}
+    #
+    # @property
+    # def torch_features_and_targets(self):
+    #     return self._pull_out_targets(self.torch_tensor_dict)
+    #
+    # def tf_dataloader(self, batch_size=50):
+    #     # TODO: return tf NVTabular loader
+    #
+    #     import tensorflow as tf
+    #
+    #     data = self.dataframe.to_dict("list")
+    #     tensors = {key: tf.convert_to_tensor(value) for key, value in data.items()}
+    #     dataset = tf.data.Dataset.from_tensor_slices(self._pull_out_targets(tensors)).batch(
+    #         batch_size=batch_size
+    #     )
+    #
+    #     return dataset
+    #
+    # def torch_dataloader(self, batch_size=50):
+    #     """return torch NVTabular loader"""
+    #     raise NotImplementedError()
+    #
+    # def _pull_out_targets(self, inputs):
+    #     target_names = self.schema.select_by_tag(Tags.TARGET).column_names
+    #     targets = {}
+    #
+    #     for target_name in target_names:
+    #         targets[target_name] = inputs.pop(target_name, None)
+    #
+    #     return inputs, targets
 
 
 def generate_user_item_interactions(
@@ -272,7 +280,10 @@ def generate_user_item_interactions(
         processed_cols += [f.name for f in features] + [user_id_col.name]
 
     # get ITEM cols
-    item_id_col = list(schema.select_by_tag(Tags.ITEM_ID))[0]
+    item_schema = schema.select_by_tag(Tags.ITEM_ID)
+    if not len(item_schema) > 0:
+        raise ValueError("Item ID column is required")
+    item_id_col = item_schema.first
 
     is_list_feature = item_id_col.is_list
     if not is_list_feature:

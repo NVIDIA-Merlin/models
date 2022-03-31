@@ -1,6 +1,6 @@
-import merlin.models.tf as ml
+from merlin.models.data.synthetic import SyntheticData
 
 if __name__ == "__main__":
-    for path in ml.SyntheticData.DATASETS.values():
-        schema = ml.SyntheticData.read_schema(path)
-        ml.SyntheticData.from_schema(schema, output_dir=path, num_rows=1000)
+    for key in SyntheticData.DATASETS.keys():
+        dataset = SyntheticData(key)
+        dataset.generate_interactions(num_rows=1000, save=True)

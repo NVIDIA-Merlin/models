@@ -6,13 +6,45 @@ from pathlib import Path
 from typing import List, Optional, Union
 
 import numpy as np
+from nvtabular import ops as nvt_ops
 from tqdm import tqdm
 
 from merlin.core.dispatch import get_lib
+
+# from merlin.models.utils.e
 from merlin.schema import Tags
 
 
-def convert_alliccp(
+def transform_aliccp():
+    user_id = ["user_id"] >> nvt_ops.Categorify(freq_threshold=5) >> nvt_ops.TagAsUserID()
+    item_id = ["item_id"] >> nvt_ops.Categorify(freq_threshold=5) >> nvt_ops.TagAsItemID()
+    targets = ["click"] >> nvt_ops.AddMetadata(tags=[str(Tags.BINARY_CLASSIFICATION), "target"])
+
+    add_feat = [
+        "user_item_categories",
+        "user_item_shops",
+        "user_item_brands",
+        "user_item_intentions",
+        "item_category",
+        "item_shop",
+        "item_brand",
+    ] >> nvt_ops.Categorify()
+
+    te_feat = (
+        ["user_id", "item_id"] + add_feat
+        >> nvt_ops.TargetEncoding(["click"], kfold=1, p_smooth=20)
+        >> nvt_ops.Normalize()
+    )
+
+    outputs = user_id + item_id + targets + add_feat + te_feat
+
+    # Remove rows where item_id==0 and user_id==0
+    outputs = outputs >> nvt_ops.Filter(f=lambda df: (df["item_id"] != 0) & (df["user_id"] != 0))
+
+    # workflow_fit_transform()
+
+
+def prepare_alliccp(
     data_dir: Union[str, Path],
     convert_train: bool = True,
     convert_test: bool = True,
@@ -29,7 +61,7 @@ def convert_alliccp(
 
     Parameters
     ----------
-    data_dir:
+    data_dir: Union[str, Path]
         Directory to load the raw data from.
     convert_train: bool
         Whether to convert the training data.
@@ -42,6 +74,9 @@ def convert_alliccp(
     pickle_common_features: bool
         Whether to pickle the common features.
         When enabled it will make the conversion faster if it would be run again.
+    output_dir: Union[str, Path], optional
+        Directory to write the converted data to.
+        If not specified the data will be written to the same directory as the raw data.
 
     Returns
     -------
@@ -179,6 +214,7 @@ def _convert_common_features(common_path, pickle_path=None):
     return common
 
 
+# TODO: Optimize this function, right now it's too slow.
 def _convert_data(
     data_dir,
     file_size,
