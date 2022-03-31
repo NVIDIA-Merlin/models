@@ -2,46 +2,34 @@ import os
 import pickle
 import re
 from dataclasses import dataclass
+from glob import glob
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from nvtabular import ops as nvt_ops
 from tqdm import tqdm
 
+import merlin.io
 from merlin.core.dispatch import get_lib
-
-# from merlin.models.utils.e
+from merlin.models.utils.example_utils import workflow_fit_transform
 from merlin.schema import Tags
 
 
-def transform_aliccp():
-    user_id = ["user_id"] >> nvt_ops.Categorify(freq_threshold=5) >> nvt_ops.TagAsUserID()
-    item_id = ["item_id"] >> nvt_ops.Categorify(freq_threshold=5) >> nvt_ops.TagAsItemID()
-    targets = ["click"] >> nvt_ops.AddMetadata(tags=[str(Tags.BINARY_CLASSIFICATION), "target"])
+def get_aliccp(path, **kwargs) -> Tuple[merlin.io.Dataset, merlin.io.Dataset]:
+    path_fn = lambda x: os.path.join(path, x)  # noqa
+    if not os.path.exists(path_fn("raw")):
+        os.makedirs(path_fn("raw"))
+        prepare_alliccp(path, output_dir=path_fn("raw"), **kwargs)
 
-    add_feat = [
-        "user_item_categories",
-        "user_item_shops",
-        "user_item_brands",
-        "user_item_intentions",
-        "item_category",
-        "item_shop",
-        "item_brand",
-    ] >> nvt_ops.Categorify()
+    t_path_fn = lambda x: os.path.join(path_fn("transformed"), x)  # noqa
+    if not (os.path.exists(t_path_fn("train")) and os.path.exists(t_path_fn("valid"))):
+        transform_aliccp(path_fn("raw"), path_fn("transformed"))
 
-    te_feat = (
-        ["user_id", "item_id"] + add_feat
-        >> nvt_ops.TargetEncoding(["click"], kfold=1, p_smooth=20)
-        >> nvt_ops.Normalize()
-    )
+    train = merlin.io.Dataset(t_path_fn("train"), engine="parquet")
+    valid = merlin.io.Dataset(t_path_fn("valid"), engine="parquet")
 
-    outputs = user_id + item_id + targets + add_feat + te_feat
-
-    # Remove rows where item_id==0 and user_id==0
-    outputs = outputs >> nvt_ops.Filter(f=lambda df: (df["item_id"] != 0) & (df["user_id"] != 0))
-
-    # workflow_fit_transform()
+    return train, valid
 
 
 def prepare_alliccp(
@@ -103,6 +91,40 @@ def prepare_alliccp(
         )
 
     return data_dir
+
+
+def transform_aliccp(raw_data_path: Union[str, Path], output_path: Union[str, Path]):
+    user_id = ["user_id"] >> nvt_ops.Categorify(freq_threshold=5) >> nvt_ops.TagAsUserID()
+    item_id = ["item_id"] >> nvt_ops.Categorify(freq_threshold=5) >> nvt_ops.TagAsItemID()
+    targets = ["click"] >> nvt_ops.AddMetadata(tags=[str(Tags.BINARY_CLASSIFICATION), "target"])
+
+    add_feat = [
+        "user_item_categories",
+        "user_item_shops",
+        "user_item_brands",
+        "user_item_intentions",
+        "item_category",
+        "item_shop",
+        "item_brand",
+    ] >> nvt_ops.Categorify()
+
+    te_feat = (
+        ["user_id", "item_id"] + add_feat
+        >> nvt_ops.TargetEncoding(["click"], kfold=1, p_smooth=20)
+        >> nvt_ops.Normalize()
+    )
+
+    outputs = user_id + item_id + targets + add_feat + te_feat
+
+    # Remove rows where item_id==0 and user_id==0
+    outputs = outputs >> nvt_ops.Filter(f=lambda df: (df["item_id"] != 0) & (df["user_id"] != 0))
+
+    workflow_fit_transform(
+        outputs,
+        glob(os.path.join(raw_data_path, "train", "train_*")),
+        glob(os.path.join(raw_data_path, "test", "test_*")),
+        str(output_path),
+    )
 
 
 @dataclass
@@ -282,3 +304,28 @@ def _convert_data(
                     overwrite=True,
                 )
                 current = []
+
+
+def _raw_transform(raw_data_path: Union[str, Path], output_path: Union[str, Path]):
+    user_id = ["user_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsUserID()
+    item_id = ["item_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsItemID()
+    targets = ["click"] >> nvt_ops.AddMetadata(tags=[str(Tags.BINARY_CLASSIFICATION), "target"])
+
+    add_feat = [
+        "user_item_categories",
+        "user_item_shops",
+        "user_item_brands",
+        "user_item_intentions",
+        "item_category",
+        "item_shop",
+        "item_brand",
+    ] >> nvt_ops.Categorify()
+
+    outputs = user_id + item_id + targets + add_feat
+
+    workflow_fit_transform(
+        outputs,
+        glob(os.path.join(raw_data_path, "train", "train_*")),
+        glob(os.path.join(raw_data_path, "test", "test_*")),
+        str(output_path),
+    )
