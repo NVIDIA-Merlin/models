@@ -114,4 +114,4 @@ def test_bpr_multiple_positive():
 
     with pytest.raises(Exception) as excinfo:
         _ = bpr(targets, predictions)
-    assert "Only one positive label is allowed per example" in str(excinfo.value)
+    assert "The batch contains more examples with more than one positive item" in str(excinfo.value)
