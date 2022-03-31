@@ -32,7 +32,8 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eagerly):
+@pytest.mark.parametrize("loss", ["categorical_crossentropy", "bpr", "binary_crossentropy"])
+def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eagerly, loss):
     ecommerce_data._schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
     metrics = [RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)]
@@ -41,7 +42,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
         query_tower=mm.MLPBlock([128, 64]),
         samplers=[mm.InBatchSampler()],
         metrics=metrics,
-        loss="categorical_crossentropy",
+        loss=loss,
     )
     # Setting up evaluation
     model.set_retrieval_candidates_for_evaluation(ecommerce_data)
