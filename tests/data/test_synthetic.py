@@ -15,10 +15,11 @@
 #
 import pytest
 
-from merlin.models.data.synthetic import SyntheticData, generate_user_item_interactions
+from merlin.io import Dataset
+from merlin.models.data.synthetic import generate_user_item_interactions
 
 
-def test_generate_item_interactions_cpu(testing_data: SyntheticData):
+def test_generate_item_interactions_cpu(testing_data: Dataset):
     pd = pytest.importorskip("pandas")
     data = generate_user_item_interactions(
         testing_data.schema.without("event_timestamp"), num_interactions=500
@@ -56,7 +57,7 @@ def test_generate_item_interactions_cpu(testing_data: SyntheticData):
     )
 
 
-def test_generate_item_interactions_gpu(testing_data: SyntheticData):
+def test_generate_item_interactions_gpu(testing_data: Dataset):
     cudf = pytest.importorskip("cudf")
     data = generate_user_item_interactions(testing_data.schema, num_interactions=500, device="cuda")
 
