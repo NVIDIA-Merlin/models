@@ -30,7 +30,7 @@ MAX_CARDINALITY = 100
 
 @pytest.fixture
 def tabular_schema():
-    return generate_data("testing").schema
+    return generate_data("testing", 10).schema
 
 
 @pytest.fixture
