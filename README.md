@@ -18,7 +18,7 @@ In our initial releases, Merlin Models features a TensorFlow API. The PyTorch AP
 
 To learn about the core features of Merlin Models, see the [Models Overview](docs/source/models_overview.md) page.
 
-**[RecSys models provided](https://nvidia-merlin.github.io/models/main/models_overview.html)**  - We provide a high-level API for classic and state-of-the-art deep learning architectures for recommender models including both Retrieval (e.g. Matrix Factorization, Two tower, YouTube DNN, ..) and Ranking (e.g. DLRM, DCN-v2, DeepFM, ...) models.
+**[RecSys models provided](https://nvidia-merlin.github.io/models/main/models_overview.html)** - We provide a high-level API for classic and state-of-the-art deep learning architectures for recommender models including both Retrieval (e.g. Matrix Factorization, Two tower, YouTube DNN, ..) and Ranking (e.g. DLRM, DCN-v2, DeepFM, ...) models.
 
 **Building blocks** - Within Merlin Models, recommender models are built based on reusable building blocks, making it easy to combine those blocks to define new architectures. It provides model definition blocks (MLP layers, Factorization Layers, input blocks, negative samplers, loss functions), training models (data loaders from Parquet files) and evaluation (e.g. ranking metrics).
 
