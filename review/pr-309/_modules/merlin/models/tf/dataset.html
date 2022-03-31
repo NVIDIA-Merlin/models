@@ -90,6 +90,7 @@
 <span class="kn">from</span> <span class="nn">packaging</span> <span class="kn">import</span> <span class="n">version</span>
 
 <span class="kn">from</span> <span class="nn">merlin.core.dispatch</span> <span class="kn">import</span> <span class="n">HAS_GPU</span>
+<span class="kn">from</span> <span class="nn">merlin.io</span> <span class="kn">import</span> <span class="n">Dataset</span>
 <span class="kn">from</span> <span class="nn">merlin.models.loader.backend</span> <span class="kn">import</span> <span class="n">DataLoader</span>
 <span class="kn">from</span> <span class="nn">merlin.models.loader.tf_utils</span> <span class="kn">import</span> <span class="n">get_dataset_schema_from_feature_columns</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils.schema_utils</span> <span class="kn">import</span> <span class="n">select_targets</span>
@@ -107,13 +108,6 @@
 <span class="k">else</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">tensorflow.experimental.dlpack</span> <span class="kn">import</span> <span class="n">from_dlpack</span>
 
-<span class="c1"># noqa</span>
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">merlin.io</span> <span class="kn">import</span> <span class="n">Dataset</span> <span class="k">as</span> <span class="n">_Dataset</span>
-
-    <span class="n">merlin_dataset_class</span> <span class="o">=</span> <span class="n">_Dataset</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="n">merlin_dataset_class</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="c1"># pylint has issues with TF array ops, so disable checks until fixed:</span>
 <span class="c1"># https://github.com/PyCQA/pylint/issues/3613</span>
 <span class="c1"># pylint: disable=no-value-for-parameter,unexpected-keyword-arg,redundant-keyword-arg</span>
@@ -156,14 +150,7 @@
 
     <span class="n">cpu</span> <span class="o">=</span> <span class="n">device</span> <span class="ow">and</span> <span class="s2">&quot;cpu&quot;</span> <span class="ow">in</span> <span class="n">device</span>
 
-    <span class="k">if</span> <span class="n">merlin_dataset_class</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">merlin_dataset_class</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">cpu</span><span class="o">=</span><span class="n">cpu</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">LOG</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s2">&quot;Merlin Dataset class not detected, reverting to Dask Dataframe.&quot;</span>
-            <span class="s2">&quot;Expect slower iteration speeds.&quot;</span>
-        <span class="p">)</span>
-    <span class="k">return</span> <span class="n">dd_engine</span><span class="p">[</span><span class="n">engine</span><span class="p">](</span><span class="n">files</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">,</span> <span class="n">cpu</span><span class="o">=</span><span class="n">cpu</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_validate_schema</span><span class="p">(</span><span class="n">feature_columns</span><span class="p">,</span> <span class="n">cat_names</span><span class="p">,</span> <span class="n">cont_names</span><span class="p">,</span> <span class="n">label_names</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -571,27 +558,40 @@
         <span class="k">return</span> <span class="n">logs</span>
 
 
-<span class="k">if</span> <span class="n">merlin_dataset_class</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">sample_batch</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">include_targets</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">to_dense</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Util function to generate a batch of input tensors from a merlin.io.Dataset instance</span>
 
-    <span class="k">def</span> <span class="nf">sample_batch</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">merlin_dataset_class</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Util function to generate a batch of input tensors from a merlin.io.dataset instance</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data: merlin.io.dataset</span>
+<span class="sd">        A Dataset object.</span>
+<span class="sd">    batch_size: int</span>
+<span class="sd">        Number of samples to return.</span>
+<span class="sd">    shuffle: bool</span>
+<span class="sd">        Whether to sample a random batch or not, by default False.</span>
+<span class="sd">    include_targets: bool</span>
+<span class="sd">        Whether to include the targets in the returned batch, by default True.</span>
+<span class="sd">    to_dense: bool</span>
+<span class="sd">        Whether to convert the tuple of sparse tensors into dense tensors, by default False.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">    -------</span>
+<span class="sd">    batch: Dict[tf.tensor]</span>
+<span class="sd">        dictionary of input tensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        data: merlin.io.dataset</span>
-<span class="sd">            A Dataset object.</span>
-<span class="sd">        batch_size: int</span>
-<span class="sd">            Number of samples to return.</span>
-<span class="sd">        shuffle: bool</span>
-<span class="sd">            Whether to sample a random batch or not, by default False.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">        -------</span>
-<span class="sd">        batch: Dict[tf.tensor]</span>
-<span class="sd">            dictionary of input tensors.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">batch</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">BatchedDataset</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">)))[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">batch</span>
+    <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">BatchedDataset</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">to_dense</span><span class="p">:</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">AsDenseFeatures</span><span class="p">()(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">include_targets</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inputs</span>
+    <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span>
 </pre></div>
 
            </div>
