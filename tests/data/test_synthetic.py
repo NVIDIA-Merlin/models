@@ -16,7 +16,63 @@
 import pytest
 
 from merlin.io import Dataset
-from merlin.models.data.synthetic import generate_user_item_interactions
+from merlin.models.data.synthetic import generate_data, generate_user_item_interactions
+from merlin.models.utils.schema_utils import filter_dict_by_schema
+from merlin.schema import Tags
+
+
+def test_synthetic_sequence_testing_data():
+    dataset = generate_data("testing", 100)
+
+    assert isinstance(dataset, Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 11
+
+
+def test_synthetic_music_data():
+    dataset = generate_data("music-streaming", 100)
+
+    assert isinstance(dataset, Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 13
+
+
+def test_synthetic_criteo_data():
+    dataset = generate_data("criteo", 100)
+
+    assert isinstance(dataset, Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 40
+
+
+def test_synthetic_aliccp_data():
+    dataset = generate_data("aliccp", 100)
+
+    assert isinstance(dataset, Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 19
+
+
+def test_synthetic_aliccp_raw_data():
+    dataset = generate_data("aliccp-raw", 100)
+
+    assert isinstance(dataset, Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 10
+
+
+def test_tf_tensors_generation_cpu():
+    tf = pytest.importorskip("tensorflow")
+    data = generate_data("testing", num_rows=100, min_session_length=5, max_session_length=50)
+    schema = data.schema
+
+    from merlin.models.tf import sample_batch
+
+    tensors = sample_batch(data, batch_size=100, include_targets=False)
+    assert tensors["user_id"].shape == (100, 1)
+    assert tensors["user_age"].dtype == tf.float64
+    for name, val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).items():
+        assert len(val) == 2
 
 
 def test_generate_item_interactions_cpu(testing_data: Dataset):

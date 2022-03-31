@@ -38,8 +38,8 @@ KNOWN_DATASETS: Dict[str, Path] = {
     "testing": HERE / "testing",
     "sequence-testing": HERE / "sequence_testing",
     "criteo": HERE / "advertising/criteo/transformed",
-    "aliccp": HERE / "advertising/aliccp/transformed",
-    "aliccp-raw": HERE / "advertising/aliccp/raw",
+    "aliccp": HERE / "ecommerce/aliccp/transformed",
+    "aliccp-raw": HERE / "ecommerce/aliccp/raw",
 }
 
 

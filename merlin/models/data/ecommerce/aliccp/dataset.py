@@ -93,31 +93,48 @@ def prepare_alliccp(
     return data_dir
 
 
-def transform_aliccp(raw_data_path: Union[str, Path], output_path: Union[str, Path]):
-    user_id = ["user_id"] >> nvt_ops.Categorify(freq_threshold=5) >> nvt_ops.TagAsUserID()
-    item_id = ["item_id"] >> nvt_ops.Categorify(freq_threshold=5) >> nvt_ops.TagAsItemID()
-    targets = ["click"] >> nvt_ops.AddMetadata(tags=[str(Tags.BINARY_CLASSIFICATION), "target"])
+def transform_aliccp(
+    raw_data_path: Union[str, Path], output_path: Union[str, Path], add_target_encoding=True
+):
+    user_id = ["user_id"] >> nvt_ops.Categorify(dtype="int32") >> nvt_ops.TagAsUserID()
+    item_id = ["item_id"] >> nvt_ops.Categorify(dtype="int32") >> nvt_ops.TagAsItemID()
 
-    add_feat = [
-        "user_item_categories",
-        "user_item_shops",
-        "user_item_brands",
-        "user_item_intentions",
-        "item_category",
-        "item_shop",
-        "item_brand",
-    ] >> nvt_ops.Categorify()
-
-    te_feat = (
-        ["user_id", "item_id"] + add_feat
-        >> nvt_ops.TargetEncoding(["click"], kfold=1, p_smooth=20)
-        >> nvt_ops.Normalize()
+    item_features = (
+        ["item_category", "item_shop", "item_brand"]
+        >> nvt_ops.Categorify(dtype="int32")
+        >> nvt_ops.TagAsItemFeatures()
     )
 
-    outputs = user_id + item_id + targets + add_feat + te_feat
+    user_features = (
+        [
+            "user_shops",
+            "user_profile",
+            "user_group",
+            "user_gender",
+            "user_age",
+            "user_consumption_2",
+            "user_is_occupied",
+            "user_geography",
+            "user_intentions",
+            "user_brands",
+            "user_categories",
+        ]
+        >> nvt_ops.Categorify(dtype="int32")
+        >> nvt_ops.TagAsUserFeatures()
+    )
 
-    # Remove rows where item_id==0 and user_id==0
-    outputs = outputs >> nvt_ops.Filter(f=lambda df: (df["item_id"] != 0) & (df["user_id"] != 0))
+    targets = ["click", "conversion"] >> nvt_ops.AddMetadata(
+        tags=[str(Tags.BINARY_CLASSIFICATION), "target"]
+    )
+    outputs = user_id + item_id + item_features + user_features + targets
+
+    if add_target_encoding:
+        continuous = (
+            ["user_id", "item_id"]
+            >> nvt_ops.TargetEncoding(["click"], kfold=1, p_smooth=20)
+            >> nvt_ops.Normalize()
+        )
+        outputs += continuous
 
     workflow_fit_transform(
         outputs,

@@ -4,16 +4,17 @@ import nvtabular as nvt
 
 def workflow_fit_transform(outputs, train_path, valid_path, output_path, workflow_name=None):
     """fits and transforms datasets applying NVT workflow"""
-    workflow = nvt.Workflow(outputs)
+    if not isinstance(outputs, nvt.Workflow):
+        workflow = nvt.Workflow(outputs)
+    else:
+        workflow = outputs
 
     train_dataset = nvt.Dataset(train_path)
     valid_dataset = nvt.Dataset(valid_path)
 
     workflow.fit(train_dataset)
-
-    workflow.transform(train_dataset).to_parquet(output_path=output_path + "/train/")
-
-    workflow.transform(valid_dataset).to_parquet(output_path=output_path + "/valid/")
+    workflow.transform(train_dataset).to_parquet(output_path + "/train/")
+    workflow.transform(valid_dataset).to_parquet(output_path + "/valid/")
 
     if workflow_name is None:
         workflow_name = "workflow"
