@@ -434,7 +434,7 @@ output_path = os.path.join(DATA_FOLDER, &#39;processed/&#39;)
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
 user_id = [&quot;user_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsUserID()
 item_id = [&quot;item_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemID()
-targets = [&quot;click&quot;] &gt;&gt; AddMetadata(tags=[str(Tags.BINARY_CLASSIFICATION), &quot;target&quot;])
+targets = [&quot;click&quot;] &gt;&gt; AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, &quot;target&quot;])
 
 item_features = [&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemFeatures()
 
