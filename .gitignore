@@ -65,6 +65,8 @@ cover/
 docs/_build/
 docs/source/_build/
 docs/source/generated
+docs/source/README.md
+docs/source/examples
 
 # PyBuilder
 .pybuilder/
