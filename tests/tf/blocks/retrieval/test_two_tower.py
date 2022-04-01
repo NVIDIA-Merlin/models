@@ -20,22 +20,22 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
-def test_matrix_factorization_block(music_streaming_data: SyntheticData):
+def test_matrix_factorization_block(music_streaming_data: Dataset):
     mf = ml.QueryItemIdsEmbeddingsBlock(music_streaming_data.schema, dim=128)
 
-    outputs = mf(music_streaming_data.tf_tensor_dict)
+    outputs = mf(ml.sample_batch(music_streaming_data, batch_size=100, include_targets=False))
 
     assert "query" in outputs
     assert "item" in outputs
 
 
-def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticData, tmp_path):
+def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tmp_path):
     import pandas as pd
 
     from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
@@ -47,7 +47,7 @@ def test_matrix_factorization_embedding_export(music_streaming_data: SyntheticDa
     model = mf.connect(ml.BinaryClassificationTask("like"))
     model.compile(optimizer="adam")
 
-    model.fit(music_streaming_data.dataset, batch_size=50, epochs=5)
+    model.fit(music_streaming_data, batch_size=50, epochs=5)
 
     item_embedding_parquet = str(tmp_path / "items.parquet")
     mf.export_embedding_table(Tags.ITEM_ID, item_embedding_parquet, gpu=False)
@@ -80,9 +80,9 @@ def test_elementwisemultiply():
     assert x.numpy().shape == (5, 10)
 
 
-def test_two_tower_block(testing_data: SyntheticData):
+def test_two_tower_block(testing_data: Dataset):
     two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
-    outputs = two_tower(testing_data.tf_tensor_dict)
+    outputs = two_tower(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert len(outputs) == 2
     for key in ["item", "query"]:
@@ -95,9 +95,9 @@ def test_two_tower_block(testing_data: SyntheticData):
         )
 
 
-def test_two_tower_block_tower_save(testing_data: SyntheticData, tmp_path):
+def test_two_tower_block_tower_save(testing_data: Dataset, tmp_path):
     two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
-    two_tower(testing_data.tf_tensor_dict)
+    two_tower(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     query_tower = two_tower.query_block()
     query_tower.save(str(tmp_path / "query_tower"))
@@ -118,11 +118,11 @@ def test_two_tower_block_tower_save(testing_data: SyntheticData, tmp_path):
     )
 
 
-def test_two_tower_block_serialization(testing_data: SyntheticData):
+def test_two_tower_block_serialization(testing_data: Dataset):
     two_tower = ml.TwoTowerBlock(testing_data.schema, query_tower=ml.MLPBlock([64, 128]))
     copy_two_tower = testing_utils.assert_serialization(two_tower)
 
-    outputs = copy_two_tower(testing_data.tf_tensor_dict)
+    outputs = copy_two_tower(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert len(outputs) == 2
     for key in ["item", "query"]:
@@ -144,14 +144,14 @@ def test_two_tower_block_serialization(testing_data: SyntheticData):
 #     assert list(outputs.shape) == [100, 1]
 
 
-def test_two_tower_block_no_item_features(testing_data: SyntheticData):
+def test_two_tower_block_no_item_features(testing_data: Dataset):
     with pytest.raises(ValueError) as excinfo:
         schema = testing_data.schema.remove_by_tag(Tags.ITEM)
         ml.TwoTowerBlock(schema, query_tower=ml.MLPBlock([64]))
         assert "The schema should contain features with the tag `item`" in str(excinfo.value)
 
 
-def test_two_tower_block_no_user_features(testing_data: SyntheticData):
+def test_two_tower_block_no_user_features(testing_data: Dataset):
     with pytest.raises(ValueError) as excinfo:
         schema = testing_data.schema.remove_by_tag(Tags.USER)
         ml.TwoTowerBlock(schema, query_tower=ml.MLPBlock([64]))
@@ -164,7 +164,7 @@ def test_two_tower_block_no_schema():
     assert "The schema is required by TwoTower" in str(excinfo.value)
 
 
-def test_two_tower_block_no_bottom_block(testing_data: SyntheticData):
+def test_two_tower_block_no_bottom_block(testing_data: Dataset):
     with pytest.raises(ValueError) as excinfo:
         ml.TwoTowerBlock(schema=testing_data.schema, query_tower=None)
     assert "The query_tower is required by TwoTower" in str(excinfo.value)

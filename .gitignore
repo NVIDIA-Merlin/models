@@ -100,3 +100,5 @@ ipython_config.py
 dmypy.json
 
 
+# Experiment files
+_*.py

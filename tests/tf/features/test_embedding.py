@@ -18,7 +18,7 @@ import pytest
 from tensorflow.python.ops import init_ops_v2
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -35,11 +35,11 @@ def test_embedding_features(tf_cat_features):
     assert all([emb.shape[-1] == dim for emb in embeddings.values()])
 
 
-def test_embedding_features_yoochoose(testing_data: SyntheticData):
+def test_embedding_features_yoochoose(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(schema)
-    embeddings = emb_module(testing_data.tf_tensor_dict)
+    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
     assert all(emb.shape[-1] == 64 for emb in embeddings.values())
@@ -47,7 +47,7 @@ def test_embedding_features_yoochoose(testing_data: SyntheticData):
     assert emb_module.embedding_tables["item_id"].shape[0] == max_value + 1
 
 
-def test_serialization_embedding_features(testing_data: SyntheticData):
+def test_serialization_embedding_features(testing_data: Dataset):
     inputs = ml.EmbeddingFeatures.from_schema(testing_data.schema)
 
     copy_layer = testing_utils.assert_serialization(inputs)
@@ -63,16 +63,16 @@ def test_serialization_embedding_features(testing_data: SyntheticData):
 
 
 @testing_utils.mark_run_eagerly_modes
-def test_embedding_features_yoochoose_model(testing_data: SyntheticData, run_eagerly):
-    schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+def test_embedding_features_yoochoose_model(music_streaming_data: Dataset, run_eagerly):
+    schema = music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     inputs = ml.EmbeddingFeatures.from_schema(schema, aggregation="concat")
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
 
-    testing_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)
+    testing_utils.assert_body_works_in_model(music_streaming_data, body, run_eagerly)
 
 
-def test_embedding_features_yoochoose_custom_dims(testing_data: SyntheticData):
+def test_embedding_features_yoochoose_custom_dims(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
@@ -82,7 +82,7 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: SyntheticData):
         ),
     )
 
-    embeddings = emb_module(testing_data.tf_tensor_dict)
+    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert emb_module.embedding_tables["item_id"].shape[1] == 100
     assert emb_module.embedding_tables["categories"].shape[1] == 64
@@ -91,7 +91,7 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: SyntheticData):
     assert embeddings["categories"].shape[1] == 64
 
 
-def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: SyntheticData):
+def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     emb_module = ml.EmbeddingFeatures.from_schema(
@@ -101,7 +101,7 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Synthe
         ),
     )
 
-    embeddings = emb_module(testing_data.tf_tensor_dict)
+    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert emb_module.embedding_tables["item_id"].shape[1] == 46
     assert emb_module.embedding_tables["categories"].shape[1] == 13
@@ -110,7 +110,7 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Synthe
     assert embeddings["categories"].shape[1] == 13
 
 
-def test_embedding_features_yoochoose_custom_initializers(testing_data: SyntheticData):
+def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset):
     ITEM_MEAN = 1.0
     ITEM_STD = 0.05
 
@@ -128,7 +128,7 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Syntheti
         ),
     )
 
-    embeddings = emb_module(testing_data.tf_tensor_dict)
+    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert embeddings["item_id"].numpy().mean() == pytest.approx(ITEM_MEAN, abs=0.1)
     assert embeddings["item_id"].numpy().std() == pytest.approx(ITEM_STD, abs=0.1)
@@ -137,7 +137,7 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Syntheti
     assert embeddings["categories"].numpy().std() == pytest.approx(CATEGORY_STD, abs=0.1)
 
 
-def test_shared_embeddings(music_streaming_data: SyntheticData):
+def test_shared_embeddings(music_streaming_data: Dataset):
     inputs = ml.InputBlock(music_streaming_data.schema)
 
     embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)

@@ -1,0 +1,233 @@
+feature {
+  name: "userId"
+  type: INT
+  int_domain {
+    name: "userId"
+    max: 6040
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    tag: "user"
+    tag: "user_id"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\021\n\013num_buckets\022\002\010\000\n\r\n\007is_list\022\002 \000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\000\230\267@\n\026\n\tdimension\022\t\021\000\000\000\000\000@j@\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\017\n\tis_ragged\022\002 \000\n1\n\010cat_path\022%\032#.//categories/unique.userId.parquet"
+    }
+  }
+}
+feature {
+  name: "movieId"
+  type: INT
+  int_domain {
+    name: "movieId"
+    max: 3684
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    tag: "item"
+    tag: "item_id"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\r\n\007is_list\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\000\310\254@\n\026\n\tdimension\022\t\021\000\000\000\000\000\340c@\n2\n\010cat_path\022&\032$.//categories/unique.movieId.parquet\n\017\n\tis_ragged\022\002 \000\n\021\n\013num_buckets\022\002\010\000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000"
+    }
+  }
+}
+feature {
+  name: "title"
+  type: INT
+  int_domain {
+    name: "title"
+    max: 3684
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\021\n\013num_buckets\022\002\010\000\nG\n\017embedding_sizes\0224*2\n\026\n\tdimension\022\t\021\000\000\000\000\000\340c@\n\030\n\013cardinality\022\t\021\000\000\000\000\000\310\254@\n0\n\010cat_path\022$\032\".//categories/unique.title.parquet\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@"
+    }
+  }
+}
+feature {
+  name: "genres"
+  value_count {
+    min: 1
+    max: 6
+  }
+  type: INT
+  int_domain {
+    name: "genres"
+    max: 18
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    tag: "item"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\021\n\013num_buckets\022\002\010\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\017\n\tis_ragged\022\002 \001\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n1\n\010cat_path\022%\032#.//categories/unique.genres.parquet\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\000\0002@\n\026\n\tdimension\022\t\021\000\000\000\000\000\0000@\n\r\n\007is_list\022\002 \001\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000"
+    }
+  }
+}
+feature {
+  name: "gender"
+  type: INT
+  int_domain {
+    name: "gender"
+    max: 2
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\017\n\tis_ragged\022\002 \000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\000\000\000@\n\026\n\tdimension\022\t\021\000\000\000\000\000\0000@\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\021\n\013num_buckets\022\002\010\000\n\r\n\007is_list\022\002 \000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n1\n\010cat_path\022%\032#.//categories/unique.gender.parquet"
+    }
+  }
+}
+feature {
+  name: "age"
+  type: INT
+  int_domain {
+    name: "age"
+    max: 7
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\017\n\tis_ragged\022\002 \000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\000\000\034@\n\026\n\tdimension\022\t\021\000\000\000\000\000\0000@\n\021\n\013num_buckets\022\002\010\000\n\r\n\007is_list\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n.\n\010cat_path\022\"\032 .//categories/unique.age.parquet\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000"
+    }
+  }
+}
+feature {
+  name: "occupation"
+  type: INT
+  int_domain {
+    name: "occupation"
+    max: 21
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\000\0005@\n\026\n\tdimension\022\t\021\000\000\000\000\000\0000@\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\021\n\013num_buckets\022\002\010\000\n\017\n\tis_ragged\022\002 \000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n5\n\010cat_path\022)\032\'.//categories/unique.occupation.parquet\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\r\n\007is_list\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "zipcode"
+  type: INT
+  int_domain {
+    name: "zipcode"
+    max: 3439
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\nG\n\017embedding_sizes\0224*2\n\026\n\tdimension\022\t\021\000\000\000\000\000 c@\n\030\n\013cardinality\022\t\021\000\000\000\000\000\336\252@\n\r\n\007is_list\022\002 \000\n2\n\010cat_path\022&\032$.//categories/unique.zipcode.parquet\n\021\n\013num_buckets\022\002\010\000\n\017\n\tis_ragged\022\002 \000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000"
+    }
+  }
+}
+feature {
+  name: "TE_age_rating"
+  type: FLOAT
+  annotation {
+    tag: "user"
+    tag: "continuous"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@"
+    }
+  }
+}
+feature {
+  name: "TE_gender_rating"
+  type: FLOAT
+  annotation {
+    tag: "user"
+    tag: "continuous"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\r\n\007is_list\022\002 \000\n\017\n\tis_ragged\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@"
+    }
+  }
+}
+feature {
+  name: "TE_occupation_rating"
+  type: FLOAT
+  annotation {
+    tag: "user"
+    tag: "continuous"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@"
+    }
+  }
+}
+feature {
+  name: "TE_zipcode_rating"
+  type: FLOAT
+  annotation {
+    tag: "user"
+    tag: "continuous"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\r\n\007is_list\022\002 \000\n\017\n\tis_ragged\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "TE_movieId_rating"
+  type: FLOAT
+  annotation {
+    tag: "continuous"
+    tag: "item"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\r\n\007is_list\022\002 \000\n\017\n\tis_ragged\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@"
+    }
+  }
+}
+feature {
+  name: "TE_userId_rating"
+  type: FLOAT
+  annotation {
+    tag: "user"
+    tag: "continuous"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "rating_binary"
+  type: INT
+  annotation {
+    tag: "binary_classification"
+    tag: "target"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\r\n\007is_list\022\002 \000\n\017\n\tis_ragged\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "rating"
+  type: FLOAT
+  annotation {
+    tag: "target"
+    tag: "regression"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000"
+    }
+  }
+}

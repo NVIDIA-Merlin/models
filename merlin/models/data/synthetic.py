@@ -13,16 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import difflib
 import logging
 import os
 import pathlib
-import tempfile
 from pathlib import Path
 from random import randint
 from typing import Dict, Optional, Union
 
 import numpy as np
-import pandas as pd
 
 import merlin.io
 from merlin.models.utils import schema_utils
@@ -31,157 +30,84 @@ from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 
 LOG = logging.getLogger("merlin-models")
 HERE = pathlib.Path(__file__).parent
+KNOWN_DATASETS: Dict[str, Path] = {
+    "e-commerce": HERE / "ecommerce/small",
+    "e-commerce-large": HERE / "ecommerce/large",
+    "music-streaming": HERE / "entertainment" / "music_streaming",
+    "social": HERE / "social",
+    "testing": HERE / "testing",
+    "sequence-testing": HERE / "testing" / "sequence_testing",
+    "movielens-25m": HERE / "entertainment/movielens/25m",
+    "movielens-1m": HERE / "entertainment/movielens/1m",
+    "movielens-100k": HERE / "entertainment/movielens/100k",
+    "criteo": HERE / "advertising/criteo/transformed",
+    "aliccp": HERE / "ecommerce/aliccp/transformed",
+    "aliccp-raw": HERE / "ecommerce/aliccp/raw",
+}
 
 
-def _read_data(path: str, num_rows: Optional[int] = None) -> pd.DataFrame:
-    df = pd.read_parquet(path)
+def generate_data(
+    input: Union[Schema, Path, str],
+    num_rows: int,
+    min_session_length=5,
+    max_session_length=None,
+    device="cpu",
+) -> merlin.io.Dataset:
+    """
+    Generate synthetic data from a schema or one of the known datasets.
 
-    if num_rows:
-        df = df.iloc[:num_rows]
+    Known fully synthetic datasets:
+    - e-commerce
+    - e-commerce-large
+    - music-streaming
+    - social
+    - testing
+    - sequence-testing
 
-    return df
+    Based on real datasets:
+    - criteo
+    - aliccp
+    - aliccp-raw
 
 
-class SyntheticData:
-    DATASETS: Dict[str, Path] = {
-        "ecommerce": HERE / "ecommerce/small",
-        "e-commerce": HERE / "ecommerce/small",
-        "ecommerce-large": HERE / "ecommerce/large",
-        "e-commerce-large": HERE / "ecommerce/large",
-        "music_streaming": HERE / "music_streaming",
-        "music-streaming": HERE / "music_streaming",
-        "social": HERE / "social",
-        "testing": HERE / "testing",
-        "sequence_testing": HERE / "sequence_testing",
-    }
-    FILE_NAME = "data.parquet"
+    Parameters
+    ----------
+    input: Union[Schema, Path, str]
+        The schema, path to a dataset or name of a known dataset.
+    num_rows: int
+        The number of rows to generate.
+    min_session_length: int
+        The minimum number of events in a session.
+    max_session_length: int
+        The maximum number of events in a session.
+    device: str
+        The device to use for the data generation.
+        Supported values: {'cpu', 'gpu'}
 
-    def __init__(
-        self,
-        data: Union[str, Path],
-        device: str = "cpu",
-        schema_file_name="schema.json",
-        num_rows=None,
-        read_data_fn=_read_data,
-    ):
-        if not os.path.isdir(data):
-            data = self.DATASETS[data]  # type: ignore
+    Returns
+    -------
+    merlin.io.Dataset
+    """
 
-        self._dir = str(data)
-        self.data_path = os.path.join(self._dir, self.FILE_NAME)
-        self.schema_path = os.path.join(self._dir, schema_file_name)
-        self._schema = self.read_schema(self.schema_path)
-        self.device = device
-        self._num_rows = num_rows
-        self._read_data_fn = read_data_fn
+    schema: Schema
+    if isinstance(input, str):
+        if input in KNOWN_DATASETS:
+            input = KNOWN_DATASETS[input]
+        elif not os.path.exists(input):
+            closest_match = difflib.get_close_matches(input, KNOWN_DATASETS.keys(), n=1)
+            raise ValueError(f"Unknown dataset {input}, did you mean: {closest_match[0]}?")
 
-    @classmethod
-    def from_schema(
-        cls,
-        schema: Schema,
-        output_dir: Optional[Union[str, Path]] = None,
-        device: str = "cpu",
-        num_rows=100,
-        min_session_length=5,
-        max_session_length=None,
-    ) -> "SyntheticData":
-        if not output_dir:
-            output_dir = tempfile.mkdtemp()
+        schema = _get_schema(input)
+    elif isinstance(input, Schema):
+        schema = input
+    else:
+        raise ValueError(f"Unknown input type: {type(input)}")
 
-        if not os.path.exists(os.path.join(output_dir, "schema.json")):
-            schema_utils.schema_to_tensorflow_metadata_json(
-                schema, os.path.join(output_dir, "schema.json")
-            )
+    data = generate_user_item_interactions(
+        schema, num_rows, min_session_length, max_session_length, device=device
+    )
 
-        output = cls(output_dir, device=device)
-        output.generate_interactions(num_rows, min_session_length, max_session_length)
-
-        return output
-
-    @classmethod
-    def read_schema(cls, path: Union[str, Path]) -> Schema:
-        path = str(path)
-        _schema_path = os.path.join(path, "schema.json") if os.path.isdir(path) else path
-
-        if _schema_path.endswith(".pb") or _schema_path.endswith(".pbtxt"):
-            return TensorflowMetadata.from_proto_text_file(
-                os.path.dirname(_schema_path), os.path.basename(_schema_path)
-            ).to_merlin_schema()
-
-        return schema_utils.tensorflow_metadata_json_to_schema(_schema_path)
-
-    @property
-    def schema(self) -> Schema:
-        return self._schema
-
-    @property
-    def dataframe(self) -> pd.DataFrame:
-        return self._read_data_fn(self.data_path, num_rows=self._num_rows)
-
-    @property
-    def dataset(self) -> merlin.io.Dataset:
-        return merlin.io.Dataset(self.dataframe, schema=self.schema)
-
-    def generate_interactions(
-        self, num_rows=100, min_session_length=5, max_session_length=None, save=True
-    ):
-        data = generate_user_item_interactions(
-            self.schema, num_rows, min_session_length, max_session_length, self.device
-        )
-        if save:
-            data.to_parquet(os.path.join(self._dir, self.FILE_NAME))
-
-        return data
-
-    @property
-    def tf_tensor_dict(self):
-        import tensorflow as tf
-
-        data = self.dataframe.to_dict("list")
-
-        return {key: tf.convert_to_tensor(value) for key, value in data.items()}
-
-    @property
-    def tf_features_and_targets(self):
-        return self._pull_out_targets(self.tf_tensor_dict)
-
-    @property
-    def torch_tensor_dict(self):
-        import torch
-
-        data = self.dataframe.to_dict("list")
-
-        return {key: torch.tensor(value).to(self.device) for key, value in data.items()}
-
-    @property
-    def torch_features_and_targets(self):
-        return self._pull_out_targets(self.torch_tensor_dict)
-
-    def tf_dataloader(self, batch_size=50):
-        # TODO: return tf NVTabular loader
-
-        import tensorflow as tf
-
-        data = self.dataframe.to_dict("list")
-        tensors = {key: tf.convert_to_tensor(value) for key, value in data.items()}
-        dataset = tf.data.Dataset.from_tensor_slices(self._pull_out_targets(tensors)).batch(
-            batch_size=batch_size
-        )
-
-        return dataset
-
-    def torch_dataloader(self, batch_size=50):
-        """return torch NVTabular loader"""
-        raise NotImplementedError()
-
-    def _pull_out_targets(self, inputs):
-        target_names = self.schema.select_by_tag(Tags.TARGET).column_names
-        targets = {}
-
-        for target_name in target_names:
-            targets[target_name] = inputs.pop(target_name, None)
-
-        return inputs, targets
+    return merlin.io.Dataset(data, schema=schema)
 
 
 def generate_user_item_interactions(
@@ -272,7 +198,10 @@ def generate_user_item_interactions(
         processed_cols += [f.name for f in features] + [user_id_col.name]
 
     # get ITEM cols
-    item_id_col = list(schema.select_by_tag(Tags.ITEM_ID))[0]
+    item_schema = schema.select_by_tag(Tags.ITEM_ID)
+    if not len(item_schema) > 0:
+        raise ValueError("Item ID column is required")
+    item_id_col = item_schema.first
 
     is_list_feature = item_id_col.is_list
     if not is_list_feature:
@@ -359,6 +288,11 @@ def generate_conditional_features(
             )
 
         elif is_int_feature:
+            if not feature.int_domain:
+                raise ValueError(
+                    "Int domain is required for conditional features, got {}".format(feature)
+                )
+
             data[feature.name] = _frame.cut(
                 data[parent_feature.name],
                 feature.int_domain.max - 1,
@@ -366,9 +300,15 @@ def generate_conditional_features(
             ).astype(_array.int64)
 
         else:
-            data[feature.name] = _array.random.uniform(
-                feature.float_domain.min, feature.float_domain.max, num_interactions
-            )
+            if feature.float_domain:
+                _min, _max = feature.float_domain.min, feature.float_domain.max
+            else:
+                logging.warning(
+                    "Couldn't find the float-domain for feature {}, assuming [0, 1]".format(feature)
+                )
+                _min, _max = 0.0, 1.0
+
+            data[feature.name] = _array.random.uniform(_min, _max, num_interactions)
 
     return data
 
@@ -434,3 +374,19 @@ def generate_random_list_feature(
                 feature.float_domain.max,
                 (num_interactions, list_length),
             ).tolist()
+
+
+def _get_schema(path: Union[str, Path]) -> Schema:
+    path = str(path)
+    if os.path.isdir(path):
+        if os.path.exists(os.path.join(path, "schema.json")):
+            path = os.path.join(path, "schema.json")
+        else:
+            path = os.path.join(path, "schema.pbtxt")
+
+    if path.endswith(".pb") or path.endswith(".pbtxt"):
+        return TensorflowMetadata.from_proto_text_file(
+            os.path.dirname(path), os.path.basename(path)
+        ).to_merlin_schema()
+
+    return schema_utils.tensorflow_metadata_json_to_schema(path)

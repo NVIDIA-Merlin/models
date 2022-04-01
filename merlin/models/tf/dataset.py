@@ -23,6 +23,7 @@ import tensorflow as tf
 from packaging import version
 
 from merlin.core.dispatch import HAS_GPU
+from merlin.io import Dataset
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
 from merlin.models.utils.schema_utils import select_targets
@@ -40,13 +41,6 @@ if version.parse(tf.__version__) < version.parse("2.3.0"):
 else:
     from tensorflow.experimental.dlpack import from_dlpack
 
-# noqa
-try:
-    from merlin.io import Dataset as _Dataset
-
-    merlin_dataset_class = _Dataset
-except ImportError:
-    merlin_dataset_class = None
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter,unexpected-keyword-arg,redundant-keyword-arg
@@ -89,14 +83,7 @@ def _validate_dataset(paths_or_dataset, batch_size, buffer_size, engine, device,
 
     cpu = device and "cpu" in device
 
-    if merlin_dataset_class:
-        return merlin_dataset_class(files, engine=engine, cpu=cpu)
-    else:
-        LOG.warning(
-            "Merlin Dataset class not detected, reverting to Dask Dataframe."
-            "Expect slower iteration speeds."
-        )
-    return dd_engine[engine](files)
+    return Dataset(files, engine=engine, cpu=cpu)
 
 
 def _validate_schema(feature_columns, cat_names, cont_names, label_names, schema=None):
@@ -504,24 +491,37 @@ class DatasetValidator(tf.keras.callbacks.Callback):
         return logs
 
 
-if merlin_dataset_class:
+def sample_batch(
+    data: Dataset,
+    batch_size: int,
+    shuffle: bool = False,
+    include_targets: bool = True,
+    to_dense: bool = False,
+):
+    """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
-    def sample_batch(data: merlin_dataset_class, batch_size: int, shuffle: bool = False):
-        """Util function to generate a batch of input tensors from a merlin.io.dataset instance
+    Parameters
+    ----------
+    data: merlin.io.dataset
+        A Dataset object.
+    batch_size: int
+        Number of samples to return.
+    shuffle: bool
+        Whether to sample a random batch or not, by default False.
+    include_targets: bool
+        Whether to include the targets in the returned batch, by default True.
+    to_dense: bool
+        Whether to convert the tuple of sparse tensors into dense tensors, by default False.
+    Returns:
+    -------
+    batch: Dict[tf.tensor]
+        dictionary of input tensors.
+    """
+    from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 
-        Parameters
-        ----------
-        data: merlin.io.dataset
-            A Dataset object.
-        batch_size: int
-            Number of samples to return.
-        shuffle: bool
-            Whether to sample a random batch or not, by default False.
-
-        Returns:
-        -------
-        batch: Dict[tf.tensor]
-            dictionary of input tensors.
-        """
-        batch = next(iter(BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)))[0]
-        return batch
+    inputs, targets = next(iter(BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)))
+    if to_dense:
+        inputs = AsDenseFeatures()(inputs)
+    if not include_targets:
+        return inputs
+    return inputs, targets

@@ -14,16 +14,13 @@
 # limitations under the License.
 #
 from merlin.io import Dataset
-from merlin.models.data.synthetic import SyntheticData
 from merlin.models.lightfm import LightFM
 from merlin.schema import Tags
 
 
-def test_warp(music_streaming_data: SyntheticData):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
-    dataset = Dataset(music_streaming_data.dataframe, schema=music_streaming_data.schema)
-
+def test_warp(music_streaming_data: Dataset):
+    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
     model = LightFM(learning_rate=0.05, loss="warp", epochs=10)
-    model.fit(dataset)
+    model.fit(music_streaming_data)
 
-    model.predict(dataset)
+    model.predict(music_streaming_data)

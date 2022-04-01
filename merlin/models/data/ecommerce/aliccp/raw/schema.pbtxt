@@ -1,0 +1,160 @@
+feature {
+  name: "user_id"
+  type: INT
+  int_domain {
+    name: "user_id"
+    max: 294736
+    is_categorical: true
+  }
+  annotation {
+    tag: "user_id"
+    tag: "categorical"
+    tag: "user"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\021\n\013num_buckets\022\002\010\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000@\375\021A\n\026\n\tdimension\022\t\021\000\000\000\000\000\000\200@\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n2\n\010cat_path\022&\032$.//categories/unique.user_id.parquet\n\r\n\007is_list\022\002 \000\n\017\n\tis_ragged\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "item_id"
+  type: INT
+  int_domain {
+    name: "item_id"
+    max: 3078306
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    tag: "item"
+    tag: "item_id"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\017\n\tis_ragged\022\002 \000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\nG\n\017embedding_sizes\0224*2\n\026\n\tdimension\022\t\021\000\000\000\000\000\000\200@\n\030\n\013cardinality\022\t\021\000\000\000\000Q|GA\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\021\n\013num_buckets\022\002\010\000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n2\n\010cat_path\022&\032$.//categories/unique.item_id.parquet\n\r\n\007is_list\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "click"
+  type: INT
+  annotation {
+    tag: "target"
+    tag: "Tags.BINARY_CLASSIFICATION"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "user_item_categories"
+  type: INT
+  int_domain {
+    name: "user_item_categories"
+    max: 7735
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\r\n\007is_list\022\002 \000\n\017\n\tis_ragged\022\002 \000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n?\n\010cat_path\0223\0321.//categories/unique.user_item_categories.parquet\nG\n\017embedding_sizes\0224*2\n\026\n\tdimension\022\t\021\000\000\000\000\000 n@\n\030\n\013cardinality\022\t\021\000\000\000\000\0007\276@\n\021\n\013num_buckets\022\002\010\000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@"
+    }
+  }
+}
+feature {
+  name: "user_item_shops"
+  type: INT
+  int_domain {
+    name: "user_item_shops"
+    max: 384343
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n:\n\010cat_path\022.\032,.//categories/unique.user_item_shops.parquet\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\017\n\tis_ragged\022\002 \000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\021\n\013num_buckets\022\002\010\000\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\\u\027A\n\026\n\tdimension\022\t\021\000\000\000\000\000\000\200@\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\r\n\007is_list\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "user_item_brands"
+  type: INT
+  int_domain {
+    name: "user_item_brands"
+    max: 142632
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\021\n\013num_buckets\022\002\010\000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000\n;\n\010cat_path\022/\032-.//categories/unique.user_item_brands.parquet\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\nG\n\017embedding_sizes\0224*2\n\026\n\tdimension\022\t\021\000\000\000\000\000\000\200@\n\030\n\013cardinality\022\t\021\000\000\000\000@i\001A"
+    }
+  }
+}
+feature {
+  name: "user_item_intentions"
+  type: INT
+  int_domain {
+    name: "user_item_intentions"
+    max: 74317
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\017\n\tis_ragged\022\002 \000\n\021\n\013num_buckets\022\002\010\000\n\r\n\007is_list\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\nG\n\017embedding_sizes\0224*2\n\026\n\tdimension\022\t\021\000\000\000\000\000\000\200@\n\030\n\013cardinality\022\t\021\000\000\000\000\320$\362@\n?\n\010cat_path\0223\0321.//categories/unique.user_item_intentions.parquet"
+    }
+  }
+}
+feature {
+  name: "item_category"
+  type: INT
+  int_domain {
+    name: "item_category"
+    max: 8581
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n8\n\010cat_path\022,\032*.//categories/unique.item_category.parquet\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\021\n\013num_buckets\022\002\010\000\n\r\n\007is_list\022\002 \000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\017\n\tis_ragged\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\nG\n\017embedding_sizes\0224*2\n\026\n\tdimension\022\t\021\000\000\000\000\000\340o@\n\030\n\013cardinality\022\t\021\000\000\000\000\200\302\300@"
+    }
+  }
+}
+feature {
+  name: "item_shop"
+  type: INT
+  int_domain {
+    name: "item_shop"
+    max: 604498
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\r\n\007is_list\022\002 \000\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\244r\"A\n\026\n\tdimension\022\t\021\000\000\000\000\000\000\200@\n4\n\010cat_path\022(\032&.//categories/unique.item_shop.parquet\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\021\n\013num_buckets\022\002\010\000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\017\n\tis_ragged\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "item_brand"
+  type: INT
+  int_domain {
+    name: "item_brand"
+    max: 208179
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\230i\tA\n\026\n\tdimension\022\t\021\000\000\000\000\000\000\200@\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\021\n\013num_buckets\022\002\010\000\n\017\n\tis_ragged\022\002 \000\n5\n\010cat_path\022)\032\'.//categories/unique.item_brand.parquet\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\r\n\007is_list\022\002 \000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000"
+    }
+  }
+}

@@ -18,7 +18,7 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 from merlin.models.tf.blocks.core.base import PredictionOutput
 from merlin.schema import Tags
 
@@ -219,13 +219,15 @@ def test_item_retrieval_scorer_only_positive_when_not_training():
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
 def test_retrieval_task_inbatch_cached_samplers(
-    music_streaming_data: SyntheticData, run_eagerly, ignore_last_batch_on_sample
+    music_streaming_data: Dataset, run_eagerly, ignore_last_batch_on_sample
 ):
+    batch_size = 100
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
-    batch_size = music_streaming_data.tf_tensor_dict["item_id"].shape[0]
-    assert batch_size == 100
+    batch_inputs = ml.sample_batch(
+        music_streaming_data, batch_size=batch_size, include_targets=False
+    )
 
     cached_batches_sampler = ml.CachedCrossBatchSampler(
         capacity=batch_size * 2,
@@ -247,7 +249,7 @@ def test_retrieval_task_inbatch_cached_samplers(
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     for batch_step in range(1, 4):
-        output = model(music_streaming_data.tf_tensor_dict, training=True)
+        output = model(batch_inputs, training=True)
         output = model.loss_block.pre.call_outputs(
             PredictionOutput(output, {}), training=True
         ).predictions
@@ -265,7 +267,7 @@ def test_retrieval_task_inbatch_cached_samplers(
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_retrieval_task_inbatch_cached_samplers_fit(
-    ecommerce_data: SyntheticData, run_eagerly, num_epochs=2
+    ecommerce_data: Dataset, run_eagerly, num_epochs=2
 ):
     ecommerce_data._schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
     two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([512, 256]))
@@ -291,22 +293,22 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     model = two_tower.connect(task)
 
     # Setting up evaluation
-    model.set_retrieval_candidates_for_evaluation(ecommerce_data.dataset)
+    model.set_retrieval_candidates_for_evaluation(ecommerce_data)
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(ecommerce_data.dataset, batch_size=50, epochs=num_epochs)
+    losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
-    _ = model.evaluate(x=ecommerce_data.dataset, batch_size=50)
+    _ = model.evaluate(x=ecommerce_data, batch_size=50)
 
 
 @pytest.mark.parametrize("run_eagerly", [True])
 @pytest.mark.parametrize("weight_tying", [True, False])
 @pytest.mark.parametrize("sampled_softmax", [True, False])
 def test_last_item_prediction_task(
-    sequence_testing_data: SyntheticData,
+    sequence_testing_data: Dataset,
     run_eagerly: bool,
     weight_tying: bool,
     sampled_softmax: bool,
@@ -331,26 +333,31 @@ def test_last_item_prediction_task(
 
     model = inputs.connect(ml.MLPBlock([64]), task)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    losses = model.fit(sequence_testing_data.dataset, batch_size=50, epochs=2)
+    losses = model.fit(sequence_testing_data, batch_size=50, epochs=2)
 
     assert len(losses.epoch) == 2
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
 
-    out = model({k: tf.cast(v, tf.int64) for k, v in sequence_testing_data.tf_tensor_dict.items()})
+    batch = ml.sample_batch(
+        sequence_testing_data, batch_size=50, include_targets=False, to_dense=True
+    )
+    out = model({k: tf.cast(v, tf.int64) for k, v in batch.items()})
     assert out.shape[-1] == 51997
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
 def test_retrieval_task_inbatch_default_sampler(
-    music_streaming_data: SyntheticData, run_eagerly, ignore_last_batch_on_sample
+    music_streaming_data: Dataset, run_eagerly, ignore_last_batch_on_sample
 ):
+    batch_size = 100
     music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
-    batch_size = music_streaming_data.tf_tensor_dict["item_id"].shape[0]
-    assert batch_size == 100
+    batch_inputs = ml.sample_batch(
+        music_streaming_data, batch_size=batch_size, include_targets=False
+    )
 
     model = two_tower.connect(
         ml.ItemRetrievalTask(music_streaming_data.schema, logits_temperature=2, loss="bpr")
@@ -359,7 +366,7 @@ def test_retrieval_task_inbatch_default_sampler(
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     for _ in range(1, 4):
-        output = model(music_streaming_data.tf_tensor_dict, training=True)
+        output = model(batch_inputs, training=True)
         output = model.loss_block.pre.call_outputs(
             PredictionOutput(output, {}), training=True
         ).predictions

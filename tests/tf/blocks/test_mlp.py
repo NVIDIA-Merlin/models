@@ -19,7 +19,7 @@ import tensorflow as tf
 from tensorflow.keras import regularizers
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 
 
 @pytest.mark.parametrize("dim", [32, 64])
@@ -29,7 +29,7 @@ from merlin.models.data.synthetic import SyntheticData
     "normalization", [None, "batch_norm", tf.keras.layers.BatchNormalization()]
 )
 def test_mlp_block_yoochoose(
-    testing_data: SyntheticData,
+    testing_data: Dataset,
     dim,
     activation,
     dropout,
@@ -55,7 +55,7 @@ def test_mlp_block_yoochoose(
     )
     body = ml.SequentialBlock([inputs, mlp])
 
-    outputs = body(testing_data.tf_tensor_dict)
+    outputs = body(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert list(outputs.shape) == [100, dim]
     assert mlp.layers[0].units == dim
@@ -83,13 +83,13 @@ def test_mlp_block_no_activation_last_layer(no_activation_last_layer, dims):
 
 
 @pytest.mark.parametrize("run_eagerly", [True])
-def test_mlp_model_save(ecommerce_data: SyntheticData, run_eagerly: bool, tmp_path):
+def test_mlp_model_save(ecommerce_data: Dataset, run_eagerly: bool, tmp_path):
     model = ml.MLPBlock(
         [64], kernel_regularizer=regularizers.l2(1e-1), bias_regularizer=regularizers.l2(1e-1)
     ).to_model(ecommerce_data.schema)
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    model.fit(ecommerce_data.dataset, batch_size=50, epochs=1)
+    model.fit(ecommerce_data, batch_size=50, epochs=1)
     model.save(str(tmp_path))
 
     copy_model = tf.keras.models.load_model(str(tmp_path))

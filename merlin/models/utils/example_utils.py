@@ -1,27 +1,44 @@
-import matplotlib.pyplot as plt
+import shutil
+from pathlib import Path
+from typing import List, Optional, Union
+
 import numpy as np
-import nvtabular as nvt
+
+from merlin.io import Dataset
 
 
-def workflow_fit_transform(outputs, train_path, valid_path, output_path, workflow_name=None):
+def workflow_fit_transform(
+    outputs,
+    train: Union[str, Path, List[str], Dataset],
+    valid: Union[str, Path, List[str], Dataset],
+    output_path: Union[str, Path],
+    workflow_name: Optional[str] = None,
+    save_workflow: bool = True,
+):
     """fits and transforms datasets applying NVT workflow"""
-    workflow = nvt.Workflow(outputs)
+    import nvtabular as nvt
 
-    train_dataset = nvt.Dataset(train_path)
-    valid_dataset = nvt.Dataset(valid_path)
-
-    workflow.fit(train_dataset)
-
-    workflow.transform(train_dataset).to_parquet(output_path=output_path + "/train/")
-
-    workflow.transform(valid_dataset).to_parquet(output_path=output_path + "/valid/")
-
-    if workflow_name is None:
-        workflow_name = "workflow"
+    if not isinstance(outputs, nvt.Workflow):
+        workflow = nvt.Workflow(outputs)
     else:
-        workflow_name = workflow_name
-    # save workflow to the pwd
-    workflow.save(workflow_name)
+        workflow = outputs
+
+    _train = train if isinstance(train, Dataset) else Dataset(train)
+    _valid = valid if isinstance(valid, Dataset) else Dataset(valid)
+
+    train_path, valid_path = Path(output_path) / "train", Path(output_path) / "valid"
+    if train_path.exists():
+        shutil.rmtree(train_path)
+    if valid_path.exists():
+        shutil.rmtree(valid_path)
+
+    workflow.fit(_train)
+    workflow.transform(_train).to_parquet(str(train_path))
+    workflow.transform(_valid).to_parquet(str(valid_path))
+
+    if save_workflow:
+        _name = workflow_name if workflow_name else "workflow"
+        workflow.save(_name)
 
 
 def save_results(model_name, model):
@@ -35,6 +52,8 @@ def save_results(model_name, model):
 
 
 def create_bar_chart(text_file_name, models_name):
+    import matplotlib.pyplot as plt
+
     """a func to plot barcharts via parsing the  accurracy results in a text file"""
     auc = []
     with open(text_file_name, "r") as infile:
