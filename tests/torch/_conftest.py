@@ -15,6 +15,7 @@
 #
 
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 
@@ -142,6 +143,9 @@ def torch_tabular_features(tabular_schema):
 def torch_tabular_data():
     dataset = generate_data("testing", num_rows=100)
 
-    data = dataset.to_ddf().compute().to_dict("list")
+    df = dataset.to_ddf().compute()
+    if not isinstance(df, pd.DataFrame):
+        df = df.to_pandas()
+    data = df.to_dict("list")
 
     return {key: torch.tensor(value) for key, value in data.items()}
