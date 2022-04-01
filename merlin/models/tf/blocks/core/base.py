@@ -52,8 +52,8 @@ class PredictionOutput(NamedTuple):
 
     def copy_with_updates(
         self,
-        predictions: Union[TabularData, tf.Tensor] = None,
-        targets: Union[TabularData, tf.Tensor] = None,
+        predictions: Optional[Union[TabularData, tf.Tensor]] = None,
+        targets: Optional[Union[TabularData, tf.Tensor]] = None,
         positive_item_ids: Optional[tf.Tensor] = None,
         label_relevant_counts: Optional[tf.Tensor] = None,
         valid_negatives_mask: Optional[tf.Tensor] = None,

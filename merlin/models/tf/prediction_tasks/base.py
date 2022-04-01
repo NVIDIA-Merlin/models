@@ -229,56 +229,39 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         -------
         tf.Tensor
         """
-        positive_item_ids = None
         if isinstance(targets, dict) and self.target_name:
             targets = targets[self.target_name]
 
         if isinstance(predictions, dict) and self.target_name and self.task_name in predictions:
             predictions = predictions[self.task_name]
 
-        valid_negatives_mask = None
+        prediction_output = PredictionOutput(predictions, targets)
+
         if self.pre:
-            outputs = self.pre_loss(
-                PredictionOutput(predictions, targets), training=training, **kwargs
-            )
-            targets, predictions, positive_item_ids, valid_negatives_mask = (
-                outputs.targets,
-                outputs.predictions,
-                outputs.positive_item_ids,
-                outputs.valid_negatives_mask,
+            prediction_output = self.pre_loss(prediction_output, training=training, **kwargs)
+
+        if (
+            isinstance(prediction_output.targets, tf.Tensor)
+            and len(prediction_output.targets.shape) == len(prediction_output.predictions.shape) - 1
+        ):
+            prediction_output = prediction_output.copy_with_updates(
+                predictions=tf.squeeze(prediction_output.predictions)
             )
 
-        if isinstance(targets, tf.Tensor) and len(targets.shape) == len(predictions.shape) - 1:
-            predictions = tf.squeeze(predictions)
-
-        label_relevant_counts_eval = None
         if not training and self._pre_eval_topk:
             # During eval, the retrievaltask only returns positve scores
             # so we need to retrieve top-k negative scores to compute the loss
-            outputs = self._pre_eval_topk.call_outputs(
-                PredictionOutput(predictions, targets, outputs.positive_item_ids), **kwargs
-            )
-            targets, predictions, label_relevant_counts_eval = (
-                outputs.targets,
-                outputs.predictions,
-                outputs.label_relevant_counts,
-            )
+            prediction_output = self._pre_eval_topk.call_outputs(prediction_output, **kwargs)
 
         loss = self._compute_loss(
-            PredictionOutput(predictions, targets, valid_negatives_mask=valid_negatives_mask),
+            prediction_output,
             sample_weight=sample_weight,
             training=training,
         )
 
         loss = tf.cond(
             tf.convert_to_tensor(compute_metrics),
-            lambda: self.attach_metrics_calculation_to_loss(
-                PredictionOutput(
-                    predictions, targets, positive_item_ids, label_relevant_counts_eval
-                ),
-                loss,
-                training,
-            ),
+            lambda: self.attach_metrics_calculation_to_loss(prediction_output, loss, training),
             lambda: loss,
         )
 
