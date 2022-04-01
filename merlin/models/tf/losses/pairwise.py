@@ -205,7 +205,7 @@ class PairwiseLoss(Loss, LossRegistryMixin):
             Loss with zeroed values for false negatives
         """
         # Setting to zero the loss of false negatives and of rows with no positive sample
-        loss = loss * tf.cast(valid_rows_with_positive_mask, dtype=loss.dtype)
+        loss = loss * tf.cast(tf.expand_dims(valid_rows_with_positive_mask, -1), dtype=loss.dtype)
         if self.valid_negatives_mask is not None:
             loss = loss * tf.cast(self.valid_negatives_mask, dtype=loss.dtype)
         return loss
