@@ -16,7 +16,7 @@ MAYBE_ALICCP_DATA = os.environ.get("DATA_PATH_ALICCP", None)
 def test_get_alliccp():
     data_path = MAYBE_ALICCP_DATA
 
-    train, valid = aliccp.get_aliccp(data_path)
+    train, valid = aliccp.get_aliccp(data_path, overwrite=True)
 
     assert isinstance(train, merlin.io.Dataset)
     assert isinstance(valid, merlin.io.Dataset)

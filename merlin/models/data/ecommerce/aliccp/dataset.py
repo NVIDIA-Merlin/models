@@ -1,6 +1,7 @@
 import os
 import pickle
 import re
+import shutil
 from dataclasses import dataclass
 from glob import glob
 from pathlib import Path
@@ -27,6 +28,7 @@ def get_aliccp(
     overwrite: bool = False,
     transformed_name: str = "transformed",
     nvt_workflow: Optional[Workflow] = None,
+    file_size: int = 100000,
     **kwargs,
 ) -> Tuple[merlin.io.Dataset, merlin.io.Dataset]:
     """
@@ -62,6 +64,8 @@ def get_aliccp(
     nvt_workflow: Optional[Workflow]
         Workflow to transform the raw data.
         If None, the default workflow will be used from `default_aliccp_transformation`.
+    file_size: int
+        Size of the parquet files to be loaded when preparing the data.
 
     Returns
     -------
@@ -81,7 +85,7 @@ def get_aliccp(
     raw_path = p / "raw"
     if not raw_path.exists():
         raw_path.mkdir(parents=True)
-        prepare_alliccp(path, output_dir=raw_path, **kwargs)
+        prepare_alliccp(path, output_dir=raw_path, file_size=file_size, **kwargs)
 
     nvt_path = p / transformed_name
     train_path, valid_path = nvt_path / "train", nvt_path / "valid"
@@ -99,7 +103,7 @@ def prepare_alliccp(
     data_dir: Union[str, Path],
     convert_train: bool = True,
     convert_test: bool = True,
-    file_size: int = 10000,
+    file_size: int = 100000,
     max_num_rows: Optional[int] = None,
     pickle_common_features=True,
     output_dir: Optional[Union[str, Path]] = None,
@@ -160,8 +164,8 @@ def default_aliccp_transformation(add_target_encoding=True):
     import nvtabular as nvt
     from nvtabular import ops as nvt_ops
 
-    user_id = ["user_id"] >> nvt_ops.Categorify(dtype="int32") >> nvt_ops.TagAsUserID()
-    item_id = ["item_id"] >> nvt_ops.Categorify(dtype="int32") >> nvt_ops.TagAsItemID()
+    user_id = ["user_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsUserID()
+    item_id = ["item_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsItemID()
 
     item_features = (
         ["item_category", "item_shop", "item_brand"]
@@ -210,8 +214,8 @@ def transform_aliccp(
 
     workflow_fit_transform(
         nvt_workflow,
-        glob(os.path.join(raw_data_path, "train", "train_*")),
-        glob(os.path.join(raw_data_path, "test", "test_*")),
+        glob(os.path.join(raw_data_path, "train", "*.parquet")),
+        glob(os.path.join(raw_data_path, "test", "*.parquet")),
         str(output_path),
     )
 
@@ -354,6 +358,11 @@ def _convert_data(
     current = []
     by_id = _Features().by_id
 
+    out_dir = os.path.join(str(output_dir), data_type)
+    tmp_dir = os.path.join(out_dir, "tmp")
+    if not os.path.exists(tmp_dir):
+        os.makedirs(tmp_dir)
+
     with open(path, "r") as skeleton:
         for i, csv_line in tqdm(enumerate(skeleton), desc="Processing data..."):
             if max_num_rows and i >= max_num_rows:
@@ -382,17 +391,17 @@ def _convert_data(
                         cols.append(by_id[col])
 
                 df.columns = cols
-
-                out_dir = os.path.join(str(output_dir), data_type)
-                if not os.path.exists(out_dir):
-                    os.makedirs(out_dir)
-
                 index = int((i / file_size) - 1)
                 df.to_parquet(
-                    os.path.join(out_dir, f"{data_type}_{index}.parquet"),
+                    os.path.join(tmp_dir, f"{data_type}_{index}.parquet"),
                     overwrite=True,
                 )
                 current = []
+
+    tmp_files = glob(os.path.join(tmp_dir, f"{data_type}_*.parquet"))
+    dtypes = {f.name: "int32" for f in _Features().features}
+    merlin.io.Dataset(tmp_files, dtypes=dtypes).to_parquet(out_dir)
+    shutil.rmtree(tmp_dir)
 
 
 def _raw_transform(raw_data_path: Union[str, Path], output_path: Union[str, Path]):

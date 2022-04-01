@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -27,9 +28,9 @@ def workflow_fit_transform(
 
     train_path, valid_path = Path(output_path) / "train", Path(output_path) / "valid"
     if train_path.exists():
-        train_path.rmdir()
+        shutil.rmtree(train_path)
     if valid_path.exists():
-        valid_path.rmdir()
+        shutil.rmtree(train_path)
 
     workflow.fit(_train)
     workflow.transform(_train).to_parquet(str(train_path))
