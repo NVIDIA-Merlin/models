@@ -109,6 +109,23 @@ def transform_movielens(
     variant: str = "ml-25m",
     **kwargs,
 ):
+    """
+    Transforms the movielens dataset to be ready for use with merlin-models
+
+    Parameters
+    ----------
+    raw_data_path: Union[str, Path]
+        The path to the raw data
+    output_path: Union[str, Path]
+        The path to save the transformed data
+    nvt_workflow: Optional[Workflow]
+        The NVTabular workflow to use for the transformation.
+        If not set, will use the default.
+    variant: str
+        The variant of the movielens dataset to use.
+        Must be either "ml-25m", "ml-1m" or "ml-100k"
+    """
+
     if nvt_workflow:
         _nvt_workflow = nvt_workflow
     else:
@@ -160,11 +177,14 @@ def default_ml25m_transformation(raw_data_path: str, **kwargs):
 
     # Target Encode movieId column
     te_features = cats >> ops.TargetEncoding(label, kfold=5, p_smooth=20)
-    te_features_norm = te_features >> ops.Normalize()
+    te_features_norm = te_features >> ops.Normalize() >> ops.TagAsItemFeatures()
 
     # count encode `userId`
     count_logop_feat = (
-        ["userId"] >> ops.JoinGroupby(cont_cols=["movieId"], stats=["count"]) >> ops.LogOp()
+        ["userId"]
+        >> ops.JoinGroupby(cont_cols=["movieId"], stats=["count"])
+        >> ops.LogOp()
+        >> ops.TagAsUserFeatures()
     )
     feats_item = cat_features["movieId"] >> ops.AddMetadata(tags=["item_id", "item"])
     feats_user = cat_features["userId"] >> ops.AddMetadata(tags=["user_id", "user"])

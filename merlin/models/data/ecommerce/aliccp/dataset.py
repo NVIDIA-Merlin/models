@@ -35,7 +35,7 @@ def get_aliccp(
     Load the Ali-CCP: Alibaba Click and Conversion Prediction dataset.
 
     We can't download this dataset automatically so this needs to be downloaded manually
-    To use this function, prepare by the following these 3 steps:
+    To use this function, prepare the data by following these 3 steps:
     1. Download the raw data from
     [tianchi.aliyun.com](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1).
     2. Unzip the raw data to a directory.

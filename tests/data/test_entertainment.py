@@ -45,8 +45,7 @@ def test_movielens_100k_data():
     MAYBE_DATA_DIR is None,
     reason="No data-dir available, pass it through env variable $INPUT_DATA_DIR",
 )
-# @pytest.mark.parametrize("variant", ["ml-25m", "ml-1m", "ml-100k"])
-@pytest.mark.parametrize("variant", ["ml-1m"])
+@pytest.mark.parametrize("variant", ["ml-25m", "ml-1m", "ml-100k"])
 def test_get_movielens(tmp_path, variant):
     data_path = os.path.join(MAYBE_DATA_DIR, "movielens")
 
