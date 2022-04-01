@@ -98,6 +98,7 @@ def ItemsPredictionSampled(
         samplers=[samplers],
         sampling_downscore_false_negatives=ignore_false_negatives,
         item_id_feature_name=item_id_feature_name,
+        sampled_softmax_mode=True,
     )
 
     return logits
