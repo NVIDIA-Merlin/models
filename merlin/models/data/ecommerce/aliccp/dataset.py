@@ -13,6 +13,7 @@ from tqdm import tqdm
 import merlin.io
 from merlin.core.dispatch import get_lib
 from merlin.models.utils.example_utils import workflow_fit_transform
+from merlin.models.utils.nvt_utils import require_nvt
 from merlin.schema import Tags
 
 try:
@@ -75,11 +76,7 @@ def get_aliccp(
         Test dataset.
     """
 
-    if not Workflow:
-        raise RuntimeError(
-            "Please install nvtabular in order to use this dataset",
-            "Run: `pip install nvtabular` to install it.",
-        )
+    require_nvt()
 
     p = Path(path)
     raw_path = p / "raw"

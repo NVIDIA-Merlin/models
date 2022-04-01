@@ -13,6 +13,7 @@ from merlin.core.dispatch import get_lib
 from merlin.core.utils import download_file
 from merlin.models.data import BASE_PATH
 from merlin.models.utils.example_utils import workflow_fit_transform
+from merlin.models.utils.nvt_utils import require_nvt
 
 df_lib = get_lib()
 
@@ -56,11 +57,7 @@ def get_movielens(
     tuple
         A tuple consisting of a merlin.io.Dataset for the training dataset and validation dataset
     """
-    if not Workflow:
-        raise RuntimeError(
-            "Please install nvtabular in order to use this dataset",
-            "Run: `pip install nvtabular` to install it.",
-        )
+    require_nvt()
 
     if path is None:
         p = Path(BASE_PATH) / "movielens"

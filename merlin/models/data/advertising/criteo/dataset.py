@@ -9,6 +9,7 @@ import merlin.io
 from merlin.core.utils import download_file
 from merlin.models.data import BASE_PATH
 from merlin.models.utils.example_utils import workflow_fit_transform
+from merlin.models.utils.nvt_utils import require_nvt
 from merlin.schema import Tags
 
 try:
@@ -72,6 +73,8 @@ def get_criteo(
     valid: merlin.io.Dataset
         Test dataset.
     """
+
+    require_nvt()
 
     if path is None:
         p = Path(BASE_PATH) / "criteo"
