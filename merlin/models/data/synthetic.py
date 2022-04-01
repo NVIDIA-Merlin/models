@@ -288,6 +288,11 @@ def generate_conditional_features(
             )
 
         elif is_int_feature:
+            if not feature.int_domain:
+                raise ValueError(
+                    "Int domain is required for conditional features, got {}".format(feature)
+                )
+
             data[feature.name] = _frame.cut(
                 data[parent_feature.name],
                 feature.int_domain.max - 1,
@@ -295,6 +300,11 @@ def generate_conditional_features(
             ).astype(_array.int64)
 
         else:
+            if not feature.float_domain:
+                raise ValueError(
+                    "Float domain is required for conditional features, got {}".format(feature)
+                )
+
             data[feature.name] = _array.random.uniform(
                 feature.float_domain.min, feature.float_domain.max, num_interactions
             )

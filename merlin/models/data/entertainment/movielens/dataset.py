@@ -168,7 +168,7 @@ def default_ml25m_transformation(raw_data_path: str, **kwargs):
     )
     feats_item = cat_features["movieId"] >> ops.AddMetadata(tags=["item_id", "item"])
     feats_user = cat_features["userId"] >> ops.AddMetadata(tags=["user_id", "user"])
-    feats_genres = cat_features["genres"] >> ops.AddMetadata(tags=["item"])
+    feats_genres = cat_features["genres"] >> ops.ValueCount() >> ops.TagAsItemFeatures()
 
     feats_target = (
         nvt.ColumnSelector(["rating"])
@@ -232,7 +232,10 @@ def default_ml1m_transformation(raw_data_path: str, **kwargs):
         >> ops.JoinExternal(movies, on=["movieId"])
         >> ops.JoinExternal(users, on=["userId"])
     )
-    cat_features = joined >> ops.Categorify(dtype="int32")
+
+    cat = lambda: nvt.ops.Categorify(dtype="int32")  # noqa
+
+    cat_features = joined >> cat()
     label = nvt.ColumnSelector(["rating"])
 
     # Columns to apply to
@@ -250,7 +253,7 @@ def default_ml1m_transformation(raw_data_path: str, **kwargs):
     # )
     feats_item = cat_features["movieId"] >> ops.AddMetadata(tags=["item_id", "item"])
     feats_userId = cat_features["userId"] >> ops.AddMetadata(tags=["user_id", "user"])
-    feats_genres = cat_features["genres"] >> ops.AddMetadata(tags=["item"])
+    feats_genres = cat_features["genres"] >> ops.ValueCount() >> ops.TagAsItemFeatures()
     feats_te_user = (
         te_features_norm[
             [
@@ -388,18 +391,11 @@ def default_ml100k_transformation(raw_data_path: str, **kwargs):
     train.to_parquet(os.path.join(raw_data_path, "train.parquet"))
     valid.to_parquet(os.path.join(raw_data_path, "valid.parquet"))
 
-    cat_features = [
-        "userId",
-        "movieId",
-        "gender",
-        "occupation",
-        "zip_code",
-        "genres",
-    ] >> nvt.ops.Categorify(dtype="int32")
+    cat = lambda: nvt.ops.Categorify(dtype="int32")  # noqa
 
     cont_names = ["age"]
     boundaries = {"age": [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]}
-    age_bucket = cont_names >> ops.Bucketize(boundaries) >> ops.AddMetadata(tags=["user"])
+    age_bucket = cont_names >> ops.Bucketize(boundaries) >> cat() >> ops.AddMetadata(tags=["user"])
 
     label = nvt.ColumnSelector(["rating"])
 
@@ -413,10 +409,10 @@ def default_ml100k_transformation(raw_data_path: str, **kwargs):
         ["userId"] >> ops.JoinGroupby(cont_cols=["movieId"], stats=["count"]) >> ops.LogOp()
     )
 
-    feats_item = cat_features["movieId"] >> ops.AddMetadata(tags=["item_id", "item"])
-    feats_user = cat_features["userId"] >> ops.AddMetadata(tags=["user_id", "user"])
-    feats_genres = cat_features["genres"] >> ops.AddMetadata(tags=["item"])
-    user_features = cat_features["gender", "zip_code"] >> ops.AddMetadata(tags=["user"])
+    feats_item = ["movieId"] >> cat() >> ops.TagAsItemID()
+    feats_user = ["userId"] >> cat() >> ops.TagAsUserID()
+    feats_genres = ["genres"] >> cat() >> ops.ValueCount() >> ops.TagAsItemFeatures()
+    user_features = ["gender", "zip_code"] >> cat() >> ops.TagAsUserFeatures()
 
     feats_target = (
         nvt.ColumnSelector(["rating"])

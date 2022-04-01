@@ -22,7 +22,7 @@ def test_movielens_25m_data():
 
     assert isinstance(dataset, merlin.io.Dataset)
     assert dataset.num_rows == 100
-    assert len(dataset.schema) == 19
+    assert len(dataset.schema) == 8
 
 
 def test_movielens_1m_data():
@@ -38,14 +38,15 @@ def test_movielens_100k_data():
 
     assert isinstance(dataset, merlin.io.Dataset)
     assert dataset.num_rows == 100
-    assert len(dataset.schema) == 19
+    assert len(dataset.schema) == 11
 
 
 @pytest.mark.skipif(
     MAYBE_DATA_DIR is None,
     reason="No data-dir available, pass it through env variable $INPUT_DATA_DIR",
 )
-@pytest.mark.parametrize("variant", ["ml-25m", "ml-1m", "ml-100k"])
+# @pytest.mark.parametrize("variant", ["ml-25m", "ml-1m", "ml-100k"])
+@pytest.mark.parametrize("variant", ["ml-1m"])
 def test_get_movielens(tmp_path, variant):
     data_path = os.path.join(MAYBE_DATA_DIR, "movielens")
 
