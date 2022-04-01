@@ -50,6 +50,42 @@ def generate_data(
     max_session_length=None,
     device="cpu",
 ) -> merlin.io.Dataset:
+    """
+    Generate synthetic data from a schema or one of the known datasets.
+
+    Known fully synthetic datasets:
+    - e-commerce
+    - e-commerce-large
+    - music-streaming
+    - social
+    - testing
+    - sequence-testing
+
+    Based on real datasets:
+    - criteo
+    - aliccp
+    - aliccp-raw
+
+
+    Parameters
+    ----------
+    input: Union[Schema, Path, str]
+        The schema, path to a dataset or name of a known dataset.
+    num_rows: int
+        The number of rows to generate.
+    min_session_length: int
+        The minimum number of events in a session.
+    max_session_length: int
+        The maximum number of events in a session.
+    device: str
+        The device to use for the data generation.
+        Supported values: {'cpu', 'gpu'}
+
+    Returns
+    -------
+    merlin.io.Dataset
+    """
+
     schema: Schema
     if isinstance(input, str):
         if input in KNOWN_DATASETS:
@@ -58,7 +94,7 @@ def generate_data(
             closest_match = difflib.get_close_matches(input, KNOWN_DATASETS.keys(), n=1)
             raise ValueError(f"Unknown dataset {input}, did you mean: {closest_match[0]}?")
 
-        schema = get_schema(input)
+        schema = _get_schema(input)
     elif isinstance(input, Schema):
         schema = input
     else:
@@ -69,22 +105,6 @@ def generate_data(
     )
 
     return merlin.io.Dataset(data, schema=schema)
-
-
-def get_schema(path: Union[str, Path]) -> Schema:
-    path = str(path)
-    if os.path.isdir(path):
-        if os.path.exists(os.path.join(path, "schema.json")):
-            path = os.path.join(path, "schema.json")
-        else:
-            path = os.path.join(path, "schema.pbtxt")
-
-    if path.endswith(".pb") or path.endswith(".pbtxt"):
-        return TensorflowMetadata.from_proto_text_file(
-            os.path.dirname(path), os.path.basename(path)
-        ).to_merlin_schema()
-
-    return schema_utils.tensorflow_metadata_json_to_schema(path)
 
 
 def generate_user_item_interactions(
@@ -340,3 +360,19 @@ def generate_random_list_feature(
                 feature.float_domain.max,
                 (num_interactions, list_length),
             ).tolist()
+
+
+def _get_schema(path: Union[str, Path]) -> Schema:
+    path = str(path)
+    if os.path.isdir(path):
+        if os.path.exists(os.path.join(path, "schema.json")):
+            path = os.path.join(path, "schema.json")
+        else:
+            path = os.path.join(path, "schema.pbtxt")
+
+    if path.endswith(".pb") or path.endswith(".pbtxt"):
+        return TensorflowMetadata.from_proto_text_file(
+            os.path.dirname(path), os.path.basename(path)
+        ).to_merlin_schema()
+
+    return schema_utils.tensorflow_metadata_json_to_schema(path)

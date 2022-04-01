@@ -1,27 +1,43 @@
+from pathlib import Path
+from typing import List, Optional, Union
+
 import numpy as np
-import nvtabular as nvt
+
+from merlin.io import Dataset
 
 
-def workflow_fit_transform(outputs, train_path, valid_path, output_path, workflow_name=None):
+def workflow_fit_transform(
+    outputs,
+    train: Union[str, Path, List[str], Dataset],
+    valid: Union[str, Path, List[str], Dataset],
+    output_path: Union[str, Path],
+    workflow_name: Optional[str] = None,
+    save_workflow: bool = True,
+):
     """fits and transforms datasets applying NVT workflow"""
+    import nvtabular as nvt
+
     if not isinstance(outputs, nvt.Workflow):
         workflow = nvt.Workflow(outputs)
     else:
         workflow = outputs
 
-    train_dataset = nvt.Dataset(train_path)
-    valid_dataset = nvt.Dataset(valid_path)
+    _train = train if isinstance(train, Dataset) else Dataset(train)
+    _valid = valid if isinstance(valid, Dataset) else Dataset(valid)
 
-    workflow.fit(train_dataset)
-    workflow.transform(train_dataset).to_parquet(output_path + "/train/")
-    workflow.transform(valid_dataset).to_parquet(output_path + "/valid/")
+    train_path, valid_path = Path(output_path) / "train", Path(output_path) / "valid"
+    if train_path.exists():
+        train_path.rmdir()
+    if valid_path.exists():
+        valid_path.rmdir()
 
-    if workflow_name is None:
-        workflow_name = "workflow"
-    else:
-        workflow_name = workflow_name
-    # save workflow to the pwd
-    workflow.save(workflow_name)
+    workflow.fit(_train)
+    workflow.transform(_train).to_parquet(str(train_path))
+    workflow.transform(_valid).to_parquet(str(valid_path))
+
+    if save_workflow:
+        _name = workflow_name if workflow_name else "workflow"
+        workflow.save(_name)
 
 
 def save_results(model_name, model):
