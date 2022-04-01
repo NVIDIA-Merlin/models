@@ -39,7 +39,7 @@ feature {
   type: INT
   annotation {
     tag: "target"
-    tag: "Tags.BINARY_CLASSIFICATION"
+    tag: "binary_classification"
     extra_metadata {
       type_url: "type.googleapis.com/google.protobuf.Struct"
       value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000"
