@@ -18,7 +18,7 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
-from merlin.models.utils.schema_utils import create_categorical_column
+from merlin.models.utils.schema_utils import create_categorical_column, create_continuous_column
 from merlin.schema import Schema, Tags
 
 
@@ -159,6 +159,7 @@ def test_categorical_one_hot_encoding():
             create_categorical_column("cat1", num_items=200, tags=[Tags.CATEGORICAL]),
             create_categorical_column("cat2", num_items=1000, tags=[Tags.CATEGORICAL]),
             create_categorical_column("cat3", num_items=50, tags=[Tags.CATEGORICAL]),
+            create_continuous_column("cont1", min_value=0, max_value=1, tags=[Tags.CONTINUOUS]),
         ]
     )
 
@@ -169,6 +170,7 @@ def test_categorical_one_hot_encoding():
     inputs["cat3"] = tf.random.uniform(
         (NUM_ROWS, MAX_LEN), minval=1, maxval=cardinalities["cat3"], dtype=tf.int32
     )
+    inputs["cont1"] = tf.random.uniform((NUM_ROWS, 1), minval=0, maxval=1, dtype=tf.float32)
 
     outputs = ml.CategoricalOneHot(schema=s)(inputs)
 
@@ -177,3 +179,4 @@ def test_categorical_one_hot_encoding():
     assert list(outputs["cat3"].shape) == [NUM_ROWS, MAX_LEN, 51]
 
     assert inputs["cat1"][0].numpy() == tf.where(outputs["cat1"][0, :] == 1).numpy()[0]
+    assert list(outputs.keys()) == ["cat1", "cat2", "cat3"]
