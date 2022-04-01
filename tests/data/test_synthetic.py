@@ -29,38 +29,6 @@ def test_synthetic_sequence_testing_data():
     assert len(dataset.schema) == 11
 
 
-def test_synthetic_music_data():
-    dataset = generate_data("music-streaming", 100)
-
-    assert isinstance(dataset, Dataset)
-    assert dataset.num_rows == 100
-    assert len(dataset.schema) == 13
-
-
-def test_synthetic_criteo_data():
-    dataset = generate_data("criteo", 100)
-
-    assert isinstance(dataset, Dataset)
-    assert dataset.num_rows == 100
-    assert len(dataset.schema) == 40
-
-
-def test_synthetic_aliccp_data():
-    dataset = generate_data("aliccp", 100)
-
-    assert isinstance(dataset, Dataset)
-    assert dataset.num_rows == 100
-    assert len(dataset.schema) == 19
-
-
-def test_synthetic_aliccp_raw_data():
-    dataset = generate_data("aliccp-raw", 100)
-
-    assert isinstance(dataset, Dataset)
-    assert dataset.num_rows == 100
-    assert len(dataset.schema) == 10
-
-
 def test_tf_tensors_generation_cpu():
     tf = pytest.importorskip("tensorflow")
     data = generate_data("testing", num_rows=100, min_session_length=5, max_session_length=50)

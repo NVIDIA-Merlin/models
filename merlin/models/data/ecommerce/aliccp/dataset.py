@@ -160,7 +160,7 @@ def prepare_alliccp(
     return data_dir
 
 
-def default_aliccp_transformation(add_target_encoding=True):
+def default_aliccp_transformation(add_target_encoding=True, **kwargs):
     import nvtabular as nvt
     from nvtabular import ops as nvt_ops
 
@@ -210,7 +210,7 @@ def default_aliccp_transformation(add_target_encoding=True):
 def transform_aliccp(
     raw_data_path: Union[str, Path], output_path: Union[str, Path], nvt_workflow=None
 ):
-    nvt_workflow = nvt_workflow or default_aliccp_transformation()
+    nvt_workflow = nvt_workflow or default_aliccp_transformation(**locals())
 
     workflow_fit_transform(
         nvt_workflow,

@@ -4,9 +4,26 @@ import pytest
 
 import merlin.io
 from merlin.models.data.ecommerce import aliccp
+from merlin.models.data.synthetic import generate_data
 
 # This is the path to the raw ali-ccp dataset
 MAYBE_ALICCP_DATA = os.environ.get("DATA_PATH_ALICCP", None)
+
+
+def test_synthetic_aliccp_data():
+    dataset = generate_data("aliccp", 100)
+
+    assert isinstance(dataset, merlin.io.Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 19
+
+
+def test_synthetic_aliccp_raw_data():
+    dataset = generate_data("aliccp-raw", 100)
+
+    assert isinstance(dataset, merlin.io.Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 10
 
 
 @pytest.mark.skipif(

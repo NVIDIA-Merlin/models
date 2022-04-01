@@ -4,9 +4,17 @@ import pytest
 
 import merlin.io
 from merlin.models.data.advertising.criteo import get_criteo
+from merlin.models.data.synthetic import generate_data
 
-# This is the path to the raw ali-ccp dataset
 MAYBE_DATA_DIR = os.environ.get("INPUT_DATA_DIR", None)
+
+
+def test_synthetic_criteo_data():
+    dataset = generate_data("criteo", 100)
+
+    assert isinstance(dataset, merlin.io.Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 40
 
 
 @pytest.mark.skipif(

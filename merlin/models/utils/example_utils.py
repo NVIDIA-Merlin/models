@@ -30,7 +30,7 @@ def workflow_fit_transform(
     if train_path.exists():
         shutil.rmtree(train_path)
     if valid_path.exists():
-        shutil.rmtree(train_path)
+        shutil.rmtree(valid_path)
 
     workflow.fit(_train)
     workflow.transform(_train).to_parquet(str(train_path))

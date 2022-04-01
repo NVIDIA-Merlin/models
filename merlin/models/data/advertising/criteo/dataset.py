@@ -169,7 +169,7 @@ def prepare_criteo(
     return output_path
 
 
-def default_criteo_transform(num_buckets=10000000) -> Workflow:
+def default_criteo_transform(num_buckets=10000000, **kwargs) -> Workflow:
     from nvtabular import ops as nvt_ops
 
     continuous = ["I" + str(x) for x in range(1, 14)]
@@ -197,7 +197,7 @@ def transform_criteo(
     workflow: Optional[Workflow] = None,
     num_buckets=10000000,
 ):
-    workflow = workflow or default_criteo_transform(num_buckets=num_buckets)
+    workflow = workflow or default_criteo_transform(**locals())
     file_list = glob.glob(os.path.join(str(raw_data_path), "day_*[!.gz]"))
     workflow_fit_transform(
         workflow,
