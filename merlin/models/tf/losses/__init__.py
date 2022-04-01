@@ -17,7 +17,6 @@
 from merlin.models.tf.losses.base import LossType, loss_registry
 from merlin.models.tf.losses.listwise import CategoricalCrossEntropy, SparseCategoricalCrossEntropy
 from merlin.models.tf.losses.pairwise import (
-    AdaptiveHingeLoss,
     BPRLoss,
     BPRmaxLoss,
     HingeLoss,
@@ -30,7 +29,6 @@ from merlin.models.tf.losses.pairwise import (
 __all__ = [
     "CategoricalCrossEntropy",
     "SparseCategoricalCrossEntropy",
-    "AdaptiveHingeLoss",
     "BPRLoss",
     "BPRmaxLoss",
     "HingeLoss",

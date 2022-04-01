@@ -38,8 +38,6 @@ import merlin.models.tf as ml
         ml.losses.LogisticLoss(),
         "hinge",
         ml.losses.HingeLoss(),
-        "adaptive_hinge",
-        ml.losses.AdaptiveHingeLoss(),
         # Listwise losses
         "sparse_categorical_crossentropy",
         "categorical_crossentropy",
