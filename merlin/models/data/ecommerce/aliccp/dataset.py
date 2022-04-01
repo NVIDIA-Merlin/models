@@ -189,7 +189,7 @@ def default_aliccp_transformation(add_target_encoding=True, **kwargs):
     )
 
     targets = ["click", "conversion"] >> nvt_ops.AddMetadata(
-        tags=[str(Tags.BINARY_CLASSIFICATION), "target"]
+        tags=[Tags.BINARY_CLASSIFICATION, "target"]
     )
     outputs = user_id + item_id + item_features + user_features + targets
 
@@ -406,7 +406,7 @@ def _raw_transform(raw_data_path: Union[str, Path], output_path: Union[str, Path
 
     user_id = ["user_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsUserID()
     item_id = ["item_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsItemID()
-    targets = ["click"] >> nvt_ops.AddMetadata(tags=[str(Tags.BINARY_CLASSIFICATION), "target"])
+    targets = ["click"] >> nvt_ops.AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, "target"])
 
     add_feat = [
         "user_item_categories",
