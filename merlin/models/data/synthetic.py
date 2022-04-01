@@ -300,14 +300,15 @@ def generate_conditional_features(
             ).astype(_array.int64)
 
         else:
-            if not feature.float_domain:
-                raise ValueError(
-                    "Float domain is required for conditional features, got {}".format(feature)
+            if feature.float_domain:
+                _min, _max = feature.float_domain.min, feature.float_domain.max
+            else:
+                logging.warning(
+                    "Couldn't find the float-domain for feature {}, assuming [0, 1]".format(feature)
                 )
+                _min, _max = 0.0, 1.0
 
-            data[feature.name] = _array.random.uniform(
-                feature.float_domain.min, feature.float_domain.max, num_interactions
-            )
+            data[feature.name] = _array.random.uniform(_min, _max, num_interactions)
 
     return data
 
