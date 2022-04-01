@@ -14,17 +14,97 @@
 # limitations under the License.
 #
 
-from typing import Tuple
+import abc
+from typing import Optional, Tuple
 
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
 
 from merlin.models.tf.losses.base import LossRegistryMixin
+from merlin.models.tf.utils.tf_utils import add_epsilon_to_zeros
 from merlin.models.utils.constants import MAX_FLOAT, MIN_FLOAT
+from merlin.models.utils.doc_utils import docstring_parameter
+
+PAIRWISE_LOSSES_COMPUTE_DOCSTRING = """Computes the loss
+
+        Parameters
+        ----------
+        positives_scores : tf.Tensor
+            Prediction scores for the positive items (batch size x 1)
+        negatives_scores : tf.Tensor
+            Prediction scores for the positive items (batch size x number negative samples)
+
+        Returns
+        -------
+        tf.Tensor (batch size x number negative samples)
+            Loss per negative sample
+        """
 
 
 class PairwiseLoss(Loss, LossRegistryMixin):
     """Base class for pairwise losses"""
+
+    def __call__(
+        self,
+        y_true: tf.Tensor,
+        y_pred: tf.Tensor,
+        sample_weight: tf.Tensor = None,
+        valid_negatives_mask: Optional[tf.Tensor] = None,
+    ):
+        self.valid_negatives_mask = valid_negatives_mask
+        # This will call the `call` method implemented by the super class.
+        loss = super().__call__(y_true, y_pred, sample_weight)
+        return loss
+
+    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
+        """Loss computation. In the end, it valid_negatives_mask is provided, it masks the loss
+        ensuring that false negative have zeroed loss.
+
+        Parameters
+        ----------
+        y_true : tf.Tensor
+            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
+        y_pred : tf.Tensor
+            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
+
+        Returns
+        -------
+        tf.Tensor
+            Loss per example
+        """
+        (
+            positives_scores,
+            negatives_scores,
+            valid_rows_with_positive_mask,
+        ) = self._separate_positives_negatives_scores(y_true, y_pred)
+        loss = self.compute(positives_scores, negatives_scores)
+        loss = self._mask_loss(loss, valid_rows_with_positive_mask)
+        return loss
+
+    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
+    @abc.abstractmethod
+    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
+        """
+        {pairwise_losses_compute_docstring}
+        """
+        raise NotImplementedError()
+
+    @property
+    def valid_negatives_mask(self) -> Optional[tf.Tensor]:
+        return self._valid_negatives_mask
+
+    @valid_negatives_mask.setter
+    def valid_negatives_mask(self, value: Optional[tf.Tensor]):
+        """Sets the valid_negatives_mask so that the loss can be
+        zeroed for false negatives (negative item equal to the positive item)
+
+        Parameters
+        ----------
+        value : tf.Tensor, optional
+            2D Boolean mask tensor matching the dims of `y_pred`, which is False only for positions
+            where the the negative item id is equal to the positive item id, by default None
+        """
+        self._valid_negatives_mask = value
 
     def _check_max_one_positive_label_per_example(self, y_true: tf.Tensor):
         """Checks if there is at most one positive label per example
@@ -41,9 +121,9 @@ class PairwiseLoss(Loss, LossRegistryMixin):
             " which is not supported by the pairwise losses.",
         )
 
-    def _get_positives_negatives_scores(
+    def _separate_positives_negatives_scores(
         self, y_true: tf.Tensor, y_pred: tf.Tensor
-    ) -> Tuple[tf.Tensor, tf.Tensor]:
+    ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
         """Extracts the positive item score (only one) and the negative item scores
 
         Parameters
@@ -55,8 +135,8 @@ class PairwiseLoss(Loss, LossRegistryMixin):
 
         Returns
         -------
-        Tuple[tf.Tensor, tf.Tensor]
-            Returns a tuple (positives_scores, negatives_scores)
+        Tuple[tf.Tensor, tf.Tensor, tf.Tensor]
+            Returns a tuple (positives_scores, negatives_scores, valid_rows_with_positive_mask)
         """
         y_pred = tf.convert_to_tensor(y_pred)
         y_true = tf.cast(y_true, y_pred.dtype)
@@ -102,7 +182,33 @@ class PairwiseLoss(Loss, LossRegistryMixin):
             negatives_small_scores, update_indices, negatives_scores
         )
 
-        return positives_scores_final, negatives_scores_final
+        return positives_scores_final, negatives_scores_final, valid_rows_with_positive_mask
+
+    def _mask_loss(self, loss: tf.Tensor, valid_rows_with_positive_mask: tf.Tensor) -> tf.Tensor:
+        """Sets the loss of false negatives to zero
+
+        Parameters
+        ----------
+        loss : tf.Tensor
+            Loss tensor
+        valid_rows_with_positive_mask: tf.Tensor
+            1D Boolean mask tensor indicating which row contains the positive example (True)
+            or not (False). If can be False during evaluation, as the loss is computed among
+            the topk and the positive item might not be among the top-k
+        valid_negatives_mask : tf.Tensor, optional
+            2D Boolean mask tensor matching the dims of `y_pred`, which is False only for positions
+            where the the negative item id is equal to the positive item id, by default None
+
+        Returns
+        -------
+        tf.Tensor
+            Loss with zeroed values for false negatives
+        """
+        # Setting to zero the loss of false negatives and of rows with no positive sample
+        loss = loss * tf.cast(valid_rows_with_positive_mask, dtype=loss.dtype)
+        if self.valid_negatives_mask is not None:
+            loss = loss * tf.cast(self.valid_negatives_mask, dtype=loss.dtype)
+        return loss
 
 
 @LossRegistryMixin.registry.register("bpr")
@@ -117,24 +223,13 @@ class BPRLoss(PairwiseLoss):
        Artificial Intelligence. https://arxiv.org/pdf/1205.2618.pdf
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-        """Loss computation
-
-        Parameters
-        ----------
-        y_true : tf.Tensor
-            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
-        y_pred : tf.Tensor
-            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
-
-        Returns
-        -------
-        tf.Tensor (batch size x 1)
-            Loss per example
+    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
+    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
         """
-        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        {pairwise_losses_compute_docstring}
+        """
         sub = positives_scores - negatives_scores
-        loss = -tf.math.log(tf.nn.sigmoid(sub))
+        loss = -tf.math.log(add_epsilon_to_zeros(tf.nn.sigmoid(sub)))
         return loss
 
 
@@ -161,26 +256,16 @@ class BPRmaxLoss(PairwiseLoss):
         super().__init__(**kwargs)
         self.reg_lambda = reg_lambda
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-        """Loss computation
-
-        Parameters
-        ----------
-        y_true : tf.Tensor
-            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
-        y_pred : tf.Tensor
-            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
-
-        Returns
-        -------
-        tf.Tensor (batch size x 1)
-            Loss per example
+    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
+    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
         """
-        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        {pairwise_losses_compute_docstring}
+        """
         sub = positives_scores - negatives_scores
         neg_softmax_weights = tf.nn.softmax(negatives_scores, axis=-1)
         reg = tf.square(negatives_scores) * neg_softmax_weights * self.reg_lambda
-        loss = -tf.math.log(tf.nn.sigmoid(sub) * neg_softmax_weights) + reg
+
+        loss = -tf.math.log(add_epsilon_to_zeros(tf.nn.sigmoid(sub) * neg_softmax_weights)) + reg
         return loss
 
 
@@ -196,22 +281,11 @@ class TOP1Loss(PairwiseLoss):
        Learning Representations (ICLR’16), 2016. https://arxiv.org/abs/1511.06939
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-        """Loss computation
-
-        Parameters
-        ----------
-        y_true : tf.Tensor
-            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
-        y_pred : tf.Tensor
-            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
-
-        Returns
-        -------
-        tf.Tensor (batch size x 1)
-            Loss per example
+    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
+    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
         """
-        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        {pairwise_losses_compute_docstring}
+        """
         sub = negatives_scores - positives_scores
         loss = tf.nn.sigmoid(sub) + tf.nn.sigmoid(tf.square(negatives_scores))
         return loss
@@ -230,22 +304,11 @@ class TOP1v2Loss(PairwiseLoss):
     .. [2] https://arxiv.org/abs/1511.06939
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-        """Loss computation
-
-        Parameters
-        ----------
-        y_true : tf.Tensor
-            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
-        y_pred : tf.Tensor
-            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
-
-        Returns
-        -------
-        tf.Tensor (batch size x 1)
-            Loss per example
+    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
+    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
         """
-        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        {pairwise_losses_compute_docstring}
+        """
         sub = negatives_scores - positives_scores
         loss = (
             tf.reduce_mean(
@@ -271,22 +334,11 @@ class TOP1maxLoss(PairwiseLoss):
        information and knowledge management. 2018. https://arxiv.org/abs/1706.03847
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-        """Loss computation
-
-        Parameters
-        ----------
-        y_true : tf.Tensor
-            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
-        y_pred : tf.Tensor
-            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
-
-        Returns
-        -------
-        tf.Tensor (batch size x 1)
-            Loss per example
+    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
+    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
         """
-        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        {pairwise_losses_compute_docstring}
+        """
         sub = negatives_scores - positives_scores
         neg_softmax_weights = tf.nn.softmax(negatives_scores, axis=-1)
         loss = (
@@ -308,25 +360,14 @@ class LogisticLoss(PairwiseLoss):
        systems. 2020.
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-        """Loss computation
-
-        Parameters
-        ----------
-        y_true : tf.Tensor
-            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
-        y_pred : tf.Tensor
-            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
-
-        Returns
-        -------
-        tf.Tensor (batch size x 1)
-            Loss per example
+    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
+    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
         """
-        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        {pairwise_losses_compute_docstring}
+        """
         sub = negatives_scores - positives_scores
         # Equivalent to log(1 + exp(sub))
-        loss = tf.nn.relu(sub) + tf.math.log1p(tf.math.exp(-tf.abs(sub)))
+        loss = tf.nn.relu(sub) + tf.math.log1p(add_epsilon_to_zeros(tf.math.exp(-tf.abs(sub))))
         return loss
 
 
@@ -343,22 +384,11 @@ class HingeLoss(PairwiseLoss):
        systems. 2020.
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-        """Loss computation
-
-        Parameters
-        ----------
-        y_true : tf.Tensor
-            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
-        y_pred : tf.Tensor
-            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
-
-        Returns
-        -------
-        tf.Tensor (batch size x 1)
-            Loss per example
+    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
+    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
         """
-        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        {pairwise_losses_compute_docstring}
+        """
         loss = tf.nn.relu(1 + negatives_scores - positives_scores)
         return loss
 
@@ -382,22 +412,11 @@ class AdaptiveHingeLoss(PairwiseLoss):
        Vol. 11. 2011
     """
 
-    def call(self, y_true: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
-        """Loss computation
-
-        Parameters
-        ----------
-        y_true : tf.Tensor
-            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)
-        y_pred : tf.Tensor
-            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)
-
-        Returns
-        -------
-        tf.Tensor (batch size x 1)
-            Loss per example
+    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
+    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
         """
-        positives_scores, negatives_scores = self._get_positives_negatives_scores(y_true, y_pred)
+        {pairwise_losses_compute_docstring}
+        """
         max_neg_scores = tf.reduce_max(negatives_scores, axis=-1, keepdims=True)
         loss = tf.nn.relu(1 + max_neg_scores - positives_scores)
         return loss

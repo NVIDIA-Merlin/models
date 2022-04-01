@@ -56,11 +56,6 @@ class RegressionTask(PredictionTask):
         )
         self.loss = loss_registry.parse(loss)
 
-    def _compute_loss(
-        self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
-    ) -> tf.Tensor:
-        return self.loss(targets, predictions, sample_weight=sample_weight)
-
     def call(self, inputs, training=False, **kwargs):
         return self.output_activation(self.logit(inputs))
 

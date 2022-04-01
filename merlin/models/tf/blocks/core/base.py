@@ -48,6 +48,35 @@ class PredictionOutput(NamedTuple):
     targets: Union[TabularData, tf.Tensor]
     positive_item_ids: Optional[tf.Tensor] = None
     label_relevant_counts: Optional[tf.Tensor] = None
+    valid_negatives_mask: Optional[tf.Tensor] = None
+
+    def copy_with_updates(
+        self,
+        predictions: Union[TabularData, tf.Tensor] = None,
+        targets: Union[TabularData, tf.Tensor] = None,
+        positive_item_ids: Optional[tf.Tensor] = None,
+        label_relevant_counts: Optional[tf.Tensor] = None,
+        valid_negatives_mask: Optional[tf.Tensor] = None,
+    ):
+        """Creates a new instance of PredictionOutput
+        allowing to override the attributes for the copy
+        """
+        output = PredictionOutput(
+            predictions=(self.predictions if predictions is None else predictions),
+            targets=(self.targets if targets is None else targets),
+            positive_item_ids=(
+                self.positive_item_ids if positive_item_ids is None else positive_item_ids
+            ),
+            label_relevant_counts=(
+                self.label_relevant_counts
+                if label_relevant_counts is None
+                else label_relevant_counts
+            ),
+            valid_negatives_mask=(
+                self.valid_negatives_mask if valid_negatives_mask is None else valid_negatives_mask
+            ),
+        )
+        return output
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

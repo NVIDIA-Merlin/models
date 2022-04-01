@@ -1,4 +1,4 @@
-import abc
+import inspect
 from collections import Sequence as SequenceCollection
 from collections import defaultdict
 from typing import Dict, List, Optional, Sequence, Text, Union
@@ -185,11 +185,19 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     def child_name(self, name):
         return name_fn(self.task_name, name)
 
-    @abc.abstractmethod
     def _compute_loss(
-        self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
+        self,
+        outputs: PredictionOutput,
+        sample_weight: tf.Tensor = None,
+        training: bool = False,
+        **kwargs,
     ) -> tf.Tensor:
-        raise NotImplementedError()
+        if "sample_weight" in inspect.signature(self.loss).parameters:
+            kwargs["sample_weight"] = sample_weight
+        if "valid_negatives_mask" in inspect.signature(self.loss).parameters:
+            kwargs["valid_negatives_mask"] = outputs.valid_negatives_mask
+
+        return self.loss(outputs.targets, outputs.predictions, **kwargs)
 
     def compute_loss(  # type: ignore
         self,
@@ -228,12 +236,17 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         if isinstance(predictions, dict) and self.target_name and self.task_name in predictions:
             predictions = predictions[self.task_name]
 
+        valid_negatives_mask = None
         if self.pre:
             outputs = self.pre_loss(
                 PredictionOutput(predictions, targets), training=training, **kwargs
             )
-            targets, predictions = outputs.targets, outputs.predictions
-            positive_item_ids = outputs.positive_item_ids
+            targets, predictions, positive_item_ids, valid_negatives_mask = (
+                outputs.targets,
+                outputs.predictions,
+                outputs.positive_item_ids,
+                outputs.valid_negatives_mask,
+            )
 
         if isinstance(targets, tf.Tensor) and len(targets.shape) == len(predictions.shape) - 1:
             predictions = tf.squeeze(predictions)
@@ -250,8 +263,11 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
                 outputs.predictions,
                 outputs.label_relevant_counts,
             )
+
         loss = self._compute_loss(
-            predictions, targets=targets, sample_weight=sample_weight, training=training
+            PredictionOutput(predictions, targets, valid_negatives_mask=valid_negatives_mask),
+            sample_weight=sample_weight,
+            training=training,
         )
 
         loss = tf.cond(
