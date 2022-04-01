@@ -391,32 +391,3 @@ class HingeLoss(PairwiseLoss):
         """
         loss = tf.nn.relu(1 + negatives_scores - positives_scores)
         return loss
-
-
-@LossRegistryMixin.registry.register("adaptive_hinge")
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class AdaptiveHingeLoss(PairwiseLoss):
-    """Adaptive hinge pairwise loss. Samples the highest
-    negative scores, as they are closer to violating the
-    expected ranking  where positives should be ranked higher.
-
-    Approximates the idea of Weighted Approximate-Rank Pairwise (WARP) loss [1],
-    inspired by
-    `Spotlight https://maciejkula.github.io/spotlight/losses.html#spotlight.losses.
-    adaptive_hinge_loss`_ implementation.
-
-    References
-    ----------
-    .. [1] Weston, Jason, Samy Bengio, and Nicolas Usunier. "Wsabie:
-       Scaling up to large vocabulary image annotation." IJCAI.
-       Vol. 11. 2011
-    """
-
-    @docstring_parameter(pairwise_losses_compute_docstring=PAIRWISE_LOSSES_COMPUTE_DOCSTRING)
-    def compute(self, positives_scores: tf.Tensor, negatives_scores: tf.Tensor) -> tf.Tensor:
-        """
-        {pairwise_losses_compute_docstring}
-        """
-        max_neg_scores = tf.reduce_max(negatives_scores, axis=-1, keepdims=True)
-        loss = tf.nn.relu(1 + max_neg_scores - positives_scores)
-        return loss
