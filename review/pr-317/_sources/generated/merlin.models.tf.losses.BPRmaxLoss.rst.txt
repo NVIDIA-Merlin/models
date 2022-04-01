@@ -15,6 +15,7 @@
    
       ~BPRmaxLoss.__init__
       ~BPRmaxLoss.call
+      ~BPRmaxLoss.compute
       ~BPRmaxLoss.from_config
       ~BPRmaxLoss.get_config
       ~BPRmaxLoss.parse
@@ -28,5 +29,6 @@
    .. autosummary::
    
       ~BPRmaxLoss.registry
+      ~BPRmaxLoss.valid_negatives_mask
    
    

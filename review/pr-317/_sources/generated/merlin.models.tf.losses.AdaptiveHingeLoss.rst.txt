@@ -15,6 +15,7 @@
    
       ~AdaptiveHingeLoss.__init__
       ~AdaptiveHingeLoss.call
+      ~AdaptiveHingeLoss.compute
       ~AdaptiveHingeLoss.from_config
       ~AdaptiveHingeLoss.get_config
       ~AdaptiveHingeLoss.parse
@@ -28,5 +29,6 @@
    .. autosummary::
    
       ~AdaptiveHingeLoss.registry
+      ~AdaptiveHingeLoss.valid_negatives_mask
    
    

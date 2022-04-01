@@ -81,17 +81,97 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.losses</span> <span class="kn">import</span> <span class="n">Loss</span>
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.losses.base</span> <span class="kn">import</span> <span class="n">LossRegistryMixin</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="n">add_epsilon_to_zeros</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils.constants</span> <span class="kn">import</span> <span class="n">MAX_FLOAT</span><span class="p">,</span> <span class="n">MIN_FLOAT</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils.doc_utils</span> <span class="kn">import</span> <span class="n">docstring_parameter</span>
+
+<span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;Computes the loss</span>
+
+<span class="s2">        Parameters</span>
+<span class="s2">        ----------</span>
+<span class="s2">        positives_scores : tf.Tensor</span>
+<span class="s2">            Prediction scores for the positive items (batch size x 1)</span>
+<span class="s2">        negatives_scores : tf.Tensor</span>
+<span class="s2">            Prediction scores for the positive items (batch size x number negative samples)</span>
+
+<span class="s2">        Returns</span>
+<span class="s2">        -------</span>
+<span class="s2">        tf.Tensor (batch size x number negative samples)</span>
+<span class="s2">            Loss per negative sample</span>
+<span class="s2">        &quot;&quot;&quot;</span>
 
 
 <span class="k">class</span> <span class="nc">PairwiseLoss</span><span class="p">(</span><span class="n">Loss</span><span class="p">,</span> <span class="n">LossRegistryMixin</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base class for pairwise losses&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sample_weight</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">valid_negatives_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">valid_negatives_mask</span> <span class="o">=</span> <span class="n">valid_negatives_mask</span>
+        <span class="c1"># This will call the `call` method implemented by the super class.</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">sample_weight</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss</span>
+
+    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Loss computation. In the end, it valid_negatives_mask is provided, it masks the loss</span>
+<span class="sd">        ensuring that false negative have zeroed loss.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        y_true : tf.Tensor</span>
+<span class="sd">            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
+<span class="sd">        y_pred : tf.Tensor</span>
+<span class="sd">            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.Tensor</span>
+<span class="sd">            Loss per example</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span>
+            <span class="n">positives_scores</span><span class="p">,</span>
+            <span class="n">negatives_scores</span><span class="p">,</span>
+            <span class="n">valid_rows_with_positive_mask</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_separate_positives_negatives_scores</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">positives_scores</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_loss</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">valid_rows_with_positive_mask</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss</span>
+
+    <span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">pairwise_losses_compute_docstring</span><span class="o">=</span><span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span><span class="p">)</span>
+    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        {pairwise_losses_compute_docstring}</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">valid_negatives_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_valid_negatives_mask</span>
+
+    <span class="nd">@valid_negatives_mask</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">valid_negatives_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the valid_negatives_mask so that the loss can be</span>
+<span class="sd">        zeroed for false negatives (negative item equal to the positive item)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        value : tf.Tensor, optional</span>
+<span class="sd">            2D Boolean mask tensor matching the dims of `y_pred`, which is False only for positions</span>
+<span class="sd">            where the the negative item id is equal to the positive item id, by default None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_valid_negatives_mask</span> <span class="o">=</span> <span class="n">value</span>
 
     <span class="k">def</span> <span class="nf">_check_max_one_positive_label_per_example</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Checks if there is at most one positive label per example</span>
@@ -108,9 +188,9 @@
             <span class="s2">&quot; which is not supported by the pairwise losses.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_positives_negatives_scores</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">_separate_positives_negatives_scores</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Extracts the positive item score (only one) and the negative item scores</span>
 
 <span class="sd">        Parameters</span>
@@ -122,8 +202,8 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        Tuple[tf.Tensor, tf.Tensor]</span>
-<span class="sd">            Returns a tuple (positives_scores, negatives_scores)</span>
+<span class="sd">        Tuple[tf.Tensor, tf.Tensor, tf.Tensor]</span>
+<span class="sd">            Returns a tuple (positives_scores, negatives_scores, valid_rows_with_positive_mask)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">y_pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">y_pred</span><span class="p">)</span>
         <span class="n">y_true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -169,7 +249,33 @@
             <span class="n">negatives_small_scores</span><span class="p">,</span> <span class="n">update_indices</span><span class="p">,</span> <span class="n">negatives_scores</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">positives_scores_final</span><span class="p">,</span> <span class="n">negatives_scores_final</span>
+        <span class="k">return</span> <span class="n">positives_scores_final</span><span class="p">,</span> <span class="n">negatives_scores_final</span><span class="p">,</span> <span class="n">valid_rows_with_positive_mask</span>
+
+    <span class="k">def</span> <span class="nf">_mask_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">valid_rows_with_positive_mask</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Sets the loss of false negatives to zero</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        loss : tf.Tensor</span>
+<span class="sd">            Loss tensor</span>
+<span class="sd">        valid_rows_with_positive_mask: tf.Tensor</span>
+<span class="sd">            1D Boolean mask tensor indicating which row contains the positive example (True)</span>
+<span class="sd">            or not (False). If can be False during evaluation, as the loss is computed among</span>
+<span class="sd">            the topk and the positive item might not be among the top-k</span>
+<span class="sd">        valid_negatives_mask : tf.Tensor, optional</span>
+<span class="sd">            2D Boolean mask tensor matching the dims of `y_pred`, which is False only for positions</span>
+<span class="sd">            where the the negative item id is equal to the positive item id, by default None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.Tensor</span>
+<span class="sd">            Loss with zeroed values for false negatives</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Setting to zero the loss of false negatives and of rows with no positive sample</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">valid_rows_with_positive_mask</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_negatives_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">valid_negatives_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss</span>
 
 
 <div class="viewcode-block" id="BPRLoss"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.BPRLoss.html#merlin.models.tf.losses.BPRLoss">[docs]</a><span class="nd">@LossRegistryMixin</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;bpr&quot;</span><span class="p">)</span>
@@ -184,24 +290,13 @@
 <span class="sd">       Artificial Intelligence. https://arxiv.org/pdf/1205.2618.pdf</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="BPRLoss.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.BPRLoss.html#merlin.models.tf.losses.BPRLoss.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Loss computation</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        y_true : tf.Tensor</span>
-<span class="sd">            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-<span class="sd">        y_pred : tf.Tensor</span>
-<span class="sd">            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tf.Tensor (batch size x 1)</span>
-<span class="sd">            Loss per example</span>
+<div class="viewcode-block" id="BPRLoss.compute"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.BPRLoss.html#merlin.models.tf.losses.BPRLoss.compute">[docs]</a>    <span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">pairwise_losses_compute_docstring</span><span class="o">=</span><span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        {pairwise_losses_compute_docstring}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">positives_scores</span><span class="p">,</span> <span class="n">negatives_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positives_negatives_scores</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
         <span class="n">sub</span> <span class="o">=</span> <span class="n">positives_scores</span> <span class="o">-</span> <span class="n">negatives_scores</span>
-        <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">sub</span><span class="p">))</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">add_epsilon_to_zeros</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">sub</span><span class="p">)))</span>
         <span class="k">return</span> <span class="n">loss</span></div></div>
 
 
@@ -228,26 +323,16 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reg_lambda</span> <span class="o">=</span> <span class="n">reg_lambda</span></div>
 
-<div class="viewcode-block" id="BPRmaxLoss.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.BPRmaxLoss.html#merlin.models.tf.losses.BPRmaxLoss.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Loss computation</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        y_true : tf.Tensor</span>
-<span class="sd">            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-<span class="sd">        y_pred : tf.Tensor</span>
-<span class="sd">            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tf.Tensor (batch size x 1)</span>
-<span class="sd">            Loss per example</span>
+<div class="viewcode-block" id="BPRmaxLoss.compute"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.BPRmaxLoss.html#merlin.models.tf.losses.BPRmaxLoss.compute">[docs]</a>    <span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">pairwise_losses_compute_docstring</span><span class="o">=</span><span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        {pairwise_losses_compute_docstring}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">positives_scores</span><span class="p">,</span> <span class="n">negatives_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positives_negatives_scores</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
         <span class="n">sub</span> <span class="o">=</span> <span class="n">positives_scores</span> <span class="o">-</span> <span class="n">negatives_scores</span>
         <span class="n">neg_softmax_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">negatives_scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">reg</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">negatives_scores</span><span class="p">)</span> <span class="o">*</span> <span class="n">neg_softmax_weights</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">reg_lambda</span>
-        <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="o">*</span> <span class="n">neg_softmax_weights</span><span class="p">)</span> <span class="o">+</span> <span class="n">reg</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">add_epsilon_to_zeros</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="o">*</span> <span class="n">neg_softmax_weights</span><span class="p">))</span> <span class="o">+</span> <span class="n">reg</span>
         <span class="k">return</span> <span class="n">loss</span></div></div>
 
 
@@ -263,22 +348,11 @@
 <span class="sd">       Learning Representations (ICLR’16), 2016. https://arxiv.org/abs/1511.06939</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="TOP1Loss.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.TOP1Loss.html#merlin.models.tf.losses.TOP1Loss.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Loss computation</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        y_true : tf.Tensor</span>
-<span class="sd">            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-<span class="sd">        y_pred : tf.Tensor</span>
-<span class="sd">            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tf.Tensor (batch size x 1)</span>
-<span class="sd">            Loss per example</span>
+<div class="viewcode-block" id="TOP1Loss.compute"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.TOP1Loss.html#merlin.models.tf.losses.TOP1Loss.compute">[docs]</a>    <span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">pairwise_losses_compute_docstring</span><span class="o">=</span><span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        {pairwise_losses_compute_docstring}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">positives_scores</span><span class="p">,</span> <span class="n">negatives_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positives_negatives_scores</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
         <span class="n">sub</span> <span class="o">=</span> <span class="n">negatives_scores</span> <span class="o">-</span> <span class="n">positives_scores</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">negatives_scores</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">loss</span></div></div>
@@ -297,22 +371,11 @@
 <span class="sd">    .. [2] https://arxiv.org/abs/1511.06939</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="TOP1v2Loss.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.TOP1v2Loss.html#merlin.models.tf.losses.TOP1v2Loss.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Loss computation</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        y_true : tf.Tensor</span>
-<span class="sd">            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-<span class="sd">        y_pred : tf.Tensor</span>
-<span class="sd">            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tf.Tensor (batch size x 1)</span>
-<span class="sd">            Loss per example</span>
+<div class="viewcode-block" id="TOP1v2Loss.compute"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.TOP1v2Loss.html#merlin.models.tf.losses.TOP1v2Loss.compute">[docs]</a>    <span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">pairwise_losses_compute_docstring</span><span class="o">=</span><span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        {pairwise_losses_compute_docstring}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">positives_scores</span><span class="p">,</span> <span class="n">negatives_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positives_negatives_scores</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
         <span class="n">sub</span> <span class="o">=</span> <span class="n">negatives_scores</span> <span class="o">-</span> <span class="n">positives_scores</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span>
@@ -338,22 +401,11 @@
 <span class="sd">       information and knowledge management. 2018. https://arxiv.org/abs/1706.03847</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="TOP1maxLoss.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.TOP1maxLoss.html#merlin.models.tf.losses.TOP1maxLoss.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Loss computation</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        y_true : tf.Tensor</span>
-<span class="sd">            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-<span class="sd">        y_pred : tf.Tensor</span>
-<span class="sd">            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tf.Tensor (batch size x 1)</span>
-<span class="sd">            Loss per example</span>
+<div class="viewcode-block" id="TOP1maxLoss.compute"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.TOP1maxLoss.html#merlin.models.tf.losses.TOP1maxLoss.compute">[docs]</a>    <span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">pairwise_losses_compute_docstring</span><span class="o">=</span><span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        {pairwise_losses_compute_docstring}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">positives_scores</span><span class="p">,</span> <span class="n">negatives_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positives_negatives_scores</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
         <span class="n">sub</span> <span class="o">=</span> <span class="n">negatives_scores</span> <span class="o">-</span> <span class="n">positives_scores</span>
         <span class="n">neg_softmax_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">negatives_scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="p">(</span>
@@ -375,25 +427,14 @@
 <span class="sd">       systems. 2020.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="LogisticLoss.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.LogisticLoss.html#merlin.models.tf.losses.LogisticLoss.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Loss computation</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        y_true : tf.Tensor</span>
-<span class="sd">            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-<span class="sd">        y_pred : tf.Tensor</span>
-<span class="sd">            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tf.Tensor (batch size x 1)</span>
-<span class="sd">            Loss per example</span>
+<div class="viewcode-block" id="LogisticLoss.compute"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.LogisticLoss.html#merlin.models.tf.losses.LogisticLoss.compute">[docs]</a>    <span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">pairwise_losses_compute_docstring</span><span class="o">=</span><span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        {pairwise_losses_compute_docstring}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">positives_scores</span><span class="p">,</span> <span class="n">negatives_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positives_negatives_scores</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
         <span class="n">sub</span> <span class="o">=</span> <span class="n">negatives_scores</span> <span class="o">-</span> <span class="n">positives_scores</span>
         <span class="c1"># Equivalent to log(1 + exp(sub))</span>
-        <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sub</span><span class="p">)))</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">add_epsilon_to_zeros</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">sub</span><span class="p">))))</span>
         <span class="k">return</span> <span class="n">loss</span></div></div>
 
 
@@ -410,22 +451,11 @@
 <span class="sd">       systems. 2020.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="HingeLoss.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.HingeLoss.html#merlin.models.tf.losses.HingeLoss.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Loss computation</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        y_true : tf.Tensor</span>
-<span class="sd">            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-<span class="sd">        y_pred : tf.Tensor</span>
-<span class="sd">            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tf.Tensor (batch size x 1)</span>
-<span class="sd">            Loss per example</span>
+<div class="viewcode-block" id="HingeLoss.compute"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.HingeLoss.html#merlin.models.tf.losses.HingeLoss.compute">[docs]</a>    <span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">pairwise_losses_compute_docstring</span><span class="o">=</span><span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        {pairwise_losses_compute_docstring}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">positives_scores</span><span class="p">,</span> <span class="n">negatives_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positives_negatives_scores</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">negatives_scores</span> <span class="o">-</span> <span class="n">positives_scores</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">loss</span></div></div>
 
@@ -449,22 +479,11 @@
 <span class="sd">       Vol. 11. 2011</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="AdaptiveHingeLoss.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.AdaptiveHingeLoss.html#merlin.models.tf.losses.AdaptiveHingeLoss.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Loss computation</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        y_true : tf.Tensor</span>
-<span class="sd">            Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-<span class="sd">        y_pred : tf.Tensor</span>
-<span class="sd">            Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        tf.Tensor (batch size x 1)</span>
-<span class="sd">            Loss per example</span>
+<div class="viewcode-block" id="AdaptiveHingeLoss.compute"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.losses.AdaptiveHingeLoss.html#merlin.models.tf.losses.AdaptiveHingeLoss.compute">[docs]</a>    <span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">pairwise_losses_compute_docstring</span><span class="o">=</span><span class="n">PAIRWISE_LOSSES_COMPUTE_DOCSTRING</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">positives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">negatives_scores</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        {pairwise_losses_compute_docstring}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">positives_scores</span><span class="p">,</span> <span class="n">negatives_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positives_negatives_scores</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
         <span class="n">max_neg_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">negatives_scores</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">max_neg_scores</span> <span class="o">-</span> <span class="n">positives_scores</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">loss</span></div></div>

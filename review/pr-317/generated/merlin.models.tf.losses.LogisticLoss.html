@@ -177,16 +177,19 @@ will raise an error. Please see this custom training [tutorial](</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.losses.LogisticLoss.__init__" title="merlin.models.tf.losses.LogisticLoss.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>([reduction, name])</p></td>
 <td><p>Initializes <cite>Loss</cite> class.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.losses.LogisticLoss.call" title="merlin.models.tf.losses.LogisticLoss.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(y_true, y_pred)</p></td>
-<td><p>Loss computation</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code>(y_true, y_pred)</p></td>
+<td><p>Loss computation.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.losses.LogisticLoss.compute" title="merlin.models.tf.losses.LogisticLoss.compute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute</span></code></a>(positives_scores, negatives_scores)</p></td>
+<td><p>Computes the loss</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
 <td><p>Instantiates a <cite>Loss</cite> from its config (output of <cite>get_config()</cite>).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
 <td><p>Returns the config dictionary for a <cite>Loss</cite> instance.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse</span></code>(class_or_str)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse</span></code>(class_or_str)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -201,24 +204,27 @@ will raise an error. Please see this custom training [tutorial](</p>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">registry</span></code></p></td>
 <td><p></p></td>
 </tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_negatives_mask</span></code></p></td>
+<td><p></p></td>
+</tr>
 </tbody>
 </table>
 <dl class="py method">
-<dt id="merlin.models.tf.losses.LogisticLoss.call">
-<code class="sig-name descname"><span class="pre">call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/losses/pairwise.html#LogisticLoss.call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.losses.LogisticLoss.call" title="Permalink to this definition"></a></dt>
-<dd><p>Loss computation</p>
+<dt id="merlin.models.tf.losses.LogisticLoss.compute">
+<code class="sig-name descname"><span class="pre">compute</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">positives_scores</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negatives_scores</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/losses/pairwise.html#LogisticLoss.compute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.losses.LogisticLoss.compute" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the loss</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>y_true</strong> (<em>tf.Tensor</em>) – Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</p></li>
-<li><p><strong>y_pred</strong> (<em>tf.Tensor</em>) – Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</p></li>
+<li><p><strong>positives_scores</strong> (<em>tf.Tensor</em>) – Prediction scores for the positive items (batch size x 1)</p></li>
+<li><p><strong>negatives_scores</strong> (<em>tf.Tensor</em>) – Prediction scores for the positive items (batch size x number negative samples)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Loss per example</p>
+<dd class="field-even"><p>Loss per negative sample</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>tf.Tensor (batch size x 1)</p>
+<dd class="field-odd"><p>tf.Tensor (batch size x number negative samples)</p>
 </dd>
 </dl>
 </dd></dl>
