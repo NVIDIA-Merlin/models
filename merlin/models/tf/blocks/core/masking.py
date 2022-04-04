@@ -383,4 +383,6 @@ class MaskingHead(Block):
         targets = self.context[self.item_id_feature_name]
         mask = self.context.get_mask()
         targets = tf.where(mask, targets, self.padding_idx)
-        return PredictionOutput(outputs.predictions, targets)
+        return outputs.copy_with_updates(
+            targets=targets,
+        )

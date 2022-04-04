@@ -69,11 +69,6 @@ class BinaryClassificationTask(PredictionTask):
         )
         self.loss = loss_registry.parse(loss)
 
-    def _compute_loss(
-        self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
-    ) -> tf.Tensor:
-        return self.loss(targets, predictions, sample_weight=sample_weight)
-
     def call(self, inputs, training=False, **kwargs):
         return self.output_activation(self.output_layer(inputs))
 
@@ -192,13 +187,6 @@ class MultiClassClassificationTask(PredictionTask):
             loss=loss,
             **kwargs,
         )
-
-    def _compute_loss(
-        self, predictions, targets, sample_weight=None, training: bool = False, **kwargs
-    ) -> tf.Tensor:
-        if getattr(self.loss, "sample_weight", None):
-            return self.loss(targets, predictions, sample_weight=sample_weight)
-        return self.loss(targets, predictions)
 
     def call(self, inputs, training=False, **kwargs):
         return inputs

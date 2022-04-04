@@ -131,7 +131,7 @@ class ItemRetrievalScorer(Block):
         self,
         samplers: Sequence[ItemSampler] = (),
         sampling_downscore_false_negatives=True,
-        sampling_downscore_false_negatives_value: int = MIN_FLOAT,
+        sampling_downscore_false_negatives_value: float = MIN_FLOAT,
         item_id_feature_name: str = "item_id",
         query_name: str = "query",
         item_name: str = "item",
@@ -272,6 +272,7 @@ class ItemRetrievalScorer(Block):
         """
         self._check_required_context_item_features_are_present()
         targets, predictions = outputs.targets, outputs.predictions
+        valid_negatives_mask = None
 
         if isinstance(targets, tf.Tensor):
             positive_item_ids = targets
@@ -340,7 +341,7 @@ class ItemRetrievalScorer(Block):
                 else:
                     neg_items_ids = tf.concat(neg_items_ids_list, axis=0)
 
-                negative_scores = rescore_false_negatives(
+                negative_scores, valid_negatives_mask = rescore_false_negatives(
                     positive_item_ids, neg_items_ids, negative_scores, self.false_negatives_score
                 )
 
@@ -363,7 +364,12 @@ class ItemRetrievalScorer(Block):
             ],
             axis=1,
         )
-        return PredictionOutput(predictions, targets, positive_item_ids=positive_item_ids)
+        return PredictionOutput(
+            predictions,
+            targets,
+            positive_item_ids=positive_item_ids,
+            valid_negatives_mask=valid_negatives_mask,
+        )
 
     def get_batch_items_metadata(self):
         result = {feat_name: self.context[feat_name] for feat_name in self._required_features}

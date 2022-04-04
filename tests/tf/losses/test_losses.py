@@ -38,8 +38,6 @@ import merlin.models.tf as ml
         ml.losses.LogisticLoss(),
         "hinge",
         ml.losses.HingeLoss(),
-        "adaptive_hinge",
-        ml.losses.AdaptiveHingeLoss(),
         # Listwise losses
         "sparse_categorical_crossentropy",
         "categorical_crossentropy",
@@ -65,7 +63,7 @@ def test_losses(loss):
     assert loss_output > 0
 
 
-def test_bpr_no_reduction():
+def test_pairwise_loss_no_reduction():
     batch_size = 100
     num_samples = 20
     predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
@@ -79,7 +77,7 @@ def test_bpr_no_reduction():
     assert tf.reduce_mean(loss) > 0
 
 
-def test_bpr_with_sample_weights():
+def test_pairwise_loss_with_sample_weights():
     batch_size = 100
     num_samples = 20
     predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
@@ -102,7 +100,7 @@ def test_bpr_with_sample_weights():
     )
 
 
-def test_bpr_multiple_positive():
+def test_pairwise_loss_multiple_positive():
     batch_size = 100
     num_samples = 20
     predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
@@ -114,4 +112,41 @@ def test_bpr_multiple_positive():
 
     with pytest.raises(Exception) as excinfo:
         _ = bpr(targets, predictions)
-    assert "Only one positive label is allowed per example" in str(excinfo.value)
+    assert "The batch contains more examples with more than one positive item" in str(excinfo.value)
+
+
+def test_pairwise_loss_some_rows_with_no_positive():
+    batch_size = 30
+    num_samples = 20
+    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
+
+    n_rows_without_positive = batch_size - num_samples
+    targets = tf.eye(num_rows=batch_size, num_columns=num_samples)
+
+    bpr = ml.losses.BPRLoss(reduction=tf.keras.losses.Reduction.NONE)
+    loss = bpr(targets, predictions)
+
+    tf.assert_equal(tf.shape(loss), (batch_size, num_samples - 1))
+    tf.assert_greater(tf.reduce_min(loss[:-n_rows_without_positive]), 0.0)
+    tf.assert_equal(tf.reduce_sum(loss[-n_rows_without_positive:]), 0.0)
+
+
+def test_pairwise_loss_with_false_negatives():
+    batch_size = 30
+    num_samples = 20
+    predictions = tf.random.uniform(shape=(batch_size, num_samples), dtype=tf.float32)
+    positives = tf.ones(shape=(batch_size, 1), dtype=tf.float32)
+    negatives = tf.zeros(shape=(batch_size, num_samples - 1), dtype=tf.float32)
+    targets = tf.concat([positives, negatives], axis=1)
+    valid_negatives_mask = tf.cast(
+        1.0 - tf.eye(num_rows=batch_size, num_columns=num_samples - 1), tf.bool
+    )
+
+    bpr = ml.losses.BPRLoss(reduction=tf.keras.losses.Reduction.NONE)
+    loss = bpr(targets, predictions, valid_negatives_mask=valid_negatives_mask)
+
+    tf.assert_equal(tf.shape(loss), (batch_size, num_samples - 1))
+    # Checks if the loss of false negatives are zero
+    tf.assert_equal(tf.reduce_sum(tf.boolean_mask(loss, tf.logical_not(valid_negatives_mask))), 0.0)
+    # Checks if the loss of true negatives are non-zero
+    tf.assert_greater(tf.reduce_min(tf.boolean_mask(loss, valid_negatives_mask)), 0.0)

@@ -389,7 +389,10 @@ class RemovePad3D(Block):
             predictions = tf.boolean_mask(
                 predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
             )
-        return PredictionOutput(predictions, targets)
+        return outputs.copy_with_updates(
+            predictions=predictions,
+            targets=targets,
+        )
 
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
@@ -440,7 +443,8 @@ class LogitsTemperatureScaler(Block):
         if training:
             assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
             predictions = predictions / self.temperature
-        return PredictionOutput(predictions, targets, outputs.positive_item_ids)
+
+        return outputs.copy_with_updates(predictions=predictions, targets=targets)
 
     def compute_output_shape(self, input_shape):
         return input_shape
@@ -551,4 +555,4 @@ class LabelToOneHot(Block):
         num_classes = tf.shape(predictions)[-1]
         targets = transform_label_to_onehot(targets, num_classes)
 
-        return PredictionOutput(predictions, targets, outputs.positive_item_ids)
+        return outputs.copy_with_updates(targets=targets)
