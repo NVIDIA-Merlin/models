@@ -212,7 +212,7 @@ def generate_user_item_interactions(
         _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
         1,
         item_id_col.int_domain.max,
-    ).astype(str(item_id_col.dtype))
+    ).astype(str(item_id_col.dtype)).tolist()
     features = list(schema.select_by_tag(Tags.ITEM).remove_by_tag(Tags.ITEM_ID))
     data = generate_conditional_features(
         data,

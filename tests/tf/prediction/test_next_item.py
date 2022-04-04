@@ -239,7 +239,7 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     model = two_tower.connect(
         ml.ItemRetrievalTask(
-            music_streaming_data._schema,
+            music_streaming_data.schema,
             logits_temperature=2,
             samplers=samplers,
             loss="bpr",
@@ -286,7 +286,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
         ),
     ]
     task = ml.ItemRetrievalTask(
-        ecommerce_data._schema,
+        ecommerce_data.schema,
         logits_temperature=2,
         samplers=samplers,
     )
