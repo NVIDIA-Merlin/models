@@ -385,7 +385,10 @@ class ItemRetrievalScorer(Block):
             num_classes = tf.shape(predictions)[-1]
             targets_one_hot = tf.one_hot(tf.reshape(targets, (-1,)), num_classes)
             return PredictionOutput(
-                predictions, targets_one_hot, positive_item_ids=positive_item_ids, valid_negatives_mask=valid_negatives_mask,
+                predictions,
+                targets_one_hot,
+                positive_item_ids=positive_item_ids,
+                valid_negatives_mask=valid_negatives_mask,
             )
         else:
             # Positives in the first column and negatives in the subsequent columns
@@ -400,12 +403,11 @@ class ItemRetrievalScorer(Block):
                 axis=1,
             )
             return PredictionOutput(
-            predictions,
-            targets,
-            positive_item_ids=positive_item_ids,
-            valid_negatives_mask=valid_negatives_mask,
-        )
-
+                predictions,
+                targets,
+                positive_item_ids=positive_item_ids,
+                valid_negatives_mask=valid_negatives_mask,
+            )
 
     def get_logits_for_sampled_softmax(self, inputs):
         if not isinstance(inputs, tf.Tensor):
