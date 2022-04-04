@@ -208,11 +208,15 @@ def generate_user_item_interactions(
         shape = num_interactions
     else:
         shape = (num_interactions, item_id_col.value_count.max)  # type: ignore
-    data[item_id_col.name] = _array.clip(
+    tmp = _array.clip(
         _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
         1,
         item_id_col.int_domain.max,
-    ).astype(str(item_id_col.dtype)).tolist()
+    ).astype(str(item_id_col.dtype))
+    if isinstance(shape, int):
+        data[item_id_col.name] = tmp
+    else:
+        data[item_id_col.name] = list(tmp)
     features = list(schema.select_by_tag(Tags.ITEM).remove_by_tag(Tags.ITEM_ID))
     data = generate_conditional_features(
         data,
@@ -340,13 +344,13 @@ def generate_random_list_feature(
                         constant_values=0,
                     )
                 )
-            return _array.stack(padded_array, axis=0).tolist()
+            return list(_array.stack(padded_array, axis=0))
         else:
             list_length = feature.value_count.max
-            return (
-                _array.random.randint(1, feature.int_domain.max, (num_interactions, list_length))
-                .astype(str(feature.dtype))
-                .tolist()
+            return list(
+                _array.random.randint(
+                    1, feature.int_domain.max, (num_interactions, list_length)
+                ).astype(str(feature.dtype))
             )
     else:
         if max_session_length:
@@ -364,14 +368,16 @@ def generate_random_list_feature(
                         constant_values=0,
                     )
                 )
-            return _array.stack(padded_array, axis=0).tolist()
+            return list(_array.stack(padded_array, axis=0))
         else:
             list_length = feature.value_count.max
-            return _array.random.uniform(
-                feature.float_domain.min,
-                feature.float_domain.max,
-                (num_interactions, list_length),
-            ).tolist()
+            return list(
+                _array.random.uniform(
+                    feature.float_domain.min,
+                    feature.float_domain.max,
+                    (num_interactions, list_length),
+                )
+            )
 
 
 def _get_schema(path: Union[str, Path]) -> Schema:
