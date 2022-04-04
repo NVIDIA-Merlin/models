@@ -50,9 +50,11 @@ class TowerBlock(ModelBlock):
 
 class RetrievalMixin:
     def query_block(self) -> TowerBlock:
+        """Method to return the query tower from a RetrievalModel instance"""
         raise NotImplementedError()
 
     def item_block(self) -> TowerBlock:
+        """Method to return the item tower from a RetrievalModel instance"""
         raise NotImplementedError()
 
 
@@ -149,6 +151,10 @@ class ItemRetrievalScorer(Block):
         Identify query tower for query/user embeddings, by default 'query'
     item_name: str
         Identify item tower for item embeddings, by default'item'
+    cache_query: bool
+        Add query embeddings to the context block, by default False
+    sampled_softmax_mode: bool
+        Use sampled softmax for scoring, by default False
     """
 
     def __init__(
@@ -268,7 +274,7 @@ class ItemRetrievalScorer(Block):
             return inputs
 
         if self.sampled_softmax_mode:
-            return self.get_logits_for_sampled_softmax(inputs)
+            return self._get_logits_for_sampled_softmax(inputs)
 
         self._check_input_from_two_tower(inputs)
         positive_scores = tf.reduce_sum(
@@ -311,7 +317,7 @@ class ItemRetrievalScorer(Block):
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
 
             if self.sampled_softmax_mode:
-                predictions = self.prepare_query_item_vectors_for_sampled_softmax(
+                predictions = self._prepare_query_item_vectors_for_sampled_softmax(
                     predictions, targets
                 )
 
@@ -409,7 +415,7 @@ class ItemRetrievalScorer(Block):
                 valid_negatives_mask=valid_negatives_mask,
             )
 
-    def get_logits_for_sampled_softmax(self, inputs):
+    def _get_logits_for_sampled_softmax(self, inputs):
         if not isinstance(inputs, tf.Tensor):
             raise ValueError(
                 f"Inputs to the Sampled Softmax block should be tensors, got {type(inputs)}"
@@ -418,7 +424,7 @@ class ItemRetrievalScorer(Block):
         all_scores = tf.matmul(inputs, tf.transpose(embedding_table))
         return all_scores
 
-    def prepare_query_item_vectors_for_sampled_softmax(
+    def _prepare_query_item_vectors_for_sampled_softmax(
         self, predictions: tf.Tensor, targets: tf.Tensor
     ):
         # extract positive items embeddings
