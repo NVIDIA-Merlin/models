@@ -208,6 +208,7 @@ def transform_aliccp(
     data: Union[str, Path, Tuple[merlin.io.Dataset, merlin.io.Dataset]],
     output_path: Union[str, Path],
     nvt_workflow=None,
+    **kwargs,
 ):
     nvt_workflow = nvt_workflow or default_aliccp_transformation(**locals())
 
@@ -223,7 +224,7 @@ def transform_aliccp(
     else:
         raise ValueError("data must be a path or a tuple of train and valid datasets")
 
-    workflow_fit_transform(nvt_workflow, _train, _valid, str(output_path))
+    workflow_fit_transform(nvt_workflow, _train, _valid, str(output_path), **kwargs)
 
 
 @dataclass
