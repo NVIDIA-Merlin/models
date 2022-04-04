@@ -9,7 +9,7 @@ from merlin.schema import Tags
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
     model = mm.MatrixFactorizationModel(music_streaming_data.schema, dim=64)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -21,7 +21,7 @@ def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly, 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
     model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([512, 256]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -34,7 +34,7 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("loss", ["categorical_crossentropy", "bpr", "binary_crossentropy"])
 def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eagerly, loss):
-    ecommerce_data._schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
     metrics = [RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)]
     model = mm.TwoTowerModel(
