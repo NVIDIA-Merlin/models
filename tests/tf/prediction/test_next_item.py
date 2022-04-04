@@ -222,7 +222,7 @@ def test_retrieval_task_inbatch_cached_samplers(
     music_streaming_data: Dataset, run_eagerly, ignore_last_batch_on_sample
 ):
     batch_size = 100
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
     batch_inputs = ml.sample_batch(
@@ -269,7 +269,7 @@ def test_retrieval_task_inbatch_cached_samplers(
 def test_retrieval_task_inbatch_cached_samplers_fit(
     ecommerce_data: Dataset, run_eagerly, num_epochs=2
 ):
-    ecommerce_data._schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
     two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
     batch_size = 100
@@ -352,7 +352,7 @@ def test_retrieval_task_inbatch_default_sampler(
     music_streaming_data: Dataset, run_eagerly, ignore_last_batch_on_sample
 ):
     batch_size = 100
-    music_streaming_data._schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
     two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
     batch_inputs = ml.sample_batch(

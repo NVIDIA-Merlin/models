@@ -26,7 +26,7 @@ jobs:
           sudo apt-get install -y protobuf-compiler pandoc
       - name: Install Merlin dependencies
         run: |
-          pip install "pandas==1.3.5"
+          pip install "pandas>=1.2.0,<1.4.0dev0"
           pip install "NVTabular@git+https://github.com/NVIDIA-Merlin/NVTabular.git"
           pip install "merlin-core@git+https://github.com/NVIDIA-Merlin/core.git"
       - name: Install dependencies
