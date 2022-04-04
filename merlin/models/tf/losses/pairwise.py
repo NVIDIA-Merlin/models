@@ -310,14 +310,12 @@ class TOP1v2Loss(PairwiseLoss):
         {pairwise_losses_compute_docstring}
         """
         sub = negatives_scores - positives_scores
-        loss = (
-            tf.reduce_mean(
-                tf.nn.sigmoid(sub) + tf.nn.sigmoid(tf.square(negatives_scores)),
-                keepdims=True,
-                axis=-1,
-            )
-            - tf.nn.sigmoid(tf.square(positives_scores))
-            / tf.cast(tf.shape(negatives_scores)[1], tf.float32)
+        loss = tf.reduce_mean(
+            tf.nn.sigmoid(sub) + tf.nn.sigmoid(tf.square(negatives_scores)),
+            keepdims=True,
+            axis=-1,
+        ) - tf.nn.sigmoid(tf.square(positives_scores)) / tf.cast(
+            tf.shape(negatives_scores)[1], tf.float32
         )
         return loss
 
