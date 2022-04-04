@@ -19,12 +19,37 @@ def test_synthetic_aliccp_data():
     assert dataset.compute()["click"].sum() > 0
 
 
-def test_synthetic_aliccp_raw_data():
+def test_synthetic_aliccp_raw_data(tmp_path):
     dataset = generate_data("aliccp-raw", 100)
 
     assert isinstance(dataset, merlin.io.Dataset)
     assert dataset.num_rows == 100
-    assert len(dataset.schema) == 10
+    assert len(dataset.schema) == 18
+    assert sorted(dataset.to_ddf().compute().columns) == [
+        "click",
+        "conversion",
+        "item_brand",
+        "item_category",
+        "item_id",
+        "item_shop",
+        "user_age",
+        "user_brands",
+        "user_categories",
+        "user_consumption_2",
+        "user_gender",
+        "user_geography",
+        "user_group",
+        "user_id",
+        "user_intentions",
+        "user_is_occupied",
+        "user_profile",
+        "user_shops",
+    ]
+
+    aliccp.transform_aliccp((dataset, dataset), tmp_path)
+    output_files = list(tmp_path.glob("*/*"))
+
+    assert len(output_files) == 10
 
 
 @pytest.mark.skipif(
@@ -34,7 +59,10 @@ def test_synthetic_aliccp_raw_data():
 def test_get_alliccp():
     data_path = MAYBE_ALICCP_DATA
 
-    train, valid = aliccp.get_aliccp(data_path, overwrite=True)
+    nvt_workflow = aliccp.default_aliccp_transformation(add_target_encoding=False)
+    train, valid = aliccp.get_aliccp(
+        data_path, nvt_workflow=nvt_workflow, transformed_name="raw_transform", overwrite=True
+    )
 
     assert isinstance(train, merlin.io.Dataset)
     assert isinstance(valid, merlin.io.Dataset)

@@ -161,13 +161,13 @@ def default_aliccp_transformation(add_target_encoding=True, **kwargs):
     import nvtabular as nvt
     from nvtabular import ops as nvt_ops
 
-    user_id = ["user_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsUserID()
-    item_id = ["item_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsItemID()
+    cat = lambda: nvt_ops.Categorify(dtype="int32")  # noqa: E731
+
+    user_id = ["user_id"] >> cat() >> nvt_ops.TagAsUserID()
+    item_id = ["item_id"] >> cat() >> nvt_ops.TagAsItemID()
 
     item_features = (
-        ["item_category", "item_shop", "item_brand"]
-        >> nvt_ops.Categorify(dtype="int32")
-        >> nvt_ops.TagAsItemFeatures()
+        ["item_category", "item_shop", "item_brand"] >> cat() >> nvt_ops.TagAsItemFeatures()
     )
 
     user_features = (
@@ -184,7 +184,7 @@ def default_aliccp_transformation(add_target_encoding=True, **kwargs):
             "user_brands",
             "user_categories",
         ]
-        >> nvt_ops.Categorify(dtype="int32")
+        >> cat()
         >> nvt_ops.TagAsUserFeatures()
     )
 
@@ -205,16 +205,25 @@ def default_aliccp_transformation(add_target_encoding=True, **kwargs):
 
 
 def transform_aliccp(
-    raw_data_path: Union[str, Path], output_path: Union[str, Path], nvt_workflow=None
+    data: Union[str, Path, Tuple[merlin.io.Dataset, merlin.io.Dataset]],
+    output_path: Union[str, Path],
+    nvt_workflow=None,
 ):
     nvt_workflow = nvt_workflow or default_aliccp_transformation(**locals())
 
-    workflow_fit_transform(
-        nvt_workflow,
-        glob(os.path.join(raw_data_path, "train", "*.parquet")),
-        glob(os.path.join(raw_data_path, "test", "*.parquet")),
-        str(output_path),
-    )
+    if isinstance(data, (str, Path)):
+        _train = glob(str(data / "train/*.parquet"))
+        _valid = glob(str(data / "test/*.parquet"))
+    elif (
+        isinstance(data, tuple)
+        and len(data) == 2
+        and all(isinstance(x, merlin.io.Dataset) for x in data)
+    ):
+        _train, _valid = data
+    else:
+        raise ValueError("data must be a path or a tuple of train and valid datasets")
+
+    workflow_fit_transform(nvt_workflow, _train, _valid, str(output_path))
 
 
 @dataclass
@@ -399,30 +408,3 @@ def _convert_data(
     dtypes = {f.name: "int32" for f in _Features().features}
     merlin.io.Dataset(tmp_files, dtypes=dtypes).to_parquet(out_dir)
     shutil.rmtree(tmp_dir)
-
-
-def _raw_transform(raw_data_path: Union[str, Path], output_path: Union[str, Path]):
-    from nvtabular import ops as nvt_ops
-
-    user_id = ["user_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsUserID()
-    item_id = ["item_id"] >> nvt_ops.Categorify() >> nvt_ops.TagAsItemID()
-    targets = ["click"] >> nvt_ops.AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, "target"])
-
-    add_feat = [
-        "user_item_categories",
-        "user_item_shops",
-        "user_item_brands",
-        "user_item_intentions",
-        "item_category",
-        "item_shop",
-        "item_brand",
-    ] >> nvt_ops.Categorify()
-
-    outputs = user_id + item_id + targets + add_feat
-
-    workflow_fit_transform(
-        outputs,
-        glob(os.path.join(raw_data_path, "train", "train_*")),
-        glob(os.path.join(raw_data_path, "test", "test_*")),
-        str(output_path),
-    )

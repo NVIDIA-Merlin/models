@@ -164,7 +164,7 @@ def generate_user_item_interactions(
             _array.random.lognormal(3.0, 1.0, num_interactions).astype(_array.int32),
             1,
             session_id_col.int_domain.max,
-        ).astype(_array.int64)
+        ).astype(str(session_id_col.dtype))
 
         features = list(schema.select_by_tag(Tags.SESSION).remove_by_tag(Tags.SESSION_ID))
         data = generate_conditional_features(
@@ -185,7 +185,7 @@ def generate_user_item_interactions(
             _array.random.lognormal(3.0, 1.0, num_interactions).astype(_array.int32),
             1,
             user_id_col.int_domain.max,
-        ).astype(_array.int64)
+        ).astype(str(user_id_col.dtype))
         features = list(schema.select_by_tag(Tags.USER).remove_by_tag(Tags.USER_ID))
         data = generate_conditional_features(
             data,
@@ -208,15 +208,11 @@ def generate_user_item_interactions(
         shape = num_interactions
     else:
         shape = (num_interactions, item_id_col.value_count.max)  # type: ignore
-    data[item_id_col.name] = (
-        _array.clip(
-            _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
-            1,
-            item_id_col.int_domain.max,
-        )
-        .astype(_array.int64)
-        .tolist()
-    )
+    data[item_id_col.name] = _array.clip(
+        _array.random.lognormal(3.0, 1.0, shape).astype(_array.int32),
+        1,
+        item_id_col.int_domain.max,
+    ).astype(str(item_id_col.dtype))
     features = list(schema.select_by_tag(Tags.ITEM).remove_by_tag(Tags.ITEM_ID))
     data = generate_conditional_features(
         data,
@@ -232,7 +228,9 @@ def generate_user_item_interactions(
     remaining = schema.without(processed_cols)
 
     for feature in remaining.select_by_tag(Tags.BINARY_CLASSIFICATION):
-        data[feature.name] = _array.random.randint(0, 2, num_interactions).astype(_array.int64)
+        data[feature.name] = _array.random.randint(0, 2, num_interactions).astype(
+            str(feature.dtype)
+        )
 
     for feature in remaining.remove_by_tag(Tags.BINARY_CLASSIFICATION):
         is_int_feature = np.issubdtype(feature.dtype, np.integer)
@@ -247,8 +245,8 @@ def generate_user_item_interactions(
             min_value, max_value = (domain.min, domain.max) if domain else (0, 1)
 
             data[feature.name] = _array.random.randint(
-                min_value, max_value, num_interactions
-            ).astype(_array.int64)
+                min_value, max_value, num_interactions, dtype=str(feature.dtype)
+            )
 
         else:
             domain = feature.float_domain
@@ -297,7 +295,7 @@ def generate_conditional_features(
                 data[parent_feature.name],
                 feature.int_domain.max - 1,
                 labels=list(range(1, feature.int_domain.max)),
-            ).astype(_array.int64)
+            ).astype(str(feature.dtype))
 
         else:
             if feature.float_domain:
@@ -333,7 +331,7 @@ def generate_random_list_feature(
                 list_length = randint(min_session_length, max_session_length)
                 actual_values = _array.random.randint(
                     1, feature.int_domain.max, (list_length,)
-                ).astype(_array.int64)
+                ).astype(str(feature.dtype))
 
                 padded_array.append(
                     _array.pad(
@@ -347,7 +345,7 @@ def generate_random_list_feature(
             list_length = feature.value_count.max
             return (
                 _array.random.randint(1, feature.int_domain.max, (num_interactions, list_length))
-                .astype(_array.int64)
+                .astype(str(feature.dtype))
                 .tolist()
             )
     else:

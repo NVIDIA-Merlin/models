@@ -225,6 +225,7 @@ def transform_criteo(
     workflow: Optional[Workflow] = None,
     num_buckets=10000000,
     valid_num_days=1,
+    **kwargs,
 ):
     workflow = workflow or default_criteo_transform(**locals())
     file_list = glob.glob(os.path.join(str(raw_data_path), "day_*[!.gz]"))
