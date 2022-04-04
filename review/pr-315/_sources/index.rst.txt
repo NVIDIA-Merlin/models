@@ -1,12 +1,13 @@
-Welcome to Merlin Models documentation!
-============================================
+Merlin Models
+=============
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents
 
-   Getting Started <getting_started>
+   Introduction <README.md>
    models_overview
+   Example Notebooks <examples/README.rst>
    API Documentation <api>
 
 Indices and tables

@@ -35,8 +35,9 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption"><span class="caption-text">Contents</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../../../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../README.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../examples/README.html">Example Notebooks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../../api.html">API Documentation</a></li>
 </ul>
 
@@ -117,9 +118,11 @@
 
 <span class="k">class</span> <span class="nc">RetrievalMixin</span><span class="p">:</span>
     <span class="k">def</span> <span class="nf">query_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TowerBlock</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Method to retrieve the block related to the query tower&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">item_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TowerBlock</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Method to retrieve the block related to the item tower&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
 
 
@@ -179,9 +182,11 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="DualEncoderBlock.query_block"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock.query_block">[docs]</a>    <span class="k">def</span> <span class="nf">query_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TowerBlock</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return the query block&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_block</span></div>
 
 <div class="viewcode-block" id="DualEncoderBlock.item_block"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock.item_block">[docs]</a>    <span class="k">def</span> <span class="nf">item_block</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TowerBlock</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return the item block&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_item_block</span></div>
 
 <div class="viewcode-block" id="DualEncoderBlock.from_config"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.DualEncoderBlock.html#merlin.models.tf.DualEncoderBlock.from_config">[docs]</a>    <span class="nd">@classmethod</span>
@@ -216,13 +221,15 @@
 <span class="sd">        Identify query tower for query/user embeddings, by default &#39;query&#39;</span>
 <span class="sd">    item_name: str</span>
 <span class="sd">        Identify item tower for item embeddings, by default&#39;item&#39;</span>
+<span class="sd">    sampled_softmax_mode: bool</span>
+<span class="sd">        Use sampled softmax for scoring, by default False</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">samplers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ItemSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
         <span class="n">sampling_downscore_false_negatives</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">sampling_downscore_false_negatives_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MIN_FLOAT</span><span class="p">,</span>
+        <span class="n">sampling_downscore_false_negatives_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">MIN_FLOAT</span><span class="p">,</span>
         <span class="n">item_id_feature_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;item_id&quot;</span><span class="p">,</span>
         <span class="n">query_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;query&quot;</span><span class="p">,</span>
         <span class="n">item_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;item&quot;</span><span class="p">,</span>
@@ -270,6 +277,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">set_required_features</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add the features required by the samplers to the context of the class.&quot;&quot;&quot;</span>
         <span class="n">required_features</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downscore_false_negatives</span><span class="p">:</span>
             <span class="n">required_features</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">)</span>
@@ -335,7 +343,7 @@
             <span class="k">return</span> <span class="n">inputs</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampled_softmax_mode</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_logits_for_sampled_softmax</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_logits_for_sampled_softmax</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_input_from_two_tower</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
         <span class="n">positive_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
@@ -365,6 +373,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_required_context_item_features_are_present</span><span class="p">()</span>
         <span class="n">targets</span><span class="p">,</span> <span class="n">predictions</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">targets</span><span class="p">,</span> <span class="n">outputs</span><span class="o">.</span><span class="n">predictions</span>
+        <span class="n">valid_negatives_mask</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampled_softmax_mode</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
             <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">targets</span>
@@ -377,7 +386,7 @@
             <span class="p">),</span> <span class="s2">&quot;At least one sampler is required by ItemRetrievalScorer for negative sampling&quot;</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampled_softmax_mode</span><span class="p">:</span>
-                <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_query_item_vectors_for_sampled_softmax</span><span class="p">(</span>
+                <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_query_item_vectors_for_sampled_softmax</span><span class="p">(</span>
                     <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span>
                 <span class="p">)</span>
 
@@ -434,7 +443,7 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">neg_items_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">neg_items_ids_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-                <span class="n">negative_scores</span> <span class="o">=</span> <span class="n">rescore_false_negatives</span><span class="p">(</span>
+                <span class="n">negative_scores</span><span class="p">,</span> <span class="n">valid_negatives_mask</span> <span class="o">=</span> <span class="n">rescore_false_negatives</span><span class="p">(</span>
                     <span class="n">positive_item_ids</span><span class="p">,</span> <span class="n">neg_items_ids</span><span class="p">,</span> <span class="n">negative_scores</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">false_negatives_score</span>
                 <span class="p">)</span>
 
@@ -451,7 +460,10 @@
             <span class="n">num_classes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">predictions</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
             <span class="n">targets_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,)),</span> <span class="n">num_classes</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">PredictionOutput</span><span class="p">(</span>
-                <span class="n">predictions</span><span class="p">,</span> <span class="n">targets_one_hot</span><span class="p">,</span> <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span>
+                <span class="n">predictions</span><span class="p">,</span>
+                <span class="n">targets_one_hot</span><span class="p">,</span>
+                <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span><span class="p">,</span>
+                <span class="n">valid_negatives_mask</span><span class="o">=</span><span class="n">valid_negatives_mask</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Positives in the first column and negatives in the subsequent columns</span>
@@ -465,9 +477,14 @@
                 <span class="p">],</span>
                 <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="k">return</span> <span class="n">PredictionOutput</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">PredictionOutput</span><span class="p">(</span>
+                <span class="n">predictions</span><span class="p">,</span>
+                <span class="n">targets</span><span class="p">,</span>
+                <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span><span class="p">,</span>
+                <span class="n">valid_negatives_mask</span><span class="o">=</span><span class="n">valid_negatives_mask</span><span class="p">,</span>
+            <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">get_logits_for_sampled_softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_get_logits_for_sampled_softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Inputs to the Sampled Softmax block should be tensors, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -476,7 +493,7 @@
         <span class="n">all_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">embedding_table</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">all_scores</span>
 
-    <span class="k">def</span> <span class="nf">prepare_query_item_vectors_for_sampled_softmax</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">_prepare_query_item_vectors_for_sampled_softmax</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">predictions</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">):</span>
         <span class="c1"># extract positive items embeddings</span>

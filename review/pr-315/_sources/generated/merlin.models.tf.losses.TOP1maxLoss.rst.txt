@@ -15,6 +15,7 @@
    
       ~TOP1maxLoss.__init__
       ~TOP1maxLoss.call
+      ~TOP1maxLoss.compute
       ~TOP1maxLoss.from_config
       ~TOP1maxLoss.get_config
       ~TOP1maxLoss.parse
@@ -28,5 +29,6 @@
    .. autosummary::
    
       ~TOP1maxLoss.registry
+      ~TOP1maxLoss.valid_negatives_mask
    
    

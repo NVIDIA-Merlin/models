@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iterating over Deep Learning Models using Merlin Models &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API Documentation" href="../api.html" />
+    <link rel="prev" title="Applying to your own dataset with Merlin Models and NVTabular" href="02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="README.html">Example Notebooks</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="README.html#inventory">Inventory</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
+<li class="toctree-l3"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html">Applying to your own dataset with Merlin Models and NVTabular</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Iterating over Deep Learning Models using Merlin Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Learning-objectives">Learning objectives</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Importing-Libraries">Importing Libraries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Feature-Engineering-with-NVTabular">Feature Engineering with NVTabular</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Training-Recommender-Models">Training Recommender Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Initialize-Dataloaders">Initialize Dataloaders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#NCF-Model">NCF Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#MLP-Model">MLP Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#DLRM-Model">DLRM Model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#DCN-Model">DCN Model</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="README.html#running-the-example-notebooks">Running the Example Notebooks</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="README.html">Merlin Models Example Notebooks</a> &raquo;</li>
+      <li>Iterating over Deep Learning Models using Merlin Models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Copyright 2021 NVIDIA Corporation. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ================================
+</pre></div>
+</div>
+</div>
+<div class="section" id="Iterating-over-Deep-Learning-Models-using-Merlin-Models">
+<h1>Iterating over Deep Learning Models using Merlin Models<a class="headerlink" href="#Iterating-over-Deep-Learning-Models-using-Merlin-Models" title="Permalink to this headline"></a></h1>
+<p>In this example notebook, we use the Ali-CCP: Alibaba Click and Conversion Prediction dataset to build our recommender system models. To download the Ali-CCP training and test datasets visit <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. We have curated the raw dataset via this <a href="#id1"><span class="problematic" id="id2">`script &lt;&gt;`__</span></a> and generated the parquet files that we will use in this example. Note that the <code class="docutils literal notranslate"><span class="pre">Ali-CCP</span></code> dataset has <code class="docutils literal notranslate"><span class="pre">click</span></code> and <code class="docutils literal notranslate"><span class="pre">conversion</span></code> target columns but we only focus on
+building different ranking models with binary target column <code class="docutils literal notranslate"><span class="pre">click</span></code>.</p>
+<p>We’ll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.”</p>
+<div class="section" id="Learning-objectives">
+<h2>Learning objectives<a class="headerlink" href="#Learning-objectives" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>Preparing the data with NVTabular</p></li>
+<li><p>Training different deep learning-based recommender models with Merlin Models</p></li>
+</ul>
+</div>
+<div class="section" id="Importing-Libraries">
+<h2>Importing Libraries<a class="headerlink" href="#Importing-Libraries" title="Permalink to this headline"></a></h2>
+<p>Let’s start with importing the libraries that we’ll use in this notebook.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
+os.environ[&quot;TF_GPU_ALLOCATOR&quot;]=&quot;cuda_malloc_async&quot;
+import cudf
+import glob
+import gc
+
+import nvtabular as nvt
+from nvtabular.ops import *
+from merlin.models.utils.example_utils import workflow_fit_transform, save_results, create_bar_chart
+
+from merlin.schema.tags import Tags
+from merlin.schema import Schema
+
+import merlin.models.tf as mm
+import merlin.models.tf.dataset as tf_dataloader
+
+from merlin.io.dataset import Dataset
+from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
+from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
+
+import tensorflow as tf
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-25 18:07:15.703196: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2022-03-25 18:07:16.833264: I tensorflow/core/common_runtime/gpu/gpu_process_state.cc:214] Using CUDA malloc Async allocator for GPU: 0
+2022-03-25 18:07:16.833404: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Feature-Engineering-with-NVTabular">
+<h2>Feature Engineering with NVTabular<a class="headerlink" href="#Feature-Engineering-with-NVTabular" title="Permalink to this headline"></a></h2>
+<p>When we work on a new recommender systems, we explore the dataset, first. In doing so, we define our input and output paths. We will use the parquet files in the test folder to validate our trained model.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
+train_path = os.path.join(DATA_FOLDER, &#39;train&#39;, &#39;*.parquet&#39;)
+valid_path = os.path.join(DATA_FOLDER, &#39;test&#39;,&#39;*.parquet&#39;)
+output_path = &#39;/workspace/data/processed&#39;
+</pre></div>
+</div>
+</div>
+<p>Our dataset has only categorical features. Below, we create continuous features using target encoding (TE) technique. Target Encoding calculates the statistics from a target variable grouped by the unique values of one or more categorical features. For example, in a binary classification problem, TE calculates the conditional probability that the target is true for each category value- a simple mean. To learn more about TE, visit this <a class="reference external" href="https://medium.com/rapids-ai/target-encoding-with-rapids-cuml-do-more-with-your-categorical-data-8c762c79e784">medium
+blog</a>.</p>
+<p>We use a utility function, <code class="docutils literal notranslate"><span class="pre">workflow_fit_transform</span></code> perform to fit and transform steps on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, and also save our workflow model. After fit and transform, the processed parquet files are saved to <code class="docutils literal notranslate"><span class="pre">output_path</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+user_id = [&quot;user_id&quot;] &gt;&gt; Categorify(freq_threshold=5) &gt;&gt; TagAsUserID()
+item_id = [&quot;item_id&quot;] &gt;&gt; Categorify(freq_threshold=5) &gt;&gt; TagAsItemID()
+targets = [&quot;click&quot;] &gt;&gt; AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, &quot;target&quot;])
+
+add_feat = [&quot;user_item_categories&quot;, &quot;user_item_shops&quot;, &quot;user_item_brands&quot;, &quot;user_item_intentions&quot;,&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify()
+
+te_feat = (
+    [&quot;user_id&quot;, &quot;item_id&quot;] + add_feat &gt;&gt;
+    TargetEncoding(
+        [&#39;click&#39;],
+        kfold=1,
+        p_smooth=20
+    ) &gt;&gt;
+    Normalize()
+)
+
+outputs = user_id + item_id + targets + add_feat + te_feat
+
+# Remove rows where item_id==0 and user_id==0
+outputs = outputs&gt;&gt; Filter(f=lambda df: (df[&quot;item_id&quot;] != 0) &amp; (df[&quot;user_id&quot;] != 0))
+
+workflow_fit_transform(outputs, train_path, valid_path, output_path)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+  warnings.warn(
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 23.9 s, sys: 29 s, total: 52.9 s
+Wall time: 56.4 s
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Training-Recommender-Models">
+<h2>Training Recommender Models<a class="headerlink" href="#Training-Recommender-Models" title="Permalink to this headline"></a></h2>
+<p>NVTabular exported the schema file of our processed dataset. The <code class="docutils literal notranslate"><span class="pre">schema.pbtxt</span></code> is a protobuf text file contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to
+automatically build all necessary input and output layers.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># define schema object
+schema = TensorflowMetadata.from_proto_text_file(output_path + &#39;/train/&#39;).to_merlin_schema()
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>target_column = schema.select_by_tag(Tags.TARGET).column_names[0]
+target_column
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&#39;click&#39;
+</pre></div></div>
+</div>
+<p>We can print out all the features that are included in the <code class="docutils literal notranslate"><span class="pre">schema.pbtxt</span></code> file.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema.column_names
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;user_id&#39;,
+ &#39;item_id&#39;,
+ &#39;click&#39;,
+ &#39;user_item_categories&#39;,
+ &#39;user_item_shops&#39;,
+ &#39;user_item_brands&#39;,
+ &#39;user_item_intentions&#39;,
+ &#39;item_category&#39;,
+ &#39;item_shop&#39;,
+ &#39;item_brand&#39;,
+ &#39;TE_user_item_categories_click&#39;,
+ &#39;TE_user_item_shops_click&#39;,
+ &#39;TE_user_item_brands_click&#39;,
+ &#39;TE_user_item_intentions_click&#39;,
+ &#39;TE_item_category_click&#39;,
+ &#39;TE_item_shop_click&#39;,
+ &#39;TE_item_brand_click&#39;,
+ &#39;TE_user_id_click&#39;,
+ &#39;TE_item_id_click&#39;]
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Initialize-Dataloaders">
+<h2>Initialize Dataloaders<a class="headerlink" href="#Initialize-Dataloaders" title="Permalink to this headline"></a></h2>
+<p>We’re ready to start training, for that, we create our dataset objects, and under the hood we use Merlin <code class="docutils literal notranslate"><span class="pre">BatchedDataset</span></code> class for reading chunks of parquet files. <code class="docutils literal notranslate"><span class="pre">BatchedDataset</span></code> asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. To read more about Merlin optimized dataloaders visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141">here</a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>batch_size = 16*1024
+LR=0.003
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path + &#39;/train&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
+valid = Dataset(os.path.join(output_path + &#39;/valid&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="NCF-Model">
+<h2>NCF Model<a class="headerlink" href="#NCF-Model" title="Permalink to this headline"></a></h2>
+<p>We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">(NCF)</a> Model architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.</p>
+<p>NCF feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers via its MLP layer tower as seen in the figure. GMF and MLP uses separate user and item embeddings, and then outputs of their interactions from GMF Layer and MLP Layer are concatenated and fed to the final NeuMF (Neural Matrix Factorisation) layer.</p>
+<p><img alt="251903109ded4f7a832f1574575883fe" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
+<p>Image Source: NCF paper</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">schema</span></code> object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.benchmark.NCFModel(
+    schema,
+    embedding_dim=64,
+    mlp_block=mm.MLPBlock([128, 64]),
+    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),
+)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+opt = tf.keras.optimizers.Adagrad(learning_rate=LR)
+model.compile(optimizer=opt, run_eagerly=False)
+model.fit(train, validation_data=valid, batch_size=batch_size)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-25 17:59:13.755461: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2208/2209 [============================&gt;.] - ETA: 0s - auc: 0.5371 - loss: 0.2201 - regularization_loss: 0.0000e+00 - total_loss: 0.2201
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-25 18:00:27.333687: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_125
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2209/2209 [==============================] - 98s 36ms/step - auc: 0.5371 - loss: 0.2200 - regularization_loss: 0.0000e+00 - total_loss: 0.2200 - val_auc: 0.5008 - val_loss: 0.1336 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1336
+CPU times: user 2min 38s, sys: 22.8 s, total: 3min 1s
+Wall time: 1min 39s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;keras.callbacks.History at 0x7fba06060a30&gt;
+</pre></div></div>
+</div>
+<p>Let’s save our accuracy results</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&#39;NCF&#39;, model)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="MLP-Model">
+<h2>MLP Model<a class="headerlink" href="#MLP-Model" title="Permalink to this headline"></a></h2>
+<p>Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers.</p>
+<p><img alt="cded806e29614a85aed6a698db731287" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
+<p>Steps:</p>
+<ul class="simple">
+<li><p>Change the model to MLP model</p></li>
+<li><p>Rerun the pipeline from there from model.fit</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># uses default embedding_dim = 64
+model = mm.MLPBlock([64, 32]).to_model(
+    schema,
+    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+opt = tf.keras.optimizers.Adagrad(learning_rate=LR)
+model.compile(optimizer=opt, run_eagerly=False)
+model.fit(train, validation_data=valid, batch_size=batch_size)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2208/2209 [============================&gt;.] - ETA: 0s - auc_1: 0.6208 - loss: 0.1865 - regularization_loss: 0.0000e+00 - total_loss: 0.1865
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-25 18:01:56.220502: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_140
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2209/2209 [==============================] - 91s 38ms/step - auc_1: 0.6208 - loss: 0.1864 - regularization_loss: 0.0000e+00 - total_loss: 0.1864 - val_auc_1: 0.5698 - val_loss: 0.1384 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1384
+CPU times: user 3min 9s, sys: 31.7 s, total: 3min 41s
+Wall time: 1min 31s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;keras.callbacks.History at 0x7fb9fdb04eb0&gt;
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&#39;MLP&#39;, model)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="DLRM-Model">
+<h2>DLRM Model<a class="headerlink" href="#DLRM-Model" title="Permalink to this headline"></a></h2>
+<p>Deep Learning Recommendation Model <a class="reference external" href="https://arxiv.org/abs/1906.00091">(DLRM)</a> architecture is a popular neural network model originally proposed by Facebook in 2019. The model was introduced as a personalization deep learning model that uses embeddings to process sparse features that represent categorical data and a multilayer perceptron (MLP) to process dense features, then interacts these features explicitly using the statistical techniques proposed in
+<a class="reference external" href="https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&amp;arnumber=5694074">here</a>.</p>
+<p><img alt="DLRM" src="../_images/DLRM.png" /></p>
+<p>DLRM accepts two types of features: categorical and numerical. - For each categorical feature, an embedding table is used to provide dense representation to each unique value. - For numerical features, they are fed to model as dense features, and then transformed by a simple neural network referred to as “bottom MLP”. This part of the network consists of a series of linear layers with ReLU activations. - The output of the bottom MLP and the embedding vectors are then fed into the dot product
+interaction operation (see Pairwise interaction step). The output of “dot interaction” is then concatenated with the features resulting from the bottom MLP (we apply a skip-connection there) and fed into the “top MLP” which is also a series of dense layers with activations ((a fully connected NN). - The model outputs a single number (here we use sigmoid function to generate probabilities) which can be interpreted as a likelihood of a certain user clicking on an ad, watching a movie, or viewing a
+news page.</p>
+<p>Steps: * Change the model to <code class="docutils literal notranslate"><span class="pre">DLRMModel</span></code> * Rerun the pipeline from there from model.fit</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.DLRMModel(
+    schema,
+    embedding_dim=64,
+    bottom_block=mm.MLPBlock([128, 64]),
+    top_block=mm.MLPBlock([128, 64, 32]),
+    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+opt = tf.keras.optimizers.Adagrad(learning_rate=LR)
+model.compile(optimizer=opt, run_eagerly=False)
+model.fit(train, validation_data=valid, batch_size=batch_size)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2209/2209 [==============================] - ETA: 0s - auc_2: 0.6465 - loss: 0.1816 - regularization_loss: 0.0000e+00 - total_loss: 0.1816
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-25 18:03:56.443353: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/else/_1/cond/cond/branch_executed/_172
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2209/2209 [==============================] - 121s 51ms/step - auc_2: 0.6465 - loss: 0.1815 - regularization_loss: 0.0000e+00 - total_loss: 0.1815 - val_auc_2: 0.5700 - val_loss: 0.1378 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1378
+CPU times: user 3min 57s, sys: 42 s, total: 4min 39s
+Wall time: 2min 2s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;keras.callbacks.History at 0x7fb9fc85e5b0&gt;
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&quot;DLRM&quot;, model)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="DCN-Model">
+<h2>DCN Model<a class="headerlink" href="#DCN-Model" title="Permalink to this headline"></a></h2>
+<p>DCN-V2 is an architecture proposed as an improvement upon the original <a class="reference external" href="https://arxiv.org/pdf/1708.05123.pdf">DCN model</a>. The explicit feature interactions of the inputs are learned through cross layers, and then combined with a deep network to learn complementary implicit interactions. The overall model architecture is depicted in Figure below, with two ways to combine the cross network with the deep network: (1) stacked and (2) parallel. The output of the embbedding layer is the
+concatenation of all the embedded vectors and the normalized dense features: x0 = [xembed,1; … ; xembed,𝑛; 𝑥dense].</p>
+<p><img alt="DCN" src="../_images/DCN.png" /></p>
+<p>Image Source: DCN V2 paper</p>
+<p>In this example, we build <code class="docutils literal notranslate"><span class="pre">DCN-v2</span> <span class="pre">stacked</span></code> architecture.</p>
+<p>Steps: * Change the model to <code class="docutils literal notranslate"><span class="pre">DCNModel</span></code> * Rerun the pipeline from there to model.fit</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.DCNModel(
+    schema,
+    depth=2,
+    deep_block=mm.MLPBlock([64, 32]),
+    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+opt = tf.keras.optimizers.Adagrad(learning_rate=0.005)
+model.compile(optimizer=opt, run_eagerly=False)
+model.fit(train, validation_data=valid, batch_size=batch_size)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2208/2209 [============================&gt;.] - ETA: 0s - auc_3: 0.6448 - loss: 0.1751 - regularization_loss: 0.0000e+00 - total_loss: 0.1751
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-25 18:05:50.462414: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_152
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2209/2209 [==============================] - 113s 48ms/step - auc_3: 0.6448 - loss: 0.1751 - regularization_loss: 0.0000e+00 - total_loss: 0.1751 - val_auc_3: 0.5738 - val_loss: 0.1361 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1361
+CPU times: user 3min 47s, sys: 40.4 s, total: 4min 27s
+Wall time: 1min 54s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;keras.callbacks.History at 0x7fb9f7693190&gt;
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&quot;DCN&quot;, model)
+</pre></div>
+</div>
+</div>
+<p>Let’s visualize our model validation accuracy values. Since we did not do any hyper-parameter optimization or extensive feature engineering here, we do not come up with a final conclusion that one model is superior to another.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>models_name = [&quot;NCF&quot;, &quot;MLP&quot;, &quot;DLRM&quot;, &quot;DCN&quot;]
+create_bar_chart(&quot;results.txt&quot;, models_name)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/examples_03-Exploring-different-models_46_0.png" src="../_images/examples_03-Exploring-different-models_46_0.png" />
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html" class="btn btn-neutral float-left" title="Applying to your own dataset with Merlin Models and NVTabular" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../api.html" class="btn btn-neutral float-right" title="API Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
