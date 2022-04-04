@@ -1,0 +1,27 @@
+﻿merlin.models.tf.dataset.BatchedDataset
+=======================================
+
+.. currentmodule:: merlin.models.tf.dataset
+
+.. autoclass:: BatchedDataset
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BatchedDataset.__init__
+      ~BatchedDataset.epochs
+      ~BatchedDataset.make_tensors
+      ~BatchedDataset.map
+      ~BatchedDataset.on_epoch_end
+      ~BatchedDataset.stop
+   
+   
+
+   
+   
+   

@@ -1,0 +1,814 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "7eb056ce",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Copyright 2021 NVIDIA Corporation. All Rights Reserved.\n",
+    "#\n",
+    "# Licensed under the Apache License, Version 2.0 (the \"License\");\n",
+    "# you may not use this file except in compliance with the License.\n",
+    "# You may obtain a copy of the License at\n",
+    "#\n",
+    "#     http://www.apache.org/licenses/LICENSE-2.0\n",
+    "#\n",
+    "# Unless required by applicable law or agreed to in writing, software\n",
+    "# distributed under the License is distributed on an \"AS IS\" BASIS,\n",
+    "# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n",
+    "# See the License for the specific language governing permissions and\n",
+    "# limitations under the License.\n",
+    "# ================================"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8a627d92",
+   "metadata": {},
+   "source": [
+    "## Iterating over Deep Learning Models using Merlin Models\n",
+    "\n",
+    "In this example notebook, we use the Ali-CCP: Alibaba Click and Conversion Prediction dataset to build our recommender system models. To download the Ali-CCP training and test datasets visit [tianchi.aliyun.com](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1). We have curated the raw dataset via this [script]() and generated the parquet files that we will use in this example. Note that the `Ali-CCP` dataset has `click` and `conversion` target columns but we only focus on building different ranking models with binary target column `click`.\n",
+    "\n",
+    "We'll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.\"\n",
+    "\n",
+    "### Learning objectives\n",
+    "- Preparing the data with NVTabular\n",
+    "- Training different deep learning-based recommender models with Merlin Models"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7132cfcc",
+   "metadata": {},
+   "source": [
+    "### Importing Libraries"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "dde1652c",
+   "metadata": {},
+   "source": [
+    "Let's start with importing the libraries that we'll use in this notebook."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "9206a1a9",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-03-25 18:07:15.703196: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA\n",
+      "To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
+      "2022-03-25 18:07:16.833264: I tensorflow/core/common_runtime/gpu/gpu_process_state.cc:214] Using CUDA malloc Async allocator for GPU: 0\n",
+      "2022-03-25 18:07:16.833404: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -> device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "\n",
+    "os.environ[\"TF_GPU_ALLOCATOR\"] = \"cuda_malloc_async\"\n",
+    "import cudf\n",
+    "import glob\n",
+    "import gc\n",
+    "\n",
+    "import nvtabular as nvt\n",
+    "from nvtabular.ops import *\n",
+    "from merlin.models.utils.example_utils import workflow_fit_transform, save_results, create_bar_chart\n",
+    "\n",
+    "from merlin.schema.tags import Tags\n",
+    "from merlin.schema import Schema\n",
+    "\n",
+    "import merlin.models.tf as mm\n",
+    "import merlin.models.tf.dataset as tf_dataloader\n",
+    "\n",
+    "from merlin.io.dataset import Dataset\n",
+    "from merlin.schema.io.tensorflow_metadata import TensorflowMetadata\n",
+    "from merlin.models.tf.blocks.core.aggregation import CosineSimilarity\n",
+    "\n",
+    "import tensorflow as tf"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9cd6ee46",
+   "metadata": {},
+   "source": [
+    "### Feature Engineering with NVTabular"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "098e13ed",
+   "metadata": {},
+   "source": [
+    "When we work on a new recommender systems, we explore the dataset, first. In doing so, we define our input and output paths. We will use the parquet files in the test folder to validate our trained model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "7d3dbf48",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "DATA_FOLDER = os.environ.get(\"DATA_FOLDER\", \"/workspace/data/\")\n",
+    "train_path = os.path.join(DATA_FOLDER, \"train\", \"*.parquet\")\n",
+    "valid_path = os.path.join(DATA_FOLDER, \"test\", \"*.parquet\")\n",
+    "output_path = \"/workspace/data/processed\""
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ef498749",
+   "metadata": {},
+   "source": [
+    "Our dataset has only categorical features. Below, we create continuous features using target encoding (TE) technique. Target Encoding calculates the statistics from a target variable grouped by the unique values of one or more categorical features. For example, in a binary classification problem, TE calculates the conditional probability that the target is true for each category value- a simple mean. To learn more about TE, visit this [medium blog](https://medium.com/rapids-ai/target-encoding-with-rapids-cuml-do-more-with-your-categorical-data-8c762c79e784)."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1af84760",
+   "metadata": {},
+   "source": [
+    "We use a utility function, `workflow_fit_transform` perform to fit and transform steps on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, and also save our workflow model. After fit and transform, the processed parquet files are saved to `output_path`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "60e3d0ce",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.\n",
+      "  warnings.warn(\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "CPU times: user 23.9 s, sys: 29 s, total: 52.9 s\n",
+      "Wall time: 56.4 s\n"
+     ]
+    }
+   ],
+   "source": [
+    "%%time\n",
+    "\n",
+    "user_id = [\"user_id\"] >> Categorify(freq_threshold=5) >> TagAsUserID()\n",
+    "item_id = [\"item_id\"] >> Categorify(freq_threshold=5) >> TagAsItemID()\n",
+    "targets = [\"click\"] >> AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, \"target\"])\n",
+    "\n",
+    "add_feat = [\n",
+    "    \"user_item_categories\",\n",
+    "    \"user_item_shops\",\n",
+    "    \"user_item_brands\",\n",
+    "    \"user_item_intentions\",\n",
+    "    \"item_category\",\n",
+    "    \"item_shop\",\n",
+    "    \"item_brand\",\n",
+    "] >> Categorify()\n",
+    "\n",
+    "te_feat = (\n",
+    "    [\"user_id\", \"item_id\"] + add_feat\n",
+    "    >> TargetEncoding([\"click\"], kfold=1, p_smooth=20)\n",
+    "    >> Normalize()\n",
+    ")\n",
+    "\n",
+    "outputs = user_id + item_id + targets + add_feat + te_feat\n",
+    "\n",
+    "# Remove rows where item_id==0 and user_id==0\n",
+    "outputs = outputs >> Filter(f=lambda df: (df[\"item_id\"] != 0) & (df[\"user_id\"] != 0))\n",
+    "\n",
+    "workflow_fit_transform(outputs, train_path, valid_path, output_path)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c74bc5e7",
+   "metadata": {
+    "tags": []
+   },
+   "source": [
+    "### Training Recommender Models"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d8f6b07b",
+   "metadata": {},
+   "source": [
+    "NVTabular exported the schema file of our processed dataset. The `schema.pbtxt` is a protobuf text file contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to automatically build all necessary input and output layers."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "456b2e4a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# define schema object\n",
+    "schema = TensorflowMetadata.from_proto_text_file(output_path + \"/train/\").to_merlin_schema()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "7e3e8052",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'click'"
+      ]
+     },
+     "execution_count": 6,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "target_column = schema.select_by_tag(Tags.TARGET).column_names[0]\n",
+    "target_column"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "80edad58",
+   "metadata": {},
+   "source": [
+    "We can print out all the features that are included in the `schema.pbtxt` file."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "f15825ca",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['user_id',\n",
+       " 'item_id',\n",
+       " 'click',\n",
+       " 'user_item_categories',\n",
+       " 'user_item_shops',\n",
+       " 'user_item_brands',\n",
+       " 'user_item_intentions',\n",
+       " 'item_category',\n",
+       " 'item_shop',\n",
+       " 'item_brand',\n",
+       " 'TE_user_item_categories_click',\n",
+       " 'TE_user_item_shops_click',\n",
+       " 'TE_user_item_brands_click',\n",
+       " 'TE_user_item_intentions_click',\n",
+       " 'TE_item_category_click',\n",
+       " 'TE_item_shop_click',\n",
+       " 'TE_item_brand_click',\n",
+       " 'TE_user_id_click',\n",
+       " 'TE_item_id_click']"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "schema.column_names"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "00164c94",
+   "metadata": {},
+   "source": [
+    "### Initialize Dataloaders"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b5590cd2",
+   "metadata": {},
+   "source": [
+    "We're ready to start training, for that, we create our dataset objects, and under the hood we use Merlin `BatchedDataset` class for reading chunks of parquet files. `BatchedDataset` asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular `Dataset`. To read more about Merlin optimized dataloaders visit [here](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "4fde39cf",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "batch_size = 16 * 1024\n",
+    "LR = 0.003"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "dcfa7123",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "train = Dataset(os.path.join(output_path + \"/train\", \"*.parquet\"), part_size=\"500MB\")\n",
+    "valid = Dataset(os.path.join(output_path + \"/valid\", \"*.parquet\"), part_size=\"500MB\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0917642d",
+   "metadata": {},
+   "source": [
+    "### NCF Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "c50fd904",
+   "metadata": {},
+   "source": [
+    "We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering [(NCF)](https://arxiv.org/pdf/1708.05031.pdf) Model  architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.\n",
+    "\n",
+    "NCF feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers via its MLP layer tower as seen in the figure. GMF and MLP uses separate user and item embeddings, and then outputs of their interactions from GMF Layer and MLP Layer are concatenated and fed to the final NeuMF (Neural Matrix Factorisation) layer."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "81508c29",
+   "metadata": {},
+   "source": [
+    "<img src=\"./images/ncf.png\"  width=\"30%\">\n",
+    "\n",
+    "<a href=\"https://arxiv.org/pdf/1708.05031.pdf\">Image Source: NCF paper</a>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d92ede88",
+   "metadata": {},
+   "source": [
+    "With `schema` object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "id": "f5118880",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model = mm.benchmark.NCFModel(\n",
+    "    schema,\n",
+    "    embedding_dim=64,\n",
+    "    mlp_block=mm.MLPBlock([128, 64]),\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "c521969b",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-03-25 17:59:13.755461: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2208/2209 [============================>.] - ETA: 0s - auc: 0.5371 - loss: 0.2201 - regularization_loss: 0.0000e+00 - total_loss: 0.2201"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-03-25 18:00:27.333687: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_125\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2209/2209 [==============================] - 98s 36ms/step - auc: 0.5371 - loss: 0.2200 - regularization_loss: 0.0000e+00 - total_loss: 0.2200 - val_auc: 0.5008 - val_loss: 0.1336 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1336\n",
+      "CPU times: user 2min 38s, sys: 22.8 s, total: 3min 1s\n",
+      "Wall time: 1min 39s\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<keras.callbacks.History at 0x7fba06060a30>"
+      ]
+     },
+     "execution_count": 16,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "%%time\n",
+    "opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\n",
+    "model.compile(optimizer=opt, run_eagerly=False)\n",
+    "model.fit(train, validation_data=valid, batch_size=batch_size)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9146f703",
+   "metadata": {},
+   "source": [
+    "Let's save our accuracy results"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "id": "ebb04b28",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "save_results(\"NCF\", model)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "fd68dd99",
+   "metadata": {},
+   "source": [
+    "### MLP Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "55ef6779",
+   "metadata": {},
+   "source": [
+    "Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1c2eeedc",
+   "metadata": {},
+   "source": [
+    "<img src=\"./images/mlp.png\"  width=\"30%\">\n",
+    "\n",
+    "Steps:\n",
+    "\n",
+    "- Change the model to MLP model\n",
+    "- Rerun the pipeline from there from model.fit"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "id": "bde9d78b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# uses default embedding_dim = 64\n",
+    "model = mm.MLPBlock([64, 32]).to_model(\n",
+    "    schema,\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "id": "0f516fb1",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2208/2209 [============================>.] - ETA: 0s - auc_1: 0.6208 - loss: 0.1865 - regularization_loss: 0.0000e+00 - total_loss: 0.1865"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-03-25 18:01:56.220502: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_140\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2209/2209 [==============================] - 91s 38ms/step - auc_1: 0.6208 - loss: 0.1864 - regularization_loss: 0.0000e+00 - total_loss: 0.1864 - val_auc_1: 0.5698 - val_loss: 0.1384 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1384\n",
+      "CPU times: user 3min 9s, sys: 31.7 s, total: 3min 41s\n",
+      "Wall time: 1min 31s\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<keras.callbacks.History at 0x7fb9fdb04eb0>"
+      ]
+     },
+     "execution_count": 19,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "%%time\n",
+    "\n",
+    "opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\n",
+    "model.compile(optimizer=opt, run_eagerly=False)\n",
+    "model.fit(train, validation_data=valid, batch_size=batch_size)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "id": "9878b683",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "save_results(\"MLP\", model)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "25b73292",
+   "metadata": {},
+   "source": [
+    "### DLRM Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "685f5509",
+   "metadata": {},
+   "source": [
+    "Deep Learning Recommendation Model [(DLRM)](https://arxiv.org/abs/1906.00091) architecture is a popular neural network model originally proposed by Facebook in 2019. The model was introduced as a personalization deep learning model that uses embeddings to process sparse features that represent categorical data and a multilayer perceptron (MLP) to process dense features, then interacts these features explicitly using the statistical techniques proposed in [here](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5694074).\n",
+    "\n",
+    "![DLRM](./images/DLRM.png)\n",
+    "\n",
+    "\n",
+    "DLRM accepts two types of features: categorical and numerical. \n",
+    "- For each categorical feature, an embedding table is used to provide dense representation to each unique value. \n",
+    "- For numerical features, they are fed to model as dense features, and then transformed by a simple neural network referred to as \"bottom MLP\". This part of the network consists of a series of linear layers with ReLU activations. \n",
+    "- The output of the bottom MLP and the embedding vectors are then fed into the dot product interaction operation (see Pairwise interaction step). The output of \"dot interaction\" is then concatenated with the features resulting from the bottom MLP (we apply a skip-connection there) and fed into the \"top MLP\" which is also a series of dense layers with activations ((a fully connected NN). \n",
+    "- The model outputs a single number (here we use sigmoid function to generate probabilities) which can be interpreted as a likelihood of a certain user clicking on an ad, watching a movie, or viewing a news page.\n",
+    "\n",
+    "\n",
+    "Steps:<br>\n",
+    "* Change the model to `DLRMModel`\n",
+    "* Rerun the pipeline from there from model.fit"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "id": "631128bf",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model = mm.DLRMModel(\n",
+    "    schema,\n",
+    "    embedding_dim=64,\n",
+    "    bottom_block=mm.MLPBlock([128, 64]),\n",
+    "    top_block=mm.MLPBlock([128, 64, 32]),\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "id": "1b623edb",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2209/2209 [==============================] - ETA: 0s - auc_2: 0.6465 - loss: 0.1816 - regularization_loss: 0.0000e+00 - total_loss: 0.1816"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-03-25 18:03:56.443353: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/else/_1/cond/cond/branch_executed/_172\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2209/2209 [==============================] - 121s 51ms/step - auc_2: 0.6465 - loss: 0.1815 - regularization_loss: 0.0000e+00 - total_loss: 0.1815 - val_auc_2: 0.5700 - val_loss: 0.1378 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1378\n",
+      "CPU times: user 3min 57s, sys: 42 s, total: 4min 39s\n",
+      "Wall time: 2min 2s\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<keras.callbacks.History at 0x7fb9fc85e5b0>"
+      ]
+     },
+     "execution_count": 22,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "%%time\n",
+    "opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\n",
+    "model.compile(optimizer=opt, run_eagerly=False)\n",
+    "model.fit(train, validation_data=valid, batch_size=batch_size)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "id": "bb736bcd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "save_results(\"DLRM\", model)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "466a3e0d",
+   "metadata": {},
+   "source": [
+    "### DCN Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "841d4c27",
+   "metadata": {},
+   "source": [
+    "DCN-V2 is an architecture proposed as an improvement upon the original [DCN model](https://arxiv.org/pdf/1708.05123.pdf). The explicit feature interactions of the inputs are learned through cross layers, and then combined with a deep network to learn complementary implicit interactions. The overall model architecture is depicted in Figure below, with two ways to combine the cross network with the deep network: (1) stacked and (2) parallel. The output of the embbedding layer is the concatenation of all the embedded vectors and the normalized dense features: x<sub>0</sub> = [x<sub>embed,1</sub>; . . . ; x<sub>embed,𝑛</sub>; 𝑥<sub>dense</sub>].\n",
+    "\n",
+    "![DCN](./images/DCN.png)\n",
+    "\n",
+    "<a href=\"https://arxiv.org/abs/2008.13535\">Image Source: DCN V2 paper</a>\n",
+    "\n",
+    "In this example, we build `DCN-v2 stacked` architecture. \n",
+    "\n",
+    "Steps:<br>\n",
+    "* Change the model to `DCNModel`\n",
+    "* Rerun the pipeline from there to model.fit"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "id": "c56fffc8",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "model = mm.DCNModel(\n",
+    "    schema,\n",
+    "    depth=2,\n",
+    "    deep_block=mm.MLPBlock([64, 32]),\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),\n",
+    ")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "id": "f14f0dcf",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2208/2209 [============================>.] - ETA: 0s - auc_3: 0.6448 - loss: 0.1751 - regularization_loss: 0.0000e+00 - total_loss: 0.1751"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-03-25 18:05:50.462414: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_152\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "2209/2209 [==============================] - 113s 48ms/step - auc_3: 0.6448 - loss: 0.1751 - regularization_loss: 0.0000e+00 - total_loss: 0.1751 - val_auc_3: 0.5738 - val_loss: 0.1361 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1361\n",
+      "CPU times: user 3min 47s, sys: 40.4 s, total: 4min 27s\n",
+      "Wall time: 1min 54s\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<keras.callbacks.History at 0x7fb9f7693190>"
+      ]
+     },
+     "execution_count": 25,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "%%time\n",
+    "opt = tf.keras.optimizers.Adagrad(learning_rate=0.005)\n",
+    "model.compile(optimizer=opt, run_eagerly=False)\n",
+    "model.fit(train, validation_data=valid, batch_size=batch_size)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "id": "c3040118",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "save_results(\"DCN\", model)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "437128d2",
+   "metadata": {},
+   "source": [
+    "Let's visualize our model validation accuracy values. Since we did not do any hyper-parameter optimization or extensive feature engineering here, we do not come up with a final conclusion that one model is superior to another."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "id": "d893e681",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "image/png": "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\n",
+      "text/plain": [
+       "<Figure size 432x288 with 1 Axes>"
+      ]
+     },
+     "metadata": {
+      "needs_background": "light"
+     },
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "models_name = [\"NCF\", \"MLP\", \"DLRM\", \"DCN\"]\n",
+    "create_bar_chart(\"results.txt\", models_name)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.10"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
