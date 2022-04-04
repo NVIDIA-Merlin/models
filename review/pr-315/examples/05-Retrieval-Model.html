@@ -380,7 +380,8 @@ quickly score millions of items for a given user, a popular choices are models t
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
-os.environ[&quot;TF_GPU_ALLOCATOR&quot;]=&quot;cuda_malloc_async&quot;
+
+os.environ[&quot;TF_GPU_ALLOCATOR&quot;] = &quot;cuda_malloc_async&quot;
 import cudf
 import glob
 import gc
@@ -420,6 +421,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># disable INFO and DEBUG logging everywhere
 import logging
+
 logging.disable(logging.WARNING)
 </pre></div>
 </div>
@@ -430,9 +432,9 @@ logging.disable(logging.WARNING)
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
-train_path = os.path.join(DATA_FOLDER, &#39;train&#39;, &#39;*.parquet&#39;)
-valid_path = os.path.join(DATA_FOLDER, &#39;test&#39;,&#39;*.parquet&#39;)
-output_path = &#39;/workspace/data/processed/&#39;
+train_path = os.path.join(DATA_FOLDER, &quot;train&quot;, &quot;*.parquet&quot;)
+valid_path = os.path.join(DATA_FOLDER, &quot;test&quot;, &quot;*.parquet&quot;)
+output_path = &quot;/workspace/data/processed/&quot;
 </pre></div>
 </div>
 </div>
@@ -447,12 +449,25 @@ item_id = [&quot;item_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemID()
 
 item_features = [&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemFeatures()
 
-user_features = [&#39;user_shops&#39;, &#39;user_profile&#39;, &#39;user_group&#39;,
-       &#39;user_gender&#39;, &#39;user_age&#39;, &#39;user_consumption_2&#39;, &#39;user_is_occupied&#39;,
-       &#39;user_geography&#39;, &#39;user_intentions&#39;, &#39;user_brands&#39;, &#39;user_categories&#39;] \
-        &gt;&gt; Categorify() &gt;&gt; TagAsUserFeatures()
+user_features = (
+    [
+        &quot;user_shops&quot;,
+        &quot;user_profile&quot;,
+        &quot;user_group&quot;,
+        &quot;user_gender&quot;,
+        &quot;user_age&quot;,
+        &quot;user_consumption_2&quot;,
+        &quot;user_is_occupied&quot;,
+        &quot;user_geography&quot;,
+        &quot;user_intentions&quot;,
+        &quot;user_brands&quot;,
+        &quot;user_categories&quot;,
+    ]
+    &gt;&gt; Categorify()
+    &gt;&gt; TagAsUserFeatures()
+)
 
-inputs = user_id + item_id + item_features + user_features + [&#39;click&#39;]
+inputs = user_id + item_id + item_features + user_features + [&quot;click&quot;]
 
 outputs = inputs &gt;&gt; Filter(f=lambda df: df[&quot;click&quot;] == 1)
 
@@ -475,15 +490,15 @@ workflow_fit_transform(outputs, train_path, valid_path, output_path)
 <h1>Building a Two-Tower Model with Merlin Models<a class="headerlink" href="#Building-a-Two-Tower-Model-with-Merlin-Models" title="Permalink to this headline"></a></h1>
 <p>We will use Two-Tower Model for item retrieval task. Real-world large scale recommender systems have hundreds of millions of items (products) and users. Thus, these systems often composed of two stages: candidate generation (retrieval) and ranking (scoring the retrieved items). At candidate generation step, a subset of relevant items from large item corpus is retrieved. You can read more about two stage Recommender Systems here. In this example, we’re going to focus on the retrieval stage.</p>
 <p>A Two-Tower Model consists of item (candidate) and user (query) encoder towers. With two towers, the model can learn representations (embeddings) for queries and candidates separately.</p>
-<p><img alt="52a7a265caa0412385e5126106f45874" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
+<p><img alt="d953b525b205498db4a964475303ba7a" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
 <p>Image Adapted from: <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3366423.3380130">Off-policy Learning in Two-stage Recommender Systems</a></p>
 <p>We use the <code class="docutils literal notranslate"><span class="pre">schema</span></code> object to define our model.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path, &#39;train&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
-valid = Dataset(os.path.join(output_path, &#39;valid&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path, &quot;train&quot;, &quot;*.parquet&quot;), part_size=&quot;500MB&quot;)
+valid = Dataset(os.path.join(output_path, &quot;valid&quot;, &quot;*.parquet&quot;), part_size=&quot;500MB&quot;)
 
 schema = train.schema
 </pre></div>
@@ -567,8 +582,8 @@ also multiplied by the user embedding. Then we apply the loss function on top of
     query_tower=mm.MLPBlock([128, 64], no_activation_last_layer=True),
     loss=&quot;categorical_crossentropy&quot;,
     samplers=[mm.InBatchSampler()],
-    embedding_options = mm.EmbeddingOptions(infer_embedding_sizes=True),
-    metrics=[mm.RecallAt(10), mm.NDCGAt(10)]
+    embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),
+    metrics=[mm.RecallAt(10), mm.NDCGAt(10)],
 )
 </pre></div>
 </div>
@@ -726,7 +741,7 @@ score user embeddings over all indexed top-K item embeddings within the ANN engi
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>query_tower = model.retrieval_block.query_block()
-query_tower.save(&#39;query_tower&#39;)
+query_tower.save(&quot;query_tower&quot;)
 </pre></div>
 </div>
 </div>
@@ -736,7 +751,10 @@ query_tower.save(&#39;query_tower&#39;)
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.utils.dataset import unique_rows_by_features
-user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute().reset_index(drop=True)
+
+user_features = (
+    unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute().reset_index(drop=True)
+)
 </pre></div>
 </div>
 </div>
@@ -887,7 +905,7 @@ user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute(
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
-user_features.to_parquet(&#39;user_features.parquet&#39;)
+user_features.to_parquet(&quot;user_features.parquet&quot;)
 </pre></div>
 </div>
 </div>
@@ -895,7 +913,9 @@ user_features.to_parquet(&#39;user_features.parquet&#39;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_features = unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID).compute().reset_index(drop=True)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_features = (
+    unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID).compute().reset_index(drop=True)
+)
 </pre></div>
 </div>
 </div>
@@ -981,7 +1001,7 @@ user_features.to_parquet(&#39;user_features.parquet&#39;)
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
-item_features.to_parquet(&#39;item_features.parquet&#39;)
+item_features.to_parquet(&quot;item_features.parquet&quot;)
 </pre></div>
 </div>
 </div>
@@ -1512,7 +1532,7 @@ item_embeddings = item_embs_df.iloc[:, 4:]
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
-item_embeddings.to_parquet(&#39;item_embeddings.parquet&#39;)
+item_embeddings.to_parquet(&quot;item_embeddings.parquet&quot;)
 </pre></div>
 </div>
 </div>

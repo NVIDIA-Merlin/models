@@ -375,7 +375,8 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
-os.environ[&quot;TF_GPU_ALLOCATOR&quot;]=&quot;cuda_malloc_async&quot;
+
+os.environ[&quot;TF_GPU_ALLOCATOR&quot;] = &quot;cuda_malloc_async&quot;
 
 import nvtabular as nvt
 from nvtabular.ops import *
@@ -420,9 +421,9 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
-train_path = os.path.join(DATA_FOLDER, &#39;train/&#39; &#39;*.parquet&#39;)
-valid_path = os.path.join(DATA_FOLDER, &#39;test/&#39;, &#39;*.parquet&#39;)
-output_path = os.path.join(DATA_FOLDER, &#39;processed/&#39;)
+train_path = os.path.join(DATA_FOLDER, &quot;train/&quot; &quot;*.parquet&quot;)
+valid_path = os.path.join(DATA_FOLDER, &quot;test/&quot;, &quot;*.parquet&quot;)
+output_path = os.path.join(DATA_FOLDER, &quot;processed/&quot;)
 </pre></div>
 </div>
 </div>
@@ -438,10 +439,23 @@ targets = [&quot;click&quot;] &gt;&gt; AddMetadata(tags=[Tags.BINARY_CLASSIFICAT
 
 item_features = [&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemFeatures()
 
-user_features = [&#39;user_shops&#39;, &#39;user_profile&#39;, &#39;user_group&#39;,
-       &#39;user_gender&#39;, &#39;user_age&#39;, &#39;user_consumption_2&#39;, &#39;user_is_occupied&#39;,
-       &#39;user_geography&#39;, &#39;user_intentions&#39;, &#39;user_brands&#39;, &#39;user_categories&#39;] \
-        &gt;&gt; Categorify() &gt;&gt; TagAsUserFeatures()
+user_features = (
+    [
+        &quot;user_shops&quot;,
+        &quot;user_profile&quot;,
+        &quot;user_group&quot;,
+        &quot;user_gender&quot;,
+        &quot;user_age&quot;,
+        &quot;user_consumption_2&quot;,
+        &quot;user_is_occupied&quot;,
+        &quot;user_geography&quot;,
+        &quot;user_intentions&quot;,
+        &quot;user_brands&quot;,
+        &quot;user_categories&quot;,
+    ]
+    &gt;&gt; Categorify()
+    &gt;&gt; TagAsUserFeatures()
+)
 
 outputs = user_id + item_id + item_features + user_features + targets
 
@@ -470,7 +484,7 @@ Wall time: 43.8 s
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>workflow.save(&#39;workflow&#39;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>workflow.save(&quot;workflow&quot;)
 </pre></div>
 </div>
 </div>
@@ -522,8 +536,8 @@ Wall time: 43.8 s
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># define train and valid dataset objects
-train = Dataset(os.path.join(output_path, &#39;train&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
-valid = Dataset(os.path.join(output_path, &#39;valid&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
+train = Dataset(os.path.join(output_path, &quot;train&quot;, &quot;*.parquet&quot;), part_size=&quot;500MB&quot;)
+valid = Dataset(os.path.join(output_path, &quot;valid&quot;, &quot;*.parquet&quot;), part_size=&quot;500MB&quot;)
 
 # define schema object
 schema = train.schema
@@ -566,7 +580,7 @@ target_column
     embedding_dim=64,
     bottom_block=mm.MLPBlock([128, 64]),
     top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),
 )
 </pre></div>
 </div>
@@ -577,8 +591,8 @@ target_column
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
 
-model.compile(&#39;adam&#39;, run_eagerly=False)
-model.fit(train, validation_data=valid, batch_size=16*1024)
+model.compile(&quot;adam&quot;, run_eagerly=False)
+model.fit(train, validation_data=valid, batch_size=16 * 1024)
 </pre></div>
 </div>
 </div>
@@ -634,7 +648,7 @@ model to Triton Inference using <a class="reference external" href="https://gith
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.save(&#39;dlrm&#39;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.save(&quot;dlrm&quot;)
 </pre></div>
 </div>
 </div>
