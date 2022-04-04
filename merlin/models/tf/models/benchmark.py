@@ -23,7 +23,6 @@ from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     QueryItemIdsEmbeddingsBlock,
 )
 from merlin.models.tf.models.base import Model
-from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.schema import Schema
 
@@ -82,7 +81,6 @@ def NCFModel(
 
     ncf = ParallelBlock({"mf": mf_branch, "mlp": mlp_branch}, aggregation="concat")
 
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    model = ncf.connect(prediction_tasks)
+    model = ncf.connect_prediction_tasks(schema, prediction_tasks)
 
     return model
