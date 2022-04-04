@@ -11,7 +11,6 @@ from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.models.base import Model, RetrievalModel
-from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
@@ -36,7 +35,12 @@ def MatrixFactorizationModel(
 ) -> Union[Model, RetrievalModel]:
     """Builds a matrix factorization model.
 
-    TODO: Add 3 sentence summary about this model. When would you want to use this?
+    Matrix factorization is a simple embedding model. Given the feedback matrix A (m*n),
+    where __m__ is the number of users (or queries) and __n__ is the number of items,
+    the model learns:
+
+    - A user embedding matrix (m*dim), where row i is the embedding for user i.
+    - An item embedding matrix (n*dim), where row j is the embedding for item j.
 
     Example Usage::
         mf = MatrixFactorizationModel(schema, dim=128)
@@ -54,8 +58,9 @@ def MatrixFactorizationModel(
         The dimension of the embeddings.
         The optimal value of this parameter typically depends on your dataset size.
         Smaller values consume less memory and train more quickly.
-        Larger values give the model more expressive power to model the interactions between users and items, and can
-        produce a more accurate model, but at the cost of memory consumption and CPU/GPU usage.
+        Larger values give the model more expressive power to model
+        the interactions between users and items, and can produce a more accurate model,
+        but at the cost of memory consumption and CPU/GPU usage.
     query_id_tag : Tag
         The tag to select the query feature, by default `Tags.USER`
     item_id_tag : Tag
@@ -95,7 +100,6 @@ def MatrixFactorizationModel(
             **kwargs,
         )
 
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     two_tower = QueryItemIdsEmbeddingsBlock(
         schema=schema,
         dim=dim,
@@ -106,7 +110,7 @@ def MatrixFactorizationModel(
         **kwargs,
     )
 
-    model = two_tower.connect(prediction_tasks)
+    model = two_tower.connect_prediction_tasks(schema, prediction_tasks)
 
     return model
 
@@ -307,7 +311,6 @@ def TwoTowerModel(
             **kwargs,
         )
 
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     two_tower = TwoTowerBlock(
         schema=schema,
         query_tower=query_tower,
@@ -319,6 +322,6 @@ def TwoTowerModel(
         **kwargs,
     )
 
-    model = two_tower.connect(prediction_tasks)
+    model = two_tower.connect_prediction_tasks(schema, prediction_tasks)
 
     return model

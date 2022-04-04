@@ -422,6 +422,22 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return output
 
+    def connect_prediction_tasks(
+        self,
+        schema: Schema,
+        prediction_tasks: Optional[
+            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        ] = None,
+    ) -> Union["Model", "RetrievalModel"]:
+        if not prediction_tasks:
+            from merlin.models.tf import PredictionTasks
+
+            prediction_tasks = PredictionTasks(schema)
+        if isinstance(prediction_tasks, (list, tuple)):
+            prediction_tasks = ParallelPredictionBlock(*prediction_tasks)
+
+        return self.connect(prediction_tasks)
+
     def connect_with_residual(
         self,
         block: Union[tf.keras.layers.Layer, str],

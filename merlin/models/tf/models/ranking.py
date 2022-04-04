@@ -8,17 +8,18 @@ from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.core.transformations import CategoricalOneHot
 from merlin.models.tf.blocks.cross import CrossBlock
-from merlin.models.tf.blocks.dlrm import DLRMBlock
+from merlin.models.tf.blocks.dlrm import DLRM_DESCRIPTION, DLRMBlock
 from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
-from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema
 
 
+@docstring_parameter(dlrm_description=DLRM_DESCRIPTION)
 def DLRMModel(
     schema: Schema,
     embedding_dim: int,
@@ -28,21 +29,12 @@ def DLRMModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
 ) -> Model:
-    """DLRM-model architecture. Proposed by Facebook in 2019.
-
-    TODO: Add 3 sentence summary about this model. When would you want to use this?
+    """DLRM-model architecture. {dlrm_description}
 
     Example Usage::
         dlrm = DLRMModel(schema, embedding_dim=64, bottom_block=MLPBlock([256, 64]))
         dlrm.compile(optimizer="adam")
-        dlrm.fit(train_data, epochs=10)
-
-    TODO: Link to tutorial
-
-    References
-    ----------
-    [1] Naumov, Maxim, et al. "Deep learning recommendation model for
-       personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
+        dlrm.fit(train_data, batch_size=1024, epochs=10)
 
     Parameters
     ----------
@@ -63,16 +55,13 @@ def DLRMModel(
     Model
 
     """
-
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-
     dlrm_body = DLRMBlock(
         schema,
         embedding_dim=embedding_dim,
         bottom_block=bottom_block,
         top_block=top_block,
     )
-    model = dlrm_body.connect(prediction_tasks)
+    model = dlrm_body.connect_prediction_tasks(schema, prediction_tasks)
 
     return model
 
@@ -95,12 +84,18 @@ def DCNModel(
     **kwargs
 ) -> Model:
     """Create a model using the architecture proposed in DCN V2: Improved Deep & Cross Network [1].
+
+    This is an improved version of DCN-model, which is more practical in
+    large-scale industrial settings. The improved DCN-V2 is more expressive
+    yet remains cost efficient at feature interaction learning,
+    especially when coupled with a mixture of low-rank architecture.
+
     See Eq. (1) for full-rank and Eq. (2) for low-rank version.
 
     Example Usage::
         dcn = DCNModel(schema, depth=2, deep_block=MLPBlock([256, 64]))
         dcn.compile(optimizer="adam")
-        dcn.fit(train_data, epochs=10)
+        dcn.fit(train_data, batch_size=1024, epochs=10)
 
     References
     ----------
@@ -118,7 +113,8 @@ def DCNModel(
     deep_block : Block, optional
         The `Block` to use as the deep part of the model (typically a `MLPBlock`)
     stacked : bool
-        Whether to use the stacked version of the model or the parallel version.
+        Whether to use the stacked version of the model (figure 1.a) or
+        the parallel version (figure 1.b).
     input_block : Block, optional
         The `Block` to use as the input layer, by default None
     embedding_options : EmbeddingOptions
@@ -137,8 +133,7 @@ def DCNModel(
 
     Returns
     -------
-    SequentialBlock
-        A `SequentialBlock` with a number of stacked Cross layers
+    Model
 
     Raises
     ------
@@ -150,13 +145,12 @@ def DCNModel(
     input_block = input_block or InputBlock(
         schema, aggregation=aggregation, embedding_options=embedding_options, **kwargs
     )
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     if stacked:
         dcn_body = input_block.connect(CrossBlock(depth), deep_block)
     else:
         dcn_body = input_block.connect_branch(CrossBlock(depth), deep_block, aggregation="concat")
 
-    model = dcn_body.connect(prediction_tasks)
+    model = dcn_body.connect_prediction_tasks(schema, prediction_tasks)
 
     return model
 
@@ -233,7 +227,6 @@ def DeepFMModel(
         {"deep_pairwise": deep_pairwise, "first_order": first_order_block}, aggregation="concat"
     )
 
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    model = deep_fm.connect(prediction_tasks)
+    model = deep_fm.connect_prediction_tasks(schema, prediction_tasks)
 
     return model

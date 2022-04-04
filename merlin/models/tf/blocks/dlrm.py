@@ -21,22 +21,32 @@ from merlin.models.tf.blocks.core.combinators import Filter, ParallelBlock, Sequ
 from merlin.models.tf.blocks.interaction import DotProductInteraction
 from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
+from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema, Tags
 
+DLRM_DESCRIPTION = """
+Proposed by Facebook in 2019, See [1] for details.
 
+    In the DLRM model, features are processed as follows:
+    - Categorical features are processed using embeddings,
+    - Continuous features are processed with a bottom block (typically a MLP)
+    that outputs the same dim as the embedding dim.
+
+    References
+    ----------
+    .. [1] Naumov, Maxim, et al. "Deep learning recommendation model for
+       personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
+"""
+
+
+@docstring_parameter(dlrm_description=DLRM_DESCRIPTION)
 def DLRMBlock(
     schema: Schema,
     embedding_dim: int,
     bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
 ) -> SequentialBlock:
-    """Builds the DLRM architecture, as proposed in the following
-    `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.
-
-    References
-    ----------
-    .. [1] Naumov, Maxim, et al. "Deep learning recommendation model for
-       personalization and recommendation systems." arXiv preprint arXiv:1906.00091 (2019).
+    """DLRM block. See [1] for details. {dlrm_description}
 
     Parameters
     ----------
