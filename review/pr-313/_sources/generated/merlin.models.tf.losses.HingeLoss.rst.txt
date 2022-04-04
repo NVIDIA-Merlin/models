@@ -15,6 +15,7 @@
    
       ~HingeLoss.__init__
       ~HingeLoss.call
+      ~HingeLoss.compute
       ~HingeLoss.from_config
       ~HingeLoss.get_config
       ~HingeLoss.parse
@@ -28,5 +29,6 @@
    .. autosummary::
    
       ~HingeLoss.registry
+      ~HingeLoss.valid_negatives_mask
    
    

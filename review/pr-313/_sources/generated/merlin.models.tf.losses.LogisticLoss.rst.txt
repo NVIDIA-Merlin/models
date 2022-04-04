@@ -15,6 +15,7 @@
    
       ~LogisticLoss.__init__
       ~LogisticLoss.call
+      ~LogisticLoss.compute
       ~LogisticLoss.from_config
       ~LogisticLoss.get_config
       ~LogisticLoss.parse
@@ -28,5 +29,6 @@
    .. autosummary::
    
       ~LogisticLoss.registry
+      ~LogisticLoss.valid_negatives_mask
    
    
