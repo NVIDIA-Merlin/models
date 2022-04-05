@@ -39,7 +39,7 @@ METRIC_PARAMETERS_DOCSTRING = """
         for the example. This is necessary when setting `pre_sorting=True` on the
         ranking metrics classes (e.g. RecallAt(5, pre_sorted=True)), as extract_topk
         is used to extract only the top-k predictions and corresponding labels,
-        potentially loosing other relevant items not among top-k. In such cases,
+        potentially losing other relevant items not among top-k. In such cases,
         the label_relevant_counts will contain the total relevant counts per example.
     k : int
         The cut-off for ranking metrics
@@ -255,7 +255,7 @@ class RankingMetric(Mean):
         config = {}
 
         if type(self) is RankingMetric:
-            # Only include function argument when the object is ot a subclass.
+            # Only include function argument when the object is of a subclass.
             config["fn"] = self._fn
             config["k"] = self.k
             config["pre_sorted"] = self.pre_sorted

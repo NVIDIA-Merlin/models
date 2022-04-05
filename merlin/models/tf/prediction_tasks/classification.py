@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from typing import Optional
+from typing import Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -33,7 +33,28 @@ from merlin.schema import Schema, Tags
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BinaryClassificationTask(PredictionTask):
+    """
+    Prediction task for binary classification.
+
+    Parameters
+    ----------
+    target: Union[str, Schema], optional
+        The name of the target. If a Schema is provided, the target is inferred from the schema.
+    task_name: str, optional
+        The name of the task.
+    task_block: Block, optional
+        The block to use for the task.
+    loss: LossType, optional
+        The loss to use for the task.
+        Defaults to "binary_crossentropy".
+    metrics: MetricOrMetrics, optional
+        The metrics to use for the task. Defaults to [precision, recall, accuracy & auc].
+    """
+
+    # Default loss to use
     DEFAULT_LOSS = "binary_crossentropy"
+
+    # Default metrics to use
     DEFAULT_METRICS = (
         tf.keras.metrics.Precision,
         tf.keras.metrics.Recall,
@@ -43,13 +64,31 @@ class BinaryClassificationTask(PredictionTask):
 
     def __init__(
         self,
-        target_name: Optional[str] = None,
+        target: Optional[Union[str, Schema]] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         loss: Optional[LossType] = DEFAULT_LOSS,
         metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS,
         **kwargs,
     ):
+        if isinstance(target, Schema):
+            target_name = target.select_by_tag(Tags.BINARY_CLASSIFICATION)
+            if not target_name.column_names:
+                raise ValueError(
+                    "Binary classification task requires a column with a ",
+                    "`Tags.BINARY_CLASSIFICATION` tag.",
+                )
+            elif len(target_name.column_names) > 1:
+                raise ValueError(
+                    "Binary classification task requires a single column with a ",
+                    "`Tags.BINARY_CLASSIFICATION` tag. ",
+                    "Found {} columns. ".format(len(target_name.column_names)),
+                    "Please specify the column name with the `target` argument.",
+                )
+            target_name = target_name.column_names[0]
+        else:
+            target_name = target if target else kwargs.pop("target_name", None)
+
         output_layer = kwargs.pop("output_layer", None)
         super().__init__(
             metrics=metrics,
@@ -97,6 +136,8 @@ class BinaryClassificationTask(PredictionTask):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class CategFeaturePrediction(Block):
+    """Block that predicts a categorical feature. num_classes is inferred from the"""
+
     def __init__(
         self,
         schema: Schema,
@@ -138,6 +179,24 @@ class CategFeaturePrediction(Block):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class MultiClassClassificationTask(PredictionTask):
+    """
+    Prediction task for multi-class classification.
+
+    Parameters
+    ----------
+    target_name : Optional[str], optional
+        Label name, by default None
+    task_name: str, optional
+        The name of the task.
+    task_block: Block, optional
+        The block to use for the task.
+    loss: LossType, optional
+        The loss to use for the task.
+        Defaults to "sparse_categorical_crossentropy".
+    metrics: MetricOrMetrics, optional
+        The metrics to use for the task. Defaults to [accuracy].
+    """
+
     DEFAULT_LOSS = "sparse_categorical_crossentropy"
     DEFAULT_METRICS: MetricOrMetrics = (tf.keras.metrics.Accuracy,)
 
@@ -151,7 +210,6 @@ class MultiClassClassificationTask(PredictionTask):
         pre: Optional[Block] = None,
         **kwargs,
     ):
-
         super().__init__(
             metrics=metrics,
             target_name=target_name,
@@ -173,6 +231,7 @@ class MultiClassClassificationTask(PredictionTask):
         extra_pre: Optional[Block] = None,
         **kwargs,
     ) -> "MultiClassClassificationTask":
+        """Create from Schema."""
         pre = CategFeaturePrediction(
             schema,
             feature_name,

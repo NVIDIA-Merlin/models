@@ -335,7 +335,7 @@ def default_ml100k_transformation(raw_data_path: str, **kwargs):
         "Action",
         "Adventure",
         "Animation",
-        "Childrens",
+        "Childrens",  # noqa
         "Comedy",
         "Crime",
         "Documentary",

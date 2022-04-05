@@ -42,7 +42,7 @@ def workflow_fit_transform(
 
 
 def save_results(model_name, model):
-    """a funct to save valudation accurracy results in a text file"""
+    """a funct to save validation accuracy results in a text file"""
     with open("results.txt", "a") as f:
         f.write(model_name)
         f.write("\n")
@@ -54,7 +54,7 @@ def save_results(model_name, model):
 def create_bar_chart(text_file_name, models_name):
     import matplotlib.pyplot as plt
 
-    """a func to plot barcharts via parsing the  accurracy results in a text file"""
+    """a func to plot bar-charts via parsing the accuracy results in a text file"""
     auc = []
     with open(text_file_name, "r") as infile:
         for line in infile:

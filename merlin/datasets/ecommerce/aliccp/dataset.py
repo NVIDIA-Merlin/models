@@ -289,7 +289,7 @@ class _Features:
             _Feature(
                 "user_is_occupied", "128", [Tags.USER], "Users Occupation: whether or not to work"
             ),
-            _Feature("user_geography", "129", [Tags.USER], "Users Geography Informations"),
+            _Feature("user_geography", "129", [Tags.USER], "Users Geography Information"),
             # Item
             _Feature("item_id", "205", [Tags.ITEM, Tags.ITEM_ID], "Item ID"),
             _Feature(

@@ -90,7 +90,7 @@ def DCNModel(
     ] = None,
     **kwargs
 ) -> Model:
-    """Create a model using the archicture proposed in DCN V2: Improved Deep & Cross Network [1].
+    """Create a model using the architecture proposed in DCN V2: Improved Deep & Cross Network [1].
     See Eq. (1) for full-rank and Eq. (2) for low-rank version.
 
     Example Usage::

@@ -81,7 +81,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     )
 
 
-""" @tf.funcion convert `call_outputs` of the ItemRetrievalScorer to graph ops,
+""" @tf.function convert `call_outputs` of the ItemRetrievalScorer to graph ops,
 In graph-model the exception is not raised.
 or this test, we need to be able track the exceptions in graph mode.
 

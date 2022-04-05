@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
+from typing import Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -24,22 +24,58 @@ from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
+from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RegressionTask(PredictionTask):
+    """
+    Prediction task for regression-task.
+
+    Parameters
+    ----------
+    target: Union[str, Schema], optional
+        The name of the target. If a Schema is provided, the target is inferred from the schema.
+    task_name: str, optional
+        The name of the task.
+    task_block: Block, optional
+        The block to use for the task.
+    loss: LossType, optional
+        The loss to use for the task.
+        Defaults to "mse".
+    metrics: MetricOrMetrics, optional
+        The metrics to use for the task. Defaults to [root-mean-squared-error].
+    """
+
     DEFAULT_LOSS = "mse"
     DEFAULT_METRICS = (tf.keras.metrics.RootMeanSquaredError,)
 
     def __init__(
         self,
-        target_name: Optional[str] = None,
+        target: Optional[Union[str, Schema]] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         loss: Optional[LossType] = DEFAULT_LOSS,
         metrics=DEFAULT_METRICS,
         **kwargs,
     ):
+        if isinstance(target, Schema):
+            target_name = target.select_by_tag(Tags.REGRESSION)
+            if not target_name.column_names:
+                raise ValueError(
+                    "Regression task requires a column with a ", "`Tags.REGRESSION` tag."
+                )
+            elif len(target_name.column_names) > 1:
+                raise ValueError(
+                    "Regression task requires a single column with a ",
+                    "`Tags.REGRESSION` tag.",
+                    "Found {} columns. ".format(len(target_name.column_names)),
+                    "Please specify the column name with the `target` argument.",
+                )
+            target_name = target_name.column_names[0]
+        else:
+            target_name = target if target else kwargs.pop("target_name", None)
+
         logit = kwargs.pop("logit", None)
         super().__init__(
             metrics=metrics,
