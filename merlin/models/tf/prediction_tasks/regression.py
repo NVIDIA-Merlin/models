@@ -63,7 +63,7 @@ class RegressionTask(PredictionTask):
             target_name = target.select_by_tag(Tags.REGRESSION)
             if not target_name.column_names:
                 raise ValueError(
-                    "Binary classification task requires a column with a ", "`Tags.REGRESSION` tag."
+                    "Regression task requires a column with a ", "`Tags.REGRESSION` tag."
                 )
             elif len(target_name.column_names) > 1:
                 raise ValueError(
