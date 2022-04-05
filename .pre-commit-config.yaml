@@ -30,6 +30,15 @@ repos:
       - id: prettier
         types: [yaml]
         exclude: ^.github/workflows/
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.1.0
+    hooks:
+      - id: codespell
+  - repo: https://github.com/s-weigand/flake8-nb
+    rev: v0.3.0
+    hooks:
+      - id: flake8-nb
+        files: \.ipynb$
 #      - repo: https://github.com/pre-commit/mirrors-mypy
 #        rev: 'v0.910'
 #        hooks:
