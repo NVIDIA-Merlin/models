@@ -379,12 +379,9 @@ div.rendered_html tbody tr:hover {
 os.environ[&quot;TF_GPU_ALLOCATOR&quot;] = &quot;cuda_malloc_async&quot;
 
 import nvtabular as nvt
-from nvtabular.ops import *
-
-from merlin.models.utils.example_utils import workflow_fit_transform
+from nvtabular import ops as nvt_ops
 
 from merlin.schema.tags import Tags
-from merlin.schema import Schema
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
@@ -433,11 +430,11 @@ output_path = os.path.join(DATA_FOLDER, &quot;processed/&quot;)
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
-user_id = [&quot;user_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsUserID()
-item_id = [&quot;item_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemID()
-targets = [&quot;click&quot;] &gt;&gt; AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, &quot;target&quot;])
+user_id = [&quot;user_id&quot;] &gt;&gt; nvt_ops.Categorify() &gt;&gt; nvt_ops.TagAsUserID()
+item_id = [&quot;item_id&quot;] &gt;&gt; nvt_ops.Categorify() &gt;&gt; nvt_ops.TagAsItemID()
+targets = [&quot;click&quot;] &gt;&gt; nvt_ops.AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, &quot;target&quot;])
 
-item_features = [&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemFeatures()
+item_features = [&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; nvt_ops.Categorify() &gt;&gt; nvt_ops.TagAsItemFeatures()
 
 user_features = (
     [
@@ -453,8 +450,8 @@ user_features = (
         &quot;user_brands&quot;,
         &quot;user_categories&quot;,
     ]
-    &gt;&gt; Categorify()
-    &gt;&gt; TagAsUserFeatures()
+    &gt;&gt; nvt_ops.Categorify()
+    &gt;&gt; nvt_ops.TagAsUserFeatures()
 )
 
 outputs = user_id + item_id + item_features + user_features + targets
@@ -680,9 +677,17 @@ INFO:tensorflow:Assets written to: dlrm/assets
 </div>
 <div class="section" id="Next-Steps">
 <h2>Next Steps<a class="headerlink" href="#Next-Steps" title="Permalink to this headline"></a></h2>
-<p>We trained and exported our ranking model and NVTabular workflow. In the next step, we will learn how to deploy our trained DLRM model into <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a> with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Sytems</a> library. NVIDIA Triton Inference Server (TIS) simplifies the deployment of AI models at scale in production. TIS provides a cloud and edge inferencing solution optimized for both CPUs and GPUs. It supports a number
-of different machine learning frameworks such as TensorFlow and PyTorch.</p>
+<p>We trained and exported our ranking model and NVTabular workflow. In the next step, we will learn how to deploy our trained DLRM model into <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a> with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library. NVIDIA Triton Inference Server (TIS) simplifies the deployment of AI models at scale in production. TIS provides a cloud and edge inferencing solution optimized for both CPUs and GPUs. It supports a
+number of different machine learning frameworks such as TensorFlow and PyTorch.</p>
 <p>For the next step, visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library and execute <code class="docutils literal notranslate"><span class="pre">Getting-started-with-Merlin-Systems</span></code> notebook to deploy our saved DLRM and NVTabular workflow models as an ensemble to TIS and obtain prediction results for a qiven request.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 

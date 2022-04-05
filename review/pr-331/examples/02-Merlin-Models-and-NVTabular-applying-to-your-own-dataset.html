@@ -378,7 +378,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p><img alt="0864b00180e84c4ab36e9c512846040c" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="a8410c00f8f049b9930cb16b4bd73c06" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Applying-to-your-own-dataset-with-Merlin-Models-and-NVTabular">
 <h1>Applying to your own dataset with Merlin Models and NVTabular<a class="headerlink" href="#Applying-to-your-own-dataset-with-Merlin-Models-and-NVTabular" title="Permalink to this headline"></a></h1>
 <div class="section" id="Overview">
@@ -399,7 +399,7 @@ benchmark their new models on example offline datasets.</p>
 </div>
 <div class="section" id="Integration-of-NVTabular-and-Merlin-Models">
 <h2>Integration of NVTabular and Merlin Models<a class="headerlink" href="#Integration-of-NVTabular-and-Merlin-Models" title="Permalink to this headline"></a></h2>
-<p><img alt="f88201177fea45fe89d13281ed9e49c2" src="../_images/schema.png" /></p>
+<p><img alt="a6e2be49513440bb99e90e12a48b41ff" src="../_images/schema.png" /></p>
 <p>We take a look on a subsequence of our pipeline. We are interested in the interactions of feature engineering and model training.</p>
 <p>If you use NVTabular for feature engineering, in addition to the data, NVTabular will provide a <code class="docutils literal notranslate"><span class="pre">schema</span> <span class="pre">file</span></code> describing the dataset structures. NVTabular will automatically collect statistics and detect some types of <code class="docutils literal notranslate"><span class="pre">Tags</span></code>. For example: - Categorify: Transform categorical columns into continuous integers 0, …, |C| for embedding layers. It collects the cardinality of the embedding table and tags it as categorical. - Normalize: Normalize continuous features. It collects the mean and std of
 the feature and tags it as continuous.</p>
@@ -410,7 +410,6 @@ the feature and tags it as continuous.</p>
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
-import shutil
 import pandas as pd
 import nvtabular as nvt
 from merlin.models.utils.example_utils import workflow_fit_transform
@@ -418,7 +417,6 @@ import merlin.io
 
 import merlin.models.tf as mm
 
-from os import path
 from nvtabular import ops
 from merlin.core.utils import download_file
 from merlin.models.data.movielens import get_movielens
@@ -602,7 +600,10 @@ train.schema.select_by_tag(Tags.USER).column_names
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>input_path = os.environ.get(&quot;INPUT_DATA_DIR&quot;, os.path.expanduser(&quot;~/merlin-models-data/movielens/&quot;))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>input_path = os.environ.get(
+    &quot;INPUT_DATA_DIR&quot;,
+    os.path.expanduser(&quot;~/merlin-models-data/movielens/&quot;)
+)
 name = &quot;ml-1m&quot;
 download_file(
     &quot;http://files.grouplens.org/datasets/movielens/ml-1m.zip&quot;,
@@ -715,8 +716,12 @@ Wall time: 993 ms
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = merlin.io.Dataset(os.path.join(input_path, name, &quot;train&quot;), engine=&quot;parquet&quot;)
-valid = merlin.io.Dataset(os.path.join(input_path, name, &quot;valid&quot;), engine=&quot;parquet&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = merlin.io.Dataset(
+    os.path.join(input_path, name, &quot;train&quot;), engine=&quot;parquet&quot;
+)
+valid = merlin.io.Dataset(
+    os.path.join(input_path, name, &quot;valid&quot;), engine=&quot;parquet&quot;
+)
 </pre></div>
 </div>
 </div>
@@ -811,18 +816,26 @@ model.evaluate(valid, batch_size=1024)
 </div>
 <div class="section" id="Conclusion">
 <h2>Conclusion<a class="headerlink" href="#Conclusion" title="Permalink to this headline"></a></h2>
-<p>Feature engineering and model training are depending on each other. The <code class="docutils literal notranslate"><span class="pre">schema</span></code> object is a convient way to provide information from the feature engineering step to the model training step. It avoids that the user has to declare the same information mutliple times and prevents errors.</p>
+<p>Feature engineering and model training are depending on each other. The <code class="docutils literal notranslate"><span class="pre">schema</span></code> object is a convenient way to provide information from the feature engineering step to the model training step. It avoids that the user has to declare the same information multiple times and prevents errors.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">schema</span></code> defined the dataset schema and characteristics and Merlin Models can create the neural network architecture based on the information.</p>
 <p>The dataset features will be <code class="docutils literal notranslate"><span class="pre">tagged</span></code> to indicate which type of feature it represents.</p>
-<p>The recommended practice is to use <code class="docutils literal notranslate"><span class="pre">NVTabular</span></code> for feature engineering, which generates a <code class="docutils literal notranslate"><span class="pre">schema</span></code> file. NVTabular can automatically add <code class="docutils literal notranslate"><span class="pre">Tags</span></code> for certrain operations. For example, the output of <code class="docutils literal notranslate"><span class="pre">Categorify</span></code> is always a categorical feature and will be tagged. Similar, the output of <code class="docutils literal notranslate"><span class="pre">Normalize</span></code> is always continuous.</p>
+<p>The recommended practice is to use <code class="docutils literal notranslate"><span class="pre">NVTabular</span></code> for feature engineering, which generates a <code class="docutils literal notranslate"><span class="pre">schema</span></code> file. NVTabular can automatically add <code class="docutils literal notranslate"><span class="pre">Tags</span></code> for certain operations. For example, the output of <code class="docutils literal notranslate"><span class="pre">Categorify</span></code> is always a categorical feature and will be tagged. Similar, the output of <code class="docutils literal notranslate"><span class="pre">Normalize</span></code> is always continuous.</p>
 <p>You can take a look on the full example of our util function for MovieLens in our repository.</p>
 <p>Alternatively, you can manually create a schema file. We support JSON format for schema files.</p>
 </div>
 <div class="section" id="Next-Steps">
 <h2>Next Steps<a class="headerlink" href="#Next-Steps" title="Permalink to this headline"></a></h2>
 <p>In the next notebooks, we will explore multiple ranking models with Merlin Models.</p>
-<p>You can learn more about NVTabular, its functionality and suppored ops by visiting our <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular/">github repository</a> or exploring the <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples">examples</a>, such as <code class="docutils literal notranslate"><span class="pre">`Getting</span> <span class="pre">Started</span> <span class="pre">MovieLens</span></code> &lt;<a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular/blob/main/examples/getting-started-movielens/02-ETL-with-NVTabular.ipynb">https://github.com/NVIDIA-Merlin/NVTabular/blob/main/examples/getting-started-movielens/02-ETL-with-NVTabular.ipynb</a>&gt;`__ or
+<p>You can learn more about NVTabular, its functionality and supported ops by visiting our <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular/">github repository</a> or exploring the <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples">examples</a>, such as <code class="docutils literal notranslate"><span class="pre">`Getting</span> <span class="pre">Started</span> <span class="pre">MovieLens</span></code> &lt;<a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular/blob/main/examples/getting-started-movielens/02-ETL-with-NVTabular.ipynb">https://github.com/NVIDIA-Merlin/NVTabular/blob/main/examples/getting-started-movielens/02-ETL-with-NVTabular.ipynb</a>&gt;`__ or
 <code class="docutils literal notranslate"><span class="pre">`Scaling</span> <span class="pre">Criteo</span></code> &lt;<a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples/scaling-criteo">https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples/scaling-criteo</a>&gt;`__.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 

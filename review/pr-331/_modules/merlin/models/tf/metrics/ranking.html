@@ -107,7 +107,7 @@
 <span class="s2">        for the example. This is necessary when setting `pre_sorting=True` on the</span>
 <span class="s2">        ranking metrics classes (e.g. RecallAt(5, pre_sorted=True)), as extract_topk</span>
 <span class="s2">        is used to extract only the top-k predictions and corresponding labels,</span>
-<span class="s2">        potentially loosing other relevant items not among top-k. In such cases,</span>
+<span class="s2">        potentially losing other relevant items not among top-k. In such cases,</span>
 <span class="s2">        the label_relevant_counts will contain the total relevant counts per example.</span>
 <span class="s2">    k : int</span>
 <span class="s2">        The cut-off for ranking metrics</span>
@@ -323,7 +323,7 @@
         <span class="n">config</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="ow">is</span> <span class="n">RankingMetric</span><span class="p">:</span>
-            <span class="c1"># Only include function argument when the object is ot a subclass.</span>
+            <span class="c1"># Only include function argument when the object is of a subclass.</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;fn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fn</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;k&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;pre_sorted&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_sorted</span>

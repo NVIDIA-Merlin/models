@@ -402,23 +402,15 @@ building different ranking models with binary target column <code class="docutil
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
 
 os.environ[&quot;TF_GPU_ALLOCATOR&quot;] = &quot;cuda_malloc_async&quot;
-import cudf
-import glob
-import gc
-
-import nvtabular as nvt
-from nvtabular.ops import *
+from nvtabular import ops as nvt_ops
 from merlin.models.utils.example_utils import workflow_fit_transform, save_results, create_bar_chart
 
 from merlin.schema.tags import Tags
-from merlin.schema import Schema
 
 import merlin.models.tf as mm
-import merlin.models.tf.dataset as tf_dataloader
 
 from merlin.io.dataset import Dataset
 from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
-from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
 
 import tensorflow as tf
 </pre></div>
@@ -459,9 +451,9 @@ blog</a>.</p>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
 
-user_id = [&quot;user_id&quot;] &gt;&gt; Categorify(freq_threshold=5) &gt;&gt; TagAsUserID()
-item_id = [&quot;item_id&quot;] &gt;&gt; Categorify(freq_threshold=5) &gt;&gt; TagAsItemID()
-targets = [&quot;click&quot;] &gt;&gt; AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, &quot;target&quot;])
+user_id = [&quot;user_id&quot;] &gt;&gt; nvt_ops.Categorify(freq_threshold=5) &gt;&gt; nvt_ops.TagAsUserID()
+item_id = [&quot;item_id&quot;] &gt;&gt; nvt_ops.Categorify(freq_threshold=5) &gt;&gt; nvt_ops.TagAsItemID()
+targets = [&quot;click&quot;] &gt;&gt; nvt_ops.AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, &quot;target&quot;])
 
 add_feat = [
     &quot;user_item_categories&quot;,
@@ -471,18 +463,18 @@ add_feat = [
     &quot;item_category&quot;,
     &quot;item_shop&quot;,
     &quot;item_brand&quot;,
-] &gt;&gt; Categorify()
+] &gt;&gt; nvt_ops.Categorify()
 
 te_feat = (
     [&quot;user_id&quot;, &quot;item_id&quot;] + add_feat
-    &gt;&gt; TargetEncoding([&quot;click&quot;], kfold=1, p_smooth=20)
-    &gt;&gt; Normalize()
+    &gt;&gt; nvt_ops.TargetEncoding([&quot;click&quot;], kfold=1, p_smooth=20)
+    &gt;&gt; nvt_ops.Normalize()
 )
 
 outputs = user_id + item_id + targets + add_feat + te_feat
 
 # Remove rows where item_id==0 and user_id==0
-outputs = outputs &gt;&gt; Filter(f=lambda df: (df[&quot;item_id&quot;] != 0) &amp; (df[&quot;user_id&quot;] != 0))
+outputs = outputs &gt;&gt; nvt_ops.Filter(f=lambda df: (df[&quot;item_id&quot;] != 0) &amp; (df[&quot;user_id&quot;] != 0))
 
 workflow_fit_transform(outputs, train_path, valid_path, output_path)
 </pre></div>
@@ -601,7 +593,7 @@ valid = Dataset(os.path.join(output_path + &quot;/valid&quot;, &quot;*.parquet&q
 <h2>NCF Model<a class="headerlink" href="#NCF-Model" title="Permalink to this headline"></a></h2>
 <p>We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">(NCF)</a> Model architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.</p>
 <p>NCF feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers via its MLP layer tower as seen in the figure. GMF and MLP uses separate user and item embeddings, and then outputs of their interactions from GMF Layer and MLP Layer are concatenated and fed to the final NeuMF (Neural Matrix Factorisation) layer.</p>
-<p><img alt="b82c6baa48f84dab9a8a27d02145d3ac" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
+<p><img alt="4fab1af12c304cb3b537715758814d84" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
 <p>Image Source: NCF paper</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">schema</span></code> object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure.</p>
 <div class="nbinput nblast docutils container">
@@ -684,7 +676,7 @@ Wall time: 1min 39s
 <div class="section" id="MLP-Model">
 <h2>MLP Model<a class="headerlink" href="#MLP-Model" title="Permalink to this headline"></a></h2>
 <p>Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers.</p>
-<p><img alt="12736f56cc3743c48f9ef4fa00c6acb8" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
+<p><img alt="c54d4cf7c2cd49438d25ca5513d78088" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
 <p>Steps:</p>
 <ul class="simple">
 <li><p>Change the model to MLP model</p></li>

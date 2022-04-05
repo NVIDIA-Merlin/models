@@ -382,23 +382,12 @@ quickly score millions of items for a given user, a popular choices are models t
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
 
 os.environ[&quot;TF_GPU_ALLOCATOR&quot;] = &quot;cuda_malloc_async&quot;
-import cudf
-import glob
-import gc
 
-import nvtabular as nvt
-from nvtabular.ops import *
+from nvtabular import ops as nvt_ops
 from merlin.models.utils.example_utils import workflow_fit_transform
-
 from merlin.schema.tags import Tags
-from merlin.schema import Schema
-
 import merlin.models.tf as mm
-import merlin.models.tf.dataset as tf_dataloader
-
 from merlin.io.dataset import Dataset
-from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
-from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
 
 import tensorflow as tf
 </pre></div>
@@ -444,10 +433,10 @@ output_path = &quot;/workspace/data/processed/&quot;
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_id = [&quot;user_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsUserID()
-item_id = [&quot;item_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemID()
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_id = [&quot;user_id&quot;] &gt;&gt; nvt_ops.Categorify() &gt;&gt; nvt_ops.TagAsUserID()
+item_id = [&quot;item_id&quot;] &gt;&gt; nvt_ops.Categorify() &gt;&gt; nvt_ops.TagAsItemID()
 
-item_features = [&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemFeatures()
+item_features = [&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; nvt_ops.Categorify() &gt;&gt; nvt_ops.TagAsItemFeatures()
 
 user_features = (
     [
@@ -463,13 +452,13 @@ user_features = (
         &quot;user_brands&quot;,
         &quot;user_categories&quot;,
     ]
-    &gt;&gt; Categorify()
-    &gt;&gt; TagAsUserFeatures()
+    &gt;&gt; nvt_ops.Categorify()
+    &gt;&gt; nvt_ops.TagAsUserFeatures()
 )
 
 inputs = user_id + item_id + item_features + user_features + [&quot;click&quot;]
 
-outputs = inputs &gt;&gt; Filter(f=lambda df: df[&quot;click&quot;] == 1)
+outputs = inputs &gt;&gt; nvt_ops.Filter(f=lambda df: df[&quot;click&quot;] == 1)
 
 workflow_fit_transform(outputs, train_path, valid_path, output_path)
 </pre></div>
@@ -490,7 +479,7 @@ workflow_fit_transform(outputs, train_path, valid_path, output_path)
 <h1>Building a Two-Tower Model with Merlin Models<a class="headerlink" href="#Building-a-Two-Tower-Model-with-Merlin-Models" title="Permalink to this headline"></a></h1>
 <p>We will use Two-Tower Model for item retrieval task. Real-world large scale recommender systems have hundreds of millions of items (products) and users. Thus, these systems often composed of two stages: candidate generation (retrieval) and ranking (scoring the retrieved items). At candidate generation step, a subset of relevant items from large item corpus is retrieved. You can read more about two stage Recommender Systems here. In this example, we’re going to focus on the retrieval stage.</p>
 <p>A Two-Tower Model consists of item (candidate) and user (query) encoder towers. With two towers, the model can learn representations (embeddings) for queries and candidates separately.</p>
-<p><img alt="b8d3aaca0b9d4bab9c7e8a2d4ae3f000" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
+<p><img alt="e7b145fa949c4022874908824dd4f129" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
 <p>Image Adapted from: <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3366423.3380130">Off-policy Learning in Two-stage Recommender Systems</a></p>
 <p>We use the <code class="docutils literal notranslate"><span class="pre">schema</span></code> object to define our model.</p>
 <div class="nbinput nblast docutils container">

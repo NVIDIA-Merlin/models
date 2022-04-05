@@ -84,7 +84,6 @@
    ],
    "source": [
     "import os\n",
-    "import shutil\n",
     "import pandas as pd\n",
     "import nvtabular as nvt\n",
     "from merlin.models.utils.example_utils import workflow_fit_transform\n",
@@ -92,7 +91,6 @@
     "\n",
     "import merlin.models.tf as mm\n",
     "\n",
-    "from os import path\n",
     "from nvtabular import ops\n",
     "from merlin.core.utils import download_file\n",
     "from merlin.models.data.movielens import get_movielens\n",
@@ -384,7 +382,10 @@
     }
    ],
    "source": [
-    "input_path = os.environ.get(\"INPUT_DATA_DIR\", os.path.expanduser(\"~/merlin-models-data/movielens/\"))\n",
+    "input_path = os.environ.get(\n",
+    "    \"INPUT_DATA_DIR\",\n",
+    "    os.path.expanduser(\"~/merlin-models-data/movielens/\")\n",
+    ")\n",
     "name = \"ml-1m\"\n",
     "download_file(\n",
     "    \"http://files.grouplens.org/datasets/movielens/ml-1m.zip\",\n",
@@ -556,8 +557,12 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "train = merlin.io.Dataset(os.path.join(input_path, name, \"train\"), engine=\"parquet\")\n",
-    "valid = merlin.io.Dataset(os.path.join(input_path, name, \"valid\"), engine=\"parquet\")"
+    "train = merlin.io.Dataset(\n",
+    "    os.path.join(input_path, name, \"train\"), engine=\"parquet\"\n",
+    ")\n",
+    "valid = merlin.io.Dataset(\n",
+    "    os.path.join(input_path, name, \"valid\"), engine=\"parquet\"\n",
+    ")"
    ]
   },
   {
@@ -679,13 +684,13 @@
    "source": [
     "## Conclusion\n",
     "\n",
-    "Feature engineering and model training are depending on each other. The `schema` object is a convient way to provide information from the feature engineering step to the model training step. It avoids that the user has to declare the same information mutliple times and prevents errors.\n",
+    "Feature engineering and model training are depending on each other. The `schema` object is a convenient way to provide information from the feature engineering step to the model training step. It avoids that the user has to declare the same information multiple times and prevents errors.\n",
     "\n",
     "The `schema` defined the dataset schema and characteristics and Merlin Models can create the neural network architecture based on the information.\n",
     "\n",
     "The dataset features will be `tagged` to indicate which type of feature it represents. \n",
     "\n",
-    "The recommended practice is to use `NVTabular` for feature engineering, which generates a `schema` file. NVTabular can automatically add `Tags` for certrain operations. For example, the output of `Categorify` is always a categorical feature and will be tagged. Similar, the output of `Normalize` is always continuous.\n",
+    "The recommended practice is to use `NVTabular` for feature engineering, which generates a `schema` file. NVTabular can automatically add `Tags` for certain operations. For example, the output of `Categorify` is always a categorical feature and will be tagged. Similar, the output of `Normalize` is always continuous.\n",
     "\n",
     "You can take a look on the full example of our util function for MovieLens in our repository.\n",
     "\n",
@@ -695,8 +700,20 @@
     "\n",
     "In the next notebooks, we will explore multiple ranking models with Merlin Models.\n",
     "\n",
-    "You can learn more about NVTabular, its functionality and suppored ops by visiting our [github repository](https://github.com/NVIDIA-Merlin/NVTabular/) or exploring the [examples](https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples), such as [`Getting Started MovieLens`](https://github.com/NVIDIA-Merlin/NVTabular/blob/main/examples/getting-started-movielens/02-ETL-with-NVTabular.ipynb) or [`Scaling Criteo`](https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples/scaling-criteo)."
+    "You can learn more about NVTabular, its functionality and supported ops by visiting our [github repository](https://github.com/NVIDIA-Merlin/NVTabular/) or exploring the [examples](https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples), such as [`Getting Started MovieLens`](https://github.com/NVIDIA-Merlin/NVTabular/blob/main/examples/getting-started-movielens/02-ETL-with-NVTabular.ipynb) or [`Scaling Criteo`](https://github.com/NVIDIA-Merlin/NVTabular/tree/main/examples/scaling-criteo)."
    ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
   }
  ],
  "metadata": {
