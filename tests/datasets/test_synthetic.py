@@ -29,6 +29,15 @@ def test_synthetic_sequence_testing_data():
     assert len(dataset.schema) == 11
 
 
+def test_train_valid_testing_data():
+    train, valid = generate_data("testing", 1000, set_sizes=(0.8, 0.2))
+
+    assert isinstance(train, Dataset)
+    assert isinstance(valid, Dataset)
+    assert train.num_rows == 800
+    assert valid.num_rows == 200
+
+
 def test_tf_tensors_generation_cpu():
     tf = pytest.importorskip("tensorflow")
     data = generate_data("testing", num_rows=100, min_session_length=5, max_session_length=50)

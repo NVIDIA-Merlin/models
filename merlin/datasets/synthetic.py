@@ -19,7 +19,7 @@ import os
 import pathlib
 from pathlib import Path
 from random import randint
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -49,10 +49,11 @@ KNOWN_DATASETS: Dict[str, Path] = {
 def generate_data(
     input: Union[Schema, Path, str],
     num_rows: int,
+    set_sizes: Sequence[float] = (1.0,),
     min_session_length=5,
     max_session_length=None,
     device="cpu",
-) -> merlin.io.Dataset:
+) -> Union[merlin.io.Dataset, Tuple[merlin.io.Dataset, ...]]:
     """
     Generate synthetic data from a schema or one of the known datasets.
 
@@ -76,6 +77,12 @@ def generate_data(
         The schema, path to a dataset or name of a known dataset.
     num_rows: int
         The number of rows to generate.
+    set_sizes: Sequence[float], default=(1.0,)
+        This parameter allows outputting multiple datasets, where each
+        dataset is a subset of the original dataset.
+
+        Example::
+            train, valid = generate_data(input, 10000, (0.8, 0.2))
     min_session_length: int
         The minimum number of events in a session.
     max_session_length: int
@@ -103,11 +110,24 @@ def generate_data(
     else:
         raise ValueError(f"Unknown input type: {type(input)}")
 
-    data = generate_user_item_interactions(
+    df = generate_user_item_interactions(
         schema, num_rows, min_session_length, max_session_length, device=device
     )
 
-    return merlin.io.Dataset(data, schema=schema)
+    if list(set_sizes) != [1.0]:
+        num_rows = df.shape[0]
+        output_datasets = []
+        start_i = 0
+        for set_size in set_sizes:
+            num_rows_set = int(num_rows * set_size)
+            end_i = start_i + num_rows_set
+            set_df = df.iloc[start_i:end_i]
+            start_i = end_i
+            output_datasets.append(set_df)
+
+        return tuple([merlin.io.Dataset(d, schema=schema) for d in output_datasets])
+
+    return merlin.io.Dataset(df, schema=schema)
 
 
 def generate_user_item_interactions(
