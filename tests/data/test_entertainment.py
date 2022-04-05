@@ -3,7 +3,7 @@ import os
 import pytest
 
 import merlin.io
-from merlin.models.data.entertainment.movielens.dataset import get_movielens
+from merlin.models.data.entertainment import get_movielens
 from merlin.models.data.synthetic import generate_data
 
 MAYBE_DATA_DIR = os.environ.get("INPUT_DATA_DIR", None)

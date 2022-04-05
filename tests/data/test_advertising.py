@@ -3,7 +3,7 @@ import os
 import pytest
 
 import merlin.io
-from merlin.models.data.advertising.criteo import get_criteo
+from merlin.models.data.advertising import get_criteo
 from merlin.models.data.synthetic import generate_data
 
 MAYBE_DATA_DIR = os.environ.get("INPUT_DATA_DIR", None)
