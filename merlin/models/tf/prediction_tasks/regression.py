@@ -29,6 +29,24 @@ from merlin.schema import Schema, Tags
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RegressionTask(PredictionTask):
+    """
+    Prediction task for regression-task.
+
+    Parameters
+    ----------
+    target: Union[str, Schema], optional
+        The name of the target. If a Schema is provided, the target is inferred from the schema.
+    task_name: str, optional
+        The name of the task.
+    task_block: Block, optional
+        The block to use for the task.
+    loss: LossType, optional
+        The loss to use for the task.
+        Defaults to "mse".
+    metrics: MetricOrMetrics, optional
+        The metrics to use for the task. Defaults to [root-mean-squared-error].
+    """
+
     DEFAULT_LOSS = "mse"
     DEFAULT_METRICS = (tf.keras.metrics.RootMeanSquaredError,)
 
@@ -56,7 +74,7 @@ class RegressionTask(PredictionTask):
                 )
             target_name = target_name.column_names[0]
         else:
-            target_name = target
+            target_name = target if target else kwargs.pop("target_name", None)
 
         logit = kwargs.pop("logit", None)
         super().__init__(

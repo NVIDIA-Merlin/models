@@ -33,7 +33,28 @@ from merlin.schema import Schema, Tags
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BinaryClassificationTask(PredictionTask):
+    """
+    Prediction task for binary classification.
+
+    Parameters
+    ----------
+    target: Union[str, Schema], optional
+        The name of the target. If a Schema is provided, the target is inferred from the schema.
+    task_name: str, optional
+        The name of the task.
+    task_block: Block, optional
+        The block to use for the task.
+    loss: LossType, optional
+        The loss to use for the task.
+        Defaults to "binary_crossentropy".
+    metrics: MetricOrMetrics, optional
+        The metrics to use for the task. Defaults to [precision, recall, accuracy & auc].
+    """
+
+    # Default loss to use
     DEFAULT_LOSS = "binary_crossentropy"
+
+    # Default metrics to use
     DEFAULT_METRICS = (
         tf.keras.metrics.Precision,
         tf.keras.metrics.Recall,
@@ -66,7 +87,7 @@ class BinaryClassificationTask(PredictionTask):
                 )
             target_name = target_name.column_names[0]
         else:
-            target_name = target
+            target_name = target if target else kwargs.pop("target_name", None)
 
         output_layer = kwargs.pop("output_layer", None)
         super().__init__(
@@ -115,6 +136,8 @@ class BinaryClassificationTask(PredictionTask):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class CategFeaturePrediction(Block):
+    """Block that predicts a categorical feature. num_classes is inferred from the"""
+
     def __init__(
         self,
         schema: Schema,
@@ -156,6 +179,24 @@ class CategFeaturePrediction(Block):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class MultiClassClassificationTask(PredictionTask):
+    """
+    Prediction task for multi-class classification.
+
+    Parameters
+    ----------
+    target_name : Optional[str], optional
+        Label name, by default None
+    task_name: str, optional
+        The name of the task.
+    task_block: Block, optional
+        The block to use for the task.
+    loss: LossType, optional
+        The loss to use for the task.
+        Defaults to "sparse_categorical_crossentropy".
+    metrics: MetricOrMetrics, optional
+        The metrics to use for the task. Defaults to [accuracy].
+    """
+
     DEFAULT_LOSS = "sparse_categorical_crossentropy"
     DEFAULT_METRICS: MetricOrMetrics = (tf.keras.metrics.Accuracy,)
 
@@ -169,7 +210,6 @@ class MultiClassClassificationTask(PredictionTask):
         pre: Optional[Block] = None,
         **kwargs,
     ):
-
         super().__init__(
             metrics=metrics,
             target_name=target_name,
@@ -191,6 +231,7 @@ class MultiClassClassificationTask(PredictionTask):
         extra_pre: Optional[Block] = None,
         **kwargs,
     ) -> "MultiClassClassificationTask":
+        """Create from Schema."""
         pre = CategFeaturePrediction(
             schema,
             feature_name,
