@@ -198,10 +198,9 @@
    ],
    "source": [
     "import tensorflow as tf\n",
-    "\n",
     "import merlin.models.tf as mm\n",
-    "from merlin.models.data.movielens import get_movielens\n",
-    "from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler\n",
+    "\n",
+    "from merlin.datasets.entertainment import get_movielens\n",
     "from merlin.schema.tags import Tags"
    ]
   },
@@ -517,9 +516,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "continuous_block = mm.ContinuousFeatures.from_schema(\n",
-    "    sub_schema, tags=Tags.CONTINUOUS\n",
-    ")"
+    "continuous_block = mm.ContinuousFeatures.from_schema(sub_schema, tags=Tags.CONTINUOUS)"
    ]
   },
   {
@@ -844,6 +841,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
+    "from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler\n",
+    "\n",
     "binary_task = mm.BinaryClassificationTask(\n",
     "    target_name=sub_schema.select_by_tag(Tags.TARGET).column_names[0],\n",
     "    metrics=[tf.keras.metrics.AUC],\n",

@@ -416,10 +416,9 @@ determining the embedding dimensions, input shapes, and output shapes. Additiona
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import tensorflow as tf
-
 import merlin.models.tf as mm
-from merlin.models.data.movielens import get_movielens
-from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
+
+from merlin.datasets.entertainment import get_movielens
 from merlin.schema.tags import Tags
 </pre></div>
 </div>
@@ -672,9 +671,7 @@ array([[1206],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>continuous_block = mm.ContinuousFeatures.from_schema(
-    sub_schema, tags=Tags.CONTINUOUS
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>continuous_block = mm.ContinuousFeatures.from_schema(sub_schema, tags=Tags.CONTINUOUS)
 </pre></div>
 </div>
 </div>
@@ -808,7 +805,7 @@ dlrm_interaction = dlrm_input_block.connect_with_shortcut(
 </div>
 </div>
 <p>The following diagram provides a visualization of the operations that we constructed in the <code class="docutils literal notranslate"><span class="pre">dlrm_interaction</span></code> object.</p>
-<p><img alt="bec0133649d0416d87bf61bb05986ccf" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
+<p><img alt="9feb46b47b8e454783b7cefb7b40cde4" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
@@ -874,7 +871,9 @@ array([[0.01519031, 0.        , 0.00602788, ..., 0.        , 0.00327193,
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>binary_task = mm.BinaryClassificationTask(
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
+
+binary_task = mm.BinaryClassificationTask(
     target_name=sub_schema.select_by_tag(Tags.TARGET).column_names[0],
     metrics=[tf.keras.metrics.AUC],
     pre=LogitsTemperatureScaler(temperature=2),
