@@ -601,7 +601,7 @@ valid = Dataset(os.path.join(output_path + &quot;/valid&quot;, &quot;*.parquet&q
 <h2>NCF Model<a class="headerlink" href="#NCF-Model" title="Permalink to this headline"></a></h2>
 <p>We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">(NCF)</a> Model architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.</p>
 <p>NCF feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers via its MLP layer tower as seen in the figure. GMF and MLP uses separate user and item embeddings, and then outputs of their interactions from GMF Layer and MLP Layer are concatenated and fed to the final NeuMF (Neural Matrix Factorisation) layer.</p>
-<p><img alt="5ccc29dfb44c46acb4427154e61bcdc6" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
+<p><img alt="7b112359ecf04ec090cb836cc85476c1" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
 <p>Image Source: NCF paper</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">schema</span></code> object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure.</p>
 <div class="nbinput nblast docutils container">
@@ -684,7 +684,7 @@ Wall time: 1min 39s
 <div class="section" id="MLP-Model">
 <h2>MLP Model<a class="headerlink" href="#MLP-Model" title="Permalink to this headline"></a></h2>
 <p>Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers.</p>
-<p><img alt="b132160b5baf40c9a041f7b0fdca2946" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
+<p><img alt="80a1abaf01f34fa189176f0f313dd84c" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
 <p>Steps:</p>
 <ul class="simple">
 <li><p>Change the model to MLP model</p></li>
