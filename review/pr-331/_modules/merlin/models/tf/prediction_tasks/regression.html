@@ -135,7 +135,7 @@
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_name</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;Regression task requires a single column with a &quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Binary classification task requires a single column with a &quot;</span><span class="p">,</span>
                     <span class="s2">&quot;`Tags.REGRESSION` tag.&quot;</span><span class="p">,</span>
                     <span class="s2">&quot;Found </span><span class="si">{}</span><span class="s2"> columns. &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">target_name</span><span class="o">.</span><span class="n">column_names</span><span class="p">)),</span>
                     <span class="s2">&quot;Please specify the column name with the `target` argument.&quot;</span><span class="p">,</span>
