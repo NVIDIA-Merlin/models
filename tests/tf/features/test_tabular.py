@@ -17,15 +17,15 @@
 import pytest
 
 import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
-def test_tabular_features(testing_data: SyntheticData):
+def test_tabular_features(testing_data: Dataset):
     tab_module = ml.InputBlock(testing_data.schema)
 
-    outputs = tab_module(testing_data.tf_tensor_dict)
+    outputs = tab_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     con = testing_data.schema.select_by_tag(Tags.CONTINUOUS).column_names
     cat = testing_data.schema.select_by_tag(Tags.CATEGORICAL).column_names
@@ -33,7 +33,7 @@ def test_tabular_features(testing_data: SyntheticData):
     assert set(outputs.keys()) == set(con + cat)
 
 
-def test_serialization_tabular_features(testing_data: SyntheticData):
+def test_serialization_tabular_features(testing_data: Dataset):
     inputs = ml.InputBlock(testing_data.schema)
 
     copy_layer = testing_utils.assert_serialization(inputs)
@@ -41,10 +41,10 @@ def test_serialization_tabular_features(testing_data: SyntheticData):
     assert list(inputs.parallel_layers.keys()) == list(copy_layer.parallel_layers.keys())
 
 
-def test_tabular_features_with_projection(testing_data: SyntheticData):
+def test_tabular_features_with_projection(testing_data: Dataset):
     tab_module = ml.InputBlock(testing_data.schema, continuous_projection=ml.MLPBlock([64]))
 
-    outputs = tab_module(testing_data.tf_tensor_dict)
+    outputs = tab_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
     continuous_feature_names = testing_data.schema.select_by_tag(Tags.CONTINUOUS).column_names
 
     assert len(set(continuous_feature_names).intersection(set(outputs.keys()))) == 0
@@ -55,14 +55,15 @@ def test_tabular_features_with_projection(testing_data: SyntheticData):
 @testing_utils.mark_run_eagerly_modes
 @pytest.mark.parametrize("continuous_projection", [None, 128])
 def test_tabular_features_yoochoose_model(
-    testing_data: SyntheticData, run_eagerly, continuous_projection
+    music_streaming_data: Dataset, run_eagerly, continuous_projection
 ):
     if continuous_projection:
         continuous_projection = ml.MLPBlock([continuous_projection])
     inputs = ml.InputBlock(
-        testing_data.schema, continuous_projection=continuous_projection, aggregation="concat"
+        music_streaming_data.schema,
+        continuous_projection=continuous_projection,
+        aggregation="concat",
     )
 
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
-
-    testing_utils.assert_body_works_in_model(testing_data.tf_tensor_dict, inputs, body, run_eagerly)
+    testing_utils.assert_body_works_in_model(music_streaming_data, body, run_eagerly)

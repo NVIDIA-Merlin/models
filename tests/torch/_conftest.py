@@ -15,11 +15,12 @@
 #
 
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 
 import merlin.models.torch as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.models.data.synthetic import generate_data
 
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100
@@ -30,7 +31,7 @@ MAX_CARDINALITY = 100
 
 @pytest.fixture
 def tabular_schema():
-    return SyntheticData("testing").schema
+    return generate_data("testing", 10).schema
 
 
 @pytest.fixture
@@ -140,4 +141,11 @@ def torch_tabular_features(tabular_schema):
 
 @pytest.fixture
 def torch_tabular_data():
-    return SyntheticData("testing", num_rows=100).torch_tensor_dict
+    dataset = generate_data("testing", num_rows=100)
+
+    df = dataset.to_ddf().compute()
+    if not isinstance(df, pd.DataFrame):
+        df = df.to_pandas()
+    data = df.to_dict("list")
+
+    return {key: torch.tensor(value) for key, value in data.items()}

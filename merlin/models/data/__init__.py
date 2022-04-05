@@ -13,3 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import os
+
+BASE_PATH = os.environ.get("INPUT_DATA_DIR", os.path.expanduser("~/merlin-models-data/"))

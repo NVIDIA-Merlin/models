@@ -34,19 +34,15 @@ def mark_run_eagerly_modes(*args, **kwargs):
     return pytest.mark.parametrize("run_eagerly", modes)(*args, **kwargs)
 
 
-def assert_body_works_in_model(data, inputs, body, run_eagerly, num_epochs=5):
-    targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
-
-    model = body.connect(BinaryClassificationTask("target"))
+def assert_body_works_in_model(dataset, body, run_eagerly, num_epochs=5):
+    model = body.connect(BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    dataset = tf.data.Dataset.from_tensor_slices((data, targets)).batch(50)
-
-    losses = model.fit(dataset, epochs=num_epochs)
-    metrics = model.evaluate(data, targets, return_dict=True)
+    losses = model.fit(dataset, batch_size=50, epochs=num_epochs)
+    metrics = model.evaluate(dataset, batch_size=50, return_dict=True)
 
     assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="target", num_epochs=num_epochs
+        losses, metrics, target_name="click", num_epochs=num_epochs
     )
 
 
@@ -116,7 +112,7 @@ def assert_model_is_retrainable(
     model: Model, data, run_eagerly: bool = True, optimizer="adam", **kwargs
 ):
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
-    losses = model.fit(data, epochs=1)
+    losses = model.fit(data, batch_size=50, epochs=1)
 
     assert len(losses.epoch) == 1
     # assert all(0 <= loss <= 1 for loss in losses.history["loss"])
@@ -129,7 +125,7 @@ def assert_model_is_retrainable(
 
     assert isinstance(loaded_model, Model)
     loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
-    losses = loaded_model.fit(data, epochs=1)
+    losses = loaded_model.fit(data, batch_size=50, epochs=1)
 
     assert len(losses.epoch) == 1
     # assert all(0 <= loss <= 1 for loss in losses.history["loss"])

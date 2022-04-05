@@ -15,10 +15,35 @@
 #
 import pytest
 
-from merlin.models.data.synthetic import SyntheticData, generate_user_item_interactions
+from merlin.io import Dataset
+from merlin.models.data.synthetic import generate_data, generate_user_item_interactions
+from merlin.models.utils.schema_utils import filter_dict_by_schema
+from merlin.schema import Tags
 
 
-def test_generate_item_interactions_cpu(testing_data: SyntheticData):
+def test_synthetic_sequence_testing_data():
+    dataset = generate_data("testing", 100)
+
+    assert isinstance(dataset, Dataset)
+    assert dataset.num_rows == 100
+    assert len(dataset.schema) == 11
+
+
+def test_tf_tensors_generation_cpu():
+    tf = pytest.importorskip("tensorflow")
+    data = generate_data("testing", num_rows=100, min_session_length=5, max_session_length=50)
+    schema = data.schema
+
+    from merlin.models.tf import sample_batch
+
+    tensors = sample_batch(data, batch_size=100, include_targets=False)
+    assert tensors["user_id"].shape == (100, 1)
+    assert tensors["user_age"].dtype == tf.float64
+    for name, val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).items():
+        assert len(val) == 2
+
+
+def test_generate_item_interactions_cpu(testing_data: Dataset):
     pd = pytest.importorskip("pandas")
     data = generate_user_item_interactions(
         testing_data.schema.without("event_timestamp"), num_interactions=500
@@ -56,7 +81,7 @@ def test_generate_item_interactions_cpu(testing_data: SyntheticData):
     )
 
 
-def test_generate_item_interactions_gpu(testing_data: SyntheticData):
+def test_generate_item_interactions_gpu(testing_data: Dataset):
     cudf = pytest.importorskip("cudf")
     data = generate_user_item_interactions(testing_data.schema, num_interactions=500, device="cuda")
 

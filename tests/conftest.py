@@ -19,34 +19,33 @@ from __future__ import absolute_import
 
 import pytest
 
-from merlin.models.data.synthetic import SyntheticData, _read_data
-
-read_data = _read_data
-
-
-@pytest.fixture
-def ecommerce_data() -> SyntheticData:
-    return SyntheticData("e-commerce", num_rows=100, read_data_fn=read_data)
+from merlin.io import Dataset
+from merlin.models.data.synthetic import generate_data
 
 
 @pytest.fixture
-def music_streaming_data() -> SyntheticData:
-    return SyntheticData("music_streaming", num_rows=100, read_data_fn=read_data)
+def ecommerce_data() -> Dataset:
+    return generate_data("e-commerce", num_rows=100)
 
 
 @pytest.fixture
-def sequence_testing_data() -> SyntheticData:
-    return SyntheticData("sequence_testing", num_rows=100, read_data_fn=read_data)
+def music_streaming_data() -> Dataset:
+    return generate_data("music-streaming", num_rows=100)
 
 
 @pytest.fixture
-def social_data() -> SyntheticData:
-    return SyntheticData("social", num_rows=100, read_data_fn=read_data)
+def sequence_testing_data() -> Dataset:
+    return generate_data("sequence-testing", num_rows=100)
 
 
 @pytest.fixture
-def testing_data() -> SyntheticData:
-    data = SyntheticData("testing", num_rows=100, read_data_fn=read_data)
+def social_data() -> Dataset:
+    return generate_data("social", num_rows=100)
+
+
+@pytest.fixture
+def testing_data() -> Dataset:
+    data = generate_data("testing", num_rows=100)
     data._schema = data.schema.without(["session_id", "session_start", "day_idx"])
 
     return data

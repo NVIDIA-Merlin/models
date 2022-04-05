@@ -1,75 +1,125 @@
-# Merlin Models
+## Merlin Models 
+[![PyPI version shields.io](https://img.shields.io/pypi/v/merlin-models.svg)](https://pypi.python.org/pypi/merlin-models/)
+![GitHub License](https://img.shields.io/github/license/NVIDIA-Merlin/models)
+[![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://nvidia-merlin.github.io/models/main/)
 
-[![stability-alpha](https://img.shields.io/badge/stability-alpha-f4d03f.svg)](https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#alpha)
-
-The Merlin Models library provides standard models for recommender systems with an aim for high quality implementations
+The Merlin Models library provides standard models for recommender systems with an aim for high-quality implementations
 that range from classic machine learning models to highly-advanced deep learning models.
 
-The goal of this library is to make it easy for users in industry to train and deploy recommender models with the best
-practices that are already baked into the library. The library simplifies how users in industry can train standard models against their own
-dataset and put high-performance, GPU-accelerated models into production. The library also enables researchers to build custom
+The goal of this library is to make it easy for users in the industry to train and deploy recommender models with the best
+practices that are already baked into the library. The library simplifies how users in the industry can train standard models against their dataset and put high-performance, GPU-accelerated models into production. The library also enables researchers to build custom
 models by incorporating standard components of deep learning recommender models and then researchers can benchmark the new models on
 example offline
 datasets.
 
-## Installation
+In our initial releases, Merlin Models features a TensorFlow API. The PyTorch API is initiated, but incomplete.
 
-### Installing Merlin Models with pip
+### Benefits of Merlin Models
 
+**[RecSys model implementations](https://nvidia-merlin.github.io/models/main/models_overview.html)** - The library provides a high-level API for classic and state-of-the-art deep learning architectures for recommender models.
+These models include both retrieval (e.g. Matrix Factorization, Two tower, YouTube DNN, ..) and ranking (e.g. DLRM, DCN-v2, DeepFM, ...) models.
+
+**Building blocks** - Within Merlin Models, recommender models are built on reusable building blocks.
+The design makes it easy to combine the blocks to define new architectures.
+The library provides model definition blocks (MLP layers, factorization layers, input blocks, negative samplers, loss functions), training models (data loaders from Parquet files), and evaluation (e.g. ranking metrics).
+
+**Integration with Merlin platform** - Merlin Models is deeply integrated with the other Merlin components.
+For example, models depend on NVTabular for pre-processing and integrate easily with Merlin Systems for inference.
+The thoughtfully-designed integration makes it straightforward to build performant end-to-end RecSys pipelines.
+
+**[Merlin Models DataLoaders](https://nvidia-merlin.github.io/models/main/api.html#loader-utility-functions)** - Merlin provides seamless integration with common deep learning frameworks, such as TensorFlow, PyTorch, and HugeCTR.
+When training deep learning recommender system models, data loading can be a bottleneck.
+To address the challenge, Merlin has custom, highly-optimized dataloaders to accelerate existing TensorFlow and PyTorch training pipelines.
+The Merlin dataloaders can lead to a speedup that is nine times faster than the same training pipeline used with the GPU.
+
+With the Merlin dataloaders, you can:
+- Remove bottlenecks from data loading by processing large chunks of data at a time instead of item by item.
+- Process datasets that don't fit within the GPU or CPU memory by streaming from the disk.
+- Prepare batches asynchronously into the GPU to avoid CPU-to-GPU communication.
+- Integrate easily into existing TensorFlow or PyTorch training pipelines by using a similar API.
+
+To learn about the core features of Merlin Models, see the [Models Overview](docs/source/models_overview.md) page.
+
+### Installation
+
+#### Installing Merlin Models Using Pip
+
+Merlin Models can be installed with `pip` by running the following command:
 
 ```shell
 pip install merlin-models
 ```
 
-### Installing Merlin Models with conda
+> Installing Merlin Models with `pip` does not install some additional GPU dependencies, such as the CUDA Toolkit.
+> When you run Merlin Models in one of our Docker containers, the dependencies are already installed.
+
+#### Docker Containers that include Merlin Models
+
+Merlin Models is included in the Merlin Containers.
+
+Refer to the [Merlin Containers](https://nvidia-merlin.github.io/Merlin/main/containers.html) documentation page for information about the Merlin container names, URLs to the container images on the NVIDIA GPU Cloud catalog, and key Merlin components.
+
+#### Installing Merlin Models from Source
+
+Merlin Models can be installed from source by running the following commands: 
 
 ```shell
-conda install -c nvidia merlin-models
+git clone https://github.com/NVIDIA-Merlin/models
+cd models && pip install -e .
 ```
 
-### Docker Containers that include Merlin Models
+### Getting Started
 
-Merlin Models is pre-installed in the NVIDIA Merlin Docker containers that are available in the [NVIDIA container repository](https://ngc.nvidia.com/catalog/containers/nvidia:merlin) in three different containers:
+Merlin Models makes it straighforward to define architectures that adapt to different input features.
+This adaptability is provided by building on a core feature of the NVTabular library.
+When you use NVTabular for feature engineering, NVTabular creates a schema that identifies the input features.
+You can see the `Schema` object in action by looking at the [Applying to your own dataset with Merlin Models and NVTabular](https://github.com/NVIDIA-Merlin/models/examples/02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html) example notebook.
 
-<!-- prettier-ignore-start -->
+You can easily build popular RecSys architectures like [DLRM](http://arxiv.org/abs/1906.00091), as shown in the following code sample.
+After you define the model, you can train and evaluate it with a typical Keras model.
 
-| Container Name             | Container Location | Functionality |
-| -------------------------- | ------------------ | ------------- |
-| merlin-tensorflow-training | [https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-tensorflow-training](https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-tensorflow-training) | Transformers4Rec, NVTabular, TensorFlow, and HugeCTR Tensorflow Embedding plugin |
-| merlin-pytorch-training    | [https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-pytorch-training](https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-pytorch-training)    | Transformers4Rec, NVTabular and PyTorch
-| merlin-inference           | [https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-inference](https://ngc.nvidia.com/catalog/containers/nvidia:merlin:merlin-inference)           | Transformers4Rec, NVTabular, PyTorch, and Triton Inference |  |
+```python
+import tensorflow as tf
 
+import merlin.models.tf as mm
+from merlin.io.dataset import Dataset
 
-<!-- prettier-ignore-end -->
+train_ds = Dataset(os.path.join(data_path, 'train/*.parquet'))
+valid_ds = Dataset(os.path.join(output_path 'valid/*.parquet'))
 
-To use these Docker containers, you'll first need to install the [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-docker) to provide GPU support for Docker. You can use the NGC links referenced in the table above to obtain more information about how to launch and run these containers.
+model = mm.DLRMModel(
+    train_ds.schema,                                          # 1
+    embedding_dim=64,
+    bottom_block=mm.MLPBlock([128, 64]),                      # 2
+    top_block=mm.MLPBlock([128, 64, 32]),
+    prediction_tasks=mm.BinaryClassificationTask(schema)      # 3
+    ),
+)
 
-<!-- Need core benefits, Common use cases, or Highlights -->
+opt = tf.keras.optimizers.Adagrad(learning_rate=1e-4)
+model.compile(optimizer=opt, run_eagerly=False)
+model.fit(train, validation_data=valid_ds, batch_size=batch_size)
+eval_metrics = model.evaluate(valid_ds, return_dict=True)
+```
 
-## Core Features
+  1.  To build the internal input layer, the model identifies them from the schema object.
+      The schema identifies the continuous features and categorical features, for which embedding tables are created.
+  2.  To define the body of the architecture, MLP layers are used with configurable dimensions.
+  3.  The head of the architecture is created from the chosen task, `BinaryClassificationTask` in this example.
+      The target binary feature is also infered from the schema (i.e., tagged as 'TARGET').
 
-To learn about the core features of Merlin Models, see the [Models Overview](docs/source/models_overview.md) page.
-The key retrieval models are as follows:
+You can find more details and information about a low-level API in our overview of the
+[Deep Learning Recommender Model](https://nvidia-merlin.github.io/models/main/models_overview.html#deep-learning-recommender-model).
 
-* Matrix factorization
-* YouTube DNN retrieval
-* Two tower
-* Ranking models such as DLRM and DCN-V2
-* Multi-task learning with Mixture-of-experts or Progressive layered extraction
+### Notebook Examples and Tutorials
 
-<!--
-## Sample Notebooks
+View the example notebooks in the [documentation](https://nvidia-merlin.github.io/models/main/examples/README.html) to help you become familiar with Merlin Models.
 
-* Link to each notebook directory when #190 is merged.
--->
+The same notebooks are available in the `examples` directory from the [Merlin Models](https://github.com/NVIDIA-Merlin/models) GitHub repostory.
 
-## Feedback and Support
+### Feedback and Support
 
 If you'd like to contribute to the library directly, see the [CONTRIBUTING.md](CONTRIBUTING.md) file.
 We're particularly interested in contributions or feature requests for our feature engineering and preprocessing operations.
 To further advance our Merlin Roadmap, we encourage you to share all the details regarding your recommender system pipeline in this [survey](https://developer.nvidia.com/merlin-devzone-survey).
 
-<!-- TODO
-If you're interested in learning more about how Merlin Models works, see our documentation.
-We also have API documentation that outlines the specifics of the available calls within the library.
--->

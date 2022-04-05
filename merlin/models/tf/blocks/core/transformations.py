@@ -32,6 +32,10 @@ from merlin.schema import Schema, Tags
 @Block.registry.register("as-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsSparseFeatures(TabularBlock):
+    """
+    Convert inputs to sparse tensors.
+    """
+
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
@@ -57,6 +61,14 @@ class AsSparseFeatures(TabularBlock):
 @Block.registry.register("as-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsDenseFeatures(TabularBlock):
+    """Convert sparse inputs to dense tensors
+
+    Parameters
+    ----------
+    max_seq_length : int
+        The maximum length of multi-hot features.
+    """
+
     def __init__(self, max_seq_length: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
         self.max_seq_length = max_seq_length
@@ -99,6 +111,17 @@ class AsDenseFeatures(TabularBlock):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RenameFeatures(TabularBlock):
+    """Rename input features
+
+    Parameters
+    ----------
+    renames: dict
+        Mapping with new features names.
+    schema: Schema, optional
+        The `Schema` with input features,
+        by default None
+    """
+
     def __init__(
         self, renames: Dict[Union[str, Tags], str], schema: Optional[Schema] = None, **kwargs
     ):
@@ -308,6 +331,8 @@ class ExpandDims(TabularBlock):
 @Block.registry.register_with_multiple_names("l2-norm")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class L2Norm(TabularBlock):
+    """Apply L2-normalization to input tensors along a given axis"""
+
     def __init__(self, **kwargs):
         super(L2Norm, self).__init__(**kwargs)
 
@@ -364,7 +389,10 @@ class RemovePad3D(Block):
             predictions = tf.boolean_mask(
                 predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
             )
-        return PredictionOutput(predictions, targets)
+        return outputs.copy_with_updates(
+            predictions=predictions,
+            targets=targets,
+        )
 
 
 @Block.registry.register_with_multiple_names("sampling-bias-correction")
@@ -388,6 +416,15 @@ class SamplingBiasCorrection(Block):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class LogitsTemperatureScaler(Block):
+    """Scale the logits higher or lower,
+    this is often used to reduce the overconfidence of the model.
+
+    Parameters
+    ----------
+    temperature : float
+        Divide the logits by this scaler.
+    """
+
     def __init__(self, temperature: float, **kwargs):
         super(LogitsTemperatureScaler, self).__init__(**kwargs)
         self.temperature = temperature
@@ -406,7 +443,8 @@ class LogitsTemperatureScaler(Block):
         if training:
             assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
             predictions = predictions / self.temperature
-        return PredictionOutput(predictions, targets, outputs.positive_item_ids)
+
+        return outputs.copy_with_updates(predictions=predictions, targets=targets)
 
     def compute_output_shape(self, input_shape):
         return input_shape
@@ -415,6 +453,23 @@ class LogitsTemperatureScaler(Block):
 @Block.registry.register_with_multiple_names("weight-tying")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemsPredictionWeightTying(Block):
+    """Tying the item embedding weights with the output projection layer matrix [1]
+    The output logits are obtained by multiplying the output vector by the item-ids embeddings.
+
+    Parameters
+    ----------
+        schema : Schema
+            The `Schema` with the input features
+        bias_initializer : str, optional
+            Initializer to use on the bias vector, by default "zeros"
+
+    References:
+    -----------
+    [1] Hakan, Inan et al.
+        "Tying word vectors and word classifiers: A loss framework for language modeling"
+        arXiv:1611.01462
+    """
+
     def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
         super(ItemsPredictionWeightTying, self).__init__(**kwargs)
         self.bias_initializer = bias_initializer
@@ -461,8 +516,8 @@ class CategoricalOneHot(Block):
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
-        for name, val in inputs.items():
-            outputs[name] = tf.squeeze(tf.one_hot(val, self.cardinalities[name]))
+        for name, val in self.cardinalities.items():
+            outputs[name] = tf.squeeze(tf.one_hot(inputs[name], val))
         return outputs
 
     def compute_output_shape(self, input_shape):
@@ -484,6 +539,8 @@ class CategoricalOneHot(Block):
 @Block.registry.register_with_multiple_names("label_to_onehot")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class LabelToOneHot(Block):
+    """Transform the categorical encoded labels into a one-hot representation"""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -498,4 +555,4 @@ class LabelToOneHot(Block):
         num_classes = tf.shape(predictions)[-1]
         targets = transform_label_to_onehot(targets, num_classes)
 
-        return PredictionOutput(predictions, targets, outputs.positive_item_ids)
+        return outputs.copy_with_updates(targets=targets)

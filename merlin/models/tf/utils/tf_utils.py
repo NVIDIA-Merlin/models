@@ -128,7 +128,9 @@ def rescore_false_negatives(
         negative_scores,
     )
 
-    return tf.squeeze(negative_scores)
+    valid_negatives_mask = tf.logical_not(false_negatives_mask)
+
+    return tf.squeeze(negative_scores), valid_negatives_mask
 
 
 def extract_topk(k, predictions, labels):
@@ -226,3 +228,23 @@ def df_to_tensor(gdf, dtype=None):
         # for the bug above, so untranspose
         x = tf.transpose(x)
     return x
+
+
+def add_epsilon_to_zeros(tensor: tf.Tensor, epsilon: float = 1e-24) -> tf.Tensor:
+    """Replaces zeros by adding a small epsilon value to them.
+    This is useful to avoid inf and nan errors on math ops
+    like log().
+
+    Parameters
+    ----------
+    tensor : tf.Tensor
+        Tensor to operate on
+    epsilon : float, optional
+        Small value to add to zeros, by default 1e-24
+
+    Returns
+    -------
+    tf.Tensor
+        The tensor without zeros
+    """
+    return tf.where(tf.equal(tensor, 0.0), tensor + epsilon, tensor)

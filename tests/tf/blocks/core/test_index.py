@@ -18,40 +18,37 @@ import pytest
 
 import merlin.models.tf as ml
 from merlin.io.dataset import Dataset
-from merlin.models.data.synthetic import SyntheticData
 from merlin.schema import Tags
 
 
-def test_topk_index(ecommerce_data: SyntheticData):
+def test_topk_index(ecommerce_data: Dataset):
     model: ml.RetrievalModel = ml.TwoTowerModel(
         ecommerce_data.schema, query_tower=ml.MLPBlock([64, 128])
     )
     model.compile(run_eagerly=True, optimizer="adam")
-    dataset = ecommerce_data.tf_dataloader(batch_size=50)
-    model.fit(dataset, epochs=1)
+    model.fit(ecommerce_data, epochs=1, batch_size=50)
 
     item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
-    item_dataset = ecommerce_data.dataframe[item_features].drop_duplicates()
+    item_dataset = ecommerce_data.to_ddf()[item_features].drop_duplicates().compute()
     item_dataset = Dataset(item_dataset)
 
     recommender = model.to_top_k_recommender(item_dataset, k=20)
 
-    batch = next(iter(dataset))[0]
+    batch = ml.sample_batch(ecommerce_data, batch_size=10, include_targets=False)
     _, top_indices = recommender(batch)
     assert top_indices.shape[-1] == 20
     _, top_indices = recommender(batch, k=10)
     assert top_indices.shape[-1] == 10
 
 
-def test_topk_index_duplicate_indices(ecommerce_data: SyntheticData):
+def test_topk_index_duplicate_indices(ecommerce_data: Dataset):
     model: ml.RetrievalModel = ml.TwoTowerModel(
         ecommerce_data.schema, query_tower=ml.MLPBlock([64, 128])
     )
     model.compile(run_eagerly=True, optimizer="adam")
-    dataset = ecommerce_data.tf_dataloader(batch_size=50)
-    model.fit(dataset, epochs=1)
+    model.fit(ecommerce_data, epochs=1, batch_size=50)
     item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
-    item_dataset = ecommerce_data.dataframe[item_features]
+    item_dataset = ecommerce_data.to_ddf()[item_features].compute()
     item_dataset = Dataset(item_dataset)
 
     with pytest.raises(ValueError) as excinfo:

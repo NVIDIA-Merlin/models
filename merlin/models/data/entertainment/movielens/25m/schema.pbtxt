@@ -1,0 +1,114 @@
+feature {
+  name: "movieId"
+  type: INT
+  int_domain {
+    name: "movieId"
+    max: 56680
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    tag: "item"
+    tag: "item_id"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n2\n\010cat_path\022&\032$.//categories/unique.movieId.parquet\n\017\n\tis_ragged\022\002 \000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\000\255\353@\n\026\n\tdimension\022\t\021\000\000\000\000\000\000\200@\n\021\n\013num_buckets\022\002\010\000\n\r\n\007is_list\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "userId"
+  type: INT
+  int_domain {
+    name: "userId"
+    max: 162541
+    is_categorical: true
+  }
+  annotation {
+    tag: "user_id"
+    tag: "categorical"
+    tag: "user"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\021\n\013num_buckets\022\002\010\000\n1\n\010cat_path\022%\032#.//categories/unique.userId.parquet\nG\n\017embedding_sizes\0224*2\n\026\n\tdimension\022\t\021\000\000\000\000\000\000\200@\n\030\n\013cardinality\022\t\021\000\000\000\000h\327\003A\n\r\n\007is_list\022\002 \000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\017\n\tis_ragged\022\002 \000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000"
+    }
+  }
+}
+feature {
+  name: "genres"
+  value_count {
+    min: 1
+    max: 10
+  }
+  type: INT
+  int_domain {
+    name: "genres"
+    max: 20
+    is_categorical: true
+  }
+  annotation {
+    tag: "categorical"
+    tag: "item"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\nG\n\017embedding_sizes\0224*2\n\026\n\tdimension\022\t\021\000\000\000\000\000\0000@\n\030\n\013cardinality\022\t\021\000\000\000\000\000\0004@\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n1\n\010cat_path\022%\032#.//categories/unique.genres.parquet\n\021\n\013num_buckets\022\002\010\000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\r\n\007is_list\022\002 \001\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n\017\n\tis_ragged\022\002 \001"
+    }
+  }
+}
+feature {
+  name: "TE_movieId_rating"
+  type: FLOAT
+  annotation {
+    tag: "item"
+    tag: "continuous"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\r\n\007is_list\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@\n\017\n\tis_ragged\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "userId_count"
+  type: FLOAT
+  annotation {
+    tag: "user"
+    tag: "continuous"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\r\n\007is_list\022\002 \000\n\017\n\tis_ragged\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@"
+    }
+  }
+}
+feature {
+  name: "rating"
+  type: FLOAT
+  annotation {
+    tag: "target"
+    tag: "regression"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@"
+    }
+  }
+}
+feature {
+  name: "rating_binary"
+  type: INT
+  annotation {
+    tag: "target"
+    tag: "binary_classification"
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\r\n\007is_list\022\002 \000\n\017\n\tis_ragged\022\002 \000"
+    }
+  }
+}
+feature {
+  name: "title"
+  annotation {
+    extra_metadata {
+      type_url: "type.googleapis.com/google.protobuf.Struct"
+      value: "\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000P@"
+    }
+  }
+}
