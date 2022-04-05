@@ -67,7 +67,7 @@ class RegressionTask(PredictionTask):
                 )
             elif len(target_name.column_names) > 1:
                 raise ValueError(
-                    "Binary classification task requires a single column with a ",
+                    "Regression task requires a single column with a ",
                     "`Tags.REGRESSION` tag.",
                     "Found {} columns. ".format(len(target_name.column_names)),
                     "Please specify the column name with the `target` argument.",
