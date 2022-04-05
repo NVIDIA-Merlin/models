@@ -103,4 +103,4 @@ dmypy.json
 
 
 # Experiment files
-_*.py
+_test.py
