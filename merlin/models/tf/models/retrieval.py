@@ -131,14 +131,14 @@ def YoutubeDNNRetrievalModel(
 ) -> Model:
     """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
 
-    TODO: Add 3 sentence summary about this model. When would you want to use this?
+    This retrieval model consists of a session-based architecture that averages
+    past user interactions embeddings. The model is then trained using
+    a Next Item Prediction task with a Sampled Softmax layer.
 
     Example Usage::
         model = YoutubeDNNRetrievalModel(schema, num_sampled=100)
         model.compile(optimizer="adam")
         model.fit(train_data, epochs=10)
-
-    TODO: Link to tutorial.
 
     References
     ----------
@@ -154,22 +154,27 @@ def YoutubeDNNRetrievalModel(
     aggregation: str
         The aggregation method to use for the sequence of features.
         Defaults to `concat`.
-        TODO: Why would the user do something different here?
+        You can choose a different aggregation method to group the features embeddings
+        in one interaction tensor.
     top_block: Block
-        The `Block` that combines the top features
-        TODO: Explain where this fits in the model
+        The `Block` instance to apply on the top of the user's dense vector returned
+        by the input block.
+        Defaults to `MLPBlock([64])`.
     num_sampled: int
         The number of negative samples to use in the sampled-softmax.
         Defaults to 100.
-        TODO: Explain a little how/why to tweak this number. What happens?
+        The larger the number, the more accurate the model will be, but
+        the more memory/time it will use.
+        You generally want to fine-tune this parameter to ensure
+        the best trade-off between the model's accuracy
+        and training time.
     loss: Optional[LossType]
         Loss function.
         Defaults to `categorical_crossentropy`.
-        TODO: List options here
     metrics: List[Metric]
-        List of metrics to use.
+        List of metrics to use.The recommended metrics are `ranking_metrics`.
+        (e.g. RecallAt(k=10), NDCGAt(k=10))
         Defaults to `ranking_metrics(top_ks=[10])`
-        TODO: What metrics make sense here?
     normalize: bool
         Whether to normalize the embeddings.
         Defaults to True.
@@ -182,7 +187,9 @@ def YoutubeDNNRetrievalModel(
         Defaults to 1.
     seq_aggregator: Block
         The `Block` to aggregate the sequence of features.
-        TODO: List options. mean, sqrt, ...
+        You can choose between `MEAN`, `SUM`, `MAX`, `MIN`
+        to build the user's embedding vector from the sequence of past interactions.
+        Defaults to `SequenceAggregator(SequenceAggregation.MEAN)`.
     """
 
     inputs = InputBlock(
