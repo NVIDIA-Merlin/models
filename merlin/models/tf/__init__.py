@@ -27,8 +27,6 @@ from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
-from merlin import datasets
-from merlin.datasets.synthetic import generate_data
 from merlin.models.tf.blocks.core.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
@@ -184,8 +182,6 @@ __all__ = [
     "StochasticSwapNoise",
     "ExpandDims",
     "NoOp",
-    "datasets",
-    "generate_data",
     "ItemSampler",
     "EmbeddingWithMetadata",
     "InBatchSampler",
