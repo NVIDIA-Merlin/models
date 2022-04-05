@@ -8,7 +8,7 @@ Inventory
 
 * `Getting Started: Develop a Model for MovieLens <01-Getting-started.ipynb>`_: Get started with Merlin Models by training `Facebook's DLRM <https://arxiv.org/pdf/1906.00091.pdf>`_ architecture with only 3 commands.
 
-* `Applying to your own dataset with Merlin Models and NVTabular <02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb>`_: Learn how the `Schema` object connects the feature engineering and training steps. You'll learn how to apply Merlin Models to your own dataset structures.
+* `From ETL to Training RecSys models - NVTabular and Merlin Models integrated example <02-Merlin-Models-and-NVTabular-integration.ipynb>`_: Learn how the `Schema` object connects the feature engineering and training steps. You'll learn how to apply Merlin Models to your own dataset structures.
 
 * `Iterating over Deep Learning Models <03-Exploring-different-models.ipynb>`_: Explore different ranking model architectures, such as `Neural Collaborative Filtering (NCF) <https://arxiv.org/pdf/1708.05031.pdf>`_, MLP, `DRLM <https://arxiv.org/abs/1906.00091>`_, and `Deep & Cross Network (DCN) <https://arxiv.org/pdf/1708.05123.pdf>`_.
 
@@ -17,7 +17,7 @@ Inventory
    :hidden:
 
    01-Getting-started.ipynb
-   02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb
+   02-Merlin-Models-and-NVTabular-integration.ipynb
    03-Exploring-different-models.ipynb
 
 Running the Example Notebooks
