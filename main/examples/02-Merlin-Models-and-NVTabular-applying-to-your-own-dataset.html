@@ -378,7 +378,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p><img alt="14f93673374e4d11a94bfbaa7ac3e844" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="3a35b5bbc9004075a0fef3fecf4f8d20" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Applying-to-your-own-dataset-with-Merlin-Models-and-NVTabular">
 <h1>Applying to your own dataset with Merlin Models and NVTabular<a class="headerlink" href="#Applying-to-your-own-dataset-with-Merlin-Models-and-NVTabular" title="Permalink to this headline"></a></h1>
 <div class="section" id="Overview">
@@ -399,7 +399,7 @@ benchmark their new models on example offline datasets.</p>
 </div>
 <div class="section" id="Integration-of-NVTabular-and-Merlin-Models">
 <h2>Integration of NVTabular and Merlin Models<a class="headerlink" href="#Integration-of-NVTabular-and-Merlin-Models" title="Permalink to this headline"></a></h2>
-<p><img alt="612348a6739f4c7d8ed953b0b3744c25" src="../_images/schema.png" /></p>
+<p><img alt="39b3ceb27cee4233b03e1372dc849318" src="../_images/schema.png" /></p>
 <p>We take a look on a subsequence of our pipeline. We are interested in the interactions of feature engineering and model training.</p>
 <p>If you use NVTabular for feature engineering, in addition to the data, NVTabular will provide a <code class="docutils literal notranslate"><span class="pre">schema</span> <span class="pre">file</span></code> describing the dataset structures. NVTabular will automatically collect statistics and detect some types of <code class="docutils literal notranslate"><span class="pre">Tags</span></code>. For example: - Categorify: Transform categorical columns into continuous integers 0, …, |C| for embedding layers. It collects the cardinality of the embedding table and tags it as categorical. - Normalize: Normalize continuous features. It collects the mean and std of
 the feature and tags it as continuous.</p>
@@ -602,10 +602,7 @@ train.schema.select_by_tag(Tags.USER).column_names
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>input_path = os.environ.get(
-    &quot;INPUT_DATA_DIR&quot;,
-    os.path.expanduser(&quot;~/merlin-models-data/movielens/&quot;)
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>input_path = os.environ.get(&quot;INPUT_DATA_DIR&quot;, os.path.expanduser(&quot;~/merlin-models-data/movielens/&quot;))
 name = &quot;ml-1m&quot;
 download_file(
     &quot;http://files.grouplens.org/datasets/movielens/ml-1m.zip&quot;,
@@ -718,12 +715,8 @@ Wall time: 993 ms
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = merlin.io.Dataset(
-    os.path.join(input_path, name, &quot;train&quot;), engine=&quot;parquet&quot;
-)
-valid = merlin.io.Dataset(
-    os.path.join(input_path, name, &quot;valid&quot;), engine=&quot;parquet&quot;
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = merlin.io.Dataset(os.path.join(input_path, name, &quot;train&quot;), engine=&quot;parquet&quot;)
+valid = merlin.io.Dataset(os.path.join(input_path, name, &quot;valid&quot;), engine=&quot;parquet&quot;)
 </pre></div>
 </div>
 </div>

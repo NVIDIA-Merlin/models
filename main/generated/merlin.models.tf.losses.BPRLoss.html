@@ -17,7 +17,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="merlin.models.tf.losses.BPRmaxLoss" href="merlin.models.tf.losses.BPRmaxLoss.html" />
-    <link rel="prev" title="merlin.models.tf.losses.AdaptiveHingeLoss" href="merlin.models.tf.losses.AdaptiveHingeLoss.html" /> 
+    <link rel="prev" title="merlin.models.tf.losses.SparseCategoricalCrossEntropy" href="merlin.models.tf.losses.SparseCategoricalCrossEntropy.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -57,7 +57,6 @@
 <li class="toctree-l3 current"><a class="reference internal" href="../api.html#losses">Losses</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.losses.CategoricalCrossEntropy.html">merlin.models.tf.losses.CategoricalCrossEntropy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.losses.SparseCategoricalCrossEntropy.html">merlin.models.tf.losses.SparseCategoricalCrossEntropy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.losses.AdaptiveHingeLoss.html">merlin.models.tf.losses.AdaptiveHingeLoss</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">merlin.models.tf.losses.BPRLoss</a></li>
 <li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.losses.BPRmaxLoss.html">merlin.models.tf.losses.BPRmaxLoss</a></li>
 <li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.losses.HingeLoss.html">merlin.models.tf.losses.HingeLoss</a></li>
@@ -177,16 +176,19 @@ will raise an error. Please see this custom training [tutorial](</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.losses.BPRLoss.__init__" title="merlin.models.tf.losses.BPRLoss.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>([reduction, name])</p></td>
 <td><p>Initializes <cite>Loss</cite> class.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.losses.BPRLoss.call" title="merlin.models.tf.losses.BPRLoss.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(y_true, y_pred)</p></td>
-<td><p>Loss computation</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code>(y_true, y_pred)</p></td>
+<td><p>Loss computation.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.losses.BPRLoss.compute" title="merlin.models.tf.losses.BPRLoss.compute"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute</span></code></a>(positives_scores, negatives_scores)</p></td>
+<td><p>Computes the loss</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code>(config)</p></td>
 <td><p>Instantiates a <cite>Loss</cite> from its config (output of <cite>get_config()</cite>).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
 <td><p>Returns the config dictionary for a <cite>Loss</cite> instance.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse</span></code>(class_or_str)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse</span></code>(class_or_str)</p></td>
 <td><p></p></td>
 </tr>
 </tbody>
@@ -201,24 +203,27 @@ will raise an error. Please see this custom training [tutorial](</p>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">registry</span></code></p></td>
 <td><p></p></td>
 </tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">valid_negatives_mask</span></code></p></td>
+<td><p></p></td>
+</tr>
 </tbody>
 </table>
 <dl class="py method">
-<dt id="merlin.models.tf.losses.BPRLoss.call">
-<code class="sig-name descname"><span class="pre">call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/losses/pairwise.html#BPRLoss.call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.losses.BPRLoss.call" title="Permalink to this definition"></a></dt>
-<dd><p>Loss computation</p>
+<dt id="merlin.models.tf.losses.BPRLoss.compute">
+<code class="sig-name descname"><span class="pre">compute</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">positives_scores</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negatives_scores</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/losses/pairwise.html#BPRLoss.compute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.losses.BPRLoss.compute" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the loss</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>y_true</strong> (<em>tf.Tensor</em>) – Prediction labels. Expects a 2D tensor of shape (batch size, num predicted scores)</p></li>
-<li><p><strong>y_pred</strong> (<em>tf.Tensor</em>) – Prediction scores. Expects a 2D tensor of shape (batch size, num predicted scores)</p></li>
+<li><p><strong>positives_scores</strong> (<em>tf.Tensor</em>) – Prediction scores for the positive items (batch size x 1)</p></li>
+<li><p><strong>negatives_scores</strong> (<em>tf.Tensor</em>) – Prediction scores for the positive items (batch size x number negative samples)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Loss per example</p>
+<dd class="field-even"><p>Loss per negative sample</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>tf.Tensor (batch size x 1)</p>
+<dd class="field-odd"><p>tf.Tensor (batch size x number negative samples)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -231,7 +236,7 @@ will raise an error. Please see this custom training [tutorial](</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="merlin.models.tf.losses.AdaptiveHingeLoss.html" class="btn btn-neutral float-left" title="merlin.models.tf.losses.AdaptiveHingeLoss" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merlin.models.tf.losses.SparseCategoricalCrossEntropy.html" class="btn btn-neutral float-left" title="merlin.models.tf.losses.SparseCategoricalCrossEntropy" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="merlin.models.tf.losses.BPRmaxLoss.html" class="btn btn-neutral float-right" title="merlin.models.tf.losses.BPRmaxLoss" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

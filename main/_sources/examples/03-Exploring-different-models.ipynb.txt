@@ -74,7 +74,8 @@
    ],
    "source": [
     "import os\n",
-    "os.environ[\"TF_GPU_ALLOCATOR\"]=\"cuda_malloc_async\"\n",
+    "\n",
+    "os.environ[\"TF_GPU_ALLOCATOR\"] = \"cuda_malloc_async\"\n",
     "import cudf\n",
     "import glob\n",
     "import gc\n",
@@ -120,9 +121,9 @@
    "outputs": [],
    "source": [
     "DATA_FOLDER = os.environ.get(\"DATA_FOLDER\", \"/workspace/data/\")\n",
-    "train_path = os.path.join(DATA_FOLDER, 'train', '*.parquet')\n",
-    "valid_path = os.path.join(DATA_FOLDER, 'test','*.parquet')\n",
-    "output_path = '/workspace/data/processed'"
+    "train_path = os.path.join(DATA_FOLDER, \"train\", \"*.parquet\")\n",
+    "valid_path = os.path.join(DATA_FOLDER, \"test\", \"*.parquet\")\n",
+    "output_path = \"/workspace/data/processed\""
    ]
   },
   {
@@ -171,22 +172,26 @@
     "item_id = [\"item_id\"] >> Categorify(freq_threshold=5) >> TagAsItemID()\n",
     "targets = [\"click\"] >> AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, \"target\"])\n",
     "\n",
-    "add_feat = [\"user_item_categories\", \"user_item_shops\", \"user_item_brands\", \"user_item_intentions\",\"item_category\", \"item_shop\", \"item_brand\"] >> Categorify()\n",
+    "add_feat = [\n",
+    "    \"user_item_categories\",\n",
+    "    \"user_item_shops\",\n",
+    "    \"user_item_brands\",\n",
+    "    \"user_item_intentions\",\n",
+    "    \"item_category\",\n",
+    "    \"item_shop\",\n",
+    "    \"item_brand\",\n",
+    "] >> Categorify()\n",
     "\n",
     "te_feat = (\n",
-    "    [\"user_id\", \"item_id\"] + add_feat >>\n",
-    "    TargetEncoding(\n",
-    "        ['click'],\n",
-    "        kfold=1,\n",
-    "        p_smooth=20\n",
-    "    ) >>\n",
-    "    Normalize()\n",
+    "    [\"user_id\", \"item_id\"] + add_feat\n",
+    "    >> TargetEncoding([\"click\"], kfold=1, p_smooth=20)\n",
+    "    >> Normalize()\n",
     ")\n",
     "\n",
     "outputs = user_id + item_id + targets + add_feat + te_feat\n",
     "\n",
     "# Remove rows where item_id==0 and user_id==0\n",
-    "outputs = outputs>> Filter(f=lambda df: (df[\"item_id\"] != 0) & (df[\"user_id\"] != 0))\n",
+    "outputs = outputs >> Filter(f=lambda df: (df[\"item_id\"] != 0) & (df[\"user_id\"] != 0))\n",
     "\n",
     "workflow_fit_transform(outputs, train_path, valid_path, output_path)"
    ]
@@ -217,7 +222,7 @@
    "outputs": [],
    "source": [
     "# define schema object\n",
-    "schema = TensorflowMetadata.from_proto_text_file(output_path + '/train/').to_merlin_schema()"
+    "schema = TensorflowMetadata.from_proto_text_file(output_path + \"/train/\").to_merlin_schema()"
    ]
   },
   {
@@ -312,8 +317,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "batch_size = 16*1024\n",
-    "LR=0.003"
+    "batch_size = 16 * 1024\n",
+    "LR = 0.003"
    ]
   },
   {
@@ -323,8 +328,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "train = Dataset(os.path.join(output_path + '/train', '*.parquet'), part_size=\"500MB\")\n",
-    "valid = Dataset(os.path.join(output_path + '/valid', '*.parquet'), part_size=\"500MB\")"
+    "train = Dataset(os.path.join(output_path + \"/train\", \"*.parquet\"), part_size=\"500MB\")\n",
+    "valid = Dataset(os.path.join(output_path + \"/valid\", \"*.parquet\"), part_size=\"500MB\")"
    ]
   },
   {
@@ -447,7 +452,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "save_results('NCF', model)"
+    "save_results(\"NCF\", model)"
    ]
   },
   {
@@ -488,8 +493,8 @@
    "source": [
     "# uses default embedding_dim = 64\n",
     "model = mm.MLPBlock([64, 32]).to_model(\n",
-    "    schema, \n",
-    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])\n",
+    "    schema,\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),\n",
     ")"
    ]
   },
@@ -548,7 +553,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "save_results('MLP', model)"
+    "save_results(\"MLP\", model)"
    ]
   },
   {
@@ -593,7 +598,7 @@
     "    embedding_dim=64,\n",
     "    bottom_block=mm.MLPBlock([128, 64]),\n",
     "    top_block=mm.MLPBlock([128, 64, 32]),\n",
-    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),\n",
     ")"
    ]
   },
@@ -691,7 +696,7 @@
     "    schema,\n",
     "    depth=2,\n",
     "    deep_block=mm.MLPBlock([64, 32]),\n",
-    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),\n",
     ")"
    ]
   },

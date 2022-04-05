@@ -627,7 +627,7 @@ INFO:merlin.models.data.movielens:saving the workflow..
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>batch = mm.sample_batch(valid, batch_size=5, shuffle=False)
-batch[&#39;userId&#39;]
+batch[&quot;userId&quot;]
 </pre></div>
 </div>
 </div>
@@ -652,7 +652,17 @@ array([[1206],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>sub_schema = train.schema.select_by_name([&#39;userId&#39;, &#39;movieId&#39;, &#39;title&#39;, &#39;gender&#39;, &#39;TE_zipcode_rating&#39;, &#39;TE_movieId_rating&#39;, &#39;rating_binary&#39;])
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>sub_schema = train.schema.select_by_name(
+    [
+        &quot;userId&quot;,
+        &quot;movieId&quot;,
+        &quot;title&quot;,
+        &quot;gender&quot;,
+        &quot;TE_zipcode_rating&quot;,
+        &quot;TE_movieId_rating&quot;,
+        &quot;rating_binary&quot;,
+    ]
+)
 </pre></div>
 </div>
 </div>
@@ -736,7 +746,7 @@ TensorShape([5, 64])
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>embeddings = embedding_block(batch)
-embeddings.keys(), embeddings[&#39;userId&#39;].shape
+embeddings.keys(), embeddings[&quot;userId&quot;].shape
 </pre></div>
 </div>
 </div>
@@ -754,10 +764,12 @@ embeddings.keys(), embeddings[&#39;userId&#39;].shape
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dlrm_input_block = mm.ParallelBlock({&quot;embeddings&quot;: embedding_block, &quot;deep_continuous&quot;: deep_continuous_block})
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dlrm_input_block = mm.ParallelBlock(
+    {&quot;embeddings&quot;: embedding_block, &quot;deep_continuous&quot;: deep_continuous_block}
+)
 print(&quot;Output shapes of DLRM input block:&quot;)
 for key, val in dlrm_input_block(batch).items():
-    print(&quot;\t%s : %s&quot; %(key, val.shape))
+    print(&quot;\t%s : %s&quot; % (key, val.shape))
 </pre></div>
 </div>
 </div>
@@ -785,16 +797,15 @@ Output shapes of DLRM input block:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.tf.blocks.dlrm import DotProductInteractionBlock
+
 dlrm_interaction = dlrm_input_block.connect_with_shortcut(
-    DotProductInteractionBlock(),
-    shortcut_filter=mm.Filter(&quot;deep_continuous&quot;),
-    aggregation=&quot;concat&quot;
+    DotProductInteractionBlock(), shortcut_filter=mm.Filter(&quot;deep_continuous&quot;), aggregation=&quot;concat&quot;
 )
 </pre></div>
 </div>
 </div>
 <p>The following diagram provides a visualization of the operations that we constructed in the <code class="docutils literal notranslate"><span class="pre">dlrm_interaction</span></code> object.</p>
-<p><img alt="1f6aca228fd64a1cadcd65c0f622a3fa" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
+<p><img alt="817dfe49f55b42ff9c9cfe0fcb89697c" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
@@ -861,10 +872,11 @@ array([[0.01519031, 0.        , 0.00602788, ..., 0.        , 0.00327193,
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
+
 binary_task = mm.BinaryClassificationTask(
     target_name=sub_schema.select_by_tag(Tags.TARGET).column_names[0],
     metrics=[tf.keras.metrics.AUC],
-    pre=LogitsTemperatureScaler(temperature=2)
+    pre=LogitsTemperatureScaler(temperature=2),
 )
 </pre></div>
 </div>

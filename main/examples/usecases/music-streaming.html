@@ -654,10 +654,7 @@ Number of parameters: 421682
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ranking_model = ml.DLRMModel(
-    music_data.schema,
-    embedding_dim=64,
-    bottom_block=ml.MLPBlock([64]),
-    top_block=ml.MLPBlock([32])
+    music_data.schema, embedding_dim=64, bottom_block=ml.MLPBlock([64]), top_block=ml.MLPBlock([32])
 )
 
 ranking_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)

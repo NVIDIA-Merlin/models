@@ -199,7 +199,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">samplers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ItemSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
         <span class="n">sampling_downscore_false_negatives</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">sampling_downscore_false_negatives_value</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">MIN_FLOAT</span><span class="p">,</span>
+        <span class="n">sampling_downscore_false_negatives_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">MIN_FLOAT</span><span class="p">,</span>
         <span class="n">item_id_feature_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;item_id&quot;</span><span class="p">,</span>
         <span class="n">query_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;query&quot;</span><span class="p">,</span>
         <span class="n">item_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;item&quot;</span><span class="p">,</span>
@@ -340,6 +340,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_required_context_item_features_are_present</span><span class="p">()</span>
         <span class="n">targets</span><span class="p">,</span> <span class="n">predictions</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">targets</span><span class="p">,</span> <span class="n">outputs</span><span class="o">.</span><span class="n">predictions</span>
+        <span class="n">valid_negatives_mask</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
             <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">targets</span>
@@ -408,7 +409,7 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">neg_items_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">neg_items_ids_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-                <span class="n">negative_scores</span> <span class="o">=</span> <span class="n">rescore_false_negatives</span><span class="p">(</span>
+                <span class="n">negative_scores</span><span class="p">,</span> <span class="n">valid_negatives_mask</span> <span class="o">=</span> <span class="n">rescore_false_negatives</span><span class="p">(</span>
                     <span class="n">positive_item_ids</span><span class="p">,</span> <span class="n">neg_items_ids</span><span class="p">,</span> <span class="n">negative_scores</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">false_negatives_score</span>
                 <span class="p">)</span>
 
@@ -431,7 +432,12 @@
             <span class="p">],</span>
             <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">PredictionOutput</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">PredictionOutput</span><span class="p">(</span>
+            <span class="n">predictions</span><span class="p">,</span>
+            <span class="n">targets</span><span class="p">,</span>
+            <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span><span class="p">,</span>
+            <span class="n">valid_negatives_mask</span><span class="o">=</span><span class="n">valid_negatives_mask</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_batch_items_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="n">feat_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="n">feat_name</span><span class="p">]</span> <span class="k">for</span> <span class="n">feat_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_required_features</span><span class="p">}</span>

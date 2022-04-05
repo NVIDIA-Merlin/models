@@ -400,7 +400,8 @@ building different ranking models with binary target column <code class="docutil
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
-os.environ[&quot;TF_GPU_ALLOCATOR&quot;]=&quot;cuda_malloc_async&quot;
+
+os.environ[&quot;TF_GPU_ALLOCATOR&quot;] = &quot;cuda_malloc_async&quot;
 import cudf
 import glob
 import gc
@@ -443,9 +444,9 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
-train_path = os.path.join(DATA_FOLDER, &#39;train&#39;, &#39;*.parquet&#39;)
-valid_path = os.path.join(DATA_FOLDER, &#39;test&#39;,&#39;*.parquet&#39;)
-output_path = &#39;/workspace/data/processed&#39;
+train_path = os.path.join(DATA_FOLDER, &quot;train&quot;, &quot;*.parquet&quot;)
+valid_path = os.path.join(DATA_FOLDER, &quot;test&quot;, &quot;*.parquet&quot;)
+output_path = &quot;/workspace/data/processed&quot;
 </pre></div>
 </div>
 </div>
@@ -462,22 +463,26 @@ user_id = [&quot;user_id&quot;] &gt;&gt; Categorify(freq_threshold=5) &gt;&gt; T
 item_id = [&quot;item_id&quot;] &gt;&gt; Categorify(freq_threshold=5) &gt;&gt; TagAsItemID()
 targets = [&quot;click&quot;] &gt;&gt; AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, &quot;target&quot;])
 
-add_feat = [&quot;user_item_categories&quot;, &quot;user_item_shops&quot;, &quot;user_item_brands&quot;, &quot;user_item_intentions&quot;,&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify()
+add_feat = [
+    &quot;user_item_categories&quot;,
+    &quot;user_item_shops&quot;,
+    &quot;user_item_brands&quot;,
+    &quot;user_item_intentions&quot;,
+    &quot;item_category&quot;,
+    &quot;item_shop&quot;,
+    &quot;item_brand&quot;,
+] &gt;&gt; Categorify()
 
 te_feat = (
-    [&quot;user_id&quot;, &quot;item_id&quot;] + add_feat &gt;&gt;
-    TargetEncoding(
-        [&#39;click&#39;],
-        kfold=1,
-        p_smooth=20
-    ) &gt;&gt;
-    Normalize()
+    [&quot;user_id&quot;, &quot;item_id&quot;] + add_feat
+    &gt;&gt; TargetEncoding([&quot;click&quot;], kfold=1, p_smooth=20)
+    &gt;&gt; Normalize()
 )
 
 outputs = user_id + item_id + targets + add_feat + te_feat
 
 # Remove rows where item_id==0 and user_id==0
-outputs = outputs&gt;&gt; Filter(f=lambda df: (df[&quot;item_id&quot;] != 0) &amp; (df[&quot;user_id&quot;] != 0))
+outputs = outputs &gt;&gt; Filter(f=lambda df: (df[&quot;item_id&quot;] != 0) &amp; (df[&quot;user_id&quot;] != 0))
 
 workflow_fit_transform(outputs, train_path, valid_path, output_path)
 </pre></div>
@@ -511,7 +516,7 @@ automatically build all necessary input and output layers.</p>
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># define schema object
-schema = TensorflowMetadata.from_proto_text_file(output_path + &#39;/train/&#39;).to_merlin_schema()
+schema = TensorflowMetadata.from_proto_text_file(output_path + &quot;/train/&quot;).to_merlin_schema()
 </pre></div>
 </div>
 </div>
@@ -577,8 +582,8 @@ target_column
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>batch_size = 16*1024
-LR=0.003
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>batch_size = 16 * 1024
+LR = 0.003
 </pre></div>
 </div>
 </div>
@@ -586,8 +591,8 @@ LR=0.003
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path + &#39;/train&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
-valid = Dataset(os.path.join(output_path + &#39;/valid&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path + &quot;/train&quot;, &quot;*.parquet&quot;), part_size=&quot;500MB&quot;)
+valid = Dataset(os.path.join(output_path + &quot;/valid&quot;, &quot;*.parquet&quot;), part_size=&quot;500MB&quot;)
 </pre></div>
 </div>
 </div>
@@ -596,7 +601,7 @@ valid = Dataset(os.path.join(output_path + &#39;/valid&#39;, &#39;*.parquet&#39;
 <h2>NCF Model<a class="headerlink" href="#NCF-Model" title="Permalink to this headline"></a></h2>
 <p>We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">(NCF)</a> Model architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.</p>
 <p>NCF feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers via its MLP layer tower as seen in the figure. GMF and MLP uses separate user and item embeddings, and then outputs of their interactions from GMF Layer and MLP Layer are concatenated and fed to the final NeuMF (Neural Matrix Factorisation) layer.</p>
-<p><img alt="540390da7d9b4bf590ae83726c131137" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
+<p><img alt="f9fb38cf1bb64399b11622b30600ad66" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
 <p>Image Source: NCF paper</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">schema</span></code> object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure.</p>
 <div class="nbinput nblast docutils container">
@@ -671,7 +676,7 @@ Wall time: 1min 39s
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&#39;NCF&#39;, model)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&quot;NCF&quot;, model)
 </pre></div>
 </div>
 </div>
@@ -679,7 +684,7 @@ Wall time: 1min 39s
 <div class="section" id="MLP-Model">
 <h2>MLP Model<a class="headerlink" href="#MLP-Model" title="Permalink to this headline"></a></h2>
 <p>Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers.</p>
-<p><img alt="93e16de5ad9d4662a8631d985b5089ca" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
+<p><img alt="3001d6663df642bba7974fa0a5eeb0af" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
 <p>Steps:</p>
 <ul class="simple">
 <li><p>Change the model to MLP model</p></li>
@@ -692,7 +697,7 @@ Wall time: 1min 39s
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># uses default embedding_dim = 64
 model = mm.MLPBlock([64, 32]).to_model(
     schema,
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),
 )
 </pre></div>
 </div>
@@ -748,7 +753,7 @@ Wall time: 1min 31s
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&#39;MLP&#39;, model)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&quot;MLP&quot;, model)
 </pre></div>
 </div>
 </div>
@@ -771,7 +776,7 @@ news page.</p>
     embedding_dim=64,
     bottom_block=mm.MLPBlock([128, 64]),
     top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),
 )
 </pre></div>
 </div>
@@ -847,7 +852,7 @@ concatenation of all the embedded vectors and the normalized dense features: x0 
     schema,
     depth=2,
     deep_block=mm.MLPBlock([64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),
 )
 </pre></div>
 </div>

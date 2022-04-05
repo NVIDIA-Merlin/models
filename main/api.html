@@ -131,7 +131,6 @@
 <li class="toctree-l3"><a class="reference internal" href="#losses">Losses</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.CategoricalCrossEntropy.html">merlin.models.tf.losses.CategoricalCrossEntropy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.SparseCategoricalCrossEntropy.html">merlin.models.tf.losses.SparseCategoricalCrossEntropy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.AdaptiveHingeLoss.html">merlin.models.tf.losses.AdaptiveHingeLoss</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.BPRLoss.html">merlin.models.tf.losses.BPRLoss</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.BPRmaxLoss.html">merlin.models.tf.losses.BPRmaxLoss</a></li>
 <li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.HingeLoss.html">merlin.models.tf.losses.HingeLoss</a></li>
@@ -544,28 +543,25 @@
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.SparseCategoricalCrossEntropy.html#merlin.models.tf.losses.SparseCategoricalCrossEntropy" title="merlin.models.tf.losses.SparseCategoricalCrossEntropy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SparseCategoricalCrossEntropy</span></code></a>([from_logits])</p></td>
 <td><p>Extends <cite>tf.keras.losses.SparseCategoricalCrossentropy</cite> by making <cite>from_logits=True</cite> by default (in this case an optimized <cite>softmax</cite> activation is applied within this loss, you should not include <cite>softmax</cite> activation manually in the output layer).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.AdaptiveHingeLoss.html#merlin.models.tf.losses.AdaptiveHingeLoss" title="merlin.models.tf.losses.AdaptiveHingeLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AdaptiveHingeLoss</span></code></a>([reduction, name])</p></td>
-<td><p>Adaptive hinge pairwise loss.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.BPRLoss.html#merlin.models.tf.losses.BPRLoss" title="merlin.models.tf.losses.BPRLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BPRLoss</span></code></a>([reduction, name])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.BPRLoss.html#merlin.models.tf.losses.BPRLoss" title="merlin.models.tf.losses.BPRLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BPRLoss</span></code></a>([reduction, name])</p></td>
 <td><p>The Bayesian Personalised Ranking (BPR) pairwise loss <a href="#id23"><span class="problematic" id="id5">[1]_</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.BPRmaxLoss.html#merlin.models.tf.losses.BPRmaxLoss" title="merlin.models.tf.losses.BPRmaxLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BPRmaxLoss</span></code></a>(reg_lambda, **kwargs)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.BPRmaxLoss.html#merlin.models.tf.losses.BPRmaxLoss" title="merlin.models.tf.losses.BPRmaxLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BPRmaxLoss</span></code></a>(reg_lambda, **kwargs)</p></td>
 <td><p>The BPR-max pairwise loss proposed in <a href="#id24"><span class="problematic" id="id6">[1]_</span></a></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.HingeLoss.html#merlin.models.tf.losses.HingeLoss" title="merlin.models.tf.losses.HingeLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HingeLoss</span></code></a>([reduction, name])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.HingeLoss.html#merlin.models.tf.losses.HingeLoss" title="merlin.models.tf.losses.HingeLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HingeLoss</span></code></a>([reduction, name])</p></td>
 <td><p>Pairwise hinge loss, as described in <a href="#id25"><span class="problematic" id="id7">[1]_</span></a>: <cite>max(0, 1 + r_uj - r_ui))</cite>, where r_ui is the score of the positive item and r_uj the score of negative items.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.LogisticLoss.html#merlin.models.tf.losses.LogisticLoss" title="merlin.models.tf.losses.LogisticLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogisticLoss</span></code></a>([reduction, name])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.LogisticLoss.html#merlin.models.tf.losses.LogisticLoss" title="merlin.models.tf.losses.LogisticLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogisticLoss</span></code></a>([reduction, name])</p></td>
 <td><p>Pairwise log loss, as described in <a href="#id26"><span class="problematic" id="id8">[1]_</span></a>: <cite>log(1 + exp(r_uj - r_ui))</cite>, where r_ui is the score of the positive item and r_uj the score of negative items.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1Loss.html#merlin.models.tf.losses.TOP1Loss" title="merlin.models.tf.losses.TOP1Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1Loss</span></code></a>([reduction, name])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1Loss.html#merlin.models.tf.losses.TOP1Loss" title="merlin.models.tf.losses.TOP1Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1Loss</span></code></a>([reduction, name])</p></td>
 <td><p>The TOP pairwise loss proposed in <a href="#id27"><span class="problematic" id="id9">[1]_</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1maxLoss.html#merlin.models.tf.losses.TOP1maxLoss" title="merlin.models.tf.losses.TOP1maxLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1maxLoss</span></code></a>([reduction, name])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1maxLoss.html#merlin.models.tf.losses.TOP1maxLoss" title="merlin.models.tf.losses.TOP1maxLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1maxLoss</span></code></a>([reduction, name])</p></td>
 <td><p>The TOP1-max pairwise loss proposed in <a href="#id28"><span class="problematic" id="id10">[1]_</span></a></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1v2Loss.html#merlin.models.tf.losses.TOP1v2Loss" title="merlin.models.tf.losses.TOP1v2Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1v2Loss</span></code></a>([reduction, name])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1v2Loss.html#merlin.models.tf.losses.TOP1v2Loss" title="merlin.models.tf.losses.TOP1v2Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1v2Loss</span></code></a>([reduction, name])</p></td>
 <td><p>An adapted version of the TOP pairwise loss proposed in <a href="#id29"><span class="problematic" id="id11">[1]_</span></a>, but following the current GRU4Rec implementation <a href="#id30"><span class="problematic" id="id12">[2]_</span></a>.</p></td>
 </tr>
 </tbody>

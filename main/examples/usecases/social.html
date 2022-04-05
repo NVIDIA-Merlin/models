@@ -729,7 +729,7 @@ Number of parameters: 238537970
     social_data.schema,
     embedding_dim=64,
     bottom_block=ml.MLPBlock([64]),
-    top_block=ml.MLPBlock([32])
+    top_block=ml.MLPBlock([32]),
 )
 
 ranking_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)

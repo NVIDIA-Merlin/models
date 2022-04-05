@@ -15,6 +15,7 @@
    
       ~BPRLoss.__init__
       ~BPRLoss.call
+      ~BPRLoss.compute
       ~BPRLoss.from_config
       ~BPRLoss.get_config
       ~BPRLoss.parse
@@ -28,5 +29,6 @@
    .. autosummary::
    
       ~BPRLoss.registry
+      ~BPRLoss.valid_negatives_mask
    
    
