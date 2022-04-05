@@ -19,8 +19,8 @@ from __future__ import absolute_import
 
 import pytest
 
+from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
-from merlin.models.data.synthetic import generate_data
 
 
 @pytest.fixture

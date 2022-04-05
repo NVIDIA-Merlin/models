@@ -20,7 +20,7 @@ import pytest
 import torch
 
 import merlin.models.torch as ml
-from merlin.models.data.synthetic import generate_data
+from merlin.datasets.synthetic import generate_data
 
 NUM_EXAMPLES = 1000
 MAX_CARDINALITY = 100
