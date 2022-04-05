@@ -249,7 +249,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             )
 
         if not training and self._pre_eval_topk:
-            # During eval, the retrievaltask only returns positve scores
+            # During eval, the retrieval-task only returns positive scores
             # so we need to retrieve top-k negative scores to compute the loss
             prediction_output = self._pre_eval_topk.call_outputs(prediction_output, **kwargs)
 
@@ -370,7 +370,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
                         # Pre-sorts predictions and targets (by prediction scores) only once
                         # for all ranking metric (for performance optimization) and extracts
                         # only the top-k predictions/targets.
-                        # The label_relevant_counts is necessary because when extracing the labels
+                        # The label_relevant_counts is necessary because when extracting the labels
                         # from the top-k predictions some relevant items might not be included, but
                         # the relevant count is necessary for many ranking metrics (recall, ndcg)
                         (

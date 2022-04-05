@@ -28,7 +28,7 @@ class CachedCrossBatchSampler(ItemSampler):
     for two-tower item retrieval model. The caches consists of a fixed capacity FIFO queue
     which keeps the item embeddings from the last N batches. All items in the queue are
     sampled as negatives for upcoming batches.
-    It is more efficent than computing embeddings exclusively for negative items.
+    It is more efficient than computing embeddings exclusively for negative items.
     This is a popularity-biased sampling as popular items are observed more often
     in training batches.
     Compared to `InBatchSampler`, the `CachedCrossBatchSampler` allows for larger number
@@ -201,7 +201,7 @@ class CachedUniformSampler(CachedCrossBatchSampler):
     [1] which requires a separate dataset with the all unique items (and corresponding features)
     to generate the item embeddings, our streaming approach in `CachedUniformSampler` keeps
     caching new items as they appear in the batches. That means that the very first
-    processsed batches will have less negative samples.
+    processed batches will have less negative samples.
 
     P.s. Ignoring the false negatives (negative items equal to the positive ones) is
     managed by `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`

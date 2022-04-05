@@ -43,7 +43,7 @@ def DLRMBlock(
     schema : Schema
         The `Schema` with the input features
     bottom_block : Block
-        The `Block` that combines the continuous features (tipically a `MLPBlock`)
+        The `Block` that combines the continuous features (typically a `MLPBlock`)
     top_block : Optional[Block], optional
         The optional `Block` that combines the outputs of bottom layer and of
         the factorization machine layer, by default None

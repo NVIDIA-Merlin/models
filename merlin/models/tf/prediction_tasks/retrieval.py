@@ -42,7 +42,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             Defaults to `categorical_crossentropy`.
         metrics: MetricOrMetrics
             List of top-k ranking metrics.
-            Defaults to a numver of ranking metrics.
+            Defaults to a number of ranking metrics.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
         extra_pre_call: Optional[PredictionBlock]

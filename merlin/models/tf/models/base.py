@@ -105,7 +105,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         self.context = context
         self._is_fitting = False
 
-        # Initializing model control flags controled by MetricsComputeCallback()
+        # Initializing model control flags controlled by MetricsComputeCallback()
         self._should_compute_train_metrics_for_batch = tf.Variable(
             dtype=tf.bool,
             name="should_compute_train_metrics_for_batch",

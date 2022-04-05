@@ -66,7 +66,7 @@ class LightFM:
     def evaluate(self, test_dataset: Dataset, k=10):
         """Evaluates the model
 
-        This function evalutes using a variety of ranking metrics, and returns
+        This function evaluates using a variety of ranking metrics, and returns
         a dictionary of {metric_name: value}.
 
         Parameters

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
+from typing import Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -24,6 +24,7 @@ from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
+from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -33,13 +34,30 @@ class RegressionTask(PredictionTask):
 
     def __init__(
         self,
-        target_name: Optional[str] = None,
+        target: Optional[Union[str, Schema]] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         loss: Optional[LossType] = DEFAULT_LOSS,
         metrics=DEFAULT_METRICS,
         **kwargs,
     ):
+        if isinstance(target, Schema):
+            target_name = target.select_by_tag(Tags.REGRESSION)
+            if not target_name.column_names:
+                raise ValueError(
+                    "Binary classification task requires a column with a ", "`Tags.REGRESSION` tag."
+                )
+            elif len(target_name.column_names) > 1:
+                raise ValueError(
+                    "Binary classification task requires a single column with a ",
+                    "`Tags.REGRESSION` tag.",
+                    "Found {} columns. ".format(len(target_name.column_names)),
+                    "Please specify the column name with the `target` argument.",
+                )
+            target_name = target_name.column_names[0]
+        else:
+            target_name = target
+
         logit = kwargs.pop("logit", None)
         super().__init__(
             metrics=metrics,

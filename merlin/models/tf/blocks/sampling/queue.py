@@ -315,7 +315,7 @@ class FIFOQueue(Layer):
             [tf.zeros(shape=(tf.shape(equal_tensor)[0], 1), dtype=tf.int32), equal_tensor],
             axis=1,
         )
-        # Subtracting the indices to account for the first collumn added, so that
+        # Subtracting the indices to account for the first column added, so that
         # values not found become -1
         item_ids_indices = tf.argmax(equal_tensor_extended, axis=1) - 1
         return item_ids_indices
