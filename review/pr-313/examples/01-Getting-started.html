@@ -18,7 +18,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Merlin Models and NVTabular integration example" href="02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html" />
+    <link rel="next" title="From ETL to Training RecSys models - NVTabular and Merlin Models integrated example" href="02-Merlin-Models-and-NVTabular-integration.html" />
     <link rel="prev" title="Merlin Models Example Notebooks" href="README.html" /> 
 </head>
 
@@ -51,8 +51,11 @@
 <li class="toctree-l4"><a class="reference internal" href="#Next-steps">Next steps</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html">Merlin Models and NVTabular integration example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
 <li class="toctree-l3"><a class="reference internal" href="03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="03-Exploring-different-models.html#Importing-Libraries">Importing Libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="03-Exploring-different-models.html#Feature-Engineering-with-NVTabular">Feature Engineering with NVTabular</a></li>
+<li class="toctree-l3"><a class="reference internal" href="03-Exploring-different-models.html#Training-Recommender-Models">Training Recommender Models</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="README.html#running-the-example-notebooks">Running the Example Notebooks</a></li>
@@ -376,7 +379,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p><img alt="21a6f2ebdef543188cd57d5b3e39edbd" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="6533555e93d44187ae3fbb3ed73f2a17" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Getting-Started-with-Merlin-Models:-Develop-a-Model-for-MovieLens">
 <h1>Getting Started with Merlin Models: Develop a Model for MovieLens<a class="headerlink" href="#Getting-Started-with-Merlin-Models:-Develop-a-Model-for-MovieLens" title="Permalink to this headline"></a></h1>
 <div class="section" id="Overview">
@@ -400,8 +403,7 @@ part of the <a class="reference external" href="https://developer.nvidia.com/nvi
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import merlin.models.tf as mm
 
-from merlin.models.data.movielens import get_movielens
-from merlin.schema.tags import Tags
+from merlin.datasets.entertainment import get_movielens
 </pre></div>
 </div>
 </div>
@@ -410,18 +412,13 @@ from merlin.schema.tags import Tags
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-30 16:24:05.620762: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
+2022-04-05 14:47:25.928570: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-03-30 16:24:07.820943: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
-2022-03-30 16:24:07.822085: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 30611 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
-/home/gmoreira/projects/nvidia/nvidia_merlin/NVTabular/nvtabular/graph.py:23: FutureWarning: The `nvtabular.graph` module has moved to `merlin.dag`. Support for importing from `nvtabular.graph` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.dag`.
-  warnings.warn(
-/home/gmoreira/projects/nvidia/nvidia_merlin/NVTabular/nvtabular/io.py:23: FutureWarning: The `nvtabular.io` module has moved to `merlin.io`. Support for importing from `nvtabular.io` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.io`.
-  warnings.warn(
-/home/gmoreira/projects/nvidia/nvidia_merlin/NVTabular/nvtabular/utils.py:23: FutureWarning: The `nvtabular.utils` module has moved to `merlin.core.utils`. Support for importing from `nvtabular.utils` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.core.utils`.
-  warnings.warn(
-/home/gmoreira/projects/nvidia/nvidia_merlin/NVTabular/nvtabular/dispatch.py:23: FutureWarning: The `nvtabular.dispatch` module has moved to `merlin.core.dispatch`. Support for importing from `nvtabular.dispatch` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.core.dispatch`.
-  warnings.warn(
+2022-04-05 14:47:28.104380: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2022-04-05 14:47:28.105455: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 29778 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
+2022-04-05 14:47:28.110332: I tensorflow/stream_executor/cuda/cuda_driver.cc:739] failed to allocate 15.87G (17038311424 bytes) from device: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+2022-04-05 14:47:28.112154: I tensorflow/stream_executor/cuda/cuda_driver.cc:739] failed to allocate 14.28G (15334479872 bytes) from device: CUDA_ERROR_OUT_OF_MEMORY: out of memory
+2022-04-05 14:47:28.114081: I tensorflow/stream_executor/cuda/cuda_driver.cc:739] failed to allocate 12.85G (13801031680 bytes) from device: CUDA_ERROR_OUT_OF_MEMORY: out of memory
 </pre></div></div>
 </div>
 <p>We provide the <code class="docutils literal notranslate"><span class="pre">get_movielens()</span></code> function as a convenience to download the dataset, perform simple preprocessing, and split the data into training and validation datasets.</p>
@@ -433,11 +430,26 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+WARNING:tensorflow:From /home/gmoreira/projects/nvidia/nvidia_merlin/models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
+</pre></div></div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
+WARNING:tensorflow:From /home/gmoreira/projects/nvidia/nvidia_merlin/models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
+2022-04-05 14:47:28.568643: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2022-04-05 14:47:28.570027: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:1 with 29778 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
 /home/gmoreira/miniconda3/envs/merlin_22.04_dev/lib/python3.8/site-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
   warnings.warn(
 </pre></div></div>
@@ -445,7 +457,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 <div class="section" id="Training-the-DLRM-Model-with-Merlin-Models">
 <h2>Training the DLRM Model with Merlin Models<a class="headerlink" href="#Training-the-DLRM-Model-with-Merlin-Models" title="Permalink to this headline"></a></h2>
-<p>We define the DLRM model, whose prediction task is a binary classification. From the <code class="docutils literal notranslate"><span class="pre">schema</span></code>, the categorical features are identified (and embedded) and the target column is also automatically inferred, because of the schema tags. We talk more about the schema in the example notebook <a class="reference external" href="02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset">02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset</a>,</p>
+<p>We define the DLRM model, whose prediction task is a binary classification. From the <code class="docutils literal notranslate"><span class="pre">schema</span></code>, the categorical features are identified (and embedded) and the target column is also automatically inferred, because of the schema tags. We talk more about the schema in the next <a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html"><span class="doc">example notebook (02)</span></a>,</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
@@ -455,9 +467,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
     embedding_dim=64,
     bottom_block=mm.MLPBlock([128, 64]),
     top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(
-        train.schema.select_by_tag(Tags.TARGET).column_names[0]
-    ),
+    prediction_tasks=mm.BinaryClassificationTask(train.schema),
 )
 
 model.compile(optimizer=&quot;adam&quot;)
@@ -478,7 +488,7 @@ model.compile(optimizer=&quot;adam&quot;)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-30 16:24:08.840469: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+2022-04-05 14:47:29.832785: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -486,7 +496,7 @@ model.compile(optimizer=&quot;adam&quot;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-782/782 [==============================] - 10s 10ms/step - rating_binary/binary_classification_task/precision: 0.7113 - rating_binary/binary_classification_task/recall: 0.8239 - rating_binary/binary_classification_task/binary_accuracy: 0.7065 - rating_binary/binary_classification_task/auc: 0.7682 - loss: 0.5637 - regularization_loss: 0.0000e+00 - total_loss: 0.5637
+782/782 [==============================] - 18s 18ms/step - rating_binary/binary_classification_task/precision: 0.7286 - rating_binary/binary_classification_task/recall: 0.8216 - rating_binary/binary_classification_task/binary_accuracy: 0.7212 - rating_binary/binary_classification_task/auc: 0.7841 - loss: 0.5474 - regularization_loss: 0.0000e+00 - total_loss: 0.5474
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -495,7 +505,7 @@ model.compile(optimizer=&quot;adam&quot;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7f73a836cbb0&gt;
+&lt;keras.callbacks.History at 0x7fb7c04772e0&gt;
 </pre></div></div>
 </div>
 <p>We evaluate the model…</p>
@@ -510,17 +520,9 @@ model.compile(optimizer=&quot;adam&quot;)
 <div class="nboutput docutils container">
 <div class="prompt empty docutils container">
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-  1/196 [..............................] - ETA: 2:25 - rating_binary/binary_classification_task/precision: 0.7307 - rating_binary/binary_classification_task/recall: 0.8037 - rating_binary/binary_classification_task/binary_accuracy: 0.7109 - rating_binary/binary_classification_task/auc: 0.7813 - loss: 0.5439 - regularization_loss: 0.0000e+00 - total_loss: 0.5439
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-30 16:24:20.062458: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_101
+2022-04-05 14:47:49.426085: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_170
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -528,7 +530,7 @@ model.compile(optimizer=&quot;adam&quot;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-196/196 [==============================] - 2s 7ms/step - rating_binary/binary_classification_task/precision: 0.7329 - rating_binary/binary_classification_task/recall: 0.8211 - rating_binary/binary_classification_task/binary_accuracy: 0.7247 - rating_binary/binary_classification_task/auc: 0.7884 - loss: 0.5430 - regularization_loss: 0.0000e+00 - total_loss: 0.5430
+196/196 [==============================] - 4s 12ms/step - rating_binary/binary_classification_task/precision: 0.7350 - rating_binary/binary_classification_task/recall: 0.8234 - rating_binary/binary_classification_task/binary_accuracy: 0.7285 - rating_binary/binary_classification_task/auc: 0.7936 - loss: 0.5388 - regularization_loss: 0.0000e+00 - total_loss: 0.5388
 </pre></div></div>
 </div>
 <p>… and check the evaluation metrics. We use by default typical binary classification metrics – Precision, Recall, Accuracy and AUC. But you can also provide your own metrics list by setting <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask(...,</span> <span class="pre">metrics=[])</span></code>.</p>
@@ -546,13 +548,13 @@ model.compile(optimizer=&quot;adam&quot;)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;rating_binary/binary_classification_task/precision&#39;: 0.7329489588737488,
- &#39;rating_binary/binary_classification_task/recall&#39;: 0.8210552930831909,
- &#39;rating_binary/binary_classification_task/binary_accuracy&#39;: 0.7246914505958557,
- &#39;rating_binary/binary_classification_task/auc&#39;: 0.7884241342544556,
- &#39;loss&#39;: 0.5135267972946167,
+{&#39;rating_binary/binary_classification_task/precision&#39;: 0.7349662184715271,
+ &#39;rating_binary/binary_classification_task/recall&#39;: 0.8234366178512573,
+ &#39;rating_binary/binary_classification_task/binary_accuracy&#39;: 0.7284606695175171,
+ &#39;rating_binary/binary_classification_task/auc&#39;: 0.7936176657676697,
+ &#39;loss&#39;: 0.5581252574920654,
  &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.5135267972946167}
+ &#39;total_loss&#39;: 0.5581252574920654}
 </pre></div></div>
 </div>
 </div>
@@ -584,7 +586,7 @@ model.compile(optimizer=&quot;adam&quot;)
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="README.html" class="btn btn-neutral float-left" title="Merlin Models Example Notebooks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html" class="btn btn-neutral float-right" title="Merlin Models and NVTabular integration example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="02-Merlin-Models-and-NVTabular-integration.html" class="btn btn-neutral float-right" title="From ETL to Training RecSys models - NVTabular and Merlin Models integrated example" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -341,11 +341,11 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.datasets.synthetic import generate_data
 
-social_data = SyntheticData(&quot;social&quot;)
+social_data = generate_data(&quot;social&quot;, num_rows=1000)
 
-social_data.dataframe
+social_data.to_ddf()
 </pre></div>
 </div>
 </div>
@@ -661,7 +661,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>retrieval_model = ml.TwoTowerModel(social_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
 retrieval_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)
-retrieval_model.fit(social_data.tf_dataloader(batch_size=50), epochs=2)
+retrieval_model.fit(social_data, batch_size=50, epochs=2)
 
 print(f&quot;Number of parameters: {retrieval_model.count_params()}&quot;)
 </pre></div>
@@ -729,11 +729,11 @@ Number of parameters: 238537970
     social_data.schema,
     embedding_dim=64,
     bottom_block=ml.MLPBlock([64]),
-    top_block=ml.MLPBlock([32])
+    top_block=ml.MLPBlock([32]),
 )
 
 ranking_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)
-ranking_model.fit(social_data.tf_dataloader(batch_size=50), epochs=2)
+ranking_model.fit(social_data, batch_size=50, epochs=2)
 
 print(f&quot;Number of parameters: {ranking_model.count_params()}&quot;)
 </pre></div>

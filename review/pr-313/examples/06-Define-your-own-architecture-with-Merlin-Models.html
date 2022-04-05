@@ -359,7 +359,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="section" id="Taking-the-Next-Step-with-Merlin-Models:-Define-Your-Own-Architecture">
 <h1>Taking the Next Step with Merlin Models: Define Your Own Architecture<a class="headerlink" href="#Taking-the-Next-Step-with-Merlin-Models:-Define-Your-Own-Architecture" title="Permalink to this headline"></a></h1>
-<p>In <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/examples/Exploring-different-models.ipynb">explore-different-models</a>, we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practioners and researchers to define custom models, train and export them for inference.</p>
+<p>In <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/examples/Exploring-different-models.ipynb">explore-different-models</a>, we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.</p>
 <p>In this example, we combine pre-existing blocks and demonstrate how to create the <a class="reference external" href="https://arxiv.org/abs/1906.00091">DLRM</a> architecture.</p>
 <div class="section" id="Learning-objectives">
 <h2>Learning objectives<a class="headerlink" href="#Learning-objectives" title="Permalink to this headline"></a></h2>
@@ -388,7 +388,7 @@ determining the embedding dimensions, input shapes, and output shapes. Additiona
 </div>
 <div class="section" id="Aggregations-Blocks">
 <h3>Aggregations Blocks<a class="headerlink" href="#Aggregations-Blocks" title="Permalink to this headline"></a></h3>
-<p>They inlude common aggregation operations to combine multiple tensors, such as: - <code class="docutils literal notranslate"><span class="pre">ConcatFeatures</span></code>: Concatenate dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">StackFeatures</span></code>: Stack dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">CosineSimilarity</span></code>: Calculate the cosine similarity between two tensors.</p>
+<p>They include common aggregation operations to combine multiple tensors, such as: - <code class="docutils literal notranslate"><span class="pre">ConcatFeatures</span></code>: Concatenate dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">StackFeatures</span></code>: Stack dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">CosineSimilarity</span></code>: Calculate the cosine similarity between two tensors.</p>
 </div>
 <div class="section" id="Connects-Methods">
 <h3>Connects Methods<a class="headerlink" href="#Connects-Methods" title="Permalink to this headline"></a></h3>
@@ -418,7 +418,7 @@ determining the embedding dimensions, input shapes, and output shapes. Additiona
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import tensorflow as tf
 import merlin.models.tf as mm
 
-from merlin.models.data.movielens import get_movielens
+from merlin.datasets.entertainment import get_movielens
 from merlin.schema.tags import Tags
 </pre></div>
 </div>
@@ -627,7 +627,7 @@ INFO:merlin.models.data.movielens:saving the workflow..
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>batch = mm.sample_batch(valid, batch_size=5, shuffle=False)
-batch[&#39;userId&#39;]
+batch[&quot;userId&quot;]
 </pre></div>
 </div>
 </div>
@@ -652,7 +652,17 @@ array([[1206],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>sub_schema = train.schema.select_by_name([&#39;userId&#39;, &#39;movieId&#39;, &#39;title&#39;, &#39;gender&#39;, &#39;TE_zipcode_rating&#39;, &#39;TE_movieId_rating&#39;, &#39;rating_binary&#39;])
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>sub_schema = train.schema.select_by_name(
+    [
+        &quot;userId&quot;,
+        &quot;movieId&quot;,
+        &quot;title&quot;,
+        &quot;gender&quot;,
+        &quot;TE_zipcode_rating&quot;,
+        &quot;TE_movieId_rating&quot;,
+        &quot;rating_binary&quot;,
+    ]
+)
 </pre></div>
 </div>
 </div>
@@ -736,7 +746,7 @@ TensorShape([5, 64])
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>embeddings = embedding_block(batch)
-embeddings.keys(), embeddings[&#39;userId&#39;].shape
+embeddings.keys(), embeddings[&quot;userId&quot;].shape
 </pre></div>
 </div>
 </div>
@@ -754,10 +764,12 @@ embeddings.keys(), embeddings[&#39;userId&#39;].shape
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dlrm_input_block = mm.ParallelBlock({&quot;embeddings&quot;: embedding_block, &quot;deep_continuous&quot;: deep_continuous_block})
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dlrm_input_block = mm.ParallelBlock(
+    {&quot;embeddings&quot;: embedding_block, &quot;deep_continuous&quot;: deep_continuous_block}
+)
 print(&quot;Output shapes of DLRM input block:&quot;)
 for key, val in dlrm_input_block(batch).items():
-    print(&quot;\t%s : %s&quot; %(key, val.shape))
+    print(&quot;\t%s : %s&quot; % (key, val.shape))
 </pre></div>
 </div>
 </div>
@@ -785,16 +797,15 @@ Output shapes of DLRM input block:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.tf.blocks.dlrm import DotProductInteractionBlock
+
 dlrm_interaction = dlrm_input_block.connect_with_shortcut(
-    DotProductInteractionBlock(),
-    shortcut_filter=mm.Filter(&quot;deep_continuous&quot;),
-    aggregation=&quot;concat&quot;
+    DotProductInteractionBlock(), shortcut_filter=mm.Filter(&quot;deep_continuous&quot;), aggregation=&quot;concat&quot;
 )
 </pre></div>
 </div>
 </div>
 <p>The following diagram provides a visualization of the operations that we constructed in the <code class="docutils literal notranslate"><span class="pre">dlrm_interaction</span></code> object.</p>
-<p><img alt="4ec142f446214933b9b1a71e2e7e52de" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
+<p><img alt="7c30e4a7d8a545658fda5e927e198ab6" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
@@ -861,10 +872,11 @@ array([[0.01519031, 0.        , 0.00602788, ..., 0.        , 0.00327193,
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
+
 binary_task = mm.BinaryClassificationTask(
     target_name=sub_schema.select_by_tag(Tags.TARGET).column_names[0],
     metrics=[tf.keras.metrics.AUC],
-    pre=LogitsTemperatureScaler(temperature=2)
+    pre=LogitsTemperatureScaler(temperature=2),
 )
 </pre></div>
 </div>

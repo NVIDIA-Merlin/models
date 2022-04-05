@@ -357,24 +357,17 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
+<p><img alt="b29e5fa2224d44088cdb5a54fee289dc" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Two-Stage-Recommender-Systems">
 <h1>Two-Stage Recommender Systems<a class="headerlink" href="#Two-Stage-Recommender-Systems" title="Permalink to this headline"></a></h1>
 <p>In large scale recommender systems pipelines, the size of the item catalog (number of unique items) might be in the order of millions. At such scale, a typical setup is having two-stage pipeline, where a faster candidate retrieval model quickly extracts thousands of relevant items and a then a more powerful ranking model (i.e. with more features and more powerful architecture) ranks the top-k items that are going to be displayed to the user. For ML-based candidate retrieval model, as it needs to
 quickly score millions of items for a given user, a popular choices are models that can produce recommendation scores by just computing the dot product the user embeddings and item embeddings. Popular choices of such models are <strong>Matrix Factorization</strong>, which learns low-rank user and item embeddings, and the <strong>Two-Tower architecture</strong>, which is a neural network with two MLP towers where both user and item features are fed to generate user and item embeddings in the output.</p>
 <div class="section" id="Dataset">
 <h2>Dataset<a class="headerlink" href="#Dataset" title="Permalink to this headline"></a></h2>
-<p>In this notebook, we are building a Two-Tower model for Item Retrieval task using the Ali-CCP: Alibaba Click and Conversion Prediction dataset. To download the Ali-CCP training and test datasets visit <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a> website. We have curated the raw dataset using this <a href="#id1"><span class="problematic" id="id2">`script &lt;&gt;`__</span></a> and generated the parquet files that we will use for this example.</p>
+<p>In this notebook, we are building a Two-Tower model for Item Retrieval task using synthetic datasets that are mimicking the real <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">Ali-CCP: Alibaba Click and Conversion Prediction</a> dataset. ### Learning objectives - Preparing the data with NVTabular - Training and evaluating Two-Tower model with Merlin Models - Exporting the model for deployment</p>
 </div>
-<div class="section" id="Learning-objectives">
-<h2>Learning objectives<a class="headerlink" href="#Learning-objectives" title="Permalink to this headline"></a></h2>
-<ul class="simple">
-<li><p>Preparing the data with NVTabular</p></li>
-<li><p>Training and evaluating Two-Tower model with Merlin Models</p></li>
-<li><p>Exporting the model for deployment</p></li>
-</ul>
-</div>
-<div class="section" id="Feature-Engineering-with-NVTabular">
-<h2>Feature Engineering with NVTabular<a class="headerlink" href="#Feature-Engineering-with-NVTabular" title="Permalink to this headline"></a></h2>
+<div class="section" id="Importing-Libraries">
+<h2>Importing Libraries<a class="headerlink" href="#Importing-Libraries" title="Permalink to this headline"></a></h2>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
@@ -382,22 +375,15 @@ quickly score millions of items for a given user, a popular choices are models t
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
 os.environ[&quot;TF_GPU_ALLOCATOR&quot;]=&quot;cuda_malloc_async&quot;
 import cudf
-import glob
-import gc
 
 import nvtabular as nvt
 from nvtabular.ops import *
 from merlin.models.utils.example_utils import workflow_fit_transform
 
 from merlin.schema.tags import Tags
-from merlin.schema import Schema
 
 import merlin.models.tf as mm
-import merlin.models.tf.dataset as tf_dataloader
-
 from merlin.io.dataset import Dataset
-from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
-from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
 
 import tensorflow as tf
 </pre></div>
@@ -408,10 +394,10 @@ import tensorflow as tf
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-25 18:21:09.740734: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
+2022-04-05 16:17:19.854912: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-03-25 18:21:10.876420: I tensorflow/core/common_runtime/gpu/gpu_process_state.cc:214] Using CUDA malloc Async allocator for GPU: 0
-2022-03-25 18:21:10.876553: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2022-04-05 16:17:20.952592: I tensorflow/core/common_runtime/gpu/gpu_process_state.cc:214] Using CUDA malloc Async allocator for GPU: 0
+2022-04-05 16:17:20.952717: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
@@ -424,22 +410,33 @@ logging.disable(logging.WARNING)
 </pre></div>
 </div>
 </div>
-<p>First, we define our input and output paths. We will use the parquet files in the test folder to validate our trained model.</p>
+</div>
+<div class="section" id="Feature-Engineering-with-NVTabular">
+<h2>Feature Engineering with NVTabular<a class="headerlink" href="#Feature-Engineering-with-NVTabular" title="Permalink to this headline"></a></h2>
+<p>Let’s generate synthetic train and validation dataset objects.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
-train_path = os.path.join(DATA_FOLDER, &#39;train&#39;, &#39;*.parquet&#39;)
-valid_path = os.path.join(DATA_FOLDER, &#39;test&#39;,&#39;*.parquet&#39;)
-output_path = &#39;/workspace/data/processed/&#39;
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.datasets.synthetic import generate_data
+
+DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
+train, valid = generate_data(&quot;aliccp-raw&quot;, 1000000, set_sizes=(0.7, 0.3))
 </pre></div>
 </div>
 </div>
-<p>ETL Workflow</p>
-<p>We keep only positive interactions where clicks==1 in the dataset with <code class="docutils literal notranslate"><span class="pre">Filter()</span></code> op.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># define output path for the processed parquet files
+output_path = os.path.join(DATA_FOLDER, &quot;processed&quot;)
+</pre></div>
+</div>
+</div>
+<p>We keep only positive interactions where clicks==1 in the dataset with <code class="docutils literal notranslate"><span class="pre">Filter()</span></code> op.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_id = [&quot;user_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsUserID()
@@ -455,8 +452,16 @@ user_features = [&#39;user_shops&#39;, &#39;user_profile&#39;, &#39;user_group&#
 inputs = user_id + item_id + item_features + user_features + [&#39;click&#39;]
 
 outputs = inputs &gt;&gt; Filter(f=lambda df: df[&quot;click&quot;] == 1)
-
-workflow_fit_transform(outputs, train_path, valid_path, output_path)
+</pre></div>
+</div>
+</div>
+<p>With <code class="docutils literal notranslate"><span class="pre">transform_aliccp</span></code> function, we can execute fit() and transform() on the raw dataset applying the operators defined in the NVTabular workflow pipeline above. The processed parquet files are saved to output_path.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.datasets.ecommerce import transform_aliccp
+transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
 </pre></div>
 </div>
 </div>
@@ -475,22 +480,39 @@ workflow_fit_transform(outputs, train_path, valid_path, output_path)
 <h1>Building a Two-Tower Model with Merlin Models<a class="headerlink" href="#Building-a-Two-Tower-Model-with-Merlin-Models" title="Permalink to this headline"></a></h1>
 <p>We will use Two-Tower Model for item retrieval task. Real-world large scale recommender systems have hundreds of millions of items (products) and users. Thus, these systems often composed of two stages: candidate generation (retrieval) and ranking (scoring the retrieved items). At candidate generation step, a subset of relevant items from large item corpus is retrieved. You can read more about two stage Recommender Systems here. In this example, we’re going to focus on the retrieval stage.</p>
 <p>A Two-Tower Model consists of item (candidate) and user (query) encoder towers. With two towers, the model can learn representations (embeddings) for queries and candidates separately.</p>
-<p><img alt="88933449a85147a49554ab55ad2e02e1" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
+<p><img alt="da64de460b624629829a9786f3d537d9" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
 <p>Image Adapted from: <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3366423.3380130">Off-policy Learning in Two-stage Recommender Systems</a></p>
 <p>We use the <code class="docutils literal notranslate"><span class="pre">schema</span></code> object to define our model.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path, &#39;train&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
-valid = Dataset(os.path.join(output_path, &#39;valid&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>output_path
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&#39;/workspace/data/processed&#39;
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path, &#39;train&#39;, &#39;*.parquet&#39;))
+valid = Dataset(os.path.join(output_path, &#39;valid&#39;, &#39;*.parquet&#39;))
 
 schema = train.schema
 </pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema = schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])
@@ -499,7 +521,7 @@ schema = train.schema
 </div>
 <p>We can print out the feature column names.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema.column_names
@@ -507,7 +529,7 @@ schema = train.schema
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -532,7 +554,7 @@ schema = train.schema
 </div>
 <p>We expect the label names to be empty.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>label_names = schema.select_by_tag(Tags.TARGET).column_names
@@ -541,7 +563,7 @@ label_names
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -551,15 +573,15 @@ label_names
 </div>
 <div class="section" id="Negative-sampling">
 <h2>Negative sampling<a class="headerlink" href="#Negative-sampling" title="Permalink to this headline"></a></h2>
-<p>Many datasets for recommender systems contains implicit feedback, with logs of user interactions like clicks, add-to-cart, purchases, music listening events, rather than explicit ratings that reflects user preferences over items. To be able to learn from implicit feedback, we use the general (and naive) assumption that the interacted items are more relevant for the user than the non-interacted ones. In Merlin Models we provide some scalable negative sampling algorithms for the Item Retrieval
-Task. In particular, we use in this example the in-batch sampling algorithm which uses the items interacted by other users as negatives within the same mini-batch.</p>
+<p>Many datasets for recommender systems contain implicit feedback with logs of user interactions like clicks, add-to-cart, purchases, music listening events, rather than explicit ratings that reflects user preferences over items. To be able to learn from implicit feedback, we use the general (and naive) assumption that the interacted items are more relevant for the user than the non-interacted ones. In Merlin Models we provide some scalable negative sampling algorithms for the Item Retrieval Task.
+In particular, we use in this example the in-batch sampling algorithm which uses the items interacted by other users as negatives within the same mini-batch.</p>
 </div>
 <div class="section" id="Building-the-Model">
 <h2>Building the Model<a class="headerlink" href="#Building-the-Model" title="Permalink to this headline"></a></h2>
 <p>Now, let’s build our Two-Tower model. In a nutshell, we aggregate all user features to feed in user tower and feed the item features to the item tower. Then we compute the positive score by multiplying the user embedding with the item embedding and sample negative items (read more about negative sampling <a class="reference external" href="https://openreview.net/pdf?id=824xC-SgWgU">here</a> and <a class="reference external" href="https://medium.com/mlearning-ai/overview-negative-sampling-on-recommendation-systems-230a051c6cd7">here</a>), whose item embeddings are
 also multiplied by the user embedding. Then we apply the loss function on top of the positive and negative scores.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.TwoTowerModel(
@@ -582,14 +604,12 @@ also multiplied by the user embedding. Then we apply the loss function on top of
 </ul>
 <p>We need to initialize the dataloaders.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.set_retrieval_candidates_for_evaluation(train)
-
-opt = tf.keras.optimizers.Adagrad(learning_rate=0.003)
-model.compile(optimizer=opt, run_eagerly=False)
-model.fit(train, validation_data=valid, batch_size=4096, epochs=5)
+model.compile(optimizer=&#39;adam&#39;, run_eagerly=False)
+model.fit(train, validation_data=valid, batch_size=4096, epochs=3)
 </pre></div>
 </div>
 </div>
@@ -598,7 +618,7 @@ model.fit(train, validation_data=valid, batch_size=4096, epochs=5)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-25 18:21:49.247382: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+2022-04-05 16:17:25.278668: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -606,8 +626,8 @@ model.fit(train, validation_data=valid, batch_size=4096, epochs=5)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Epoch 1/5
-382/384 [============================&gt;.] - ETA: 0s - recall_at_10: 0.0024 - ndcg_10: 0.0011 - loss: 8.3225 - regularization_loss: 0.0000e+00 - total_loss: 8.3225
+Epoch 1/3
+85/86 [============================&gt;.] - ETA: 0s - recall_at_10: 0.0177 - ndcg_10: 0.0088 - loss: 8.3001 - regularization_loss: 0.0000e+00 - total_loss: 8.3001
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -615,9 +635,7 @@ Epoch 1/5
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-25 18:22:08.000481: W tensorflow/core/framework/cpu_allocator_impl.cc:82] Allocation of 1034311152 exceeds 10% of free system memory.
-2022-03-25 18:22:11.491670: W tensorflow/core/framework/cpu_allocator_impl.cc:82] Allocation of 1034311152 exceeds 10% of free system memory.
-2022-03-25 18:22:21.411679: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_184
+2022-04-05 16:17:42.029046: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_185
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -625,87 +643,20 @@ Epoch 1/5
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-384/384 [==============================] - 37s 80ms/step - recall_at_10: 0.0024 - ndcg_10: 0.0011 - loss: 8.3196 - regularization_loss: 0.0000e+00 - total_loss: 8.3196 - val_recall_at_10: 0.0025 - val_ndcg_10: 0.0011 - val_loss: 7.4208 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.4208
-Epoch 2/5
-382/384 [============================&gt;.] - ETA: 0s - recall_at_10: 0.0024 - ndcg_10: 0.0011 - loss: 8.3217 - regularization_loss: 0.0000e+00 - total_loss: 8.3217
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-2022-03-25 18:22:38.212795: W tensorflow/core/framework/cpu_allocator_impl.cc:82] Allocation of 1034311152 exceeds 10% of free system memory.
-2022-03-25 18:22:41.619888: W tensorflow/core/framework/cpu_allocator_impl.cc:82] Allocation of 1034311152 exceeds 10% of free system memory.
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-384/384 [==============================] - 28s 71ms/step - recall_at_10: 0.0024 - ndcg_10: 0.0011 - loss: 8.3188 - regularization_loss: 0.0000e+00 - total_loss: 8.3188 - val_recall_at_10: 0.0025 - val_ndcg_10: 0.0012 - val_loss: 7.4200 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.4200
-Epoch 3/5
-382/384 [============================&gt;.] - ETA: 0s - recall_at_10: 0.0024 - ndcg_10: 0.0011 - loss: 8.3210 - regularization_loss: 0.0000e+00 - total_loss: 8.3210
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-2022-03-25 18:23:05.813015: W tensorflow/core/framework/cpu_allocator_impl.cc:82] Allocation of 1034311152 exceeds 10% of free system memory.
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-384/384 [==============================] - 28s 72ms/step - recall_at_10: 0.0024 - ndcg_10: 0.0011 - loss: 8.3181 - regularization_loss: 0.0000e+00 - total_loss: 8.3181 - val_recall_at_10: 0.0025 - val_ndcg_10: 0.0012 - val_loss: 7.4193 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.4193
-Epoch 4/5
-384/384 [==============================] - 28s 72ms/step - recall_at_10: 0.0025 - ndcg_10: 0.0011 - loss: 8.3175 - regularization_loss: 0.0000e+00 - total_loss: 8.3175 - val_recall_at_10: 0.0026 - val_ndcg_10: 0.0012 - val_loss: 7.4187 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.4187
-Epoch 5/5
-384/384 [==============================] - 28s 72ms/step - recall_at_10: 0.0025 - ndcg_10: 0.0011 - loss: 8.3169 - regularization_loss: 0.0000e+00 - total_loss: 8.3169 - val_recall_at_10: 0.0026 - val_ndcg_10: 0.0012 - val_loss: 7.4182 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.4182
+86/86 [==============================] - 17s 110ms/step - recall_at_10: 0.0177 - ndcg_10: 0.0089 - loss: 8.2735 - regularization_loss: 0.0000e+00 - total_loss: 8.2735 - val_recall_at_10: 0.0252 - val_ndcg_10: 0.0142 - val_loss: 7.7711 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.7711
+Epoch 2/3
+86/86 [==============================] - 7s 85ms/step - recall_at_10: 0.0263 - ndcg_10: 0.0192 - loss: 8.2724 - regularization_loss: 0.0000e+00 - total_loss: 8.2724 - val_recall_at_10: 0.0245 - val_ndcg_10: 0.0202 - val_loss: 7.7719 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.7719
+Epoch 3/3
+86/86 [==============================] - 7s 81ms/step - recall_at_10: 0.0226 - ndcg_10: 0.0188 - loss: 8.2719 - regularization_loss: 0.0000e+00 - total_loss: 8.2719 - val_recall_at_10: 0.0203 - val_ndcg_10: 0.0164 - val_loss: 7.7722 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.7722
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7f743c3be640&gt;
-</pre></div></div>
-</div>
-<p>In batch sampling is prone to popularity-bias. since different users might have interacted same items. # in the fit method we are only using the negative sampling in each batch and the final score is avg over all the batches. for each batch we aer comparing only the items in the given batch. in the <code class="docutils literal notranslate"><span class="pre">.evaluate()</span></code> we are considering entire item catalog for each positive item. generate the scores for all items and check the position of the positive item in the list of scores.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.evaluate(valid, return_dict=True, batch_size=1024)
-</pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-1542/1542 [==============================] - 46s 29ms/step - recall_at_10: 2.2805e-05 - ndcg_10: 9.9212e-06 - loss: 5.2483e-05 - regularization_loss: 0.0000e+00 - total_loss: 5.2483e-05
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-{&#39;recall_at_10&#39;: 2.280459739267826e-05,
- &#39;ndcg_10&#39;: 9.921227501763497e-06,
- &#39;loss&#39;: 0.0,
- &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.0}
+&lt;keras.callbacks.History at 0x7f35dc1f5e50&gt;
 </pre></div></div>
 </div>
 </div>
@@ -722,7 +673,7 @@ score user embeddings over all indexed top-K item embeddings within the ANN engi
 </ul>
 <p>We are able to save the user tower model as a TF model to disk. The user tower model is needed to generate a user embedding vector when a user feature vector x is fed into that model.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>query_tower = model.retrieval_block.query_block()
@@ -732,7 +683,7 @@ query_tower.save(&#39;query_tower&#39;)
 </div>
 <p>With <code class="docutils literal notranslate"><span class="pre">unique_rows_by_features</span></code> utility function we can easily extract both unique user and item features tables as cuDF dataframes. Note that for user features table, we use <code class="docutils literal notranslate"><span class="pre">USER</span></code> and <code class="docutils literal notranslate"><span class="pre">USER_ID</span></code> tags.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.utils.dataset import unique_rows_by_features
@@ -741,7 +692,7 @@ user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute(
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_features.head()
@@ -749,7 +700,7 @@ user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute(
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -788,85 +739,85 @@ user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute(
   <tbody>
     <tr>
       <th>0</th>
-      <td>0</td>
-      <td>0</td>
       <td>1</td>
-      <td>4</td>
       <td>1</td>
-      <td>3</td>
-      <td>2</td>
       <td>1</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>1</th>
+      <td>2</td>
+      <td>2</td>
       <td>1</td>
-      <td>109</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>69</td>
-      <td>131</td>
-      <td>9</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>2</td>
-      <td>301</td>
+      <td>3</td>
+      <td>3</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
-      <td>2</td>
-      <td>57</td>
-      <td>4709</td>
-      <td>57</td>
+      <td>1</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>3</td>
-      <td>1876</td>
-      <td>23</td>
-      <td>7</td>
-      <td>2</td>
-      <td>3</td>
+      <td>4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>5</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
       <td>5</td>
-      <td>63</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>4</td>
-      <td>534</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-      <td>2</td>
-      <td>1</td>
-      <td>1</td>
-      <td>0</td>
-      <td>40</td>
-      <td>22</td>
-      <td>108</td>
+      <td>5</td>
+      <td>5</td>
     </tr>
   </tbody>
 </table>
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_features.shape
@@ -874,16 +825,16 @@ user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute(
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(214994, 12)
+(646, 12)
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
@@ -892,7 +843,7 @@ user_features.to_parquet(&#39;user_features.parquet&#39;)
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_features = unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID).compute().reset_index(drop=True)
@@ -900,7 +851,7 @@ user_features.to_parquet(&#39;user_features.parquet&#39;)
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_features.head()
@@ -908,7 +859,7 @@ user_features.to_parquet(&#39;user_features.parquet&#39;)
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -939,45 +890,45 @@ user_features.to_parquet(&#39;user_features.parquet&#39;)
   <tbody>
     <tr>
       <th>0</th>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>1</td>
-      <td>441</td>
-      <td>432</td>
-      <td>474</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>2</td>
-      <td>193</td>
-      <td>1159</td>
-      <td>125</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>3</td>
-      <td>3</td>
-      <td>1463</td>
-      <td>872</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>4</td>
-      <td>282</td>
-      <td>2479</td>
-      <td>555</td>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
     </tr>
   </tbody>
 </table>
 </div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
@@ -986,7 +937,7 @@ item_features.to_parquet(&#39;item_features.parquet&#39;)
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_embs = model.item_embeddings(Dataset(item_features, schema=schema), batch_size=1024)
@@ -995,7 +946,7 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_embs_df
@@ -1003,7 +954,7 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1051,123 +1002,123 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
   <tbody>
     <tr>
       <th>0</th>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0</td>
-      <td>0.100480</td>
-      <td>-0.101183</td>
-      <td>0.038712</td>
-      <td>-0.069887</td>
-      <td>0.055463</td>
-      <td>0.187399</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>0.119024</td>
+      <td>0.023623</td>
+      <td>-0.039086</td>
+      <td>-0.000039</td>
+      <td>0.070910</td>
+      <td>-0.005304</td>
       <td>...</td>
-      <td>-0.136141</td>
-      <td>0.092087</td>
-      <td>0.000309</td>
-      <td>0.012232</td>
-      <td>0.004694</td>
-      <td>0.185416</td>
-      <td>-0.175290</td>
-      <td>-0.113102</td>
-      <td>0.046894</td>
-      <td>-0.095183</td>
+      <td>0.085932</td>
+      <td>-0.102355</td>
+      <td>-0.058122</td>
+      <td>-0.088331</td>
+      <td>0.059050</td>
+      <td>-0.025986</td>
+      <td>-0.023549</td>
+      <td>0.159494</td>
+      <td>0.311440</td>
+      <td>-0.172660</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>1</td>
-      <td>441</td>
-      <td>432</td>
-      <td>474</td>
-      <td>0.106592</td>
-      <td>-0.140783</td>
-      <td>0.187643</td>
-      <td>0.116384</td>
-      <td>-0.117863</td>
-      <td>0.151208</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+      <td>0.006361</td>
+      <td>0.003338</td>
+      <td>0.124567</td>
+      <td>-0.069380</td>
+      <td>0.122115</td>
+      <td>-0.201470</td>
       <td>...</td>
-      <td>-0.078249</td>
-      <td>0.098082</td>
-      <td>0.033912</td>
-      <td>0.028970</td>
-      <td>0.004288</td>
-      <td>0.182896</td>
-      <td>-0.049048</td>
-      <td>0.088471</td>
-      <td>0.095434</td>
-      <td>-0.031751</td>
+      <td>0.026831</td>
+      <td>-0.132266</td>
+      <td>0.129241</td>
+      <td>-0.088970</td>
+      <td>-0.108118</td>
+      <td>0.021614</td>
+      <td>-0.081004</td>
+      <td>0.124680</td>
+      <td>0.345408</td>
+      <td>-0.209228</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>2</td>
-      <td>193</td>
-      <td>1159</td>
-      <td>125</td>
-      <td>-0.028713</td>
-      <td>-0.173785</td>
-      <td>-0.056876</td>
-      <td>0.034120</td>
-      <td>-0.056204</td>
-      <td>0.311673</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+      <td>0.074537</td>
+      <td>0.001323</td>
+      <td>0.090352</td>
+      <td>-0.175259</td>
+      <td>0.179352</td>
+      <td>-0.021959</td>
       <td>...</td>
-      <td>-0.129029</td>
-      <td>0.144884</td>
-      <td>-0.012147</td>
-      <td>0.056141</td>
-      <td>-0.024954</td>
-      <td>0.147257</td>
-      <td>-0.034835</td>
-      <td>0.065109</td>
-      <td>0.052829</td>
-      <td>-0.073503</td>
+      <td>-0.026903</td>
+      <td>-0.045079</td>
+      <td>0.189090</td>
+      <td>0.133597</td>
+      <td>-0.008829</td>
+      <td>-0.157224</td>
+      <td>0.050934</td>
+      <td>0.161178</td>
+      <td>0.242915</td>
+      <td>-0.130376</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>3</td>
-      <td>3</td>
-      <td>1463</td>
-      <td>872</td>
-      <td>0.087634</td>
-      <td>-0.136825</td>
-      <td>0.128481</td>
-      <td>0.016375</td>
-      <td>0.066299</td>
-      <td>-0.077430</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+      <td>0.153636</td>
+      <td>-0.080778</td>
+      <td>-0.123449</td>
+      <td>-0.089321</td>
+      <td>0.139870</td>
+      <td>0.015942</td>
       <td>...</td>
-      <td>-0.183097</td>
-      <td>0.093180</td>
-      <td>0.074107</td>
-      <td>-0.220991</td>
-      <td>0.077473</td>
-      <td>0.183373</td>
-      <td>-0.085114</td>
-      <td>-0.160506</td>
-      <td>-0.069322</td>
-      <td>0.011579</td>
+      <td>-0.076668</td>
+      <td>-0.113005</td>
+      <td>0.069237</td>
+      <td>0.238331</td>
+      <td>0.085635</td>
+      <td>-0.083087</td>
+      <td>0.018781</td>
+      <td>0.139706</td>
+      <td>0.167688</td>
+      <td>-0.141418</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>4</td>
-      <td>282</td>
-      <td>2479</td>
-      <td>555</td>
-      <td>0.044352</td>
-      <td>-0.185963</td>
-      <td>-0.060681</td>
-      <td>-0.028867</td>
-      <td>0.046313</td>
-      <td>0.220343</td>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+      <td>-0.011768</td>
+      <td>0.018682</td>
+      <td>-0.025512</td>
+      <td>-0.085963</td>
+      <td>-0.134499</td>
+      <td>-0.186269</td>
       <td>...</td>
-      <td>-0.085646</td>
-      <td>0.063820</td>
-      <td>-0.137686</td>
-      <td>-0.071112</td>
-      <td>-0.161351</td>
-      <td>0.150922</td>
-      <td>-0.066201</td>
-      <td>-0.178179</td>
-      <td>0.023789</td>
-      <td>-0.196832</td>
+      <td>0.061904</td>
+      <td>-0.109536</td>
+      <td>0.095276</td>
+      <td>0.032400</td>
+      <td>-0.116568</td>
+      <td>0.061201</td>
+      <td>0.125158</td>
+      <td>-0.042238</td>
+      <td>0.208102</td>
+      <td>-0.167115</td>
     </tr>
     <tr>
       <th>...</th>
@@ -1194,132 +1145,132 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
       <td>...</td>
     </tr>
     <tr>
-      <th>568842</th>
-      <td>3078159</td>
-      <td>1764</td>
-      <td>365864</td>
-      <td>121053</td>
-      <td>-0.181527</td>
-      <td>0.013411</td>
-      <td>0.059540</td>
-      <td>0.030576</td>
-      <td>0.007284</td>
-      <td>0.240745</td>
+      <th>630</th>
+      <td>743</td>
+      <td>743</td>
+      <td>743</td>
+      <td>743</td>
+      <td>0.064798</td>
+      <td>-0.065997</td>
+      <td>-0.031717</td>
+      <td>-0.067496</td>
+      <td>-0.004143</td>
+      <td>-0.014273</td>
       <td>...</td>
-      <td>-0.156806</td>
-      <td>0.170368</td>
-      <td>0.061671</td>
-      <td>-0.153007</td>
-      <td>-0.216809</td>
-      <td>0.114002</td>
-      <td>0.040904</td>
-      <td>-0.152487</td>
-      <td>0.138781</td>
-      <td>0.004465</td>
+      <td>0.060530</td>
+      <td>-0.230824</td>
+      <td>0.015961</td>
+      <td>0.040368</td>
+      <td>-0.074561</td>
+      <td>-0.002969</td>
+      <td>-0.199503</td>
+      <td>0.121633</td>
+      <td>0.207420</td>
+      <td>-0.342876</td>
     </tr>
     <tr>
-      <th>568843</th>
-      <td>3078210</td>
-      <td>377</td>
-      <td>97495</td>
-      <td>116656</td>
-      <td>-0.000746</td>
-      <td>-0.059242</td>
-      <td>0.196628</td>
-      <td>0.018706</td>
-      <td>0.065176</td>
-      <td>0.227332</td>
+      <th>631</th>
+      <td>749</td>
+      <td>749</td>
+      <td>749</td>
+      <td>749</td>
+      <td>-0.008370</td>
+      <td>0.082715</td>
+      <td>0.117570</td>
+      <td>0.019689</td>
+      <td>0.087900</td>
+      <td>-0.079214</td>
       <td>...</td>
-      <td>-0.049041</td>
-      <td>0.105531</td>
-      <td>-0.003052</td>
-      <td>0.104010</td>
-      <td>-0.052346</td>
-      <td>-0.033157</td>
-      <td>-0.106754</td>
-      <td>-0.065986</td>
-      <td>0.317890</td>
-      <td>-0.063438</td>
+      <td>0.023555</td>
+      <td>-0.114855</td>
+      <td>-0.063390</td>
+      <td>0.111346</td>
+      <td>-0.263790</td>
+      <td>0.061215</td>
+      <td>0.143212</td>
+      <td>0.041604</td>
+      <td>0.319031</td>
+      <td>-0.119142</td>
     </tr>
     <tr>
-      <th>568844</th>
-      <td>3078270</td>
-      <td>3817</td>
-      <td>577371</td>
-      <td>80796</td>
-      <td>-0.073659</td>
-      <td>-0.020232</td>
-      <td>-0.099983</td>
-      <td>-0.005017</td>
-      <td>-0.238924</td>
-      <td>0.178821</td>
+      <th>632</th>
+      <td>752</td>
+      <td>752</td>
+      <td>752</td>
+      <td>752</td>
+      <td>-0.109725</td>
+      <td>0.286749</td>
+      <td>-0.070979</td>
+      <td>-0.030827</td>
+      <td>-0.008561</td>
+      <td>-0.039951</td>
       <td>...</td>
-      <td>-0.213560</td>
-      <td>0.130538</td>
-      <td>0.054929</td>
-      <td>-0.038743</td>
-      <td>-0.068914</td>
-      <td>0.062025</td>
-      <td>0.089917</td>
-      <td>0.031116</td>
-      <td>0.102875</td>
-      <td>-0.180703</td>
+      <td>-0.021042</td>
+      <td>-0.058173</td>
+      <td>-0.141470</td>
+      <td>-0.028167</td>
+      <td>-0.035519</td>
+      <td>-0.103719</td>
+      <td>0.089092</td>
+      <td>0.027004</td>
+      <td>0.279829</td>
+      <td>-0.315001</td>
     </tr>
     <tr>
-      <th>568845</th>
-      <td>3078283</td>
-      <td>551</td>
-      <td>201089</td>
-      <td>85172</td>
-      <td>-0.013963</td>
-      <td>-0.047382</td>
-      <td>0.124333</td>
-      <td>0.055950</td>
-      <td>0.104881</td>
-      <td>0.094359</td>
+      <th>633</th>
+      <td>753</td>
+      <td>753</td>
+      <td>753</td>
+      <td>753</td>
+      <td>-0.048022</td>
+      <td>0.033861</td>
+      <td>-0.245225</td>
+      <td>-0.045610</td>
+      <td>0.033465</td>
+      <td>-0.101318</td>
       <td>...</td>
-      <td>0.186676</td>
-      <td>0.136704</td>
-      <td>0.101370</td>
-      <td>-0.016214</td>
-      <td>-0.030931</td>
-      <td>0.129269</td>
-      <td>-0.069209</td>
-      <td>-0.014182</td>
-      <td>0.144155</td>
-      <td>-0.062910</td>
+      <td>-0.165817</td>
+      <td>0.000217</td>
+      <td>0.043540</td>
+      <td>-0.102218</td>
+      <td>-0.152996</td>
+      <td>-0.059092</td>
+      <td>0.099988</td>
+      <td>-0.010920</td>
+      <td>0.136724</td>
+      <td>0.016220</td>
     </tr>
     <tr>
-      <th>568846</th>
-      <td>3078304</td>
-      <td>475</td>
-      <td>255840</td>
-      <td>335</td>
-      <td>-0.191559</td>
-      <td>-0.092710</td>
-      <td>0.025378</td>
-      <td>-0.024475</td>
-      <td>0.079726</td>
-      <td>0.079302</td>
+      <th>634</th>
+      <td>761</td>
+      <td>761</td>
+      <td>761</td>
+      <td>761</td>
+      <td>0.061938</td>
+      <td>0.029517</td>
+      <td>-0.072761</td>
+      <td>-0.101128</td>
+      <td>0.080592</td>
+      <td>-0.028033</td>
       <td>...</td>
-      <td>0.044710</td>
-      <td>0.082819</td>
-      <td>0.032549</td>
-      <td>-0.024786</td>
-      <td>-0.024001</td>
-      <td>0.074184</td>
-      <td>-0.074518</td>
-      <td>-0.077085</td>
-      <td>0.170670</td>
-      <td>0.116576</td>
+      <td>-0.049143</td>
+      <td>-0.149057</td>
+      <td>0.153742</td>
+      <td>-0.037752</td>
+      <td>-0.049190</td>
+      <td>-0.039576</td>
+      <td>0.111076</td>
+      <td>0.125575</td>
+      <td>0.472521</td>
+      <td>-0.132032</td>
     </tr>
   </tbody>
 </table>
-<p>568847 rows × 68 columns</p>
+<p>635 rows × 68 columns</p>
 </div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># select only embedding columns
@@ -1328,7 +1279,7 @@ item_embeddings = item_embs_df.iloc[:, 4:]
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_embeddings.head()
@@ -1336,7 +1287,7 @@ item_embeddings = item_embs_df.iloc[:, 4:]
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1384,123 +1335,123 @@ item_embeddings = item_embs_df.iloc[:, 4:]
   <tbody>
     <tr>
       <th>0</th>
-      <td>0.100480</td>
-      <td>-0.101183</td>
-      <td>0.038712</td>
-      <td>-0.069887</td>
-      <td>0.055463</td>
-      <td>0.187399</td>
-      <td>0.088853</td>
-      <td>-0.251354</td>
-      <td>0.069880</td>
-      <td>-0.046955</td>
+      <td>0.119024</td>
+      <td>0.023623</td>
+      <td>-0.039086</td>
+      <td>-0.000039</td>
+      <td>0.070910</td>
+      <td>-0.005304</td>
+      <td>-0.046084</td>
+      <td>-0.071140</td>
+      <td>0.053499</td>
+      <td>0.149303</td>
       <td>...</td>
-      <td>-0.136141</td>
-      <td>0.092087</td>
-      <td>0.000309</td>
-      <td>0.012232</td>
-      <td>0.004694</td>
-      <td>0.185416</td>
-      <td>-0.175290</td>
-      <td>-0.113102</td>
-      <td>0.046894</td>
-      <td>-0.095183</td>
+      <td>0.085932</td>
+      <td>-0.102355</td>
+      <td>-0.058122</td>
+      <td>-0.088331</td>
+      <td>0.059050</td>
+      <td>-0.025986</td>
+      <td>-0.023549</td>
+      <td>0.159494</td>
+      <td>0.311440</td>
+      <td>-0.172660</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>0.106592</td>
-      <td>-0.140783</td>
-      <td>0.187643</td>
-      <td>0.116384</td>
-      <td>-0.117863</td>
-      <td>0.151208</td>
-      <td>0.165833</td>
-      <td>-0.152995</td>
-      <td>-0.071885</td>
-      <td>0.057338</td>
+      <td>0.006361</td>
+      <td>0.003338</td>
+      <td>0.124567</td>
+      <td>-0.069380</td>
+      <td>0.122115</td>
+      <td>-0.201470</td>
+      <td>-0.095038</td>
+      <td>0.078551</td>
+      <td>0.133017</td>
+      <td>-0.013526</td>
       <td>...</td>
-      <td>-0.078249</td>
-      <td>0.098082</td>
-      <td>0.033912</td>
-      <td>0.028970</td>
-      <td>0.004288</td>
-      <td>0.182896</td>
-      <td>-0.049048</td>
-      <td>0.088471</td>
-      <td>0.095434</td>
-      <td>-0.031751</td>
+      <td>0.026831</td>
+      <td>-0.132266</td>
+      <td>0.129241</td>
+      <td>-0.088970</td>
+      <td>-0.108118</td>
+      <td>0.021614</td>
+      <td>-0.081004</td>
+      <td>0.124680</td>
+      <td>0.345408</td>
+      <td>-0.209228</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>-0.028713</td>
-      <td>-0.173785</td>
-      <td>-0.056876</td>
-      <td>0.034120</td>
-      <td>-0.056204</td>
-      <td>0.311673</td>
-      <td>0.211417</td>
-      <td>-0.058011</td>
-      <td>0.129465</td>
-      <td>-0.073758</td>
+      <td>0.074537</td>
+      <td>0.001323</td>
+      <td>0.090352</td>
+      <td>-0.175259</td>
+      <td>0.179352</td>
+      <td>-0.021959</td>
+      <td>-0.197854</td>
+      <td>0.132899</td>
+      <td>0.135168</td>
+      <td>0.017511</td>
       <td>...</td>
-      <td>-0.129029</td>
-      <td>0.144884</td>
-      <td>-0.012147</td>
-      <td>0.056141</td>
-      <td>-0.024954</td>
-      <td>0.147257</td>
-      <td>-0.034835</td>
-      <td>0.065109</td>
-      <td>0.052829</td>
-      <td>-0.073503</td>
+      <td>-0.026903</td>
+      <td>-0.045079</td>
+      <td>0.189090</td>
+      <td>0.133597</td>
+      <td>-0.008829</td>
+      <td>-0.157224</td>
+      <td>0.050934</td>
+      <td>0.161178</td>
+      <td>0.242915</td>
+      <td>-0.130376</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>0.087634</td>
-      <td>-0.136825</td>
-      <td>0.128481</td>
-      <td>0.016375</td>
-      <td>0.066299</td>
-      <td>-0.077430</td>
-      <td>0.176676</td>
-      <td>-0.230770</td>
-      <td>0.042750</td>
-      <td>-0.019357</td>
+      <td>0.153636</td>
+      <td>-0.080778</td>
+      <td>-0.123449</td>
+      <td>-0.089321</td>
+      <td>0.139870</td>
+      <td>0.015942</td>
+      <td>-0.062343</td>
+      <td>-0.102844</td>
+      <td>0.021416</td>
+      <td>0.109875</td>
       <td>...</td>
-      <td>-0.183097</td>
-      <td>0.093180</td>
-      <td>0.074107</td>
-      <td>-0.220991</td>
-      <td>0.077473</td>
-      <td>0.183373</td>
-      <td>-0.085114</td>
-      <td>-0.160506</td>
-      <td>-0.069322</td>
-      <td>0.011579</td>
+      <td>-0.076668</td>
+      <td>-0.113005</td>
+      <td>0.069237</td>
+      <td>0.238331</td>
+      <td>0.085635</td>
+      <td>-0.083087</td>
+      <td>0.018781</td>
+      <td>0.139706</td>
+      <td>0.167688</td>
+      <td>-0.141418</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>0.044352</td>
-      <td>-0.185963</td>
-      <td>-0.060681</td>
-      <td>-0.028867</td>
-      <td>0.046313</td>
-      <td>0.220343</td>
-      <td>0.015842</td>
-      <td>-0.183577</td>
-      <td>0.102639</td>
-      <td>-0.070050</td>
+      <td>-0.011768</td>
+      <td>0.018682</td>
+      <td>-0.025512</td>
+      <td>-0.085963</td>
+      <td>-0.134499</td>
+      <td>-0.186269</td>
+      <td>-0.103873</td>
+      <td>0.053713</td>
+      <td>0.100448</td>
+      <td>0.005378</td>
       <td>...</td>
-      <td>-0.085646</td>
-      <td>0.063820</td>
-      <td>-0.137686</td>
-      <td>-0.071112</td>
-      <td>-0.161351</td>
-      <td>0.150922</td>
-      <td>-0.066201</td>
-      <td>-0.178179</td>
-      <td>0.023789</td>
-      <td>-0.196832</td>
+      <td>0.061904</td>
+      <td>-0.109536</td>
+      <td>0.095276</td>
+      <td>0.032400</td>
+      <td>-0.116568</td>
+      <td>0.061201</td>
+      <td>0.125158</td>
+      <td>-0.042238</td>
+      <td>0.208102</td>
+      <td>-0.167115</td>
     </tr>
   </tbody>
 </table>
@@ -1508,7 +1459,7 @@ item_embeddings = item_embs_df.iloc[:, 4:]
 </div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk

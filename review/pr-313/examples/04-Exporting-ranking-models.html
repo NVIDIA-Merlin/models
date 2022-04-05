@@ -357,6 +357,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
+<p><img alt="309d756d5b904f8da4a7e1f177487605" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Exporting-Ranking-Models">
 <h1>Exporting Ranking Models<a class="headerlink" href="#Exporting-Ranking-Models" title="Permalink to this headline"></a></h1>
 <p>In this example notebook we demonstrate how to export (save) NVTabular <code class="docutils literal notranslate"><span class="pre">workflow</span></code> and a <code class="docutils literal notranslate"><span class="pre">ranking</span> <span class="pre">model</span></code> for model deployment with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library.</p>
@@ -371,7 +372,7 @@ div.rendered_html tbody tr:hover {
 <h1>Importing Libraries<a class="headerlink" href="#Importing-Libraries" title="Permalink to this headline"></a></h1>
 <p>Let’s start with importing the libraries that we’ll use in this notebook.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
@@ -383,7 +384,6 @@ from nvtabular.ops import *
 from merlin.models.utils.example_utils import workflow_fit_transform
 
 from merlin.schema.tags import Tags
-from merlin.schema import Schema
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
@@ -396,39 +396,56 @@ import tensorflow as tf
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-/nvtabular/nvtabular/graph.py:23: FutureWarning: The `nvtabular.graph` module has moved to `merlin.dag`. Support for importing from `nvtabular.graph` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.dag`.
-  warnings.warn(
-/nvtabular/nvtabular/io.py:23: FutureWarning: The `nvtabular.io` module has moved to `merlin.io`. Support for importing from `nvtabular.io` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.io`.
-  warnings.warn(
-/nvtabular/nvtabular/utils.py:23: FutureWarning: The `nvtabular.utils` module has moved to `merlin.core.utils`. Support for importing from `nvtabular.utils` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.core.utils`.
-  warnings.warn(
-/nvtabular/nvtabular/dispatch.py:23: FutureWarning: The `nvtabular.dispatch` module has moved to `merlin.core.dispatch`. Support for importing from `nvtabular.dispatch` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.core.dispatch`.
-  warnings.warn(
-2022-03-29 18:37:38.952859: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
+2022-04-05 16:15:14.772044: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-03-29 18:37:40.079626: I tensorflow/core/common_runtime/gpu/gpu_process_state.cc:214] Using CUDA malloc Async allocator for GPU: 0
-2022-03-29 18:37:40.079789: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2022-04-05 16:15:15.885699: I tensorflow/core/common_runtime/gpu/gpu_process_state.cc:214] Using CUDA malloc Async allocator for GPU: 0
+2022-04-05 16:15:15.885845: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
 </pre></div></div>
 </div>
 </div>
 <div class="section" id="Feature-Engineering-with-NVTabular">
 <h1>Feature Engineering with NVTabular<a class="headerlink" href="#Feature-Engineering-with-NVTabular" title="Permalink to this headline"></a></h1>
-<p>We use the Ali-CCP: Alibaba Click and Conversion Prediction dataset to build our recommender system models. To download the training and test datasets visit Ali-CCP: Alibaba Click and Conversion Prediction at <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. We have curated the raw dataset via this <a href="#id1"><span class="problematic" id="id2">`script &lt;&gt;`__</span></a> and generated the parquet files that we will use in this example.</p>
-<p>We define our input and output paths.</p>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<p>We use the synthetic train and test datasets generated by mimicking the real <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">Ali-CCP: Alibaba Click and Conversion Prediction</a> dataset to build our recommender system ranking models.</p>
+<p>If you would like to use real Ali-CCP dataset instead, you can download the training and test datasets on <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. You can then use <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43">get_aliccp()</a> function to curate the raw csv files and save them as the parquet.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
-train_path = os.path.join(DATA_FOLDER, &#39;train/&#39; &#39;*.parquet&#39;)
-valid_path = os.path.join(DATA_FOLDER, &#39;test/&#39;, &#39;*.parquet&#39;)
-output_path = os.path.join(DATA_FOLDER, &#39;processed/&#39;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.datasets.synthetic import generate_data
+
+DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
+
+train, valid = generate_data(&quot;aliccp-raw&quot;, 1000000, set_sizes=(0.7, 0.3))
+
+# save the datasets as parquet files
+train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, &#39;train&#39;))
+valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, &#39;valid&#39;))
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(None,)
+</pre></div></div>
+</div>
+<p>Let’s define our input and output paths.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train_path = os.path.join(DATA_FOLDER, &quot;train&quot;, &quot;part.0.parquet&quot;)
+valid_path = os.path.join(DATA_FOLDER, &quot;valid&quot;, &quot;part.0.parquet&quot;)
+output_path =os.path.join(DATA_FOLDER, &quot;processed&quot;)
 </pre></div>
 </div>
 </div>
 <p>After we execute <code class="docutils literal notranslate"><span class="pre">fit()</span></code> and <code class="docutils literal notranslate"><span class="pre">transform()</span></code> functions on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, the processed parquet files are saved to <code class="docutils literal notranslate"><span class="pre">output_path</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
@@ -456,18 +473,27 @@ workflow.transform(valid_dataset).to_parquet(output_path=output_path + &quot;/va
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+  warnings.warn(
+</pre></div></div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CPU times: user 17.9 s, sys: 21 s, total: 38.9 s
-Wall time: 43.8 s
+CPU times: user 1.25 s, sys: 736 ms, total: 1.99 s
+Wall time: 2.05 s
 </pre></div></div>
 </div>
 <p>We save NVTabular <code class="docutils literal notranslate"><span class="pre">workflow</span></code> model in the current working directory.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>workflow.save(&#39;workflow&#39;)
@@ -475,6 +501,14 @@ Wall time: 43.8 s
 </div>
 </div>
 <p>Let’s check out our saved workflow model folder.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>!apt-get install tree
+</pre></div>
+</div>
+</div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
@@ -515,32 +549,23 @@ Wall time: 43.8 s
 </div>
 <div class="section" id="Build-and-Train-a-DLRM-model">
 <h1>Build and Train a DLRM model<a class="headerlink" href="#Build-and-Train-a-DLRM-model" title="Permalink to this headline"></a></h1>
-<p>In this example, we build, train and export a Deep Learning Recommendation Model <a class="reference external" href="https://arxiv.org/abs/1906.00091">(DLRM)</a> architecture. To learn more about how to train different deep learning models, how easily transition from one model to another and the seamless integration between data preparation and model training visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/examples/03-Exploring-different-models.ipynb">03-Exploring-different-models.ipynb</a> notebook.</p>
-<p>NVTabular workflow above exports the schema file of our processed dataset. To learn more about the schema object and schema file you can explore <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/examples/02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb">02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.ipynb</a> notebook.</p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<p>In this example, we build, train, and export a Deep Learning Recommendation Model <a class="reference external" href="https://arxiv.org/abs/1906.00091">(DLRM)</a> architecture. To learn more about how to train different deep learning models, how easily transition from one model to another and the seamless integration between data preparation and model training visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/examples/03-Exploring-different-models.ipynb">03-Exploring-different-models.ipynb</a> notebook.</p>
+<p>NVTabular workflow above exports a schema file, schema.pbtxt, of our processed dataset. To learn more about the schema object, schema file and <code class="docutils literal notranslate"><span class="pre">tags</span></code>, you can explore <a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html"><span class="doc">02-Merlin-Models-and-NVTabular-integration.ipynb</span></a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># define train and valid dataset objects
-train = Dataset(os.path.join(output_path, &#39;train&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
-valid = Dataset(os.path.join(output_path, &#39;valid&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
+train = Dataset(os.path.join(output_path, &#39;train&#39;, &#39;*.parquet&#39;))
+valid = Dataset(os.path.join(output_path, &#39;valid&#39;, &#39;*.parquet&#39;))
 
 # define schema object
 schema = train.schema
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
-  warnings.warn(
-</pre></div></div>
-</div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>target_column = schema.select_by_tag(Tags.TARGET).column_names[0]
@@ -549,7 +574,7 @@ target_column
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -558,7 +583,7 @@ target_column
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.DLRMModel(
@@ -572,7 +597,7 @@ target_column
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
@@ -587,7 +612,7 @@ model.fit(train, validation_data=valid, batch_size=16*1024)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-29 18:38:24.343872: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+2022-04-05 16:15:22.930133: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -595,7 +620,7 @@ model.fit(train, validation_data=valid, batch_size=16*1024)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2442/2442 [==============================] - ETA: 0s - auc: 0.6459 - loss: 0.1618 - regularization_loss: 0.0000e+00 - total_loss: 0.1618
+43/43 [==============================] - ETA: 0s - auc: 0.4981 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -603,7 +628,7 @@ model.fit(train, validation_data=valid, batch_size=16*1024)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-29 18:42:42.039826: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_161
+2022-04-05 16:15:31.611688: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_161
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -611,18 +636,18 @@ model.fit(train, validation_data=valid, batch_size=16*1024)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2442/2442 [==============================] - 308s 115ms/step - auc: 0.6459 - loss: 0.1617 - regularization_loss: 0.0000e+00 - total_loss: 0.1617 - val_auc: 0.6039 - val_loss: 0.1204 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1204
-CPU times: user 8min 8s, sys: 1min 33s, total: 9min 42s
-Wall time: 5min 11s
+43/43 [==============================] - 8s 71ms/step - auc: 0.4981 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.5004 - val_loss: 0.6931 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6931
+CPU times: user 10.7 s, sys: 1.12 s, total: 11.8 s
+Wall time: 9.41 s
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7efb4c735d30&gt;
+&lt;keras.callbacks.History at 0x7f6774260880&gt;
 </pre></div></div>
 </div>
 <div class="section" id="Save-model">
@@ -631,7 +656,7 @@ Wall time: 5min 11s
 model to Triton Inference using <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library very easily. The ensemble model guarantees that the same transformation is applied to the raw inputs.</p>
 <p>Let’s save our DLRM model.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.save(&#39;dlrm&#39;)
@@ -643,7 +668,7 @@ model to Triton Inference using <a class="reference external" href="https://gith
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-WARNING:absl:Found untraced functions such as sequential_block_10_layer_call_fn, sequential_block_10_layer_call_and_return_conditional_losses, binary_classification_task_layer_call_fn, binary_classification_task_layer_call_and_return_conditional_losses, click/binary_classification_task/output_layer_layer_call_fn while saving (showing 5 of 48). These functions will not be directly callable after loading.
+WARNING:absl:Found untraced functions such as sequential_block_8_layer_call_fn, sequential_block_8_layer_call_and_return_conditional_losses, binary_classification_task_layer_call_fn, binary_classification_task_layer_call_and_return_conditional_losses, click/binary_classification_task/output_layer_layer_call_fn while saving (showing 5 of 48). These functions will not be directly callable after loading.
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -662,13 +687,14 @@ INFO:tensorflow:Assets written to: dlrm/assets
 INFO:tensorflow:Assets written to: dlrm/assets
 </pre></div></div>
 </div>
-<p>We now have all models, NVTabular wokflow model and DLRM model, exported, it is time to move on to the next step: model deployment with Merlin Systems.</p>
+<p>We have NVTabular wokflow and DLRM model exported, now it is time to move on to the next step: model deployment with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a>.</p>
 </div>
-<div class="section" id="Next-Steps">
-<h2>Next Steps<a class="headerlink" href="#Next-Steps" title="Permalink to this headline"></a></h2>
-<p>We trained and exported our ranking model and NVTabular workflow. In the next step, we will learn how to deploy our trained DLRM model into <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a> with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Sytems</a> library. NVIDIA Triton Inference Server (TIS) simplifies the deployment of AI models at scale in production. TIS provides a cloud and edge inferencing solution optimized for both CPUs and GPUs. It supports a number
-of different machine learning frameworks such as TensorFlow and PyTorch.</p>
-<p>For the next step, visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library and execute <code class="docutils literal notranslate"><span class="pre">Getting-started-with-Merlin-Systems</span></code> notebook to deploy our saved DLRM and NVTabular workflow models as an ensemble to TIS and obtain prediction results for a qiven request.</p>
+<div class="section" id="Deploying-the-model-with-Merlin-Systems">
+<h2>Deploying the model with Merlin Systems<a class="headerlink" href="#Deploying-the-model-with-Merlin-Systems" title="Permalink to this headline"></a></h2>
+<p>We trained and exported our ranking model and NVTabular workflow. In the next step, we will learn how to deploy our trained DLRM model into <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a> with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library. NVIDIA Triton Inference Server (TIS) simplifies the deployment of AI models at scale in production. TIS provides a cloud and edge inferencing solution optimized for both CPUs and GPUs. It supports a
+number of different machine learning frameworks such as TensorFlow and PyTorch.</p>
+<p>For the next step, visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library and execute <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems/blob/main/examples/Getting_Started/Serving-Ranking-Models-With-Merlin-Systems.ipynb">Serving-Ranking-Models-With-Merlin-Systems</a> notebook to deploy our saved DLRM and NVTabular workflow models as an ensemble to TIS and obtain prediction results for a qiven request. In doing so, you need to mount the saved DLRM and NVTabular workflow to the
+inference container following the instructions in the <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems/blob/main/examples/Getting_Started/README.md">README.md</a>.</p>
 </div>
 </div>
 

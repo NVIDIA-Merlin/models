@@ -341,11 +341,11 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.datasets.synthetic import generate_data
 
-ecommerce_data = SyntheticData(&quot;e-commerce&quot;)
+ecommerce_data = generate_data(&quot;e-commerce&quot;, num_rows=1000)
 
-ecommerce_data.dataframe
+ecommerce_data.to_dff()
 </pre></div>
 </div>
 </div>
@@ -685,7 +685,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>retrieval_model = ml.TwoTowerModel(ecommerce_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
 retrieval_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)
-retrieval_model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=2)
+retrieval_model.fit(ecommerce_data, batch_size=50, epochs=2)
 
 print(f&quot;Number of parameters: {retrieval_model.count_params()}&quot;)
 </pre></div>
@@ -722,11 +722,11 @@ Number of parameters: 1113010
     ecommerce_data.schema,
     embedding_dim=64,
     bottom_block=ml.MLPBlock([64]),
-    top_block=ml.MLPBlock([32])
+    top_block=ml.MLPBlock([32]),
 )
 
 ranking_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)
-ranking_model.fit(ecommerce_data.tf_dataloader(batch_size=50), epochs=2)
+ranking_model.fit(ecommerce_data, batch_size=50, epochs=2)
 
 print(f&quot;Number of parameters: {ranking_model.count_params()}&quot;)
 </pre></div>

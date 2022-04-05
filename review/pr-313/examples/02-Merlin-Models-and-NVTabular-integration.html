@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Merlin Models and NVTabular integration example &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <title>From ETL to Training RecSys models - NVTabular and Merlin Models integrated example &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
@@ -44,7 +44,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="README.html">Example Notebooks</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="README.html#inventory">Inventory</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">Merlin Models and NVTabular integration example</a><ul>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#Overview">Overview</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#Merlin">Merlin</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#Integration-of-NVTabular-and-Merlin-Models">Integration of NVTabular and Merlin Models</a></li>
@@ -55,6 +55,9 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="03-Exploring-different-models.html#Importing-Libraries">Importing Libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="03-Exploring-different-models.html#Feature-Engineering-with-NVTabular">Feature Engineering with NVTabular</a></li>
+<li class="toctree-l3"><a class="reference internal" href="03-Exploring-different-models.html#Training-Recommender-Models">Training Recommender Models</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="README.html#running-the-example-notebooks">Running the Example Notebooks</a></li>
@@ -78,7 +81,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="README.html">Merlin Models Example Notebooks</a> &raquo;</li>
-      <li>Merlin Models and NVTabular integration example</li>
+      <li>From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -378,9 +381,9 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p><img alt="acaf175b03fa42d7a7f47ced8476c18f" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
-<div class="section" id="Merlin-Models-and-NVTabular-integration-example">
-<h1>Merlin Models and NVTabular integration example<a class="headerlink" href="#Merlin-Models-and-NVTabular-integration-example" title="Permalink to this headline"></a></h1>
+<p><img alt="1cb0d81ef7a249ce845aff347981cc9e" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<div class="section" id="From-ETL-to-Training-RecSys-models---NVTabular-and-Merlin-Models-integrated-example">
+<h1>From ETL to Training RecSys models - NVTabular and Merlin Models integrated example<a class="headerlink" href="#From-ETL-to-Training-RecSys-models---NVTabular-and-Merlin-Models-integrated-example" title="Permalink to this headline"></a></h1>
 <div class="section" id="Overview">
 <h2>Overview<a class="headerlink" href="#Overview" title="Permalink to this headline"></a></h2>
 <p>In <a class="reference internal" href="01-Getting-started.html"><span class="doc">01-Getting-started.ipynb</span></a>, we provide a getting started example to train a DLRM model on the MovieLens 1M dataset. In this notebook, we will explore how Merlin Models uses the ETL output from <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular/">NVTabular</a>.</p>
@@ -400,7 +403,7 @@ benchmark their new models on example offline datasets.</p>
 </div>
 <div class="section" id="Integration-of-NVTabular-and-Merlin-Models">
 <h2>Integration of NVTabular and Merlin Models<a class="headerlink" href="#Integration-of-NVTabular-and-Merlin-Models" title="Permalink to this headline"></a></h2>
-<p><img alt="3ad83faf49314a34857b43bfbca42608" src="../_images/schema.png" /></p>
+<p><img alt="bf0e062564be484a9d566fa3ab79e86a" src="../_images/schema.png" /></p>
 <p>In this notebook, we focus on an important piece of an ML pipeline: feature engineering and model training.</p>
 <p>If you use NVTabular for feature engineering, NVTabular will output (in addition to the preprocessed parquet files), a <strong>schema</strong> file describing the dataset structures. The schema contains columns statistics, tags and metadata collected by NVTabular. Here are some examples of such metadata computed by some NVTabular preprocessing ops:</p>
 <ul class="simple">
@@ -409,12 +412,11 @@ benchmark their new models on example offline datasets.</p>
 </ul>
 <p>The users can also define their own tags in the preprocessing pipeline to group together related features, for further modeling purposes.</p>
 <p><strong>Let’s take a look on the MovieLens 1M example.</strong></p>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
-import shutil
 import pandas as pd
 import nvtabular as nvt
 from merlin.models.utils.example_utils import workflow_fit_transform
@@ -422,50 +424,50 @@ import merlin.io
 
 import merlin.models.tf as mm
 
-from os import path
 from nvtabular import ops
 from merlin.core.utils import download_file
-from merlin.models.data.movielens import get_movielens
+from merlin.datasets.entertainment import get_movielens
 from merlin.schema.tags import Tags
 </pre></div>
 </div>
 </div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/home/gmoreira/projects/nvidia/nvidia_merlin/NVTabular/nvtabular/graph.py:23: FutureWarning: The `nvtabular.graph` module has moved to `merlin.dag`. Support for importing from `nvtabular.graph` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.dag`.
-  warnings.warn(
-/home/gmoreira/projects/nvidia/nvidia_merlin/NVTabular/nvtabular/io.py:23: FutureWarning: The `nvtabular.io` module has moved to `merlin.io`. Support for importing from `nvtabular.io` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.io`.
-  warnings.warn(
-/home/gmoreira/projects/nvidia/nvidia_merlin/NVTabular/nvtabular/utils.py:23: FutureWarning: The `nvtabular.utils` module has moved to `merlin.core.utils`. Support for importing from `nvtabular.utils` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.core.utils`.
-  warnings.warn(
-/home/gmoreira/projects/nvidia/nvidia_merlin/NVTabular/nvtabular/dispatch.py:23: FutureWarning: The `nvtabular.dispatch` module has moved to `merlin.core.dispatch`. Support for importing from `nvtabular.dispatch` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.core.dispatch`.
-  warnings.warn(
-2022-03-30 16:13:48.806422: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
-To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-03-30 16:13:50.977040: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
-2022-03-30 16:13:50.978170: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 30611 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
-</pre></div></div>
-</div>
 <p>We will use the utils function to download, extract and preprocess the dataset.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train, valid = get_movielens(variant=&quot;ml-1m&quot;)
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+WARNING:tensorflow:From /home/gmoreira/projects/nvidia/nvidia_merlin/models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
+</pre></div></div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
+WARNING:tensorflow:From /home/gmoreira/projects/nvidia/nvidia_merlin/models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
+2022-04-05 14:50:05.704849: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2022-04-05 14:50:05.706716: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:1 with 29778 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
 /home/gmoreira/miniconda3/envs/merlin_22.04_dev/lib/python3.8/site-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
   warnings.warn(
 </pre></div></div>
+</div>
+<p>P.s. You can also choose to generate synthetic data to test your models using <code class="docutils literal notranslate"><span class="pre">generate_data()</span></code>. The <code class="docutils literal notranslate"><span class="pre">input</span></code> argument can be either the name of one of the supported public datasets (e.g. “movielens-1m”, “criteo”) or the schema of a dataset (which is explained next). For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
+<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="s2">&quot;movielens-1m&quot;</span><span class="p">,</span> <span class="n">num_rows</span><span class="o">=</span><span class="mi">1000000</span><span class="p">,</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">))</span>
+</pre></div>
 </div>
 </div>
 <div class="section" id="Understanding-the-Schema-File-and-Structure">
@@ -473,7 +475,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <p>When NVTabular process the data, it will persist the schema as a file to disk. You can access the <code class="docutils literal notranslate"><span class="pre">schema</span></code> from the Merlin <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> class (like below).</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">schema</span></code> can be interpreted as a list of features in the dataset, where each element describes metadata of the feature. It contains the name, some properties (e.g. statistics) depending on the feature type and multiple tags.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema
@@ -481,17 +483,17 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[{&#39;name&#39;: &#39;movieId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ITEM_ID: &#39;item_id&#39;&gt;}, &#39;properties&#39;: {&#39;freq_threshold&#39;: 0.0, &#39;start_index&#39;: 0.0, &#39;cat_path&#39;: &#39;.//categories/unique.movieId.parquet&#39;, &#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 3679.0, &#39;dimension&#39;: 159.0}, &#39;max_size&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 3679}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;userId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.USER_ID: &#39;user_id&#39;&gt;}, &#39;properties&#39;: {&#39;num_buckets&#39;: None, &#39;start_index&#39;: 0.0, &#39;max_size&#39;: 0.0, &#39;freq_threshold&#39;: 0.0, &#39;cat_path&#39;: &#39;.//categories/unique.userId.parquet&#39;, &#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 6041.0, &#39;dimension&#39;: 210.0}, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 6041}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;rating_binary&#39;, &#39;tags&#39;: {&lt;Tags.BINARY_CLASSIFICATION: &#39;binary_classification&#39;&gt;, &lt;Tags.TARGET: &#39;target&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}]
+[{&#39;name&#39;: &#39;userId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.USER_ID: &#39;user_id&#39;&gt;, &lt;Tags.USER: &#39;user&#39;&gt;}, &#39;properties&#39;: {&#39;num_buckets&#39;: None, &#39;cat_path&#39;: &#39;.//categories/unique.userId.parquet&#39;, &#39;start_index&#39;: 0.0, &#39;embedding_sizes&#39;: {&#39;dimension&#39;: 210.0, &#39;cardinality&#39;: 6041.0}, &#39;freq_threshold&#39;: 0.0, &#39;max_size&#39;: 0.0, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 6041}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;movieId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ITEM_ID: &#39;item_id&#39;&gt;}, &#39;properties&#39;: {&#39;max_size&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;start_index&#39;: 0.0, &#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 3681.0, &#39;dimension&#39;: 159.0}, &#39;cat_path&#39;: &#39;.//categories/unique.movieId.parquet&#39;, &#39;freq_threshold&#39;: 0.0, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 3681}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;title&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;}, &#39;properties&#39;: {&#39;start_index&#39;: 0.0, &#39;cat_path&#39;: &#39;.//categories/unique.title.parquet&#39;, &#39;max_size&#39;: 0.0, &#39;freq_threshold&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;embedding_sizes&#39;: {&#39;dimension&#39;: 159.0, &#39;cardinality&#39;: 3681.0}, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 3681}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;genres&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.ITEM: &#39;item&#39;&gt;}, &#39;properties&#39;: {&#39;num_buckets&#39;: None, &#39;freq_threshold&#39;: 0.0, &#39;start_index&#39;: 0.0, &#39;embedding_sizes&#39;: {&#39;dimension&#39;: 16.0, &#39;cardinality&#39;: 19.0}, &#39;cat_path&#39;: &#39;.//categories/unique.genres.parquet&#39;, &#39;max_size&#39;: 0.0, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 19}, &#39;value_count&#39;: {&#39;min&#39;: 1, &#39;max&#39;: 6}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: True, &#39;is_ragged&#39;: True}, {&#39;name&#39;: &#39;gender&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;}, &#39;properties&#39;: {&#39;cat_path&#39;: &#39;.//categories/unique.gender.parquet&#39;, &#39;num_buckets&#39;: None, &#39;freq_threshold&#39;: 0.0, &#39;start_index&#39;: 0.0, &#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 3.0, &#39;dimension&#39;: 16.0}, &#39;max_size&#39;: 0.0, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 3}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;age&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;}, &#39;properties&#39;: {&#39;max_size&#39;: 0.0, &#39;start_index&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;cat_path&#39;: &#39;.//categories/unique.age.parquet&#39;, &#39;freq_threshold&#39;: 0.0, &#39;embedding_sizes&#39;: {&#39;dimension&#39;: 16.0, &#39;cardinality&#39;: 8.0}, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 8}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;occupation&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;}, &#39;properties&#39;: {&#39;cat_path&#39;: &#39;.//categories/unique.occupation.parquet&#39;, &#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 22.0, &#39;dimension&#39;: 16.0}, &#39;freq_threshold&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;start_index&#39;: 0.0, &#39;max_size&#39;: 0.0, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 22}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;zipcode&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;}, &#39;properties&#39;: {&#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 3440.0, &#39;dimension&#39;: 153.0}, &#39;freq_threshold&#39;: 0.0, &#39;start_index&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;max_size&#39;: 0.0, &#39;cat_path&#39;: &#39;.//categories/unique.zipcode.parquet&#39;, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 3440}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;TE_age_rating&#39;, &#39;tags&#39;: {&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.CONTINUOUS: &#39;continuous&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;float64&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;TE_gender_rating&#39;, &#39;tags&#39;: {&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.CONTINUOUS: &#39;continuous&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;float64&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;TE_occupation_rating&#39;, &#39;tags&#39;: {&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.CONTINUOUS: &#39;continuous&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;float64&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;TE_zipcode_rating&#39;, &#39;tags&#39;: {&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.CONTINUOUS: &#39;continuous&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;float64&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;TE_movieId_rating&#39;, &#39;tags&#39;: {&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.CONTINUOUS: &#39;continuous&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;float64&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;TE_userId_rating&#39;, &#39;tags&#39;: {&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.CONTINUOUS: &#39;continuous&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;float64&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;rating_binary&#39;, &#39;tags&#39;: {&lt;Tags.BINARY_CLASSIFICATION: &#39;binary_classification&#39;&gt;, &lt;Tags.TARGET: &#39;target&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;rating&#39;, &#39;tags&#39;: {&lt;Tags.TARGET: &#39;target&#39;&gt;, &lt;Tags.REGRESSION: &#39;regression&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;float32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}]
 </pre></div></div>
 </div>
 <p>We can select the features by <strong>name</strong>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema.select_by_name(&quot;userId&quot;)
@@ -499,18 +501,18 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[{&#39;name&#39;: &#39;userId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.USER_ID: &#39;user_id&#39;&gt;}, &#39;properties&#39;: {&#39;num_buckets&#39;: None, &#39;start_index&#39;: 0.0, &#39;max_size&#39;: 0.0, &#39;freq_threshold&#39;: 0.0, &#39;cat_path&#39;: &#39;.//categories/unique.userId.parquet&#39;, &#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 6041.0, &#39;dimension&#39;: 210.0}, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 6041}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}]
+[{&#39;name&#39;: &#39;userId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.USER_ID: &#39;user_id&#39;&gt;, &lt;Tags.USER: &#39;user&#39;&gt;}, &#39;properties&#39;: {&#39;num_buckets&#39;: None, &#39;cat_path&#39;: &#39;.//categories/unique.userId.parquet&#39;, &#39;start_index&#39;: 0.0, &#39;embedding_sizes&#39;: {&#39;dimension&#39;: 210.0, &#39;cardinality&#39;: 6041.0}, &#39;freq_threshold&#39;: 0.0, &#39;max_size&#39;: 0.0, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 6041}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}]
 </pre></div></div>
 </div>
 <p>We can also select features by <strong>tags</strong>. As we described earlier in the notebook, categorical and continuous features are automatically tagged when using ops like <code class="docutils literal notranslate"><span class="pre">Categorify()</span></code> and <code class="docutils literal notranslate"><span class="pre">Normalize()</span></code>. In our example preprocessing workflow for this dataset, we also set the <code class="docutils literal notranslate"><span class="pre">Tags</span></code> for the the <code class="docutils literal notranslate"><span class="pre">user</span></code> and <code class="docutils literal notranslate"><span class="pre">item</span></code> features, and also for the <code class="docutils literal notranslate"><span class="pre">user_id</span></code> and <code class="docutils literal notranslate"><span class="pre">item_id</span></code>, which are important for collaborative filtering architectures.</p>
 <p>Alternatively, we can select them by <code class="docutils literal notranslate"><span class="pre">Tag</span></code>. We add <code class="docutils literal notranslate"><span class="pre">column_names</span></code> to the object to receive only names without all the additional metadata.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All categorical features
@@ -519,16 +521,23 @@ train.schema.select_by_tag(Tags.CATEGORICAL).column_names
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[&#39;movieId&#39;, &#39;userId&#39;]
+[&#39;userId&#39;,
+ &#39;movieId&#39;,
+ &#39;title&#39;,
+ &#39;genres&#39;,
+ &#39;gender&#39;,
+ &#39;age&#39;,
+ &#39;occupation&#39;,
+ &#39;zipcode&#39;]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All continuous features
@@ -537,16 +546,21 @@ train.schema.select_by_tag(Tags.CONTINUOUS).column_names
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[]
+[&#39;TE_age_rating&#39;,
+ &#39;TE_gender_rating&#39;,
+ &#39;TE_occupation_rating&#39;,
+ &#39;TE_zipcode_rating&#39;,
+ &#39;TE_movieId_rating&#39;,
+ &#39;TE_userId_rating&#39;]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All targets
@@ -555,16 +569,16 @@ train.schema.select_by_tag(Tags.TARGET).column_names
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[&#39;rating_binary&#39;]
+[&#39;rating_binary&#39;, &#39;rating&#39;]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All features related to the item
@@ -573,16 +587,16 @@ train.schema.select_by_tag(Tags.ITEM).column_names
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[&#39;movieId&#39;]
+[&#39;movieId&#39;, &#39;genres&#39;, &#39;TE_movieId_rating&#39;]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># The item id feature name
@@ -591,7 +605,7 @@ train.schema.select_by_tag(Tags.ITEM_ID).column_names
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -600,7 +614,7 @@ train.schema.select_by_tag(Tags.ITEM_ID).column_names
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All features related to the user
@@ -609,16 +623,21 @@ train.schema.select_by_tag(Tags.USER).column_names
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[&#39;userId&#39;]
+[&#39;userId&#39;,
+ &#39;TE_age_rating&#39;,
+ &#39;TE_gender_rating&#39;,
+ &#39;TE_occupation_rating&#39;,
+ &#39;TE_zipcode_rating&#39;,
+ &#39;TE_userId_rating&#39;]
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># The user id feature name
@@ -627,7 +646,7 @@ train.schema.select_by_tag(Tags.USER_ID).column_names
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -637,7 +656,7 @@ train.schema.select_by_tag(Tags.USER_ID).column_names
 </div>
 <p>We can also query all properties of a feature. Here we see that the cardinality (number of unique values) of the <code class="docutils literal notranslate"><span class="pre">movieId</span></code> feature is <code class="docutils literal notranslate"><span class="pre">3682</span></code>, which is an important information to build the corresponding embedding table.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema.select_by_tag(Tags.ITEM_ID)
@@ -645,12 +664,12 @@ train.schema.select_by_tag(Tags.USER_ID).column_names
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[{&#39;name&#39;: &#39;movieId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ITEM_ID: &#39;item_id&#39;&gt;}, &#39;properties&#39;: {&#39;freq_threshold&#39;: 0.0, &#39;start_index&#39;: 0.0, &#39;cat_path&#39;: &#39;.//categories/unique.movieId.parquet&#39;, &#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 3679.0, &#39;dimension&#39;: 159.0}, &#39;max_size&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 3679}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}]
+[{&#39;name&#39;: &#39;movieId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ITEM_ID: &#39;item_id&#39;&gt;}, &#39;properties&#39;: {&#39;max_size&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;start_index&#39;: 0.0, &#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 3681.0, &#39;dimension&#39;: 159.0}, &#39;cat_path&#39;: &#39;.//categories/unique.movieId.parquet&#39;, &#39;freq_threshold&#39;: 0.0, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 3681}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}]
 </pre></div></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">schema</span></code> is a great interface between feature engineering and modeling libraries, describing the available features and their metadata/statistics. It makes it easy to build generic models definition, as the features names and types are automatically inferred from schema and represented properly in the neural networks architectures. That means that when the dataset changes (e.g. features are added or removed), you don’t have to change the modeling code to leverage the new dataset!</p>
@@ -664,7 +683,7 @@ train.schema.select_by_tag(Tags.USER_ID).column_names
 <h3>Download and prepare the data<a class="headerlink" href="#Download-and-prepare-the-data" title="Permalink to this headline"></a></h3>
 <p>We will download the dataset, if it is not already downloaded and cached locally.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>input_path = os.environ.get(
@@ -684,13 +703,13 @@ download_file(
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-downloading ml-1m.zip: 5.93MB [00:05, 1.07MB/s]
-unzipping files: 100%|█████████████████████████| 5/5 [00:00&lt;00:00, 43.21files/s]
+downloading ml-1m.zip: 5.93MB [00:01, 3.25MB/s]
+unzipping files: 100%|█████████████████████████| 5/5 [00:00&lt;00:00, 41.71files/s]
 </pre></div></div>
 </div>
 <p>We preprocess the dataset and split it into training and validation.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ratings = pd.read_csv(
@@ -729,7 +748,7 @@ valid.to_parquet(os.path.join(input_path, name, &quot;valid.parquet&quot;))
 <p>We need to perform following steps: - Categorify userId and movieId, that the values are contiguous integers from 0 … |C| - Transform the rating column ([1,5] interval) to a binary target by using as threshold the value <code class="docutils literal notranslate"><span class="pre">3</span></code> - Add Tags with <code class="docutils literal notranslate"><span class="pre">ops.AddMetadata</span></code> for <code class="docutils literal notranslate"><span class="pre">item_id</span></code>, <code class="docutils literal notranslate"><span class="pre">user_id</span></code>, <code class="docutils literal notranslate"><span class="pre">item</span></code>, <code class="docutils literal notranslate"><span class="pre">user</span></code> and <code class="docutils literal notranslate"><span class="pre">target</span></code>.</p>
 <p>Categorify will transform categorical columns into contiguous integers (<code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">...,</span> <span class="pre">|C|</span></code>) for embedding layers. It collects the cardinality of the embedding table and tags it as categorical.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>cat_features = [&quot;userId&quot;, &quot;movieId&quot;] &gt;&gt; ops.Categorify(dtype=&quot;int32&quot;)
@@ -738,7 +757,7 @@ valid.to_parquet(os.path.join(input_path, name, &quot;valid.parquet&quot;))
 </div>
 <p>The tags for <code class="docutils literal notranslate"><span class="pre">user</span></code>, <code class="docutils literal notranslate"><span class="pre">userId</span></code>, <code class="docutils literal notranslate"><span class="pre">item</span></code> and <code class="docutils literal notranslate"><span class="pre">itemId</span></code> cannot be inferred from the dataset. Therefore, we need to provide them manually during the NVTabular workflow. Actually, the <code class="docutils literal notranslate"><span class="pre">DLRMModel</span></code> does not differentiate between <code class="docutils literal notranslate"><span class="pre">user</span></code> and <code class="docutils literal notranslate"><span class="pre">item</span></code> features. But other architectures, such as the <code class="docutils literal notranslate"><span class="pre">TwoTowerModel</span></code> depends on the <code class="docutils literal notranslate"><span class="pre">user</span></code> and <code class="docutils literal notranslate"><span class="pre">item</span></code> features distinction. We will show how to tag features manually in a NVTabular workflow below.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>feats_itemId = cat_features[&quot;movieId&quot;] &gt;&gt; ops.TagAsItemID()
@@ -755,13 +774,13 @@ output = feats_itemId + feats_userId + feats_target
 </div>
 <p>We fit the workflow to our train set and apply to the valid and test sets.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
 train_path = os.path.join(input_path, name, &quot;train.parquet&quot;)
 valid_path = os.path.join(input_path, name, &quot;valid.parquet&quot;)
-output_path = os.path.join(input_path, name+&quot;_02&quot;)
+output_path = os.path.join(input_path, name + &quot;_integration&quot;)
 
 workflow_fit_transform(output, train_path, valid_path, output_path)
 </pre></div>
@@ -772,8 +791,8 @@ workflow_fit_transform(output, train_path, valid_path, output_path)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CPU times: user 746 ms, sys: 109 ms, total: 855 ms
-Wall time: 904 ms
+CPU times: user 646 ms, sys: 122 ms, total: 769 ms
+Wall time: 776 ms
 </pre></div></div>
 </div>
 </div>
@@ -781,7 +800,7 @@ Wall time: 904 ms
 <h3>Training a Recommender Model with Merlin Models<a class="headerlink" href="#Training-a-Recommender-Model-with-Merlin-Models" title="Permalink to this headline"></a></h3>
 <p>We can load the data as a Merlin Dataset object. The Dataset expect the schema as Protobuf text format (<code class="docutils literal notranslate"><span class="pre">.pbtxt</span></code>) file in the train/valid folder, which NVTabular automatically generates.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = merlin.io.Dataset(
@@ -795,7 +814,7 @@ valid = merlin.io.Dataset(
 </div>
 <p>We can see that the <code class="docutils literal notranslate"><span class="pre">schema</span></code> object contains the features tags and the cardinalities of the categorical features. As we prepared only a minimal example, our schema has only tree features <code class="docutils literal notranslate"><span class="pre">movieId</span></code>, <code class="docutils literal notranslate"><span class="pre">userId</span></code> and <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code>.|</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema.column_names
@@ -803,7 +822,7 @@ valid = merlin.io.Dataset(
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -812,7 +831,7 @@ valid = merlin.io.Dataset(
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema
@@ -820,17 +839,17 @@ valid = merlin.io.Dataset(
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-[{&#39;name&#39;: &#39;movieId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ITEM_ID: &#39;item_id&#39;&gt;}, &#39;properties&#39;: {&#39;embedding_sizes&#39;: {&#39;dimension&#39;: 159.0, &#39;cardinality&#39;: 3679.0}, &#39;num_buckets&#39;: None, &#39;cat_path&#39;: &#39;.//categories/unique.movieId.parquet&#39;, &#39;start_index&#39;: 0.0, &#39;freq_threshold&#39;: 0.0, &#39;max_size&#39;: 0.0, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 3679}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;userId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.USER_ID: &#39;user_id&#39;&gt;}, &#39;properties&#39;: {&#39;freq_threshold&#39;: 0.0, &#39;start_index&#39;: 0.0, &#39;embedding_sizes&#39;: {&#39;dimension&#39;: 210.0, &#39;cardinality&#39;: 6041.0}, &#39;max_size&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;cat_path&#39;: &#39;.//categories/unique.userId.parquet&#39;, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 6041}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;rating_binary&#39;, &#39;tags&#39;: {&lt;Tags.BINARY_CLASSIFICATION: &#39;binary_classification&#39;&gt;, &lt;Tags.TARGET: &#39;target&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}]
+[{&#39;name&#39;: &#39;movieId&#39;, &#39;tags&#39;: {&lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ITEM_ID: &#39;item_id&#39;&gt;}, &#39;properties&#39;: {&#39;freq_threshold&#39;: 0.0, &#39;embedding_sizes&#39;: {&#39;cardinality&#39;: 3679.0, &#39;dimension&#39;: 159.0}, &#39;num_buckets&#39;: None, &#39;cat_path&#39;: &#39;.//categories/unique.movieId.parquet&#39;, &#39;max_size&#39;: 0.0, &#39;start_index&#39;: 0.0, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 3679}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;userId&#39;, &#39;tags&#39;: {&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.CATEGORICAL: &#39;categorical&#39;&gt;, &lt;Tags.USER_ID: &#39;user_id&#39;&gt;}, &#39;properties&#39;: {&#39;embedding_sizes&#39;: {&#39;dimension&#39;: 210.0, &#39;cardinality&#39;: 6041.0}, &#39;freq_threshold&#39;: 0.0, &#39;start_index&#39;: 0.0, &#39;cat_path&#39;: &#39;.//categories/unique.userId.parquet&#39;, &#39;max_size&#39;: 0.0, &#39;num_buckets&#39;: None, &#39;domain&#39;: {&#39;min&#39;: 0, &#39;max&#39;: 6041}}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}, {&#39;name&#39;: &#39;rating_binary&#39;, &#39;tags&#39;: {&lt;Tags.BINARY_CLASSIFICATION: &#39;binary_classification&#39;&gt;, &lt;Tags.TARGET: &#39;target&#39;&gt;}, &#39;properties&#39;: {}, &#39;dtype&#39;: dtype(&#39;int32&#39;), &#39;is_list&#39;: False, &#39;is_ragged&#39;: False}]
 </pre></div></div>
 </div>
 <p>Here we train our model.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.DLRMModel(
@@ -853,7 +872,7 @@ model.fit(train, batch_size=1024)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-30 16:14:02.934419: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+2022-04-05 14:50:13.763581: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -861,21 +880,21 @@ model.fit(train, batch_size=1024)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-782/782 [==============================] - 10s 10ms/step - rating_binary/binary_classification_task/precision: 0.7123 - rating_binary/binary_classification_task/recall: 0.8237 - rating_binary/binary_classification_task/binary_accuracy: 0.7073 - rating_binary/binary_classification_task/auc: 0.7696 - loss: 0.5618 - regularization_loss: 0.0000e+00 - total_loss: 0.5618
+782/782 [==============================] - 10s 10ms/step - rating_binary/binary_classification_task/precision: 0.7105 - rating_binary/binary_classification_task/recall: 0.8292 - rating_binary/binary_classification_task/binary_accuracy: 0.7076 - rating_binary/binary_classification_task/auc: 0.7694 - loss: 0.5621 - regularization_loss: 0.0000e+00 - total_loss: 0.5621
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7f5c25972f70&gt;
+&lt;keras.callbacks.History at 0x7f9c6450d610&gt;
 </pre></div></div>
 </div>
 <p>Let’s run the evaluation on validations set. We use by default typical binary classification metrics – Precision, Recall, Accuracy and AUC. But you also can provide your own metrics list by setting <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask(...,</span> <span class="pre">metrics=[])</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>metrics = model.evaluate(valid, batch_size=1024, return_dict=True)
@@ -888,7 +907,7 @@ metrics
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-  1/196 [..............................] - ETA: 2:25 - rating_binary/binary_classification_task/precision: 0.7256 - rating_binary/binary_classification_task/recall: 0.8053 - rating_binary/binary_classification_task/binary_accuracy: 0.7070 - rating_binary/binary_classification_task/auc: 0.7758 - loss: 0.5479 - regularization_loss: 0.0000e+00 - total_loss: 0.5479
+  1/196 [..............................] - ETA: 2:26 - rating_binary/binary_classification_task/precision: 0.7254 - rating_binary/binary_classification_task/recall: 0.8220 - rating_binary/binary_classification_task/binary_accuracy: 0.7129 - rating_binary/binary_classification_task/auc: 0.7765 - loss: 0.5487 - regularization_loss: 0.0000e+00 - total_loss: 0.5487
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -896,7 +915,7 @@ metrics
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-03-30 16:14:13.809903: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_101
+2022-04-05 14:50:25.244836: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_101
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -904,22 +923,22 @@ metrics
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-196/196 [==============================] - 2s 8ms/step - rating_binary/binary_classification_task/precision: 0.7301 - rating_binary/binary_classification_task/recall: 0.8287 - rating_binary/binary_classification_task/binary_accuracy: 0.7249 - rating_binary/binary_classification_task/auc: 0.7889 - loss: 0.5419 - regularization_loss: 0.0000e+00 - total_loss: 0.5419
+196/196 [==============================] - 2s 8ms/step - rating_binary/binary_classification_task/precision: 0.7283 - rating_binary/binary_classification_task/recall: 0.8330 - rating_binary/binary_classification_task/binary_accuracy: 0.7249 - rating_binary/binary_classification_task/auc: 0.7890 - loss: 0.5418 - regularization_loss: 0.0000e+00 - total_loss: 0.5418
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;rating_binary/binary_classification_task/precision&#39;: 0.7300803065299988,
- &#39;rating_binary/binary_classification_task/recall&#39;: 0.828685998916626,
- &#39;rating_binary/binary_classification_task/binary_accuracy&#39;: 0.7249264121055603,
- &#39;rating_binary/binary_classification_task/auc&#39;: 0.7889100909233093,
- &#39;loss&#39;: 0.507973313331604,
+{&#39;rating_binary/binary_classification_task/precision&#39;: 0.7282863855361938,
+ &#39;rating_binary/binary_classification_task/recall&#39;: 0.8329658508300781,
+ &#39;rating_binary/binary_classification_task/binary_accuracy&#39;: 0.7248613834381104,
+ &#39;rating_binary/binary_classification_task/auc&#39;: 0.7890403270721436,
+ &#39;loss&#39;: 0.5056475400924683,
  &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.507973313331604}
+ &#39;total_loss&#39;: 0.5056475400924683}
 </pre></div></div>
 </div>
 </div>
