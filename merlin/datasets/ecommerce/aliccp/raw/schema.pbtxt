@@ -276,8 +276,6 @@ feature {
   name: "click"
   type: INT
   annotation {
-    tag: "binary_classification"
-    tag: "target"
     extra_metadata {
       type_url: "type.googleapis.com/google.protobuf.Struct"
       value: "\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@"
@@ -288,8 +286,6 @@ feature {
   name: "conversion"
   type: INT
   annotation {
-    tag: "binary_classification"
-    tag: "target"
     extra_metadata {
       type_url: "type.googleapis.com/google.protobuf.Struct"
       value: "\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\017\n\tis_ragged\022\002 \000\n\r\n\007is_list\022\002 \000"
