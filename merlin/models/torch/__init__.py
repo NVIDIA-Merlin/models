@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from merlin.models import data
-
 # Block related imports
 from merlin.models.torch.block.base import (
     Block,
