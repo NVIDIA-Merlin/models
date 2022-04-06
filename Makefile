@@ -11,18 +11,18 @@ lint:
 	mypy transformers4rec --install-types --non-interactive --no-strict-optional --ignore-missing-imports
 
 tests:
-	coverage run -m pytest || exit 1
+	coverage run -m pytest -rsx || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
 
 tests-tf:
-	coverage run -m pytest tests --ignore "tests/torch" || exit 1
+	coverage run -m pytest -rsx tests --ignore "tests/torch" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
 tests-torch:
-	coverage run -m pytest tests --ignore "tests/tf" || exit 1
+	coverage run -m pytest -rsx tests --ignore "tests/tf" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
