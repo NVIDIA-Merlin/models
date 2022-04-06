@@ -588,7 +588,7 @@ class RetrievalModel(Model):
         import merlin.models.tf as ml
 
         self.check_for_retrieval_task()
-        if not self.evaluation_candidates:
+        if self.evaluation_candidates is None:
             raise ValueError(
                 "You need to specify the set of negatives to use for evaluation "
                 "via `set_retrieval_candidates_for_evaluation` method"
