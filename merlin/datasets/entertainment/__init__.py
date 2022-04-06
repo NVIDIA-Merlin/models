@@ -18,11 +18,13 @@ from merlin.datasets.entertainment.movielens.dataset import (
     default_ml25m_transformation,
     default_ml100k_transformation,
     get_movielens,
+    get_movielens_raw,
     transform_movielens,
 )
 
 __all__ = [
     "get_movielens",
+    "get_movielens_raw",
     "transform_movielens",
     "default_ml100k_transformation",
     "default_ml1m_transformation",

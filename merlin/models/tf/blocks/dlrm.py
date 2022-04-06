@@ -16,7 +16,7 @@
 
 from typing import Optional
 
-from merlin.models.tf.blocks.core.base import Block, Debug
+from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.combinators import Filter, ParallelBlock, SequentialBlock
 from merlin.models.tf.blocks.interaction import DotProductInteraction
 from merlin.models.tf.features.continuous import ContinuousFeatures
@@ -32,6 +32,8 @@ def DLRMBlock(
 ) -> SequentialBlock:
     """Builds the DLRM architecture, as proposed in the following
     `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.
+
+    ![DLRM](./images/DLRM.png)
 
     References
     ----------
@@ -101,8 +103,6 @@ def DLRMBlock(
         interaction_inputs = ParallelBlock({"embeddings": embeddings, "bottom_block": bottom_block})
     else:
         interaction_inputs = embeddings  # type: ignore
-
-    interaction_inputs = interaction_inputs.connect(Debug())
 
     if not top_block:
         return interaction_inputs.connect(DotProductInteractionBlock())

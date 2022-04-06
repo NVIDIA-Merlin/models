@@ -39,6 +39,35 @@ def workflow_fit_transform(
         workflow.save(str(_name))
 
 
+def plot_keras_history(
+    history, keys: Optional[Union[str, List[str]]] = None, add_loss: bool = True
+):
+    import matplotlib.pyplot as plt
+
+    if not keys:
+        keys = list(history.history.keys())
+
+    has_val = False
+    if any(k.startswith("val_") for k in keys):
+        has_val = True
+        keys = [k for k in keys if not k.startswith("val_")]
+        if not add_loss:
+            keys = [k for k in keys if "loss" not in k]
+
+    def _plot(key):
+        plt.plot(history.history[key])
+        if has_val:
+            plt.plot(history.history[f"val_{key}"])
+        plt.title(key)
+        plt.ylabel(key)
+        plt.xlabel("epoch")
+        plt.legend(["train", "valid"] if has_val else ["train"], loc="upper left")
+        plt.show()
+
+    for key in keys:
+        _plot(key)
+
+
 def save_results(model_name, model):
     """a funct to save validation accuracy results in a text file"""
     with open("results.txt", "a") as f:

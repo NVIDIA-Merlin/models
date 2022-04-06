@@ -17,10 +17,6 @@ from merlin.models.utils.nvt_utils import require_nvt
 
 df_lib = get_lib()
 
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 try:
     import nvtabular as nvt
 
@@ -41,7 +37,7 @@ def get_movielens(
 
     This function will return a tuple of train/test merlin.io.Dataset objects for the
     movielens dataset. This will download the movielens dataset locally if needed,
-    and run a ETL pipeline with NVTabular to make this dataset ready for use with
+    and run an ETL pipeline with NVTabular to make this dataset ready for use with
     merlin-models.
 
     Parameters
@@ -59,15 +55,7 @@ def get_movielens(
     """
     require_nvt()
 
-    if path is None:
-        p = Path(BASE_PATH) / "movielens"
-    else:
-        p = Path(path)
-
-    raw_path = p / variant
-    if not raw_path.exists():
-        download_movielens(p, variant)
-
+    raw_path = get_movielens_raw(path, variant)
     nvt_path = raw_path / transformed_name
     train_path, valid_path = nvt_path / "train", nvt_path / "valid"
     nvt_path_exists = train_path.exists() and valid_path.exists()
@@ -80,6 +68,38 @@ def get_movielens(
     valid = merlin.io.Dataset(str(valid_path), engine="parquet")
 
     return train, valid
+
+
+def get_movielens_raw(
+    path: Union[str, Path] = None, variant: str = "ml-25m", overwrite: bool = False
+) -> Path:
+    """Gets the raw movielens dataset for use with NVTabular
+
+    ----------
+    path : str
+        The path to download the files locally to. If not set will default to
+        the 'merlin-models-data` directory in your home folder
+    variant : "ml-25m" or "ml-100k"
+        Which variant of the movielens dataset to use. Must be either "ml-25m" or "ml-100k"
+    overwrite : bool
+        Whether to overwrite the existing dataset if it exists
+
+    Returns
+    -------
+    Path
+        path to the raw movielens dataset
+    """
+    if path is None:
+        p = Path(BASE_PATH) / "movielens"
+    else:
+        p = Path(path)
+
+    raw_path = p / variant
+    if not raw_path.exists() or overwrite:
+        download_movielens(p, variant)
+        prepare_movielens(p, variant)
+
+    return raw_path
 
 
 def download_movielens(path: Union[str, Path], variant: str = "ml-25m"):
@@ -97,6 +117,142 @@ def download_movielens(path: Union[str, Path], variant: str = "ml-25m"):
         f"http://files.grouplens.org/datasets/movielens/{variant}.zip",
         os.path.join(path, f"{variant}.zip"),
     )
+
+
+def prepare_movielens(raw_data_path: Union[str, Path], variant: str = "ml-25m"):
+    if variant == "ml-100k":
+        ratings = pd.read_csv(
+            os.path.join(raw_data_path, "u.data"),
+            names=["userId", "movieId", "rating", "timestamp"],
+            sep="\t",
+        )
+        user_features = pd.read_csv(
+            os.path.join(raw_data_path, "u.user"),
+            names=["userId", "age", "gender", "occupation", "zip_code"],
+            sep="|",
+        )
+        user_features.to_parquet(os.path.join(raw_data_path, "user_features.parquet"))
+        cols = [
+            "movieId",
+            "title",
+            "release_date",
+            "video_release_date",
+            "imdb_URL",
+            "unknown",
+            "Action",
+            "Adventure",
+            "Animation",
+            "Childrens",  # noqa
+            "Comedy",
+            "Crime",
+            "Documentary",
+            "Drama",
+            "Fantasy",
+            "Film_Noir",
+            "Horror",
+            "Musical",
+            "Mystery",
+            "Romance",
+            "Sci-Fi",
+            "Thriller",
+            "War",
+            "Western",
+        ]
+
+        genres_ = [
+            "unknown",
+            "Action",
+            "Adventure",
+            "Animation",
+            "Childrens",
+            "Comedy",
+            "Crime",
+            "Documentary",
+            "Drama",
+            "Fantasy",
+            "Film_Noir",
+            "Horror",
+            "Musical",
+            "Mystery",
+            "Romance",
+            "Sci-Fi",
+            "Thriller",
+            "War",
+            "Western",
+        ]
+
+        movies = pd.read_csv(
+            os.path.join(raw_data_path, "u.item"), names=cols, sep="|", encoding="latin1"
+        )
+        for col in genres_:
+            movies[col] = movies[col].replace(1, col)
+            movies[col] = movies[col].replace(0, np.nan)
+        s = movies[genres_]
+        s.notnull()
+        movies["genres"] = s.notnull().dot(s.columns + ",").str[:-1]
+        movies_converted = movies[
+            ["movieId", "title", "release_date", "video_release_date", "genres", "imdb_URL"]
+        ]
+        movies_converted.to_parquet(os.path.join(raw_data_path, "movies_converted.parquet"))
+        train = pd.read_csv(
+            os.path.join(raw_data_path, "ua.base"),
+            names=["userId", "movieId", "rating", "timestamp"],
+            sep="\t",
+        )
+        valid = pd.read_csv(
+            os.path.join(raw_data_path, "ua.test"),
+            names=["userId", "movieId", "rating", "timestamp"],
+            sep="\t",
+        )
+        train = train.merge(user_features, on="userId", how="left")
+        train = train.merge(movies_converted, on="movieId", how="left")
+        valid = valid.merge(user_features, on="userId", how="left")
+        valid = valid.merge(movies_converted, on="movieId", how="left")
+
+        train.to_parquet(os.path.join(raw_data_path, "train.parquet"))
+        valid.to_parquet(os.path.join(raw_data_path, "valid.parquet"))
+    elif variant == "ml-1m":
+        users = pd.read_csv(
+            os.path.join(raw_data_path, "users.dat"),
+            sep="::",
+            names=["userId", "gender", "age", "occupation", "zipcode"],
+        )
+        ratings = pd.read_csv(
+            os.path.join(raw_data_path, "ratings.dat"),
+            sep="::",
+            names=["userId", "movieId", "rating", "timestamp"],
+        )
+        movies = pd.read_csv(
+            os.path.join(raw_data_path, "movies.dat"),
+            names=["movieId", "title", "genres"],
+            sep="::",
+            encoding="latin1",
+        )
+        movies["genres"] = movies["genres"].str.split("|")
+        movies.to_parquet(os.path.join(raw_data_path, "movies_converted.parquet"))
+        users.to_parquet(os.path.join(raw_data_path, "users_converted.parquet"))
+        ratings = ratings.sample(len(ratings), replace=False)
+        # split the train_df as training and validation data sets.
+        num_valid = int(len(ratings) * 0.2)
+        train = ratings[:-num_valid]
+        valid = ratings[-num_valid:]
+        train.to_parquet(os.path.join(raw_data_path, "train.parquet"))
+        valid.to_parquet(os.path.join(raw_data_path, "valid.parquet"))
+    elif variant == "ml-25m":
+        movies = df_lib.read_csv(os.path.join(raw_data_path, "movies.csv"))
+        movies["genres"] = movies["genres"].str.split("|")
+        movies.to_parquet(os.path.join(raw_data_path, "movies_converted.parquet"))
+        ratings = df_lib.read_csv(os.path.join(raw_data_path, "ratings.csv"))
+        # shuffle the dataset
+        ratings = ratings.sample(len(ratings), replace=False)
+        # split the train_df as training and validation data sets.
+        num_valid = int(len(ratings) * 0.2)
+        train = ratings[:-num_valid]
+        valid = ratings[-num_valid:]
+        train.to_parquet(os.path.join(raw_data_path, "train.parquet"))
+        valid.to_parquet(os.path.join(raw_data_path, "valid.parquet"))
+    else:
+        raise ValueError("variant must be one of 'ml-25m', 'ml-1m' or 'ml-100k'")
 
 
 def transform_movielens(
@@ -148,20 +304,7 @@ def transform_movielens(
 def default_ml25m_transformation(raw_data_path: str, **kwargs):
     from nvtabular import ops
 
-    movies = df_lib.read_csv(os.path.join(raw_data_path, "movies.csv"))
-    movies["genres"] = movies["genres"].str.split("|")
-    movies.to_parquet(os.path.join(raw_data_path, "movies_converted.parquet"))
-    ratings = df_lib.read_csv(os.path.join(raw_data_path, "ratings.csv"))
-    # shuffle the dataset
-    ratings = ratings.sample(len(ratings), replace=False)
-    # split the train_df as training and validation data sets.
-    num_valid = int(len(ratings) * 0.2)
-    train = ratings[:-num_valid]
-    valid = ratings[-num_valid:]
-    train.to_parquet(os.path.join(raw_data_path, "train.parquet"))
-    valid.to_parquet(os.path.join(raw_data_path, "valid.parquet"))
-
-    logger.info("starting ETL..")
+    logging.info("starting ETL..")
 
     # NVTabular pipeline
     movies = df_lib.read_parquet(os.path.join(raw_data_path, "movies_converted.parquet"))
@@ -213,34 +356,7 @@ def default_ml25m_transformation(raw_data_path: str, **kwargs):
 def default_ml1m_transformation(raw_data_path: str, **kwargs):
     from nvtabular import ops
 
-    users = pd.read_csv(
-        os.path.join(raw_data_path, "users.dat"),
-        sep="::",
-        names=["userId", "gender", "age", "occupation", "zipcode"],
-    )
-    ratings = pd.read_csv(
-        os.path.join(raw_data_path, "ratings.dat"),
-        sep="::",
-        names=["userId", "movieId", "rating", "timestamp"],
-    )
-    movies = pd.read_csv(
-        os.path.join(raw_data_path, "movies.dat"),
-        names=["movieId", "title", "genres"],
-        sep="::",
-        encoding="latin1",
-    )
-    movies["genres"] = movies["genres"].str.split("|")
-    movies.to_parquet(os.path.join(raw_data_path, "movies_converted.parquet"))
-    users.to_parquet(os.path.join(raw_data_path, "users_converted.parquet"))
-    ratings = ratings.sample(len(ratings), replace=False)
-    # split the train_df as training and validation data sets.
-    num_valid = int(len(ratings) * 0.2)
-    train = ratings[:-num_valid]
-    valid = ratings[-num_valid:]
-    train.to_parquet(os.path.join(raw_data_path, "train.parquet"))
-    valid.to_parquet(os.path.join(raw_data_path, "valid.parquet"))
-
-    logger.info("starting ETL..")
+    logging.info("starting ETL..")
 
     movies = df_lib.read_parquet(os.path.join(raw_data_path, "movies_converted.parquet"))
     users = df_lib.read_parquet(os.path.join(raw_data_path, "users_converted.parquet"))
@@ -313,97 +429,7 @@ def default_ml1m_transformation(raw_data_path: str, **kwargs):
 def default_ml100k_transformation(raw_data_path: str, **kwargs):
     from nvtabular import ops
 
-    logger.info("starting ETL..")
-    # ratings = pd.read_csv(
-    #     os.path.join(raw_data_path, "u.data"),
-    #     names=["userId", "movieId", "rating", "timestamp"],
-    #     sep="\t",
-    # )
-    user_features = pd.read_csv(
-        os.path.join(raw_data_path, "u.user"),
-        names=["userId", "age", "gender", "occupation", "zip_code"],
-        sep="|",
-    )
-    user_features.to_parquet(os.path.join(raw_data_path, "user_features.parquet"))
-    cols = [
-        "movieId",
-        "title",
-        "release_date",
-        "video_release_date",
-        "imdb_URL",
-        "unknown",
-        "Action",
-        "Adventure",
-        "Animation",
-        "Childrens",  # noqa
-        "Comedy",
-        "Crime",
-        "Documentary",
-        "Drama",
-        "Fantasy",
-        "Film_Noir",
-        "Horror",
-        "Musical",
-        "Mystery",
-        "Romance",
-        "Sci-Fi",
-        "Thriller",
-        "War",
-        "Western",
-    ]
-
-    genres_ = [
-        "unknown",
-        "Action",
-        "Adventure",
-        "Animation",
-        "Childrens",
-        "Comedy",
-        "Crime",
-        "Documentary",
-        "Drama",
-        "Fantasy",
-        "Film_Noir",
-        "Horror",
-        "Musical",
-        "Mystery",
-        "Romance",
-        "Sci-Fi",
-        "Thriller",
-        "War",
-        "Western",
-    ]
-
-    movies = pd.read_csv(
-        os.path.join(raw_data_path, "u.item"), names=cols, sep="|", encoding="latin1"
-    )
-    for col in genres_:
-        movies[col] = movies[col].replace(1, col)
-        movies[col] = movies[col].replace(0, np.nan)
-    s = movies[genres_]
-    s.notnull()
-    movies["genres"] = s.notnull().dot(s.columns + ",").str[:-1]
-    movies_converted = movies[
-        ["movieId", "title", "release_date", "video_release_date", "genres", "imdb_URL"]
-    ]
-    movies_converted.to_parquet(os.path.join(raw_data_path, "movies_converted.parquet"))
-    train = pd.read_csv(
-        os.path.join(raw_data_path, "ua.base"),
-        names=["userId", "movieId", "rating", "timestamp"],
-        sep="\t",
-    )
-    valid = pd.read_csv(
-        os.path.join(raw_data_path, "ua.test"),
-        names=["userId", "movieId", "rating", "timestamp"],
-        sep="\t",
-    )
-    train = train.merge(user_features, on="userId", how="left")
-    train = train.merge(movies_converted, on="movieId", how="left")
-    valid = valid.merge(user_features, on="userId", how="left")
-    valid = valid.merge(movies_converted, on="movieId", how="left")
-
-    train.to_parquet(os.path.join(raw_data_path, "train.parquet"))
-    valid.to_parquet(os.path.join(raw_data_path, "valid.parquet"))
+    logging.info("starting ETL..")
 
     cat = lambda: nvt.ops.Categorify(dtype="int32")  # noqa
 
