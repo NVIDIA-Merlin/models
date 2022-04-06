@@ -82,7 +82,7 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Layer</span>
@@ -101,7 +101,28 @@
 
 <div class="viewcode-block" id="BinaryClassificationTask"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BinaryClassificationTask.html#merlin.models.tf.BinaryClassificationTask">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">BinaryClassificationTask</span><span class="p">(</span><span class="n">PredictionTask</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prediction task for binary classification.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target: Union[str, Schema], optional</span>
+<span class="sd">        The name of the target. If a Schema is provided, the target is inferred from the schema.</span>
+<span class="sd">    task_name: str, optional</span>
+<span class="sd">        The name of the task.</span>
+<span class="sd">    task_block: Block, optional</span>
+<span class="sd">        The block to use for the task.</span>
+<span class="sd">    loss: LossType, optional</span>
+<span class="sd">        The loss to use for the task.</span>
+<span class="sd">        Defaults to &quot;binary_crossentropy&quot;.</span>
+<span class="sd">    metrics: MetricOrMetrics, optional</span>
+<span class="sd">        The metrics to use for the task. Defaults to [precision, recall, accuracy &amp; auc].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Default loss to use</span>
     <span class="n">DEFAULT_LOSS</span> <span class="o">=</span> <span class="s2">&quot;binary_crossentropy&quot;</span>
+
+    <span class="c1"># Default metrics to use</span>
     <span class="n">DEFAULT_METRICS</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Precision</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Recall</span><span class="p">,</span>
@@ -111,13 +132,31 @@
 
 <div class="viewcode-block" id="BinaryClassificationTask.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BinaryClassificationTask.html#merlin.models.tf.BinaryClassificationTask.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">target_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Schema</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LossType</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_LOSS</span><span class="p">,</span>
         <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MetricOrMetrics</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_METRICS</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">Schema</span><span class="p">):</span>
+            <span class="n">target_name</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">target_name</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Binary classification task requires a column with a &quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;`Tags.BINARY_CLASSIFICATION` tag.&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_name</span><span class="o">.</span><span class="n">column_names</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Binary classification task requires a single column with a &quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;`Tags.BINARY_CLASSIFICATION` tag. &quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Found </span><span class="si">{}</span><span class="s2"> columns. &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">target_name</span><span class="o">.</span><span class="n">column_names</span><span class="p">)),</span>
+                    <span class="s2">&quot;Please specify the column name with the `target` argument.&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="n">target_name</span> <span class="o">=</span> <span class="n">target_name</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">target_name</span> <span class="o">=</span> <span class="n">target</span> <span class="k">if</span> <span class="n">target</span> <span class="k">else</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;target_name&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
         <span class="n">output_layer</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;output_layer&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
@@ -165,6 +204,8 @@
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">CategFeaturePrediction</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Block that predicts a categorical feature. num_classes is inferred from the&quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
@@ -206,6 +247,24 @@
 
 <div class="viewcode-block" id="MultiClassClassificationTask"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">MultiClassClassificationTask</span><span class="p">(</span><span class="n">PredictionTask</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Prediction task for multi-class classification.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target_name : Optional[str], optional</span>
+<span class="sd">        Label name, by default None</span>
+<span class="sd">    task_name: str, optional</span>
+<span class="sd">        The name of the task.</span>
+<span class="sd">    task_block: Block, optional</span>
+<span class="sd">        The block to use for the task.</span>
+<span class="sd">    loss: LossType, optional</span>
+<span class="sd">        The loss to use for the task.</span>
+<span class="sd">        Defaults to &quot;sparse_categorical_crossentropy&quot;.</span>
+<span class="sd">    metrics: MetricOrMetrics, optional</span>
+<span class="sd">        The metrics to use for the task. Defaults to [accuracy].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">DEFAULT_LOSS</span> <span class="o">=</span> <span class="s2">&quot;sparse_categorical_crossentropy&quot;</span>
     <span class="n">DEFAULT_METRICS</span><span class="p">:</span> <span class="n">MetricOrMetrics</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Accuracy</span><span class="p">,)</span>
 
@@ -219,7 +278,6 @@
         <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
-
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
             <span class="n">target_name</span><span class="o">=</span><span class="n">target_name</span><span class="p">,</span>
@@ -241,6 +299,7 @@
         <span class="n">extra_pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MultiClassClassificationTask&quot;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Create from Schema.&quot;&quot;&quot;</span>
         <span class="n">pre</span> <span class="o">=</span> <span class="n">CategFeaturePrediction</span><span class="p">(</span>
             <span class="n">schema</span><span class="p">,</span>
             <span class="n">feature_name</span><span class="p">,</span>

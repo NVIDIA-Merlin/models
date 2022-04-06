@@ -70,7 +70,7 @@ cd models && pip install -e .
 
 ### Getting Started
 
-Merlin Models makes it straighforward to define architectures that adapt to different input features.
+Merlin Models makes it straightforward to define architectures that adapt to different input features.
 This adaptability is provided by building on a core feature of the NVTabular library.
 When you use NVTabular for feature engineering, NVTabular creates a schema that identifies the input features.
 You can see the `Schema` object in action by looking at the [Applying to your own dataset with Merlin Models and NVTabular](https://github.com/NVIDIA-Merlin/models/examples/02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html) example notebook.
@@ -79,34 +79,30 @@ You can easily build popular RecSys architectures like [DLRM](http://arxiv.org/a
 After you define the model, you can train and evaluate it with a typical Keras model.
 
 ```python
-import tensorflow as tf
-
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
 
-train_ds = Dataset(os.path.join(data_path, 'train/*.parquet'))
-valid_ds = Dataset(os.path.join(output_path 'valid/*.parquet'))
+train = Dataset(PATH_TO_TRAIN_DATA)
+valid = Dataset(PATH_TO_VALID_DATA)
 
 model = mm.DLRMModel(
-    train_ds.schema,                                          # 1
+    train.schema,                                                   # 1
     embedding_dim=64,
-    bottom_block=mm.MLPBlock([128, 64]),                      # 2
+    bottom_block=mm.MLPBlock([128, 64]),                            # 2
     top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(schema)      # 3
-    ),
+    prediction_tasks=mm.BinaryClassificationTask(train.schema)      # 3
 )
 
-opt = tf.keras.optimizers.Adagrad(learning_rate=1e-4)
-model.compile(optimizer=opt, run_eagerly=False)
-model.fit(train, validation_data=valid_ds, batch_size=batch_size)
-eval_metrics = model.evaluate(valid_ds, return_dict=True)
+model.compile(optimizer="adagrad", run_eagerly=False)
+model.fit(train, validation_data=valid, batch_size=1024)
+eval_metrics = model.evaluate(valid, batch_size=1024, return_dict=True)
 ```
 
   1.  To build the internal input layer, the model identifies them from the schema object.
       The schema identifies the continuous features and categorical features, for which embedding tables are created.
   2.  To define the body of the architecture, MLP layers are used with configurable dimensions.
   3.  The head of the architecture is created from the chosen task, `BinaryClassificationTask` in this example.
-      The target binary feature is also infered from the schema (i.e., tagged as 'TARGET').
+      The target binary feature is also inferred from the schema (i.e., tagged as 'TARGET').
 
 You can find more details and information about a low-level API in our overview of the
 [Deep Learning Recommender Model](https://nvidia-merlin.github.io/models/main/models_overview.html#deep-learning-recommender-model).

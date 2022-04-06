@@ -368,11 +368,11 @@
    ],
    "source": [
     "import merlin.models.tf as ml\n",
-    "from merlin.models.data.synthetic import SyntheticData\n",
+    "from merlin.datasets.synthetic import generate_data\n",
     "\n",
-    "social_data = SyntheticData(\"social\")\n",
+    "social_data = generate_data(\"social\", num_rows=1000)\n",
     "\n",
-    "social_data.dataframe"
+    "social_data.to_ddf()"
    ]
   },
   {
@@ -443,7 +443,7 @@
     "retrieval_model = ml.TwoTowerModel(social_data.schema, query_tower=ml.MLPBlock([512, 256]))\n",
     "\n",
     "retrieval_model.compile(optimizer=\"adam\", run_eagerly=True)\n",
-    "retrieval_model.fit(social_data.tf_dataloader(batch_size=50), epochs=2)\n",
+    "retrieval_model.fit(social_data, batch_size=50, epochs=2)\n",
     "\n",
     "print(f\"Number of parameters: {retrieval_model.count_params()}\")"
    ]
@@ -485,7 +485,7 @@
     ")\n",
     "\n",
     "ranking_model.compile(optimizer=\"adam\", run_eagerly=True)\n",
-    "ranking_model.fit(social_data.tf_dataloader(batch_size=50), epochs=2)\n",
+    "ranking_model.fit(social_data, batch_size=50, epochs=2)\n",
     "\n",
     "print(f\"Number of parameters: {ranking_model.count_params()}\")"
    ]

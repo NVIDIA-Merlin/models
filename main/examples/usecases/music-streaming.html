@@ -341,11 +341,11 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import merlin.models.tf as ml
-from merlin.models.data.synthetic import SyntheticData
+from merlin.datasets.synthetic import generate_data
 
-music_data = SyntheticData(&quot;music-streaming&quot;)
+music_data = generate_data(&quot;music-streaming&quot;, num_rows=1000)
 
-music_data.dataframe
+music_data.to_ddf()
 </pre></div>
 </div>
 </div>
@@ -589,7 +589,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>retrieval_model = ml.TwoTowerModel(music_data.schema, query_tower=ml.MLPBlock([512, 256]))
 
 retrieval_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)
-retrieval_model.fit(music_data.tf_dataloader(batch_size=50), epochs=2)
+retrieval_model.fit(music_data, batch_size=50, epochs=2)
 
 print(f&quot;Number of parameters: {retrieval_model.count_params()}&quot;)
 </pre></div>
@@ -658,7 +658,7 @@ Number of parameters: 421682
 )
 
 ranking_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)
-ranking_model.fit(music_data.tf_dataloader(batch_size=50), epochs=2)
+ranking_model.fit(music_data, batch_size=50, epochs=2)
 
 print(f&quot;Number of parameters: {ranking_model.count_params()}&quot;)
 </pre></div>

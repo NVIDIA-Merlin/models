@@ -359,7 +359,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <div class="section" id="Taking-the-Next-Step-with-Merlin-Models:-Define-Your-Own-Architecture">
 <h1>Taking the Next Step with Merlin Models: Define Your Own Architecture<a class="headerlink" href="#Taking-the-Next-Step-with-Merlin-Models:-Define-Your-Own-Architecture" title="Permalink to this headline"></a></h1>
-<p>In <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/examples/Exploring-different-models.ipynb">explore-different-models</a>, we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practioners and researchers to define custom models, train and export them for inference.</p>
+<p>In <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/examples/Exploring-different-models.ipynb">explore-different-models</a>, we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.</p>
 <p>In this example, we combine pre-existing blocks and demonstrate how to create the <a class="reference external" href="https://arxiv.org/abs/1906.00091">DLRM</a> architecture.</p>
 <div class="section" id="Learning-objectives">
 <h2>Learning objectives<a class="headerlink" href="#Learning-objectives" title="Permalink to this headline"></a></h2>
@@ -388,7 +388,7 @@ determining the embedding dimensions, input shapes, and output shapes. Additiona
 </div>
 <div class="section" id="Aggregations-Blocks">
 <h3>Aggregations Blocks<a class="headerlink" href="#Aggregations-Blocks" title="Permalink to this headline"></a></h3>
-<p>They inlude common aggregation operations to combine multiple tensors, such as: - <code class="docutils literal notranslate"><span class="pre">ConcatFeatures</span></code>: Concatenate dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">StackFeatures</span></code>: Stack dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">CosineSimilarity</span></code>: Calculate the cosine similarity between two tensors.</p>
+<p>They include common aggregation operations to combine multiple tensors, such as: - <code class="docutils literal notranslate"><span class="pre">ConcatFeatures</span></code>: Concatenate dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">StackFeatures</span></code>: Stack dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">CosineSimilarity</span></code>: Calculate the cosine similarity between two tensors.</p>
 </div>
 <div class="section" id="Connects-Methods">
 <h3>Connects Methods<a class="headerlink" href="#Connects-Methods" title="Permalink to this headline"></a></h3>
@@ -418,7 +418,7 @@ determining the embedding dimensions, input shapes, and output shapes. Additiona
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import tensorflow as tf
 import merlin.models.tf as mm
 
-from merlin.models.data.movielens import get_movielens
+from merlin.datasets.entertainment import get_movielens
 from merlin.schema.tags import Tags
 </pre></div>
 </div>
@@ -805,7 +805,7 @@ dlrm_interaction = dlrm_input_block.connect_with_shortcut(
 </div>
 </div>
 <p>The following diagram provides a visualization of the operations that we constructed in the <code class="docutils literal notranslate"><span class="pre">dlrm_interaction</span></code> object.</p>
-<p><img alt="817dfe49f55b42ff9c9cfe0fcb89697c" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
+<p><img alt="746e9224a40640ccab9f6f5ec2c98253" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>

@@ -130,7 +130,7 @@
 for two-tower item retrieval model. The caches consists of a fixed capacity FIFO queue
 which keeps the item embeddings from the last N batches. All items in the queue are
 sampled as negatives for upcoming batches.
-It is more efficent than computing embeddings exclusively for negative items.
+It is more efficient than computing embeddings exclusively for negative items.
 This is a popularity-biased sampling as popular items are observed more often
 in training batches.
 Compared to <cite>InBatchSampler</cite>, the <cite>CachedCrossBatchSampler</cite> allows for larger number
