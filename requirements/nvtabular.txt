@@ -1,1 +1,1 @@
-nvtabular>=0.10.0
+nvtabular>=1.0.0
