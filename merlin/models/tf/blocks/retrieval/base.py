@@ -194,6 +194,7 @@ class ItemRetrievalScorer(Block):
                     name="query",
                     trainable=False,
                     validate_shape=False,
+                    dtype=tf.float32,
                     shape=tf.TensorShape([None, query_shape[-1]]),
                 )
             )
@@ -203,6 +204,7 @@ class ItemRetrievalScorer(Block):
                     name="positive_candidates_embeddings",
                     trainable=False,
                     validate_shape=False,
+                    dtype=tf.float32,
                     shape=tf.TensorShape([None, query_shape[-1]]),
                 )
             )
@@ -267,8 +269,10 @@ class ItemRetrievalScorer(Block):
         """
         if self.cache_query:
             # enabled only during top-k evaluation
-            self.context["query"].assign(inputs[self.query_name])
-            self.context["positive_candidates_embeddings"].assign(inputs[self.item_name])
+            self.context["query"].assign(tf.cast(inputs[self.query_name], tf.float32))
+            self.context["positive_candidates_embeddings"].assign(
+                tf.cast(inputs[self.item_name], tf.float32)
+            )
 
         if training:
             return inputs
