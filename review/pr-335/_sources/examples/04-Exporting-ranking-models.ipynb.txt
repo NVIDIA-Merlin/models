@@ -277,8 +277,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "\u001b[01;34m./workflow\u001b[00m\n",
-      "├── \u001b[01;34mcategories\u001b[00m\n",
+      "\u001B[01;34m./workflow\u001B[00m\n",
+      "├── \u001B[01;34mcategories\u001B[00m\n",
       "│   ├── unique.item_brand.parquet\n",
       "│   ├── unique.item_category.parquet\n",
       "│   ├── unique.item_id.parquet\n",
