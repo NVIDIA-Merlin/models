@@ -36,7 +36,7 @@ class IndexBlock(Block):
             values,
             name="values",
             trainable=False,
-            dtype=values.dtype,
+            dtype=tf.float32,
             validate_shape=False,
             shape=tf.TensorShape([None, tf.shape(values)[-1]]),
         )
