@@ -18,3 +18,4 @@ recommonmark>=0.6
 natsort==8.1.0
 tensorflow-metadata
 tensorflow-ranking>=0.4
+testbook
