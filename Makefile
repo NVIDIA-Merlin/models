@@ -22,7 +22,7 @@ tests-tf:
 	coverage html --include 'merlin/models/*'
 
 tests-tf-examples:
-	coverage run -m pytest -rsx tests ---include "tests/tf/examples" || exit 1
+	coverage run -m pytest -rsx tests "tests/tf/examples" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
