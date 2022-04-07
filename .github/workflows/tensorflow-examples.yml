@@ -1,4 +1,4 @@
-name: tensorflow-examples
+name: tensorflow
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  tests:
+  examples:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
