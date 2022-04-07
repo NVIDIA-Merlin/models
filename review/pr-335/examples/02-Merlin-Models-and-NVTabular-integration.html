@@ -364,24 +364,24 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Copyright 2022 NVIDIA Corporation. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2022 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
 </pre></div>
 </div>
 </div>
-<p><img alt="03b4cb2cedc94f8db5954f6d428df946" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="33235eebacdc4bb08411904e3a2fd189" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="From-ETL-to-Training-RecSys-models---NVTabular-and-Merlin-Models-integrated-example">
 <h1>From ETL to Training RecSys models - NVTabular and Merlin Models integrated example<a class="headerlink" href="#From-ETL-to-Training-RecSys-models---NVTabular-and-Merlin-Models-integrated-example" title="Permalink to this headline"></a></h1>
 <div class="section" id="Overview">
@@ -403,7 +403,7 @@ benchmark their new models on example offline datasets.</p>
 </div>
 <div class="section" id="Integration-of-NVTabular-and-Merlin-Models">
 <h2>Integration of NVTabular and Merlin Models<a class="headerlink" href="#Integration-of-NVTabular-and-Merlin-Models" title="Permalink to this headline"></a></h2>
-<p><img alt="54899f97f73b41e79bcf8c0417c46b22" src="../_images/schema.png" /></p>
+<p><img alt="d0f28bf7b4434d0a88d045874f73607c" src="../_images/schema.png" /></p>
 <p>In this notebook, we focus on an important piece of an ML pipeline: feature engineering and model training.</p>
 <p>If you use NVTabular for feature engineering, NVTabular will output (in addition to the preprocessed parquet files), a <strong>schema</strong> file describing the dataset structures. The schema contains columns statistics, tags and metadata collected by NVTabular. Here are some examples of such metadata computed by some NVTabular preprocessing ops:</p>
 <ul class="simple">
@@ -416,15 +416,15 @@ benchmark their new models on example offline datasets.</p>
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import pandas as pd
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
-import nvtabular as nvt
-from nvtabular import ops as nvt_ops
+<span class="kn">import</span> <span class="nn">nvtabular</span> <span class="k">as</span> <span class="nn">nvt</span>
+<span class="kn">from</span> <span class="nn">nvtabular</span> <span class="kn">import</span> <span class="n">ops</span> <span class="k">as</span> <span class="n">nvt_ops</span>
 
-import merlin.models.tf as mm
-from merlin.models.utils import example_utils
-from merlin.datasets.entertainment import get_movielens, get_movielens_raw
-from merlin.schema import Tags
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">example_utils</span>
+<span class="kn">from</span> <span class="nn">merlin.datasets.entertainment</span> <span class="kn">import</span> <span class="n">get_movielens</span><span class="p">,</span> <span class="n">get_movielens_raw</span>
+<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Tags</span>
 </pre></div>
 </div>
 </div>
@@ -444,8 +444,8 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train, valid = get_movielens(variant=&quot;ml-1m&quot;)
-schema = train.schema
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">)</span>
+<span class="n">schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span>
 </pre></div>
 </div>
 </div>
@@ -472,7 +472,7 @@ schema = train.schema
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span>
 </pre></div>
 </div>
 </div>
@@ -831,7 +831,7 @@ schema = train.schema
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema.select_by_name(&quot;userId&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span><span class="s2">&quot;userId&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -902,8 +902,8 @@ schema = train.schema
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All categorical features
-schema.select_by_tag(Tags.CATEGORICAL)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All categorical features</span>
+<span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1109,8 +1109,8 @@ schema.select_by_tag(Tags.CATEGORICAL)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All continuous features
-schema.select_by_tag(Tags.CONTINUOUS)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All continuous features</span>
+<span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1201,8 +1201,8 @@ schema.select_by_tag(Tags.CONTINUOUS)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All targets
-train.schema.select_by_tag(Tags.TARGET)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All targets</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1261,8 +1261,8 @@ train.schema.select_by_tag(Tags.TARGET)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All features related to the item
-train.schema.select_by_tag(Tags.ITEM)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All features related to the item</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1373,8 +1373,8 @@ train.schema.select_by_tag(Tags.ITEM)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># The item id feature name
-train.schema.select_by_tag(Tags.ITEM_ID)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The item id feature name</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1443,8 +1443,8 @@ train.schema.select_by_tag(Tags.ITEM_ID)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># All features related to the user
-train.schema.select_by_tag(Tags.USER)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All features related to the user</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1598,8 +1598,8 @@ train.schema.select_by_tag(Tags.USER)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># The user id feature name
-train.schema.select_by_tag(Tags.USER_ID)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The user id feature name</span>
+<span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1669,7 +1669,7 @@ train.schema.select_by_tag(Tags.USER_ID)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema.select_by_tag(Tags.ITEM_ID)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1748,9 +1748,9 @@ train.schema.select_by_tag(Tags.USER_ID)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>path = get_movielens_raw(variant=&quot;ml-1m&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="n">get_movielens_raw</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">)</span>
 
-pd.read_parquet(str(path / &quot;train.parquet&quot;)).head()
+<span class="n">pd</span><span class="o">.</span><span class="n">read_parquet</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;train.parquet&quot;</span><span class="p">))</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -1837,7 +1837,7 @@ pd.read_parquet(str(path / &quot;train.parquet&quot;)).head()
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>cat_features = [&quot;userId&quot;, &quot;movieId&quot;] &gt;&gt; nvt_ops.Categorify(dtype=&quot;int32&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cat_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">,</span> <span class="s2">&quot;movieId&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">nvt_ops</span><span class="o">.</span><span class="n">Categorify</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1846,15 +1846,15 @@ pd.read_parquet(str(path / &quot;train.parquet&quot;)).head()
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>feats_itemId = cat_features[&quot;movieId&quot;] &gt;&gt; nvt_ops.TagAsItemID()
-feats_userId = cat_features[&quot;userId&quot;] &gt;&gt; nvt_ops.TagAsUserID()
-feats_target = (
-    nvt.ColumnSelector([&quot;rating&quot;])
-    &gt;&gt; nvt_ops.LambdaOp(lambda col: (col &gt; 3).astype(&quot;int32&quot;))
-    &gt;&gt; nvt_ops.AddTags([&quot;binary_classification&quot;, &quot;target&quot;])
-    &gt;&gt; nvt_ops.Rename(name=&quot;rating_binary&quot;)
-)
-output = feats_itemId + feats_userId + feats_target
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">feats_itemId</span> <span class="o">=</span> <span class="n">cat_features</span><span class="p">[</span><span class="s2">&quot;movieId&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">nvt_ops</span><span class="o">.</span><span class="n">TagAsItemID</span><span class="p">()</span>
+<span class="n">feats_userId</span> <span class="o">=</span> <span class="n">cat_features</span><span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">nvt_ops</span><span class="o">.</span><span class="n">TagAsUserID</span><span class="p">()</span>
+<span class="n">feats_target</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">nvt</span><span class="o">.</span><span class="n">ColumnSelector</span><span class="p">([</span><span class="s2">&quot;rating&quot;</span><span class="p">])</span>
+    <span class="o">&gt;&gt;</span> <span class="n">nvt_ops</span><span class="o">.</span><span class="n">LambdaOp</span><span class="p">(</span><span class="k">lambda</span> <span class="n">col</span><span class="p">:</span> <span class="p">(</span><span class="n">col</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;int32&quot;</span><span class="p">))</span>
+    <span class="o">&gt;&gt;</span> <span class="n">nvt_ops</span><span class="o">.</span><span class="n">AddTags</span><span class="p">([</span><span class="s2">&quot;binary_classification&quot;</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">])</span>
+    <span class="o">&gt;&gt;</span> <span class="n">nvt_ops</span><span class="o">.</span><span class="n">Rename</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;rating_binary&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">feats_itemId</span> <span class="o">+</span> <span class="n">feats_userId</span> <span class="o">+</span> <span class="n">feats_target</span>
 </pre></div>
 </div>
 </div>
@@ -1863,10 +1863,10 @@ output = feats_itemId + feats_userId + feats_target
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
-train, valid = get_movielens(
-    variant=&quot;ml-1m&quot;, nvt_workflow=output, overwrite=True, transformed_name=&quot;notebook&quot;
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span>
+    <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">,</span> <span class="n">nvt_workflow</span><span class="o">=</span><span class="n">output</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">transformed_name</span><span class="o">=</span><span class="s2">&quot;notebook&quot;</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1899,7 +1899,7 @@ Wall time: 631 ms
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train.schema
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span>
 </pre></div>
 </div>
 </div>
@@ -2003,17 +2003,17 @@ Wall time: 631 ms
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.DLRMModel(
-    train.schema,
-    embedding_dim=64,
-    bottom_block=mm.MLPBlock([128, 64]),
-    top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(train.schema, &quot;target&quot;)
-)
-model.compile(optimizer=&quot;adam&quot;)
-history = model.fit(train, validation_data=valid, batch_size=1024, epochs=3)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
+    <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+    <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+    <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
+<span class="n">history</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
-example_utils.plot_keras_history(history, add_loss=False)
+<span class="n">example_utils</span><span class="o">.</span><span class="n">plot_keras_history</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">add_loss</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -2079,7 +2079,7 @@ Epoch 3/3
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.context.variables
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">variables</span>
 </pre></div>
 </div>
 </div>
