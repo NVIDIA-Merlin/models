@@ -1,7 +1,9 @@
+import pytest
 from testbook import testbook
 
 
 @testbook("examples/01-Getting-started.ipynb", execute=False)
+@pytest.mark.example
 def test_func(tb):
     tb.execute_cell("imports")
 
@@ -24,11 +26,11 @@ def test_func(tb):
     metrics = tb.ref("metrics")
 
     assert sorted(list(metrics.keys())) == [
+        "loss",
+        "rating_binary/binary_classification_task/auc",
+        "rating_binary/binary_classification_task/binary_accuracy",
         "rating_binary/binary_classification_task/precision",
         "rating_binary/binary_classification_task/recall",
-        "rating_binary/binary_classification_task/binary_accuracy",
-        "rating_binary/binary_classification_task/auc",
-        "loss",
         "regularization_loss",
         "total_loss",
     ]
