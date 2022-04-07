@@ -11,4 +11,4 @@ def test_social_data():
 
     assert isinstance(dataset, merlin.io.Dataset)
     assert dataset.num_rows == 100
-    assert len(dataset.schema) == 19
+    assert len(dataset.schema) == 18
