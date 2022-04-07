@@ -44,6 +44,7 @@ requirements = {
     "base": read_requirements("requirements/base.txt"),
     "tensorflow": read_requirements("requirements/tensorflow.txt"),
     "pytorch": read_requirements("requirements/pytorch.txt"),
+    "lightfm": read_requirements("requirements/lightfm.txt"),
     "nvtabular": _nvt,
     "implicit": read_requirements("requirements/implicit.txt"),
     "dev": _dev,
