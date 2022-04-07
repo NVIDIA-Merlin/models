@@ -1,4 +1,7 @@
+import pytest
 from testbook import testbook
+
+pytestmark = pytest.mark.example
 
 
 @testbook("examples/01-Getting-started.ipynb", execute=False)

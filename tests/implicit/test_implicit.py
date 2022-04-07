@@ -13,9 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
+
 from merlin.io import Dataset
 from merlin.models.implicit import AlternatingLeastSquares
 from merlin.schema import Tags
+
+pytestmark = pytest.mark.datasets
 
 
 def test_alternating_least_squares(music_streaming_data: Dataset):

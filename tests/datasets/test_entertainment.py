@@ -6,6 +6,7 @@ import merlin.io
 from merlin.datasets.entertainment import get_movielens
 from merlin.datasets.synthetic import generate_data
 
+pytestmark = pytest.mark.datasets
 MAYBE_DATA_DIR = os.environ.get("INPUT_DATA_DIR", None)
 
 

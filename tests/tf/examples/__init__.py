@@ -1,3 +1,3 @@
 import pytest
 
-pytestmark = pytest.mark.datasets
+pytestmark = pytest.mark.example

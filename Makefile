@@ -31,12 +31,17 @@ tests-torch:
 	coverage html --include 'merlin/models/*'
 
 tests-implicit:
-	coverage run -m pytest -rsx tests -m "implicit" -m "not example" || exit 1
+	coverage run -m pytest -rsx tests -m "implicit" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
 tests-lightfm:
-	coverage run -m pytest -rsx tests -m "implicit" -m "not example" || exit 1
+	coverage run -m pytest -rsx tests -m "lightfm" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-datasets:
+	coverage run -m pytest -rsx tests -m "datasets" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
