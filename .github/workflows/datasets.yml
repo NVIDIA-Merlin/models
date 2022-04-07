@@ -1,4 +1,4 @@
-name: pytorch
+name: datasets
 
 on:
   push:

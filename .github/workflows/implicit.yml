@@ -1,4 +1,4 @@
-name: pytorch
+name: implicit
 
 on:
   push:

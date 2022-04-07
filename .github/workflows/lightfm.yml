@@ -1,4 +1,4 @@
-name: pytorch
+name: lightfm
 
 on:
   push:
