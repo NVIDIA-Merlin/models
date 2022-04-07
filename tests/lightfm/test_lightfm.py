@@ -19,7 +19,7 @@ from merlin.io import Dataset
 from merlin.models.lightfm import LightFM
 from merlin.schema import Tags
 
-pytestmark = pytest.mark.datasets
+pytestmark = pytest.mark.lightfm
 
 
 def test_warp(music_streaming_data: Dataset):

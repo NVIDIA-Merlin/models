@@ -19,7 +19,7 @@ from merlin.io import Dataset
 from merlin.models.implicit import AlternatingLeastSquares
 from merlin.schema import Tags
 
-pytestmark = pytest.mark.datasets
+pytestmark = pytest.mark.implicit
 
 
 def test_alternating_least_squares(music_streaming_data: Dataset):
