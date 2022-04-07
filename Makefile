@@ -17,7 +17,12 @@ tests:
 
 
 tests-tf:
-	coverage run -m pytest -rsx tests --ignore "tests/torch" || exit 1
+	coverage run -m pytest -rsx tests --ignore "tests/torch" --ignore "tests/tf/examples" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-tf-examples:
+	coverage run -m pytest -rsx tests ---include "tests/tf/examples" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
