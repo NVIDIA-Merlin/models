@@ -70,7 +70,11 @@
    "cell_type": "code",
    "execution_count": 1,
    "id": "157fe18f",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "imports"
+    ]
+   },
    "outputs": [
     {
      "name": "stderr",
@@ -164,7 +168,11 @@
    "cell_type": "code",
    "execution_count": 18,
    "id": "7d39879e",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "schema"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -539,7 +547,11 @@
    "cell_type": "code",
    "execution_count": 19,
    "id": "9824190f",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "schema_userId"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -634,7 +646,11 @@
    "cell_type": "code",
    "execution_count": 20,
    "id": "a6fc4e7e",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "schema_categorical"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -850,7 +866,11 @@
    "cell_type": "code",
    "execution_count": 21,
    "id": "45ccda0c",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "schema_continuous"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -951,7 +971,11 @@
    "cell_type": "code",
    "execution_count": 22,
    "id": "2c3e7813",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "schema_target"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -1020,7 +1044,11 @@
    "cell_type": "code",
    "execution_count": 23,
    "id": "b1046b1f",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "schema_item"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -1141,7 +1169,11 @@
    "cell_type": "code",
    "execution_count": 24,
    "id": "66e7559b",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "schema_item_id"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -1220,7 +1252,11 @@
    "cell_type": "code",
    "execution_count": 25,
    "id": "2f0e26e9",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "schema_user"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -1384,7 +1420,11 @@
    "cell_type": "code",
    "execution_count": 26,
    "id": "e098f4c4",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "schema_user_id"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -1715,7 +1755,11 @@
    "cell_type": "code",
    "execution_count": 31,
    "id": "d7ea1f71",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "nvt_1"
+    ]
+   },
    "outputs": [],
    "source": [
     "cat_features = [\"userId\", \"movieId\"] >> nvt_ops.Categorify(dtype=\"int32\")"
@@ -1733,7 +1777,11 @@
    "cell_type": "code",
    "execution_count": 32,
    "id": "565595ef",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "nvt_2"
+    ]
+   },
    "outputs": [],
    "source": [
     "feats_itemId = cat_features[\"movieId\"] >> nvt_ops.TagAsItemID()\n",
@@ -1937,7 +1985,10 @@
    "execution_count": 13,
    "id": "aeda7ece",
    "metadata": {
-    "scrolled": false
+    "scrolled": false,
+    "tags": [
+     "model"
+    ]
    },
    "outputs": [
     {
@@ -2042,7 +2093,11 @@
    "cell_type": "code",
    "execution_count": 14,
    "id": "12361653",
-   "metadata": {},
+   "metadata": {
+    "tags": [
+     "model_embeddings"
+    ]
+   },
    "outputs": [
     {
      "data": {
@@ -2118,6 +2173,7 @@
   }
  ],
  "metadata": {
+  "celltoolbar": "Tags",
   "kernelspec": {
    "display_name": "Python 3 (ipykernel)",
    "language": "python",
