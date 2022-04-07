@@ -17,3 +17,4 @@
 import pytest
 
 pytest.importorskip("implicit")
+pytestmark = pytest.mark.implicit

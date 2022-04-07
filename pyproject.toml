@@ -50,7 +50,10 @@ filterwarnings = [
                 'ignore:distutils Version classes are deprecated. Use packaging.version instead:DeprecationWarning',
         ]
 markers = [
-    "example",
+    "datasets",
     "tensorflow",
-    "torch"
+    "torch",
+    "lightfm",
+    "implicit",
+    "example",
 ]

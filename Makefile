@@ -15,19 +15,28 @@ tests:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
-
 tests-tf:
-	coverage run -m pytest -rsx tests --ignore "tests/torch" -m "not example" || exit 1
+	coverage run -m pytest -rsx tests -m "tensorflow" -m "not example" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
 tests-tf-examples:
-	coverage run -m pytest -rsx tests --ignore "tests/torch" -m "example" || exit 1
+	coverage run -m pytest -rsx tests -m "tensorflow" -m "example" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
 tests-torch:
 	coverage run -m pytest -rsx tests --ignore "tests/tf" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-implicit:
+	coverage run -m pytest -rsx tests -m "implicit" -m "not example" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-lightfm:
+	coverage run -m pytest -rsx tests -m "implicit" -m "not example" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 

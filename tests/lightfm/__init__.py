@@ -17,3 +17,4 @@
 import pytest
 
 pytest.importorskip("lightfm")
+pytestmark = pytest.mark.lightfm

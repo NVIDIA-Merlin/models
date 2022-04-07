@@ -1,9 +1,7 @@
-import pytest
 from testbook import testbook
 
 
 @testbook("examples/01-Getting-started.ipynb", execute=False)
-@pytest.mark.example
 def test_func(tb):
     tb.execute_cell("imports")
 

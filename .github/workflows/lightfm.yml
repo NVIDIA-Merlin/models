@@ -32,10 +32,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .[pytorch-dev]
+          python -m pip install -e .[lightfm-dev]
       - name: Build
         run: |
           python setup.py develop
       - name: Run unittests
         run: |
-          make tests-torch
+          make tests-lightfm
