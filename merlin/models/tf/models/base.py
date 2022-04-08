@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 
 
 class MetricsComputeCallback(tf.keras.callbacks.Callback):
+    """Callback that handles when to compute metrics."""
+
     def __init__(self, train_metrics_steps=1, **kwargs):
         self.train_metrics_steps = train_metrics_steps
         self._is_fitting = False
@@ -44,15 +46,11 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
     def on_train_batch_end(self, batch, logs=None):
         self._is_first_batch = False
 
-    # def on_test_begin(self, logs=None):
-    #     self.model._should_compute_eval_metrics_as_in_training.assign(self._is_fitting)
-    #
-    # def on_test_end(self, logs=None):
-    #     self.model._should_compute_eval_metrics_as_in_training.assign(False)
-
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ModelBlock(Block, tf.keras.Model):
+    """Block that extends `tf.keras.Model` to make it saveable."""
+
     def __init__(self, block: Block, **kwargs):
         super().__init__(**kwargs)
         self.block = block
@@ -188,13 +186,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             synchronization=tf.VariableSynchronization.NONE,
             initial_value=lambda: False,
         )
-        # self._should_compute_eval_metrics_as_in_training = tf.Variable(
-        #     dtype=tf.bool,
-        #     name="should_compute_eval_metrics_as_in_training",
-        #     trainable=False,
-        #     synchronization=tf.VariableSynchronization.NONE,
-        #     initial_value=lambda: False,
-        # )
 
     def call(self, inputs, **kwargs):
         outputs = self.block(inputs, **kwargs)
