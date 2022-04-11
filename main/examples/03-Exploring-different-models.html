@@ -47,11 +47,6 @@
 <li class="toctree-l3"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Iterating over Deep Learning Models using Merlin Models</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#Learning-objectives">Learning objectives</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#Importing-Libraries">Importing Libraries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Feature-Engineering-with-NVTabular">Feature Engineering with NVTabular</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Training-Recommender-Models">Training Recommender Models</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#Initialize-Dataloaders">Initialize Dataloaders</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#NCF-Model">NCF Model</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#MLP-Model">MLP Model</a></li>
@@ -382,7 +377,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p><img alt="a04d9d2b01974b02be1b6cede2909582" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="fa6436f9c86e42b8be32d7c984cd7d4f" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Iterating-over-Deep-Learning-Models-using-Merlin-Models">
 <h1>Iterating over Deep Learning Models using Merlin Models<a class="headerlink" href="#Iterating-over-Deep-Learning-Models-using-Merlin-Models" title="Permalink to this headline"></a></h1>
 <p>In this example, we’ll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.</p>
@@ -398,10 +393,8 @@ train, valid = generate_data(&quot;aliccp-raw&quot;, 1000000, set_sizes=(0.7, 0.
 <li><p>Preparing the data with NVTabular</p></li>
 <li><p>Training different deep learning-based recommender models with Merlin Models</p></li>
 </ul>
-</div>
-</div>
 <div class="section" id="Importing-Libraries">
-<h1>Importing Libraries<a class="headerlink" href="#Importing-Libraries" title="Permalink to this headline"></a></h1>
+<h3>Importing Libraries<a class="headerlink" href="#Importing-Libraries" title="Permalink to this headline"></a></h3>
 <p>Let’s start with importing the libraries that we’ll use in this notebook.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
@@ -438,7 +431,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 </div>
 <div class="section" id="Feature-Engineering-with-NVTabular">
-<h1>Feature Engineering with NVTabular<a class="headerlink" href="#Feature-Engineering-with-NVTabular" title="Permalink to this headline"></a></h1>
+<h3>Feature Engineering with NVTabular<a class="headerlink" href="#Feature-Engineering-with-NVTabular" title="Permalink to this headline"></a></h3>
 <p>When we work on a new recommender systems, we explore the dataset, first. In doing so, we define our input and output paths. We will use the parquet files in the test folder to validate our trained model.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
@@ -506,7 +499,7 @@ Wall time: 57.1 s
 </div>
 </div>
 <div class="section" id="Training-Recommender-Models">
-<h1>Training Recommender Models<a class="headerlink" href="#Training-Recommender-Models" title="Permalink to this headline"></a></h1>
+<h3>Training Recommender Models<a class="headerlink" href="#Training-Recommender-Models" title="Permalink to this headline"></a></h3>
 <p>NVTabular exported the schema file of our processed dataset. The <code class="docutils literal notranslate"><span class="pre">schema.pbtxt</span></code> is a protobuf text file contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to
 automatically build all necessary input and output layers.</p>
 <div class="nbinput docutils container">
@@ -584,6 +577,8 @@ target_column
  &#39;TE_item_id_click&#39;]
 </pre></div></div>
 </div>
+</div>
+</div>
 <div class="section" id="Initialize-Dataloaders">
 <h2>Initialize Dataloaders<a class="headerlink" href="#Initialize-Dataloaders" title="Permalink to this headline"></a></h2>
 <p>We’re ready to start training, for that, we create our dataset objects, and under the hood we use Merlin <code class="docutils literal notranslate"><span class="pre">BatchedDataset</span></code> class for reading chunks of parquet files. <code class="docutils literal notranslate"><span class="pre">BatchedDataset</span></code> asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. To read more about Merlin optimized dataloaders visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141">here</a>.</p>
@@ -592,7 +587,7 @@ target_column
 <h2>NCF Model<a class="headerlink" href="#NCF-Model" title="Permalink to this headline"></a></h2>
 <p>We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">(NCF)</a> Model architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.</p>
 <p>NCF feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers via its MLP layer tower as seen in the figure. GMF and MLP uses separate user and item embeddings, and then outputs of their interactions from GMF Layer and MLP Layer are concatenated and fed to the final NeuMF (Neural Matrix Factorisation) layer.</p>
-<p><img alt="bbf439d36c8c45ec967aea2ea40840d6" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
+<p><img alt="8430b2767a264f78bcde1353900cd9e3" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
 <p>Image Source: NCF paper</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">schema</span></code> object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure.</p>
 <div class="nbinput nblast docutils container">
@@ -678,7 +673,7 @@ Wall time: 1min 32s
 <div class="section" id="MLP-Model">
 <h2>MLP Model<a class="headerlink" href="#MLP-Model" title="Permalink to this headline"></a></h2>
 <p>Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers.</p>
-<p><img alt="f3e97440694b48e0aab4710a0a5339d5" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
+<p><img alt="c6c12949500545589034eae4ee238d69" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
 <p>Steps:</p>
 <ul class="simple">
 <li><p>Change the model to MLP model</p></li>
