@@ -27,6 +27,7 @@ from merlin.models.tf.blocks.core.base import (
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
+from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
@@ -98,8 +99,8 @@ class DualEncoderBlock(ParallelBlock):
         self._item_block = TowerBlock(item_block)
 
         branches = {
-            "query": Filter(query_block.schema).connect(self._query_block),
-            "item": Filter(item_block.schema).connect(self._item_block),
+            "query": Filter(query_block.schema).connect(self._query_block).connect(L2Norm()),
+            "item": Filter(item_block.schema).connect(self._item_block).connect(L2Norm()),
         }
 
         super().__init__(
