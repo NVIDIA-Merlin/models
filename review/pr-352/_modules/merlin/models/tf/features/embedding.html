@@ -294,10 +294,14 @@
 <div class="viewcode-block" id="EmbeddingFeatures.table_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.table_config">[docs]</a>    <span class="k">def</span> <span class="nf">table_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_config</span><span class="p">[</span><span class="n">feature_name</span><span class="p">]</span><span class="o">.</span><span class="n">table</span></div>
 
-<div class="viewcode-block" id="EmbeddingFeatures.embedding_table_df"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.embedding_table_df">[docs]</a>    <span class="k">def</span> <span class="nf">embedding_table_df</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="EmbeddingFeatures.embedding_table_df"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.embedding_table_df">[docs]</a>    <span class="k">def</span> <span class="nf">embedding_table_df</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">l2_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">gpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">Tags</span><span class="p">):</span>
             <span class="n">table_name</span> <span class="o">=</span> <span class="n">table_name</span><span class="o">.</span><span class="n">value</span>
         <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">l2_norm</span><span class="p">:</span>
+            <span class="n">embeddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">l2_normalize</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">gpu</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">cudf</span>
@@ -314,11 +318,48 @@
 
         <span class="k">return</span> <span class="n">df</span></div>
 
-<div class="viewcode-block" id="EmbeddingFeatures.embedding_table_dataset"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.embedding_table_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">embedding_table_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_table_df</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">gpu</span><span class="p">))</span></div>
+<div class="viewcode-block" id="EmbeddingFeatures.embedding_table_dataset"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.embedding_table_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">embedding_table_dataset</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">l2_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Creates a Dataset for the embedding table</span>
 
-<div class="viewcode-block" id="EmbeddingFeatures.export_embedding_table"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.export_embedding_table">[docs]</a>    <span class="k">def</span> <span class="nf">export_embedding_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">export_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_table_df</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name : Union[str, Tags]</span>
+<span class="sd">            Tag or name of the embedding table</span>
+<span class="sd">        l2_norm : bool, optional</span>
+<span class="sd">            Whether the L2-normalization should be applied to</span>
+<span class="sd">            embeddings (common approach for Matrix Factorization</span>
+<span class="sd">            and Retrieval models in general), by default False</span>
+<span class="sd">        gpu : bool, optional</span>
+<span class="sd">            Whether or not should use GPU, by default True</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        merlin.io.Dataset</span>
+<span class="sd">            Returns a Dataset with the embeddings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">merlin</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding_table_df</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">l2_norm</span><span class="p">,</span> <span class="n">gpu</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="EmbeddingFeatures.export_embedding_table"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.export_embedding_table">[docs]</a>    <span class="k">def</span> <span class="nf">export_embedding_table</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">],</span> <span class="n">export_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">l2_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Exports the embedding table to parquet file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        table_name : Union[str, Tags]</span>
+<span class="sd">            Tag or name of the embedding table</span>
+<span class="sd">        export_path : str</span>
+<span class="sd">            Path for the generated parquet file</span>
+<span class="sd">        l2_norm : bool, optional</span>
+<span class="sd">            Whether the L2-normalization should be applied to</span>
+<span class="sd">            embeddings (common approach for Matrix Factorization</span>
+<span class="sd">            and Retrieval models in general), by default False</span>
+<span class="sd">        gpu : bool, optional</span>
+<span class="sd">            Whether or not should use GPU, by default True</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_table_df</span><span class="p">(</span><span class="n">table_name</span><span class="p">,</span> <span class="n">l2_norm</span><span class="p">,</span> <span class="n">gpu</span><span class="o">=</span><span class="n">gpu</span><span class="p">)</span>
         <span class="n">df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">export_path</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="EmbeddingFeatures.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
