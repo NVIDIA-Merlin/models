@@ -67,25 +67,30 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
         else:
             post = rename_features
 
-        embedding = lambda s: EmbeddingFeatures.from_schema(  # noqa
+        embedding_features = lambda s: EmbeddingFeatures.from_schema(  # noqa
             s, embedding_options=embedding_options, aggregation="concat"
         )
 
+        self.embeddings = dict()
+        self.embeddings[str(Tags.USER_ID)] = embedding_features(query_schema)
+        self.embeddings[str(Tags.ITEM_ID)] = embedding_features(item_schema)
+
         super().__init__(  # type: ignore
-            embedding(query_schema), embedding(item_schema), post=post, **kwargs
+            self.embeddings[str(Tags.USER_ID)],
+            self.embeddings[str(Tags.ITEM_ID)],
+            post=post,
+            **kwargs,
         )
 
     def export_embedding_table(self, table_name: Union[str, Tags], export_path: str, gpu=True):
-        if table_name in ("item", Tags.ITEM_ID):
-            return self.item_block().block.export_embedding_table(table_name, export_path, gpu=gpu)
-
-        return self.query_block().block.export_embedding_table(table_name, export_path, gpu=gpu)
+        return self.embeddings[str(table_name)].export_embedding_table(
+            table_name, export_path, l2_norm=True, gpu=gpu
+        )
 
     def embedding_table_df(self, table_name: Union[str, Tags], gpu=True):
-        if table_name in ("item", Tags.ITEM_ID):
-            return self.item_block().block.embedding_table_df(table_name, gpu=gpu)
-
-        return self.query_block().block.embedding_table_df(table_name, gpu=gpu)
+        return self.embeddings[str(table_name)].embedding_table_df(
+            table_name, l2_norm=True, gpu=gpu
+        )
 
 
 def MatrixFactorizationBlock(
