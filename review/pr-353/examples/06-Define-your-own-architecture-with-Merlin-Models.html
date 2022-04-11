@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taking the Next Step with Merlin Models: Define Your Own Architecture &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="README.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Taking the Next Step with Merlin Models: Define Your Own Architecture</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Copyright 2021 NVIDIA Corporation. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ================================
+</pre></div>
+</div>
+</div>
+<div class="section" id="Taking-the-Next-Step-with-Merlin-Models:-Define-Your-Own-Architecture">
+<h1>Taking the Next Step with Merlin Models: Define Your Own Architecture<a class="headerlink" href="#Taking-the-Next-Step-with-Merlin-Models:-Define-Your-Own-Architecture" title="Permalink to this headline"></a></h1>
+<p>In <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/examples/Exploring-different-models.ipynb">explore-different-models</a>, we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.</p>
+<p>In this example, we combine pre-existing blocks and demonstrate how to create the <a class="reference external" href="https://arxiv.org/abs/1906.00091">DLRM</a> architecture.</p>
+<div class="section" id="Learning-objectives">
+<h2>Learning objectives<a class="headerlink" href="#Learning-objectives" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>Understand the building blocks of Merlin Models</p></li>
+<li><p>Define a model architecture from scratch</p></li>
+</ul>
+</div>
+<div class="section" id="Introduction-to-Merlin-models-core-building-blocks">
+<h2>Introduction to Merlin-models core building blocks<a class="headerlink" href="#Introduction-to-Merlin-models-core-building-blocks" title="Permalink to this headline"></a></h2>
+<p>The <a class="reference external" href="https://nvidia-merlin.github.io/models/review/pr-294/generated/merlin.models.tf.Block.html#merlin.models.tf.Block">Block</a> is the core abstraction in Merlin Models and is the class from which all blocks inherit. The class extends the <a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/layers/Layer">tf.keras.layers.Layer</a> base class and implements a number of properties that simplify the creation of custom blocks and models. These properties include the <code class="docutils literal notranslate"><span class="pre">Schema</span></code> object for
+determining the embedding dimensions, input shapes, and output shapes. Additionally, the <code class="docutils literal notranslate"><span class="pre">Block</span></code> has a <code class="docutils literal notranslate"><span class="pre">BlockContext</span></code> instance to store and retrieve public variables and share them with other blocks in the same model as additional meta-data.</p>
+<p>Before deep-diving into the definition of the DLRM architecture, let’s start by listing the core components you need to know to define a model from scratch:</p>
+<div class="section" id="Features-Blocks">
+<h3>Features Blocks<a class="headerlink" href="#Features-Blocks" title="Permalink to this headline"></a></h3>
+<p>They include input blocks to process various inputs based on their types and shapes. Merlin Models supports three main blocks: - <code class="docutils literal notranslate"><span class="pre">EmbeddingFeatures</span></code>: Input block for embedding-lookups for categorical features. - <code class="docutils literal notranslate"><span class="pre">SequenceEmbeddingFeatures</span></code>: Input block for embedding-lookups for sequential categorical features (3D tensors). - <code class="docutils literal notranslate"><span class="pre">ContinuousFeatures</span></code>: Input block for continuous features.</p>
+</div>
+<div class="section" id="Transformations-Blocks">
+<h3>Transformations Blocks<a class="headerlink" href="#Transformations-Blocks" title="Permalink to this headline"></a></h3>
+<p>They include various operators commonly used to transform tensors in various parts of the model, such as:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AsDenseFeatures</span></code>: It takes a dictionary of raw input tensors and transforms the sparse tensors into dense tensors.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">L2Norm</span></code>: It takes a single or a dictionary of hidden tensors and applies an L2-normalization along a given axis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LogitsTemperatureScaler</span></code>: It scales the output tensor of predicted logits to lower the model’s confidence.</p></li>
+</ul>
+</div>
+<div class="section" id="Aggregations-Blocks">
+<h3>Aggregations Blocks<a class="headerlink" href="#Aggregations-Blocks" title="Permalink to this headline"></a></h3>
+<p>They include common aggregation operations to combine multiple tensors, such as: - <code class="docutils literal notranslate"><span class="pre">ConcatFeatures</span></code>: Concatenate dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">StackFeatures</span></code>: Stack dictionary of tensors along a given dimension. - <code class="docutils literal notranslate"><span class="pre">CosineSimilarity</span></code>: Calculate the cosine similarity between two tensors.</p>
+</div>
+<div class="section" id="Connects-Methods">
+<h3>Connects Methods<a class="headerlink" href="#Connects-Methods" title="Permalink to this headline"></a></h3>
+<p>The base class <code class="docutils literal notranslate"><span class="pre">Block</span></code> implements different connects methods that control how to link a given block to other blocks:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">connect</span></code>: Connect the block to other blocks sequentially. The output is a tensor returned by the last block.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">connect_branch</span></code>: Link the block to other blocks in parallel. The output is a dictionary containing the output tensor of each block.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">connect_with_shortcut</span></code>: Connect the block to other blocks sequentially and apply a skip connection with the block’s output.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">connect_with_residual</span></code>: Connect the block to other blocks sequentially and apply a residual sum with the block’s output.</p></li>
+</ul>
+</div>
+<div class="section" id="Prediction-Tasks">
+<h3>Prediction Tasks<a class="headerlink" href="#Prediction-Tasks" title="Permalink to this headline"></a></h3>
+<div class="line-block">
+<div class="line">Merlin Models introduces the <code class="docutils literal notranslate"><span class="pre">PredictionTask</span></code> layer that defines the necessary blocks and transformation operations to compute the final prediction scores. It also provides the default loss and metrics related to the given prediction task.</div>
+<div class="line">Merlin Models supports the core tasks: <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask</span></code>, <code class="docutils literal notranslate"><span class="pre">MultiClassClassificationTask</span></code>, and<code class="docutils literal notranslate"><span class="pre">RegressionTask</span></code>. In addition to the preceding tasks, Merlin Models provides tasks that are specific to recommender systems: <code class="docutils literal notranslate"><span class="pre">NextItemPredictionTask</span></code>, and <code class="docutils literal notranslate"><span class="pre">ItemRetrievalTask</span></code>.</div>
+</div>
+</div>
+</div>
+<div class="section" id="Implement-the-DLRM-model-with-MovieLens-1M-data">
+<h2>Implement the DLRM model with MovieLens-1M data<a class="headerlink" href="#Implement-the-DLRM-model-with-MovieLens-1M-data" title="Permalink to this headline"></a></h2>
+<p>Now that we have introduced the core blocks of Merlin Models, let’s take a look at how we can combine them to define the DLRM architecture:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import tensorflow as tf
+import merlin.models.tf as mm
+
+from merlin.datasets.entertainment import get_movielens
+from merlin.schema.tags import Tags
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-29 18:19:36.705822: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 24570 MB memory:  -&gt; device: 0, name: NVIDIA RTX A6000, pci bus id: 0000:65:00.0, compute capability: 8.6
+/nvtabular/nvtabular/graph.py:23: FutureWarning: The `nvtabular.graph` module has moved to `merlin.dag`. Support for importing from `nvtabular.graph` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.dag`.
+  warnings.warn(
+/nvtabular/nvtabular/io.py:23: FutureWarning: The `nvtabular.io` module has moved to `merlin.io`. Support for importing from `nvtabular.io` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.io`.
+  warnings.warn(
+/nvtabular/nvtabular/utils.py:23: FutureWarning: The `nvtabular.utils` module has moved to `merlin.core.utils`. Support for importing from `nvtabular.utils` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.core.utils`.
+  warnings.warn(
+/nvtabular/nvtabular/dispatch.py:23: FutureWarning: The `nvtabular.dispatch` module has moved to `merlin.core.dispatch`. Support for importing from `nvtabular.dispatch` is deprecated, and will be removed in a future version. Please update your imports to import from `merlin.core.dispatch`.
+  warnings.warn(
+</pre></div></div>
+</div>
+<p>We use the <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function to download, extract, and preprocess the MovieLens 1M dataset:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train, valid = get_movielens(variant=&quot;ml-1m&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+downloading ml-1m.zip: 5.93MB [00:00, 6.12MB/s]
+unzipping files: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5/5 [00:00&lt;00:00, 46.40files/s]
+/models/merlin/models/data/movielens.py:298: ParserWarning: Falling back to the &#39;python&#39; engine because the &#39;c&#39; engine does not support regex separators (separators &gt; 1 char and different from &#39;\s+&#39; are interpreted as regex); you can avoid this warning by specifying engine=&#39;python&#39;.
+  users = pd.read_csv(
+/models/merlin/models/data/movielens.py:303: ParserWarning: Falling back to the &#39;python&#39; engine because the &#39;c&#39; engine does not support regex separators (separators &gt; 1 char and different from &#39;\s+&#39; are interpreted as regex); you can avoid this warning by specifying engine=&#39;python&#39;.
+  ratings = pd.read_csv(
+/models/merlin/models/data/movielens.py:308: ParserWarning: Falling back to the &#39;python&#39; engine because the &#39;c&#39; engine does not support regex separators (separators &gt; 1 char and different from &#39;\s+&#39; are interpreted as regex); you can avoid this warning by specifying engine=&#39;python&#39;.
+  movies = pd.read_csv(
+INFO:merlin.models.data.movielens:starting ETL..
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+  warnings.warn(
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+  warnings.warn(
+INFO:merlin.models.data.movielens:saving the workflow..
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+  warnings.warn(
+</pre></div></div>
+</div>
+<p>We display the first five rows of the validation data and use them to check the outputs of each building block:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>valid.head()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>userId</th>
+      <th>movieId</th>
+      <th>title</th>
+      <th>genres</th>
+      <th>gender</th>
+      <th>age</th>
+      <th>occupation</th>
+      <th>zipcode</th>
+      <th>TE_age_rating</th>
+      <th>TE_gender_rating</th>
+      <th>TE_occupation_rating</th>
+      <th>TE_zipcode_rating</th>
+      <th>TE_movieId_rating</th>
+      <th>TE_userId_rating</th>
+      <th>rating_binary</th>
+      <th>rating</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1206</td>
+      <td>399</td>
+      <td>399</td>
+      <td>[7, 11]</td>
+      <td>1</td>
+      <td>4</td>
+      <td>8</td>
+      <td>388</td>
+      <td>0.490789</td>
+      <td>0.013363</td>
+      <td>0.435233</td>
+      <td>0.612872</td>
+      <td>0.918907</td>
+      <td>0.732432</td>
+      <td>1</td>
+      <td>5.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>3545</td>
+      <td>31</td>
+      <td>31</td>
+      <td>[3, 4]</td>
+      <td>1</td>
+      <td>3</td>
+      <td>1</td>
+      <td>2128</td>
+      <td>0.009513</td>
+      <td>0.024117</td>
+      <td>0.349702</td>
+      <td>0.801575</td>
+      <td>0.836451</td>
+      <td>0.800441</td>
+      <td>1</td>
+      <td>4.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3690</td>
+      <td>331</td>
+      <td>330</td>
+      <td>[1, 9]</td>
+      <td>1</td>
+      <td>3</td>
+      <td>1</td>
+      <td>547</td>
+      <td>0.018086</td>
+      <td>0.006682</td>
+      <td>0.346261</td>
+      <td>0.669338</td>
+      <td>0.544529</td>
+      <td>0.730000</td>
+      <td>1</td>
+      <td>5.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1821</td>
+      <td>1253</td>
+      <td>1253</td>
+      <td>[18]</td>
+      <td>1</td>
+      <td>2</td>
+      <td>3</td>
+      <td>1563</td>
+      <td>0.424777</td>
+      <td>0.000000</td>
+      <td>0.500179</td>
+      <td>0.719966</td>
+      <td>0.858095</td>
+      <td>0.748005</td>
+      <td>1</td>
+      <td>4.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>598</td>
+      <td>20</td>
+      <td>20</td>
+      <td>[2, 11]</td>
+      <td>2</td>
+      <td>7</td>
+      <td>13</td>
+      <td>423</td>
+      <td>0.178997</td>
+      <td>0.981566</td>
+      <td>0.341244</td>
+      <td>0.558114</td>
+      <td>0.974683</td>
+      <td>0.597522</td>
+      <td>1</td>
+      <td>5.0</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<p>We convert the first five rows of the <code class="docutils literal notranslate"><span class="pre">valid</span></code> dataset to a batch of input tensors:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>batch = mm.sample_batch(valid, batch_size=5, shuffle=False)
+batch[&quot;userId&quot;]
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;tf.Tensor: shape=(5, 1), dtype=int32, numpy=
+array([[1206],
+       [3545],
+       [3690],
+       [1821],
+       [ 598]], dtype=int32)&gt;
+</pre></div></div>
+</div>
+<div class="section" id="Define-the-inputs-block">
+<h3>Define the inputs block<a class="headerlink" href="#Define-the-inputs-block" title="Permalink to this headline"></a></h3>
+<p>For the sake of simplicity, let’s create a schema with a subset of the following continuous and categorical features:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>sub_schema = train.schema.select_by_name(
+    [
+        &quot;userId&quot;,
+        &quot;movieId&quot;,
+        &quot;title&quot;,
+        &quot;gender&quot;,
+        &quot;TE_zipcode_rating&quot;,
+        &quot;TE_movieId_rating&quot;,
+        &quot;rating_binary&quot;,
+    ]
+)
+</pre></div>
+</div>
+</div>
+<p>We define the continuous layer based on the schema:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>continuous_block = mm.ContinuousFeatures.from_schema(sub_schema, tags=Tags.CONTINUOUS)
+</pre></div>
+</div>
+</div>
+<p>We display the output tensor of the continuous block by using the data from the first batch. We can see the raw tensors of the continuous features:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>continuous_block(batch)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;TE_zipcode_rating&#39;: &lt;tf.Tensor: shape=(5, 1), dtype=float32, numpy=
+ array([[0.6128716 ],
+        [0.8015746 ],
+        [0.66933787],
+        [0.719966  ],
+        [0.55811405]], dtype=float32)&gt;,
+ &#39;TE_movieId_rating&#39;: &lt;tf.Tensor: shape=(5, 1), dtype=float32, numpy=
+ array([[0.91890687],
+        [0.83645064],
+        [0.5445293 ],
+        [0.8580947 ],
+        [0.97468275]], dtype=float32)&gt;}
+</pre></div></div>
+</div>
+<p>We connect the continuous block to a <code class="docutils literal notranslate"><span class="pre">MLPBlock</span></code> instance to project them into the same dimensionality as the embedding width of categorical features:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>deep_continuous_block = continuous_block.connect(mm.MLPBlock([64]))
+deep_continuous_block(batch).shape
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-29 18:20:07.818244: I tensorflow/stream_executor/cuda/cuda_blas.cc:1792] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+TensorShape([5, 64])
+</pre></div></div>
+</div>
+<p>We define the categorical embedding block based on the schema:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>embedding_block = mm.EmbeddingFeatures.from_schema(sub_schema)
+</pre></div>
+</div>
+</div>
+<p>We display the output tensor of the categorical embedding block using the data from the first batch. We can see the embeddings tensors of categorical features with a default dimension of 64:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>embeddings = embedding_block(batch)
+embeddings.keys(), embeddings[&quot;userId&quot;].shape
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(dict_keys([&#39;userId&#39;, &#39;movieId&#39;, &#39;title&#39;, &#39;gender&#39;]), TensorShape([5, 64]))
+</pre></div></div>
+</div>
+<p>Let’s store the continuous and categorical representations in a single dictionary using a <code class="docutils literal notranslate"><span class="pre">ParallelBlock</span></code> instance:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dlrm_input_block = mm.ParallelBlock(
+    {&quot;embeddings&quot;: embedding_block, &quot;deep_continuous&quot;: deep_continuous_block}
+)
+print(&quot;Output shapes of DLRM input block:&quot;)
+for key, val in dlrm_input_block(batch).items():
+    print(&quot;\t%s : %s&quot; % (key, val.shape))
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Output shapes of DLRM input block:
+        userId : (5, 64)
+        movieId : (5, 64)
+        title : (5, 64)
+        gender : (5, 64)
+        deep_continuous : (5, 64)
+</pre></div></div>
+</div>
+<p>By looking at the output, we can see that the <code class="docutils literal notranslate"><span class="pre">ParallelBlock</span></code> class applies embedding and continuous blocks, in parallel, to the same input batch. Additionally, it merges the resulting tensors into one dictionary.</p>
+</div>
+<div class="section" id="Define-the-interaction-block">
+<h3>Define the interaction block<a class="headerlink" href="#Define-the-interaction-block" title="Permalink to this headline"></a></h3>
+<p>Now that we have a vector representation of each input feature, we will create the DLRM interaction block. It consists of three operations: - Apply a dot product between all continuous and categorical features to learn pairwise interactions. - Concat the resulting pairwise interaction with the deep representation of conitnuous features (skip-connection). - Apply an <code class="docutils literal notranslate"><span class="pre">MLPBlock</span></code> with a series of dense layers to the concatenated tensor.</p>
+<p>First, we will use the <code class="docutils literal notranslate"><span class="pre">connect_with_shortcut</span></code> method to create first two operations of the DLRM interaction block:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.tf.blocks.dlrm import DotProductInteractionBlock
+
+dlrm_interaction = dlrm_input_block.connect_with_shortcut(
+    DotProductInteractionBlock(), shortcut_filter=mm.Filter(&quot;deep_continuous&quot;), aggregation=&quot;concat&quot;
+)
+</pre></div>
+</div>
+</div>
+<p>The following diagram provides a visualization of the operations that we constructed in the <code class="docutils literal notranslate"><span class="pre">dlrm_interaction</span></code> object.</p>
+<p><img alt="db247f85e56f45f8953469296a7049ca" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dlrm_interaction(batch)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;tf.Tensor: shape=(5, 2080), dtype=float32, numpy=
+array([[ 0.29670617,  0.17453526,  0.08847345, ..., -0.00228415,
+        -0.02754709, -0.01667024],
+       [ 0.30812162,  0.17272592,  0.13340692, ..., -0.00852957,
+         0.011024  , -0.01246084],
+       [ 0.22361305,  0.12082947,  0.11885215, ..., -0.01039359,
+        -0.02479763, -0.00856052],
+       [ 0.30011836,  0.17137763,  0.11465316, ..., -0.01257536,
+         0.00821264, -0.01441752],
+       [ 0.3003616 ,  0.17990217,  0.07389256, ...,  0.00241253,
+         0.00440571,  0.03609017]], dtype=float32)&gt;
+</pre></div></div>
+</div>
+<p>Then, we project the learned interaction using a series of dense layers:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>deep_dlrm_interaction = dlrm_interaction.connect(mm.MLPBlock([64, 128, 512]))
+deep_dlrm_interaction(batch)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;tf.Tensor: shape=(5, 512), dtype=float32, numpy=
+array([[0.01519031, 0.        , 0.00602788, ..., 0.        , 0.00327193,
+        0.00345114],
+       [0.01459008, 0.        , 0.00501918, ..., 0.        , 0.        ,
+        0.00335501],
+       [0.00564237, 0.00361753, 0.01140465, ..., 0.        , 0.        ,
+        0.        ],
+       [0.01802476, 0.01410608, 0.00600051, ..., 0.        , 0.00427519,
+        0.00106162],
+       [0.        , 0.        , 0.        , ..., 0.        , 0.        ,
+        0.01305524]], dtype=float32)&gt;
+</pre></div></div>
+</div>
+</div>
+<div class="section" id="Define-the-Prediction-block">
+<h3>Define the Prediction block<a class="headerlink" href="#Define-the-Prediction-block" title="Permalink to this headline"></a></h3>
+<p>At this stage, we have created the DLRM block that accepts a dictionary of categorical and continuous tensors as input. The output of this block is the interaction representation vector of shape <code class="docutils literal notranslate"><span class="pre">512</span></code>. The next step is to use this hidden representation to conduct a given prediction task. In our case, we use the label <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> and the objective is: to predict if a user <code class="docutils literal notranslate"><span class="pre">A</span></code> will give a high rating to a movie <code class="docutils literal notranslate"><span class="pre">B</span></code> or not.</p>
+<p>We use the <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask</span></code> class and evaluate the performances using the <code class="docutils literal notranslate"><span class="pre">AUC</span></code> metric. We also use the <code class="docutils literal notranslate"><span class="pre">LogitsTemperatureScaler</span></code> block as a pre-transformation operation that scales the logits returned by the task before computing the loss and metrics:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
+
+binary_task = mm.BinaryClassificationTask(
+    target_name=sub_schema.select_by_tag(Tags.TARGET).column_names[0],
+    metrics=[tf.keras.metrics.AUC],
+    pre=LogitsTemperatureScaler(temperature=2),
+)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="Define,-train,-and-evaluate-the-final-DLRM-Model">
+<h3>Define, train, and evaluate the final DLRM Model<a class="headerlink" href="#Define,-train,-and-evaluate-the-final-DLRM-Model" title="Permalink to this headline"></a></h3>
+<p>We connect the deep DLRM interaction to the binary task and the method automatically generates the <code class="docutils literal notranslate"><span class="pre">Model</span></code> class for us. We note that the <code class="docutils literal notranslate"><span class="pre">Model</span></code> class inherits from <a class="reference external" href="https://keras.io/api/models/model/">tf.keras.Model</a> class:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = deep_dlrm_interaction.connect(binary_task)
+type(model)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+merlin.models.tf.models.base.Model
+</pre></div></div>
+</div>
+<p>We train the model using the built-in Keras <code class="docutils literal notranslate"><span class="pre">fit</span></code> method:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.compile(optimizer=&quot;adam&quot;)
+model.fit(train, batch_size=1024, epochs=5)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-29 18:20:08.648590: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Epoch 1/5
+WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features/userId:0&#39;, &#39;embedding_features/movieId:0&#39;, &#39;embedding_features/title:0&#39;, &#39;embedding_features/gender:0&#39;, &#39;parallel_block/userId:0&#39;, &#39;parallel_block/movieId:0&#39;, &#39;parallel_block/title:0&#39;, &#39;parallel_block/gender:0&#39;, &#39;sequential_block_7/userId:0&#39;, &#39;sequential_block_7/movieId:0&#39;, &#39;sequential_block_7/title:0&#39;, &#39;sequential_block_7/gender:0&#39;, &#39;sequential_block_9/userId:0&#39;, &#39;sequential_block_9/movieId:0&#39;, &#39;sequential_block_9/title:0&#39;, &#39;sequential_block_9/gender:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features/userId:0&#39;, &#39;embedding_features/movieId:0&#39;, &#39;embedding_features/title:0&#39;, &#39;embedding_features/gender:0&#39;, &#39;parallel_block/userId:0&#39;, &#39;parallel_block/movieId:0&#39;, &#39;parallel_block/title:0&#39;, &#39;parallel_block/gender:0&#39;, &#39;sequential_block_7/userId:0&#39;, &#39;sequential_block_7/movieId:0&#39;, &#39;sequential_block_7/title:0&#39;, &#39;sequential_block_7/gender:0&#39;, &#39;sequential_block_9/userId:0&#39;, &#39;sequential_block_9/movieId:0&#39;, &#39;sequential_block_9/title:0&#39;, &#39;sequential_block_9/gender:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features/userId:0&#39;, &#39;embedding_features/movieId:0&#39;, &#39;embedding_features/title:0&#39;, &#39;embedding_features/gender:0&#39;, &#39;parallel_block/userId:0&#39;, &#39;parallel_block/movieId:0&#39;, &#39;parallel_block/title:0&#39;, &#39;parallel_block/gender:0&#39;, &#39;sequential_block_7/userId:0&#39;, &#39;sequential_block_7/movieId:0&#39;, &#39;sequential_block_7/title:0&#39;, &#39;sequential_block_7/gender:0&#39;, &#39;sequential_block_9/userId:0&#39;, &#39;sequential_block_9/movieId:0&#39;, &#39;sequential_block_9/title:0&#39;, &#39;sequential_block_9/gender:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features/userId:0&#39;, &#39;embedding_features/movieId:0&#39;, &#39;embedding_features/title:0&#39;, &#39;embedding_features/gender:0&#39;, &#39;parallel_block/userId:0&#39;, &#39;parallel_block/movieId:0&#39;, &#39;parallel_block/title:0&#39;, &#39;parallel_block/gender:0&#39;, &#39;sequential_block_7/userId:0&#39;, &#39;sequential_block_7/movieId:0&#39;, &#39;sequential_block_7/title:0&#39;, &#39;sequential_block_7/gender:0&#39;, &#39;sequential_block_9/userId:0&#39;, &#39;sequential_block_9/movieId:0&#39;, &#39;sequential_block_9/title:0&#39;, &#39;sequential_block_9/gender:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+782/782 [==============================] - 13s 12ms/step - rating_binary/binary_classification_task/auc: 0.5315 - loss: 0.6891 - regularization_loss: 0.0000e+00 - total_loss: 0.6891
+Epoch 2/5
+782/782 [==============================] - 10s 12ms/step - rating_binary/binary_classification_task/auc: 0.7239 - loss: 0.6427 - regularization_loss: 0.0000e+00 - total_loss: 0.6427
+Epoch 3/5
+782/782 [==============================] - 10s 12ms/step - rating_binary/binary_classification_task/auc: 0.7256 - loss: 0.6361 - regularization_loss: 0.0000e+00 - total_loss: 0.6361
+Epoch 4/5
+782/782 [==============================] - 10s 12ms/step - rating_binary/binary_classification_task/auc: 0.7260 - loss: 0.6330 - regularization_loss: 0.0000e+00 - total_loss: 0.6330
+Epoch 5/5
+782/782 [==============================] - 10s 12ms/step - rating_binary/binary_classification_task/auc: 0.7252 - loss: 0.6308 - regularization_loss: 0.0000e+00 - total_loss: 0.6308
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;keras.callbacks.History at 0x7f25bf685c10&gt;
+</pre></div></div>
+</div>
+<p>We view the evaluation scores:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.evaluate(valid, batch_size=1024, return_dict=True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+2022-03-29 18:21:02.127986: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_128
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+196/196 [==============================] - 3s 8ms/step - rating_binary/binary_classification_task/auc: 0.7268 - loss: 3.4001 - regularization_loss: 0.0000e+00 - total_loss: 3.4001
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;rating_binary/binary_classification_task/auc&#39;: 0.7267963290214539,
+ &#39;loss&#39;: 4.002350330352783,
+ &#39;regularization_loss&#39;: 0.0,
+ &#39;total_loss&#39;: 4.002350330352783}
+</pre></div></div>
+</div>
+<p>Save the model so we can use it for serving predictions in production or for resuming training with new observations:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.save(&quot;custom_dlrm&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+WARNING:absl:Function `_wrapped_model` contains input name(s) TE_age_rating, TE_gender_rating, TE_movieId_rating, TE_occupation_rating, TE_userId_rating, TE_zipcode_rating, movieId, userId with unsupported characters which will be renamed to te_age_rating, te_gender_rating, te_movieid_rating, te_occupation_rating, te_userid_rating, te_zipcode_rating, movieid, userid in the SavedModel.
+WARNING:absl:Found untraced functions such as sequential_block_9_layer_call_fn, sequential_block_9_layer_call_and_return_conditional_losses, binary_classification_task_layer_call_fn, binary_classification_task_layer_call_and_return_conditional_losses, sequential_block_9_layer_call_fn while saving (showing 5 of 155). These functions will not be directly callable after loading.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+INFO:tensorflow:Assets written to: custom_dlrm/assets
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+INFO:tensorflow:Assets written to: custom_dlrm/assets
+</pre></div></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="Conclusion">
+<h1>Conclusion<a class="headerlink" href="#Conclusion" title="Permalink to this headline"></a></h1>
+<p>Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, prediction tasks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our <a class="reference external" href="https://nvidia-merlin.github.io/models/main/">documentation</a> to discover more. You can also
+<a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/CONTRIBUTING.md">contribute</a> to the library by submitting new RecSys architectures and custom building Blocks.</p>
+</div>
+<div class="section" id="Next-steps">
+<h1>Next steps<a class="headerlink" href="#Next-steps" title="Permalink to this headline"></a></h1>
+<p>To learn more about how to deploy the trained DLRM model, please visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library and execute the <code class="docutils literal notranslate"><span class="pre">Getting-started-with-Merlin-Systems</span></code> notebook that deploys a <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular">NVTabular</a> Workflow and a trained model from Merlin Models to <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a>.</p>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
