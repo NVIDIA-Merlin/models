@@ -97,7 +97,6 @@ class DualEncoderBlock(ParallelBlock):
         """
         query_block = query_block.connect(L2Norm())
         item_block = item_block.connect(L2Norm())
-
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 

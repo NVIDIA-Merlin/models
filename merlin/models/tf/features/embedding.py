@@ -226,10 +226,14 @@ class EmbeddingFeatures(TabularBlock):
     def table_config(self, feature_name: str):
         return self.feature_config[feature_name].table
 
-    def embedding_table_df(self, table_name: Union[str, Tags], gpu=True):
+    def embedding_table_df(
+        self, table_name: Union[str, Tags], l2_norm: bool = False, gpu: bool = True
+    ):
         if isinstance(table_name, Tags):
             table_name = table_name.value
         embeddings = self.embedding_tables[table_name]
+        if l2_norm:
+            embeddings = tf.linalg.l2_normalize(embeddings, axis=-1)
 
         if gpu:
             import cudf
@@ -246,11 +250,48 @@ class EmbeddingFeatures(TabularBlock):
 
         return df
 
-    def embedding_table_dataset(self, table_name: Union[str, Tags], gpu=True) -> merlin.io.Dataset:
-        return merlin.io.Dataset(self.embedding_table_df(table_name, gpu))
+    def embedding_table_dataset(
+        self, table_name: Union[str, Tags], l2_norm: bool = False, gpu=True
+    ) -> merlin.io.Dataset:
+        """Creates a Dataset for the embedding table
 
-    def export_embedding_table(self, table_name: Union[str, Tags], export_path: str, gpu=True):
-        df = self.embedding_table_df(table_name, gpu=gpu)
+        Parameters
+        ----------
+        table_name : Union[str, Tags]
+            Tag or name of the embedding table
+        l2_norm : bool, optional
+            Whether the L2-normalization should be applied to
+            embeddings (common approach for Matrix Factorization
+            and Retrieval models in general), by default False
+        gpu : bool, optional
+            Whether or not should use GPU, by default True
+
+        Returns
+        -------
+        merlin.io.Dataset
+            Returns a Dataset with the embeddings
+        """
+        return merlin.io.Dataset(self.embedding_table_df(table_name, l2_norm, gpu))
+
+    def export_embedding_table(
+        self, table_name: Union[str, Tags], export_path: str, l2_norm: bool = False, gpu=True
+    ):
+        """Exports the embedding table to parquet file
+
+        Parameters
+        ----------
+        table_name : Union[str, Tags]
+            Tag or name of the embedding table
+        export_path : str
+            Path for the generated parquet file
+        l2_norm : bool, optional
+            Whether the L2-normalization should be applied to
+            embeddings (common approach for Matrix Factorization
+            and Retrieval models in general), by default False
+        gpu : bool, optional
+            Whether or not should use GPU, by default True
+        """
+        df = self.embedding_table_df(table_name, l2_norm, gpu=gpu)
         df.to_parquet(export_path)
 
     def get_config(self):
