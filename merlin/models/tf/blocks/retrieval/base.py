@@ -95,12 +95,15 @@ class DualEncoderBlock(ParallelBlock):
         strict : bool, optional
             If enabled, check that the input of the ParallelBlock instance is a dictionary.
         """
+        query_block = query_block.connect(L2Norm())
+        item_block = item_block.connect(L2Norm())
+
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 
         branches = {
-            "query": Filter(query_block.schema).connect(self._query_block).connect(L2Norm()),
-            "item": Filter(item_block.schema).connect(self._item_block).connect(L2Norm()),
+            "query": Filter(query_block.schema).connect(self._query_block),
+            "item": Filter(item_block.schema).connect(self._item_block),
         }
 
         super().__init__(
