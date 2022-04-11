@@ -141,17 +141,64 @@ def categorical_domains(schema) -> Dict[str, str]:
     return outputs
 
 
-def get_embedding_sizes_from_schema(schema: Schema, multiplier: float = 2.0):
+def get_embedding_sizes_from_schema(
+    schema: Schema, multiplier: float = 2.0, ensure_multiple_of_8: bool = False
+) -> Dict[str, int]:
+    """Provides a heristic (from Google) that suggests the embedding sizes
+    as a function (forth root) of categorical features cardinalities, obtained
+    from the schema.
+
+    Parameters
+    ----------
+    schema : Schema
+        Featires schema
+    multiplier : float, optional
+        Multiplier to be applied on the forth root of the cardinality.
+        Google recommends multiplier in the [2.0,10.0] range, by default 2.0
+    ensure_multiple_of_8 : bool, optional
+        If enabled, adjusts the embedding dim to the smallest greater
+        number multiple of 8, to ensure best performance with GPU ops, by default False
+
+    Returns
+    -------
+    Dict[str, int]
+        A dict with the feature names and the suggested embedding sizes based
+        on the features cardinalities obtained from the schema
+    """
     cardinalities = categorical_cardinalities(schema)
 
     return {
-        key: get_embedding_size_from_cardinality(val, multiplier)
+        key: get_embedding_size_from_cardinality(val, multiplier, ensure_multiple_of_8)
         for key, val in cardinalities.items()
     }
 
 
-def get_embedding_size_from_cardinality(cardinality: int, multiplier: float = 2.0):
+def get_embedding_size_from_cardinality(
+    cardinality: int, multiplier: float = 2.0, ensure_multiple_of_8: bool = False
+) -> int:
+    """Provides a heristic (from Google) that suggests the embedding
+    dimension as a function (forth root) of the feature cardinality.
+
+    Parameters
+    ----------
+    cardinality : int
+        The number of unique values of a categorical feature
+    multiplier : float, optional
+        Multiplier to be applied on the forth root of the cardinality.
+        Google recommends multiplier in the [2.0,10.0] range, by default 2.0
+    ensure_multiple_of_8 : bool, optional
+        If enabled, adjusts the embedding dim to the smallest greater
+        number multiple of 8, to ensure best performance with GPU ops, by default False
+
+    Returns
+    -------
+    int
+        The suggested embedding dimension based on the feature cardinality
+    """
     # A rule-of-thumb from Google.
     embedding_size = int(math.ceil(math.pow(cardinality, 0.25) * multiplier))
+
+    if ensure_multiple_of_8:
+        embedding_size = int(math.ceil((embedding_size / 8)) * 8)
 
     return embedding_size
