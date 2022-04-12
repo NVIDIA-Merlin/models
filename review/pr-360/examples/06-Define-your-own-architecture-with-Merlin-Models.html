@@ -798,7 +798,7 @@ dlrm_interaction = dlrm_input_block.connect_with_shortcut(
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">Filter</span></code> operation allows us to select the <code class="docutils literal notranslate"><span class="pre">deep_continuous</span></code> tensor from the <code class="docutils literal notranslate"><span class="pre">dlrm_input_block</span></code> outputs.</p>
 <p>The following diagram provides a visualization of the operations that we constructed in the <code class="docutils literal notranslate"><span class="pre">dlrm_interaction</span></code> object.</p>
-<p><img alt="566cad441ab543e29c288c0e26255781" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
+<p><img alt="9abe4680bbb04250b9e417abdc18d2e7" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
@@ -896,7 +896,7 @@ type(model)
 merlin.models.tf.models.base.Model
 </pre></div></div>
 </div>
-<p>We train the model using the built-in Keras <code class="docutils literal notranslate"><span class="pre">fit</span></code> method:</p>
+<p>We train the model using the built-in tf.keras <code class="docutils literal notranslate"><span class="pre">fit</span></code> method:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
@@ -963,7 +963,7 @@ WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features
 &lt;keras.callbacks.History at 0x7f1551a2cf10&gt;
 </pre></div></div>
 </div>
-<p>We view the evaluation scores:</p>
+<p>Let’s check out the model evaluation scores:</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
@@ -1045,7 +1045,7 @@ INFO:tensorflow:Assets written to: custom_dlrm/assets
 </div>
 <div class="section" id="Next-steps">
 <h1>Next steps<a class="headerlink" href="#Next-steps" title="Permalink to this headline"></a></h1>
-<p>To learn more about how to deploy the trained DLRM model, please visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library and execute the <code class="docutils literal notranslate"><span class="pre">Getting-started-with-Merlin-Systems</span></code> notebook that deploys a <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular">NVTabular</a> Workflow and a trained model from Merlin Models to <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a>.</p>
+<p>To learn more about how to deploy the trained DLRM model, please visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library and execute the <code class="docutils literal notranslate"><span class="pre">Serving-Ranking-Models-With-Merlin-Systems.ipynb</span></code> notebook that deploys an ensemble of a <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular">NVTabular</a> Workflow and a trained model from Merlin Models to <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a>.</p>
 </div>
 
 
