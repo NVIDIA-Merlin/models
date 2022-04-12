@@ -1,6 +1,6 @@
-import pytest
 import os
 
+import pytest
 from testbook import testbook
 
 pytestmark = pytest.mark.example
