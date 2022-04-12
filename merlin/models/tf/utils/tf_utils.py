@@ -13,7 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+<<<<<<< HEAD
 from typing import Sequence, Union
+
+=======
+from typing import Any, Union
+
+>>>>>>> Adding TensorInitializer that can be used to initialize variables/embeddings with pretrained weights
 
 import numpy as np
 import tensorflow as tf
@@ -286,3 +292,38 @@ def get_candidate_probs(
         candidate_probs = item_freq_probs / tf.reduce_sum(item_freq_probs)
 
     return candidate_probs
+    
+class TensorInitializer(tf.keras.initializers.Initializer):
+    """Initializer that returns a tensor (e.g. pre-trained
+    embeddings) set in the constructor
+    """
+
+    def __init__(self, weights: Union[tf.Tensor, Any]):
+        self._weights = tf.convert_to_tensor(weights)
+
+    def __call__(self, shape: tf.TensorShape, dtype: tf.DType = None, **kwargs) -> tf.Tensor:
+        """Returns a tensor object initialized with the tensor
+        set in the constructor.
+
+        Parameters
+        ----------
+        shape : tf.TensorShape
+            Shape of the variable to be initialized
+        dtype : tf.DType, optional
+            Optional dtype of the tensor. Only numeric or boolean dtypes are
+        supported, by default None
+
+        Returns
+        -------
+        tf.Tensor
+            Returns the tensor set in the constructor
+        """
+        tf.assert_equal(shape, self._weights.shape)
+
+        weights = self._weights
+        if dtype:
+            weights = tf.cast(self._weights, dtype)
+        return weights
+
+    def get_config(self):  # To support serialization
+        return {"weights": self._weights}
