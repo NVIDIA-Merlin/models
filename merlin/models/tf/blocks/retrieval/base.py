@@ -198,6 +198,8 @@ class ItemRetrievalScorer(Block):
 
         self.set_required_features()
 
+        self.steps_count_temp = tf.Variable(0, trainable=False, dtype=tf.int64)
+
     def build(self, input_shapes):
         if isinstance(input_shapes, dict):
             query_shape = input_shapes[self.query_name]
@@ -333,6 +335,9 @@ class ItemRetrievalScorer(Block):
             positive_item_ids = self.context[self.item_id_feature_name]
 
         neg_items_ids = None
+
+        self.steps_count_temp.assign_add(1)
+
         if training or eval_sampling:
 
             assert (
@@ -376,6 +381,12 @@ class ItemRetrievalScorer(Block):
                         f"The sampler {type(sampler).__name__} returned no samples for this batch."
                     )
 
+                tf.summary.scalar(
+                    f"sampled_negatives_{sampler.__class__.__name__}",
+                    tf.shape(neg_items.embeddings)[0],
+                    step=self.steps_count_temp,
+                )
+
             if len(neg_items_embeddings_list) == 0:
                 raise Exception(f"No negative items where sampled from samplers {self.samplers}")
             elif len(neg_items_embeddings_list) == 1:
@@ -385,6 +396,10 @@ class ItemRetrievalScorer(Block):
 
             negative_scores = tf.linalg.matmul(
                 predictions[self.query_name], neg_items_embeddings, transpose_b=True
+            )
+
+            tf.summary.scalar(
+                "sampled_negatives_total", tf.shape(negative_scores)[1], step=self.steps_count_temp
             )
 
             if self.downscore_false_negatives or self.store_negative_ids:
@@ -401,6 +416,54 @@ class ItemRetrievalScorer(Block):
                 negative_scores, valid_negatives_mask = rescore_false_negatives(
                     positive_item_ids, neg_items_ids, negative_scores, self.false_negatives_score
                 )
+
+            tf.summary.scalar(
+                "scores/positive_scores_mean",
+                tf.reduce_mean(positive_scores),
+                step=self.steps_count_temp,
+            )
+
+            tf.summary.scalar(
+                "scores/positive_scores_max",
+                tf.reduce_max(positive_scores),
+                step=self.steps_count_temp,
+            )
+
+            tf.summary.scalar(
+                "scores/positive_scores_min",
+                tf.reduce_min(positive_scores),
+                step=self.steps_count_temp,
+            )
+
+            tf.summary.scalar(
+                "scores/positive_scores_std",
+                tf.math.reduce_std(positive_scores),
+                step=self.steps_count_temp,
+            )
+
+            tf.summary.scalar(
+                "scores/negative_scores_mean",
+                tf.reduce_mean(negative_scores[:, :100]),
+                step=self.steps_count_temp,
+            )
+
+            tf.summary.scalar(
+                "scores/negative_scores_max",
+                tf.reduce_max(negative_scores[:, :100]),
+                step=self.steps_count_temp,
+            )
+
+            tf.summary.scalar(
+                "scores/negative_scores_min",
+                tf.reduce_min(negative_scores[:, :100]),
+                step=self.steps_count_temp,
+            )
+
+            tf.summary.scalar(
+                "scores/negative_scores_std",
+                tf.math.reduce_std(negative_scores[:, :100]),
+                step=self.steps_count_temp,
+            )
 
             predictions = tf.concat([positive_scores, negative_scores], axis=-1)
 

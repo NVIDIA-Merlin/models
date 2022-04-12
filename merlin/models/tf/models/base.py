@@ -320,6 +320,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
+        for v, g in zip(self.trainable_variables, gradients):
+            tf.summary.histogram(f"gradients/{v.name}", g, step=self.optimizer.iterations)
+
         metrics = self.loss_block.metric_result_dict()
 
         metrics["loss"] = loss
