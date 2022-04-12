@@ -4,13 +4,13 @@ from testbook import testbook
 
 pytestmark = pytest.mark.example
 
+
 @testbook("examples/02-Merlin-Models-and-NVTabular-integration.ipynb", execute=False)
 def test_func(tb):
     tb.inject(
         """
         import os
         os.environ["INPUT_DATA_DIR"] = "/tmp/data/"
-        
         from unittest.mock import patch
         from merlin.datasets.synthetic import generate_data
         mock_train, mock_valid = generate_data(
@@ -23,17 +23,14 @@ def test_func(tb):
             return_value=[mock_train, mock_valid]
         )
         p1.start()
-        
         p2 = patch(
             "merlin.core.utils.download_file",
             return_value=[]
         )
         p2.start()
-        
         import numpy as np
         from pathlib import Path
         from merlin.datasets.synthetic import generate_data
-
         mock_data = generate_data(
             input="movielens-1m-raw-ratings",
             num_rows=1000
@@ -45,7 +42,13 @@ def test_func(tb):
         )
         path = Path(input_path + "ml-1m/")
         path.mkdir(parents=True, exist_ok=True)
-        np.savetxt(input_path + 'ml-1m/ratings.dat', mock_data.values, delimiter='::', fmt='%s',encoding='utf-8')
+        np.savetxt(
+            input_path + 'ml-1m/ratings.dat',
+            mock_data.values,
+            delimiter='::',
+            fmt='%s',
+            encoding='utf-8'
+        )
         """
     )
     tb.execute()

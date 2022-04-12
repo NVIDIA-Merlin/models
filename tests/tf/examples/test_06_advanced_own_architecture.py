@@ -5,6 +5,7 @@ from testbook import testbook
 
 pytestmark = pytest.mark.example
 
+
 @testbook("examples/06-Define-your-own-architecture-with-Merlin-Models.ipynb", execute=False)
 def test_func(tb):
     tb.inject(
@@ -29,6 +30,6 @@ def test_func(tb):
         "loss",
         "rating_binary/binary_classification_task/auc",
         "regularization_loss",
-        "total_loss"
+        "total_loss",
     ]
-    assert os.path.isdir('custom_dlrm')
+    assert os.path.isdir("custom_dlrm")
