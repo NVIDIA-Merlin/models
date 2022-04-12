@@ -14,10 +14,11 @@
 # limitations under the License.
 #
 
+import numpy as np
 import pytest
 from tensorflow.python.ops import init_ops_v2
 
-import merlin.models.tf as ml
+import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
@@ -26,10 +27,10 @@ from merlin.schema import Tags
 def test_embedding_features(tf_cat_features):
     dim = 15
     feature_config = {
-        f: ml.FeatureConfig(ml.TableConfig(100, dim, name=f, initializer=None))
+        f: mm.FeatureConfig(mm.TableConfig(100, dim, name=f, initializer=None))
         for f in tf_cat_features.keys()
     }
-    embeddings = ml.EmbeddingFeatures(feature_config)(tf_cat_features)
+    embeddings = mm.EmbeddingFeatures(feature_config)(tf_cat_features)
 
     assert list(embeddings.keys()) == list(feature_config.keys())
     assert all([emb.shape[-1] == dim for emb in embeddings.values()])
@@ -38,8 +39,8 @@ def test_embedding_features(tf_cat_features):
 def test_embedding_features_yoochoose(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    emb_module = ml.EmbeddingFeatures.from_schema(schema)
-    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    emb_module = mm.EmbeddingFeatures.from_schema(schema)
+    embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
     assert all(emb.shape[-1] == 64 for emb in embeddings.values())
@@ -48,7 +49,7 @@ def test_embedding_features_yoochoose(testing_data: Dataset):
 
 
 def test_serialization_embedding_features(testing_data: Dataset):
-    inputs = ml.EmbeddingFeatures.from_schema(testing_data.schema)
+    inputs = mm.EmbeddingFeatures.from_schema(testing_data.schema)
 
     copy_layer = testing_utils.assert_serialization(inputs)
 
@@ -67,8 +68,8 @@ def test_serialization_embedding_features(testing_data: Dataset):
 def test_embedding_features_yoochoose_model(music_streaming_data: Dataset, run_eagerly):
     schema = music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    inputs = ml.EmbeddingFeatures.from_schema(schema, aggregation="concat")
-    body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
+    inputs = mm.EmbeddingFeatures.from_schema(schema, aggregation="concat")
+    body = mm.SequentialBlock([inputs, mm.MLPBlock([64])])
 
     testing_utils.assert_body_works_in_model(music_streaming_data, body, run_eagerly)
 
@@ -76,14 +77,14 @@ def test_embedding_features_yoochoose_model(music_streaming_data: Dataset, run_e
 def test_embedding_features_yoochoose_custom_dims(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    emb_module = ml.EmbeddingFeatures.from_schema(
+    emb_module = mm.EmbeddingFeatures.from_schema(
         schema,
-        embedding_options=ml.EmbeddingOptions(
+        embedding_options=mm.EmbeddingOptions(
             embedding_dims={"item_id": 100}, embedding_dim_default=64
         ),
     )
 
-    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert emb_module.embedding_tables["item_id"].shape[1] == 100
     assert emb_module.embedding_tables["categories"].shape[1] == 64
@@ -95,14 +96,14 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: Dataset):
 def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    emb_module = ml.EmbeddingFeatures.from_schema(
+    emb_module = mm.EmbeddingFeatures.from_schema(
         schema,
-        embedding_options=ml.EmbeddingOptions(
+        embedding_options=mm.EmbeddingOptions(
             infer_embedding_sizes=True, infer_embedding_sizes_multiplier=3.0
         ),
     )
 
-    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert emb_module.embedding_tables["item_id"].shape[1] == 46
     assert emb_module.embedding_tables["categories"].shape[1] == 13
@@ -119,9 +120,9 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset)
     CATEGORY_STD = 0.1
 
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
-    emb_module = ml.EmbeddingFeatures.from_schema(
+    emb_module = mm.EmbeddingFeatures.from_schema(
         schema,
-        embedding_options=ml.EmbeddingOptions(
+        embedding_options=mm.EmbeddingOptions(
             embeddings_initializers={
                 "item_id": init_ops_v2.TruncatedNormal(mean=ITEM_MEAN, stddev=ITEM_STD),
                 "categories": init_ops_v2.TruncatedNormal(mean=CATEGORY_MEAN, stddev=CATEGORY_STD),
@@ -129,7 +130,7 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset)
         ),
     )
 
-    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert embeddings["item_id"].numpy().mean() == pytest.approx(ITEM_MEAN, abs=0.1)
     assert embeddings["item_id"].numpy().std() == pytest.approx(ITEM_STD, abs=0.1)
@@ -138,8 +139,31 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset)
     assert embeddings["categories"].numpy().std() == pytest.approx(CATEGORY_STD, abs=0.1)
 
 
+def test_embedding_features_yoochoose_pretrained_initializer(testing_data: Dataset):
+    schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+
+    pretrained_emb_item_ids = np.random.random((51997, 64))
+    pretrained_emb_categories = np.random.random((332, 64))
+
+    emb_module = mm.EmbeddingFeatures.from_schema(
+        schema,
+        embedding_options=mm.EmbeddingOptions(
+            embeddings_initializers={
+                "item_id": mm.TensorInitializer(pretrained_emb_item_ids),
+                "categories": mm.TensorInitializer(pretrained_emb_categories),
+            },
+        ),
+    )
+
+    # Calling the first batch, so that embedding tables are build
+    _ = emb_module(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
+
+    assert np.allclose(emb_module.embedding_tables["item_id"].numpy(), pretrained_emb_item_ids)
+    assert np.allclose(emb_module.embedding_tables["categories"].numpy(), pretrained_emb_categories)
+
+
 def test_shared_embeddings(music_streaming_data: Dataset):
-    inputs = ml.InputBlock(music_streaming_data.schema)
+    inputs = mm.InputBlock(music_streaming_data.schema)
 
     embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)
 
