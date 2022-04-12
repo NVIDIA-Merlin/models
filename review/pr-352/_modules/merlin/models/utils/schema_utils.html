@@ -209,18 +209,65 @@
     <span class="k">return</span> <span class="n">outputs</span></div>
 
 
-<div class="viewcode-block" id="get_embedding_sizes_from_schema"><a class="viewcode-back" href="../../../../generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html#merlin.models.utils.schema_utils.get_embedding_sizes_from_schema">[docs]</a><span class="k">def</span> <span class="nf">get_embedding_sizes_from_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="get_embedding_sizes_from_schema"><a class="viewcode-back" href="../../../../generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html#merlin.models.utils.schema_utils.get_embedding_sizes_from_schema">[docs]</a><span class="k">def</span> <span class="nf">get_embedding_sizes_from_schema</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">ensure_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Provides a heristic (from Google) that suggests the embedding sizes</span>
+<span class="sd">    as a function (forth root) of categorical features cardinalities, obtained</span>
+<span class="sd">    from the schema.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    schema : Schema</span>
+<span class="sd">        Featires schema</span>
+<span class="sd">    multiplier : float, optional</span>
+<span class="sd">        Multiplier to be applied on the forth root of the cardinality.</span>
+<span class="sd">        Google recommends multiplier in the [2.0,10.0] range, by default 2.0</span>
+<span class="sd">    ensure_multiple_of_8 : bool, optional</span>
+<span class="sd">        If enabled, adjusts the embedding dim to the smallest greater</span>
+<span class="sd">        number multiple of 8, to ensure best performance with GPU ops, by default False</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Dict[str, int]</span>
+<span class="sd">        A dict with the feature names and the suggested embedding sizes based</span>
+<span class="sd">        on the features cardinalities obtained from the schema</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cardinalities</span> <span class="o">=</span> <span class="n">categorical_cardinalities</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
-        <span class="n">key</span><span class="p">:</span> <span class="n">get_embedding_size_from_cardinality</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">)</span>
+        <span class="n">key</span><span class="p">:</span> <span class="n">get_embedding_size_from_cardinality</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">ensure_multiple_of_8</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">cardinalities</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span></div>
 
 
-<div class="viewcode-block" id="get_embedding_size_from_cardinality"><a class="viewcode-back" href="../../../../generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality">[docs]</a><span class="k">def</span> <span class="nf">get_embedding_size_from_cardinality</span><span class="p">(</span><span class="n">cardinality</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="get_embedding_size_from_cardinality"><a class="viewcode-back" href="../../../../generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality">[docs]</a><span class="k">def</span> <span class="nf">get_embedding_size_from_cardinality</span><span class="p">(</span>
+    <span class="n">cardinality</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">ensure_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Provides a heristic (from Google) that suggests the embedding</span>
+<span class="sd">    dimension as a function (forth root) of the feature cardinality.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    cardinality : int</span>
+<span class="sd">        The number of unique values of a categorical feature</span>
+<span class="sd">    multiplier : float, optional</span>
+<span class="sd">        Multiplier to be applied on the forth root of the cardinality.</span>
+<span class="sd">        Google recommends multiplier in the [2.0,10.0] range, by default 2.0</span>
+<span class="sd">    ensure_multiple_of_8 : bool, optional</span>
+<span class="sd">        If enabled, adjusts the embedding dim to the smallest greater</span>
+<span class="sd">        number multiple of 8, to ensure best performance with GPU ops, by default False</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    int</span>
+<span class="sd">        The suggested embedding dimension based on the feature cardinality</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># A rule-of-thumb from Google.</span>
     <span class="n">embedding_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">cardinality</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">*</span> <span class="n">multiplier</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">ensure_multiple_of_8</span><span class="p">:</span>
+        <span class="n">embedding_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">embedding_size</span> <span class="o">/</span> <span class="mi">8</span><span class="p">))</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">embedding_size</span></div>
 </pre></div>
