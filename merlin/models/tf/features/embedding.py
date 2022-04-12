@@ -57,6 +57,7 @@ class EmbeddingOptions:
     embedding_dim_default: Optional[int] = 64
     infer_embedding_sizes: bool = False
     infer_embedding_sizes_multiplier: float = 2.0
+    infer_embeddings_ensure_dim_multiple_of_8: bool = False
     embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None
     combiner: Optional[str] = "mean"
 
@@ -112,6 +113,26 @@ class EmbeddingFeatures(TabularBlock):
         max_sequence_length: Optional[int] = None,
         **kwargs,
     ) -> Optional["EmbeddingFeatures"]:
+        """Instantiates embedding features from the schema
+
+        Parameters
+        ----------
+        schema : Schema
+            The features chema
+        embedding_options : EmbeddingOptions, optional
+            An EmbeddingOptions instance, which allows for a number of
+            options for the embedding table, by default EmbeddingOptions()
+        tags : Optional[TagsType], optional
+            If provided, keeps only features from those tags, by default None
+        max_sequence_length : Optional[int], optional
+            Maximum sequence length of sparse features (if any), by default None
+
+        Returns
+        -------
+        EmbeddingFeatures
+            An instance of EmbeddingFeatures block, with the embedding
+            layers created under-the-hood
+        """
         schema_copy = copy(schema)
 
         if tags:
@@ -120,7 +141,9 @@ class EmbeddingFeatures(TabularBlock):
         embedding_dims = embedding_options.embedding_dims
         if embedding_options.infer_embedding_sizes:
             embedding_dims = schema_utils.get_embedding_sizes_from_schema(
-                schema, embedding_options.infer_embedding_sizes_multiplier
+                schema,
+                embedding_options.infer_embedding_sizes_multiplier,
+                embedding_options.infer_embeddings_ensure_dim_multiple_of_8,
             )
 
         embedding_dims = embedding_dims or {}
