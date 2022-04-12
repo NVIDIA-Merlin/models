@@ -362,7 +362,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Whether to use a residual connection or not.
 
         """
-        from merlin.models.tf.blocks.core.base import NoOp
         from merlin.models.tf.blocks.core.combinators import ParallelBlock
 
         repeated = {}
@@ -453,6 +452,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         self,
         block: Union[tf.keras.layers.Layer, str],
         shortcut_filter: Optional["Filter"] = None,
+        shortcut_name: str = "shortcut",
         post: Optional[BlockType] = None,
         aggregation: Optional["TabularAggregationType"] = None,
         block_outputs_name: Optional[str] = None,
@@ -478,6 +478,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         residual_block = WithShortcut(
             _block,
             shortcut_filter=shortcut_filter,
+            shortcut_name=shortcut_name,
             post=post,
             aggregation=aggregation,
             block_outputs_name=block_outputs_name,
@@ -498,7 +499,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
         append: bool
             Whether to append the debug block to the block or to prepend it.
         """
-        from merlin.models.tf.blocks.core.base import Debug
         from merlin.models.tf.blocks.core.combinators import SequentialBlock
 
         if not append:

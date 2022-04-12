@@ -15,18 +15,26 @@
 #
 import os
 
+import pytest
+
 import merlin.models.tf as ml
 from merlin.io import Dataset
 from merlin.schema import Tags
 
 
-def test_matrix_factorization_block(music_streaming_data: Dataset):
-    mf = ml.QueryItemIdsEmbeddingsBlock(music_streaming_data.schema, dim=128)
+@pytest.mark.parametrize("output_ids", [True, False])
+def test_matrix_factorization_block(music_streaming_data: Dataset, output_ids: bool):
+    mf = ml.QueryItemIdsEmbeddingsBlock(music_streaming_data.schema, dim=128, output_ids=output_ids)
 
     outputs = mf(ml.sample_batch(music_streaming_data, batch_size=100, include_targets=False))
 
+    assert len(outputs) == 4 if output_ids else 2
     assert "query" in outputs
     assert "item" in outputs
+
+    if output_ids:
+        assert "query_id" in outputs
+        assert "item_id" in outputs
 
 
 def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tmp_path):

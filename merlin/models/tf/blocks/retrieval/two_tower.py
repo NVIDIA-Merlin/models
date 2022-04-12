@@ -82,6 +82,9 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
         item_tower: Optional[Block] = None,
         query_tower_tag=Tags.USER,
         item_tower_tag=Tags.ITEM,
+        query_id_tag=Tags.USER_ID,
+        item_id_tag=Tags.ITEM_ID,
+        output_ids: bool = True,
         embedding_options: EmbeddingOptions = EmbeddingOptions(
             embedding_dims=None,
             embedding_dim_default=64,
@@ -116,4 +119,12 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
             query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
             query_tower = query_inputs.connect(query_tower).connect(L2Norm())
 
-        super().__init__(query_tower, _item_tower, post=post, **kwargs)
+        super().__init__(
+            query_block=query_tower,
+            item_block=_item_tower,
+            query_id_tag=query_id_tag,
+            item_id_tag=item_id_tag,
+            output_ids=output_ids,
+            post=post,
+            **kwargs,
+        )

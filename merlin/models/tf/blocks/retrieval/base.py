@@ -27,6 +27,7 @@ from merlin.models.tf.blocks.core.base import (
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
+from merlin.models.tf.blocks.core.transformations import RenameFeatures
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
@@ -36,7 +37,7 @@ from merlin.models.tf.utils.tf_utils import (
     rescore_false_negatives,
 )
 from merlin.models.utils.constants import MIN_FLOAT
-from merlin.schema import Schema
+from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin_models")
 
@@ -60,10 +61,16 @@ class RetrievalMixin:
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DualEncoderBlock(ParallelBlock):
+    QUERY_BRANCH_NAME = "query"
+    ITEM_BRANCH_NAME = "item"
+
     def __init__(
         self,
         query_block: Block,
         item_block: Block,
+        query_id_tag=Tags.USER_ID,
+        item_id_tag=Tags.ITEM_ID,
+        output_ids: bool = True,
         pre: Optional[BlockType] = None,
         post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
@@ -97,9 +104,32 @@ class DualEncoderBlock(ParallelBlock):
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 
+        if output_ids:
+            query_id = query_block.schema.select_by_tag(query_id_tag)
+            query_filter = Filter(query_id).connect(
+                RenameFeatures({query_id.first.name: "query_id"})
+            )
+            query_branch = Filter(query_block.schema).connect_with_shortcut(
+                self._query_block,
+                shortcut_filter=query_filter,
+                block_outputs_name="query",
+                shortcut_name="query_id",
+            )
+            item_id = item_block.schema.select_by_tag(item_id_tag)
+            item_filter = Filter(item_id).connect(RenameFeatures({item_id.first.name: "item_id"}))
+            item_branch = Filter(item_block.schema).connect_with_shortcut(
+                self._item_block,
+                shortcut_filter=item_filter,
+                block_outputs_name="item",
+                shortcut_name="item_id",
+            )
+        else:
+            query_branch = Filter(query_block.schema).connect(self._query_block)
+            item_branch = Filter(item_block.schema).connect(self._item_block)
+
         branches = {
-            "query": Filter(query_block.schema).connect(self._query_block),
-            "item": Filter(item_block.schema).connect(self._item_block),
+            self.QUERY_BRANCH_NAME: query_branch,
+            self.ITEM_BRANCH_NAME: item_branch,
         }
 
         super().__init__(

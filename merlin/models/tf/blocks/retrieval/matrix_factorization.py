@@ -35,9 +35,9 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
         The `Schema` with the input features
     dim : int
         Dimension of the user and item embeddings
-    query_id_tag : _type_, optional
+    query_id_tag : Tags, optional
         The tag to select the user id feature, by default `Tags.USER_ID`
-    item_id_tag : _type_, optional
+    item_id_tag : Tags, optional
         The tag to select the item id feature, by default `Tags.ITEM_ID`
     embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]], optional
         Dict where keys are feature names and values are callable to initialize embedding tables
@@ -49,6 +49,7 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
         dim: int,
         query_id_tag=Tags.USER_ID,
         item_id_tag=Tags.ITEM_ID,
+        output_ids: bool = True,
         embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
         **kwargs,
     ):
@@ -58,21 +59,28 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
             embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
         )
 
-        rename_features = RenameFeatures(
-            {query_id_tag: "query", item_id_tag: "item"}, schema=schema
-        )
         post = kwargs.pop("post", None)
-        if post:
-            post = rename_features.connect(post)
-        else:
-            post = rename_features
+        if not output_ids:
+            rename_features = RenameFeatures(
+                {query_id_tag: "query", item_id_tag: "item"}, schema=schema
+            )
+            if post:
+                post = rename_features.connect(post)
+            else:
+                post = rename_features
 
         embedding = lambda s: EmbeddingFeatures.from_schema(  # noqa
             s, embedding_options=embedding_options, aggregation="concat"
         )
 
         super().__init__(  # type: ignore
-            embedding(query_schema), embedding(item_schema), post=post, **kwargs
+            query_block=embedding(query_schema),
+            item_block=embedding(item_schema),
+            query_id_tag=query_id_tag,
+            item_id_tag=item_id_tag,
+            output_ids=output_ids,
+            post=post,
+            **kwargs,
         )
 
     def export_embedding_table(self, table_name: Union[str, Tags], export_path: str, gpu=True):

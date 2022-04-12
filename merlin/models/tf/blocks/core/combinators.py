@@ -369,8 +369,10 @@ class ParallelBlock(TabularBlock):
             self.context(inputs)
 
         outputs = {}
-        if isinstance(inputs, dict) and all(
-            name in inputs for name in list(self.parallel_dict.keys())
+        if (
+            isinstance(inputs, dict)
+            and len(inputs) == len(self.parallel_dict)
+            and all(name in inputs for name in list(self.parallel_dict.keys()))
         ):
             for name, block in self.parallel_dict.items():
                 out = block(inputs[name])
@@ -447,6 +449,7 @@ class WithShortcut(ParallelBlock):
         self,
         block: Union[tf.keras.layers.Layer, Block],
         shortcut_filter: Optional[Filter] = None,
+        shortcut_name: str = "shortcut",
         aggregation=None,
         post: Optional[BlockType] = None,
         schema: Optional[Schema] = None,
@@ -457,7 +460,7 @@ class WithShortcut(ParallelBlock):
     ):
         block_outputs_name = block_outputs_name or block.name
         shortcut = shortcut_filter if shortcut_filter else NoOp()
-        inputs = {block_outputs_name: block, "shortcut": shortcut}
+        inputs = {block_outputs_name: block, shortcut_name: shortcut}
         super().__init__(
             inputs,
             post=post,
