@@ -156,7 +156,6 @@ Losses
 
    CategoricalCrossEntropy
    SparseCategoricalCrossEntropy
-   AdaptiveHingeLoss
    BPRLoss
    BPRmaxLoss
    HingeLoss
