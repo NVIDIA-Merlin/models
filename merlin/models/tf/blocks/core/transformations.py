@@ -24,7 +24,7 @@ from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
-from merlin.models.tf.utils.tf_utils import transform_label_to_onehot
+from merlin.models.tf.utils.tf_utils import df_to_tensor, transform_label_to_onehot
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
@@ -556,3 +556,76 @@ class LabelToOneHot(Block):
         targets = transform_label_to_onehot(targets, num_classes)
 
         return outputs.copy_with_updates(targets=targets)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class PopularityLogitsCorrection(Block):
+    """Correct the predicted logit scores based on the item frequency
+
+    This first implementation requires the user to provide
+    the item frequency table.
+
+    TODO: Use the schema to infer the path to the item frequency parquet table
+
+    Parameters:
+    ----------
+    item_frequency : Union[tf.Tensor]
+        The item frequency table
+    """
+
+    def __init__(self, item_frequency: Union[tf.Tensor, str], **kwargs):
+        super().__init__(**kwargs)
+        candidate_probabilities = tf.cast(
+            item_frequency / tf.reduce_sum(item_frequency), tf.float32
+        )
+        self.candidate_probabilities = tf.Variable(
+            candidate_probabilities,
+            name="candidate_probabilities",
+            trainable=False,
+            dtype=tf.float32,
+            validate_shape=False,
+            shape=tf.shape(candidate_probabilities),
+        )
+
+    @classmethod
+    def from_parquet(cls, frequency_path: str, frequency_col: str, gpu: bool = True):
+        """Load the item frequency table from a parquet file.
+
+        It supposed the table is indexed by item ids.
+
+        Parameters
+        ----------
+        frequency_path : str
+            path to the parquet file
+        frequency_col : str
+            column name containing the items frequencies
+        gpu : bool, optional
+            whether to load data using cudf, by default True
+
+        Returns
+        -------
+        PopularityLogitsCorrection
+        """
+        if gpu:
+            import cudf
+
+            df = cudf.read_parquet(frequency_path)
+            item_frequency = tf.squeeze(df_to_tensor(df[frequency_col]))
+        else:
+            import pandas as pd
+
+            df = pd.read_parquet(frequency_path)
+            item_frequency = tf.squeeze(tf.convert_to_tensor(df[frequency_col].values))
+        return cls(item_frequency=item_frequency)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def call_outputs(
+        self, outputs: PredictionOutput, training=True, **kwargs
+    ) -> "PredictionOutput":
+        predictions = outputs.predictions
+        label_ids = outputs.label_ids
+        candidate_probability = tf.gather(self.candidate_probabilities, label_ids)
+        corrected_predictions = predictions - tf.math.log(candidate_probability)
+        return outputs.copy_with_updates(predictions=corrected_predictions)

@@ -49,6 +49,7 @@ class PredictionOutput(NamedTuple):
     positive_item_ids: Optional[tf.Tensor] = None
     label_relevant_counts: Optional[tf.Tensor] = None
     valid_negatives_mask: Optional[tf.Tensor] = None
+    label_ids: Optional[tf.Tensor] = None
 
     def copy_with_updates(
         self,
@@ -57,6 +58,7 @@ class PredictionOutput(NamedTuple):
         positive_item_ids: Optional[tf.Tensor] = None,
         label_relevant_counts: Optional[tf.Tensor] = None,
         valid_negatives_mask: Optional[tf.Tensor] = None,
+        label_ids: Optional[tf.Tensor] = None,
     ):
         """Creates a new instance of PredictionOutput
         allowing to override the attributes for the copy
@@ -75,6 +77,7 @@ class PredictionOutput(NamedTuple):
             valid_negatives_mask=(
                 self.valid_negatives_mask if valid_negatives_mask is None else valid_negatives_mask
             ),
+            label_ids=(self.label_ids if label_ids is None else label_ids),
         )
         return output
 
