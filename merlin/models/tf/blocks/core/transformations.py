@@ -559,6 +559,7 @@ class LabelToOneHot(Block):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
+@requires_schema
 class PopularityLogitsCorrection(Block):
     """Correct the predicted logit scores based on the item frequency
 
@@ -573,8 +574,15 @@ class PopularityLogitsCorrection(Block):
         The item frequency table
     """
 
-    def __init__(self, item_frequency: Union[tf.Tensor, str], **kwargs):
+    def __init__(self, item_frequency: tf.Tensor, schema: Schema = None, **kwargs):
         super().__init__(**kwargs)
+        if schema:
+            self.set_schema(schema)
+        self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
+        item_id_feature_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+
+        assert tf.shape(item_frequency)[0] == self.cardinalities[item_id_feature_name]
+
         candidate_probabilities = tf.cast(
             item_frequency / tf.reduce_sum(item_frequency), tf.float32
         )
@@ -588,7 +596,14 @@ class PopularityLogitsCorrection(Block):
         )
 
     @classmethod
-    def from_parquet(cls, frequency_path: str, frequency_col: str, gpu: bool = True):
+    def from_parquet(
+        cls,
+        frequency_path: str,
+        frequency_col: str,
+        gpu: bool = True,
+        schema: Schema = None,
+        **kwargs,
+    ):
         """Load the item frequency table from a parquet file.
 
         It supposed the table is indexed by item ids.
@@ -616,7 +631,7 @@ class PopularityLogitsCorrection(Block):
 
             df = pd.read_parquet(frequency_path)
             item_frequency = tf.squeeze(tf.convert_to_tensor(df[frequency_col].values))
-        return cls(item_frequency=item_frequency)
+        return cls(item_frequency=item_frequency, schema=schema, **kwargs)
 
     def compute_output_shape(self, input_shape):
         return input_shape
@@ -625,7 +640,19 @@ class PopularityLogitsCorrection(Block):
         self, outputs: PredictionOutput, training=True, **kwargs
     ) -> "PredictionOutput":
         predictions = outputs.predictions
-        label_ids = outputs.label_ids
-        candidate_probability = tf.gather(self.candidate_probabilities, label_ids)
+        positives, negatives = outputs.positive_item_ids, outputs.negative_item_ids
+
+        if negatives is not None:
+            negative_probability = tf.gather(self.candidate_probabilities, negatives)
+        positive_probability = tf.gather(self.candidate_probabilities, positives)
+
+        # repeat negative scores for each positive item
+        negative_probability = tf.reshape(
+            tf.tile(negative_probability, tf.shape(positives)[0:1]), (-1, tf.shape(negatives)[0])
+        )
+
+        candidate_probability = tf.concat(
+            [tf.expand_dims(positive_probability, -1), negative_probability], axis=1
+        )
         corrected_predictions = predictions - tf.math.log(candidate_probability)
         return outputs.copy_with_updates(predictions=corrected_predictions)

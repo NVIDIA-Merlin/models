@@ -62,6 +62,8 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         normalize: bool
             Apply L2 normalization before computing dot interactions.
             Defaults to True.
+        popularity_sampling_block: Optional[Block]
+            Optional block to correct logits based on items popularity.
 
     Returns
     -------
@@ -85,11 +87,14 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         logits_temperature: float = 1.0,
         normalize: bool = True,
         cache_query: bool = False,
+        popularity_sampling_block: Optional[Block] = None,
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.cache_query = cache_query
-        pre = self._build_prediction_call(samplers, normalize, logits_temperature, extra_pre_call)
+        pre = self._build_prediction_call(
+            samplers, normalize, logits_temperature, extra_pre_call, popularity_sampling_block
+        )
         self.loss = loss_registry.parse(loss)
 
         super().__init__(
@@ -111,6 +116,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         normalize: bool,
         logits_temperature: float,
         extra_pre_call: Optional[Block] = None,
+        popularity_sampling_block: Optional[Block] = None,
     ):
         if samplers is None or len(samplers) == 0:
             samplers = (InBatchSampler(),)
@@ -123,7 +129,8 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
         if normalize:
             prediction_call = L2Norm().connect(prediction_call)
-
+        if popularity_sampling_block:
+            prediction_call = prediction_call.connect(popularity_sampling_block)
         if logits_temperature != 1:
             prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
 
