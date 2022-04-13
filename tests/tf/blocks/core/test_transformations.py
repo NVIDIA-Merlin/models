@@ -23,6 +23,11 @@ import merlin.models.tf as ml
 from merlin.models.utils.schema_utils import create_categorical_column, create_continuous_column
 from merlin.schema import Schema, Tags
 
+try: 
+    import cudf 
+    gpu = [False, True]
+except:
+    gpu = [False]
 
 @pytest.mark.parametrize("replacement_prob", [0.1, 0.3, 0.5, 0.7])
 def test_stochastic_swap_noise(replacement_prob):
@@ -219,7 +224,7 @@ def test_popularity_logits_correct():
     np.testing.assert_array_less(logits, corrected_logits)
 
 
-@pytest.mark.parametrize("gpu", [True, False])
+@pytest.mark.parametrize("gpu", gpu)
 def test_popularity_logits_correct_from_parquet(gpu):
     import numpy as np
     import pandas as pd

@@ -343,7 +343,8 @@ def test_retrieval_task_inbatch_cached_samplers_with_logits_correction(ecommerce
         ecommerce_data.schema,
         logits_temperature=2,
         samplers=samplers,
-        popularity_sampling_block=popularity_sampling_block,
+        post_logits=popularity_sampling_block,
+        store_negative_ids=True,
     )
     model = two_tower.connect(task)
 

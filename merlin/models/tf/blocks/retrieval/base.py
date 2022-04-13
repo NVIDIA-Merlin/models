@@ -158,7 +158,7 @@ class ItemRetrievalScorer(Block):
         Add query embeddings to the context block, by default False
     sampled_softmax_mode: bool
         Use sampled softmax for scoring, by default False
-    store_negatives: bool
+    store_negative_ids: bool
         Returns negative items ids as part of the output, by default False
     """
 
@@ -172,7 +172,7 @@ class ItemRetrievalScorer(Block):
         item_name: str = "item",
         cache_query: bool = False,
         sampled_softmax_mode: bool = False,
-        store_negatives: bool = False,
+        store_negative_ids: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -183,7 +183,7 @@ class ItemRetrievalScorer(Block):
         self.query_name = query_name
         self.item_name = item_name
         self.cache_query = cache_query
-        self.store_negatives = store_negatives
+        self.store_negative_ids = store_negative_ids
 
         if not isinstance(samplers, (list, tuple)):
             samplers = (samplers,)  # type: ignore
@@ -381,7 +381,7 @@ class ItemRetrievalScorer(Block):
                 predictions[self.query_name], neg_items_embeddings, transpose_b=True
             )
 
-            if self.downscore_false_negatives or self.store_negatives:
+            if self.downscore_false_negatives or self.store_negative_ids:
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:

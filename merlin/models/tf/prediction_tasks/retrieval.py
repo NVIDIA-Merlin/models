@@ -45,8 +45,10 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             Defaults to a number of ranking metrics.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
-        extra_pre_call: Optional[PredictionBlock]
-            Optional extra pre-call block. Defaults to None.
+        post_logits: Optional[PredictionBlock]
+            Optional extra pre-call block for post-processing the logits, by default None.
+            You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`
+            for populariy sampling correction.
         target_name: Optional[str]
             If specified, name of the target tensor to retrieve from dataloader.
             Defaults to None.
@@ -62,9 +64,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         normalize: bool
             Apply L2 normalization before computing dot interactions.
             Defaults to True.
-        popularity_sampling_block: Optional[Block]
-            Optional block to correct logits based on items popularity.
-
     Returns
     -------
         PredictionTask
@@ -83,17 +82,21 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        extra_pre_call: Optional[Block] = None,
+        post_logits: Optional[Block] = None,
         logits_temperature: float = 1.0,
         normalize: bool = True,
         cache_query: bool = False,
-        popularity_sampling_block: Optional[Block] = None,
+        store_negative_ids: bool = False,
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.cache_query = cache_query
         pre = self._build_prediction_call(
-            samplers, normalize, logits_temperature, extra_pre_call, popularity_sampling_block
+            samplers,
+            normalize,
+            logits_temperature,
+            post_logits,
+            store_negative_ids,
         )
         self.loss = loss_registry.parse(loss)
 
@@ -115,8 +118,9 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         samplers: Sequence[ItemSampler],
         normalize: bool,
         logits_temperature: float,
-        extra_pre_call: Optional[Block] = None,
-        popularity_sampling_block: Optional[Block] = None,
+        post_logits: Optional[Block] = None,
+        store_negative_ids: bool = False,
+        **kwargs,
     ):
         if samplers is None or len(samplers) == 0:
             samplers = (InBatchSampler(),)
@@ -125,17 +129,16 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             samplers=samplers,
             item_id_feature_name=self.item_id_feature_name,
             cache_query=self.cache_query,
+            store_negative_ids=store_negative_ids,
         )
-
         if normalize:
             prediction_call = L2Norm().connect(prediction_call)
-        if popularity_sampling_block:
-            prediction_call = prediction_call.connect(popularity_sampling_block)
+
+        if post_logits is not None:
+            prediction_call = prediction_call.connect(post_logits)
+
         if logits_temperature != 1:
             prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
-
-        if extra_pre_call is not None:
-            prediction_call = prediction_call.connect(extra_pre_call)
 
         return prediction_call
 

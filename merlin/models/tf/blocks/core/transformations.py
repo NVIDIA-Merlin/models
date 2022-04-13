@@ -574,15 +574,19 @@ class PopularityLogitsCorrection(Block):
         The item frequency table
     """
 
-    def __init__(self, item_frequency: tf.Tensor, schema: Schema = None, **kwargs):
+    def __init__(
+        self,
+        item_frequency: tf.Tensor,
+        schema: Schema = None,
+        compute_probabilities: bool = True,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         if schema:
             self.set_schema(schema)
-        self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
-        item_id_feature_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
 
-        assert tf.shape(item_frequency)[0] == self.cardinalities[item_id_feature_name]
-
+        self.check_items_cardinality(item_frequency)
+        
         candidate_probabilities = tf.cast(
             item_frequency / tf.reduce_sum(item_frequency), tf.float32
         )
@@ -633,6 +637,11 @@ class PopularityLogitsCorrection(Block):
             item_frequency = tf.squeeze(tf.convert_to_tensor(df[frequency_col].values))
         return cls(item_frequency=item_frequency, schema=schema, **kwargs)
 
+    def update(self, candidate_probabilities: tf.Tensor):
+        self.check_items_cardinality(candidate_probabilities)
+        self.candidate_probabilities.assign(candidate_probabilities)
+        return self
+
     def compute_output_shape(self, input_shape):
         return input_shape
 
@@ -656,3 +665,11 @@ class PopularityLogitsCorrection(Block):
         )
         corrected_predictions = predictions - tf.math.log(candidate_probability)
         return outputs.copy_with_updates(predictions=corrected_predictions)
+
+    def check_items_cardinality(self, item_frequency):
+        cardinalities = schema_utils.categorical_cardinalities(self.schema)
+        item_id_feature_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        if tf.shape(item_frequency)[0] != cardinalities[item_id_feature_name]: 
+            raise ValueError("the item frequency table does not match the item ids caridnality, "\
+            f"expected {cardinalities[item_id_feature_name]}, got {tf.shape(item_frequency)[0]}")
+
