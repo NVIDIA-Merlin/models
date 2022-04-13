@@ -125,6 +125,7 @@
     <span class="n">embedding_dim_default</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">64</span>
     <span class="n">infer_embedding_sizes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">infer_embedding_sizes_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
+    <span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span>
 
@@ -180,6 +181,26 @@
         <span class="n">max_sequence_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;EmbeddingFeatures&quot;</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Instantiates embedding features from the schema</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        schema : Schema</span>
+<span class="sd">            The features chema</span>
+<span class="sd">        embedding_options : EmbeddingOptions, optional</span>
+<span class="sd">            An EmbeddingOptions instance, which allows for a number of</span>
+<span class="sd">            options for the embedding table, by default EmbeddingOptions()</span>
+<span class="sd">        tags : Optional[TagsType], optional</span>
+<span class="sd">            If provided, keeps only features from those tags, by default None</span>
+<span class="sd">        max_sequence_length : Optional[int], optional</span>
+<span class="sd">            Maximum sequence length of sparse features (if any), by default None</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        EmbeddingFeatures</span>
+<span class="sd">            An instance of EmbeddingFeatures block, with the embedding</span>
+<span class="sd">            layers created under-the-hood</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">schema_copy</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
@@ -188,7 +209,9 @@
         <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dims</span>
         <span class="k">if</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes</span><span class="p">:</span>
             <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">get_embedding_sizes_from_schema</span><span class="p">(</span>
-                <span class="n">schema</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes_multiplier</span>
+                <span class="n">schema</span><span class="p">,</span>
+                <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes_multiplier</span><span class="p">,</span>
+                <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">embedding_dims</span> <span class="ow">or</span> <span class="p">{}</span>
