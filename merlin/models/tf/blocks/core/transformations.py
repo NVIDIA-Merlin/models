@@ -570,13 +570,19 @@ class PopularityLogitsCorrection(Block):
 
     Parameters:
     ----------
-    item_frequency : Union[tf.Tensor]
-        The item frequency table
+    item_weights : Union[tf.Tensor]
+        The item frequency table or the candidates probabilities
+    schema: Schema, optional
+        The `Schema` with input features,
+        by default None
+    compute_probabilities: bool, optional
+        Whether to compute the probabilities from the item frequency table or not,
+        by default True
     """
 
     def __init__(
         self,
-        item_frequency: tf.Tensor,
+        item_weights: tf.Tensor,
         schema: Schema = None,
         compute_probabilities: bool = True,
         **kwargs,
@@ -585,18 +591,18 @@ class PopularityLogitsCorrection(Block):
         if schema:
             self.set_schema(schema)
 
-        self.check_items_cardinality(item_frequency)
-        
-        candidate_probabilities = tf.cast(
-            item_frequency / tf.reduce_sum(item_frequency), tf.float32
-        )
+        self.check_items_cardinality(item_weights)
+
+        if compute_probabilities:
+            item_weights = tf.cast(item_weights / tf.reduce_sum(item_weights), tf.float32)
+
         self.candidate_probabilities = tf.Variable(
-            candidate_probabilities,
+            item_weights,
             name="candidate_probabilities",
             trainable=False,
             dtype=tf.float32,
             validate_shape=False,
-            shape=tf.shape(candidate_probabilities),
+            shape=tf.shape(item_weights),
         )
 
     @classmethod
@@ -635,7 +641,7 @@ class PopularityLogitsCorrection(Block):
 
             df = pd.read_parquet(frequency_path)
             item_frequency = tf.squeeze(tf.convert_to_tensor(df[frequency_col].values))
-        return cls(item_frequency=item_frequency, schema=schema, **kwargs)
+        return cls(item_weights=item_frequency, schema=schema, **kwargs)
 
     def update(self, candidate_probabilities: tf.Tensor):
         self.check_items_cardinality(candidate_probabilities)
@@ -666,10 +672,11 @@ class PopularityLogitsCorrection(Block):
         corrected_predictions = predictions - tf.math.log(candidate_probability)
         return outputs.copy_with_updates(predictions=corrected_predictions)
 
-    def check_items_cardinality(self, item_frequency):
+    def check_items_cardinality(self, item_weights):
         cardinalities = schema_utils.categorical_cardinalities(self.schema)
         item_id_feature_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        if tf.shape(item_frequency)[0] != cardinalities[item_id_feature_name]: 
-            raise ValueError("the item frequency table does not match the item ids caridnality, "\
-            f"expected {cardinalities[item_id_feature_name]}, got {tf.shape(item_frequency)[0]}")
-
+        if tf.shape(item_weights)[0] != cardinalities[item_id_feature_name]:
+            raise ValueError(
+                "the item frequency table does not match the item ids caridnality, "
+                f"expected {cardinalities[item_id_feature_name]}, got {tf.shape(item_weights)[0]}"
+            )

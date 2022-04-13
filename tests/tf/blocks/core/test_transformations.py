@@ -23,11 +23,6 @@ import merlin.models.tf as ml
 from merlin.models.utils.schema_utils import create_categorical_column, create_continuous_column
 from merlin.schema import Schema, Tags
 
-try: 
-    import cudf 
-    gpu = [False, True]
-except:
-    gpu = [False]
 
 @pytest.mark.parametrize("replacement_prob", [0.1, 0.3, 0.5, 0.7])
 def test_stochastic_swap_noise(replacement_prob):
@@ -217,15 +212,14 @@ def test_popularity_logits_correct():
     )
 
     corrected_logits = PopularityLogitsCorrection(
-        item_frequency=item_frequency, schema=schema
+        item_weights=item_frequency, schema=schema
     ).call_outputs(outputs=inputs)
 
     corrected_logits = corrected_logits.predictions.numpy()
     np.testing.assert_array_less(logits, corrected_logits)
 
 
-@pytest.mark.parametrize("gpu", gpu)
-def test_popularity_logits_correct_from_parquet(gpu):
+def test_popularity_logits_correct_from_parquet():
     import numpy as np
     import pandas as pd
 
@@ -248,7 +242,7 @@ def test_popularity_logits_correct_from_parquet(gpu):
         corrected_logits = PopularityLogitsCorrection.from_parquet(
             tmpdir + "/frequency_table.parquet",
             frequency_col="frequency",
-            gpu=gpu,
+            gpu=False,
             schema=schema,
         )
     assert corrected_logits.candidate_probabilities.shape == (NUM_ITEMS,)
