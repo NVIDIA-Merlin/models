@@ -352,8 +352,12 @@ def test_retrieval_task_inbatch_cached_samplers_with_logits_correction(ecommerce
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(ecommerce_data, batch_size=50, epochs=1)
+
+    _ = model.evaluate(
+        x=ecommerce_data, batch_size=50, item_corpus=ecommerce_data, return_dict=True
+    )
+
     assert len(losses.epoch) == 1
-    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
 
 @pytest.mark.parametrize("run_eagerly", [True])

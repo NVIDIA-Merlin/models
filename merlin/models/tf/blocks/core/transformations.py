@@ -655,22 +655,24 @@ class PopularityLogitsCorrection(Block):
         self, outputs: PredictionOutput, training=True, **kwargs
     ) -> "PredictionOutput":
         predictions = outputs.predictions
-        positives, negatives = outputs.positive_item_ids, outputs.negative_item_ids
+        if training:
+            positives, negatives = outputs.positive_item_ids, outputs.negative_item_ids
+            candidate_probability = tf.gather(self.candidate_probabilities, positives)
 
-        if negatives is not None:
-            negative_probability = tf.gather(self.candidate_probabilities, negatives)
-        positive_probability = tf.gather(self.candidate_probabilities, positives)
+            if negatives is not None:
+                negative_probability = tf.gather(self.candidate_probabilities, negatives)
+                # repeat negative scores for each positive item
+                negative_probability = tf.reshape(
+                    tf.tile(negative_probability, tf.shape(positives)[0:1]),
+                    (-1, tf.shape(negatives)[0]),
+                )
+                candidate_probability = tf.concat(
+                    [tf.expand_dims(candidate_probability, -1), negative_probability], axis=1
+                )
 
-        # repeat negative scores for each positive item
-        negative_probability = tf.reshape(
-            tf.tile(negative_probability, tf.shape(positives)[0:1]), (-1, tf.shape(negatives)[0])
-        )
+            predictions = predictions - tf.math.log(candidate_probability)
 
-        candidate_probability = tf.concat(
-            [tf.expand_dims(positive_probability, -1), negative_probability], axis=1
-        )
-        corrected_predictions = predictions - tf.math.log(candidate_probability)
-        return outputs.copy_with_updates(predictions=corrected_predictions)
+        return outputs.copy_with_updates(predictions=predictions)
 
     def check_items_cardinality(self, item_weights):
         cardinalities = schema_utils.categorical_cardinalities(self.schema)
