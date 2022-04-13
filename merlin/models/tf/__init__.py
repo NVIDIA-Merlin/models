@@ -150,6 +150,7 @@ __all__ = [
     "ParallelPredictionBlock",
     "TwoTowerBlock",
     "MatrixFactorizationBlock",
+    "QueryItemIdsEmbeddingsBlock",
     "AsDenseFeatures",
     "AsSparseFeatures",
     "CategoricalOneHot",

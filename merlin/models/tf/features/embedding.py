@@ -249,15 +249,28 @@ class EmbeddingFeatures(TabularBlock):
     def table_config(self, feature_name: str):
         return self.feature_config[feature_name].table
 
-    def embedding_table_df(
-        self, table_name: Union[str, Tags], l2_norm: bool = False, gpu: bool = True
-    ):
+    def embedding_vector(self, table_name: Union[str, Tags], l2_norm: bool = False):
         if isinstance(table_name, Tags):
-            table_name = table_name.value
+            feature_names = self.schema.select_by_tag(table_name).column_names
+            if len(feature_names) == 1:
+                table_name = feature_names[0]
+            elif len(feature_names) > 1:
+                raise ValueError(
+                    f"There is more than one feature associated to the tag {table_name}"
+                )
+            else:
+                raise ValueError(f"Could not find a feature associated to the tag {table_name}")
+
         embeddings = self.embedding_tables[table_name]
         if l2_norm:
             embeddings = tf.linalg.l2_normalize(embeddings, axis=-1)
 
+        return embeddings
+
+    def embedding_table_df(
+        self, table_name: Union[str, Tags], l2_norm: bool = False, gpu: bool = True
+    ):
+        embeddings = self.embedding_vector(table_name, l2_norm)
         if gpu:
             import cudf
 

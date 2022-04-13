@@ -605,24 +605,28 @@ class RetrievalModel(Model):
     def query_embeddings(
         self,
         dataset: merlin.io.Dataset,
-        query_tag=Tags.USER,
-        query_id_tag=Tags.USER_ID,
-        batch_size=None,
+        batch_size: int,
+        query_tag: Union[str, Tags] = Tags.USER,
+        query_id_tag: Union[str, Tags] = Tags.USER_ID,
     ) -> merlin.io.Dataset:
         """Export query embeddings from the model.
+
         Parameters
         ----------
-        dataset: merlin.io.Dataset
+        dataset : merlin.io.Dataset
             Dataset to export embeddings from.
-        query_tag: str
-            Tag to use for the query.
-        query_id_tag: str
-            Tag to use for the query id.
-        batch_size: int
+        batch_size : int
             Batch size to use for embedding extraction.
+        query_tag: Union[str, Tags], optional
+            Tag to use for the query.
+        query_id_tag: Union[str, Tags], optional
+            Tag to use for the query id.
+
         Returns
         -------
         merlin.io.Dataset
+            Dataset with the user/query features and the embeddings
+            (one dim per column in the data frame)
         """
         from merlin.models.tf.utils.batch_utils import QueryEmbeddings
 
@@ -636,24 +640,28 @@ class RetrievalModel(Model):
     def item_embeddings(
         self,
         dataset: merlin.io.Dataset,
-        item_tag=Tags.ITEM,
-        item_id_tag=Tags.ITEM_ID,
-        batch_size=None,
+        batch_size: int,
+        item_tag: Union[str, Tags] = Tags.ITEM,
+        item_id_tag: Union[str, Tags] = Tags.ITEM_ID,
     ) -> merlin.io.Dataset:
         """Export item embeddings from the model.
+
         Parameters
         ----------
-        dataset: merlin.io.Dataset
+        dataset : merlin.io.Dataset
             Dataset to export embeddings from.
-        item_tag: str
-            Tag to use for the item.
-        item_id_tag: str
-            Tag to use for the item id.
-        batch_size: int
+        batch_size : int
             Batch size to use for embedding extraction.
+        item_tag : Union[str, Tags], optional
+            Tag to use for the item.
+        item_id_tag : Union[str, Tags], optional
+            Tag to use for the item id, by default Tags.ITEM_ID
+
         Returns
         -------
         merlin.io.Dataset
+            Dataset with the item features and the embeddings
+            (one dim per column in the data frame)
         """
         from merlin.models.tf.utils.batch_utils import ItemEmbeddings
 

@@ -15,6 +15,8 @@
 #
 import os
 
+import tensorflow as tf
+
 import merlin.models.tf as ml
 from merlin.io import Dataset
 from merlin.schema import Tags
@@ -42,6 +44,16 @@ def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tm
     model.compile(optimizer="adam")
 
     model.fit(music_streaming_data, epochs=5, batch_size=100)
+
+    user_embeddings = mf.embedding_vector(Tags.USER_ID)
+    tf.debugging.assert_shapes([(user_embeddings, (10001, 128))])
+
+    item_embeddings = mf.embedding_vector(Tags.ITEM_ID)
+    tf.debugging.assert_shapes([(item_embeddings, (10001, 128))])
+
+    # Checking if embeddings are unit norm (after L2-normalization)
+    tf.debugging.assert_near(1.0, tf.math.sqrt(tf.reduce_sum(tf.square(user_embeddings[0]))))
+    tf.debugging.assert_near(1.0, tf.math.sqrt(tf.reduce_sum(tf.square(item_embeddings[0]))))
 
     item_embedding_parquet = str(tmp_path / "items.parquet")
     mf.export_embedding_table(Tags.ITEM_ID, item_embedding_parquet, gpu=False)
