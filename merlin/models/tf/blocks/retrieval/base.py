@@ -325,7 +325,7 @@ class ItemRetrievalScorer(Block):
             positive_item_ids = targets
         else:
             positive_item_ids = self.context[self.item_id_feature_name]
-        
+
         neg_items_ids = None
         if training or eval_sampling:
 
