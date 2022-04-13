@@ -28,6 +28,8 @@ from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
 from merlin.schema import Schema, Tags
 
+from merlin.models.tf.utils.search_utils import find_single_instance_in_layers
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemRetrievalTask(MultiClassClassificationTask):
@@ -134,19 +136,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
     @property
     def retrieval_scorer(self):
-        def find_retrieval_scorer_block(block):
-            if isinstance(block, ItemRetrievalScorer):
-                return block
-
-            if getattr(block, "layers", None):
-                for subblock in block.layers:
-                    result = find_retrieval_scorer_block(subblock)
-                    if result:
-                        return result
-
-            return None
-
-        result = find_retrieval_scorer_block(self.pre)
+        result = find_single_instance_in_layers(self.pre, ItemRetrievalScorer)
 
         if result is None:
             raise Exception("An ItemRetrievalScorer layer was not found in the model.")

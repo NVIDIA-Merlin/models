@@ -61,6 +61,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         Task name, by default None
     """
 
+    DEFAULT_METRICS = []
+
     def __init__(
         self,
         target_name: Optional[str] = None,
@@ -90,10 +92,10 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
                 metrics = [metrics]
 
         create_metrics = self._create_metrics
-        self.eval_metrics = create_metrics(metrics) if metrics else []
-        self.prediction_metrics = create_metrics(prediction_metrics) if prediction_metrics else []
-        self.label_metrics = create_metrics(label_metrics) if label_metrics else []
-        self.loss_metrics = create_metrics(loss_metrics) if loss_metrics else []
+        # self.eval_metrics = create_metrics(metrics) if metrics else []
+        # self.prediction_metrics = create_metrics(prediction_metrics) if prediction_metrics else []
+        # self.label_metrics = create_metrics(label_metrics) if label_metrics else []
+        # self.loss_metrics = create_metrics(loss_metrics) if loss_metrics else []
         self.compute_train_metrics = compute_train_metrics
 
     @property

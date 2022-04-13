@@ -6,12 +6,15 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime
 import tensorflow as tf
 
 import merlin.io
-from merlin.models.tf.blocks.core.base import Block, BlockContext
+from tensorflow.python.keras.engine import compile_utils, data_adapter
+
+from merlin.models.tf.blocks.core.base import Block, BlockContext, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
+from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
@@ -211,6 +214,32 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     def schema(self) -> Schema:
         return self.block.schema
 
+    @property
+    def prediction_tasks(self) -> Union[PredictionTask, List[PredictionTask]]:
+        from merlin.models.tf.prediction_tasks.base import PredictionTask
+
+        results = find_all_instances_in_layers(self.block, PredictionTask)
+
+        if len(results) == 1:
+            return results[0]
+
+        return results
+
+    def prediction_tasks_by_name(self) -> Dict[str, PredictionTask]:
+        return {task.task_name: task for task in self.prediction_tasks}
+
+    def prediction_tasks_by_target(self) -> Dict[str, List[PredictionTask]]:
+        outputs: Dict[str, Union[PredictionTask, List[PredictionTask]]] = {}
+        for task in self.prediction_tasks:
+            if task.target in outputs:
+                if isinstance(outputs[task.target], list):
+                    outputs[task.target].append(task)
+                else:
+                    outputs[task.target] = [outputs[task.target], task]
+            outputs[task.target] = task
+
+        return outputs
+
     @classmethod
     def from_block(
         cls,
@@ -241,6 +270,132 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             schema, input_block=input_block, prediction_tasks=prediction_tasks, **kwargs
         )
 
+    def compile(self,
+                optimizer='rmsprop',
+                loss=None,
+                metrics=None,
+                loss_weights=None,
+                weighted_metrics=None,
+                run_eagerly=None,
+                steps_per_execution=None,
+                jit_compile=None,
+                **kwargs):
+        """Configures the model for training.
+        Example:
+        ```python
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+                      loss=tf.keras.losses.BinaryCrossentropy(),
+                      metrics=[tf.keras.metrics.BinaryAccuracy(),
+                               tf.keras.metrics.FalseNegatives()])
+        ```
+        Args:
+            optimizer: String (name of optimizer) or optimizer instance. See
+              `tf.keras.optimizers`.
+            loss: Loss function. Maybe be a string (name of loss function), or
+              a `tf.keras.losses.Loss` instance. See `tf.keras.losses`. A loss
+              function is any callable with the signature `loss = fn(y_true,
+              y_pred)`, where `y_true` are the ground truth values, and
+              `y_pred` are the model's predictions.
+              `y_true` should have shape
+              `(batch_size, d0, .. dN)` (except in the case of
+              sparse loss functions such as
+              sparse categorical crossentropy which expects integer arrays of shape
+              `(batch_size, d0, .. dN-1)`).
+              `y_pred` should have shape `(batch_size, d0, .. dN)`.
+              The loss function should return a float tensor.
+              If a custom `Loss` instance is
+              used and reduction is set to `None`, return value has shape
+              `(batch_size, d0, .. dN-1)` i.e. per-sample or per-timestep loss
+              values; otherwise, it is a scalar. If the model has multiple outputs,
+              you can use a different loss on each output by passing a dictionary
+              or a list of losses. The loss value that will be minimized by the
+              model will then be the sum of all individual losses, unless
+              `loss_weights` is specified.
+            metrics: List of metrics to be evaluated by the model during training
+              and testing. Each of this can be a string (name of a built-in
+              function), function or a `tf.keras.metrics.Metric` instance. See
+              `tf.keras.metrics`. Typically you will use `metrics=['accuracy']`. A
+              function is any callable with the signature `result = fn(y_true,
+              y_pred)`. To specify different metrics for different outputs of a
+              multi-output model, you could also pass a dictionary, such as
+              `metrics={'output_a': 'accuracy', 'output_b': ['accuracy', 'mse']}`.
+              You can also pass a list to specify a metric or a list of metrics
+              for each output, such as `metrics=[['accuracy'], ['accuracy', 'mse']]`
+              or `metrics=['accuracy', ['accuracy', 'mse']]`. When you pass the
+              strings 'accuracy' or 'acc', we convert this to one of
+              `tf.keras.metrics.BinaryAccuracy`,
+              `tf.keras.metrics.CategoricalAccuracy`,
+              `tf.keras.metrics.SparseCategoricalAccuracy` based on the loss
+              function used and the model output shape. We do a similar
+              conversion for the strings 'crossentropy' and 'ce' as well.
+            loss_weights: Optional list or dictionary specifying scalar coefficients
+              (Python floats) to weight the loss contributions of different model
+              outputs. The loss value that will be minimized by the model will then
+              be the *weighted sum* of all individual losses, weighted by the
+              `loss_weights` coefficients.
+                If a list, it is expected to have a 1:1 mapping to the model's
+                  outputs. If a dict, it is expected to map output names (strings)
+                  to scalar coefficients.
+            weighted_metrics: List of metrics to be evaluated and weighted by
+              `sample_weight` or `class_weight` during training and testing.
+            run_eagerly: Bool. Defaults to `False`. If `True`, this `Model`'s
+              logic will not be wrapped in a `tf.function`. Recommended to leave
+              this as `None` unless your `Model` cannot be run inside a
+              `tf.function`. `run_eagerly=True` is not supported when using
+              `tf.distribute.experimental.ParameterServerStrategy`.
+            steps_per_execution: Int. Defaults to 1. The number of batches to run
+              during each `tf.function` call. Running multiple batches inside a
+              single `tf.function` call can greatly improve performance on TPUs or
+              small models with a large Python overhead. At most, one full epoch
+              will be run each execution. If a number larger than the size of the
+              epoch is passed, the execution will be truncated to the size of the
+              epoch. Note that if `steps_per_execution` is set to `N`,
+              `Callback.on_batch_begin` and `Callback.on_batch_end` methods will
+              only be called every `N` batches (i.e. before/after each `tf.function`
+              execution).
+            jit_compile: If `True`, compile the model training step with XLA.
+              [XLA](https://www.tensorflow.org/xla) is an optimizing compiler for
+              machine learning.
+              `jit_compile` is not enabled for by default.
+              This option cannot be enabled with `run_eagerly=True`.
+              Note that `jit_compile=True` is
+              may not necessarily work for all models.
+              For more information on supported operations please refer to the
+              [XLA documentation](https://www.tensorflow.org/xla).
+              Also refer to
+              [known XLA issues](https://www.tensorflow.org/xla/known_issues) for
+              more details.
+            **kwargs: Arguments supported for backwards compatibility only.
+        """
+        from_serialized = kwargs.get("from_serialized", False)
+        super(Model, self).compile(
+            optimizer=optimizer,
+            loss=loss,
+            # metrics=metrics,
+            # weighted_metrics=weighted_metrics,
+            run_eagerly=run_eagerly,
+            loss_weights=loss_weights,
+            steps_per_execution=steps_per_execution,
+            jit_compile=jit_compile,
+            **kwargs
+        )
+
+        _metrics = {}
+        if isinstance(metrics, (list, tuple)) and len(self.prediction_tasks) == 1:
+            _metrics = {task.name: task._create_metrics(metrics) for task in self.prediction_tasks}
+
+        if not metrics:
+            prediction_tasks = self.prediction_tasks_by_name()
+            for task_name, task in prediction_tasks.items():
+                _metrics[task_name] = [m() for m in task.DEFAULT_METRICS]
+
+        self.compiled_metrics = compile_utils.MetricsContainer(
+            _metrics,
+            weighted_metrics,
+            output_names=[task.task_name for task in self.prediction_tasks],
+            from_serialized=from_serialized
+        )
+
     def compute_loss(
         self,
         inputs: Union[tf.Tensor, TabularData],
@@ -268,20 +423,27 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     def metric_results(self, mode=None):
         return self.loss_block.metric_results(mode=mode)
 
-    def train_step(self, inputs):
+    def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:
-            if isinstance(inputs, tuple):
-                if len(inputs) == 1:
-                    inputs = inputs[0]
-                    targets = None
-                else:
-                    inputs, targets = inputs
-            else:
-                targets = None
+            x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
 
-            predictions = self(inputs, training=True)
+            forward = self(x, training=True)
+            predictions, targets = {}, {}
+            for task in self.prediction_tasks:
+                task_x = forward[task.task_name]
+                task_y = y[task.target_name] if task.target_name in y else None
+
+                prediction_output = PredictionOutput(task_x, task_y)
+                # TODO: Call compiled_pre_loss
+                prediction_output = task.pre_loss(prediction_output, training=True)
+                targets[task.task_name] = prediction_output.targets
+                predictions[task.task_name] = prediction_output.predictions
+
+
+            self.compiled_metrics.update_state(predictions, targets)
+
             loss = self.compute_loss(
                 predictions,
                 targets,

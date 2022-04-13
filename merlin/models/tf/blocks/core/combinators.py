@@ -336,6 +336,10 @@ class ParallelBlock(TabularBlock):
         return self.parallel_layers
 
     @property
+    def layers(self) -> List[tf.keras.layers.Layer]:
+        return self.parallel_values
+
+    @property
     def parallel_dict(self) -> Dict[str, tf.keras.layers.Layer]:
         if isinstance(self.parallel_layers, dict):
             return self.parallel_layers

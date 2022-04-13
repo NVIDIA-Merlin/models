@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import logging
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union, TypedDict
 
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
@@ -59,25 +59,36 @@ class RetrievalMixin:
         raise NotImplementedError()
 
 
+class DualEncoderOutputs(TypedDict):
+    """Outputs from a DualEncoderBlock"""
+
+    query: tf.Tensor                        # 2-D Tensor of shape [batch_size, embedding_size]
+    query_id: tf.Tensor                     # 1-D Tensor of shape [batch_size]
+    item: tf.Tensor                         # 2-D Tensor of shape [batch_size, embedding_size]
+    item_id: tf.Tensor                      # 1-D Tensor of shape [batch_size]
+    negative_item: Optional[tf.Tensor]      # 2-D Tensor of shape [batch_size, embedding_size], optional
+    negative_item_id: Optional[tf.Tensor]   # 1-D Tensor of shape [batch_size], optional
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DualEncoderBlock(ParallelBlock):
     QUERY_BRANCH_NAME = "query"
     ITEM_BRANCH_NAME = "item"
 
     def __init__(
-        self,
-        query_block: Block,
-        item_block: Block,
-        query_id_tag=Tags.USER_ID,
-        item_id_tag=Tags.ITEM_ID,
-        output_ids: bool = True,
-        pre: Optional[BlockType] = None,
-        post: Optional[BlockType] = None,
-        aggregation: Optional[TabularAggregationType] = None,
-        schema: Optional[Schema] = None,
-        name: Optional[str] = None,
-        strict: bool = False,
-        **kwargs,
+            self,
+            query_block: Block,
+            item_block: Block,
+            query_id_tag=Tags.USER_ID,
+            item_id_tag=Tags.ITEM_ID,
+            output_ids: bool = True,
+            pre: Optional[BlockType] = None,
+            post: Optional[BlockType] = None,
+            aggregation: Optional[TabularAggregationType] = None,
+            schema: Optional[Schema] = None,
+            name: Optional[str] = None,
+            strict: bool = False,
+            **kwargs,
     ):
         """Prepare the Query and Item towers of a Retrieval block
 
@@ -106,6 +117,13 @@ class DualEncoderBlock(ParallelBlock):
 
         if output_ids:
             query_id = query_block.schema.select_by_tag(query_id_tag)
+            item_id = item_block.schema.select_by_tag(item_id_tag)
+
+            if not query_id:
+                raise ValueError(f"No feature with tag {query_id_tag} in schema")
+            if not item_id:
+                raise ValueError(f"No feature with tag {item_id_tag} in schema")
+
             query_filter = Filter(query_id).connect(
                 RenameFeatures({query_id.first.name: "query_id"})
             )
@@ -115,7 +133,7 @@ class DualEncoderBlock(ParallelBlock):
                 block_outputs_name="query",
                 shortcut_name="query_id",
             )
-            item_id = item_block.schema.select_by_tag(item_id_tag)
+
             item_filter = Filter(item_id).connect(RenameFeatures({item_id.first.name: "item_id"}))
             item_branch = Filter(item_block.schema).connect_with_shortcut(
                 self._item_block,
@@ -188,16 +206,16 @@ class ItemRetrievalScorer(Block):
     """
 
     def __init__(
-        self,
-        samplers: Sequence[ItemSampler] = (),
-        sampling_downscore_false_negatives=True,
-        sampling_downscore_false_negatives_value: float = MIN_FLOAT,
-        item_id_feature_name: str = "item_id",
-        query_name: str = "query",
-        item_name: str = "item",
-        cache_query: bool = False,
-        sampled_softmax_mode: bool = False,
-        **kwargs,
+            self,
+            samplers: Sequence[ItemSampler] = (),
+            sampling_downscore_false_negatives=True,
+            sampling_downscore_false_negatives_value: float = MIN_FLOAT,
+            item_id_feature_name: str = "item_id",
+            query_name: str = "query",
+            item_name: str = "item",
+            cache_query: bool = False,
+            sampled_softmax_mode: bool = False,
+            **kwargs,
     ):
         super().__init__(**kwargs)
 
@@ -267,7 +285,7 @@ class ItemRetrievalScorer(Block):
                 feat_name
                 for feat_name in self._required_features
                 if getattr(self, "_context", None) is None
-                or feat_name not in self.context.named_variables
+                   or feat_name not in self.context.named_variables
             ]
         )
 
@@ -278,11 +296,11 @@ class ItemRetrievalScorer(Block):
             )
 
     def call(
-        self,
-        inputs: Union[tf.Tensor, TabularData],
-        training: bool = True,
-        eval_sampling: bool = False,
-        **kwargs,
+            self,
+            inputs: DualEncoderOutputs,
+            training: bool = True,
+            eval_sampling: bool = False,
+            **kwargs,
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item (inputs["item"]).
@@ -322,7 +340,7 @@ class ItemRetrievalScorer(Block):
 
     @tf.function
     def call_outputs(
-        self, outputs: PredictionOutput, training=True, eval_sampling=False, **kwargs
+            self, outputs: PredictionOutput, training=True, eval_sampling=False, **kwargs
     ) -> "PredictionOutput":
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item and also sampled negative items (during training).
@@ -351,7 +369,7 @@ class ItemRetrievalScorer(Block):
 
         if training or eval_sampling:
             assert (
-                len(self.samplers) > 0
+                    len(self.samplers) > 0
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
 
             if self.sampled_softmax_mode:
@@ -464,7 +482,7 @@ class ItemRetrievalScorer(Block):
         return all_scores
 
     def _prepare_query_item_vectors_for_sampled_softmax(
-        self, predictions: tf.Tensor, targets: tf.Tensor
+            self, predictions: tf.Tensor, targets: tf.Tensor
     ):
         # extract positive items embeddings
         if not isinstance(predictions, tf.Tensor):

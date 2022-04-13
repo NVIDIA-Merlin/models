@@ -104,3 +104,4 @@ dmypy.json
 
 # Experiment files
 _test.py
+_test.ipynb

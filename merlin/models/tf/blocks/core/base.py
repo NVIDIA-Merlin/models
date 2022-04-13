@@ -25,6 +25,7 @@ from tensorflow.keras.layers import Layer
 from merlin.models.config.schema import SchemaMixin
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import ModelLikeBlock
+from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.utils.registry import Registry
 from merlin.schema import Schema, Tags
 
