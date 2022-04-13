@@ -331,11 +331,13 @@ def test_retrieval_task_inbatch_cached_samplers_with_logits_correction(ecommerce
             ignore_last_batch_on_sample=False,
         ),
     ]
-    NUM_ITEMS = 3078306
+    NUM_ITEMS = 1001
     item_frequency = tf.sort(
         tf.random.uniform((NUM_ITEMS,), minval=0, maxval=NUM_ITEMS, dtype=tf.int32)
     )
-    popularity_sampling_block = PopularityLogitsCorrection(item_frequency)
+    popularity_sampling_block = PopularityLogitsCorrection(
+        item_frequency, schema=ecommerce_data.schema
+    )
 
     task = ml.ItemRetrievalTask(
         ecommerce_data.schema,
