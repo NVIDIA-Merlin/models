@@ -19,7 +19,7 @@ import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
 from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
-from merlin.models.tf.blocks.core.transformations import L2Norm, LogitsTemperatureScaler
+from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
@@ -118,8 +118,8 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             cache_query=self.cache_query,
         )
 
-        if normalize:
-            prediction_call = L2Norm().connect(prediction_call)
+        # if normalize:
+        #    prediction_call = L2Norm().connect(prediction_call)
 
         if logits_temperature != 1:
             prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
