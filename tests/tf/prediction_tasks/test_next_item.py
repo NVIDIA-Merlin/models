@@ -292,16 +292,24 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     )
     model = two_tower.connect(task)
 
-    # Setting up evaluation
-    model.set_retrieval_candidates_for_evaluation(ecommerce_data)
-
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-
     losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
+    metrics = model.evaluate(
+        x=ecommerce_data, batch_size=50, item_corpus=ecommerce_data, return_dict=True
+    )
+
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
-
-    _ = model.evaluate(x=ecommerce_data, batch_size=50)
+    assert sorted(list(metrics)) == [
+        "loss",
+        "map_at_10",
+        "mrr_at_10",
+        "ndcg_10",
+        "precision_at_10",
+        "recall_at_10",
+        "regularization_loss",
+        "total_loss",
+    ]
 
 
 @pytest.mark.parametrize("run_eagerly", [True])

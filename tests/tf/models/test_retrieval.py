@@ -44,8 +44,6 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
         metrics=metrics,
         loss=loss,
     )
-    # Setting up evaluation
-    model.set_retrieval_candidates_for_evaluation(ecommerce_data)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     # Training
@@ -74,18 +72,20 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
         elif metric_name in expected_loss_metrics:
             assert losses.history[metric_name][1] <= losses.history[metric_name][0]
 
-    _ = model.evaluate(ecommerce_data, batch_size=10)
+    metrics = model.evaluate(ecommerce_data, batch_size=10, item_corpus=ecommerce_data)
+
+    assert len(metrics) == 8
 
 
-def test_retrieval_evaluation_without_negatives(ecommerce_data: Dataset):
-    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([64]))
-    model.compile(optimizer="adam", run_eagerly=True)
-    model.fit(ecommerce_data, batch_size=50)
-    with pytest.raises(ValueError) as exc_info:
-        model.evaluate(ecommerce_data, batch_size=10)
-        assert "You need to specify the set of negatives to use for evaluation" in str(
-            exc_info.value
-        )
+# def test_retrieval_evaluation_without_negatives(ecommerce_data: Dataset):
+#     model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([64]))
+#     model.compile(optimizer="adam", run_eagerly=True)
+#     model.fit(ecommerce_data, batch_size=50)
+#     with pytest.raises(ValueError) as exc_info:
+#         model.evaluate(ecommerce_data, batch_size=10)
+#         assert "You need to specify the set of negatives to use for evaluation" in str(
+#             exc_info.value
+#         )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

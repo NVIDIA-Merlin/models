@@ -251,7 +251,11 @@ class ItemRetrievalScorer(Block):
             )
 
     def call(
-        self, inputs: Union[tf.Tensor, TabularData], training: bool = True, **kwargs
+        self,
+        inputs: Union[tf.Tensor, TabularData],
+        training: bool = True,
+        eval_sampling: bool = False,
+        **kwargs,
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item (inputs["item"]).
@@ -277,7 +281,7 @@ class ItemRetrievalScorer(Block):
                 tf.cast(inputs[self.item_name], tf.float32)
             )
 
-        if training:
+        if training or eval_sampling:
             return inputs
 
         if self.sampled_softmax_mode:
@@ -291,7 +295,7 @@ class ItemRetrievalScorer(Block):
 
     @tf.function
     def call_outputs(
-        self, outputs: PredictionOutput, training=True, **kwargs
+        self, outputs: PredictionOutput, training=True, eval_sampling=False, **kwargs
     ) -> "PredictionOutput":
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item and also sampled negative items (during training).
@@ -318,7 +322,7 @@ class ItemRetrievalScorer(Block):
         else:
             positive_item_ids = self.context[self.item_id_feature_name]
 
-        if training:
+        if training or eval_sampling:
             assert (
                 len(self.samplers) > 0
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
@@ -343,11 +347,12 @@ class ItemRetrievalScorer(Block):
             # Adds items from the current batch into samplers and sample a number of negatives
             for sampler in self.samplers:
                 input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
+                sampling_kwargs = {"training": training}
                 if "item_weights" in sampler._call_fn_args:
-                    embedding_table = self.context.get_embedding(self.item_id_feature_name)
-                    neg_items = sampler(input_data.__dict__, item_weights=embedding_table)
-                else:
-                    neg_items = sampler(input_data.__dict__)
+                    sampling_kwargs["item_weights"] = self.context.get_embedding(
+                        self.item_id_feature_name
+                    )
+                neg_items = sampler(input_data.__dict__, **sampling_kwargs)
 
                 if tf.shape(neg_items.embeddings)[0] > 0:
                     # Accumulates sampled negative items from all samplers
