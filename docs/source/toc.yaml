@@ -1,0 +1,20 @@
+root: index
+subtrees:
+  - caption: Contents
+    entries:
+      - file: README.md
+        title: Introduction
+      - file: models_overview
+        title: "Standard Models: Overview"
+      - file: examples/index.md
+        title: Example Notebooks
+        subtrees:
+          - entries:
+              - file: examples/01-Getting-started.ipynb
+              - file: examples/02-Merlin-Models-and-NVTabular-integration.ipynb
+              - file: examples/03-Exploring-different-models.ipynb
+              - file: examples/04-Exporting-ranking-models.ipynb
+              - file: examples/05-Retrieval-Model.ipynb
+              - file: examples/06-Define-your-own-architecture-with-Merlin-Models.ipynb
+      - file: api
+        title: API Documentation

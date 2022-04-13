@@ -33,7 +33,6 @@ import subprocess
 import sys
 
 from natsort import natsorted
-from recommonmark.parser import CommonMarkParser
 
 sys.path.insert(0, os.path.abspath("../../"))
 
@@ -54,11 +53,10 @@ author = "NVIDIA"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "myst_nb",
     "sphinx_multiversion",
     "sphinx_rtd_theme",
-    "recommonmark",
     "sphinx_markdown_tables",
-    "nbsphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.coverage",
@@ -66,7 +64,21 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
+    "sphinx_external_toc",
 ]
+
+# MyST configuration settings
+external_toc_path = "toc.yaml"
+myst_enable_extensions = [
+    "deflist",
+    "html_image",
+    "linkify",
+    "replacements",
+    "tasklist",
+]
+myst_linkify_fuzzy_links = False
+myst_heading_anchors = 3
+jupyter_execute_notebooks = "off"
 
 
 # Add any paths that contain templates here, relative to this directory.
@@ -75,8 +87,18 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ["examples/usecases"]
 
+# The API documents are RST and include `.. toctree::` directives.
+suppress_warnings = ["etoc.toctree"]
+
+# Stopgap solution for the moment. Ignore warnings about links to directories.
+# In README.md files, the following links make sense while browsing GitHub.
+# In HTML, less so.
+nitpicky = True
+nitpick_ignore = [
+    (r"myst", r"CONTRIBUTING.md"),
+]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -84,13 +106,15 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_theme = "sphinx_rtd_theme"
+html_theme_options = {
+    "navigation_depth": 2,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
-source_parsers = {".md": CommonMarkParser}
 source_suffix = [".rst", ".md"]
 
 nbsphinx_allow_errors = True
@@ -104,6 +128,8 @@ else:
     smv_tag_whitelist = r"^v.*$"
 
 smv_branch_whitelist = r"^main$"
+
+smv_refs_override_suffix = r"-docs"
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
@@ -132,8 +158,19 @@ def copy_files(src: str):
              Sphinx considers all directories as relative
              to the docs/source directory.
 
+             If ``src_dir`` is a directory and contains a
+             README.md file, the file is renamed to
+             index.md so that the HTML output includes an
+             index.html file.
+
              TIP: Add these paths to the .gitignore file.
     """
+
+    def copy_readme2index(src: str, dst: str):
+        if dst.endswith("README.md"):
+            dst = os.path.join(os.path.dirname(dst), "index.md")
+        shutil.copy2(src, dst)
+
     src_path = os.path.abspath(src)
     if not os.path.exists(src_path):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), src_path)
@@ -152,7 +189,7 @@ def copy_files(src: str):
         os.unlink(out_path)
 
     if os.path.isdir(src_path):
-        shutil.copytree(src_path, out_path)
+        shutil.copytree(src_path, out_path, copy_function=copy_readme2index)
     else:
         shutil.copyfile(src_path, out_path)
 
