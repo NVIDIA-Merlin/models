@@ -25,8 +25,6 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks):
     model = inputs.connect(ml.MLPBlock([64]), prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
 
-    t = model.prediction_tasks
-
     step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     # assert 0 <= step["loss"] <= 1 # test failing with loss greater than 1

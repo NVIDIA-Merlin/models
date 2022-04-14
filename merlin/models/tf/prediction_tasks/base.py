@@ -85,13 +85,13 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.pre = pre
         self._pre_eval_topk = pre_eval_topk
 
-        if metrics is not None:
-            if isinstance(metrics, SequenceCollection):
-                metrics = list(metrics)
-            else:
-                metrics = [metrics]
-
-        create_metrics = self._create_metrics
+        # if metrics is not None:
+        #     if isinstance(metrics, SequenceCollection):
+        #         metrics = list(metrics)
+        #     else:
+        #         metrics = [metrics]
+        #
+        # create_metrics = self._create_metrics
         # self.eval_metrics = create_metrics(metrics) if metrics else []
         # self.prediction_metrics = create_metrics(prediction_metrics) if prediction_metrics else []
         # self.label_metrics = create_metrics(label_metrics) if label_metrics else []

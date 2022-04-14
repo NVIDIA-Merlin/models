@@ -18,18 +18,29 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
+from merlin.models.tf.utils import testing_utils
 
 targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
 
 
 def test_binary_classification_head(testing_data: Dataset):
-    from merlin.models.tf.utils import testing_utils
-
     body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
     model = body.connect(ml.BinaryClassificationTask("target"))
 
     batch = (ml.sample_batch(testing_data, batch_size=100, include_targets=False), targets)
     testing_utils.assert_loss_and_metrics_are_valid(model, batch)
+    
+    
+def test_binary_classification_head_train_step(music_streaming_data: Dataset):
+    music_streaming_data.schema = music_streaming_data.schema.without(["like", "play_percentage"])
+
+    body = ml.InputBlock(music_streaming_data.schema).connect(ml.MLPBlock([64]))
+    model = body.connect(ml.BinaryClassificationTask("target"))
+
+    model.compile(optimizer="adam", run_eagerly=True)
+    step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
+
+    a = 5
 
 
 def test_serialization_binary_classification_head(testing_data: Dataset):

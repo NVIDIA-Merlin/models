@@ -220,9 +220,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         results = find_all_instances_in_layers(self.block, PredictionTask)
 
-        if len(results) == 1:
-            return results[0]
-
         return results
 
     def prediction_tasks_by_name(self) -> Dict[str, PredictionTask]:
@@ -370,7 +367,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         from_serialized = kwargs.get("from_serialized", False)
         super(Model, self).compile(
             optimizer=optimizer,
-            loss=loss,
+            # loss=loss,
             # metrics=metrics,
             # weighted_metrics=weighted_metrics,
             run_eagerly=run_eagerly,
@@ -382,17 +379,21 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         _metrics = {}
         if isinstance(metrics, (list, tuple)) and len(self.prediction_tasks) == 1:
-            _metrics = {task.name: task._create_metrics(metrics) for task in self.prediction_tasks}
+            _metrics = {task.name: metrics for task in self.prediction_tasks}
 
         if not metrics:
             prediction_tasks = self.prediction_tasks_by_name()
             for task_name, task in prediction_tasks.items():
                 _metrics[task_name] = [m() for m in task.DEFAULT_METRICS]
 
+        # output_names = None
+        # if len(self.prediction_tasks) > 1:
+        output_names = [task.task_name for task in self.prediction_tasks]
+
         self.compiled_metrics = compile_utils.MetricsContainer(
             _metrics,
             weighted_metrics,
-            output_names=[task.task_name for task in self.prediction_tasks],
+            output_names=output_names,
             from_serialized=from_serialized
         )
 
@@ -432,15 +433,21 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             forward = self(x, training=True)
             predictions, targets = {}, {}
             for task in self.prediction_tasks:
-                task_x = forward[task.task_name]
-                task_y = y[task.target_name] if task.target_name in y else None
+                task_x = forward[task.task_name] if isinstance(forward, dict) else forward
+                task_y = y[task.target_name] if isinstance(y, dict) else y
+
+                # model.compile(pre_loss=NegativeSampling("in-batch"))
 
                 prediction_output = PredictionOutput(task_x, task_y)
                 # TODO: Call compiled_pre_loss
                 prediction_output = task.pre_loss(prediction_output, training=True)
+
                 targets[task.task_name] = prediction_output.targets
                 predictions[task.task_name] = prediction_output.predictions
 
+            if len(predictions) == 1 and len(targets) == 1:
+                predictions = predictions[list(predictions.keys())[0]]
+                targets = targets[list(targets.keys())[0]]
 
             self.compiled_metrics.update_state(predictions, targets)
 
