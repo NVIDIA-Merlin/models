@@ -185,8 +185,6 @@ def test_categorical_one_hot_encoding():
 
 
 def test_popularity_logits_correct():
-    import numpy as np
-
     from merlin.models.tf.blocks.core.base import PredictionOutput
     from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
 
@@ -203,20 +201,24 @@ def test_popularity_logits_correct():
     NUM_SAMPLE = 20
 
     logits = tf.random.uniform((NUM_ROWS, NUM_SAMPLE))
-    negatives = tf.random.uniform((NUM_SAMPLE - 1,), minval=1, maxval=NUM_ITEMS, dtype=tf.int32)
-    positives = tf.random.uniform((NUM_ROWS,), minval=1, maxval=NUM_ITEMS, dtype=tf.int32)
+    negative_item_ids = tf.random.uniform(
+        (NUM_SAMPLE - 1,), minval=1, maxval=NUM_ITEMS, dtype=tf.int32
+    )
+    positive_item_ids = tf.random.uniform((NUM_ROWS,), minval=1, maxval=NUM_ITEMS, dtype=tf.int32)
     item_frequency = tf.sort(tf.random.uniform((NUM_ITEMS,), minval=0, maxval=1000, dtype=tf.int32))
 
     inputs = PredictionOutput(
-        predictions=logits, targets=[], positive_item_ids=positives, negative_item_ids=negatives
+        predictions=logits,
+        targets=[],
+        positive_item_ids=positive_item_ids,
+        negative_item_ids=negative_item_ids,
     )
 
-    corrected_logits = PopularityLogitsCorrection(
-        item_weights=item_frequency, schema=schema
-    ).call_outputs(outputs=inputs)
+    corrected_logits = PopularityLogitsCorrection(item_frequency, schema=schema).call_outputs(
+        outputs=inputs
+    )
 
-    corrected_logits = corrected_logits.predictions.numpy()
-    np.testing.assert_array_less(logits, corrected_logits)
+    tf.debugging.assert_less_equal(logits, corrected_logits.predictions)
 
 
 def test_popularity_logits_correct_from_parquet():
@@ -241,8 +243,8 @@ def test_popularity_logits_correct_from_parquet():
         frequency_table.to_parquet(tmpdir + "/frequency_table.parquet")
         corrected_logits = PopularityLogitsCorrection.from_parquet(
             tmpdir + "/frequency_table.parquet",
-            frequency_col="frequency",
+            frequencies_probs_col="frequency",
             gpu=False,
             schema=schema,
         )
-    assert corrected_logits.candidate_probabilities.shape == (NUM_ITEMS,)
+    assert corrected_logits.get_candidate_probs().shape == (NUM_ITEMS,)
