@@ -19,7 +19,7 @@ import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
 from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
-from merlin.models.tf.blocks.core.transformations import L2Norm, LogitsTemperatureScaler
+from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
@@ -61,9 +61,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         logits_temperature: float
             Parameter used to reduce the model overconfidence, so that logits / T.
             Defaults to 1.
-        normalize: bool
-            Apply L2 normalization before computing dot interactions.
-            Defaults to True.
     Returns
     -------
         PredictionTask
@@ -84,7 +81,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         task_block: Optional[Layer] = None,
         post_logits: Optional[Block] = None,
         logits_temperature: float = 1.0,
-        normalize: bool = True,
         cache_query: bool = False,
         store_negative_ids: bool = False,
         **kwargs,
@@ -93,7 +89,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         self.cache_query = cache_query
         pre = self._build_prediction_call(
             samplers,
-            normalize,
             logits_temperature,
             post_logits,
             store_negative_ids,
@@ -116,7 +111,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
     def _build_prediction_call(
         self,
         samplers: Sequence[ItemSampler],
-        normalize: bool,
         logits_temperature: float,
         post_logits: Optional[Block] = None,
         store_negative_ids: bool = False,
@@ -131,8 +125,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             cache_query=self.cache_query,
             store_negative_ids=store_negative_ids,
         )
-        if normalize:
-            prediction_call = L2Norm().connect(prediction_call)
 
         if post_logits is not None:
             prediction_call = prediction_call.connect(post_logits)

@@ -181,8 +181,6 @@ def TwoTowerModel(
             logits_temperature=logits_temperature,
             samplers=list(samplers),
             loss=loss,
-            # Two-tower outputs are already L2-normalized
-            normalize=False,
             **kwargs,
         )
 
@@ -283,7 +281,7 @@ def YoutubeDNNRetrievalModel(
         extra_pre_call=extra_pre_call,
         task_block=task_block,
         logits_temperature=logits_temperature,
-        normalize=normalize,
+        l2_normalization=normalize,
         num_sampled=num_sampled,
     )
 

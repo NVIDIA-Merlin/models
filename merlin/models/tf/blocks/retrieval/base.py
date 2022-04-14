@@ -71,6 +71,7 @@ class DualEncoderBlock(ParallelBlock):
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
         strict: bool = False,
+        l2_normalization: bool = False,
         **kwargs,
     ):
         """Prepare the Query and Item towers of a Retrieval block
@@ -94,9 +95,14 @@ class DualEncoderBlock(ParallelBlock):
             Name of the layer.
         strict : bool, optional
             If enabled, check that the input of the ParallelBlock instance is a dictionary.
+        l2_normalization: bool
+            Apply L2 normalization to the user and item representations before
+            computing dot interactions.
+            Defaults to False.
         """
-        query_block = query_block.connect(L2Norm())
-        item_block = item_block.connect(L2Norm())
+        if l2_normalization:
+            query_block = query_block.connect(L2Norm())
+            item_block = item_block.connect(L2Norm())
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 
