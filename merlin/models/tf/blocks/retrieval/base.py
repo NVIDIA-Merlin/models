@@ -27,7 +27,8 @@ from merlin.models.tf.blocks.core.base import (
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
-from merlin.models.tf.blocks.core.transformations import L2Norm
+
+# from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
@@ -95,8 +96,8 @@ class DualEncoderBlock(ParallelBlock):
         strict : bool, optional
             If enabled, check that the input of the ParallelBlock instance is a dictionary.
         """
-        query_block = query_block.connect(L2Norm())
-        item_block = item_block.connect(L2Norm())
+        # query_block = query_block.connect(L2Norm())
+        # item_block = item_block.connect(L2Norm())
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 
