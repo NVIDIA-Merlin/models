@@ -28,13 +28,16 @@ def test_func(tb):
         )
         p2.start()
         import numpy as np
+        import pandas
         from pathlib import Path
         from merlin.datasets.synthetic import generate_data
         mock_data = generate_data(
             input="movielens-1m-raw-ratings",
             num_rows=1000
         )
-        mock_data = mock_data.to_ddf().compute().to_pandas()
+        mock_data = mock_data.to_ddf().compute()
+        if not isinstance(mock_data, pandas.core.frame.DataFrame):
+            mock_data = mock_data.to_pandas()
         input_path = os.environ.get(
             "INPUT_DATA_DIR",
             os.path.expanduser("~/merlin-models-data/movielens/")
