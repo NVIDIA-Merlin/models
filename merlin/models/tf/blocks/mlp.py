@@ -104,7 +104,13 @@ def MLPBlock(
             )
         )
         if dropout:
-            block_layers.append(tf.keras.layers.Dropout(dropout))
+            if kernel_initializer in ["selu", tf.keras.activations.selu]:
+                # Best practice for SeLU. It is also recommended kernel_initializer="lecun_normal"
+                dropout_layer = tf.keras.layers.AlphaDropout(dropout)
+            else:
+                dropout_layer = tf.keras.layers.Dropout(dropout)
+
+            block_layers.append(dropout_layer)
         if normalization:
             if normalization == "batch_norm":
                 block_layers.append(tf.keras.layers.BatchNormalization())
