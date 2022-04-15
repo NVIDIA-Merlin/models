@@ -209,7 +209,7 @@ def YoutubeDNNRetrievalModel(
     num_sampled: int = 100,
     loss: Optional[LossType] = "categorical_crossentropy",
     metrics=ranking_metrics(top_ks=[10]),
-    normalize: bool = True,
+    l2_normalization: bool = True,
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
     logits_temperature: float = 1.0,
@@ -247,8 +247,8 @@ def YoutubeDNNRetrievalModel(
     metrics: List[Metric]
         List of metrics to use.
         Defaults to `ranking_metrics(top_ks=[10])`
-    normalize: bool
-        Whether to normalize the embeddings.
+    l2_normalization: bool
+        Whether to apply L2 normalization before computing dot interactions.
         Defaults to True.
     extra_pre_call: Optional[Block]
         The optional `Block` to apply before the model.
@@ -281,7 +281,7 @@ def YoutubeDNNRetrievalModel(
         extra_pre_call=extra_pre_call,
         task_block=task_block,
         logits_temperature=logits_temperature,
-        l2_normalization=normalize,
+        l2_normalization=l2_normalization,
         num_sampled=num_sampled,
     )
 

@@ -82,18 +82,22 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
             **kwargs,
         )
 
-    def export_embedding_table(self, table_name: Union[str, Tags], export_path: str, gpu=True):
+    def export_embedding_table(
+        self, table_name: Union[str, Tags], export_path: str, l2_normalization=False, gpu=True
+    ):
         return self.embeddings[str(table_name)].export_embedding_table(
-            table_name, export_path, l2_norm=True, gpu=gpu
+            table_name, export_path, l2_normalization=l2_normalization, gpu=gpu
         )
 
-    def embedding_table_df(self, table_name: Union[str, Tags], l2_norm=True, gpu=True):
+    def embedding_table_df(self, table_name: Union[str, Tags], l2_normalization=False, gpu=True):
         return self.embeddings[str(table_name)].embedding_table_df(
-            table_name, l2_norm=l2_norm, gpu=gpu
+            table_name, l2_normalization=l2_normalization, gpu=gpu
         )
 
-    def get_embedding_table(self, table_name: Union[str, Tags], l2_norm=True):
-        return self.embeddings[str(table_name)].get_embedding_table(table_name, l2_norm=l2_norm)
+    def get_embedding_table(self, table_name: Union[str, Tags], l2_normalization=False):
+        return self.embeddings[str(table_name)].get_embedding_table(
+            table_name, l2_normalization=l2_normalization
+        )
 
 
 def MatrixFactorizationBlock(

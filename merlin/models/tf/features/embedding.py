@@ -249,7 +249,7 @@ class EmbeddingFeatures(TabularBlock):
     def table_config(self, feature_name: str):
         return self.feature_config[feature_name].table
 
-    def get_embedding_table(self, table_name: Union[str, Tags], l2_norm: bool = False):
+    def get_embedding_table(self, table_name: Union[str, Tags], l2_normalization: bool = False):
         if isinstance(table_name, Tags):
             feature_names = self.schema.select_by_tag(table_name).column_names
             if len(feature_names) == 1:
@@ -262,15 +262,15 @@ class EmbeddingFeatures(TabularBlock):
                 raise ValueError(f"Could not find a feature associated to the tag {table_name}")
 
         embeddings = self.embedding_tables[table_name]
-        if l2_norm:
+        if l2_normalization:
             embeddings = tf.linalg.l2_normalize(embeddings, axis=-1)
 
         return embeddings
 
     def embedding_table_df(
-        self, table_name: Union[str, Tags], l2_norm: bool = False, gpu: bool = True
+        self, table_name: Union[str, Tags], l2_normalization: bool = False, gpu: bool = True
     ):
-        embeddings = self.get_embedding_table(table_name, l2_norm)
+        embeddings = self.get_embedding_table(table_name, l2_normalization)
         if gpu:
             import cudf
 
@@ -287,7 +287,7 @@ class EmbeddingFeatures(TabularBlock):
         return df
 
     def embedding_table_dataset(
-        self, table_name: Union[str, Tags], l2_norm: bool = False, gpu=True
+        self, table_name: Union[str, Tags], l2_normalization: bool = False, gpu=True
     ) -> merlin.io.Dataset:
         """Creates a Dataset for the embedding table
 
@@ -295,7 +295,7 @@ class EmbeddingFeatures(TabularBlock):
         ----------
         table_name : Union[str, Tags]
             Tag or name of the embedding table
-        l2_norm : bool, optional
+        l2_normalization : bool, optional
             Whether the L2-normalization should be applied to
             embeddings (common approach for Matrix Factorization
             and Retrieval models in general), by default False
@@ -307,10 +307,14 @@ class EmbeddingFeatures(TabularBlock):
         merlin.io.Dataset
             Returns a Dataset with the embeddings
         """
-        return merlin.io.Dataset(self.embedding_table_df(table_name, l2_norm, gpu))
+        return merlin.io.Dataset(self.embedding_table_df(table_name, l2_normalization, gpu))
 
     def export_embedding_table(
-        self, table_name: Union[str, Tags], export_path: str, l2_norm: bool = False, gpu=True
+        self,
+        table_name: Union[str, Tags],
+        export_path: str,
+        l2_normalization: bool = False,
+        gpu=True,
     ):
         """Exports the embedding table to parquet file
 
@@ -320,14 +324,14 @@ class EmbeddingFeatures(TabularBlock):
             Tag or name of the embedding table
         export_path : str
             Path for the generated parquet file
-        l2_norm : bool, optional
+        l2_normalization : bool, optional
             Whether the L2-normalization should be applied to
             embeddings (common approach for Matrix Factorization
             and Retrieval models in general), by default False
         gpu : bool, optional
             Whether or not should use GPU, by default True
         """
-        df = self.embedding_table_df(table_name, l2_norm, gpu=gpu)
+        df = self.embedding_table_df(table_name, l2_normalization, gpu=gpu)
         df.to_parquet(export_path)
 
     def get_config(self):
