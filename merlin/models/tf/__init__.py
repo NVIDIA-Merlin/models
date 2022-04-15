@@ -160,6 +160,7 @@ __all__ = [
     "Filter",
     "ParallelBlock",
     "StackFeatures",
+    "DotProductInteraction",
     "FMPairwiseInteraction",
     "LabelToOneHot",
     "PredictionTask",

@@ -71,6 +71,7 @@ class DualEncoderBlock(ParallelBlock):
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
         strict: bool = False,
+        l2_normalization: bool = False,
         **kwargs,
     ):
         """Prepare the Query and Item towers of a Retrieval block
@@ -94,9 +95,14 @@ class DualEncoderBlock(ParallelBlock):
             Name of the layer.
         strict : bool, optional
             If enabled, check that the input of the ParallelBlock instance is a dictionary.
+        l2_normalization: bool
+            Apply L2 normalization to the user and item representations before
+            computing dot interactions.
+            Defaults to False.
         """
-        query_block = query_block.connect(L2Norm())
-        item_block = item_block.connect(L2Norm())
+        if l2_normalization:
+            query_block = query_block.connect(L2Norm())
+            item_block = item_block.connect(L2Norm())
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 
@@ -158,6 +164,8 @@ class ItemRetrievalScorer(Block):
         Add query embeddings to the context block, by default False
     sampled_softmax_mode: bool
         Use sampled softmax for scoring, by default False
+    store_negative_ids: bool
+        Returns negative items ids as part of the output, by default False
     """
 
     def __init__(
@@ -170,6 +178,7 @@ class ItemRetrievalScorer(Block):
         item_name: str = "item",
         cache_query: bool = False,
         sampled_softmax_mode: bool = False,
+        store_negative_ids: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -180,6 +189,7 @@ class ItemRetrievalScorer(Block):
         self.query_name = query_name
         self.item_name = item_name
         self.cache_query = cache_query
+        self.store_negative_ids = store_negative_ids
 
         if not isinstance(samplers, (list, tuple)):
             samplers = (samplers,)  # type: ignore
@@ -322,7 +332,9 @@ class ItemRetrievalScorer(Block):
         else:
             positive_item_ids = self.context[self.item_id_feature_name]
 
+        neg_items_ids = None
         if training or eval_sampling:
+
             assert (
                 len(self.samplers) > 0
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
@@ -375,7 +387,7 @@ class ItemRetrievalScorer(Block):
                 predictions[self.query_name], neg_items_embeddings, transpose_b=True
             )
 
-            if self.downscore_false_negatives:
+            if self.downscore_false_negatives or self.store_negative_ids:
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:
@@ -407,6 +419,7 @@ class ItemRetrievalScorer(Block):
                 targets_one_hot,
                 positive_item_ids=positive_item_ids,
                 valid_negatives_mask=valid_negatives_mask,
+                negative_item_ids=neg_items_ids,
             )
         else:
             # Positives in the first column and negatives in the subsequent columns
@@ -425,6 +438,7 @@ class ItemRetrievalScorer(Block):
                 targets,
                 positive_item_ids=positive_item_ids,
                 valid_negatives_mask=valid_negatives_mask,
+                negative_item_ids=neg_items_ids,
             )
 
     def _get_logits_for_sampled_softmax(self, inputs):

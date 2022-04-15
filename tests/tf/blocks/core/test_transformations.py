@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+import tempfile
+
 import pytest
 import tensorflow as tf
 
@@ -180,3 +182,69 @@ def test_categorical_one_hot_encoding():
 
     assert inputs["cat1"][0].numpy() == tf.where(outputs["cat1"][0, :] == 1).numpy()[0]
     assert list(outputs.keys()) == ["cat1", "cat2", "cat3"]
+
+
+def test_popularity_logits_correct():
+    from merlin.models.tf.blocks.core.base import PredictionOutput
+    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+
+    schema = Schema(
+        [
+            create_categorical_column(
+                "item_feature", num_items=100, tags=[Tags.CATEGORICAL, Tags.ITEM_ID]
+            ),
+        ]
+    )
+
+    NUM_ITEMS = 101
+    NUM_ROWS = 16
+    NUM_SAMPLE = 20
+
+    logits = tf.random.uniform((NUM_ROWS, NUM_SAMPLE))
+    negative_item_ids = tf.random.uniform(
+        (NUM_SAMPLE - 1,), minval=1, maxval=NUM_ITEMS, dtype=tf.int32
+    )
+    positive_item_ids = tf.random.uniform((NUM_ROWS,), minval=1, maxval=NUM_ITEMS, dtype=tf.int32)
+    item_frequency = tf.sort(tf.random.uniform((NUM_ITEMS,), minval=0, maxval=1000, dtype=tf.int32))
+
+    inputs = PredictionOutput(
+        predictions=logits,
+        targets=[],
+        positive_item_ids=positive_item_ids,
+        negative_item_ids=negative_item_ids,
+    )
+
+    corrected_logits = PopularityLogitsCorrection(item_frequency, schema=schema).call_outputs(
+        outputs=inputs
+    )
+
+    tf.debugging.assert_less_equal(logits, corrected_logits.predictions)
+
+
+def test_popularity_logits_correct_from_parquet():
+    import numpy as np
+    import pandas as pd
+
+    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+
+    schema = Schema(
+        [
+            create_categorical_column(
+                "item_feature", num_items=100, tags=[Tags.CATEGORICAL, Tags.ITEM_ID]
+            ),
+        ]
+    )
+    NUM_ITEMS = 101
+
+    frequency_table = pd.DataFrame(
+        {"frequency": list(np.sort(np.random.randint(0, 1000, size=(NUM_ITEMS,))))}
+    )
+    with tempfile.TemporaryDirectory() as tmpdir:
+        frequency_table.to_parquet(tmpdir + "/frequency_table.parquet")
+        corrected_logits = PopularityLogitsCorrection.from_parquet(
+            tmpdir + "/frequency_table.parquet",
+            frequencies_probs_col="frequency",
+            gpu=False,
+            schema=schema,
+        )
+    assert corrected_logits.get_candidate_probs().shape == (NUM_ITEMS,)

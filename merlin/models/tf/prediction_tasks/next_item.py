@@ -115,7 +115,7 @@ def NextItemPredictionTask(
     task_name: Optional[str] = None,
     task_block: Optional[Layer] = None,
     logits_temperature: float = 1.0,
-    normalize: bool = True,
+    l2_normalization: bool = False,
     sampled_softmax: bool = False,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
@@ -152,9 +152,9 @@ def NextItemPredictionTask(
         logits_temperature: float
             Parameter used to reduce the model overconfidence, so that logits / T.
             Defaults to 1.
-        normalize: bool
+        l2_normalization: bool
             Apply L2 normalization before computing dot interactions.
-            Defaults to True.
+            Defaults to False.
         sampled_softmax: bool
             Compute the logits scores over all items of the catalog or
             generate a subset of candidates
@@ -196,7 +196,7 @@ def NextItemPredictionTask(
             RemovePad3D(), prediction_call
         )
 
-    if normalize:
+    if l2_normalization:
         prediction_call = L2Norm().connect(prediction_call)
 
     if extra_pre_call is not None:
