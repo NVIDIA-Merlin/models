@@ -92,8 +92,8 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
             table_name, l2_norm=l2_norm, gpu=gpu
         )
 
-    def embedding_vector(self, table_name: Union[str, Tags], l2_norm=True):
-        return self.embeddings[str(table_name)].embedding_vector(table_name, l2_norm=l2_norm)
+    def get_embedding_table(self, table_name: Union[str, Tags], l2_norm=True):
+        return self.embeddings[str(table_name)].get_embedding_table(table_name, l2_norm=l2_norm)
 
 
 def MatrixFactorizationBlock(

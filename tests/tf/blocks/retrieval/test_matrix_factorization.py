@@ -45,10 +45,10 @@ def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tm
 
     model.fit(music_streaming_data, epochs=5, batch_size=100)
 
-    user_embeddings = mf.embedding_vector(Tags.USER_ID)
+    user_embeddings = mf.get_embedding_table(Tags.USER_ID)
     tf.debugging.assert_shapes([(user_embeddings, (10001, 128))])
 
-    item_embeddings = mf.embedding_vector(Tags.ITEM_ID)
+    item_embeddings = mf.get_embedding_table(Tags.ITEM_ID)
     tf.debugging.assert_shapes([(item_embeddings, (10001, 128))])
 
     # Checking if embeddings are unit norm (after L2-normalization)
