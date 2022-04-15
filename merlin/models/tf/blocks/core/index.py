@@ -176,6 +176,8 @@ class TopKIndexBlock(IndexBlock):
         super(TopKIndexBlock, self).__init__(values, ids, **kwargs)
         self.false_negatives_score = MIN_FLOAT
 
+        self.steps_count_temp = tf.Variable(0, trainable=False, dtype=tf.int64)
+
     @classmethod
     def from_block(  # type: ignore
         cls,
@@ -252,6 +254,13 @@ class TopKIndexBlock(IndexBlock):
         queries = self.context["query"]
         top_scores, top_ids = self(queries, k=self._k)
 
+        self.steps_count_temp.assign_add(1)
+        tf.summary.scalar(
+            "topk_topscores",
+            tf.reduce_mean(top_scores),
+            step=self.steps_count_temp,
+        )
+
         # remove accidental hits
         top_scores, _ = tf_utils.rescore_false_negatives(
             outputs.positive_item_ids, top_ids, top_scores, self.false_negatives_score
@@ -261,6 +270,12 @@ class TopKIndexBlock(IndexBlock):
         positive_scores = tf.reduce_sum(
             queries * self.context["positive_candidates_embeddings"], axis=1, keepdims=True
         )
+        tf.summary.scalar(
+            "topk_positivescores",
+            tf.reduce_mean(positive_scores),
+            step=self.steps_count_temp,
+        )
+
         predictions = tf.concat([positive_scores, top_scores], axis=-1)
         targets = tf.concat(
             [
@@ -273,6 +288,12 @@ class TopKIndexBlock(IndexBlock):
         # Sort the updated scores
         predictions_sorted, targets_sorted, _ = tf_utils.extract_topk(self._k, predictions, targets)
         label_relevant_counts = tf.ones([tf.shape(predictions)[0]])
+
+        tf.summary.scalar(
+            "topk_avg_target",
+            tf.reduce_mean(targets_sorted),
+            step=self.steps_count_temp,
+        )
 
         return outputs.copy_with_updates(
             predictions=predictions_sorted,

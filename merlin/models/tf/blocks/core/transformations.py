@@ -614,6 +614,8 @@ class PopularityLogitsCorrection(Block):
             shape=tf.shape(candidate_probs),
         )
 
+        self.steps_count_temp = tf.Variable(0, trainable=False, dtype=tf.int64)
+
     @classmethod
     def from_parquet(
         cls,
@@ -753,6 +755,19 @@ class PopularityLogitsCorrection(Block):
             # Applies the logQ correction
             epsilon = 1e-16
             predictions = predictions - tf.math.log(positive_probs + epsilon)
+
+            self.steps_count_temp.assign_add(1)
+            tf.summary.scalar(
+                "positive_score_after_logq",
+                tf.reduce_mean(predictions[:, 0]),
+                step=self.steps_count_temp,
+            )
+
+            tf.summary.scalar(
+                "negative_score_after_logq",
+                tf.reduce_mean(predictions[:, 1:]),
+                step=self.steps_count_temp,
+            )
 
         return outputs.copy_with_updates(predictions=predictions)
 
