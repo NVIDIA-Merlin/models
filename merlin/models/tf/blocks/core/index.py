@@ -256,7 +256,7 @@ class TopKIndexBlock(IndexBlock):
 
         self.steps_count_temp.assign_add(1)
         tf.summary.scalar(
-            "topk_topscores",
+            "topk/candidate_scores",
             tf.reduce_mean(top_scores),
             step=self.steps_count_temp,
         )
@@ -271,8 +271,14 @@ class TopKIndexBlock(IndexBlock):
             queries * self.context["positive_candidates_embeddings"], axis=1, keepdims=True
         )
         tf.summary.scalar(
-            "topk_positivescores",
+            "topk/positivescores",
             tf.reduce_mean(positive_scores),
+            step=self.steps_count_temp,
+        )
+
+        tf.summary.scalar(
+            "topk/avg_diff_positives_candidates",
+            tf.reduce_mean(tf.expand_dims(positive_scores, -1) - top_scores),
             step=self.steps_count_temp,
         )
 
@@ -290,8 +296,8 @@ class TopKIndexBlock(IndexBlock):
         label_relevant_counts = tf.ones([tf.shape(predictions)[0]])
 
         tf.summary.scalar(
-            "topk_avg_target",
-            tf.reduce_mean(targets_sorted),
+            "topk/recall_100_comp",
+            tf.reduce_mean(tf.reduce_sum(targets_sorted, axis=1)),
             step=self.steps_count_temp,
         )
 

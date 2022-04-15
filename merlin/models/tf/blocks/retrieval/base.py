@@ -402,20 +402,11 @@ class ItemRetrievalScorer(Block):
                 "sampled_negatives_total", tf.shape(negative_scores)[1], step=self.steps_count_temp
             )
 
-            if self.downscore_false_negatives or self.store_negative_ids:
-                if isinstance(targets, tf.Tensor):
-                    positive_item_ids = targets
-                else:
-                    positive_item_ids = self.context[self.item_id_feature_name]
-
-                if len(neg_items_ids_list) == 1:
-                    neg_items_ids = neg_items_ids_list[0]
-                else:
-                    neg_items_ids = tf.concat(neg_items_ids_list, axis=0)
-
-                negative_scores, valid_negatives_mask = rescore_false_negatives(
-                    positive_item_ids, neg_items_ids, negative_scores, self.false_negatives_score
-                )
+            tf.summary.scalar(
+                "scores/diff_positive_neg_scores_mean",
+                tf.reduce_mean(positive_scores - negative_scores),
+                step=self.steps_count_temp,
+            )
 
             tf.summary.scalar(
                 "scores/positive_scores_mean",
@@ -464,6 +455,21 @@ class ItemRetrievalScorer(Block):
                 tf.math.reduce_std(negative_scores[:, :100]),
                 step=self.steps_count_temp,
             )
+
+            if self.downscore_false_negatives or self.store_negative_ids:
+                if isinstance(targets, tf.Tensor):
+                    positive_item_ids = targets
+                else:
+                    positive_item_ids = self.context[self.item_id_feature_name]
+
+                if len(neg_items_ids_list) == 1:
+                    neg_items_ids = neg_items_ids_list[0]
+                else:
+                    neg_items_ids = tf.concat(neg_items_ids_list, axis=0)
+
+                negative_scores, valid_negatives_mask = rescore_false_negatives(
+                    positive_item_ids, neg_items_ids, negative_scores, self.false_negatives_score
+                )
 
             predictions = tf.concat([positive_scores, negative_scores], axis=-1)
 

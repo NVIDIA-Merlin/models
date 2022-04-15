@@ -758,14 +758,20 @@ class PopularityLogitsCorrection(Block):
 
             self.steps_count_temp.assign_add(1)
             tf.summary.scalar(
-                "positive_score_after_logq",
-                tf.reduce_mean(predictions[:, 0]),
+                "logq/positive_score",
+                tf.reduce_mean(predictions[:, :1]),
                 step=self.steps_count_temp,
             )
 
             tf.summary.scalar(
-                "negative_score_after_logq",
+                "logq/negative_score",
                 tf.reduce_mean(predictions[:, 1:]),
+                step=self.steps_count_temp,
+            )
+
+            tf.summary.scalar(
+                "logq/avg_diff_positives_negatives",
+                tf.reduce_mean(predictions[:, :1] - predictions[:, 1:]),
                 step=self.steps_count_temp,
             )
 
