@@ -246,28 +246,28 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.embedding_table_df" title="merlin.models.tf.EmbeddingFeatures.embedding_table_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">embedding_table_df</span></code></a>(table_name[, l2_norm, gpu])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.embedding_vector" title="merlin.models.tf.EmbeddingFeatures.embedding_vector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">embedding_vector</span></code></a>(table_name[, l2_norm])</p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.export_embedding_table" title="merlin.models.tf.EmbeddingFeatures.export_embedding_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_embedding_table</span></code></a>(table_name, export_path)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.export_embedding_table" title="merlin.models.tf.EmbeddingFeatures.export_embedding_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export_embedding_table</span></code></a>(table_name, export_path)</p></td>
 <td><p>Exports the embedding table to parquet file</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
 <td><p>Finalizes the layers state after updating layer weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.from_config" title="merlin.models.tf.EmbeddingFeatures.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.from_config" title="merlin.models.tf.EmbeddingFeatures.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_features</span></code>(features[, pre, post, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_features</span></code>(features[, pre, post, …])</p></td>
 <td><p>Initializes a TabularLayer instance where the contents of features will be filtered out</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_layer</span></code>(layer)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_layer</span></code>(layer)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.from_schema" title="merlin.models.tf.EmbeddingFeatures.from_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code></a>(schema[, embedding_options, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.from_schema" title="merlin.models.tf.EmbeddingFeatures.from_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code></a>(schema[, embedding_options, …])</p></td>
 <td><p>Instantiates embedding features from the schema</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.get_config" title="merlin.models.tf.EmbeddingFeatures.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.get_config" title="merlin.models.tf.EmbeddingFeatures.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.EmbeddingFeatures.get_embedding_table" title="merlin.models.tf.EmbeddingFeatures.get_embedding_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_embedding_table</span></code></a>(table_name[, l2_norm])</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
@@ -554,8 +554,8 @@ layers created under-the-hood</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="merlin.models.tf.EmbeddingFeatures.embedding_vector">
-<code class="sig-name descname"><span class="pre">embedding_vector</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.schema.tags.Tags</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2_norm</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/features/embedding.html#EmbeddingFeatures.embedding_vector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingFeatures.embedding_vector" title="Permalink to this definition"></a></dt>
+<dt id="merlin.models.tf.EmbeddingFeatures.get_embedding_table">
+<code class="sig-name descname"><span class="pre">get_embedding_table</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.schema.tags.Tags</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2_norm</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/features/embedding.html#EmbeddingFeatures.get_embedding_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.EmbeddingFeatures.get_embedding_table" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">

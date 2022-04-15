@@ -40,7 +40,6 @@
       ~SequenceEmbeddingFeatures.count_params
       ~SequenceEmbeddingFeatures.embedding_table_dataset
       ~SequenceEmbeddingFeatures.embedding_table_df
-      ~SequenceEmbeddingFeatures.embedding_vector
       ~SequenceEmbeddingFeatures.export_embedding_table
       ~SequenceEmbeddingFeatures.finalize_state
       ~SequenceEmbeddingFeatures.from_config
@@ -48,6 +47,7 @@
       ~SequenceEmbeddingFeatures.from_layer
       ~SequenceEmbeddingFeatures.from_schema
       ~SequenceEmbeddingFeatures.get_config
+      ~SequenceEmbeddingFeatures.get_embedding_table
       ~SequenceEmbeddingFeatures.get_input_at
       ~SequenceEmbeddingFeatures.get_input_mask_at
       ~SequenceEmbeddingFeatures.get_input_shape_at

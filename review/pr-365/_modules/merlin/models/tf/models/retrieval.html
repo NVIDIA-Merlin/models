@@ -249,8 +249,6 @@
             <span class="n">logits_temperature</span><span class="o">=</span><span class="n">logits_temperature</span><span class="p">,</span>
             <span class="n">samplers</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">samplers</span><span class="p">),</span>
             <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span>
-            <span class="c1"># Two-tower outputs are already L2-normalized</span>
-            <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -351,7 +349,7 @@
         <span class="n">extra_pre_call</span><span class="o">=</span><span class="n">extra_pre_call</span><span class="p">,</span>
         <span class="n">task_block</span><span class="o">=</span><span class="n">task_block</span><span class="p">,</span>
         <span class="n">logits_temperature</span><span class="o">=</span><span class="n">logits_temperature</span><span class="p">,</span>
-        <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
+        <span class="n">l2_normalization</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
         <span class="n">num_sampled</span><span class="o">=</span><span class="n">num_sampled</span><span class="p">,</span>
     <span class="p">)</span>
 

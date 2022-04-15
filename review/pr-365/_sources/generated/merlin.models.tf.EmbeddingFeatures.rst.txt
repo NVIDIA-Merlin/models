@@ -40,7 +40,6 @@
       ~EmbeddingFeatures.count_params
       ~EmbeddingFeatures.embedding_table_dataset
       ~EmbeddingFeatures.embedding_table_df
-      ~EmbeddingFeatures.embedding_vector
       ~EmbeddingFeatures.export_embedding_table
       ~EmbeddingFeatures.finalize_state
       ~EmbeddingFeatures.from_config
@@ -48,6 +47,7 @@
       ~EmbeddingFeatures.from_layer
       ~EmbeddingFeatures.from_schema
       ~EmbeddingFeatures.get_config
+      ~EmbeddingFeatures.get_embedding_table
       ~EmbeddingFeatures.get_input_at
       ~EmbeddingFeatures.get_input_mask_at
       ~EmbeddingFeatures.get_input_shape_at
