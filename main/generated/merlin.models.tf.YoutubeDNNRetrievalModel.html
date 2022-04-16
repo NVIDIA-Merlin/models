@@ -149,7 +149,7 @@ Defaults to 100.</p></li>
 Defaults to <cite>categorical_crossentropy</cite>.</p></li>
 <li><p><strong>metrics</strong> (<em>List</em><em>[</em><em>Metric</em><em>]</em>) – List of metrics to use.
 Defaults to <cite>ranking_metrics(top_ks=[10])</cite></p></li>
-<li><p><strong>normalize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether to normalize the embeddings.
+<li><p><strong>l2_normalization</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Whether to apply L2 normalization before computing dot interactions.
 Defaults to True.</p></li>
 <li><p><strong>extra_pre_call</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply before the model.</p></li>
 <li><p><strong>task_block</strong> (<em>Optional</em><em>[</em><em>Block</em><em>]</em>) – The optional <cite>Block</cite> to apply on the model.</p></li>
