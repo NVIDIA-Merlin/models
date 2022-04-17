@@ -252,6 +252,8 @@ class TopKIndexBlock(IndexBlock):
         queries = self.context["query"]
         top_scores, top_ids = self(queries, k=self._k)
 
+        """
+
         # remove accidental hits
         top_scores, _ = tf_utils.rescore_false_negatives(
             outputs.positive_item_ids, top_ids, top_scores, self.false_negatives_score
@@ -272,7 +274,14 @@ class TopKIndexBlock(IndexBlock):
 
         # Sort the updated scores
         predictions_sorted, targets_sorted, _ = tf_utils.extract_topk(self._k, predictions, targets)
-        label_relevant_counts = tf.ones([tf.shape(predictions)[0]])
+        """
+
+        predictions_sorted = top_scores
+        targets_sorted = tf.cast(
+            tf.expand_dims(outputs.positive_item_ids, -1) == top_ids, tf.float32
+        )
+
+        label_relevant_counts = tf.ones([tf.shape(targets_sorted)[0]])
 
         return outputs.copy_with_updates(
             predictions=predictions_sorted,
