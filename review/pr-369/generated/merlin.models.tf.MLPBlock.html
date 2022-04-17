@@ -146,8 +146,8 @@ Default to None.</p></li>
 <li><p><strong>dropout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – The dropout rate to use.</p></li>
 <li><p><strong>normalization</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> or </em><em>Layer</em>) – The normalization layer to use.</p></li>
 <li><p><strong>filter</strong> (<em>Schema</em><em>, </em><em>Tag</em><em>, </em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em><em>, or </em><a class="reference internal" href="merlin.models.tf.Filter.html#merlin.models.tf.Filter" title="merlin.models.tf.Filter"><em>Filter</em></a>) – The filter to apply to the inputs of the MLP.</p></li>
-<li><p><strong>no_activation_last_layer</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Ensures that no activation function (i.e. ‘linear’) is used in the output of the
-layer MLP layer</p></li>
+<li><p><strong>no_activation_last_layer</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Ensures that no activation function (i.e. ‘linear’) or droptout is used in the
+output of the last MLP layer</p></li>
 <li><p><strong>block_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – The name of the block.</p></li>
 </ul>
 </dd>
