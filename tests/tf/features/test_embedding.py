@@ -126,6 +126,7 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset)
                 "item_id": init_ops_v2.TruncatedNormal(mean=ITEM_MEAN, stddev=ITEM_STD),
                 "categories": init_ops_v2.TruncatedNormal(mean=CATEGORY_MEAN, stddev=CATEGORY_STD),
             },
+            embeddings_initializer_default=init_ops_v2.RandomUniform(minval=-0.05, maxval=0.05),
         ),
     )
 
@@ -136,6 +137,12 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset)
 
     assert embeddings["categories"].numpy().mean() == pytest.approx(CATEGORY_MEAN, abs=0.1)
     assert embeddings["categories"].numpy().std() == pytest.approx(CATEGORY_STD, abs=0.1)
+
+    assert embeddings["user_id"].numpy().min() == pytest.approx(-0.05, abs=0.02)
+    assert embeddings["user_id"].numpy().max() == pytest.approx(0.05, abs=0.02)
+
+    assert embeddings["user_country"].numpy().min() == pytest.approx(-0.05, abs=0.02)
+    assert embeddings["user_country"].numpy().max() == pytest.approx(0.05, abs=0.02)
 
 
 def test_shared_embeddings(music_streaming_data: Dataset):
