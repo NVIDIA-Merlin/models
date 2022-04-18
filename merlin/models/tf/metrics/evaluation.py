@@ -243,7 +243,7 @@ class ItemCoverageAt(tf.keras.metrics.Metric):
             A tensor with shape (batch_size, 1) corresponding to the true labels ids.
         y_pred : tf.Tensor
             A tensor with shape (batch_size, n_items) corresponding to
-            sorted predicted item ids. 
+            sorted predicted item ids.
         sample_weight : Optional[tf.Tensor], optional
             Optional array of the same length as y_pred,
             containing weights to apply to the model's loss for each sample.
