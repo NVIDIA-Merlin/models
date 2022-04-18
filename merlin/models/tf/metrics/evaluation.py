@@ -142,15 +142,6 @@ class PopularityMetric(Mean):
         )
         return super().update_state(matches, sample_weight=sample_weight)
 
-    def check_cast_inputs(self, labels, predictions):
-        tf.assert_equal(
-            tf.rank(predictions), 2, f"predictions must be 2-D tensor (got {predictions.shape})"
-        )
-        if labels is not None:
-            tf.assert_equal(tf.rank(labels), 2, f"labels must be 2-D tensor (got {labels.shape})")
-            labels = tf.cast(labels, tf.int32)
-        return labels, tf.cast(predictions, tf.int32)
-
     def update_candidate_probs(
         self, item_freq_probs: Union[tf.Tensor, Sequence], is_prob_distribution: bool = False
     ):
@@ -166,6 +157,18 @@ class PopularityMetric(Mean):
         """
         candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
         self.candidate_probs.assign(candidate_probs)
+
+    def reset_state(self):
+        super.reset_state()
+
+    def check_cast_inputs(self, labels, predictions):
+        tf.assert_equal(
+            tf.rank(predictions), 2, f"predictions must be 2-D tensor (got {predictions.shape})"
+        )
+        if labels is not None:
+            tf.assert_equal(tf.rank(labels), 2, f"labels must be 2-D tensor (got {labels.shape})")
+            labels = tf.cast(labels, tf.int32)
+        return labels, tf.cast(predictions, tf.int32)
 
     def get_config(self):
         config = {}
@@ -192,7 +195,7 @@ class PopularityMetric(Mean):
 
 @metrics_registry.register_with_multiple_names("novelty_at", "novelty")
 class NoveltyAt(PopularityMetric):
-    def __init__(self, item_freq_probs, k=10, is_prob_distribution=False, name="novelty"):
+    def __init__(self, item_freq_probs, k=10, is_prob_distribution=False, name="novelty_at"):
         super().__init__(
             novelty_at, item_freq_probs, k=k, is_prob_distribution=is_prob_distribution, name=name
         )
@@ -200,7 +203,9 @@ class NoveltyAt(PopularityMetric):
 
 @metrics_registry.register_with_multiple_names("popularity_bias_at", "popularity_bias")
 class PopularityBiasAt(PopularityMetric):
-    def __init__(self, item_freq_probs, k=10, is_prob_distribution=False, name="novelty"):
+    def __init__(
+        self, item_freq_probs, k=10, is_prob_distribution=False, name="popularity_bias_at"
+    ):
         super().__init__(
             popularity_bias_at,
             item_freq_probs,
@@ -227,7 +232,9 @@ class ItemCoverageAt(tf.keras.metrics.Metric):
         The prediction coverage of the recommendations at the k-th position.
     """
 
-    def __init__(self, num_unique_items: int, k=5, name: str = None, dtype=None, **kwargs):
+    def __init__(
+        self, num_unique_items: int, k=5, name: str = "item_coverage_at", dtype=None, **kwargs
+    ):
         if name is not None:
             name = f"{name}_{k}"
         super().__init__(name=name, dtype=dtype)
@@ -242,10 +249,10 @@ class ItemCoverageAt(tf.keras.metrics.Metric):
         )
 
         self.predicted_items_count = tf.Variable(
-            tf.zeros((num_unique_items,), dtype=tf.float32),
+            tf.zeros((num_unique_items,), dtype=tf.uint32),
             name="predicted_items_count",
             trainable=False,
-            dtype=tf.float32,
+            dtype=tf.uint32,
             validate_shape=False,
             shape=(num_unique_items,),
         )
@@ -276,18 +283,22 @@ class ItemCoverageAt(tf.keras.metrics.Metric):
         self.predicted_items_count = tf.tensor_scatter_nd_add(
             self.predicted_items_count,
             indices=tf.expand_dims(unique_predicted_items, -1),
-            updates=tf.ones_like(unique_predicted_items, dtype=tf.float32),
+            updates=tf.ones_like(unique_predicted_items, dtype=tf.uint32),
         )
 
     def update_num_unique_items(self, num_unique_items: int):
         self.num_unique_items.assign(num_unique_items)
 
     def result(self):
-        coverage = tf.cast(self.predicted_items_count > 0, tf.float32) / self.num_unique_items
+        coverage = (
+            tf.reduce_sum(tf.cast(self.predicted_items_count > 0, tf.float32))
+            / self.num_unique_items
+        )
+
         return tf.reduce_sum(coverage)
 
-    def reset_states(self):
-        self.predicted_items_count.assign(tf.zeros((self.num_unique_items,), dtype=tf.float32))
+    def reset_state(self):
+        self.predicted_items_count.assign(tf.zeros((self.num_unique_items,), dtype=tf.uint32))
 
     def check_cast_inputs(self, labels, predictions):
         tf.assert_equal(
