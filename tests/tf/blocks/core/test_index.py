@@ -22,23 +22,39 @@ from merlin.schema import Tags
 
 
 def test_topk_index(ecommerce_data: Dataset):
+    import tensorflow as tf
+
+    from merlin.models.tf.metrics.evaluation import ItemCoverageAt, PopularityBiasAt
+
     model: ml.RetrievalModel = ml.TwoTowerModel(
         ecommerce_data.schema, query_tower=ml.MLPBlock([64, 128])
     )
-    model.compile(run_eagerly=True, optimizer="adam")
+    model.compile(run_eagerly=False, optimizer="adam")
     model.fit(ecommerce_data, epochs=1, batch_size=50)
 
     item_features = ecommerce_data.schema.select_by_tag(Tags.ITEM).column_names
     item_dataset = ecommerce_data.to_ddf()[item_features].drop_duplicates().compute()
     item_dataset = Dataset(item_dataset)
-
     recommender = model.to_top_k_recommender(item_dataset, k=20)
-
+    NUM_ITEMS = 1001
+    item_frequency = tf.sort(
+        tf.random.uniform((NUM_ITEMS,), minval=0, maxval=NUM_ITEMS, dtype=tf.int32)
+    )
+    eval_metrics = [
+        PopularityBiasAt(item_freq_probs=item_frequency, is_prob_distribution=False, k=10),
+        ItemCoverageAt(num_unique_items=NUM_ITEMS, k=10),
+    ]
     batch = ml.sample_batch(ecommerce_data, batch_size=10, include_targets=False)
     _, top_indices = recommender(batch)
     assert top_indices.shape[-1] == 20
     _, top_indices = recommender(batch, k=10)
     assert top_indices.shape[-1] == 10
+
+    for metric in eval_metrics:
+        metric.update_state(y_pred=top_indices)
+    for metric in eval_metrics:
+        results = metric.result()
+        assert results >= 0
 
 
 def test_topk_index_duplicate_indices(ecommerce_data: Dataset):

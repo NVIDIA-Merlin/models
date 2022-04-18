@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Union
+from typing import Sequence, Union
 
 import numpy as np
 import tensorflow as tf
@@ -248,3 +248,41 @@ def add_epsilon_to_zeros(tensor: tf.Tensor, epsilon: float = 1e-24) -> tf.Tensor
         The tensor without zeros
     """
     return tf.where(tf.equal(tensor, 0.0), tensor + epsilon, tensor)
+
+
+def get_candidate_probs(
+    item_freq_probs: Union[tf.Tensor, Sequence], is_prob_distribution: bool = False
+):
+    """Returns the candidate probs after checking if
+    item_freq_probs is frequencies or probs and their
+    dtype and shape according to the item feature cardinality
+
+    Parameters:
+    ----------
+    item_freq_probs : Union[tf.Tensor, Sequence]
+        A Tensor or list with item frequencies (if is_prob_distribution=False)
+        or with item probabilities (if is_prob_distribution=True)
+    is_prob_distribution: bool, optional
+        If True, the item_freq_probs should be a probability distribution of the items.
+        If False, the item frequencies is converted to probabilities
+    Returns
+    -------
+        A tensor with the item probability distributon
+    """
+    item_freq_probs = tf.convert_to_tensor(item_freq_probs)
+
+    if is_prob_distribution:
+        tf.debugging.assert_type(
+            item_freq_probs, tf.float32, message="The item_weights should have tf.float32 dtype"
+        )
+        tf.debugging.assert_near(
+            tf.reduce_sum(item_freq_probs),
+            1.0,
+            message="The item_weights should be a probability distribution and sum to 1.0",
+        )
+        candidate_probs = item_freq_probs
+    else:
+        item_freq_probs = tf.cast(item_freq_probs, tf.float32)
+        candidate_probs = item_freq_probs / tf.reduce_sum(item_freq_probs)
+
+    return candidate_probs
