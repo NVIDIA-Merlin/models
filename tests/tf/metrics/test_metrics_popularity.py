@@ -37,7 +37,7 @@ def test_novelty_at_k(popularity_metrics_test_data, is_prob_distribution):
         item_freq_probs=item_freq_probs, is_prob_distribution=is_prob_distribution, k=3
     )
 
-    metric1.update_state(y_pred=predictions)
+    metric1.update_state(predicted_ids=predictions)
     result1 = metric1.result()
     tf.debugging.assert_near(result1, 2.5336342)
 
@@ -50,7 +50,7 @@ def test_popularity_at_k(popularity_metrics_test_data, is_prob_distribution):
         item_freq_probs=item_freq_probs, is_prob_distribution=is_prob_distribution, k=3
     )
 
-    metric1.update_state(y_pred=predictions)
+    metric1.update_state(predicted_ids=predictions)
     result1 = metric1.result()
     tf.debugging.assert_near(result1, 0.0833333)
 
@@ -60,6 +60,6 @@ def test_item_coverage_at_k(popularity_metrics_test_data):
 
     metric1 = ItemCoverageAt(num_unique_items=11, k=4)
 
-    metric1.update_state(y_pred=predictions)
+    metric1.update_state(predicted_ids=predictions)
     result1 = metric1.result()
     tf.debugging.assert_near(result1, 0.727272)
