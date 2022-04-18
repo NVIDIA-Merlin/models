@@ -111,25 +111,25 @@ class PopularityMetric(Mean):
 
     def update_state(
         self,
-        y_pred: tf.Tensor,
-        y_true: Optional[tf.Tensor] = None,
+        predicted_ids: tf.Tensor,
+        positive_ids: Optional[tf.Tensor] = None,
         sample_weight: Optional[tf.Tensor] = None,
     ):
         """Updates the state of the popularity metric computed by `self._fn`.
         Parameters
         ----------
-        y_true : tf.Tensor
+        positive_ids : tf.Tensor
             A tensor with shape (batch_size, 1) corresponding to the true labels ids.
-        y_pred : tf.Tensor
+        predicted_ids : tf.Tensor
             A tensor with shape (batch_size, n_items) corresponding to
             sorted predicted item ids.
         sample_weight : Optional[tf.Tensor], optional
-            Optional array of the same length as y_pred,
+            Optional array of the same length as predicted_ids,
             containing weights to apply to the model's loss for each sample.
 
         """
-        y_true, y_pred = self.check_cast_inputs(y_true, y_pred)
-        predicted_probs = tf.gather(self.candidate_probs, y_pred)
+        positive_ids, predicted_ids = self.check_cast_inputs(positive_ids, predicted_ids)
+        predicted_probs = tf.gather(self.candidate_probs, predicted_ids)
 
         ag_fn = tf.__internal__.autograph.tf_convert(
             self._fn, tf.__internal__.autograph.control_status_ctx()
@@ -259,8 +259,8 @@ class ItemCoverageAt(tf.keras.metrics.Metric):
 
     def update_state(
         self,
-        y_pred: tf.Tensor,
-        y_true: Optional[tf.Tensor] = None,
+        predicted_ids: tf.Tensor,
+        positive_ids: Optional[tf.Tensor] = None,
         sample_weight: Optional[tf.Tensor] = None,
     ):
         """Updates the state of the item coverage metric by incrementing the count of
@@ -268,18 +268,18 @@ class ItemCoverageAt(tf.keras.metrics.Metric):
 
         Parameters
         ----------
-        y_true : tf.Tensor
+        positive_ids : tf.Tensor
             A tensor with shape (batch_size, 1) corresponding to the true labels ids.
-        y_pred : tf.Tensor
+        predicted_ids : tf.Tensor
             A tensor with shape (batch_size, n_items) corresponding to
             sorted predicted item ids.
         sample_weight : Optional[tf.Tensor], optional
-            Optional array of the same length as y_pred,
+            Optional array of the same length as predicted_ids,
             containing weights to apply to the model's loss for each sample.
 
         """
-        y_true, y_pred = self.check_cast_inputs(y_true, y_pred)
-        unique_predicted_items, _ = tf.unique(tf.reshape(y_pred[:, : self.k], (-1,)))
+        positive_ids, predicted_ids = self.check_cast_inputs(positive_ids, predicted_ids)
+        unique_predicted_items, _ = tf.unique(tf.reshape(predicted_ids[:, : self.k], (-1,)))
         self.predicted_items_count = tf.tensor_scatter_nd_add(
             self.predicted_items_count,
             indices=tf.expand_dims(unique_predicted_items, -1),
