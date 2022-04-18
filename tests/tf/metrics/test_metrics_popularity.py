@@ -30,19 +30,25 @@ def popularity_metrics_test_data():
     return labels, predictions, item_freq_probs
 
 
-def test_novelty_at_k(popularity_metrics_test_data):
+@pytest.mark.parametrize("is_prob_distribution", [True, False])
+def test_novelty_at_k(popularity_metrics_test_data, is_prob_distribution):
     labels, predictions, item_freq_probs = popularity_metrics_test_data
-    metric1 = NoveltyAt(item_freq_probs=item_freq_probs, is_prob_distribution=True, k=3)
+    metric1 = NoveltyAt(
+        item_freq_probs=item_freq_probs, is_prob_distribution=is_prob_distribution, k=3
+    )
 
     metric1.update_state(y_pred=predictions)
     result1 = metric1.result()
     tf.debugging.assert_near(result1, 2.5336342)
 
 
-def test_popularity_at_k(popularity_metrics_test_data):
+@pytest.mark.parametrize("is_prob_distribution", [True, False])
+def test_popularity_at_k(popularity_metrics_test_data, is_prob_distribution):
     labels, predictions, item_freq_probs = popularity_metrics_test_data
 
-    metric1 = PopularityBiasAt(item_freq_probs=item_freq_probs, is_prob_distribution=True, k=3)
+    metric1 = PopularityBiasAt(
+        item_freq_probs=item_freq_probs, is_prob_distribution=is_prob_distribution, k=3
+    )
 
     metric1.update_state(y_pred=predictions)
     result1 = metric1.result()

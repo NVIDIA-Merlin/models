@@ -26,7 +26,7 @@ from tensorflow.keras.metrics import get as get_metric
 from merlin.models.tf.metrics import metrics_registry
 from merlin.models.tf.utils.tf_utils import get_candidate_probs
 
-MIN_FLOAT = 1e-16
+EPSILON = 1e-16
 METRIC_PARAMETERS_DOCSTRING = """
     predicted_candidates_probs: tf.Tensor
         A tensor with shape (batch_size, n_items) corresponding to
@@ -47,7 +47,7 @@ def novelty_at(
     ----------
     {METRIC_PARAMETERS_DOCSTRING}
     """
-    return -tf.math.log(predicted_candidates_probs[:, :k] + MIN_FLOAT)
+    return -tf.math.log(predicted_candidates_probs[:, :k] + EPSILON)
 
 
 def popularity_bias_at(
@@ -59,7 +59,7 @@ def popularity_bias_at(
     ----------
     {METRIC_PARAMETERS_DOCSTRING}
     """
-    return tf.reduce_sum(predicted_candidates_probs[:, :k], -1) / k
+    return tf.reduce_mean(predicted_candidates_probs[:, :k], -1)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -151,6 +151,22 @@ class PopularityMetric(Mean):
             labels = tf.cast(labels, tf.int32)
         return labels, tf.cast(predictions, tf.int32)
 
+    def update_candidate_probs(
+        self, item_freq_probs: Union[tf.Tensor, Sequence], is_prob_distribution: bool = False
+    ):
+        """Updates the item frequencies / probabilities
+        Parameters:
+        ----------
+        item_freq_probs : Union[tf.Tensor, Sequence]
+            A Tensor or list with item frequencies (if is_prob_distribution=False)
+            or with item probabilities (if is_prob_distribution=True)
+        is_prob_distribution: bool, optional
+            If True, the item_freq_probs should be a probability distribution of the items.
+            If False, the item frequencies is converted to probabilities
+        """
+        candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
+        self.candidate_probs.assign(candidate_probs)
+
     def get_config(self):
         config = {}
         if type(self) is PopularityMetric:
@@ -217,7 +233,13 @@ class ItemCoverageAt(tf.keras.metrics.Metric):
         super().__init__(name=name, dtype=dtype)
 
         self.k = k
-        self.num_unique_items = num_unique_items
+        self.num_unique_items = tf.Variable(
+            num_unique_items,
+            name="num_unique_items",
+            trainable=False,
+            dtype=tf.float32,
+            validate_shape=False,
+        )
 
         self.predicted_items_count = tf.Variable(
             tf.zeros((num_unique_items,), dtype=tf.float32),
@@ -256,6 +278,9 @@ class ItemCoverageAt(tf.keras.metrics.Metric):
             indices=tf.expand_dims(unique_predicted_items, -1),
             updates=tf.ones_like(unique_predicted_items, dtype=tf.float32),
         )
+
+    def update_num_unique_items(self, num_unique_items: int):
+        self.num_unique_items.assign(num_unique_items)
 
     def result(self):
         coverage = tf.cast(self.predicted_items_count > 0, tf.float32) / self.num_unique_items
