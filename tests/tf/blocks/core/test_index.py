@@ -51,9 +51,10 @@ def test_topk_index(ecommerce_data: Dataset):
     assert top_indices.shape[-1] == 10
 
     for metric in eval_metrics:
-        metric.update_state(y_pred=top_indices)
+        metric.update_state(predicted_ids=top_indices)
     for metric in eval_metrics:
         results = metric.result()
+        metric.reset_state()
         assert results >= 0
 
 

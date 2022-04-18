@@ -159,7 +159,8 @@ class PopularityMetric(Mean):
         self.candidate_probs.assign(candidate_probs)
 
     def reset_state(self):
-        super.reset_state()
+        # reset all metrics variables except `candidate_probs`
+        backend.batch_set_value([(v, 0) for v in self.variables if "candidate_probs" not in v.name])
 
     def check_cast_inputs(self, labels, predictions):
         tf.assert_equal(
@@ -298,7 +299,7 @@ class ItemCoverageAt(tf.keras.metrics.Metric):
         return tf.reduce_sum(coverage)
 
     def reset_state(self):
-        self.predicted_items_count.assign(tf.zeros((self.num_unique_items,), dtype=tf.uint32))
+        self.predicted_items_count = tf.zeros((self.num_unique_items,), dtype=tf.uint32)
 
     def check_cast_inputs(self, labels, predictions):
         tf.assert_equal(
