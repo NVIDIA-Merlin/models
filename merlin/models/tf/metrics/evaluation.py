@@ -70,7 +70,6 @@ class PopularityMetric(Mean):
     fn:
         The popularity metric function to wrap,
         with signature `fn(predicted_candidates_probs, k, **kwargs)`.
-
     item_freq_probs: Union[tf.Tensor, Sequence]
         A Tensor or list with item frequencies (if is_prob_distribution=False)
         or with item probabilities (if is_prob_distribution=True)
