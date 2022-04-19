@@ -24,7 +24,11 @@ from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
-from merlin.models.tf.utils.tf_utils import df_to_tensor, transform_label_to_onehot
+from merlin.models.tf.utils.tf_utils import (
+    df_to_tensor,
+    get_candidate_probs,
+    transform_label_to_onehot,
+)
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
@@ -603,7 +607,7 @@ class PopularityLogitsCorrection(Block):
         if schema:
             self.set_schema(schema)
 
-        candidate_probs = self._get_candidate_probs(item_freq_probs, is_prob_distribution)
+        candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
 
         self.candidate_probs = tf.Variable(
             candidate_probs,
@@ -684,46 +688,8 @@ class PopularityLogitsCorrection(Block):
             If True, the item_freq_probs should be a probability distribution of the items.
             If False, the item frequencies is converted to probabilities
         """
-        candidate_probs = self._get_candidate_probs(item_freq_probs, is_prob_distribution)
+        candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
         self.candidate_probs.assign(candidate_probs)
-
-    def _get_candidate_probs(
-        self, item_freq_probs: Union[tf.Tensor, Sequence], is_prob_distribution: bool = False
-    ):
-        """Returns the candidate probs after checking if
-        item_freq_probs is frequencies or probs and their
-        dtype and shape according to the item feature cardinality
-
-        Parameters:
-        ----------
-        item_freq_probs : Union[tf.Tensor, Sequence]
-            A Tensor or list with item frequencies (if is_prob_distribution=False)
-            or with item probabilities (if is_prob_distribution=True)
-        is_prob_distribution: bool, optional
-            If True, the item_freq_probs should be a probability distribution of the items.
-            If False, the item frequencies is converted to probabilities
-        Returns
-        -------
-            A tensor with the item probability distributon
-        """
-        item_freq_probs = tf.convert_to_tensor(item_freq_probs)
-        self._check_items_cardinality(item_freq_probs)
-
-        if is_prob_distribution:
-            tf.debugging.assert_type(
-                item_freq_probs, tf.float32, message="The item_weights should have tf.float32 dtype"
-            )
-            tf.debugging.assert_near(
-                tf.reduce_sum(item_freq_probs),
-                1.0,
-                message="The item_weights should be a probability distribution and sum to 1.0",
-            )
-            candidate_probs = item_freq_probs
-        else:
-            item_freq_probs = tf.cast(item_freq_probs, tf.float32)
-            candidate_probs = item_freq_probs / tf.reduce_sum(item_freq_probs)
-
-        return candidate_probs
 
     def compute_output_shape(self, input_shape):
         return input_shape
