@@ -112,7 +112,8 @@ class IndexBlock(Block):
         model_encode = TFModelEncode(model=block, output_concat_func=np.concatenate)
 
         data = data.to_ddf()
-        embedding_df = data.map_partitions(model_encode, filter_input_columns=[id_column]).compute()
+        embedding_ddf = data.map_partitions(model_encode, filter_input_columns=[id_column])
+        embedding_df = embedding_ddf.compute(scheduler="synchronous")
 
         embedding_df.set_index(id_column, inplace=True)
         return embedding_df
@@ -249,32 +250,16 @@ class TopKIndexBlock(IndexBlock):
             the scores for the top-k implicit negatives.
         """
         queries = self.context["query"]
-        top_scores, top_ids = self(queries, k=self._k)
+        pred_top_scores, top_ids = self(queries, k=self._k)
 
-        # remove accidental hits
-        top_scores, _ = tf_utils.rescore_false_negatives(
-            outputs.positive_item_ids, top_ids, top_scores, self.false_negatives_score
+        targets_sorted = tf.cast(
+            tf.expand_dims(outputs.positive_item_ids, -1) == top_ids, tf.float32
         )
 
-        # Update top-k scores with positives
-        positive_scores = tf.reduce_sum(
-            queries * self.context["positive_candidates_embeddings"], axis=1, keepdims=True
-        )
-        predictions = tf.concat([positive_scores, top_scores], axis=-1)
-        targets = tf.concat(
-            [
-                tf.ones([tf.shape(predictions)[0], 1]),
-                tf.zeros([tf.shape(predictions)[0], self._k]),
-            ],
-            axis=1,
-        )
-
-        # Sort the updated scores
-        predictions_sorted, targets_sorted, _ = tf_utils.extract_topk(self._k, predictions, targets)
-        label_relevant_counts = tf.ones([tf.shape(predictions)[0]])
+        label_relevant_counts = tf.ones([tf.shape(targets_sorted)[0]])
 
         return outputs.copy_with_updates(
-            predictions=predictions_sorted,
+            predictions=pred_top_scores,
             targets=targets_sorted,
             label_relevant_counts=label_relevant_counts,
         )

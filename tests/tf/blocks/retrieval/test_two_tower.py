@@ -87,11 +87,25 @@ def test_two_tower_block(testing_data: Dataset):
     assert len(outputs) == 2
     for key in ["item", "query"]:
         assert list(outputs[key].shape) == [100, 128]
+        norm = tf.reduce_mean(tf.reduce_sum(tf.square(outputs[key]), axis=-1))
+        assert not np.isclose(
+            norm.numpy(), 1.0
+        ), "The TwoTowerBlock outputs should NOT be L2-normalized by default"
+
+
+def test_two_tower_block_with_l2_norm_on_towers_outputs(testing_data: Dataset):
+    two_tower = ml.TwoTowerBlock(
+        testing_data.schema, query_tower=ml.MLPBlock([64, 128]), l2_normalization=True
+    )
+    outputs = two_tower(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+
+    assert len(outputs) == 2
+    for key in ["item", "query"]:
+        assert list(outputs[key].shape) == [100, 128]
         tf.debugging.assert_near(
             tf.reduce_mean(tf.reduce_sum(tf.square(outputs[key]), axis=-1)),
             1.0,
-            message="The TwoTowerBlock outputs should be L2-normalized, as "
-            "that is a good practice.",
+            message="The TwoTowerBlock outputs should be L2-normalized with l2_normalization=True",
         )
 
 

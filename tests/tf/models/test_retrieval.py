@@ -32,6 +32,74 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize("logits_pop_logq_correction", [True, False])
+def test_two_tower_model_with_custom_options(
+    music_streaming_data: Dataset, run_eagerly, logits_pop_logq_correction, num_epochs=2
+):
+
+    from tensorflow.keras import regularizers
+
+    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+    from merlin.models.utils import schema_utils
+
+    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    metrics = [
+        tf.keras.metrics.AUC(from_logits=True),
+        mm.RecallAt(10),
+        mm.RecallAt(50),
+        mm.MRRAt(50),
+        mm.NDCGAt(50),
+    ]
+
+    post_logits = None
+    if logits_pop_logq_correction:
+        cardinalities = schema_utils.categorical_cardinalities(music_streaming_data.schema)
+        item_id_cardinalities = cardinalities[
+            music_streaming_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        ]
+        items_frequencies = tf.sort(
+            tf.random.uniform((item_id_cardinalities,), minval=0, maxval=1000, dtype=tf.int32)
+        )
+        post_logits = PopularityLogitsCorrection(
+            items_frequencies,
+            schema=music_streaming_data.schema,
+        )
+
+    retrieval_task = mm.ItemRetrievalTask(
+        samplers=[mm.InBatchSampler()],
+        schema=music_streaming_data.schema,
+        loss="bpr-max",
+        logits_temperature=0.1,
+        metrics=metrics,
+        post_logits=post_logits,
+        store_negative_ids=True,
+    )
+
+    model = mm.TwoTowerModel(
+        music_streaming_data.schema,
+        query_tower=mm.MLPBlock(
+            [512, 256],
+            activation="relu",
+            no_activation_last_layer=True,
+            dropout=0.1,
+            kernel_regularizer=regularizers.l2(1e-5),
+            bias_regularizer=regularizers.l2(1e-6),
+        ),
+        embedding_options=mm.EmbeddingOptions(
+            infer_embedding_sizes=True,
+            infer_embedding_sizes_multiplier=3.0,
+        ),
+        prediction_tasks=retrieval_task,
+    )
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs)
+    assert len(losses.epoch) == num_epochs
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("loss", ["categorical_crossentropy", "bpr", "binary_crossentropy"])
 def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eagerly, loss):
     ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
@@ -44,8 +112,6 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
         metrics=metrics,
         loss=loss,
     )
-    # Setting up evaluation
-    model.set_retrieval_candidates_for_evaluation(ecommerce_data)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     # Training
@@ -74,18 +140,20 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
         elif metric_name in expected_loss_metrics:
             assert losses.history[metric_name][1] <= losses.history[metric_name][0]
 
-    _ = model.evaluate(ecommerce_data, batch_size=10)
+    metrics = model.evaluate(ecommerce_data, batch_size=10, item_corpus=ecommerce_data)
+
+    assert len(metrics) == 8
 
 
-def test_retrieval_evaluation_without_negatives(ecommerce_data: Dataset):
-    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([64]))
-    model.compile(optimizer="adam", run_eagerly=True)
-    model.fit(ecommerce_data, batch_size=50)
-    with pytest.raises(ValueError) as exc_info:
-        model.evaluate(ecommerce_data, batch_size=10)
-        assert "You need to specify the set of negatives to use for evaluation" in str(
-            exc_info.value
-        )
+# def test_retrieval_evaluation_without_negatives(ecommerce_data: Dataset):
+#     model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([64]))
+#     model.compile(optimizer="adam", run_eagerly=True)
+#     model.fit(ecommerce_data, batch_size=50)
+#     with pytest.raises(ValueError) as exc_info:
+#         model.evaluate(ecommerce_data, batch_size=10)
+#         assert "You need to specify the set of negatives to use for evaluation" in str(
+#             exc_info.value
+#         )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
