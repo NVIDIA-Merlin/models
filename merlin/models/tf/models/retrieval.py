@@ -23,7 +23,9 @@ def MatrixFactorizationModel(
     dim: int,
     query_id_tag=Tags.USER_ID,
     item_id_tag=Tags.ITEM_ID,
-    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
+    embeddings_initializers: Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+    ] = None,
     embeddings_l2_reg: float = 0.0,
     post: Optional[BlockType] = None,
     prediction_tasks: Optional[
@@ -52,8 +54,9 @@ def MatrixFactorizationModel(
         The tag to select query features, by default `Tags.USER`
     item_id_tag : Tag
         The tag to select item features, by default `Tags.ITEM`
-    embeddings_initializers: Dict[str, Callable[[Any], None]]
-        A dictionary of initializers for embeddings.
+    embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]] = None
+        An initializer function or a dict where keys are feature names and values are
+        callable to initialize embedding tables
     embeddings_l2_reg: float = 0.0
         Factor for L2 regularization of the embeddings vectors (from the current batch only)
     post: Optional[Block], optional

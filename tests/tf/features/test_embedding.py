@@ -15,7 +15,7 @@
 #
 
 import pytest
-from tensorflow.python.ops import init_ops_v2
+from tensorflow.keras.initializers import RandomUniform
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
@@ -45,6 +45,15 @@ def test_embedding_features_yoochoose(testing_data: Dataset):
     assert all(emb.shape[-1] == 64 for emb in embeddings.values())
     max_value = list(schema.select_by_name("item_id"))[0].int_domain.max
     assert emb_module.embedding_tables["item_id"].shape[0] == max_value + 1
+
+    # These embeddings have not a specific initializer, so they should
+    # have default truncated normal initialization
+    default_truncated_normal_std = 0.05
+    for emb_key in embeddings:
+        assert embeddings[emb_key].numpy().mean() == pytest.approx(0.0, abs=0.02)
+        assert embeddings[emb_key].numpy().std() == pytest.approx(
+            default_truncated_normal_std, abs=0.03
+        )
 
 
 def test_serialization_embedding_features(testing_data: Dataset):
@@ -136,37 +145,44 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Datase
 
 
 def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset):
-    ITEM_MEAN = 1.0
-    ITEM_STD = 0.05
-
-    CATEGORY_MEAN = 2.0
-    CATEGORY_STD = 0.1
-
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+
+    random_max_abs_value = 0.3
     emb_module = ml.EmbeddingFeatures.from_schema(
         schema,
         embedding_options=ml.EmbeddingOptions(
+            embedding_dim_default=512,
             embeddings_initializers={
-                "item_id": init_ops_v2.TruncatedNormal(mean=ITEM_MEAN, stddev=ITEM_STD),
-                "categories": init_ops_v2.TruncatedNormal(mean=CATEGORY_MEAN, stddev=CATEGORY_STD),
+                "user_id": RandomUniform(minval=-random_max_abs_value, maxval=random_max_abs_value),
+                "user_country": RandomUniform(
+                    minval=-random_max_abs_value, maxval=random_max_abs_value
+                ),
             },
-            embeddings_initializer_default=init_ops_v2.RandomUniform(minval=-0.05, maxval=0.05),
         ),
     )
 
     embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
-    assert embeddings["item_id"].numpy().mean() == pytest.approx(ITEM_MEAN, abs=0.1)
-    assert embeddings["item_id"].numpy().std() == pytest.approx(ITEM_STD, abs=0.1)
+    assert embeddings["user_id"].numpy().min() == pytest.approx(-random_max_abs_value, abs=0.02)
+    assert embeddings["user_id"].numpy().max() == pytest.approx(random_max_abs_value, abs=0.02)
 
-    assert embeddings["categories"].numpy().mean() == pytest.approx(CATEGORY_MEAN, abs=0.1)
-    assert embeddings["categories"].numpy().std() == pytest.approx(CATEGORY_STD, abs=0.1)
+    assert embeddings["user_country"].numpy().min() == pytest.approx(
+        -random_max_abs_value, abs=0.02
+    )
+    assert embeddings["user_country"].numpy().max() == pytest.approx(random_max_abs_value, abs=0.02)
 
-    assert embeddings["user_id"].numpy().min() == pytest.approx(-0.05, abs=0.02)
-    assert embeddings["user_id"].numpy().max() == pytest.approx(0.05, abs=0.02)
+    # These embeddings have not a specific initializer, so they should
+    # have default truncated normal initialization
+    default_truncated_normal_std = 0.05
+    assert embeddings["item_id"].numpy().mean() == pytest.approx(0.0, abs=0.02)
+    assert embeddings["item_id"].numpy().std() == pytest.approx(
+        default_truncated_normal_std, abs=0.03
+    )
 
-    assert embeddings["user_country"].numpy().min() == pytest.approx(-0.05, abs=0.02)
-    assert embeddings["user_country"].numpy().max() == pytest.approx(0.05, abs=0.02)
+    assert embeddings["categories"].numpy().mean() == pytest.approx(0.0, abs=0.02)
+    assert embeddings["categories"].numpy().std() == pytest.approx(
+        default_truncated_normal_std, abs=0.03
+    )
 
 
 def test_shared_embeddings(music_streaming_data: Dataset):
