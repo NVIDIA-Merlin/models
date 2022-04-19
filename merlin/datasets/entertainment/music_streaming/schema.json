@@ -90,7 +90,8 @@
       "annotation": {
         "tag": [
           "categorical",
-          "user_id"
+          "user_id",
+          "user"
         ]
       }
     },

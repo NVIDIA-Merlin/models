@@ -86,7 +86,7 @@ def test_two_tower_block_serialization(testing_data: Dataset):
 
     outputs = copy_two_tower(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
-    assert len(outputs) == 2
+    assert len(outputs) == 4
     for key in ["item", "query"]:
         assert list(outputs[key].shape) == [100, 128]
 

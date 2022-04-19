@@ -265,6 +265,8 @@ class RankingMetric(Mean):
             base_config = super(RankingMetric, self).get_config()
             return dict(list(base_config.items()) + list(config.items()))
 
+        return {}
+
     @classmethod
     def from_config(cls, config):
         fn = config.pop("fn", None)

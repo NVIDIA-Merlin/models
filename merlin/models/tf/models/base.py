@@ -7,6 +7,7 @@ import tensorflow as tf
 
 import merlin.io
 from tensorflow.python.keras.engine import compile_utils, data_adapter
+from tensorflow.python.keras.metrics import Metric
 
 from merlin.models.tf.blocks.core.base import Block, BlockContext, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
@@ -364,11 +365,32 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
               more details.
             **kwargs: Arguments supported for backwards compatibility only.
         """
-        from_serialized = kwargs.get("from_serialized", False)
+
+        self.output_names = [task.task_name for task in self.prediction_tasks]
+
+        # If metrics are not provided, use the defaults from the prediction-tasks.
+        # TODO: Do the same for weight_metrics.
+        _metrics = {}
+        if isinstance(metrics, (list, tuple)) and len(self.prediction_tasks) == 1:
+            _metrics = {task.name: metrics for task in self.prediction_tasks}
+
+        if not metrics:
+            for task_name, task in self.prediction_tasks_by_name().items():
+                _metrics[task_name] = [
+                    m if hasattr(m, "update_state") else m() for m in task.DEFAULT_METRICS
+                ]
+
+        # If loss is not provided, use the defaults from the prediction-tasks.
+        _loss = {}
+        if not loss:
+            prediction_tasks = self.prediction_tasks_by_name()
+            for task_name, task in self.prediction_tasks_by_name().items():
+                _loss[task_name] = task.DEFAULT_LOSS
+
         super(Model, self).compile(
             optimizer=optimizer,
-            # loss=loss,
-            # metrics=metrics,
+            loss=_loss,
+            metrics=_metrics,
             # weighted_metrics=weighted_metrics,
             run_eagerly=run_eagerly,
             loss_weights=loss_weights,
@@ -377,149 +399,161 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             **kwargs
         )
 
-        _metrics = {}
-        if isinstance(metrics, (list, tuple)) and len(self.prediction_tasks) == 1:
-            _metrics = {task.name: metrics for task in self.prediction_tasks}
+        # _metrics = {}
+        # if isinstance(metrics, (list, tuple)) and len(self.prediction_tasks) == 1:
+        #     _metrics = {task.name: metrics for task in self.prediction_tasks}
+        #
+        # if not metrics:
+        #     prediction_tasks = self.prediction_tasks_by_name()
+        #     for task_name, task in prediction_tasks.items():
+        #         _metrics[task_name] = [m() for m in task.DEFAULT_METRICS]
+        #
+        # # output_names = None
+        # # if len(self.prediction_tasks) > 1:
+        # output_names = [task.task_name for task in self.prediction_tasks]
+        #
+        # self.compiled_metrics = compile_utils.MetricsContainer(
+        #     _metrics,
+        #     weighted_metrics,
+        #     output_names=output_names,
+        #     from_serialized=from_serialized
+        # )
+        #
+        # self.compiled_loss = compile_utils.LossesContainer(
+        #     loss, loss_weights, output_names=self.output_names)
 
-        if not metrics:
-            prediction_tasks = self.prediction_tasks_by_name()
-            for task_name, task in prediction_tasks.items():
-                _metrics[task_name] = [m() for m in task.DEFAULT_METRICS]
+    # def compute_loss(
+    #     self,
+    #     inputs: Union[tf.Tensor, TabularData],
+    #     targets: Union[tf.Tensor, TabularData],
+    #     compute_metrics=False,
+    #     training: bool = False,
+    #     **kwargs,
+    # ) -> tf.Tensor:
+    #     return self.loss_block.compute_loss(
+    #         inputs, targets, training=training, compute_metrics=compute_metrics, **kwargs
+    #     )
 
-        # output_names = None
-        # if len(self.prediction_tasks) > 1:
-        output_names = [task.task_name for task in self.prediction_tasks]
+    # def calculate_metrics(
+    #     self,
+    #     outputs,
+    #     mode: str = "val",
+    #     forward: bool = True,
+    #     training: bool = False,
+    #     **kwargs,
+    # ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
+    #     return self.loss_block.calculate_metrics(
+    #         outputs=outputs, mode=mode, forward=forward, training=training, **kwargs
+    #     )
+    #
+    # def metric_results(self, mode=None):
+    #     return self.loss_block.metric_results(mode=mode)
 
-        self.compiled_metrics = compile_utils.MetricsContainer(
-            _metrics,
-            weighted_metrics,
-            output_names=output_names,
-            from_serialized=from_serialized
-        )
+    def prediction_output(self, x, y=None, training=False, **kwargs) -> PredictionOutput:
+        forward = self(x, training=training, **kwargs)
+        predictions, targets = {}, {}
+        for task in self.prediction_tasks:
+            task_x = forward
+            if isinstance(forward, dict) and task.task_name in forward:
+                task_x = forward[task.task_name]
+            task_y = y[task.target_name] if isinstance(y, dict) else y
 
-    def compute_loss(
-        self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
-        compute_metrics=False,
-        training: bool = False,
-        **kwargs,
-    ) -> tf.Tensor:
-        return self.loss_block.compute_loss(
-            inputs, targets, training=training, compute_metrics=compute_metrics, **kwargs
-        )
+            prediction_output = self.prediction_task_output(task, task_x, task_y)
 
-    def calculate_metrics(
-        self,
-        outputs,
-        mode: str = "val",
-        forward: bool = True,
-        training: bool = False,
-        **kwargs,
-    ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
-        return self.loss_block.calculate_metrics(
-            outputs=outputs, mode=mode, forward=forward, training=training, **kwargs
-        )
+            targets[task.task_name] = prediction_output.targets
+            predictions[task.task_name] = prediction_output.predictions
 
-    def metric_results(self, mode=None):
-        return self.loss_block.metric_results(mode=mode)
+        if len(predictions) == 1 and len(targets) == 1:
+            predictions = predictions[list(predictions.keys())[0]]
+            targets = targets[list(targets.keys())[0]]
+
+        return PredictionOutput(predictions, targets)
+
+    def prediction_task_output(
+            self,
+            task: PredictionTask,
+            task_outputs: Dict[str, tf.Tensor],
+            task_targets: Dict[str, tf.Tensor]
+    ) -> PredictionOutput:
+        prediction_output = PredictionOutput(task_outputs, task_targets)
+        # TODO: Call compiled_pre_loss
+        prediction_output = task.pre_loss(prediction_output, training=True)
+
+        return prediction_output
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:
             x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+            outputs = self.prediction_output(x, y, training=True)
+            loss = self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
 
-            forward = self(x, training=True)
-            predictions, targets = {}, {}
-            for task in self.prediction_tasks:
-                task_x = forward[task.task_name] if isinstance(forward, dict) else forward
-                task_y = y[task.target_name] if isinstance(y, dict) else y
+        self._validate_target_and_loss(outputs.targets, loss)
 
-                # model.compile(pre_loss=NegativeSampling("in-batch"))
+        # Run backwards pass.
+        self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-                prediction_output = PredictionOutput(task_x, task_y)
-                # TODO: Call compiled_pre_loss
-                prediction_output = task.pre_loss(prediction_output, training=True)
-
-                targets[task.task_name] = prediction_output.targets
-                predictions[task.task_name] = prediction_output.predictions
-
-            if len(predictions) == 1 and len(targets) == 1:
-                predictions = predictions[list(predictions.keys())[0]]
-                targets = targets[list(targets.keys())[0]]
-
-            self.compiled_metrics.update_state(predictions, targets)
-
-            loss = self.compute_loss(
-                predictions,
-                targets,
-                training=True,
-                compute_metrics=self._should_compute_train_metrics_for_batch,
-            )
-            tf.assert_rank(
-                loss,
-                0,
-                "The loss tensor should have rank 0. "
-                "Check if you are using a tf.keras.losses.Loss with 'reduction' "
-                "properly set",
-            )
-            assert loss.dtype == tf.float32, (
-                f"The loss dtype should be tf.float32 but is rather {loss.dtype}. "
-                "Ensure that your model output has tf.float32 dtype, as "
-                "that should be the case when using mixed_float16 policy "
-                "to avoid numerical instabilities."
-            )
-
-            regularization_loss = tf.reduce_sum(self.losses)
-
-            total_loss = tf.add_n([loss, regularization_loss])
-
-            if getattr(self.optimizer, "get_scaled_loss", False):
-                scaled_loss = self.optimizer.get_scaled_loss(total_loss)
-
-        # If mixed precision (mixed_float16 policy) is enabled
-        # (and the optimizer is automatically wrapped by
-        #  tensorflow.keras.mixed_precision.LossScaleOptimizer())
-        if getattr(self.optimizer, "get_scaled_loss", False):
-            scaled_gradients = tape.gradient(scaled_loss, self.trainable_variables)
-            gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)
-        else:
-            gradients = tape.gradient(total_loss, self.trainable_variables)
-
-        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-
-        metrics = self.loss_block.metric_result_dict()
-
-        metrics["loss"] = loss
-        metrics["regularization_loss"] = regularization_loss
-        metrics["total_loss"] = total_loss
+        metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
 
         return metrics
 
-    def test_step(self, inputs):
+        #     loss = self.compute_loss(x, targets, predictions, sample_weight)
+        #     self.compiled_metrics.update_state(predictions, targets)
+        #
+        #     loss = self.compute_loss(
+        #         predictions,
+        #         targets,
+        #         training=True,
+        #         compute_metrics=self._should_compute_train_metrics_for_batch,
+        #     )
+        #     tf.assert_rank(
+        #         loss,
+        #         0,
+        #         "The loss tensor should have rank 0. "
+        #         "Check if you are using a tf.keras.losses.Loss with 'reduction' "
+        #         "properly set",
+        #     )
+        #     assert loss.dtype == tf.float32, (
+        #         f"The loss dtype should be tf.float32 but is rather {loss.dtype}. "
+        #         "Ensure that your model output has tf.float32 dtype, as "
+        #         "that should be the case when using mixed_float16 policy "
+        #         "to avoid numerical instabilities."
+        #     )
+        #
+        #     regularization_loss = tf.reduce_sum(self.losses)
+        #
+        #     total_loss = tf.add_n([loss, regularization_loss])
+        #
+        #     if getattr(self.optimizer, "get_scaled_loss", False):
+        #         scaled_loss = self.optimizer.get_scaled_loss(total_loss)
+        #
+        # # If mixed precision (mixed_float16 policy) is enabled
+        # # (and the optimizer is automatically wrapped by
+        # #  tensorflow.keras.mixed_precision.LossScaleOptimizer())
+        # if getattr(self.optimizer, "get_scaled_loss", False):
+        #     scaled_gradients = tape.gradient(scaled_loss, self.trainable_variables)
+        #     gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)
+        # else:
+        #     gradients = tape.gradient(total_loss, self.trainable_variables)
+        #
+        # self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+        #
+        # metrics = self.loss_block.metric_result_dict()
+        #
+        # metrics["loss"] = loss
+        # metrics["regularization_loss"] = regularization_loss
+        # metrics["total_loss"] = total_loss
+        #
+        # return metrics
+
+    def test_step(self, data):
         """Custom test step using the `compute_loss` method."""
 
-        if isinstance(inputs, tuple):
-            if len(inputs) == 1:
-                inputs = inputs[0]
-                targets = None
-            else:
-                inputs, targets = inputs
-        else:
-            targets = None
-
-        loss = self.compute_loss_metrics(inputs, targets, training=False, compute_metrics=True)
-
-        # Casting regularization loss to fp16 if needed to match the main loss
-        regularization_loss = tf.cast(tf.reduce_sum(self.losses), loss.dtype)
-
-        total_loss = loss + regularization_loss
-
-        metrics = self.loss_block.metric_result_dict()
-        metrics["loss"] = loss
-        metrics["regularization_loss"] = regularization_loss
-        metrics["total_loss"] = total_loss
+        x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+        outputs = self.prediction_output(x, y, training=False)
+        loss = self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
+        metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
 
         return metrics
 

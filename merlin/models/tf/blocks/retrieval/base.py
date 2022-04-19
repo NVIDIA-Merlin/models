@@ -273,7 +273,7 @@ class ItemRetrievalScorer(Block):
         return self._required_features
 
     def _check_input_from_two_tower(self, inputs):
-        if set(inputs.keys()) != set([self.query_name, self.item_name]):
+        if not all(to_check in set(inputs.keys()) for to_check in [self.query_name, self.item_name]):
             raise ValueError(
                 f"Wrong input-names, expected: {[self.query_name, self.item_name]} "
                 f"but got: {inputs.keys()}"

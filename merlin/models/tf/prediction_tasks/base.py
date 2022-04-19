@@ -231,29 +231,29 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         -------
         tf.Tensor
         """
-        if isinstance(targets, dict) and self.target_name:
-            targets = targets[self.target_name]
-
-        if isinstance(predictions, dict) and self.target_name and self.task_name in predictions:
-            predictions = predictions[self.task_name]
-
+        # if isinstance(targets, dict) and self.target_name:
+        #     targets = targets[self.target_name]
+        #
+        # if isinstance(predictions, dict) and self.target_name and self.task_name in predictions:
+        #     predictions = predictions[self.task_name]
+        #
         prediction_output = PredictionOutput(predictions, targets)
 
-        if self.pre:
-            prediction_output = self.pre_loss(prediction_output, training=training, **kwargs)
-
-        if (
-            isinstance(prediction_output.targets, tf.Tensor)
-            and len(prediction_output.targets.shape) == len(prediction_output.predictions.shape) - 1
-        ):
-            prediction_output = prediction_output.copy_with_updates(
-                predictions=tf.squeeze(prediction_output.predictions)
-            )
-
-        if not training and self._pre_eval_topk:
-            # During eval, the retrieval-task only returns positive scores
-            # so we need to retrieve top-k negative scores to compute the loss
-            prediction_output = self._pre_eval_topk.call_outputs(prediction_output, **kwargs)
+        # if self.pre:
+        #     prediction_output = self.pre_loss(prediction_output, training=training, **kwargs)
+        #
+        # if (
+        #     isinstance(prediction_output.targets, tf.Tensor)
+        #     and len(prediction_output.targets.shape) == len(prediction_output.predictions.shape) - 1
+        # ):
+        #     prediction_output = prediction_output.copy_with_updates(
+        #         predictions=tf.squeeze(prediction_output.predictions)
+        #     )
+        #
+        # if not training and self._pre_eval_topk:
+        #     # During eval, the retrieval-task only returns positive scores
+        #     # so we need to retrieve top-k negative scores to compute the loss
+        #     prediction_output = self._pre_eval_topk.call_outputs(prediction_output, **kwargs)
 
         loss = self._compute_loss(
             prediction_output,

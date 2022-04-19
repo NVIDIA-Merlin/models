@@ -19,7 +19,7 @@ def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly, 
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
 
-@pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize("run_eagerly", [True])  # , False
 def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
     music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
@@ -90,8 +90,8 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_youtube_dnn_retrieval(
-    sequence_testing_data: Dataset,
-    run_eagerly: bool,
+        sequence_testing_data: Dataset,
+        run_eagerly: bool,
 ):
     model = mm.YoutubeDNNRetrievalModel(schema=sequence_testing_data.schema, max_seq_length=4)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)

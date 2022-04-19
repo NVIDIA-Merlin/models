@@ -53,6 +53,8 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
         embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
         **kwargs,
     ):
+        output_ids = False if "aggregation" in kwargs else output_ids
+
         query_schema = schema.select_by_tag(query_id_tag)
         item_schema = schema.select_by_tag(item_id_tag)
         embedding_options = EmbeddingOptions(

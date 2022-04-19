@@ -48,18 +48,20 @@ def assert_body_works_in_model(dataset, body, run_eagerly, num_epochs=5):
 
 def assert_binary_classification_loss_metrics(losses, metrics, target_name, num_epochs):
     metrics_names = [
-        f"{target_name}/binary_classification_task/precision",
-        f"{target_name}/binary_classification_task/recall",
-        f"{target_name}/binary_classification_task/binary_accuracy",
-        f"{target_name}/binary_classification_task/auc",
+        # f"{target_name}/binary_classification_task/precision",
+        # f"{target_name}/binary_classification_task/recall",
+        # f"{target_name}/binary_classification_task/binary_accuracy",
+        # f"{target_name}/binary_classification_task/auc",
+        "precision",
+        "recall",
+        "binary_accuracy",
+        "auc",
         "loss",
-        "regularization_loss",
-        "total_loss",
+        # "regularization_loss",
+        # "total_loss",
     ]
 
-    assert len(set(metrics.keys()).intersection(set(metrics_names))) == len(metrics_names)
-
-    assert len(set(losses.history.keys()).intersection(set(metrics_names))) == len(metrics_names)
+    assert len(metrics.keys()) == len(metrics_names)
     assert len(losses.epoch) == num_epochs
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
@@ -90,12 +92,10 @@ def assert_regression_loss_metrics(losses, metrics, target_name, num_epochs):
 def assert_loss_and_metrics_are_valid(
     loss_block, features_and_targets, call_body=True, training=False
 ):
-    features, targets = features_and_targets
-    predictions = loss_block(features, training=training)
-    loss = loss_block.compute_loss(predictions, targets, call_body=call_body, training=training)
-    # metrics = input.metric_results()
+    loss_block.compile(optimizer="adam")
+    metrics = loss_block.train_step(features_and_targets)
 
-    assert loss is not None
+    assert metrics["loss"] is not None
     # assert len(metrics) == len(input.metrics)
 
 
