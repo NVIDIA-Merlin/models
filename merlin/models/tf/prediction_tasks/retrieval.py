@@ -26,6 +26,7 @@ from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
+from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
 
@@ -86,6 +87,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        self.item_domain = schema_utils.categorical_domains(schema)[self.item_id_feature_name]
         self.cache_query = cache_query
         pre = self._build_prediction_call(
             samplers,
@@ -122,6 +124,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         prediction_call = ItemRetrievalScorer(
             samplers=samplers,
             item_id_feature_name=self.item_id_feature_name,
+            item_domain=self.item_domain,
             cache_query=self.cache_query,
             store_negative_ids=store_negative_ids,
         )

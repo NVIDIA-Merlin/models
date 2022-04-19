@@ -479,6 +479,7 @@ class ItemsPredictionWeightTying(Block):
         self.bias_initializer = bias_initializer
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.num_classes = schema_utils.categorical_cardinalities(schema)[self.item_id_feature_name]
+        self.item_domain = schema_utils.categorical_domains(schema)[self.item_id_feature_name]
 
     def build(self, input_shape):
         self.bias = self.add_weight(
@@ -489,7 +490,7 @@ class ItemsPredictionWeightTying(Block):
         return super().build(input_shape)
 
     def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
-        embedding_table = self.context.get_embedding(self.item_id_feature_name)
+        embedding_table = self.context.get_embedding(self.item_domain)
         logits = tf.matmul(inputs, embedding_table, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
