@@ -60,6 +60,7 @@ class EmbeddingOptions:
     infer_embeddings_ensure_dim_multiple_of_8: bool = False
     embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None
     embeddings_initializer_default: Callable[[Any], None] = None
+    embeddings_l2_reg: float = 0.0
     combiner: Optional[str] = "mean"
 
 
@@ -88,13 +89,14 @@ class EmbeddingFeatures(TabularBlock):
         schema: Optional[Schema] = None,
         name=None,
         add_default_pre=True,
+        l2_reg: Optional[float] = 0.0,
         **kwargs,
     ):
         if add_default_pre:
             embedding_pre = [Filter(list(feature_config.keys())), AsSparseFeatures()]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
         self.feature_config = feature_config
-
+        self.l2_reg = l2_reg
         super().__init__(
             pre=pre,
             post=post,
@@ -180,7 +182,12 @@ class EmbeddingFeatures(TabularBlock):
         if not feature_config:
             return None
 
-        output = cls(feature_config, schema=schema_copy, **kwargs)
+        output = cls(
+            feature_config,
+            schema=schema_copy,
+            l2_reg=embedding_options.embeddings_l2_reg,
+            **kwargs,
+        )
 
         return output
 
@@ -211,6 +218,8 @@ class EmbeddingFeatures(TabularBlock):
         embedded_outputs = {}
         for name, val in inputs.items():
             embedded_outputs[name] = self.lookup_feature(name, val)
+            if self.l2_reg > 0:
+                self.add_loss(self.l2_reg * tf.norm(embedded_outputs[name]))
 
         return embedded_outputs
 

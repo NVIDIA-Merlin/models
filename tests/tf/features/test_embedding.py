@@ -85,11 +85,35 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: Dataset):
 
     embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
+    assert len(emb_module.losses) == 0, "There should be no regularization loss by default"
+
     assert emb_module.embedding_tables["item_id"].shape[1] == 100
     assert emb_module.embedding_tables["categories"].shape[1] == 64
 
     assert embeddings["item_id"].shape[1] == 100
     assert embeddings["categories"].shape[1] == 64
+
+
+def test_embedding_features_l2_reg(testing_data: Dataset):
+    schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+
+    emb_module = ml.EmbeddingFeatures.from_schema(
+        schema,
+        embedding_options=ml.EmbeddingOptions(
+            embedding_dims={"item_id": 100}, embedding_dim_default=64, embeddings_l2_reg=0.1
+        ),
+    )
+
+    _ = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+
+    l2_emb_losses = emb_module.losses
+
+    assert len(l2_emb_losses) == len(
+        schema
+    ), "The number of reg losses should equal to the number of embeddings"
+
+    for reg_loss in l2_emb_losses:
+        assert reg_loss > 0.0
 
 
 def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Dataset):
