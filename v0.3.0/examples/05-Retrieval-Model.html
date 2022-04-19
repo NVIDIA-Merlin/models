@@ -357,7 +357,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p><img alt="ea52cbf067bf4facb47e393924723985" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="8fda6ac43d3e46e1bbfbbef8ab829784" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Two-Stage-Recommender-Systems">
 <h1>Two-Stage Recommender Systems<a class="headerlink" href="#Two-Stage-Recommender-Systems" title="Permalink to this headline"></a></h1>
 <p>In large scale recommender systems pipelines, the size of the item catalog (number of unique items) might be in the order of millions. At such scale, a typical setup is having two-stage pipeline, where a faster candidate retrieval model quickly extracts thousands of relevant items and a then a more powerful ranking model (i.e. with more features and more powerful architecture) ranks the top-k items that are going to be displayed to the user. For ML-based candidate retrieval model, as it needs to
@@ -480,7 +480,7 @@ transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
 <h1>Building a Two-Tower Model with Merlin Models<a class="headerlink" href="#Building-a-Two-Tower-Model-with-Merlin-Models" title="Permalink to this headline"></a></h1>
 <p>We will use Two-Tower Model for item retrieval task. Real-world large scale recommender systems have hundreds of millions of items (products) and users. Thus, these systems often composed of two stages: candidate generation (retrieval) and ranking (scoring the retrieved items). At candidate generation step, a subset of relevant items from large item corpus is retrieved. You can read more about two stage Recommender Systems here. In this example, we’re going to focus on the retrieval stage.</p>
 <p>A Two-Tower Model consists of item (candidate) and user (query) encoder towers. With two towers, the model can learn representations (embeddings) for queries and candidates separately.</p>
-<p><img alt="c984efc3c25f43f4b816a91ec13ca7d8" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
+<p><img alt="791dcde140fa45e692cd5d9bc5f76e34" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
 <p>Image Adapted from: <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3366423.3380130">Off-policy Learning in Two-stage Recommender Systems</a></p>
 <p>We use the <code class="docutils literal notranslate"><span class="pre">schema</span></code> object to define our model.</p>
 <div class="nbinput docutils container">
