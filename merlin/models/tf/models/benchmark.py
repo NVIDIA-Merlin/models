@@ -35,6 +35,7 @@ def NCFModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
+    embeddings_l2_reg: float = 0.0,
     **kwargs
 ) -> Model:
     """NCF-model architecture.
@@ -68,16 +69,23 @@ def NCFModel(
         Stack of MLP layers to learn non-linear interactions from data.
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
-
+    embeddings_l2_reg: float = 0.0
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
     Returns
     -------
     Model
 
     """
 
-    mlp_branch = QueryItemIdsEmbeddingsBlock(schema, dim=embedding_dim).connect(mlp_block)
+    mlp_branch = QueryItemIdsEmbeddingsBlock(
+        schema, dim=embedding_dim, embeddings_l2_reg=embeddings_l2_reg
+    ).connect(mlp_block)
     mf_branch = MatrixFactorizationBlock(
-        schema, dim=embedding_dim, aggregation=ElementWiseMultiply(), **kwargs
+        schema,
+        dim=embedding_dim,
+        aggregation=ElementWiseMultiply(),
+        embeddings_l2_reg=embeddings_l2_reg,
+        **kwargs,
     )
 
     ncf = ParallelBlock({"mf": mf_branch, "mlp": mlp_branch}, aggregation="concat")
