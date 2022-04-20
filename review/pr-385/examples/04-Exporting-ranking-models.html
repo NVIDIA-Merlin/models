@@ -357,7 +357,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p><img alt="537915fdeef249c1bc3337fe4e22ba03" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="9364587064ec46f4a6c661fa07955297" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Exporting-Ranking-Models">
 <h1>Exporting Ranking Models<a class="headerlink" href="#Exporting-Ranking-Models" title="Permalink to this headline"></a></h1>
 <p>In this example notebook we demonstrate how to export (save) NVTabular <code class="docutils literal notranslate"><span class="pre">workflow</span></code> and a <code class="docutils literal notranslate"><span class="pre">ranking</span> <span class="pre">model</span></code> for model deployment with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library.</p>
@@ -376,7 +376,6 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;TF_GPU_ALLOCATOR&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;cuda_malloc_async&quot;</span>
 
 <span class="c1">#import nvtabular as nvt</span>
 <span class="c1"># from nvtabular.ops import *</span>
@@ -385,7 +384,7 @@ div.rendered_html tbody tr:hover {
 
 <span class="c1">#from merlin.schema.tags import Tags</span>
 
-<span class="c1">#import merlin.models.tf as mm</span>
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
 <span class="c1">#from merlin.io.dataset import Dataset</span>
 <span class="c1"># import tensorflow as tf</span>
 </pre></div>
