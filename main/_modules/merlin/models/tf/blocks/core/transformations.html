@@ -92,7 +92,11 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">PredictionOutput</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">TabularBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span><span class="p">,</span> <span class="n">TensorOrTabularData</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="n">df_to_tensor</span><span class="p">,</span> <span class="n">transform_label_to_onehot</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">df_to_tensor</span><span class="p">,</span>
+    <span class="n">get_candidate_probs</span><span class="p">,</span>
+    <span class="n">transform_label_to_onehot</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">schema_utils</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
@@ -671,7 +675,7 @@
         <span class="k">if</span> <span class="n">schema</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 
-        <span class="n">candidate_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_candidate_probs</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">is_prob_distribution</span><span class="p">)</span>
+        <span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">get_candidate_probs</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">is_prob_distribution</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
             <span class="n">candidate_probs</span><span class="p">,</span>
@@ -752,46 +756,8 @@
 <span class="sd">            If True, the item_freq_probs should be a probability distribution of the items.</span>
 <span class="sd">            If False, the item frequencies is converted to probabilities</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">candidate_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_candidate_probs</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">is_prob_distribution</span><span class="p">)</span>
+        <span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">get_candidate_probs</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">is_prob_distribution</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">candidate_probs</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">candidate_probs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_get_candidate_probs</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">item_freq_probs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">],</span> <span class="n">is_prob_distribution</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns the candidate probs after checking if</span>
-<span class="sd">        item_freq_probs is frequencies or probs and their</span>
-<span class="sd">        dtype and shape according to the item feature cardinality</span>
-
-<span class="sd">        Parameters:</span>
-<span class="sd">        ----------</span>
-<span class="sd">        item_freq_probs : Union[tf.Tensor, Sequence]</span>
-<span class="sd">            A Tensor or list with item frequencies (if is_prob_distribution=False)</span>
-<span class="sd">            or with item probabilities (if is_prob_distribution=True)</span>
-<span class="sd">        is_prob_distribution: bool, optional</span>
-<span class="sd">            If True, the item_freq_probs should be a probability distribution of the items.</span>
-<span class="sd">            If False, the item frequencies is converted to probabilities</span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">            A tensor with the item probability distributon</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">item_freq_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_check_items_cardinality</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">is_prob_distribution</span><span class="p">:</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_type</span><span class="p">(</span>
-                <span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;The item_weights should have tf.float32 dtype&quot;</span>
-            <span class="p">)</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_near</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">),</span>
-                <span class="mf">1.0</span><span class="p">,</span>
-                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;The item_weights should be a probability distribution and sum to 1.0&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">item_freq_probs</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">item_freq_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-            <span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">item_freq_probs</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">candidate_probs</span>
 
     <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">input_shape</span>
