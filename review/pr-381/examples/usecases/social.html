@@ -340,12 +340,12 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import merlin.models.tf as ml
-from merlin.datasets.synthetic import generate_data
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+<span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
 
-social_data = generate_data(&quot;social&quot;, num_rows=1000)
+<span class="n">social_data</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;social&quot;</span><span class="p">,</span> <span class="n">num_rows</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
 
-social_data.to_ddf()
+<span class="n">social_data</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -658,12 +658,12 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>retrieval_model = ml.TwoTowerModel(social_data.schema, query_tower=ml.MLPBlock([512, 256]))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">retrieval_model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">TwoTowerModel</span><span class="p">(</span><span class="n">social_data</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="n">query_tower</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]))</span>
 
-retrieval_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)
-retrieval_model.fit(social_data, batch_size=50, epochs=2)
+<span class="n">retrieval_model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">retrieval_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">social_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
-print(f&quot;Number of parameters: {retrieval_model.count_params()}&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of parameters: </span><span class="si">{</span><span class="n">retrieval_model</span><span class="o">.</span><span class="n">count_params</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -725,17 +725,17 @@ Number of parameters: 238537970
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ranking_model = ml.DLRMModel(
-    social_data.schema,
-    embedding_dim=64,
-    bottom_block=ml.MLPBlock([64]),
-    top_block=ml.MLPBlock([32]),
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ranking_model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
+    <span class="n">social_data</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+    <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">bottom_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span>
+    <span class="n">top_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">32</span><span class="p">]),</span>
+<span class="p">)</span>
 
-ranking_model.compile(optimizer=&quot;adam&quot;, run_eagerly=True)
-ranking_model.fit(social_data, batch_size=50, epochs=2)
+<span class="n">ranking_model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">ranking_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">social_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
-print(f&quot;Number of parameters: {ranking_model.count_params()}&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of parameters: </span><span class="si">{</span><span class="n">ranking_model</span><span class="o">.</span><span class="n">count_params</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

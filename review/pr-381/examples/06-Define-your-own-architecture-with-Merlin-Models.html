@@ -340,20 +340,20 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Copyright 2021 NVIDIA Corporation. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ================================
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2021 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ================================</span>
 </pre></div>
 </div>
 </div>
@@ -415,11 +415,11 @@ determining the embedding dimensions, input shapes, and output shapes. Additiona
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import tensorflow as tf
-import merlin.models.tf as mm
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
 
-from merlin.datasets.entertainment import get_movielens
-from merlin.schema.tags import Tags
+<span class="kn">from</span> <span class="nn">merlin.datasets.entertainment</span> <span class="kn">import</span> <span class="n">get_movielens</span>
+<span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
 </pre></div>
 </div>
 </div>
@@ -436,7 +436,7 @@ from merlin.schema.tags import Tags
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train, valid = get_movielens(variant=&quot;ml-1m&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -468,7 +468,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>valid.head()
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">valid</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -618,8 +618,8 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>batch = mm.sample_batch(valid, batch_size=5, shuffle=False, include_targets=False)
-batch[&quot;userId&quot;]
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">batch</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">sample_batch</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">include_targets</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">batch</span><span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>
@@ -644,17 +644,17 @@ array([[178],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>sub_schema = train.schema.select_by_name(
-    [
-        &quot;userId&quot;,
-        &quot;movieId&quot;,
-        &quot;title&quot;,
-        &quot;gender&quot;,
-        &quot;TE_zipcode_rating&quot;,
-        &quot;TE_movieId_rating&quot;,
-        &quot;rating_binary&quot;,
-    ]
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sub_schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="s2">&quot;userId&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;movieId&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gender&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;TE_zipcode_rating&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;TE_movieId_rating&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rating_binary&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -663,7 +663,7 @@ array([[178],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>continuous_block = mm.ContinuousFeatures.from_schema(sub_schema, tags=Tags.CONTINUOUS)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">continuous_block</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">ContinuousFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">sub_schema</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -672,7 +672,7 @@ array([[178],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>continuous_block(batch)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">continuous_block</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -701,8 +701,8 @@ array([[178],
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>deep_continuous_block = continuous_block.connect(mm.MLPBlock([64]))
-deep_continuous_block(batch).shape
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">deep_continuous_block</span> <span class="o">=</span> <span class="n">continuous_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]))</span>
+<span class="n">deep_continuous_block</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
 </pre></div>
 </div>
 </div>
@@ -728,7 +728,7 @@ TensorShape([5, 64])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>embedding_block = mm.EmbeddingFeatures.from_schema(sub_schema)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">embedding_block</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">EmbeddingFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">sub_schema</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -737,8 +737,8 @@ TensorShape([5, 64])
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>embeddings = embedding_block(batch)
-embeddings.keys(), embeddings[&quot;userId&quot;].shape
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">embeddings</span> <span class="o">=</span> <span class="n">embedding_block</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+<span class="n">embeddings</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">embeddings</span><span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
 </pre></div>
 </div>
 </div>
@@ -756,12 +756,12 @@ embeddings.keys(), embeddings[&quot;userId&quot;].shape
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dlrm_input_block = mm.ParallelBlock(
-    {&quot;embeddings&quot;: embedding_block, &quot;deep_continuous&quot;: deep_continuous_block}
-)
-print(&quot;Output shapes of DLRM input block:&quot;)
-for key, val in dlrm_input_block(batch).items():
-    print(&quot;\t%s : %s&quot; % (key, val.shape))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dlrm_input_block</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">ParallelBlock</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">&quot;embeddings&quot;</span><span class="p">:</span> <span class="n">embedding_block</span><span class="p">,</span> <span class="s2">&quot;deep_continuous&quot;</span><span class="p">:</span> <span class="n">deep_continuous_block</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Output shapes of DLRM input block:&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">dlrm_input_block</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -788,22 +788,22 @@ Output shapes of DLRM input block:
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.tf.blocks.dlrm import DotProductInteractionBlock
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.dlrm</span> <span class="kn">import</span> <span class="n">DotProductInteractionBlock</span>
 
-dlrm_interaction = dlrm_input_block.connect_with_shortcut(
-    DotProductInteractionBlock(), shortcut_filter=mm.Filter(&quot;deep_continuous&quot;), aggregation=&quot;concat&quot;
-)
+<span class="n">dlrm_interaction</span> <span class="o">=</span> <span class="n">dlrm_input_block</span><span class="o">.</span><span class="n">connect_with_shortcut</span><span class="p">(</span>
+    <span class="n">DotProductInteractionBlock</span><span class="p">(),</span> <span class="n">shortcut_filter</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="s2">&quot;deep_continuous&quot;</span><span class="p">),</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">Filter</span></code> operation allows us to select the <code class="docutils literal notranslate"><span class="pre">deep_continuous</span></code> tensor from the <code class="docutils literal notranslate"><span class="pre">dlrm_input_block</span></code> outputs.</p>
 <p>The following diagram provides a visualization of the operations that we constructed in the <code class="docutils literal notranslate"><span class="pre">dlrm_interaction</span></code> object.</p>
-<p><img alt="594102f1e4614c60aa9864ec19ae6737" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
+<p><img alt="d4233262b4c040cca1ddb66e9fdf5d38" class="no-scaled-link" src="../_images/residual_interaction.png" style="width: 30%;" /></p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dlrm_interaction(batch)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dlrm_interaction</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -831,8 +831,8 @@ array([[ 0.03531839,  0.        ,  0.02178912, ...,  0.00348584,
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>deep_dlrm_interaction = dlrm_interaction.connect(mm.MLPBlock([64, 128, 512]))
-deep_dlrm_interaction(batch)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">deep_dlrm_interaction</span> <span class="o">=</span> <span class="n">dlrm_interaction</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">512</span><span class="p">]))</span>
+<span class="n">deep_dlrm_interaction</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -864,13 +864,13 @@ array([[0.00196931, 0.        , 0.01411253, ..., 0.00167978, 0.00330653,
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">LogitsTemperatureScaler</span>
 
-binary_task = mm.BinaryClassificationTask(
-    sub_schema,
-    metrics=[tf.keras.metrics.AUC],
-    pre=LogitsTemperatureScaler(temperature=2),
-)
+<span class="n">binary_task</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span>
+    <span class="n">sub_schema</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">],</span>
+    <span class="n">pre</span><span class="o">=</span><span class="n">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">temperature</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -882,8 +882,8 @@ binary_task = mm.BinaryClassificationTask(
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = deep_dlrm_interaction.connect(binary_task)
-type(model)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">deep_dlrm_interaction</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">binary_task</span><span class="p">)</span>
+<span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -901,8 +901,8 @@ merlin.models.tf.models.base.Model
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.compile(optimizer=&quot;adam&quot;)
-model.fit(train, batch_size=1024, epochs=1)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -968,7 +968,8 @@ WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.evaluate(valid, batch_size=1024, return_dict=True)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics</span>
 </pre></div>
 </div>
 </div>
@@ -1006,7 +1007,7 @@ WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.save(&quot;custom_dlrm&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;custom_dlrm&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
