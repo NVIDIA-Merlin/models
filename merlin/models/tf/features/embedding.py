@@ -152,7 +152,7 @@ class EmbeddingFeatures(TabularBlock):
 
         embedding_dims = embedding_dims or {}
 
-        initializer_default = tf.keras.initializers.TruncatedNormal(mean=0.0, stddev=0.1)
+        initializer_default = tf.keras.initializers.TruncatedNormal(mean=0.0, stddev=0.05)
         embeddings_initializer = embedding_options.embeddings_initializers or initializer_default
 
         emb_config = {}

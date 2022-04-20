@@ -38,11 +38,14 @@ def test_embedding_features(tf_cat_features):
 def test_embedding_features_yoochoose(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    emb_module = ml.EmbeddingFeatures.from_schema(schema)
+    emb_module = ml.EmbeddingFeatures.from_schema(
+        schema,
+        embedding_options=ml.EmbeddingOptions(embedding_dim_default=512),
+    )
     embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
-    assert all(emb.shape[-1] == 64 for emb in embeddings.values())
+    assert all(emb.shape[-1] == 512 for emb in embeddings.values())
     max_value = list(schema.select_by_name("item_id"))[0].int_domain.max
     assert emb_module.embedding_tables["item_id"].shape[0] == max_value + 1
 
@@ -52,7 +55,7 @@ def test_embedding_features_yoochoose(testing_data: Dataset):
     for emb_key in embeddings:
         assert embeddings[emb_key].numpy().mean() == pytest.approx(0.0, abs=0.02)
         assert embeddings[emb_key].numpy().std() == pytest.approx(
-            default_truncated_normal_std, abs=0.03
+            default_truncated_normal_std, abs=0.04
         )
 
 
@@ -176,12 +179,12 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset)
     default_truncated_normal_std = 0.05
     assert embeddings["item_id"].numpy().mean() == pytest.approx(0.0, abs=0.02)
     assert embeddings["item_id"].numpy().std() == pytest.approx(
-        default_truncated_normal_std, abs=0.03
+        default_truncated_normal_std, abs=0.04
     )
 
     assert embeddings["categories"].numpy().mean() == pytest.approx(0.0, abs=0.02)
     assert embeddings["categories"].numpy().std() == pytest.approx(
-        default_truncated_normal_std, abs=0.03
+        default_truncated_normal_std, abs=0.04
     )
 
 
