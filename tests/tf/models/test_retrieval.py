@@ -150,13 +150,14 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
         metrics=metrics,
         loss=loss,
     )
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    opt = tf.keras.optimizers.Adam(learning_rate=1e-3)
+    model.compile(optimizer=opt, run_eagerly=run_eagerly)
 
     # Training
     num_epochs = 2
     losses = model.fit(
         ecommerce_data,
-        batch_size=10,
+        batch_size=64,
         epochs=num_epochs,
         train_metrics_steps=3,
         validation_data=ecommerce_data,
