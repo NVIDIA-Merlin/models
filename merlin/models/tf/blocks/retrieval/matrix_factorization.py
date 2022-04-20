@@ -20,7 +20,7 @@ from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
 from merlin.models.tf.blocks.core.transformations import RenameFeatures
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock
 from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
-from merlin.schema import Schema, Tags
+from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin_models")
 
@@ -35,28 +35,39 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
         The `Schema` with the input features
     dim : int
         Dimension of the user and item embeddings
-    query_id_tag : _type_, optional
+    query_id_tag : TagsType, optional
         The tag to select the user id feature, by default `Tags.USER_ID`
-    item_id_tag : _type_, optional
+    item_id_tag : TagsType, optional
         The tag to select the item id feature, by default `Tags.ITEM_ID`
-    embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]], optional
-        Dict where keys are feature names and values are callable to initialize embedding tables
+    embeddings_initializers : Optional[
+            Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+        ],
+        An initializer function or a dict where keys are feature names and values are
+        callable to initialize embedding tables
+    embeddings_l2_reg: float = 0.0
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
     """
 
     def __init__(
         self,
         schema: Schema,
         dim: int,
-        query_id_tag=Tags.USER_ID,
-        item_id_tag=Tags.ITEM_ID,
-        embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
+        query_id_tag: TagsType = Tags.USER_ID,
+        item_id_tag: TagsType = Tags.ITEM_ID,
+        embeddings_initializers: Optional[
+            Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+        ] = None,
+        embeddings_l2_reg: float = 0.0,
         **kwargs,
     ):
         query_schema = schema.select_by_tag(query_id_tag)
         item_schema = schema.select_by_tag(item_id_tag)
         embedding_options = EmbeddingOptions(
-            embedding_dim_default=dim, embeddings_initializers=embeddings_initializers
+            embedding_dim_default=dim,
+            embeddings_l2_reg=embeddings_l2_reg,
         )
+        if embeddings_initializers:
+            embedding_options.embeddings_initializers = embeddings_initializers
 
         rename_features = RenameFeatures(
             {query_id_tag: "query", item_id_tag: "item"}, schema=schema
@@ -105,7 +116,10 @@ def MatrixFactorizationBlock(
     dim: int,
     query_id_tag=Tags.USER_ID,
     item_id_tag=Tags.ITEM_ID,
-    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
+    embeddings_initializers: Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+    ] = None,
+    embeddings_l2_reg: float = 0.0,
     aggregation=CosineSimilarity(),
     **kwargs,
 ):
@@ -124,9 +138,11 @@ def MatrixFactorizationBlock(
         The tag to select the user id feature, by default `Tags.USER_ID`
     item_id_tag : _type_, optional
         The tag to select the item id feature, by default `Tags.ITEM_ID`
-    embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]], optional
-        Dict where keys are feature names and values are callable to initialize
-        embedding tables
+    embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]] = None
+        An initializer function or a dict where keys are feature names and values are
+        callable to initialize embedding tables
+    embeddings_l2_reg: float = 0.0
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
     aggregation : _type_, optional
         Aggregation of the user and item embeddings, by default CosineSimilarity()
 
@@ -142,6 +158,7 @@ def MatrixFactorizationBlock(
         query_id_tag=query_id_tag,
         item_id_tag=item_id_tag,
         embeddings_initializers=embeddings_initializers,
+        embeddings_l2_reg=embeddings_l2_reg,
         aggregation=aggregation,
         **kwargs,
     )

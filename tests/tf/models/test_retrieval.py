@@ -19,6 +19,21 @@ def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly, 
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
 
+def test_matrix_factorization_model_l2_reg(testing_data: Dataset):
+    model = mm.MatrixFactorizationModel(testing_data.schema, dim=64, embeddings_l2_reg=0.1)
+
+    _ = model(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
+
+    l2_emb_losses = model.losses
+
+    assert (
+        len(l2_emb_losses) == 2
+    ), "The number of reg losses should be 2 (for user and item embeddings)"
+
+    for reg_loss in l2_emb_losses:
+        assert reg_loss > 0.0
+
+
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
     music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
@@ -29,6 +44,29 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
     losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+
+
+def test_two_tower_model_l2_reg(testing_data: Dataset):
+
+    model = mm.TwoTowerModel(
+        testing_data.schema,
+        query_tower=mm.MLPBlock([512, 256]),
+        embedding_options=mm.EmbeddingOptions(
+            embedding_dim_default=64,
+            embeddings_l2_reg=0.1,
+        ),
+    )
+
+    _ = model(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
+
+    l2_emb_losses = model.losses
+
+    assert len(l2_emb_losses) == len(
+        testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+    ), "The number of reg losses should be 4 (for user and item categorical features)"
+
+    for reg_loss in l2_emb_losses:
+        assert reg_loss > 0.0
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -112,13 +150,14 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
         metrics=metrics,
         loss=loss,
     )
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    opt = tf.keras.optimizers.Adam(learning_rate=1e-3)
+    model.compile(optimizer=opt, run_eagerly=run_eagerly)
 
     # Training
     num_epochs = 2
     losses = model.fit(
         ecommerce_data,
-        batch_size=10,
+        batch_size=64,
         epochs=num_epochs,
         train_metrics_steps=3,
         validation_data=ecommerce_data,

@@ -58,8 +58,10 @@ class EmbeddingOptions:
     infer_embedding_sizes: bool = False
     infer_embedding_sizes_multiplier: float = 2.0
     infer_embeddings_ensure_dim_multiple_of_8: bool = False
-    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None
-    embeddings_initializer_default: Callable[[Any], None] = None
+    embeddings_initializers: Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+    ] = None
+    embeddings_l2_reg: float = 0.0
     combiner: Optional[str] = "mean"
 
 
@@ -88,13 +90,14 @@ class EmbeddingFeatures(TabularBlock):
         schema: Optional[Schema] = None,
         name=None,
         add_default_pre=True,
+        l2_reg: Optional[float] = 0.0,
         **kwargs,
     ):
         if add_default_pre:
             embedding_pre = [Filter(list(feature_config.keys())), AsSparseFeatures()]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
         self.feature_config = feature_config
-
+        self.l2_reg = l2_reg
         super().__init__(
             pre=pre,
             post=post,
@@ -148,16 +151,19 @@ class EmbeddingFeatures(TabularBlock):
             )
 
         embedding_dims = embedding_dims or {}
-        embeddings_initializers = embedding_options.embeddings_initializers or {}
+
+        initializer_default = tf.keras.initializers.TruncatedNormal(mean=0.0, stddev=0.05)
+        embeddings_initializer = embedding_options.embeddings_initializers or initializer_default
 
         emb_config = {}
         cardinalities = schema_utils.categorical_cardinalities(schema)
         for key, cardinality in cardinalities.items():
             embedding_size = embedding_dims.get(key, embedding_options.embedding_dim_default)
-            embedding_initializer = embeddings_initializers.get(
-                key, embedding_options.embeddings_initializer_default
-            )
-            emb_config[key] = (cardinality, embedding_size, embedding_initializer)
+            if isinstance(embeddings_initializer, dict):
+                emb_initializer = embeddings_initializer.get(key, initializer_default)
+            else:
+                emb_initializer = embeddings_initializer
+            emb_config[key] = (cardinality, embedding_size, emb_initializer)
 
         feature_config: Dict[str, FeatureConfig] = {}
         tables: Dict[str, TableConfig] = {}
@@ -180,7 +186,12 @@ class EmbeddingFeatures(TabularBlock):
         if not feature_config:
             return None
 
-        output = cls(feature_config, schema=schema_copy, **kwargs)
+        output = cls(
+            feature_config,
+            schema=schema_copy,
+            l2_reg=embedding_options.embeddings_l2_reg,
+            **kwargs,
+        )
 
         return output
 
@@ -211,6 +222,8 @@ class EmbeddingFeatures(TabularBlock):
         embedded_outputs = {}
         for name, val in inputs.items():
             embedded_outputs[name] = self.lookup_feature(name, val)
+            if self.l2_reg > 0:
+                self.add_loss(self.l2_reg * tf.reduce_sum(tf.square(embedded_outputs[name])))
 
         return embedded_outputs
 
