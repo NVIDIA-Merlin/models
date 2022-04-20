@@ -223,7 +223,7 @@ class EmbeddingFeatures(TabularBlock):
         for name, val in inputs.items():
             embedded_outputs[name] = self.lookup_feature(name, val)
             if self.l2_reg > 0:
-                self.add_loss(self.l2_reg * tf.norm(embedded_outputs[name]))
+                self.add_loss(self.l2_reg * tf.reduce_sum(tf.square(embedded_outputs[name])))
 
         return embedded_outputs
 
