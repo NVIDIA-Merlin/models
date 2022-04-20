@@ -1,0 +1,6 @@
+﻿merlin.models.tf.ranking\_metrics
+=================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: ranking_metrics
