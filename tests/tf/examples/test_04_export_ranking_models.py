@@ -12,7 +12,7 @@ def test_func(tb):
         """
         import os
         os.environ["DATA_FOLDER"] = "/tmp/data/"
-        os.environ["NUM_ROWS"] = "1000"
+        os.environ["NUM_ROWS"] = "999"
         """
     )
     tb.execute()
