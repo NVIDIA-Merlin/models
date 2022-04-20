@@ -88,7 +88,7 @@
     "\n",
     "#from merlin.schema.tags import Tags\n",
     "\n",
-    "import merlin.models.tf as mm\n",
+    "#import merlin.models.tf as mm\n",
     "#from merlin.io.dataset import Dataset\n",
     "# import tensorflow as tf"
    ]
