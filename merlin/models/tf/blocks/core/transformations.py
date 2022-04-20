@@ -338,7 +338,10 @@ class L2Norm(TabularBlock):
 
     def call(self, inputs: Union[tf.Tensor, TabularData], axis: int = -1, **kwargs):
         if isinstance(inputs, dict):
-            inputs = {key: tf.linalg.l2_normalize(inp, axis=axis) for key, inp in inputs.items()}
+            inputs = {
+                key: tf.linalg.l2_normalize(inp, axis=axis) if not inp.dtype == tf.int64 else inp
+                for key, inp in inputs.items()
+            }
         else:
             inputs = tf.linalg.l2_normalize(inputs, axis=axis)
 

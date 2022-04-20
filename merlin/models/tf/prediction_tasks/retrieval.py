@@ -104,7 +104,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             **kwargs,
         )
 
-    def call(self, inputs, training=False, eval_sampling=False, **kwargs):
+    def call(self, inputs, training=False, testing=False, **kwargs):
         return inputs
 
     def _build_prediction_call(

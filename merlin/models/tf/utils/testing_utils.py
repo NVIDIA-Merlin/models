@@ -46,6 +46,16 @@ def assert_body_works_in_model(dataset, body, run_eagerly, num_epochs=5):
     )
 
 
+def assert_loss_and_metrics(model, losses, metrics, num_epochs):
+    assert len(metrics.keys()) == len(model.metrics_names)
+    assert len(losses.epoch) == num_epochs
+    for metric in losses.history.keys():
+        assert type(losses.history[metric]) is list
+        assert len(losses.history[metric]) == num_epochs
+
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+
+
 def assert_binary_classification_loss_metrics(losses, metrics, target_name, num_epochs):
     metrics_names = [
         # f"{target_name}/binary_classification_task/precision",

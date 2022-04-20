@@ -30,8 +30,8 @@ def test_simple_model(ecommerce_data: Dataset, num_epochs=5, run_eagerly=True):
 
     losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
     metrics = model.evaluate(*ml.sample_batch(ecommerce_data, batch_size=100), return_dict=True)
-    testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
+    testing_utils.assert_loss_and_metrics(
+        model, losses, metrics, num_epochs=num_epochs
     )
 
 
@@ -48,8 +48,8 @@ def test_mf_model_single_binary_task(ecommerce_data, run_eagerly, num_epochs=5):
 
     losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
     metrics = model.evaluate(ecommerce_data, batch_size=50, return_dict=True)
-    testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
+    testing_utils.assert_loss_and_metrics(
+        model, losses, metrics, num_epochs=num_epochs
     )
 
 
@@ -66,23 +66,19 @@ def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run
 
     losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
     metrics = model.evaluate(ecommerce_data, batch_size=50, return_dict=True)
-    testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
+    testing_utils.assert_loss_and_metrics(
+        model, losses, metrics, num_epochs=num_epochs
     )
 
 
 def test_deep_fm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
-    model = ml.DeepFMModel(
-        ecommerce_data.schema,
-        embedding_dim=64,
-    )
-
+    model = ml.DeepFMModel(ecommerce_data.schema, embedding_dim=64)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-
     losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
     metrics = model.evaluate(ecommerce_data, batch_size=50, return_dict=True)
-    testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
+
+    testing_utils.assert_loss_and_metrics(
+        model, losses, metrics, num_epochs=num_epochs
     )
 
 
@@ -108,8 +104,8 @@ def test_dcn_model_single_task_from_pred_task(
 
     losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
     metrics = model.evaluate(ecommerce_data, batch_size=50, return_dict=True)
-    testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
+    testing_utils.assert_loss_and_metrics(
+        model, losses, metrics, num_epochs=num_epochs
     )
 
 
@@ -137,11 +133,8 @@ def test_dlrm_model_single_head_multiple_tasks(
 
     losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs)
     metrics = model.evaluate(music_streaming_data, batch_size=50, return_dict=True)
-    testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
-    )
-    testing_utils.assert_regression_loss_metrics(
-        losses, metrics, target_name="play_percentage", num_epochs=num_epochs
+    testing_utils.assert_loss_and_metrics(
+        model, losses, metrics, num_epochs=num_epochs
     )
 
 

@@ -3,9 +3,11 @@ from __future__ import annotations
 from collections import Sequence as SequenceCollection
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
 
+import inspect
 import tensorflow as tf
 
 import merlin.io
+from merlin.models.tf.losses.base import loss_registry
 from tensorflow.python.keras.engine import compile_utils, data_adapter
 from tensorflow.python.keras.metrics import Metric
 
@@ -368,24 +370,31 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         self.output_names = [task.task_name for task in self.prediction_tasks]
 
-        # If metrics are not provided, use the defaults from the prediction-tasks.
-        # TODO: Do the same for weight_metrics.
         _metrics = {}
         if isinstance(metrics, (list, tuple)) and len(self.prediction_tasks) == 1:
-            _metrics = {task.name: metrics for task in self.prediction_tasks}
+            _metrics = {task.task_name: metrics for task in self.prediction_tasks}
 
+        # If metrics are not provided, use the defaults from the prediction-tasks.
+        # TODO: Do the same for weight_metrics.
         if not metrics:
             for task_name, task in self.prediction_tasks_by_name().items():
                 _metrics[task_name] = [
-                    m if hasattr(m, "update_state") else m() for m in task.DEFAULT_METRICS
+                    m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS
                 ]
 
-        # If loss is not provided, use the defaults from the prediction-tasks.
         _loss = {}
+        if isinstance(loss, (tf.keras.losses.Loss, str)) and len(self.prediction_tasks) == 1:
+            _loss = {task.task_name: loss for task in self.prediction_tasks}
+
+        # If loss is not provided, use the defaults from the prediction-tasks.
         if not loss:
             prediction_tasks = self.prediction_tasks_by_name()
             for task_name, task in self.prediction_tasks_by_name().items():
                 _loss[task_name] = task.DEFAULT_LOSS
+
+        for key in _loss:
+            if isinstance(_loss[key], str) and _loss[key] in loss_registry:
+                _loss[key] = loss_registry.parse(_loss[key])
 
         super(Model, self).compile(
             optimizer=optimizer,
@@ -449,8 +458,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     # def metric_results(self, mode=None):
     #     return self.loss_block.metric_results(mode=mode)
 
-    def prediction_output(self, x, y=None, training=False, **kwargs) -> PredictionOutput:
-        forward = self(x, training=training, **kwargs)
+    def prediction_output(self, x, y=None, training=False, testing=False, **kwargs) -> PredictionOutput:
+        forward = self(x, training=training, testing=testing, **kwargs)
         predictions, targets = {}, {}
         for task in self.prediction_tasks:
             task_x = forward
@@ -551,7 +560,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         """Custom test step using the `compute_loss` method."""
 
         x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
-        outputs = self.prediction_output(x, y, training=False)
+        outputs = self.prediction_output(x, y, testing=True)
         loss = self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
         metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
 

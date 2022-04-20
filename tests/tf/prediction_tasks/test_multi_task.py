@@ -45,7 +45,7 @@ def test_mmoe_head(music_streaming_data: Dataset):
     step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     assert step["loss"] >= 0
-    assert len(step) == 12
+    assert len(step) == 13
 
 
 def test_ple_head(music_streaming_data: Dataset):
@@ -60,4 +60,4 @@ def test_ple_head(music_streaming_data: Dataset):
     step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     assert step["loss"] >= 0
-    assert len(step) == 12
+    assert len(step) == 13

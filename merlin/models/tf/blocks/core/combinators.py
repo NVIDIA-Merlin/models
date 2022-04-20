@@ -213,14 +213,14 @@ class SequentialBlock(Block):
                 filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
                 filtered_kwargs.update(
                     filter_kwargs(
-                        {**dict(training=training), **kwargs},
+                        dict(training=training, **kwargs),
                         layer.call,
                         filter_positional_or_keyword=False,
                     )
                 )
             else:
                 filtered_kwargs = filter_kwargs(
-                    dict(training=training), layer, filter_positional_or_keyword=False
+                    dict(training=training, **kwargs), layer, filter_positional_or_keyword=False
                 )
             outputs = layer(outputs, **filtered_kwargs)
 
@@ -375,7 +375,6 @@ class ParallelBlock(TabularBlock):
         outputs = {}
         if (
             isinstance(inputs, dict)
-            and len(inputs) == len(self.parallel_dict)
             and all(name in inputs for name in list(self.parallel_dict.keys()))
         ):
             for name, block in self.parallel_dict.items():

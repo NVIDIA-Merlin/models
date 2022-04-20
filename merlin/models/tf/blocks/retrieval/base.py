@@ -298,8 +298,8 @@ class ItemRetrievalScorer(Block):
     def call(
             self,
             inputs: DualEncoderOutputs,
-            training: bool = True,
-            eval_sampling: bool = False,
+            training: bool = False,
+            testing: bool = False,
             **kwargs,
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
@@ -326,7 +326,7 @@ class ItemRetrievalScorer(Block):
                 tf.cast(inputs[self.item_name], tf.float32)
             )
 
-        if training or eval_sampling:
+        if training or testing:
             return inputs
 
         if self.sampled_softmax_mode:
