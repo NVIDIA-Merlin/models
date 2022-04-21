@@ -52,14 +52,17 @@ def create_categorical_column(
     name,
     num_items,
     dtype=np.int32,
+    domain_name=None,
     tags=None,
     properties=None,
     min_value_count=None,
     max_value_count=None,
 ):
     properties = properties or {}
+    if not domain_name:
+        domain_name = name
     if num_items:
-        properties["domain"] = {"min": 0, "max": num_items}
+        properties["domain"] = {"name": domain_name, "min": 0, "max": num_items}
 
     is_list, is_ragged = False, False
     value_count = {}

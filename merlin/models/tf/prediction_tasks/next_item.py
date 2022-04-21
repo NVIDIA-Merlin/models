@@ -36,7 +36,7 @@ from merlin.models.tf.prediction_tasks.classification import (
     CategFeaturePrediction,
     MultiClassClassificationTask,
 )
-from merlin.models.utils.schema_utils import categorical_cardinalities
+from merlin.models.utils.schema_utils import categorical_cardinalities, categorical_domains
 from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin.models")
@@ -86,6 +86,7 @@ def ItemsPredictionSampled(
             During evaluation, returns the input tensor of true class, and the related logits.
     """
     item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    item_domain = categorical_domains(schema)[item_id_feature_name]
     num_classes = categorical_cardinalities(schema)[item_id_feature_name]
     samplers = PopularityBasedSampler(
         max_num_samples=num_sampled,
@@ -98,6 +99,7 @@ def ItemsPredictionSampled(
         samplers=[samplers],
         sampling_downscore_false_negatives=ignore_false_negatives,
         item_id_feature_name=item_id_feature_name,
+        item_domain=item_domain,
         sampled_softmax_mode=True,
     )
 

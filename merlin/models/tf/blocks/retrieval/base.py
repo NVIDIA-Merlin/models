@@ -174,6 +174,7 @@ class ItemRetrievalScorer(Block):
         sampling_downscore_false_negatives=True,
         sampling_downscore_false_negatives_value: float = MIN_FLOAT,
         item_id_feature_name: str = "item_id",
+        item_domain: str = "item_id",
         query_name: str = "query",
         item_name: str = "item",
         cache_query: bool = False,
@@ -186,6 +187,7 @@ class ItemRetrievalScorer(Block):
         self.downscore_false_negatives = sampling_downscore_false_negatives
         self.false_negatives_score = sampling_downscore_false_negatives_value
         self.item_id_feature_name = item_id_feature_name
+        self.item_domain = item_domain
         self.query_name = query_name
         self.item_name = item_name
         self.cache_query = cache_query
@@ -261,7 +263,7 @@ class ItemRetrievalScorer(Block):
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item (inputs["item"]).
             For the sampled-softmax mode, logits are computed by multiplying the query vector
-            and the item embeddings matrix (self.context.get_embedding(self.item_column)))
+            and the item embeddings matrix (self.context.get_embedding(self.item_domain))
         Parameters
         ----------
         inputs : Union[tf.Tensor, TabularData]
@@ -349,9 +351,7 @@ class ItemRetrievalScorer(Block):
                 input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
                 sampling_kwargs = {"training": training}
                 if "item_weights" in sampler._call_fn_args:
-                    sampling_kwargs["item_weights"] = self.context.get_embedding(
-                        self.item_id_feature_name
-                    )
+                    sampling_kwargs["item_weights"] = self.context.get_embedding(self.item_domain)
                 neg_items = sampler(input_data.__dict__, **sampling_kwargs)
 
                 if tf.shape(neg_items.embeddings)[0] > 0:
@@ -434,7 +434,7 @@ class ItemRetrievalScorer(Block):
             raise ValueError(
                 f"Inputs to the Sampled Softmax block should be tensors, got {type(inputs)}"
             )
-        embedding_table = self.context.get_embedding(self.item_id_feature_name)
+        embedding_table = self.context.get_embedding(self.item_domain)
         all_scores = tf.matmul(inputs, tf.transpose(embedding_table))
         return all_scores
 
@@ -446,7 +446,7 @@ class ItemRetrievalScorer(Block):
             raise ValueError(
                 f"Inputs to the Sampled Softmax block should be tensors, got {type(predictions)}"
             )
-        embedding_table = self.context.get_embedding(self.item_id_feature_name)
+        embedding_table = self.context.get_embedding(self.item_domain)
         batch_items_embeddings = embedding_ops.embedding_lookup(embedding_table, targets)
         predictions = {self.query_name: predictions, self.item_name: batch_items_embeddings}
         return predictions
