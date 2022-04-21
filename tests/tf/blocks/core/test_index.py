@@ -120,11 +120,11 @@ def test_topk_recommender_outputs(ecommerce_data: Dataset):
     batch_user_scores_all_items = tf.matmul(
         batch_query_tower_embeddings, item_tower_embeddings, transpose_b=True
     )
-    top_scores, top_indices = tf.math.top_k(batch_user_scores_all_items, k=50)
+    top_scores, top_indices = tf.math.top_k(batch_user_scores_all_items, k=10)
     top_ids = tf.gather(item_tower_ids, top_indices)
 
     # Get top-k ids from the topk_recommender_model
-    topk_recommender_model = model.to_top_k_recommender(ecommerce_data, k=50)
+    topk_recommender_model = model.to_top_k_recommender(ecommerce_data, k=10)
     topk_predictions, topk_items = topk_recommender_model(batch)
 
     # Assert top-k items from top-k recommender are the same as the manually computed top-k items
@@ -140,6 +140,6 @@ def test_topk_recommender_outputs(ecommerce_data: Dataset):
     topk_predictions, topk_items = topk_output
     test_df = ecommerce_data.to_ddf()
     positive_item_ids = np.array(test_df["item_id"].compute().values.tolist())
-    recall_at_50 = numpy_recall(positive_item_ids, topk_items, k=50)
+    recall_at_50 = numpy_recall(positive_item_ids, topk_items, k=10)
 
     np.isclose(recall_at_50, eval_metrics["recall_at_50"], rtol=1e-6)
