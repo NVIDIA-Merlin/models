@@ -91,7 +91,7 @@ def test_topk_recommender_outputs(ecommerce_data: Dataset):
         ),
         samplers=[mm.InBatchSampler()],
         metrics=[
-            mm.RecallAt(50),
+            mm.RecallAt(10),
         ],
         loss="categorical_crossentropy",
     )
@@ -140,6 +140,6 @@ def test_topk_recommender_outputs(ecommerce_data: Dataset):
     topk_predictions, topk_items = topk_output
     test_df = ecommerce_data.to_ddf()
     positive_item_ids = np.array(test_df["item_id"].compute().values.tolist())
-    recall_at_50 = numpy_recall(positive_item_ids, topk_items, k=10)
+    recall_at_10 = numpy_recall(positive_item_ids, topk_items, k=10)
 
-    np.isclose(recall_at_50, eval_metrics["recall_at_50"], rtol=1e-6)
+    np.isclose(recall_at_10, eval_metrics["recall_at_10"], rtol=1e-6)
