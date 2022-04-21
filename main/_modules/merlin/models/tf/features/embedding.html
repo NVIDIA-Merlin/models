@@ -126,8 +126,10 @@
     <span class="n">infer_embedding_sizes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">infer_embedding_sizes_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
     <span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">embeddings_initializer_default</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">embeddings_l2_reg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span>
 
 
@@ -156,13 +158,14 @@
         <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Schema</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">add_default_pre</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">l2_reg</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="n">add_default_pre</span><span class="p">:</span>
             <span class="n">embedding_pre</span> <span class="o">=</span> <span class="p">[</span><span class="n">Filter</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">feature_config</span><span class="o">.</span><span class="n">keys</span><span class="p">())),</span> <span class="n">AsSparseFeatures</span><span class="p">()]</span>
             <span class="n">pre</span> <span class="o">=</span> <span class="p">[</span><span class="n">embedding_pre</span><span class="p">,</span> <span class="n">pre</span><span class="p">]</span> <span class="k">if</span> <span class="n">pre</span> <span class="k">else</span> <span class="n">embedding_pre</span>  <span class="c1"># type: ignore</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_config</span> <span class="o">=</span> <span class="n">feature_config</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">l2_reg</span> <span class="o">=</span> <span class="n">l2_reg</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
             <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
@@ -216,16 +219,19 @@
             <span class="p">)</span>
 
         <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">embedding_dims</span> <span class="ow">or</span> <span class="p">{}</span>
-        <span class="n">embeddings_initializers</span> <span class="o">=</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">embeddings_initializers</span> <span class="ow">or</span> <span class="p">{}</span>
+
+        <span class="n">initializer_default</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">TruncatedNormal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+        <span class="n">embeddings_initializer</span> <span class="o">=</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">embeddings_initializers</span> <span class="ow">or</span> <span class="n">initializer_default</span>
 
         <span class="n">emb_config</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">cardinalities</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">categorical_cardinalities</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">cardinality</span> <span class="ow">in</span> <span class="n">cardinalities</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">embedding_size</span> <span class="o">=</span> <span class="n">embedding_dims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dim_default</span><span class="p">)</span>
-            <span class="n">embedding_initializer</span> <span class="o">=</span> <span class="n">embeddings_initializers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                <span class="n">key</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">embeddings_initializer_default</span>
-            <span class="p">)</span>
-            <span class="n">emb_config</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">cardinality</span><span class="p">,</span> <span class="n">embedding_size</span><span class="p">,</span> <span class="n">embedding_initializer</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">embeddings_initializer</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">emb_initializer</span> <span class="o">=</span> <span class="n">embeddings_initializer</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">initializer_default</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">emb_initializer</span> <span class="o">=</span> <span class="n">embeddings_initializer</span>
+            <span class="n">emb_config</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">cardinality</span><span class="p">,</span> <span class="n">embedding_size</span><span class="p">,</span> <span class="n">emb_initializer</span><span class="p">)</span>
 
         <span class="n">feature_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FeatureConfig</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">tables</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
@@ -248,7 +254,12 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">feature_config</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
 
-        <span class="n">output</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">feature_config</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema_copy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">feature_config</span><span class="p">,</span>
+            <span class="n">schema</span><span class="o">=</span><span class="n">schema_copy</span><span class="p">,</span>
+            <span class="n">l2_reg</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embeddings_l2_reg</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">output</span></div>
 
@@ -279,6 +290,8 @@
         <span class="n">embedded_outputs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">embedded_outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookup_feature</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2_reg</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l2_reg</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">embedded_outputs</span><span class="p">[</span><span class="n">name</span><span class="p">])))</span>
 
         <span class="k">return</span> <span class="n">embedded_outputs</span></div>
 

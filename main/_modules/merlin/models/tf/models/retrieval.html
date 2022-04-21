@@ -91,7 +91,10 @@
     <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">query_id_tag</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">,</span>
     <span class="n">item_id_tag</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">,</span>
-    <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">embeddings_l2_reg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">prediction_tasks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
         <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">]</span>
@@ -119,8 +122,11 @@
 <span class="sd">        The tag to select query features, by default `Tags.USER`</span>
 <span class="sd">    item_id_tag : Tag</span>
 <span class="sd">        The tag to select item features, by default `Tags.ITEM`</span>
-<span class="sd">    embeddings_initializers: Dict[str, Callable[[Any], None]]</span>
-<span class="sd">        A dictionary of initializers for embeddings.</span>
+<span class="sd">    embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]] = None</span>
+<span class="sd">        An initializer function or a dict where keys are feature names and values are</span>
+<span class="sd">        callable to initialize embedding tables</span>
+<span class="sd">    embeddings_l2_reg: float = 0.0</span>
+<span class="sd">        Factor for L2 regularization of the embeddings vectors (from the current batch only)</span>
 <span class="sd">    post: Optional[Block], optional</span>
 <span class="sd">        The optional `Block` to apply on both outputs of Two-tower model</span>
 <span class="sd">    prediction_tasks: optional</span>
@@ -156,6 +162,7 @@
         <span class="n">query_id_tag</span><span class="o">=</span><span class="n">query_id_tag</span><span class="p">,</span>
         <span class="n">item_id_tag</span><span class="o">=</span><span class="n">item_id_tag</span><span class="p">,</span>
         <span class="n">embeddings_initializers</span><span class="o">=</span><span class="n">embeddings_initializers</span><span class="p">,</span>
+        <span class="n">embeddings_l2_reg</span><span class="o">=</span><span class="n">embeddings_l2_reg</span><span class="p">,</span>
         <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span>
