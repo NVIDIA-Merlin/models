@@ -120,14 +120,17 @@
     <span class="n">name</span><span class="p">,</span>
     <span class="n">num_items</span><span class="p">,</span>
     <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="n">domain_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">tags</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">properties</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">min_value_count</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">max_value_count</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="n">properties</span> <span class="o">=</span> <span class="n">properties</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">domain_name</span><span class="p">:</span>
+        <span class="n">domain_name</span> <span class="o">=</span> <span class="n">name</span>
     <span class="k">if</span> <span class="n">num_items</span><span class="p">:</span>
-        <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="n">num_items</span><span class="p">}</span>
+        <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;domain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">domain_name</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="n">num_items</span><span class="p">}</span>
 
     <span class="n">is_list</span><span class="p">,</span> <span class="n">is_ragged</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span>
     <span class="n">value_count</span> <span class="o">=</span> <span class="p">{}</span>
