@@ -467,25 +467,6 @@
         <span class="p">)</span>
 
 
-<span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;sampling-bias-correction&quot;</span><span class="p">)</span>
-<span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">SamplingBiasCorrection</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bias_feature_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;popularity&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">SamplingBiasCorrection</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bias_feature_name</span> <span class="o">=</span> <span class="n">bias_feature_name</span>
-
-    <span class="k">def</span> <span class="nf">call_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">bias_feature_name</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="n">inputs</span> <span class="o">-=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">inputs</span>
-
-    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">input_shape</span>
-
-
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">Block</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Scale the logits higher or lower,</span>
@@ -660,6 +641,8 @@
 <span class="sd">    is_prob_distribution: bool, optional</span>
 <span class="sd">        If True, the item_freq_probs should be a probability distribution of the items.</span>
 <span class="sd">        If False, the item frequencies is converted to probabilities</span>
+<span class="sd">    reg_factor: float</span>
+<span class="sd">        Factor to scale the logq correction, by default 1.0</span>
 <span class="sd">    schema: Schema, optional</span>
 <span class="sd">        The `Schema` with input features,</span>
 <span class="sd">        by default None</span>
@@ -669,6 +652,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">item_freq_probs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">],</span>
         <span class="n">is_prob_distribution</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">reg_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
@@ -676,6 +660,7 @@
         <span class="k">if</span> <span class="n">schema</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">reg_factor</span> <span class="o">=</span> <span class="n">reg_factor</span>
         <span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">get_candidate_probs</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">is_prob_distribution</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
@@ -787,7 +772,7 @@
 
             <span class="c1"># Applies the logQ correction</span>
             <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-16</span>
-            <span class="n">predictions</span> <span class="o">=</span> <span class="n">predictions</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">positive_probs</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span>
+            <span class="n">predictions</span> <span class="o">=</span> <span class="n">predictions</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reg_factor</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">positive_probs</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">outputs</span><span class="o">.</span><span class="n">copy_with_updates</span><span class="p">(</span><span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">)</span>
 
