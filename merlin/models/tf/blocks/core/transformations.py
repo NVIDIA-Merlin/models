@@ -399,25 +399,6 @@ class RemovePad3D(Block):
         )
 
 
-@Block.registry.register_with_multiple_names("sampling-bias-correction")
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class SamplingBiasCorrection(Block):
-    def __init__(self, bias_feature_name: str = "popularity", **kwargs):
-        super(SamplingBiasCorrection, self).__init__(**kwargs)
-        self.bias_feature_name = bias_feature_name
-
-    def call_features(self, features, **kwargs):
-        self.bias = features[self.bias_feature_name]
-
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        inputs -= tf.math.log(self.bias)
-
-        return inputs
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class LogitsTemperatureScaler(Block):
     """Scale the logits higher or lower,
@@ -591,6 +572,8 @@ class PopularityLogitsCorrection(Block):
     is_prob_distribution: bool, optional
         If True, the item_freq_probs should be a probability distribution of the items.
         If False, the item frequencies is converted to probabilities
+    reg_factor: float
+        Factor to scale the logq correction, by default 1.0
     schema: Schema, optional
         The `Schema` with input features,
         by default None
@@ -600,6 +583,7 @@ class PopularityLogitsCorrection(Block):
         self,
         item_freq_probs: Union[tf.Tensor, Sequence],
         is_prob_distribution: bool = False,
+        reg_factor: float = 1.0,
         schema: Schema = None,
         **kwargs,
     ):
@@ -607,6 +591,7 @@ class PopularityLogitsCorrection(Block):
         if schema:
             self.set_schema(schema)
 
+        self.reg_factor = reg_factor
         candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
 
         self.candidate_probs = tf.Variable(
@@ -718,7 +703,7 @@ class PopularityLogitsCorrection(Block):
 
             # Applies the logQ correction
             epsilon = 1e-16
-            predictions = predictions - tf.math.log(positive_probs + epsilon)
+            predictions = predictions - (self.reg_factor * tf.math.log(positive_probs + epsilon))
 
         return outputs.copy_with_updates(predictions=predictions)
 

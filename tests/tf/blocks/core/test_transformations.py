@@ -214,9 +214,9 @@ def test_popularity_logits_correct():
         negative_item_ids=negative_item_ids,
     )
 
-    corrected_logits = PopularityLogitsCorrection(item_frequency, schema=schema).call_outputs(
-        outputs=inputs
-    )
+    corrected_logits = PopularityLogitsCorrection(
+        item_frequency, reg_factor=0.5, schema=schema
+    ).call_outputs(outputs=inputs)
 
     tf.debugging.assert_less_equal(logits, corrected_logits.predictions)
 
