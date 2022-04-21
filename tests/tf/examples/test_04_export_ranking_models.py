@@ -14,5 +14,5 @@ def test_func(tb):
         """
     )
     tb.execute()
-    # assert os.path.isdir("dlrm")
-    # assert os.path.isdir("workflow")
+    assert os.path.isdir("dlrm")
+    assert os.path.isdir("workflow")
