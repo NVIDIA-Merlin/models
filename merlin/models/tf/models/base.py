@@ -717,8 +717,11 @@ class RetrievalModel(Model):
             )
         else:
             topk_index = item_corpus
-        recommender = ModelBlock(self.retrieval_block.query_block().connect(topk_index))
-
+        # Set the blocks for recommenders with built=True to keep pre-trained embeddings
+        recommender_block = self.retrieval_block.query_block().connect(topk_index)
+        recommender_block.built = True
+        recommender = ModelBlock(recommender_block)
+        recommender.built = True
         return recommender
 
 
