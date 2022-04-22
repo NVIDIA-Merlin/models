@@ -70,22 +70,19 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-05 16:15:14.772044: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA\n",
+      "2022-04-21 09:36:11.187627: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX\n",
       "To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
-      "2022-04-05 16:15:15.885699: I tensorflow/core/common_runtime/gpu/gpu_process_state.cc:214] Using CUDA malloc Async allocator for GPU: 0\n",
-      "2022-04-05 16:15:15.885845: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -> device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0\n"
+      "2022-04-21 09:36:13.394590: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16255 MB memory:  -> device: 0, name: Tesla V100-SXM2-32GB-LS, pci bus id: 0000:8a:00.0, compute capability: 7.0\n"
      ]
     }
    ],
    "source": [
     "import os\n",
-    "os.environ[\"TF_GPU_ALLOCATOR\"]=\"cuda_malloc_async\"\n",
     "\n",
     "import nvtabular as nvt\n",
     "from nvtabular.ops import *\n",
     "\n",
     "from merlin.models.utils.example_utils import workflow_fit_transform\n",
-    "\n",
     "from merlin.schema.tags import Tags\n",
     "\n",
     "import merlin.models.tf as mm\n",
@@ -137,8 +134,8 @@
     "train, valid = generate_data(\"aliccp-raw\", int(NUM_ROWS), set_sizes=(0.7, 0.3))\n",
     "\n",
     "# save the datasets as parquet files\n",
-    "train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, 'train'))\n",
-    "valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, 'valid'))"
+    "train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"train\"))\n",
+    "valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"valid\"))"
    ]
   },
   {
@@ -158,7 +155,7 @@
    "source": [
     "train_path = os.path.join(DATA_FOLDER, \"train\", \"part.0.parquet\")\n",
     "valid_path = os.path.join(DATA_FOLDER, \"valid\", \"part.0.parquet\")\n",
-    "output_path =os.path.join(DATA_FOLDER, \"processed\")"
+    "output_path = os.path.join(DATA_FOLDER, \"processed\")"
    ]
   },
   {
@@ -179,7 +176,7 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.\n",
+      "/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.\n",
       "  warnings.warn(\n"
      ]
     },
@@ -187,8 +184,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "CPU times: user 1.25 s, sys: 736 ms, total: 1.99 s\n",
-      "Wall time: 2.05 s\n"
+      "CPU times: user 2.14 s, sys: 1.66 s, total: 3.8 s\n",
+      "Wall time: 6.01 s\n"
      ]
     }
    ],
@@ -200,10 +197,23 @@
     "\n",
     "item_features = [\"item_category\", \"item_shop\", \"item_brand\"] >> Categorify() >> TagAsItemFeatures()\n",
     "\n",
-    "user_features = ['user_shops', 'user_profile', 'user_group', \n",
-    "       'user_gender', 'user_age', 'user_consumption_2', 'user_is_occupied',\n",
-    "       'user_geography', 'user_intentions', 'user_brands', 'user_categories'] \\\n",
-    "        >> Categorify() >> TagAsUserFeatures()\n",
+    "user_features = (\n",
+    "    [\n",
+    "        \"user_shops\",\n",
+    "        \"user_profile\",\n",
+    "        \"user_group\",\n",
+    "        \"user_gender\",\n",
+    "        \"user_age\",\n",
+    "        \"user_consumption_2\",\n",
+    "        \"user_is_occupied\",\n",
+    "        \"user_geography\",\n",
+    "        \"user_intentions\",\n",
+    "        \"user_brands\",\n",
+    "        \"user_categories\",\n",
+    "    ]\n",
+    "    >> Categorify()\n",
+    "    >> TagAsUserFeatures()\n",
+    ")\n",
     "\n",
     "outputs = user_id + item_id + item_features + user_features + targets\n",
     "\n",
@@ -232,7 +242,7 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "workflow.save('workflow')"
+    "workflow.save(\"workflow\")"
    ]
   },
   {
@@ -245,11 +255,54 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 7,
    "id": "63645336",
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Get:1 http://archive.ubuntu.com/ubuntu focal InRelease [265 kB]\n",
+      "Get:2 http://security.ubuntu.com/ubuntu focal-security InRelease [114 kB]\n",
+      "Get:3 http://archive.ubuntu.com/ubuntu focal-updates InRelease [114 kB]\n",
+      "Get:4 http://archive.ubuntu.com/ubuntu focal-backports InRelease [108 kB]\n",
+      "Get:5 http://archive.ubuntu.com/ubuntu focal/restricted amd64 Packages [33.4 kB]\n",
+      "Get:6 http://archive.ubuntu.com/ubuntu focal/universe amd64 Packages [11.3 MB]\n",
+      "Get:7 http://archive.ubuntu.com/ubuntu focal/multiverse amd64 Packages [177 kB]\n",
+      "Get:8 http://archive.ubuntu.com/ubuntu focal/main amd64 Packages [1275 kB]     \n",
+      "Get:9 http://archive.ubuntu.com/ubuntu focal-updates/multiverse amd64 Packages [30.3 kB]\n",
+      "Get:10 http://archive.ubuntu.com/ubuntu focal-updates/restricted amd64 Packages [1214 kB]\n",
+      "Get:11 http://security.ubuntu.com/ubuntu focal-security/main amd64 Packages [1771 kB]\n",
+      "Get:12 http://archive.ubuntu.com/ubuntu focal-updates/universe amd64 Packages [1153 kB]\n",
+      "Get:13 http://archive.ubuntu.com/ubuntu focal-updates/main amd64 Packages [2186 kB]\n",
+      "Get:14 http://archive.ubuntu.com/ubuntu focal-backports/main amd64 Packages [51.2 kB]\n",
+      "Get:15 http://archive.ubuntu.com/ubuntu focal-backports/universe amd64 Packages [26.0 kB]\n",
+      "Get:16 http://security.ubuntu.com/ubuntu focal-security/restricted amd64 Packages [1139 kB]\n",
+      "Get:17 http://security.ubuntu.com/ubuntu focal-security/multiverse amd64 Packages [25.8 kB]\n",
+      "Get:18 http://security.ubuntu.com/ubuntu focal-security/universe amd64 Packages [870 kB]\n",
+      "Fetched 21.9 MB in 3s (6363 kB/s)                         \n",
+      "Reading package lists... Done\n",
+      "Reading package lists... Done\n",
+      "Building dependency tree       \n",
+      "Reading state information... Done\n",
+      "The following NEW packages will be installed:\n",
+      "  tree\n",
+      "0 upgraded, 1 newly installed, 0 to remove and 34 not upgraded.\n",
+      "Need to get 43.0 kB of archives.\n",
+      "After this operation, 115 kB of additional disk space will be used.\n",
+      "Get:1 http://archive.ubuntu.com/ubuntu focal/universe amd64 tree amd64 1.8.0-1 [43.0 kB]\n",
+      "Fetched 43.0 kB in 0s (139 kB/s)\n",
+      "Selecting previously unselected package tree.\n",
+      "(Reading database ... 44765 files and directories currently installed.)\n",
+      "Preparing to unpack .../tree_1.8.0-1_amd64.deb ...\n",
+      "Unpacking tree (1.8.0-1) ...\n",
+      "Setting up tree (1.8.0-1) ...\n"
+     ]
+    }
+   ],
    "source": [
+    "!apt-get update\n",
     "!apt-get install tree"
    ]
   },
@@ -263,28 +316,28 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "\u001B[01;34m./workflow\u001B[00m\n",
-      "├── \u001B[01;34mcategories\u001B[00m\n",
-      "│   ├── unique.item_brand.parquet\n",
-      "│   ├── unique.item_category.parquet\n",
-      "│   ├── unique.item_id.parquet\n",
-      "│   ├── unique.item_shop.parquet\n",
-      "│   ├── unique.user_age.parquet\n",
-      "│   ├── unique.user_brands.parquet\n",
-      "│   ├── unique.user_categories.parquet\n",
-      "│   ├── unique.user_consumption_2.parquet\n",
-      "│   ├── unique.user_gender.parquet\n",
-      "│   ├── unique.user_geography.parquet\n",
-      "│   ├── unique.user_group.parquet\n",
-      "│   ├── unique.user_id.parquet\n",
-      "│   ├── unique.user_intentions.parquet\n",
-      "│   ├── unique.user_is_occupied.parquet\n",
-      "│   ├── unique.user_profile.parquet\n",
-      "│   └── unique.user_shops.parquet\n",
-      "├── metadata.json\n",
-      "└── workflow.pkl\n",
-      "\n",
-      "1 directory, 18 files\n"
+      "\u001b[01;34m./workflow\u001b[00m\r\n",
+      "├── \u001b[01;34mcategories\u001b[00m\r\n",
+      "│   ├── unique.item_brand.parquet\r\n",
+      "│   ├── unique.item_category.parquet\r\n",
+      "│   ├── unique.item_id.parquet\r\n",
+      "│   ├── unique.item_shop.parquet\r\n",
+      "│   ├── unique.user_age.parquet\r\n",
+      "│   ├── unique.user_brands.parquet\r\n",
+      "│   ├── unique.user_categories.parquet\r\n",
+      "│   ├── unique.user_consumption_2.parquet\r\n",
+      "│   ├── unique.user_gender.parquet\r\n",
+      "│   ├── unique.user_geography.parquet\r\n",
+      "│   ├── unique.user_group.parquet\r\n",
+      "│   ├── unique.user_id.parquet\r\n",
+      "│   ├── unique.user_intentions.parquet\r\n",
+      "│   ├── unique.user_is_occupied.parquet\r\n",
+      "│   ├── unique.user_profile.parquet\r\n",
+      "│   └── unique.user_shops.parquet\r\n",
+      "├── metadata.json\r\n",
+      "└── workflow.pkl\r\n",
+      "\r\n",
+      "1 directory, 18 files\r\n"
      ]
     }
    ],
@@ -326,8 +379,8 @@
    "outputs": [],
    "source": [
     "# define train and valid dataset objects\n",
-    "train = Dataset(os.path.join(output_path, 'train', '*.parquet'))\n",
-    "valid = Dataset(os.path.join(output_path, 'valid', '*.parquet'))\n",
+    "train = Dataset(os.path.join(output_path, \"train\", \"*.parquet\"))\n",
+    "valid = Dataset(os.path.join(output_path, \"valid\", \"*.parquet\"))\n",
     "\n",
     "# define schema object\n",
     "schema = train.schema"
@@ -367,7 +420,7 @@
     "    embedding_dim=64,\n",
     "    bottom_block=mm.MLPBlock([128, 64]),\n",
     "    top_block=mm.MLPBlock([128, 64, 32]),\n",
-    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])\n",
+    "    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),\n",
     ")"
    ]
   },
@@ -381,36 +434,36 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-05 16:15:22.930133: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.\n"
+      "2022-04-21 09:36:37.360581: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "43/43 [==============================] - ETA: 0s - auc: 0.4981 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932"
+      "1368/1368 [==============================] - ETA: 0s - auc: 0.5014 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932"
      ]
     },
     {
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-05 16:15:31.611688: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_161\n"
+      "2022-04-21 09:37:08.686596: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "43/43 [==============================] - 8s 71ms/step - auc: 0.4981 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.5004 - val_loss: 0.6931 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6931\n",
-      "CPU times: user 10.7 s, sys: 1.12 s, total: 11.8 s\n",
-      "Wall time: 9.41 s\n"
+      "1368/1368 [==============================] - 33s 17ms/step - auc: 0.5014 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.4997 - val_loss: 0.6939 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6939\n",
+      "CPU times: user 56.3 s, sys: 9.24 s, total: 1min 5s\n",
+      "Wall time: 36.1 s\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "<keras.callbacks.History at 0x7f6774260880>"
+       "<keras.callbacks.History at 0x7f19a12fc730>"
       ]
      },
      "execution_count": 12,
@@ -421,8 +474,8 @@
    "source": [
     "%%time\n",
     "\n",
-    "model.compile('adam', run_eagerly=False)\n",
-    "model.fit(train, validation_data=valid, batch_size=16*1024)"
+    "model.compile(\"adam\", run_eagerly=False)\n",
+    "model.fit(train, validation_data=valid, batch_size=512)"
    ]
   },
   {
@@ -472,7 +525,7 @@
     }
    ],
    "source": [
-    "model.save('dlrm')"
+    "model.save(\"dlrm\")"
    ]
   },
   {
