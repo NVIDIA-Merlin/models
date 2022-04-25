@@ -1,12 +1,13 @@
 import os
 
-import pytest
 from testbook import testbook
 
-pytestmark = pytest.mark.example
+from tests.conftest import REPO_ROOT
 
 
-@testbook("examples/06-Define-your-own-architecture-with-Merlin-Models.ipynb", execute=False)
+@testbook(
+    REPO_ROOT / "examples/06-Define-your-own-architecture-with-Merlin-Models.ipynb", execute=False
+)
 def test_func(tb):
     tb.inject(
         """
