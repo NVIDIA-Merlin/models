@@ -17,10 +17,14 @@
 
 from __future__ import absolute_import
 
+from pathlib import Path
+
 import pytest
 
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
+
+REPO_ROOT = Path(__file__).parent.parent
 
 
 @pytest.fixture
