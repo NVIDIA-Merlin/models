@@ -301,11 +301,11 @@ if dependencies.is_gpu_dataloader_available():
             """
             categorical_features = (
                 categorical_features
-                or schema.select_by_tag(Tags.CATEGORICAL).excluding(Tags.TARGET).column_names
+                or schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET).column_names
             )
             continuous_features = (
                 continuous_features
-                or schema.select_by_tag(Tags.CONTINUOUS).excluding(Tags.TARGET).column_names
+                or schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
             )
             targets = targets or schema.select_by_tag(Tags.TARGET).column_names
 
