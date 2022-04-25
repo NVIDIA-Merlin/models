@@ -5,7 +5,9 @@ from testbook import testbook
 from tests.conftest import REPO_ROOT
 
 
-@testbook(REPO_ROOT / "examples/06-Define-your-own-architecture-with-Merlin-Models.ipynb", execute=False)
+@testbook(
+    REPO_ROOT / "examples/06-Define-your-own-architecture-with-Merlin-Models.ipynb", execute=False
+)
 def test_func(tb):
     tb.inject(
         """
