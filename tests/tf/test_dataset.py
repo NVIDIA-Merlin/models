@@ -21,10 +21,11 @@ import pytest
 import tensorflow as tf
 from sklearn.metrics import roc_auc_score
 
-import merlin.models.tf as ml
+import merlin.models.tf as mm
 import merlin.models.tf.dataset as tf_dataloader
 from merlin.core.dispatch import make_df
 from merlin.io.dataset import Dataset
+from merlin.models.utils.schema_utils import create_categorical_column
 
 
 def test_nested_list():
@@ -265,8 +266,8 @@ def test_validater(batch_size):
 
 def test_model_with_sparse_inputs(music_streaming_data: Dataset):
     item_id_schema = music_streaming_data.schema.select_by_name(["user_id", "item_genres"])
-    inputs = ml.InputBlock(item_id_schema)
-    model = inputs.connect(ml.MLPBlock([64]), context=ml.BlockContext())
+    inputs = mm.InputBlock(item_id_schema)
+    model = inputs.connect(mm.MLPBlock([64]), context=mm.BlockContext())
 
     df = pd.DataFrame(
         {
@@ -284,3 +285,32 @@ def test_model_with_sparse_inputs(music_streaming_data: Dataset):
     batch = next(iter(train_dataset))[0]
     out = model(batch)
     assert out.shape[-1] == 64
+
+
+def test_model_with_categorical_target():
+    import pandas as pd
+
+    from merlin.schema import Schema, Tags
+
+    df = pd.DataFrame(
+        {
+            "Author": [12, 4, 23, 19],
+            "Engaging User": [23, 23, 12, 5],
+            "target": [1, 2, 3, 4],
+        }
+    )
+    s = Schema(
+        [
+            create_categorical_column("Engaging User", num_items=6, tags=[Tags.CATEGORICAL]),
+            create_categorical_column("Author", num_items=6, tags=[Tags.CATEGORICAL]),
+            create_categorical_column("target", num_items=5, tags=[Tags.CATEGORICAL, Tags.TARGET]),
+        ]
+    )
+    data = Dataset(df, schema=s)
+
+    batch = mm.sample_batch(data, batch_size=2)
+    assert batch[1].shape == (2, 1)
+
+    inputs = mm.InputBlock(data.schema)
+    embeddings = inputs(batch[0])
+    assert list(embeddings.keys()) == ["Engaging User", "Author"]
