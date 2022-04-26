@@ -16,11 +16,14 @@
 from typing import Dict, Optional
 
 import tensorflow as tf
+from merlin.schema import Schema, Tags
 from tensorflow.python.ops import embedding_ops
 
-from merlin.models.tf.blocks.sampling.base import EmbeddingWithMetadata, ItemSampler
+from merlin.models.tf.blocks.core.base import EmbeddingWithMetadata
+from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.queue import FIFOQueue
 from merlin.models.tf.typing import TabularData
+from merlin.models.utils.schema_utils import categorical_cardinalities
 
 
 class CachedCrossBatchSampler(ItemSampler):
@@ -413,6 +416,18 @@ class PopularityBasedSampler(ItemSampler):
             self.max_num_samples <= self.max_id
         ), f"Number of items to sample `{self.max_num_samples}`"
         f" should be less than total number of ids `{self.max_id}`"
+
+    @classmethod
+    def from_schema(cls, schema: Schema, max_num_samples: int, min_id: int = 0, **kwargs):
+        item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        num_classes = categorical_cardinalities(schema)[item_id_feature_name]
+
+        return cls(
+            max_num_samples=max_num_samples,
+            max_id=num_classes,
+            min_id=min_id,
+            item_id_feature_name=item_id_feature_name,
+        )
 
     def _check_inputs(self, inputs):
         assert (

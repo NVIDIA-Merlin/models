@@ -18,7 +18,7 @@ from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType,
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
-from merlin.models.utils.misc_utils import filter_kwargs
+from merlin.models.utils.misc_utils import filter_kwargs, has_kwargs
 from merlin.schema import Schema, Tags
 
 
@@ -219,9 +219,11 @@ class SequentialBlock(Block):
                     )
                 )
             else:
-                filtered_kwargs = filter_kwargs(
-                    dict(training=training, **kwargs), layer, filter_positional_or_keyword=False
-                )
+                filtered_kwargs = dict(training=training, **kwargs)
+                if not has_kwargs(layer):
+                    filtered_kwargs = filter_kwargs(
+                        filtered_kwargs, layer, filter_positional_or_keyword=False
+                    )
             outputs = layer(outputs, **filtered_kwargs)
 
         return outputs

@@ -18,7 +18,7 @@ from typing import Dict, Optional, Union
 import tensorflow as tf
 from tensorflow.keras import backend
 from tensorflow.python.keras.utils import control_flow_util
-from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import array_ops, embedding_ops
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block, PredictionOutput
@@ -432,8 +432,8 @@ class LogitsTemperatureScaler(Block):
         super(LogitsTemperatureScaler, self).__init__(**kwargs)
         self.temperature = temperature
 
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        if not training:
+    def call(self, inputs, training=False, testing=False, **kwargs) -> tf.Tensor:
+        if not (training or testing):
             assert isinstance(inputs, tf.Tensor), "Predictions must be a tensor"
             return inputs / self.temperature
         else:
@@ -486,6 +486,11 @@ class ItemsPredictionWeightTying(Block):
             initializer=self.bias_initializer,
         )
         return super().build(input_shape)
+
+    def look_up(self, inputs):
+        embedding_table = self.context.get_embedding(self.item_id_feature_name)
+
+        return embedding_ops.embedding_lookup(embedding_table, inputs)
 
     def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
         embedding_table = self.context.get_embedding(self.item_id_feature_name)

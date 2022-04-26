@@ -15,10 +15,7 @@
 #
 from typing import Optional
 
-import tensorflow as tf
-
-from merlin.models.tf.blocks.sampling.base import EmbeddingWithMetadata, ItemSampler
-from merlin.models.tf.typing import TabularData
+from merlin.models.tf.blocks.sampling.base import ItemSampler, Items
 
 
 class InBatchSampler(ItemSampler):
@@ -48,8 +45,7 @@ class InBatchSampler(ItemSampler):
 
     def __init__(self, batch_size: Optional[int] = None, **kwargs):
         super().__init__(max_num_samples=batch_size, **kwargs)
-        self._last_batch_items_embeddings: tf.Tensor = None  # type: ignore
-        self._last_batch_items_metadata: TabularData = {}
+        self._last_batch: Optional[Items] = None  # type: ignore
         self.set_batch_size(batch_size)
 
     @property
@@ -61,47 +57,13 @@ class InBatchSampler(ItemSampler):
         if value is not None:
             self.set_max_num_samples(value)
 
-    def build(self, input_shapes: TabularData) -> None:
+    def build(self, items: Items) -> None:
         if self._batch_size is None:
-            self.set_batch_size(input_shapes["embeddings"][0])
+            self.set_batch_size(items.ids[0])
 
-    def call(self, inputs: TabularData, training=True) -> EmbeddingWithMetadata:
-        """Returns the item embeddings and item metadata from
-        the current batch.
-        The implementation is very simple, as it just returns the current
-        item embeddings and metadata, but it is necessary to have
-        `InBatchSampler` under the same interface of other more advanced samplers
-        (e.g. `CachedCrossBatchSampler`).
+    def add(self, items: Items):
+        self._check_inputs_batch_sizes(items)
+        self._last_batch = items
 
-        Parameters
-        ----------
-        inputs : TabularData
-            Dict with two keys:
-              "items_embeddings": Items embeddings tensor
-              "items_metadata": Dict like `{"<feature name>": "<feature tensor>"}` which contains
-              features that might be relevant for the sampler.
-              The `InBatchSampler` does not use metadata features
-              specifically, but "item_id" is required when using in combination with
-              `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`, so that
-              false negatives are identified and downscored.
-        training : bool, optional
-            Flag indicating if on training mode, by default True
-
-        Returns
-        -------
-        EmbeddingWithMetadata
-            Value object with the sampled item embeddings and item metadata
-        """
-        self.add(inputs, training)
-        items_embeddings = self.sample()
-        return items_embeddings
-
-    def add(self, inputs: TabularData, training=True) -> None:  # type: ignore
-        self._check_inputs_batch_sizes(inputs)
-        self._last_batch_items_embeddings = inputs["embeddings"]
-        self._last_batch_items_metadata = inputs["metadata"]
-
-    def sample(self) -> EmbeddingWithMetadata:
-        return EmbeddingWithMetadata(
-            self._last_batch_items_embeddings, self._last_batch_items_metadata
-        )
+    def sample(self) -> Items:
+        return self._last_batch

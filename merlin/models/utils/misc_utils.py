@@ -25,6 +25,13 @@ from typing import Any, Dict
 logger = logging.getLogger(__name__)
 
 
+def has_kwargs(to_check):
+    sig = inspect.signature(to_check)
+    params = sig.parameters.values()
+
+    return any([True for p in params if p.kind == p.VAR_KEYWORD])
+
+
 def filter_kwargs(kwargs, thing_with_kwargs, filter_positional_or_keyword=True):
     sig = inspect.signature(thing_with_kwargs)
     if filter_positional_or_keyword:

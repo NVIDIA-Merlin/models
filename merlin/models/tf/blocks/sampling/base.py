@@ -14,36 +14,81 @@
 # limitations under the License.
 #
 import abc
-from typing import List, Optional
+from dataclasses import dataclass, field
+from typing import List, Optional, Dict, Union, Callable
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from merlin.models.tf.blocks.core.base import EmbeddingWithMetadata
 from merlin.models.tf.typing import TabularData
+
+TensorOrCallable = Union[tf.Tensor, Callable[[tf.Tensor], tf.Tensor]]
+
+
+@dataclass
+class Items:
+    ids: tf.Tensor
+    metadata: Dict[str, tf.Tensor] = field(default_factory=lambda: {})
+
+    def embedding(self) -> tf.Tensor:
+        return self.metadata[ItemSampler.ITEM_EMBEDDING_KEY]
+
+    @property
+    def has_embedding(self) -> bool:
+        return ItemSampler.ITEM_EMBEDDING_KEY in self.metadata
+
+    def with_embedding(self, embedding: tf.Tensor) -> "Items":
+        self.metadata[ItemSampler.ITEM_EMBEDDING_KEY] = embedding
+
+        return self
+
+    def __add__(self, other):
+        return Items(
+            ids=_list_to_tensor([self.ids, other.ids]),
+            metadata={
+                key: _list_to_tensor([self.metadata[key], other.metadata[key]])
+                for key, val in self.metadata.items()
+            }
+        )
+
+    @property
+    def shape(self) -> "Items":
+        return Items(
+            self.ids.shape,
+            {key: val.shape for key, val in self.metadata.items()}
+        )
 
 
 class ItemSampler(abc.ABC, Layer):
+    ITEM_EMBEDDING_KEY = "__item_embedding__"
+
     def __init__(
-        self,
-        max_num_samples: Optional[int] = None,
-        **kwargs,
+            self,
+            max_num_samples: Optional[int] = None,
+            **kwargs,
     ):
         super(ItemSampler, self).__init__(**kwargs)
         self.set_max_num_samples(max_num_samples)
 
+    def call(self, items: Items, training=False) -> Items:
+        if training:
+            self.add(items)
+        items = self.sample()
+
+        return items
+
     @abc.abstractmethod
-    def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=True):
+    def add(self, items: Items):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def sample(self) -> EmbeddingWithMetadata:
+    def sample(self) -> Items:
         raise NotImplementedError()
 
-    def _check_inputs_batch_sizes(self, inputs: TabularData):
-        embeddings_batch_size = tf.shape(inputs["embeddings"])[0]
-        for feat_name in inputs["metadata"]:
-            metadata_feat_batch_size = tf.shape(inputs["metadata"][feat_name])[0]
+    def _check_inputs_batch_sizes(self, items: Items):
+        embeddings_batch_size = tf.shape(items.ids)[0]
+        for feat_name in items.metadata:
+            metadata_feat_batch_size = tf.shape(items.metadata[feat_name])[0]
 
             tf.assert_equal(
                 embeddings_batch_size,
@@ -63,3 +108,14 @@ class ItemSampler(abc.ABC, Layer):
 
     def set_max_num_samples(self, value) -> None:
         self._max_num_samples = value
+
+
+def _list_to_tensor(input_list: List[tf.Tensor]) -> tf.Tensor:
+    output: tf.Tensor
+
+    if len(input_list) == 1:
+        output = input_list[0]
+    else:
+        output = tf.concat(input_list, axis=0)
+
+    return output

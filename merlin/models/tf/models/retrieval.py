@@ -116,7 +116,7 @@ def TwoTowerModel(
     logits_temperature: float = 1.0,
     loss: Optional[LossType] = "categorical_crossentropy",
     metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
-    samplers: Sequence[ItemSampler] = (),
+    # samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Union[Model, RetrievalModel]:
     """Builds the Two-tower architecture, as proposed in [1].
@@ -179,7 +179,7 @@ def TwoTowerModel(
             schema,
             metrics=metrics,
             logits_temperature=logits_temperature,
-            samplers=list(samplers),
+            # samplers=list(samplers),
             loss=loss,
             # Two-tower outputs are already L2-normalized
             normalize=False,

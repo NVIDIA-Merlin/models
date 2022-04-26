@@ -44,6 +44,18 @@ if TYPE_CHECKING:
     from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 
 
+class TaskWithOutputs(NamedTuple):
+    task: PredictionTask
+    predictions: Union[TabularData, tf.Tensor]
+    targets: Union[TabularData, tf.Tensor]
+
+
+@dataclass
+class EmbeddingWithMetadata:
+    embeddings: tf.Tensor
+    metadata: Dict[str, tf.Tensor]
+
+
 class PredictionOutput(NamedTuple):
     predictions: Union[TabularData, tf.Tensor]
     targets: Union[TabularData, tf.Tensor]

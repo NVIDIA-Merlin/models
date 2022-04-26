@@ -199,11 +199,11 @@ class _Dense(tf.keras.layers.Layer):
         self.pre_aggregation = pre_aggregation
         self.units = units
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs, training=False, **kwargs):
         if isinstance(inputs, dict):
             inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
 
-        return self.dense(inputs, **kwargs)
+        return self.dense(inputs, training=training)
 
     def compute_output_shape(self, input_shape):
         if isinstance(input_shape, dict):

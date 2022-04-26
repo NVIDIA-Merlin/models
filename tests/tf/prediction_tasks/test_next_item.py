@@ -307,8 +307,8 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
         "ndcg_10",
         "precision_at_10",
         "recall_at_10",
-        "regularization_loss",
-        "total_loss",
+        # "regularization_loss",
+        # "total_loss",
     ]
 
 

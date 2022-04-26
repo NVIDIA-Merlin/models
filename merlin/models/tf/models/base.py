@@ -11,7 +11,7 @@ from merlin.models.tf.losses.base import loss_registry
 from tensorflow.python.keras.engine import compile_utils, data_adapter
 from tensorflow.python.keras.metrics import Metric
 
-from merlin.models.tf.blocks.core.base import Block, BlockContext, PredictionOutput
+from merlin.models.tf.blocks.core.base import Block, BlockContext, PredictionOutput, TaskWithOutputs
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
@@ -272,6 +272,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
     def compile(self,
                 optimizer='rmsprop',
+                pre_loss=None,
                 loss=None,
                 metrics=None,
                 loss_weights=None,
@@ -408,55 +409,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             **kwargs
         )
 
-        # _metrics = {}
-        # if isinstance(metrics, (list, tuple)) and len(self.prediction_tasks) == 1:
-        #     _metrics = {task.name: metrics for task in self.prediction_tasks}
-        #
-        # if not metrics:
-        #     prediction_tasks = self.prediction_tasks_by_name()
-        #     for task_name, task in prediction_tasks.items():
-        #         _metrics[task_name] = [m() for m in task.DEFAULT_METRICS]
-        #
-        # # output_names = None
-        # # if len(self.prediction_tasks) > 1:
-        # output_names = [task.task_name for task in self.prediction_tasks]
-        #
-        # self.compiled_metrics = compile_utils.MetricsContainer(
-        #     _metrics,
-        #     weighted_metrics,
-        #     output_names=output_names,
-        #     from_serialized=from_serialized
-        # )
-        #
-        # self.compiled_loss = compile_utils.LossesContainer(
-        #     loss, loss_weights, output_names=self.output_names)
-
-    # def compute_loss(
-    #     self,
-    #     inputs: Union[tf.Tensor, TabularData],
-    #     targets: Union[tf.Tensor, TabularData],
-    #     compute_metrics=False,
-    #     training: bool = False,
-    #     **kwargs,
-    # ) -> tf.Tensor:
-    #     return self.loss_block.compute_loss(
-    #         inputs, targets, training=training, compute_metrics=compute_metrics, **kwargs
-    #     )
-
-    # def calculate_metrics(
-    #     self,
-    #     outputs,
-    #     mode: str = "val",
-    #     forward: bool = True,
-    #     training: bool = False,
-    #     **kwargs,
-    # ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
-    #     return self.loss_block.calculate_metrics(
-    #         outputs=outputs, mode=mode, forward=forward, training=training, **kwargs
-    #     )
-    #
-    # def metric_results(self, mode=None):
-    #     return self.loss_block.metric_results(mode=mode)
+        if pre_loss:
+            if isinstance(pre_loss, (tf.keras.layers.Layer, list, tuple)) and len(self.prediction_tasks) == 1:
+               pre_loss = {task.task_name: pre_loss for task in self.prediction_tasks}
+            # TODO: Add validation for pre_loss.
+            self.pre_loss = pre_loss
 
     def prediction_output(self, x, y=None, training=False, testing=False, **kwargs) -> PredictionOutput:
         forward = self(x, training=training, testing=testing, **kwargs)
@@ -465,9 +422,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             task_x = forward
             if isinstance(forward, dict) and task.task_name in forward:
                 task_x = forward[task.task_name]
-            task_y = y[task.target_name] if isinstance(y, dict) else y
+            task_y = y[task.target_name] if isinstance(y, dict) and y else y
 
-            prediction_output = self.prediction_task_output(task, task_x, task_y)
+            prediction_output = self.prediction_task_pre_loss(
+                task, x, task_x, task_y, training=training, testing=testing
+            )
 
             targets[task.task_name] = prediction_output.targets
             predictions[task.task_name] = prediction_output.predictions
@@ -478,15 +437,31 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         return PredictionOutput(predictions, targets)
 
-    def prediction_task_output(
+    def prediction_task_pre_loss(
             self,
             task: PredictionTask,
+            features: Dict[str, tf.Tensor],
             task_outputs: Dict[str, tf.Tensor],
-            task_targets: Dict[str, tf.Tensor]
+            task_targets: Dict[str, tf.Tensor],
+            training=False,
+            testing=False
     ) -> PredictionOutput:
         prediction_output = PredictionOutput(task_outputs, task_targets)
-        # TODO: Call compiled_pre_loss
-        prediction_output = task.pre_loss(prediction_output, training=True)
+        task_output = TaskWithOutputs(task, task_outputs, task_targets)
+
+        pre_loss = getattr(self, 'pre_loss', None)
+        if pre_loss and task.task_name in pre_loss:
+            prediction_output = self.pre_loss[task.task_name](
+                features,
+                task_output,
+                self,
+                training=training,
+                testing=testing
+            )
+
+        prediction_output = task.pre_loss(
+            prediction_output, training=training, testing=testing
+        )
 
         return prediction_output
 
@@ -506,55 +481,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
 
         return metrics
-
-        #     loss = self.compute_loss(x, targets, predictions, sample_weight)
-        #     self.compiled_metrics.update_state(predictions, targets)
-        #
-        #     loss = self.compute_loss(
-        #         predictions,
-        #         targets,
-        #         training=True,
-        #         compute_metrics=self._should_compute_train_metrics_for_batch,
-        #     )
-        #     tf.assert_rank(
-        #         loss,
-        #         0,
-        #         "The loss tensor should have rank 0. "
-        #         "Check if you are using a tf.keras.losses.Loss with 'reduction' "
-        #         "properly set",
-        #     )
-        #     assert loss.dtype == tf.float32, (
-        #         f"The loss dtype should be tf.float32 but is rather {loss.dtype}. "
-        #         "Ensure that your model output has tf.float32 dtype, as "
-        #         "that should be the case when using mixed_float16 policy "
-        #         "to avoid numerical instabilities."
-        #     )
-        #
-        #     regularization_loss = tf.reduce_sum(self.losses)
-        #
-        #     total_loss = tf.add_n([loss, regularization_loss])
-        #
-        #     if getattr(self.optimizer, "get_scaled_loss", False):
-        #         scaled_loss = self.optimizer.get_scaled_loss(total_loss)
-        #
-        # # If mixed precision (mixed_float16 policy) is enabled
-        # # (and the optimizer is automatically wrapped by
-        # #  tensorflow.keras.mixed_precision.LossScaleOptimizer())
-        # if getattr(self.optimizer, "get_scaled_loss", False):
-        #     scaled_gradients = tape.gradient(scaled_loss, self.trainable_variables)
-        #     gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)
-        # else:
-        #     gradients = tape.gradient(total_loss, self.trainable_variables)
-        #
-        # self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-        #
-        # metrics = self.loss_block.metric_result_dict()
-        #
-        # metrics["loss"] = loss
-        # metrics["regularization_loss"] = regularization_loss
-        # metrics["total_loss"] = total_loss
-        #
-        # return metrics
 
     def test_step(self, data):
         """Custom test step using the `compute_loss` method."""

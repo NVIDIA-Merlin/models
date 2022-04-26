@@ -62,6 +62,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     """
 
     DEFAULT_METRICS = []
+    SUPPORTED_LOSSES = []
 
     def __init__(
         self,
@@ -69,6 +70,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         task_name: Optional[str] = None,
         metrics: Optional[MetricOrMetrics] = None,
         pre: Optional[Block] = None,
+        post: Optional[Block] = None,
         pre_eval_topk: Optional[Block] = None,
         task_block: Optional[Layer] = None,
         prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
@@ -83,6 +85,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         self.task_block = task_block
         self._task_name = task_name
         self.pre = pre
+        self.post = post
         self._pre_eval_topk = pre_eval_topk
 
         # if metrics is not None:
@@ -158,6 +161,9 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
         # This will call the `call` method implemented by the super class.
         outputs = super().__call__(inputs, **kwargs)  # noqa
+
+        if self.post:
+            outputs = self.post(outputs, **kwargs)
 
         return outputs
 

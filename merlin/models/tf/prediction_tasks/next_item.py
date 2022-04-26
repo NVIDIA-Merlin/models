@@ -85,19 +85,11 @@ def ItemsPredictionSampled(
             and sampled negatives of shape (bs, num_sampled+1), as well as the related logits.
             During evaluation, returns the input tensor of true class, and the related logits.
     """
-    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    num_classes = categorical_cardinalities(schema)[item_id_feature_name]
-    samplers = PopularityBasedSampler(
-        max_num_samples=num_sampled,
-        max_id=num_classes,
-        min_id=min_id,
-        item_id_feature_name=item_id_feature_name,
-    )
-
+    sampler = PopularityBasedSampler.from_schema(schema, num_sampled, min_id)
     logits = ItemRetrievalScorer(
-        samplers=[samplers],
+        samplers=[sampler],
         sampling_downscore_false_negatives=ignore_false_negatives,
-        item_id_feature_name=item_id_feature_name,
+        item_id_feature_name=sampler.item_id_feature_name,
         sampled_softmax_mode=True,
     )
 

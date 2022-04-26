@@ -77,26 +77,25 @@ class ItemRetrievalTask(MultiClassClassificationTask):
     def __init__(
         self,
         schema: Schema,
-        loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: MetricOrMetrics = DEFAULT_METRICS,
-        samplers: Sequence[ItemSampler] = (),
+        # loss: Optional[LossType] = DEFAULT_LOSS,
+        # metrics: MetricOrMetrics = DEFAULT_METRICS,
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
         extra_pre_call: Optional[Block] = None,
         logits_temperature: float = 1.0,
         normalize: bool = True,
-        cache_query: bool = False,
+        # cache_query: bool = False,
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        self.cache_query = cache_query
-        pre = self._build_prediction_call(samplers, normalize, logits_temperature, extra_pre_call)
-        self.loss = loss_registry.parse(loss)
+        # self.cache_query = cache_query
+        pre = self._build_prediction_call(normalize, logits_temperature, extra_pre_call)
+        # self.loss = loss_registry.parse(loss)
 
         super().__init__(
-            loss=self.loss,
-            metrics=metrics,
+            # loss=self.loss,
+            # metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
@@ -109,16 +108,12 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
     def _build_prediction_call(
         self,
-        samplers: Sequence[ItemSampler],
         normalize: bool,
         logits_temperature: float,
         extra_pre_call: Optional[Block] = None,
     ):
-        if samplers is None or len(samplers) == 0:
-            samplers = (InBatchSampler(),)
-
         prediction_call = ItemRetrievalScorer(
-            samplers=samplers,
+            # samplers=samplers,
             item_id_feature_name=self.item_id_feature_name,
             cache_query=self.cache_query,
         )

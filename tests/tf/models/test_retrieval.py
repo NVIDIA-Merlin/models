@@ -40,11 +40,17 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     model = mm.TwoTowerModel(
         schema=ecommerce_data.schema,
         query_tower=mm.MLPBlock([128, 64]),
-        samplers=[mm.InBatchSampler()],
+        # samplers=[mm.InBatchSampler()],
         # metrics=metrics,
         # loss=loss,
     )
-    model.compile(optimizer="adam", run_eagerly=run_eagerly, metrics=metrics, loss=loss)
+    model.compile(
+        optimizer="adam",
+        run_eagerly=run_eagerly,
+        metrics=metrics,
+        pre_loss=mm.NegativeSampling(ecommerce_data.schema, mm.InBatchSampler()),
+        loss=loss
+    )
 
     # Training
     num_epochs = 2
@@ -91,7 +97,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
 #         )
 
 
-@pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize("run_eagerly", [True])
 def test_youtube_dnn_retrieval(
         sequence_testing_data: Dataset,
         run_eagerly: bool,
