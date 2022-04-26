@@ -426,7 +426,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             if (
                 any(isinstance(b, RetrievalBlock) for b in blocks)
                 or isinstance(self, RetrievalBlock)
-                and any(isinstance(b, ItemRetrievalTask) for b in blocks)
+                # and any(isinstance(b, ItemRetrievalTask) for b in blocks)
             ):
                 return RetrievalModel(output)
 

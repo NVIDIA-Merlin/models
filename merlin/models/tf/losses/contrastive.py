@@ -80,9 +80,9 @@ class ContrastiveRepresentationTransform(Layer):
         # TODO: Optimize this by turning it into a single call to the embedding layer
 
         if not inputs.positive.has_embedding:
-            inputs.positive = inputs.positive.with_embedding(task.block.look_up(self.positive.ids))
+            inputs.positive = inputs.positive.with_embedding(task.block.embedding_lookup(self.positive.ids))
         if not inputs.negative.has_embedding:
-            inputs.negative = inputs.negative.with_embedding(task.block.look_up(self.negative.ids))
+            inputs.negative = inputs.negative.with_embedding(task.block.embedding_lookup(self.negative.ids))
 
         return inputs
 
@@ -192,7 +192,7 @@ class ContrastiveLearning(PreLossBlock):
             item_metadata.update(item_features)
 
         output = Items(item_ids, item_metadata)
-        if "item" in task_results.predictions:
+        if isinstance(task_results.predictions, dict) and "item" in task_results.predictions:
             output = output.with_embedding(task_results.predictions["item"])
 
         return output

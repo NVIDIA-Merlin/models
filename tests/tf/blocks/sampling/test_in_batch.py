@@ -71,6 +71,7 @@ def test_inbatch_sampler_in_model(ecommerce_data: Dataset):
     model.compile(
         pre_loss=ml.ContrastiveLearning(ecommerce_data.schema, ml.InBatchSampler()),
         run_eagerly=True,
+        prediction_task=ContrastiveLearningTask(ecommerce_data.schema, ml.InBatchSampler()),
     )
 
     model.fit(ecommerce_data, epochs=1, batch_size=100)

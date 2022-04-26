@@ -30,7 +30,7 @@ def MatrixFactorizationModel(
     ] = None,
     logits_temperature: float = 1.0,
     loss: Optional[LossType] = "bpr",
-    metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
+    metrics: MetricOrMetrics = ranking_metrics(top_ks=[10]),
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Union[Model, RetrievalModel]:
@@ -114,8 +114,8 @@ def TwoTowerModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     logits_temperature: float = 1.0,
-    loss: Optional[LossType] = "categorical_crossentropy",
-    metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
+    # loss: Optional[LossType] = "categorical_crossentropy",
+    # metrics: MetricOrMetrics = ranking_metrics(top_ks=[10]),
     # samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Union[Model, RetrievalModel]:
@@ -177,10 +177,10 @@ def TwoTowerModel(
     if not prediction_tasks:
         prediction_tasks = ItemRetrievalTask(
             schema,
-            metrics=metrics,
+            # metrics=metrics,
             logits_temperature=logits_temperature,
             # samplers=list(samplers),
-            loss=loss,
+            # loss=loss,
             # Two-tower outputs are already L2-normalized
             normalize=False,
             **kwargs,

@@ -210,15 +210,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         return self.block.layers[-1]
 
     @property
-    def loss_block(self) -> ModelLikeBlock:
-        return self.block.last if isinstance(self.block, SequentialBlock) else self.block
-
-    @property
     def schema(self) -> Schema:
         return self.block.schema
 
     @property
-    def prediction_tasks(self) -> Union[PredictionTask, List[PredictionTask]]:
+    def prediction_tasks(self) -> List[PredictionTask]:
         from merlin.models.tf.prediction_tasks.base import PredictionTask
 
         results = find_all_instances_in_layers(self.block, PredictionTask)

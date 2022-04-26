@@ -405,8 +405,11 @@ class SamplingBiasCorrection(Block):
         super(SamplingBiasCorrection, self).__init__(**kwargs)
         self.bias_feature_name = bias_feature_name
 
-    def call_features(self, features, **kwargs):
-        self.bias = features[self.bias_feature_name]
+    # def call_features(self, features, **kwargs):
+    #     self.bias = features[self.bias_feature_name]
+
+    def required_features(self):
+        return [self.bias_feature_name]
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
         inputs -= tf.math.log(self.bias)

@@ -285,8 +285,8 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         with tf.control_dependencies(update_ops):
             return tf.identity(loss)
 
-    def repr_add(self):
-        return [("loss", self.loss)]
+    # def repr_add(self):
+    #     return [("loss", self.loss)]
 
     def calculate_metrics(
         self,

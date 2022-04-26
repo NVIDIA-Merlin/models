@@ -16,7 +16,7 @@
 from typing import Optional, Sequence
 
 import tensorflow as tf
-from tensorflow.python.layers.base import Layer
+from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
 from merlin.models.tf.blocks.core.transformations import L2Norm, LogitsTemperatureScaler
@@ -25,118 +25,160 @@ from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.metrics.ranking import ranking_metrics
-from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
+# from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
+from merlin.models.tf.prediction_tasks.test import MultiClassClassificationTaskNew
 from merlin.schema import Schema, Tags
 
 from merlin.models.tf.utils.search_utils import find_single_instance_in_layers
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ItemRetrievalTask(MultiClassClassificationTask):
-    """Prediction-task for item-retrieval.
+class DotProduct(Layer):
+    def call(self, inputs, training=False, testing=False):
+        if isinstance(inputs, dict) and not (training or testing):
+            scores = tf.reduce_sum(
+                tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
+            )
+            return scores
 
-    Parameters
-    ----------
-        schema: Schema
-            The schema object including features to use and their properties.
-        loss: Optional[LossType]
-            Loss function.
-            Defaults to `categorical_crossentropy`.
-        metrics: MetricOrMetrics
-            List of top-k ranking metrics.
-            Defaults to a number of ranking metrics.
-        samplers: List[ItemSampler]
-            List of samplers for negative sampling, by default `[InBatchSampler()]`
-        extra_pre_call: Optional[PredictionBlock]
-            Optional extra pre-call block. Defaults to None.
-        target_name: Optional[str]
-            If specified, name of the target tensor to retrieve from dataloader.
-            Defaults to None.
-        task_name: Optional[str]
-            name of the task.
-            Defaults to None.
-        task_block: Block
-            The `Block` that applies additional layers op to inputs.
-            Defaults to None.
-        logits_temperature: float
-            Parameter used to reduce the model overconfidence, so that logits / T.
-            Defaults to 1.
-        normalize: bool
-            Apply L2 normalization before computing dot interactions.
-            Defaults to True.
+        return inputs
 
-    Returns
-    -------
-        PredictionTask
-            The item retrieval prediction task
-    """
 
-    DEFAULT_LOSS = "categorical_crossentropy"
-    DEFAULT_METRICS = ranking_metrics(top_ks=[10])
-
-    def __init__(
-        self,
+def ItemRetrievalTask(
         schema: Schema,
-        # loss: Optional[LossType] = DEFAULT_LOSS,
-        # metrics: MetricOrMetrics = DEFAULT_METRICS,
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        extra_pre_call: Optional[Block] = None,
+        pre: Optional[Block] = None,
+        post: Optional[Block] = None,
         logits_temperature: float = 1.0,
         normalize: bool = True,
-        # cache_query: bool = False,
         **kwargs,
-    ):
-        self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        # self.cache_query = cache_query
-        pre = self._build_prediction_call(normalize, logits_temperature, extra_pre_call)
-        # self.loss = loss_registry.parse(loss)
+):
+    if normalize:
+        pre = L2Norm().connect(pre) if pre else L2Norm()
 
-        super().__init__(
-            # loss=self.loss,
-            # metrics=metrics,
-            target_name=target_name,
-            task_name=task_name,
-            task_block=task_block,
-            pre=pre,
-            **kwargs,
-        )
+    if logits_temperature != 1:
+        temp_scaler = LogitsTemperatureScaler(logits_temperature)
+        post = post.connect(temp_scaler) if post else temp_scaler
 
-    def call(self, inputs, training=False, testing=False, **kwargs):
-        return inputs
+    return MultiClassClassificationTaskNew(
+        DotProduct(),
+        target_name=target_name,
+        task_name=task_name,
+        task_block=task_block,
+        pre=pre,
+        post=post,
+        # schema=schema,
+        **kwargs,
+    )
 
-    def _build_prediction_call(
-        self,
-        normalize: bool,
-        logits_temperature: float,
-        extra_pre_call: Optional[Block] = None,
-    ):
-        prediction_call = ItemRetrievalScorer(
-            # samplers=samplers,
-            item_id_feature_name=self.item_id_feature_name,
-            cache_query=self.cache_query,
-        )
 
-        if normalize:
-            prediction_call = L2Norm().connect(prediction_call)
-
-        if logits_temperature != 1:
-            prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
-
-        if extra_pre_call is not None:
-            prediction_call = prediction_call.connect(extra_pre_call)
-
-        return prediction_call
-
-    @property
-    def retrieval_scorer(self):
-        result = find_single_instance_in_layers(self.pre, ItemRetrievalScorer)
-
-        if result is None:
-            raise Exception("An ItemRetrievalScorer layer was not found in the model.")
-
-        return result
-
-    def set_retrieval_cache_query(self, value: bool):
-        self.retrieval_scorer.cache_query = value
+# @tf.keras.utils.register_keras_serializable(package="merlin_models")
+# class ItemRetrievalTask(MultiClassClassificationTask):
+#     """Prediction-task for item-retrieval.
+#
+#     Parameters
+#     ----------
+#         schema: Schema
+#             The schema object including features to use and their properties.
+#         loss: Optional[LossType]
+#             Loss function.
+#             Defaults to `categorical_crossentropy`.
+#         metrics: MetricOrMetrics
+#             List of top-k ranking metrics.
+#             Defaults to a number of ranking metrics.
+#         samplers: List[ItemSampler]
+#             List of samplers for negative sampling, by default `[InBatchSampler()]`
+#         extra_pre_call: Optional[PredictionBlock]
+#             Optional extra pre-call block. Defaults to None.
+#         target_name: Optional[str]
+#             If specified, name of the target tensor to retrieve from dataloader.
+#             Defaults to None.
+#         task_name: Optional[str]
+#             name of the task.
+#             Defaults to None.
+#         task_block: Block
+#             The `Block` that applies additional layers op to inputs.
+#             Defaults to None.
+#         logits_temperature: float
+#             Parameter used to reduce the model overconfidence, so that logits / T.
+#             Defaults to 1.
+#         normalize: bool
+#             Apply L2 normalization before computing dot interactions.
+#             Defaults to True.
+#
+#     Returns
+#     -------
+#         PredictionTask
+#             The item retrieval prediction task
+#     """
+#
+#     DEFAULT_LOSS = "categorical_crossentropy"
+#     DEFAULT_METRICS = ranking_metrics(top_ks=[10])
+#
+#     def __init__(
+#             self,
+#             schema: Schema,
+#             # loss: Optional[LossType] = DEFAULT_LOSS,
+#             # metrics: MetricOrMetrics = DEFAULT_METRICS,
+#             target_name: Optional[str] = None,
+#             task_name: Optional[str] = None,
+#             task_block: Optional[Layer] = None,
+#             extra_pre_call: Optional[Block] = None,
+#             logits_temperature: float = 1.0,
+#             normalize: bool = True,
+#             # cache_query: bool = False,
+#             **kwargs,
+#     ):
+#         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+#         # self.cache_query = cache_query
+#         pre = self._build_prediction_call(normalize, logits_temperature, extra_pre_call)
+#         # self.loss = loss_registry.parse(loss)
+#
+#         super().__init__(
+#             # loss=self.loss,
+#             # metrics=metrics,
+#             target_name=target_name,
+#             task_name=task_name,
+#             task_block=task_block,
+#             pre=pre,
+#             **kwargs,
+#         )
+#
+#     def call(self, inputs, training=False, testing=False, **kwargs):
+#         return inputs
+#
+#     def _build_prediction_call(
+#             self,
+#             normalize: bool,
+#             logits_temperature: float,
+#             extra_pre_call: Optional[Block] = None,
+#     ):
+#         prediction_call = ItemRetrievalScorer(
+#             # samplers=samplers,
+#             item_id_feature_name=self.item_id_feature_name,
+#             cache_query=self.cache_query,
+#         )
+#
+#         if normalize:
+#             prediction_call = L2Norm().connect(prediction_call)
+#
+#         if logits_temperature != 1:
+#             prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
+#
+#         if extra_pre_call is not None:
+#             prediction_call = prediction_call.connect(extra_pre_call)
+#
+#         return prediction_call
+#
+#     @property
+#     def retrieval_scorer(self):
+#         result = find_single_instance_in_layers(self.pre, ItemRetrievalScorer)
+#
+#         if result is None:
+#             raise Exception("An ItemRetrievalScorer layer was not found in the model.")
+#
+#         return result
+#
+#     def set_retrieval_cache_query(self, value: bool):
+#         self.retrieval_scorer.cache_query = value
