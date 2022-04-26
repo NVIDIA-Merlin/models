@@ -183,7 +183,7 @@ def default_aliccp_transformation(add_target_encoding=True, **kwargs):
     item_id = ["item_id"] >> cat() >> nvt_ops.TagAsItemID()
 
     item_features = (
-        ["item_category", "item_shop", "item_brand"] >> cat() >> nvt_ops.TagAsItemFeatures()
+        ["item_category", "item_shop", "item_brand", "item_intention"] >> cat() >> nvt_ops.TagAsItemFeatures()
     )
 
     user_features = (
@@ -193,6 +193,7 @@ def default_aliccp_transformation(add_target_encoding=True, **kwargs):
             "user_group",
             "user_gender",
             "user_age",
+            'user_consumption_1",
             "user_consumption_2",
             "user_is_occupied",
             "user_geography",
@@ -203,7 +204,19 @@ def default_aliccp_transformation(add_target_encoding=True, **kwargs):
         >> cat()
         >> nvt_ops.TagAsUserFeatures()
     )
+    
+    user_item_features = (
+        [
+            "user_item_categories",
+            "user_item_shops",
+            "user_item_brands",
+            "user_item_intentions",
+        ]
+        >> cat()
+    )
 
+    context_features = ["position"] >> cat() 
+    
     targets = ["click", "conversion"] >> nvt_ops.AddMetadata(
         tags=[Tags.BINARY_CLASSIFICATION, "target"]
     )
