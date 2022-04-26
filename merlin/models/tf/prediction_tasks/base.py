@@ -677,9 +677,7 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
         if isinstance(inputs, dict) and not all(
             name in inputs for name in list(self.parallel_dict.keys())
         ):
-            filtered_kwargs = filter_kwargs(
-                dict(training=training), self, filter_positional_or_keyword=False
-            )
+            filtered_kwargs = filter_kwargs(dict(training=training), self)
             predictions = self(inputs, **filtered_kwargs)
         else:
             predictions = inputs

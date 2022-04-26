@@ -209,19 +209,19 @@ class SequentialBlock(Block):
 
         outputs = inputs
         for i, layer in enumerate(self.layers):
-            if i == len(self.layers) - 1:
-                filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
-                filtered_kwargs.update(
-                    filter_kwargs(
-                        {**dict(training=training), **kwargs},
-                        layer.call,
-                        filter_positional_or_keyword=False,
-                    )
+            filtered_kwargs = filter_kwargs(
+                {**dict(training=training), **kwargs},
+                layer,
+                cascade_kwargs_if_possible=True,
+            )
+            filtered_kwargs.update(
+                filter_kwargs(
+                    {**dict(training=training), **kwargs},
+                    layer.call,
+                    cascade_kwargs_if_possible=True,
                 )
-            else:
-                filtered_kwargs = filter_kwargs(
-                    dict(training=training), layer, filter_positional_or_keyword=False
-                )
+            )
+
             outputs = layer(outputs, **filtered_kwargs)
 
         return outputs
