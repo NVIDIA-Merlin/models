@@ -88,6 +88,7 @@ class MaskingBlock(Block):
                 shape=tf.TensorShape([None, input_shapes[1]]),
             )
         )
+        self.context.padding_idx = self.padding_idx
 
         self.masked_item_embedding = self.add_weight(
             name="mask_embedding",
@@ -383,6 +384,7 @@ class MaskingHead(Block):
         targets = self.context[self.item_id_feature_name]
         mask = self.context.get_mask()
         targets = tf.where(mask, targets, self.padding_idx)
+
         return outputs.copy_with_updates(
             targets=targets,
         )

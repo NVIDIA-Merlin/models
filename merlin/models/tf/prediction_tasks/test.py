@@ -23,9 +23,9 @@ from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.ops import embedding_ops, math_ops, sparse_ops, gen_math_ops, standard_ops, nn_ops
 
-from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
-from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
-from merlin.models.tf.losses import LossType, loss_registry
+from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics, PredictionOutput
+from merlin.models.tf.blocks.core.masking import MaskingHead
+from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler, RemovePad3D, L2Norm, remove_pad_3d
 from merlin.models.tf.prediction_tasks.base import PredictionTask
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -142,6 +142,17 @@ class CategoricalPrediction(Block):
         return input_shape[:-1] + (self.num_classes,)
 
 
+class DotProduct(Layer):
+    def call(self, inputs, training=False, testing=False):
+        if isinstance(inputs, dict) and not (training or testing):
+            scores = tf.reduce_sum(
+                tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
+            )
+            return scores
+
+        return inputs
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class MultiClassClassificationTaskNew(PredictionTask):
     """
@@ -171,7 +182,7 @@ class MultiClassClassificationTaskNew(PredictionTask):
 
     def __init__(
         self,
-        block: Block,
+        prediction_block: CategoricalPrediction,
         target_name: Optional[Union[str, Schema]] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
@@ -192,14 +203,16 @@ class MultiClassClassificationTaskNew(PredictionTask):
             post=post,
             **kwargs,
         )
-        self.block = block
+        self.prediction_block = prediction_block
 
     @classmethod
     def from_schema(
         cls,
         schema: Schema,
         feature_name: str = Tags.ITEM_ID,
-        loss=DEFAULT_LOSS,
+        weight_tying: bool = False,
+        masking: bool = False,
+        logits_temperature: float = 1.0,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
         pre: Optional[Block] = None,
@@ -218,12 +231,26 @@ class MultiClassClassificationTaskNew(PredictionTask):
             block,
             pre=pre,
             post=post,
-            loss=loss,
+            weight_tying=weight_tying,
+            masking=masking,
+            logits_temperature=logits_temperature,
             **kwargs,
         )
 
     def call(self, inputs, training=False, **kwargs):
-        return self.block(inputs, training=training, **kwargs)
+        return self.prediction_block(inputs, training=training, **kwargs)
+
+    def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
+        if self.context.has_mask:
+            targets = self.context[self.item_id_feature_name]
+            mask = self.context.get_mask()
+            targets = tf.where(mask, targets, self.padding_idx)
+
+            outputs = remove_pad_3d(outputs.copy_with_updates(targets=targets))
+
+            return outputs
+
+        return outputs
 
     def get_config(self):
         config = super().get_config()
@@ -236,3 +263,38 @@ class MultiClassClassificationTaskNew(PredictionTask):
         config = maybe_deserialize_keras_objects(config, ["loss"], tf.keras.losses.deserialize)
 
         return super().from_config(config)
+
+
+def ItemPredictionTask(
+        schema,
+        dot_product: bool = False,
+        weight_tying: bool = True,
+        pre: Optional[Block] = None,
+        post: Optional[Block] = None,
+        target_name: Optional[str] = None,
+        task_name: Optional[str] = None,
+        task_block: Optional[Layer] = None,
+        logits_temperature: float = 1.0,
+        normalize: bool = True,
+        **kwargs
+):
+    if dot_product:
+        masking = False
+        if normalize:
+            pre = L2Norm().connect(pre) if pre else L2Norm()
+        prediction_block = DotProduct(**kwargs)
+    else:
+        prediction_block = CategoricalPrediction(
+            schema, weight_tying=weight_tying, **kwargs
+        )
+
+    return MultiClassClassificationTaskNew(
+        prediction_block,
+        weight_tying=weight_tying,
+        pre=pre,
+        post=post,
+        target_name=target_name,
+        task_name=task_name,
+        task_block=task_block,
+        logits_temperature=logits_temperature,
+    )

@@ -166,6 +166,7 @@ def NextItemPredictionTask(
     """
     item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
 
+    # Part of prediction_block
     if sampled_softmax:
         prediction_call = ItemsPredictionSampled(
             schema, num_sampled=num_sampled, min_id=min_sampled_id
@@ -178,11 +179,14 @@ def NextItemPredictionTask(
         else:
             prediction_call = ItemsPrediction(schema)
 
+        # We can do this in pre_loss when label is not one-hot
         prediction_call = prediction_call.connect(LabelToOneHot())
 
+    # Part of the refactored MultiClassClassificationTask
     if logits_temperature != 1:
         prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
 
+    # Should be in pre
     if masking:
         prediction_call = MaskingHead(item_id_feature_name=item_id_feature_name).connect(
             RemovePad3D(), prediction_call

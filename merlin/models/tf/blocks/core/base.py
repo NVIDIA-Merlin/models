@@ -157,6 +157,10 @@ class BlockContext(Layer):
         return mask_schema
 
     @property
+    def has_mask(self) -> bool:
+        return "masking_schema" in self.named_variables
+
+    @property
     def named_variables(self) -> Dict[str, tf.Variable]:
         outputs = {}
         for var in self.variables:
