@@ -76,5 +76,5 @@ To run the example notebooks using Docker containers, perform the following step
 
 4. Open a browser and use the ``127.0.0.1`` URL provided in the messages by JupyterLab.
 
-5. After you log in to JupyterLab, navigate to the ``/merlin/examples`` directory to try out the example notebooks.
+5. After you log in to JupyterLab, navigate to the ``/models/examples`` directory to try out the example notebooks.
 
