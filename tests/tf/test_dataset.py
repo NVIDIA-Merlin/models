@@ -301,8 +301,8 @@ def test_model_with_categorical_target():
     )
     s = Schema(
         [
-            create_categorical_column("Engaging User", num_items=6, tags=[Tags.CATEGORICAL]),
-            create_categorical_column("Author", num_items=6, tags=[Tags.CATEGORICAL]),
+            create_categorical_column("Engaging User", num_items=24, tags=[Tags.CATEGORICAL]),
+            create_categorical_column("Author", num_items=24, tags=[Tags.CATEGORICAL]),
             create_categorical_column("target", num_items=5, tags=[Tags.CATEGORICAL, Tags.TARGET]),
         ]
     )
