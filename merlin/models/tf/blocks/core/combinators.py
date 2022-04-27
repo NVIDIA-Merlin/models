@@ -281,13 +281,13 @@ class SequentialBlock(Block):
         outputs = inputs
         for i, layer in enumerate(self.layers):
             filtered_kwargs = filter_kwargs(
-                {training: training, **kwargs},
+                {"training": training, **kwargs},
                 layer,
                 cascade_kwargs_if_possible=True,
             )
             filtered_kwargs.update(
                 filter_kwargs(
-                    {training: training, **kwargs},
+                    {"training": training, **kwargs},
                     layer.call,
                     cascade_kwargs_if_possible=True,
                 )
