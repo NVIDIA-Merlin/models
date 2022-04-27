@@ -25,6 +25,7 @@ from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
+from merlin.models.utils.misc_utils import filter_kwargs
 from merlin.schema import Schema, Tags
 
 InitializerType = Union[str, tf.keras.initializers.Initializer]
@@ -213,7 +214,8 @@ class _Dense(tf.keras.layers.Layer):
         if isinstance(inputs, dict):
             inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
 
-        return self.dense(inputs, **kwargs)
+        filtered_kwargs = filter_kwargs(kwargs, self.dense)
+        return self.dense(inputs, **filtered_kwargs)
 
     def compute_output_shape(self, input_shape):
         if isinstance(input_shape, dict):
