@@ -31,6 +31,20 @@ LOG = logging.getLogger("merlin.models")
 
 class BlockBase(torch_utils.OutputSizeMixin, torch.nn.Module, metaclass=abc.ABCMeta):
     def to_model(self, prediction_task_or_head, inputs=None, **kwargs):
+        """Converts the block to a model
+
+        Parameters
+        ----------
+        prediction_task_or_head
+            Prediction task or head
+        inputs, optional
+            Inputs, by default None
+
+        Returns
+        -------
+        Model
+            Returns a model from a block
+        """
         from merlin.models.torch.model.base import Head, Model, PredictionTask
 
         if isinstance(prediction_task_or_head, PredictionTask):
@@ -46,6 +60,18 @@ class BlockBase(torch_utils.OutputSizeMixin, torch.nn.Module, metaclass=abc.ABCM
         return Model(head, **kwargs)
 
     def as_tabular(self, name=None):
+        """Makes the output of the block a Tabular output
+
+        Parameters
+        ----------
+        name : str, optional
+            Name of the key for tabular output dict, by default None
+
+        Returns
+        -------
+        SequentialBlock
+            The input block with tabular data output
+        """
         from merlin.models.torch.tabular.base import AsTabular
 
         if not name:
@@ -55,6 +81,8 @@ class BlockBase(torch_utils.OutputSizeMixin, torch.nn.Module, metaclass=abc.ABCM
 
 
 class Block(BlockBase):
+    """Core abstraction in Merlin models."""
+
     def __init__(self, module: torch.nn.Module, output_size: Union[List[int], torch.Size]):
         super().__init__()
         self.module = module
@@ -74,19 +102,13 @@ class Block(BlockBase):
 
 class SequentialBlock(BlockBase, torch.nn.Sequential):
     def __init__(self, *args, output_size=None):
-        # from merlin.models.torch import TabularSequenceFeatures, TransformerBlock
-        #
-        # if isinstance(args[0], TabularSequenceFeatures) and any(
-        #     isinstance(arg, TransformerBlock) for arg in args
-        # ):
-        #     masking = args[0].masking
-        #     for arg in args:
-        #         if isinstance(arg, TransformerBlock):
-        #             if arg.masking != masking:
-        #                 LOG.warning(
-        #                     "Masking is set in the input module but not in the "
-        #                     "TransformerBlock, provide this through the masking argument"
-        #                 )
+        """Create a composition.
+
+        Parameters
+        ----------
+        *args:
+            A list or tuple of layers to compose.
+        """
 
         super().__init__()
         self._static_output_size = output_size
@@ -139,11 +161,24 @@ class SequentialBlock(BlockBase, torch.nn.Sequential):
         return right_shift_block(other, self)
 
     def forward(self, input, training=False, **kwargs):
-        # from merlin.models.torch import TabularSequenceFeatures
+        """Forwards inputs over this block
+
+        Parameters
+        ----------
+        input : Tensor
+            Tensor or dict of tensors
+        training : bool, optional
+            Training flag, by default False
+
+        Returns
+        -------
+        Tensor or dict of tensors
+            Output of the block
+        """
 
         for i, module in enumerate(self):
             if i == len(self) - 1:
-                filtered_kwargs = filter_kwargs(kwargs, module, filter_positional_or_keyword=False)
+                filtered_kwargs = filter_kwargs(kwargs, module)
                 input = module(input, **filtered_kwargs)
 
             elif "training" in inspect.signature(module.forward).parameters:
@@ -154,6 +189,15 @@ class SequentialBlock(BlockBase, torch.nn.Sequential):
         return input
 
     def build(self, input_size, schema=None, **kwargs):
+        """Build the block
+
+        Parameters
+        ----------
+        input_size : tuple
+            The input shape
+        schema : Schema, optional
+            Features schema, by default None
+        """
         output_size = input_size
         for module in self:
             if not hasattr(module, "build"):
