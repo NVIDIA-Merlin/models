@@ -15,7 +15,7 @@ def test_synthetic_aliccp_data():
 
     assert isinstance(dataset, merlin.io.Dataset)
     assert dataset.num_rows == 100
-    assert len(dataset.schema) == 20
+    assert len(dataset.schema) == 27
     assert dataset.compute()["click"].sum() > 0
 
 
@@ -24,17 +24,20 @@ def test_synthetic_aliccp_raw_data(tmp_path):
 
     assert isinstance(dataset, merlin.io.Dataset)
     assert dataset.num_rows == 100
-    assert len(dataset.schema) == 18
+    assert len(dataset.schema) == 25
     assert sorted(dataset.to_ddf().compute().columns) == [
         "click",
         "conversion",
         "item_brand",
         "item_category",
         "item_id",
+        "item_intention",
         "item_shop",
+        "position",
         "user_age",
         "user_brands",
         "user_categories",
+        "user_consumption_1",
         "user_consumption_2",
         "user_gender",
         "user_geography",
@@ -42,6 +45,10 @@ def test_synthetic_aliccp_raw_data(tmp_path):
         "user_id",
         "user_intentions",
         "user_is_occupied",
+        "user_item_brands",
+        "user_item_categories",
+        "user_item_intentions",
+        "user_item_shops",
         "user_profile",
         "user_shops",
     ]
