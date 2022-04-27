@@ -384,6 +384,7 @@ feature {
   }
   annotation {
     tag: "categorical"
+    tag: "context"
     extra_metadata {
       type_url: "type.googleapis.com/google.protobuf.Struct"
       value: "\n\021\n\013num_buckets\022\002\010\000\n\033\n\016freq_threshold\022\t\021\000\000\000\000\000\000\000\000\n\025\n\010max_size\022\t\021\000\000\000\000\000\000\000\000\n\030\n\013start_index\022\t\021\000\000\000\000\000\000\000\000\n3\n\010cat_path\022\'\032%.//categories/unique.position.parquet\nG\n\017embedding_sizes\0224*2\n\030\n\013cardinality\022\t\021\000\000\000\000\000\000\020@\n\026\n\tdimension\022\t\021\000\000\000\000\000\0000@\n\034\n\017dtype_item_size\022\t\021\000\000\000\000\000\000@@\n\r\n\007is_list\022\002 \000\n\017\n\tis_ragged\022\002 \000"
