@@ -191,7 +191,7 @@ name the module should have.</p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.call" title="merlin.models.tf.ParallelBlock.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs, **kwargs)</p></td>
-<td><p></p></td>
+<td><p>The call method for ParallelBlock</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_outputs</span></code>(outputs[, training])</p></td>
 <td><p></p></td>
@@ -320,7 +320,7 @@ name the module should have.</p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.select_by_name" title="merlin.models.tf.ParallelBlock.select_by_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_name</span></code></a>(name)</p></td>
-<td><p></p></td>
+<td><p>Select a parallel block by name</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_aggregation</span></code>(value)</p></td>
 <td><p><dl class="field-list simple">
@@ -500,7 +500,16 @@ name the module should have.</p></li>
 <dl class="py method">
 <dt id="merlin.models.tf.ParallelBlock.select_by_name">
 <code class="sig-name descname"><span class="pre">select_by_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.blocks.core.base.Block</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/combinators.html#ParallelBlock.select_by_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ParallelBlock.select_by_name" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Select a parallel block by name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The block corresponding to the name</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Block</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.ParallelBlock.add_branch">
@@ -515,7 +524,19 @@ name the module should have.</p></li>
 <dl class="py method">
 <dt id="merlin.models.tf.ParallelBlock.call">
 <code class="sig-name descname"><span class="pre">call</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/combinators.html#ParallelBlock.call"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ParallelBlock.call" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>The call method for ParallelBlock</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>inputs</strong> (<em>TabularData</em>) – The inputs for the Parallel Block</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Outputs of the ParallelBlock</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>TabularData</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.ParallelBlock.compute_call_output_shape">
