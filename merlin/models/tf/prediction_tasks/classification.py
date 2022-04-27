@@ -18,10 +18,15 @@ from typing import Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
+from tensorflow.python.eager import context
+from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.keras.layers import Dense
+from tensorflow.python.ops import embedding_ops, math_ops, sparse_ops, gen_math_ops, standard_ops, nn_ops
 
-from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
+
 from merlin.models.tf.losses import LossType, loss_registry
+from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics, PredictionOutput
+from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler, RemovePad3D, L2Norm, remove_pad_3d
 from merlin.models.tf.prediction_tasks.base import PredictionTask
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -135,24 +140,35 @@ class BinaryClassificationTask(PredictionTask):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class CategFeaturePrediction(Block):
+class CategoricalPrediction(Block):
     """Block that predicts a categorical feature. num_classes is inferred from the"""
 
     def __init__(
         self,
         schema: Schema,
         feature_name: Optional[str] = None,
+        weight_tying: bool = False,
         bias_initializer="zeros",
-        kernel_initializer="random_normal",
         activation=None,
+        trainable=True,
+        name=None,
+        dtype=None,
+        dynamic=False,
         **kwargs,
     ):
-        super(CategFeaturePrediction, self).__init__(**kwargs)
+        super(CategoricalPrediction, self).__init__(trainable=trainable, name=name, dtype=dtype, dynamic=dynamic)
         self.bias_initializer = bias_initializer
-        self.kernel_initializer = kernel_initializer
         self.feature_name = feature_name or schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.num_classes = categorical_cardinalities(schema)[self.feature_name]
-        self.activation = activation
+        self.weight_tying = weight_tying
+        if not self.weight_tying:
+            self.output_classes = Dense(
+                units=self.num_classes,
+                bias_initializer=bias_initializer,
+                name=f"{self.feature_name}-prediction",
+                activation="linear",
+                **kwargs,
+            )
 
         # To ensure that the output is always fp32, avoiding numerical
         # instabilities with mixed_float16 policy
@@ -161,20 +177,82 @@ class CategFeaturePrediction(Block):
         )
 
     def build(self, input_shape):
-        self.output_layer = Dense(
-            units=self.num_classes,
-            kernel_initializer=self.kernel_initializer,
-            bias_initializer=self.bias_initializer,
-            name=f"{self.feature_name}-prediction",
-            activation="linear",
-        )
+        if self.weight_tying:
+            self.kernel = self.context.get_embedding(self.feature_name)
+            self.bias = self.add_weight(
+                name="output_layer_bias",
+                shape=(self.num_classes,),
+                initializer=self.bias_initializer,
+            )
+        else:
+            self.output_classes.build(input_shape)
+            self.kernel = self.output_classes.kernel
+            self.bias = self.output_classes.bias
         return super().build(input_shape)
 
+    def embedding_lookup(self, inputs, **kwargs):
+        return embedding_ops.embedding_lookup(self.kernel, inputs, **kwargs)
+
     def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
-        return self.output_activation(self.output_layer(inputs))
+        # This code is the same as in Dense
+        if inputs.dtype.base_dtype != self._compute_dtype_object.base_dtype:
+            inputs = math_ops.cast(inputs, dtype=self._compute_dtype_object)
+
+        rank = inputs.shape.rank
+        if rank == 2 or rank is None:
+            # We use embedding_lookup_sparse as a more efficient matmul operation for
+            # large sparse input tensors. The op will result in a sparse gradient, as
+            # opposed to sparse_ops.sparse_tensor_dense_matmul which results in dense
+            # gradients. This can lead to sigfinicant speedups, see b/171762937.
+            if isinstance(inputs, sparse_tensor.SparseTensor):
+                # We need to fill empty rows, as the op assumes at least one id per row.
+                inputs, _ = sparse_ops.sparse_fill_empty_rows(inputs, 0)
+                # We need to do some munging of our input to use the embedding lookup as
+                # a matrix multiply. We split our input matrix into separate ids and
+                # weights tensors. The values of the ids tensor should be the column
+                # indices of our input matrix and the values of the weights tensor
+                # can continue to the actual matrix weights.
+                # The column arrangement of ids and weights
+                # will be summed over and does not matter. See the documentation for
+                # sparse_ops.sparse_tensor_dense_matmul a more detailed explanation
+                # of the inputs to both ops.
+                ids = sparse_tensor.SparseTensor(
+                    indices=inputs.indices,
+                    values=inputs.indices[:, 1],
+                    dense_shape=inputs.dense_shape)
+                weights = inputs
+                outputs = embedding_ops.embedding_lookup_sparse_v2(
+                    self.kernel, ids, weights, combiner='sum')
+            else:
+                outputs = gen_math_ops.MatMul(a=inputs, b=self.kernel)
+        # Broadcast kernel to inputs.
+        else:
+            outputs = standard_ops.tensordot(inputs, self.kernel, [[rank - 1], [0]])
+            # Reshape the output back to the original ndim of the input.
+            if not context.executing_eagerly():
+                shape = inputs.shape.as_list()
+                output_shape = shape[:-1] + [self.kernel.shape[-1]]
+                outputs.set_shape(output_shape)
+
+        if self.use_bias:
+            outputs = nn_ops.bias_add(outputs, self.bias)
+
+        if self.activation is not None:
+            outputs = self.activation(outputs)
+
+        return outputs
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.num_classes,)
+
+
+class DotProduct(Layer):
+    def call(self, inputs, training=False, testing=False):
+        scores = tf.reduce_sum(
+            tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
+        )
+
+        return scores
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -198,64 +276,121 @@ class MultiClassClassificationTask(PredictionTask):
     """
 
     DEFAULT_LOSS = "sparse_categorical_crossentropy"
+    SUPPORTED_LOSSES = [
+        "sparse_categorical_crossentropy",
+        "categorical_crossentropy"
+    ]
     DEFAULT_METRICS: MetricOrMetrics = (tf.keras.metrics.Accuracy,)
 
     def __init__(
         self,
-        target_name: Optional[str] = None,
+        schema: Schema,
+        prediction_block: CategoricalPrediction,
+        target_name: Optional[Union[str, Schema]] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS,
         pre: Optional[Block] = None,
+        post: Optional[Block] = None,
+        logits_temperature: float = 1.0,
         **kwargs,
     ):
+        if logits_temperature != 1:
+            logits_scaler = LogitsTemperatureScaler(logits_temperature)
+            post = post.connect(logits_scaler) if post else logits_scaler
+
         super().__init__(
-            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
             pre=pre,
+            post=post,
+            schema=schema,
             **kwargs,
         )
-        self.loss = loss_registry.parse(loss)
+        self.prediction_block = prediction_block
 
     @classmethod
     def from_schema(
         cls,
         schema: Schema,
         feature_name: str = Tags.ITEM_ID,
-        loss=DEFAULT_LOSS,
+        weight_tying: bool = False,
+        masking: bool = False,
+        logits_temperature: float = 1.0,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
-        extra_pre: Optional[Block] = None,
+        pre: Optional[Block] = None,
+        post: Optional[Block] = None,
         **kwargs,
     ) -> "MultiClassClassificationTask":
         """Create from Schema."""
-        pre = CategFeaturePrediction(
+        block = CategoricalPrediction(
             schema,
             feature_name,
             bias_initializer=bias_initializer,
             kernel_initializer=kernel_initializer,
         )
-        if extra_pre:
-            pre = pre.connect(extra_pre)
 
         return cls(
+            block,
             pre=pre,
-            loss=loss,
+            post=post,
+            weight_tying=weight_tying,
+            masking=masking,
+            logits_temperature=logits_temperature,
             **kwargs,
         )
 
+    # def to_contrastive(
+    #         self,
+    #         *samplers: ItemSampler,
+    #         item_metadata_schema: Optional[Schema] = None,
+    #         item_id_tag: Tags = Tags.ITEM_ID,
+    #         query_id_tag: Tags = Tags.USER_ID,
+    #         downscore_false_negatives: bool = True,
+    #         false_negative_score: float = MIN_FLOAT,
+    # ):
+
+    """
+    # Ranking model
+    model = DLRMModel(schema, ..., prediction_tasks=ItemPrediction(schema).to_contrastive("popularity"))
+    
+    # Two-tower model
+    prediction_task = ContrastiveLearningTask(schema, "in-batch")
+    # OR:
+    prediction_task = ItemPrediction(schema, dot_product=True).to_contrastive("in-batch")
+    
+    # YoutubeDNN
+    model = MLPBlock(...).to_model(
+        schema, 
+        prediction_task=ItemPrediction(schema, weight_tying=False).to_contrastive("in-batch")
+    )
+    
+    model.compile(prediction_task=prediction_task)
+    model.fit(train_ds)
+    
+    # Set up contrastive learning as context-manager
+    prediction_task = ItemPrediction(schema, dot_product=True)
+    with prediction_task.to_contrastive(samplers="in-batch"):
+        model.fit(train_ds)
+        model.evaluate(eval_ds)
+    
+    """
+
     def call(self, inputs, training=False, **kwargs):
-        return inputs
+        return self.prediction_block(inputs, training=training, **kwargs)
 
-    def metric_results(self, mode: str = "val"):
-        dict_results = {}
-        for metric in self.metrics:
-            dict_results.update({metric.name: metric.result()})
+    def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
+        if self.context.has_mask:
+            targets = self.context[self.item_id_feature_name]
+            mask = self.context.get_mask()
+            targets = tf.where(mask, targets, self.padding_idx)
 
-        return dict_results
+            outputs = remove_pad_3d(outputs.copy_with_updates(targets=targets))
+
+            return outputs
+
+        return outputs
 
     def get_config(self):
         config = super().get_config()
@@ -268,3 +403,37 @@ class MultiClassClassificationTask(PredictionTask):
         config = maybe_deserialize_keras_objects(config, ["loss"], tf.keras.losses.deserialize)
 
         return super().from_config(config)
+
+
+def ItemPredictionTask(
+        schema: Schema,
+        dot_product: bool = False,
+        weight_tying: bool = True,
+        pre: Optional[Block] = None,
+        post: Optional[Block] = None,
+        target_name: Optional[str] = None,
+        task_name: Optional[str] = None,
+        task_block: Optional[Layer] = None,
+        logits_temperature: float = 1.0,
+        normalize: bool = True,
+        **kwargs
+) -> MultiClassClassificationTask:
+    if dot_product:
+        masking = False
+        if normalize:
+            pre = L2Norm().connect(pre) if pre else L2Norm()
+        prediction_block = DotProduct(**kwargs)
+    else:
+        prediction_block = CategoricalPrediction(
+            schema, weight_tying=weight_tying, **kwargs
+        )
+
+    return MultiClassClassificationTask(
+        prediction_block,
+        pre=pre,
+        post=post,
+        target_name=target_name,
+        task_name=task_name,
+        task_block=task_block,
+        logits_temperature=logits_temperature,
+    )

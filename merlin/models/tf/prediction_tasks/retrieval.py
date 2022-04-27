@@ -25,8 +25,7 @@ from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.metrics.ranking import ranking_metrics
-# from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
-from merlin.models.tf.prediction_tasks.test import MultiClassClassificationTaskNew
+from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
 from merlin.schema import Schema, Tags
 
 from merlin.models.tf.utils.search_utils import find_single_instance_in_layers
@@ -61,7 +60,7 @@ def ItemRetrievalTask(
         temp_scaler = LogitsTemperatureScaler(logits_temperature)
         post = post.connect(temp_scaler) if post else temp_scaler
 
-    return MultiClassClassificationTaskNew(
+    return MultiClassClassificationTask(
         DotProduct(),
         target_name=target_name,
         task_name=task_name,

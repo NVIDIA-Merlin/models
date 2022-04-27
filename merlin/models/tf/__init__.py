@@ -18,7 +18,6 @@
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.loader.tf_utils import configure_tensorflow
-from merlin.models.tf.losses.contrastive import ContrastiveLearningTask
 
 configure_tensorflow()
 
@@ -109,6 +108,8 @@ from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.prediction_tasks.contrastive import ContrastiveLearningTask
+
 from merlin.models.tf.utils import repr_utils
 
 # Must happen before any importing of tensorflow to curtail mem usage

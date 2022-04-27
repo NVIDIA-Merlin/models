@@ -13,6 +13,7 @@ from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.prediction_tasks.classification import ItemPredictionTask
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.schema import Schema, Tags
@@ -175,14 +176,10 @@ def TwoTowerModel(
     """
 
     if not prediction_tasks:
-        prediction_tasks = ItemRetrievalTask(
+        prediction_tasks = ItemPredictionTask(
             schema,
-            # metrics=metrics,
+            dot_product=True,
             logits_temperature=logits_temperature,
-            # samplers=list(samplers),
-            # loss=loss,
-            # Two-tower outputs are already L2-normalized
-            normalize=False,
             **kwargs,
         )
 

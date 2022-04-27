@@ -33,7 +33,6 @@ from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 from merlin.models.tf.losses.base import LossType
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.classification import (
-    CategFeaturePrediction,
     MultiClassClassificationTask,
 )
 from merlin.models.utils.schema_utils import categorical_cardinalities
@@ -42,14 +41,14 @@ from merlin.schema import Schema, Tags
 LOG = logging.getLogger("merlin.models")
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ItemsPrediction(CategFeaturePrediction):
-    def __init__(
-        self,
-        schema: Schema,
-        **kwargs,
-    ):
-        super(ItemsPrediction, self).__init__(schema, **kwargs)
+# @tf.keras.utils.register_keras_serializable(package="merlin_models")
+# class ItemsPrediction(CategFeaturePrediction):
+#     def __init__(
+#         self,
+#         schema: Schema,
+#         **kwargs,
+#     ):
+#         super(ItemsPrediction, self).__init__(schema, **kwargs)
 
 
 def ItemsPredictionSampled(
