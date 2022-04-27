@@ -18,7 +18,7 @@
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.loader.tf_utils import configure_tensorflow
-from merlin.models.tf.losses.contrastive import ContrastiveLearning
+from merlin.models.tf.losses.contrastive import ContrastiveLearningTask
 
 configure_tensorflow()
 
@@ -183,7 +183,7 @@ __all__ = [
     "StochasticSwapNoise",
     "ExpandDims",
     "NoOp",
-    "ContrastiveLearning",
+    "ContrastiveLearningTask",
     "ItemSampler",
     "EmbeddingWithMetadata",
     "InBatchSampler",

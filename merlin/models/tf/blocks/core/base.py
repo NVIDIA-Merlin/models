@@ -574,6 +574,17 @@ class Block(SchemaMixin, ContextMixin, Layer):
             [self, ParallelBlock(*_branches, post=post, aggregation=aggregation, **kwargs)]
         )
 
+    def connect_prediction_tasks(
+            self,
+            schema: Schema,
+            prediction_tasks: Optional[
+                Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+            ] = None,
+    ) -> Union["Model", "RetrievalModel"]:
+        prediction_tasks = ParallelPredictionBlock.parse(schema, prediction_tasks)
+
+        return self.connect(prediction_tasks)
+
     def to_model(
         self,
         schema: Schema,

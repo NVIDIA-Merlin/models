@@ -17,7 +17,7 @@ from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
-from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
+from merlin.models.tf.utils.search_utils import find_all_instances_in_layers, replace_all_instances_in_layers
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
@@ -268,7 +268,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
     def compile(self,
                 optimizer='rmsprop',
-                pre_loss=None,
+                # pre_loss=None,
+                prediction_task=None,
                 loss=None,
                 metrics=None,
                 loss_weights=None,
@@ -365,6 +366,27 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             **kwargs: Arguments supported for backwards compatibility only.
         """
 
+        if prediction_task:
+            allowed_types = (PredictionTask, ParallelPredictionBlock, Schema, list, tuple)
+            if not isinstance(prediction_task, allowed_types):
+                raise ValueError(
+                    f"`prediction_task` must be {allowed_types}, got {prediction_task}"
+                )
+
+            args = [prediction_task] if isinstance(prediction_task, Schema) else [None, prediction_task]
+            prediction_task = ParallelPredictionBlock.parse(*args)
+            if not self.prediction_tasks:
+                self.block = self.block.connect(prediction_task)
+            else:
+                if len(self.prediction_tasks) == 1:
+                    replace_all_instances_in_layers(self.block, self.prediction_tasks[0], prediction_task)
+                if isinstance(prediction_task, dict):
+                    pass
+                elif isinstance(prediction_task, (list, tuple)):
+                    pass
+                else:
+                    pass
+
         self.output_names = [task.task_name for task in self.prediction_tasks]
 
         _metrics = {}
@@ -405,11 +427,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             **kwargs
         )
 
-        if pre_loss:
-            if isinstance(pre_loss, (tf.keras.layers.Layer, list, tuple)) and len(self.prediction_tasks) == 1:
-               pre_loss = {task.task_name: pre_loss for task in self.prediction_tasks}
-            # TODO: Add validation for pre_loss.
-            self.pre_loss = pre_loss
+        # if pre_loss:
+        #     if isinstance(pre_loss, (tf.keras.layers.Layer, list, tuple)) and len(self.prediction_tasks) == 1:
+        #        pre_loss = {task.task_name: pre_loss for task in self.prediction_tasks}
+        #     # TODO: Add validation for pre_loss.
+        #     self.pre_loss = pre_loss
 
     def prediction_output(self, x, y=None, training=False, testing=False, **kwargs) -> PredictionOutput:
         forward = self(x, training=training, testing=testing, **kwargs)
@@ -443,17 +465,17 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             testing=False
     ) -> PredictionOutput:
         prediction_output = PredictionOutput(task_outputs, task_targets)
-        task_output = TaskWithOutputs(task, task_outputs, task_targets)
-
-        pre_loss = getattr(self, 'pre_loss', None)
-        if pre_loss and task.task_name in pre_loss:
-            prediction_output = self.pre_loss[task.task_name](
-                features,
-                task_output,
-                self,
-                training=training,
-                testing=testing
-            )
+        # task_output = TaskWithOutputs(task, task_outputs, task_targets)
+        #
+        # pre_loss = getattr(self, 'pre_loss', None)
+        # if pre_loss and task.task_name in pre_loss:
+        #     prediction_output = self.pre_loss[task.task_name](
+        #         features,
+        #         task_output,
+        #         self,
+        #         training=training,
+        #         testing=testing
+        #     )
 
         prediction_output = task.pre_loss(
             prediction_output, training=training, testing=testing

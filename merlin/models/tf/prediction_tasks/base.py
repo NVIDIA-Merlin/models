@@ -29,7 +29,8 @@ from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
+# class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
+class PredictionTask(Block):
     """Base-class for prediction tasks.
 
     Parameters
@@ -65,20 +66,20 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     SUPPORTED_LOSSES = []
 
     def __init__(
-        self,
-        target_name: Optional[str] = None,
-        task_name: Optional[str] = None,
-        metrics: Optional[MetricOrMetrics] = None,
-        pre: Optional[Block] = None,
-        post: Optional[Block] = None,
-        pre_eval_topk: Optional[Block] = None,
-        task_block: Optional[Layer] = None,
-        prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-        label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-        loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
-        compute_train_metrics: Optional[bool] = True,
-        name: Optional[Text] = None,
-        **kwargs,
+            self,
+            target_name: Optional[str] = None,
+            task_name: Optional[str] = None,
+            metrics: Optional[MetricOrMetrics] = None,
+            pre: Optional[Block] = None,
+            post: Optional[Block] = None,
+            pre_eval_topk: Optional[Block] = None,
+            task_block: Optional[Layer] = None,
+            prediction_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+            label_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+            loss_metrics: Optional[List[tf.keras.metrics.Metric]] = None,
+            compute_train_metrics: Optional[bool] = True,
+            name: Optional[Text] = None,
+            **kwargs,
     ) -> None:
         super().__init__(name=name, **kwargs)
         self.target_name = target_name
@@ -171,7 +172,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return super().build(input_shape)
 
     def _create_metrics(
-        self, metrics: Sequence[MetricOrMetricClass]
+            self, metrics: Sequence[MetricOrMetricClass]
     ) -> List[tf.keras.metrics.Metric]:
         outputs = []
         for metric in metrics:
@@ -194,11 +195,11 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return name_fn(self.task_name, name)
 
     def _compute_loss(
-        self,
-        outputs: PredictionOutput,
-        sample_weight: tf.Tensor = None,
-        training: bool = False,
-        **kwargs,
+            self,
+            outputs: PredictionOutput,
+            sample_weight: tf.Tensor = None,
+            training: bool = False,
+            **kwargs,
     ) -> tf.Tensor:
         if "sample_weight" in inspect.signature(self.loss).parameters:
             kwargs["sample_weight"] = sample_weight
@@ -208,13 +209,13 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return self.loss(outputs.targets, outputs.predictions, **kwargs)
 
     def compute_loss(  # type: ignore
-        self,
-        predictions: tf.Tensor,
-        targets: tf.Tensor,
-        training: bool = False,
-        compute_metrics=False,
-        sample_weight: Optional[tf.Tensor] = None,
-        **kwargs,
+            self,
+            predictions: tf.Tensor,
+            targets: tf.Tensor,
+            training: bool = False,
+            compute_metrics=False,
+            sample_weight: Optional[tf.Tensor] = None,
+            **kwargs,
     ) -> tf.Tensor:
         """Method to compute the loss and metrics during
         training/evaluation.
@@ -276,7 +277,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         return loss
 
     def attach_metrics_calculation_to_loss(
-        self, outputs: PredictionOutput, loss: tf.Tensor, training: bool
+            self, outputs: PredictionOutput, loss: tf.Tensor, training: bool
     ):
         update_ops = self.calculate_metrics(outputs, loss=loss, forward=False, training=training)
 
@@ -289,13 +290,13 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
     #     return [("loss", self.loss)]
 
     def calculate_metrics(
-        self,
-        outputs: PredictionOutput,
-        sample_weight: Optional[tf.Tensor] = None,
-        forward: Optional[bool] = True,
-        loss: Optional[tf.Tensor] = None,
-        training: Optional[bool] = False,
-        **kwargs,
+            self,
+            outputs: PredictionOutput,
+            sample_weight: Optional[tf.Tensor] = None,
+            forward: Optional[bool] = True,
+            loss: Optional[tf.Tensor] = None,
+            training: Optional[bool] = False,
+            **kwargs,
     ):
         """Method to compute the metrics.
 
@@ -492,15 +493,15 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
     """
 
     def __init__(
-        self,
-        *prediction_tasks: PredictionTask,
-        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-        task_weights: Optional[List[float]] = None,
-        bias_block: Optional[Layer] = None,
-        loss_reduction=tf.reduce_mean,
-        pre: Optional[BlockType] = None,
-        post: Optional[BlockType] = None,
-        **kwargs,
+            self,
+            *prediction_tasks: PredictionTask,
+            task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+            task_weights: Optional[List[float]] = None,
+            bias_block: Optional[Layer] = None,
+            loss_reduction=tf.reduce_mean,
+            pre: Optional[BlockType] = None,
+            post: Optional[BlockType] = None,
+            **kwargs,
     ):
         self.loss_reduction = loss_reduction
 
@@ -545,13 +546,13 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
     @classmethod
     def from_schema(  # type: ignore
-        cls,
-        schema: Schema,
-        task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-        task_weight_dict: Optional[Dict[str, float]] = None,
-        bias_block: Optional[Layer] = None,
-        loss_reduction=tf.reduce_mean,
-        **kwargs,
+            cls,
+            schema: Schema,
+            task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
+            task_weight_dict: Optional[Dict[str, float]] = None,
+            bias_block: Optional[Layer] = None,
+            loss_reduction=tf.reduce_mean,
+            **kwargs,
     ) -> "ParallelPredictionBlock":
         """Built Multi-task prediction Block from schema
 
@@ -580,6 +581,25 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
             loss_reduction=loss_reduction,
             **kwargs,
         )
+
+    @classmethod
+    def parse(
+            cls,
+            schema: Schema,
+            prediction_tasks: Optional[
+                Union[PredictionTask, List[PredictionTask], "ParallelPredictionBlock"]
+            ] = None):
+        if not prediction_tasks:
+            from merlin.models.tf import PredictionTasks
+
+            prediction_tasks = PredictionTasks(schema)
+        if isinstance(prediction_tasks, (list, tuple)):
+            prediction_tasks = ParallelPredictionBlock(*prediction_tasks)
+
+        if isinstance(prediction_tasks, ParallelPredictionBlock) and len(prediction_tasks) == 0:
+            return prediction_tasks.prediction_tasks[0]
+
+        return prediction_tasks
 
     @classmethod
     def task_names_from_schema(cls, schema: Schema) -> List[str]:
@@ -648,14 +668,14 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
         return outputs
 
     def call(
-        self,
-        inputs: Union[TabularData, tf.Tensor],
-        training: bool = False,
-        bias_outputs=None,
-        **kwargs,
+            self,
+            inputs: Union[TabularData, tf.Tensor],
+            training: bool = False,
+            bias_outputs=None,
+            **kwargs,
     ):
         if isinstance(inputs, dict) and not all(
-            name in inputs for name in list(self.parallel_dict.keys())
+                name in inputs for name in list(self.parallel_dict.keys())
         ):
             if self.bias_block and not bias_outputs:
                 bias_outputs = self.bias_block(inputs)
@@ -671,19 +691,19 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
     def compute_call_output_shape(self, input_shape):
         if isinstance(input_shape, dict) and not all(
-            name in input_shape for name in list(self.parallel_dict.keys())
+                name in input_shape for name in list(self.parallel_dict.keys())
         ):
             input_shape = self.body.compute_output_shape(input_shape)
 
         return super().compute_call_output_shape(input_shape)
 
     def compute_loss(  # type: ignore
-        self, inputs: Union[tf.Tensor, TabularData], targets, training=False, **kwargs
+            self, inputs: Union[tf.Tensor, TabularData], targets, training=False, **kwargs
     ) -> tf.Tensor:
         losses = []
 
         if isinstance(inputs, dict) and not all(
-            name in inputs for name in list(self.parallel_dict.keys())
+                name in inputs for name in list(self.parallel_dict.keys())
         ):
             filtered_kwargs = filter_kwargs(
                 dict(training=training), self, filter_positional_or_keyword=False
@@ -737,6 +757,9 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
 
     def repr_ignore(self) -> List[str]:
         return ["prediction_tasks", "parallel_layers"]
+
+    def __len__(self):
+        return len(self.prediction_task_dict)
 
     def _set_context(self, context: "BlockContext"):
         for task in self.prediction_task_dict.values():
