@@ -214,7 +214,7 @@ def default_aliccp_transformation(add_target_encoding=True, **kwargs):
         "user_item_intentions",
     ] >> cat() >> nvt_ops.AddMetadata(tags=[“user_item”])
 
-    context_features = ["position"] >> cat()
+    context_features = ["position"] >> cat() >> nvt_ops.AddMetadata(tags=[Tags.CONTEXT])
 
     targets = ["click", "conversion"] >> nvt_ops.AddMetadata(
         tags=[Tags.BINARY_CLASSIFICATION, "target"]
