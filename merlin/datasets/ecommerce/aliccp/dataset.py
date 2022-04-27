@@ -207,12 +207,16 @@ def default_aliccp_transformation(add_target_encoding=True, **kwargs):
         >> nvt_ops.TagAsUserFeatures()
     )
 
-    user_item_features = [
-        "user_item_categories",
-        "user_item_shops",
-        "user_item_brands",
-        "user_item_intentions",
-    ] >> cat() >> nvt_ops.AddMetadata(tags=[“user_item”])
+    user_item_features = (
+        [
+            "user_item_categories",
+            "user_item_shops",
+            "user_item_brands",
+            "user_item_intentions",
+        ]
+        >> cat()
+        >> nvt_ops.AddMetadata(tags=["user_item"])
+    )
 
     context_features = ["position"] >> cat() >> nvt_ops.AddMetadata(tags=[Tags.CONTEXT])
 
