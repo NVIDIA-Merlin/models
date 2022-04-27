@@ -186,7 +186,7 @@ def NextItemPredictionTask(
     if logits_temperature != 1:
         prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
 
-    # Should be in pre
+    # Can be inferred automatically
     if masking:
         prediction_call = MaskingHead(item_id_feature_name=item_id_feature_name).connect(
             RemovePad3D(), prediction_call
