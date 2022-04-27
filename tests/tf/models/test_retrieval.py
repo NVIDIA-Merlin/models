@@ -184,6 +184,53 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     assert len(metrics) == 8
 
 
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_two_tower_retrieval_model_multiple_types_eval(ecommerce_data: Dataset, run_eagerly):
+    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    df = ecommerce_data.to_ddf().compute()
+    train_ds = Dataset(df[: len(df) // 2], schema=ecommerce_data.schema)
+    eval_ds = Dataset(df[len(df) // 2 :], schema=ecommerce_data.schema)
+
+    metrics = [
+        RecallAt(5),
+        MRRAt(5),
+    ]
+    model = mm.TwoTowerModel(
+        schema=ecommerce_data.schema,
+        query_tower=mm.MLPBlock([128, 64]),
+        samplers=[mm.InBatchSampler()],
+        metrics=metrics,
+        loss="categorical_crossentropy",
+    )
+    opt = tf.keras.optimizers.Adam(learning_rate=1e-3)
+    model.compile(optimizer=opt, run_eagerly=run_eagerly)
+
+    # Training
+    num_epochs = 3
+    losses = model.fit(
+        train_ds,
+        batch_size=64,
+        epochs=num_epochs,
+        train_metrics_steps=3,
+        validation_data=eval_ds,
+        validation_steps=3,
+    )
+    assert len(losses.epoch) == num_epochs
+
+    eval_metrics_1 = model.evaluate(eval_ds, batch_size=10, item_corpus=train_ds, return_dict=True)
+
+    eval_metrics_2 = model.evaluate(eval_ds, batch_size=50, item_corpus=train_ds, return_dict=True)
+
+    assert (
+        len(set(eval_metrics_1.keys()).intersection(set(eval_metrics_2.keys())))
+        == len(eval_metrics_1)
+        == len(eval_metrics_2)
+    )
+
+    for key in ["recall_at_5", "mrr_at_5"]:
+        tf.debugging.assert_near(eval_metrics_1[key], eval_metrics_2[key])
+
+
 # def test_retrieval_evaluation_without_negatives(ecommerce_data: Dataset):
 #     model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([64]))
 #     model.compile(optimizer="adam", run_eagerly=True)

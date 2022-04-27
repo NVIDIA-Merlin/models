@@ -521,6 +521,15 @@ class RetrievalModel(Model):
         if not any(isinstance(b, RetrievalBlock) for b in self.block):
             raise ValueError("Model must contain a `RetrievalBlock`.")
 
+        # Initializing model control flags controlled by MetricsComputeCallback()
+        self._eval_sampling = tf.Variable(
+            dtype=tf.bool,
+            name="eval_sampling",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: True,
+        )
+
     def evaluate(
         self,
         x=None,
@@ -537,13 +546,11 @@ class RetrievalModel(Model):
         return_dict=False,
         **kwargs,
     ):
-        self.has_ranking_metric = any(isinstance(m, RankingMetric) for m in self.metrics)
-        self.has_item_corpus = False
+        # self.has_ranking_metric = any(isinstance(m, RankingMetric) for m in self.metrics)
+        self._eval_sampling.assign(item_corpus is None)
 
         if item_corpus:
             from merlin.models.tf.blocks.core.index import TopKIndexBlock
-
-            self.has_item_corpus = True
 
             if isinstance(item_corpus, TopKIndexBlock):
                 self.loss_block.pre_eval_topk = item_corpus  # type: ignore
@@ -574,7 +581,7 @@ class RetrievalModel(Model):
             # set cache_query to True in the ItemRetrievalScorer
             self.loss_block.set_retrieval_cache_query(True)  # type: ignore
 
-        return super().evaluate(
+        results = super().evaluate(
             x,
             y,
             batch_size,
@@ -589,14 +596,25 @@ class RetrievalModel(Model):
             **kwargs,
         )
 
+        self._eval_sampling.assign(True)
+
+        return results
+
     def compute_loss_metrics(
         self, inputs, targets, training: bool = False, compute_metrics=True, **kwargs
     ):
-        if self.has_ranking_metric and not self.has_item_corpus:
-            kwargs["eval_sampling"] = True
-        return super(RetrievalModel, self).compute_loss_metrics(
-            inputs, targets, training, compute_metrics, **kwargs
+        loss_metrics = tf.cond(
+            # tf.logical_and(self._eval_sampling, self.has_ranking_metric),
+            self._eval_sampling,
+            lambda: super(RetrievalModel, self).compute_loss_metrics(
+                inputs, targets, training, compute_metrics, eval_sampling=True, **kwargs
+            ),
+            lambda: super(RetrievalModel, self).compute_loss_metrics(
+                inputs, targets, training, compute_metrics, eval_sampling=False, **kwargs
+            ),
         )
+
+        return loss_metrics
 
     @property
     def retrieval_block(self) -> RetrievalBlock:
