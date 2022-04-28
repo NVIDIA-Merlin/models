@@ -408,16 +408,19 @@ class LogitsTemperatureScaler(Block):
     ----------
     temperature : float
         Divide the logits by this scaler.
+    apply_on_call_outputs: bool
+        Whether to apply the transform (logits / temperature) on
+        `call()` or `call_outputs()`. By default True
     """
 
-    def __init__(self, temperature: float, **kwargs):
+    def __init__(self, temperature: float, apply_on_call_outputs: bool = True, **kwargs):
         super(LogitsTemperatureScaler, self).__init__(**kwargs)
         self.temperature = temperature
+        self.apply_on_call_outputs = apply_on_call_outputs
 
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        if not training:
-            assert isinstance(inputs, tf.Tensor), "Predictions must be a tensor"
-            return inputs / self.temperature
+    def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
+        if not self.apply_on_call_outputs:
+            return self.apply_temperature(inputs)
         else:
             return inputs
 
@@ -425,14 +428,17 @@ class LogitsTemperatureScaler(Block):
         self, outputs: PredictionOutput, training=True, **kwargs
     ) -> "PredictionOutput":
         targets, predictions = outputs.targets, outputs.predictions
-        if training:
-            assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
-            predictions = predictions / self.temperature
+        predictions = self.apply_temperature(predictions)
 
         return outputs.copy_with_updates(predictions=predictions, targets=targets)
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+    def apply_temperature(self, predictions):
+        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
+        predictions = predictions / self.temperature
+        return predictions
 
 
 @Block.registry.register_with_multiple_names("weight-tying")
