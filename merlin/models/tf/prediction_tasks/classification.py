@@ -17,6 +17,7 @@
 from typing import Optional, Union
 
 import tensorflow as tf
+from merlin.models.tf.blocks.sampling.base import ItemSampler
 from tensorflow.keras.layers import Layer
 from tensorflow.python.eager import context
 from tensorflow.python.framework import sparse_tensor
@@ -30,7 +31,7 @@ from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.prediction_tasks.base import PredictionTask
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
-    maybe_serialize_keras_objects,
+    maybe_serialize_keras_objects, transform_label_to_onehot,
 )
 from merlin.models.utils.schema_utils import categorical_cardinalities
 from merlin.schema import Schema, Tags
@@ -148,6 +149,7 @@ class CategoricalPrediction(Block):
         schema: Schema,
         feature_name: Optional[str] = None,
         weight_tying: bool = False,
+        use_bias=True,
         bias_initializer="zeros",
         activation=None,
         trainable=True,
@@ -161,6 +163,7 @@ class CategoricalPrediction(Block):
         self.feature_name = feature_name or schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.num_classes = categorical_cardinalities(schema)[self.feature_name]
         self.weight_tying = weight_tying
+        self.use_bias = use_bias
         if not self.weight_tying:
             self.output_classes = Dense(
                 units=self.num_classes,
@@ -237,10 +240,16 @@ class CategoricalPrediction(Block):
         if self.use_bias:
             outputs = nn_ops.bias_add(outputs, self.bias)
 
-        if self.activation is not None:
-            outputs = self.activation(outputs)
+        if self.output_activation is not None:
+            outputs = self.output_activation(outputs)
 
         return outputs
+
+    def get_targets(self, outputs: PredictionOutput):
+        if not outputs.targets:
+            return self.context[self.context.item_id_feature_name]
+
+        return outputs.targets
 
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.num_classes,)
@@ -252,7 +261,12 @@ class DotProduct(Layer):
             tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
         )
 
+        self.targets = inputs["item_id"]
+
         return scores
+
+    def get_targets(self, outputs: PredictionOutput):
+        return self.targets
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -275,7 +289,8 @@ class MultiClassClassificationTask(PredictionTask):
         The metrics to use for the task. Defaults to [accuracy].
     """
 
-    DEFAULT_LOSS = "sparse_categorical_crossentropy"
+    # DEFAULT_LOSS = "sparse_categorical_crossentropy"
+    DEFAULT_LOSS = "categorical_crossentropy"
     SUPPORTED_LOSSES = [
         "sparse_categorical_crossentropy",
         "categorical_crossentropy"
@@ -341,15 +356,29 @@ class MultiClassClassificationTask(PredictionTask):
             **kwargs,
         )
 
-    # def to_contrastive(
-    #         self,
-    #         *samplers: ItemSampler,
-    #         item_metadata_schema: Optional[Schema] = None,
-    #         item_id_tag: Tags = Tags.ITEM_ID,
-    #         query_id_tag: Tags = Tags.USER_ID,
-    #         downscore_false_negatives: bool = True,
-    #         false_negative_score: float = MIN_FLOAT,
-    # ):
+    def to_contrastive(
+            self,
+            *samplers: ItemSampler,
+            item_metadata_schema: Optional[Schema] = None,
+            item_id_tag: Tags = Tags.ITEM_ID,
+            query_id_tag: Tags = Tags.USER_ID,
+            downscore_false_negatives: bool = True,
+            **kwargs
+    ):
+        from merlin.models.tf import ContrastiveLearningTask
+
+        return ContrastiveLearningTask(
+            self.schema,
+            *samplers,
+            prediction_block=self.prediction_block,
+            item_metadata_schema=item_metadata_schema,
+            item_id_tag=item_id_tag,
+            query_id_tag=query_id_tag,
+            downscore_false_negatives=downscore_false_negatives,
+            pre=self.pre,
+            post=self.post,
+            **kwargs,
+        )
 
     """
     # Ranking model
@@ -382,13 +411,18 @@ class MultiClassClassificationTask(PredictionTask):
 
     def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
         if self.context.has_mask:
-            targets = self.context[self.item_id_feature_name]
+            # targets = self.context[self.item_id_feature_name]
+            targets = self.prediction_block.get_targets(outputs)
             mask = self.context.get_mask()
-            targets = tf.where(mask, targets, self.padding_idx)
+            targets = tf.where(mask, targets, self.context.padding_idx)
 
             outputs = remove_pad_3d(outputs.copy_with_updates(targets=targets))
 
-            return outputs
+            # Convert labels to one-hot if necessary
+            if outputs.targets.shape != outputs.predictions.shape:
+                num_classes = tf.shape(outputs.predictions)[-1]
+                targets = transform_label_to_onehot(outputs.targets, num_classes)
+                outputs = outputs.copy_with_updates(targets=targets)
 
         return outputs
 
@@ -429,6 +463,7 @@ def ItemPredictionTask(
         )
 
     return MultiClassClassificationTask(
+        schema,
         prediction_block,
         pre=pre,
         post=post,

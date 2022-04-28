@@ -202,24 +202,40 @@ class SequentialBlock(Block):
             values.update(layer.regularizers)
         return list(values)
 
-    def call(self, inputs, training=False, **kwargs):
+    def call(
+            self,
+            inputs,
+            targets=None,
+            training=False,
+            testing=False,
+            **kwargs
+    ):
+        from merlin.models.tf import PredictionTask
+
         if getattr(self, "_need_to_call_context", False):
             # convert sparse inputs to dense before storing them to the context?
             self.context(AsDenseFeatures()(inputs))
 
+        if "features" not in kwargs:
+            kwargs["features"] = inputs
+
+        maybe_forward = {"training": training, "testing": testing}
         outputs = inputs
+
         for i, layer in enumerate(self.layers):
             if i == len(self.layers) - 1:
                 filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
                 filtered_kwargs.update(
                     filter_kwargs(
-                        dict(training=training, **kwargs),
+                        dict(**maybe_forward, **kwargs),
                         layer.call,
                         filter_positional_or_keyword=False,
                     )
                 )
+            if isinstance(layer, PredictionTask):
+                filtered_kwargs = dict(targets=targets, **maybe_forward, **kwargs)
             else:
-                filtered_kwargs = dict(training=training, **kwargs)
+                filtered_kwargs = dict(**maybe_forward, **kwargs)
                 if not has_kwargs(layer):
                     filtered_kwargs = filter_kwargs(
                         filtered_kwargs, layer, filter_positional_or_keyword=False
@@ -367,7 +383,7 @@ class ParallelBlock(TabularBlock):
         if isinstance(self.parallel_layers, dict):
             self.parallel_layers[branch_name] = self.parallel_layers[branch_name].apply(*block)
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs, targets=None, training=False, testing=False, **kwargs):
         if self.strict:
             assert isinstance(inputs, dict), "Inputs needs to be a dict"
 
@@ -375,21 +391,26 @@ class ParallelBlock(TabularBlock):
             self.context(inputs)
 
         outputs = {}
+        input_fn = lambda name: inputs      # noqa
         if (
             isinstance(inputs, dict)
             and all(name in inputs for name in list(self.parallel_dict.keys()))
         ):
-            for name, block in self.parallel_dict.items():
-                out = block(inputs[name])
-                if not isinstance(out, dict):
-                    out = {name: out}
-                outputs.update(out)
-        else:
-            for name, layer in self.parallel_dict.items():
-                out = layer(inputs)
-                if not isinstance(out, dict):
-                    out = {name: out}
-                outputs.update(out)
+            block_input_fn = lambda name: inputs[name]
+        for name, layer in self.parallel_dict.items():
+            filtered_kwargs = dict(training=training, testing=testing, **kwargs)
+            if not has_kwargs(layer):
+                filtered_kwargs = filter_kwargs(
+                    filtered_kwargs, layer, filter_positional_or_keyword=False
+                )
+            from merlin.models.tf import PredictionTask
+            if isinstance(layer, PredictionTask):
+                filtered_kwargs["targets"] = targets
+
+            out = layer(input_fn(name), **filtered_kwargs)
+            if not isinstance(out, dict):
+                out = {name: out}
+            outputs.update(out)
 
         return outputs
 

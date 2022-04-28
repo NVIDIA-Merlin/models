@@ -1,5 +1,7 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
+from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
+
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
 from merlin.models.tf.blocks.core.inputs import InputBlock
@@ -195,7 +197,7 @@ def TwoTowerModel(
         **kwargs,
     )
 
-    model = two_tower.connect(prediction_tasks)
+    model = RetrievalModel(two_tower, prediction_tasks)
 
     return model
 
@@ -260,7 +262,7 @@ def YoutubeDNNRetrievalModel(
         The `Block` to aggregate the sequence of features.
     """
 
-    inputs = InputBlock(
+    body = InputBlock(
         schema,
         aggregation=aggregation,
         seq=False,
@@ -268,20 +270,29 @@ def YoutubeDNNRetrievalModel(
         masking="clm",
         split_sparse=True,
         seq_aggregator=seq_aggregator,
-    )
+    ).connect(top_block)
 
-    task = NextItemPredictionTask(
+    # task = NextItemPredictionTask(
+    #     schema=schema,
+    #     loss=loss,
+    #     metrics=metrics,
+    #     masking=True,
+    #     weight_tying=False,
+    #     sampled_softmax=True,
+    #     extra_pre_call=extra_pre_call,
+    #     task_block=task_block,
+    #     logits_temperature=logits_temperature,
+    #     normalize=normalize,
+    #     num_sampled=num_sampled,
+    # )
+
+    task = ItemPredictionTask(
         schema=schema,
-        loss=loss,
-        metrics=metrics,
-        masking=True,
         weight_tying=False,
-        sampled_softmax=True,
-        extra_pre_call=extra_pre_call,
-        task_block=task_block,
         logits_temperature=logits_temperature,
         normalize=normalize,
-        num_sampled=num_sampled,
-    )
+    ).to_contrastive(PopularityBasedSampler.from_schema(schema, max_num_samples=num_sampled))
 
-    return inputs.connect(top_block, task)
+    model = RetrievalModel(body, task)
+
+    return model

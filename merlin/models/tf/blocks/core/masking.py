@@ -89,6 +89,7 @@ class MaskingBlock(Block):
             )
         )
         self.context.padding_idx = self.padding_idx
+        self.context.item_id_feature_name = self.item_id_feature_name
 
         self.masked_item_embedding = self.add_weight(
             name="mask_embedding",
@@ -109,12 +110,16 @@ class MaskingBlock(Block):
         super().build(input_shapes)
 
     def add_features_to_context(self, feature_shapes) -> List[str]:
-        f = self.item_id_feature_name or self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        if not self.item_id_feature_name:
+            self.item_id_feature_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
 
-        return [f]
+        return [self.item_id_feature_name]
 
     def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
         raise NotImplementedError()
+
+    def store_mask_schema(self, mask_schema: tf.Tensor):
+        self.context["masking_schema"].assign(mask_schema)
 
     def apply_mask_to_inputs(self, inputs: tf.Tensor, schema: tf.Tensor) -> tf.Tensor:
         inputs = tf.where(
@@ -127,6 +132,7 @@ class MaskingBlock(Block):
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
         items = self.context[self.schema.select_by_tag(Tags.ITEM_ID)]
         mask_schema = self.compute_mask_schema(items, training=training)
+        self.store_mask_schema(mask_schema)
         inputs = self.apply_mask_to_inputs(inputs, mask_schema)
         return inputs
 
@@ -197,9 +203,6 @@ class CausalLanguageModeling(MaskingBlock):
                 axis=-1,
             )
             mask_labels = labels != self.padding_idx
-
-        # store boolean tensor related to masked targets
-        self.context["masking_schema"].assign(mask_labels)
 
         return mask_labels
 
@@ -348,8 +351,6 @@ class MaskedLanguageModeling(MaskingBlock):
             )
             mask_labels = labels != self.padding_idx
 
-        # Store boolean tensor related to masked targets
-        self.context["masking_schema"].assign(mask_labels)
         return mask_labels
 
 

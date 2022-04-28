@@ -563,6 +563,7 @@ def remove_pad_3d(outputs: PredictionOutput, padding_idx=0):
         predictions = tf.boolean_mask(
             predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
         )
+
     return outputs.copy_with_updates(
         predictions=predictions,
         targets=targets,

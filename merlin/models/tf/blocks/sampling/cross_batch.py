@@ -20,7 +20,7 @@ from merlin.schema import Schema, Tags
 from tensorflow.python.ops import embedding_ops
 
 from merlin.models.tf.blocks.core.base import EmbeddingWithMetadata
-from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.blocks.sampling.base import ItemSampler, Items
 from merlin.models.tf.blocks.sampling.queue import FIFOQueue
 from merlin.models.tf.typing import TabularData
 from merlin.models.utils.schema_utils import categorical_cardinalities
@@ -429,35 +429,20 @@ class PopularityBasedSampler(ItemSampler):
             item_id_feature_name=item_id_feature_name,
         )
 
-    def _check_inputs(self, inputs):
-        assert (
-            self.item_id_feature_name in inputs["metadata"]
-        ), "The 'item_id' metadata feature is required by PopularityBasedSampler."
-
-    def add(self, embeddings: tf.Tensor, items_metadata: TabularData, training=True):
+    def add(self, items: Items):
         pass
 
     def call(
-        self, inputs: TabularData, item_weights: tf.Tensor, training=True
-    ) -> EmbeddingWithMetadata:
-        if training:
-            self._check_inputs(inputs)
+        self, inputs: TabularData, training=True, testing=False, **kwargs
+    ) -> Items:
+        items = self.sample()
 
-        tf.assert_equal(
-            int(tf.shape(item_weights)[0]),
-            self.max_id,
-            "The first dimension of the items embeddings "
-            f"({int(tf.shape(item_weights)[0])}) and "
-            f"the the number of possible classes ({self.max_id}) should match.",
-        )
-
-        items_embeddings = self.sample(item_weights)
-        return items_embeddings
+        return items
 
     def _required_features(self):
         return [self.item_id_feature_name]
 
-    def sample(self, item_weights) -> EmbeddingWithMetadata:  # type: ignore
+    def sample(self) -> Items:
         sampled_ids, _, _ = tf.random.log_uniform_candidate_sampler(
             true_classes=tf.ones((1, 1), dtype=tf.int64),
             num_true=1,
@@ -470,9 +455,4 @@ class PopularityBasedSampler(ItemSampler):
         # Shifting the sampled ids to ignore the first ids (usually reserved for nulls, OOV)
         sampled_ids += self.min_id
 
-        items_embeddings = embedding_ops.embedding_lookup(item_weights, sampled_ids)
-
-        return EmbeddingWithMetadata(
-            items_embeddings,
-            metadata={self.item_id_feature_name: tf.cast(sampled_ids, tf.int32)},
-        )
+        return Items(tf.cast(sampled_ids, tf.int32))

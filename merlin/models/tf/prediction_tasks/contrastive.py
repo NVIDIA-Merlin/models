@@ -105,6 +105,8 @@ class ContrastiveLearningTask(PredictionTask):
     def call(
             self,
             inputs: Union[TabularData, tf.Tensor],
+            features: TabularData,
+            targets=None,
             training=False,
             testing=False,
     ) -> tf.Tensor:
@@ -115,21 +117,32 @@ class ContrastiveLearningTask(PredictionTask):
                 )
                 return scores
             else:
-                return self.prediction_block(inputs, training=training, testing=testing)
+                if self.prediction_block:
+                    return self.prediction_block(inputs, training=training, testing=testing)
 
-        representation = self.create_representation(inputs, training, testing)
+                return inputs
+
+        representation = self.create_representation(inputs, features, targets, training, testing)
         predictions = self.process_representation(representation, training, testing)
 
         return predictions
 
+    def compute_output_shape(self, input_shape):
+        if self.prediction_block:
+            return self.prediction_block.compute_output_shape(input_shape)
+
+        return input_shape
+
     def create_representation(
             self,
             inputs: Union[TabularData, tf.Tensor],
+            features: TabularData,
+            targets: Optional[Union[TabularData, tf.Tensor]] = None,
             training=False,
             testing=False,
     ) -> ContrastiveRepresentation:
-        queries: Items = self.queries(inputs, training, testing)
-        positive_items: Items = self.positive_items(inputs, training, testing)
+        queries: Items = self.queries(inputs, features, training, testing)
+        positive_items: Items = self.positive_items(inputs, targets, training, testing)
         negative_items: Items = self.sample_negatives(inputs, positive_items, training, testing)
 
         representation = ContrastiveRepresentation(queries, positive_items, negative_items)
@@ -138,11 +151,11 @@ class ContrastiveLearningTask(PredictionTask):
             if not self.prediction_block:
                 raise ValueError("No prediction block provided for task")
             representation.positive = representation.positive.with_embedding(
-                self.prediction_block.embedding_lookup(self.positive.ids)
+                self.prediction_block.embedding_lookup(representation.positive.ids)
             )
         if not representation.negative.has_embedding:
             representation.negative = representation.negative.with_embedding(
-                self.prediction_block.embedding_lookup(self.negative.ids)
+                self.prediction_block.embedding_lookup(representation.negative.ids)
             )
 
         return representation
@@ -150,6 +163,7 @@ class ContrastiveLearningTask(PredictionTask):
     def queries(
             self,
             inputs: Union[TabularData, tf.Tensor],
+            features: TabularData,
             training=False,
             testing=False,
     ) -> Items:
@@ -157,7 +171,7 @@ class ContrastiveLearningTask(PredictionTask):
 
         if isinstance(inputs, tf.Tensor):
             query = inputs
-            query_id = self.context[self.query_id_feature_name]
+            query_id = features[self.query_id_feature_name]
         elif isinstance(inputs, dict) and "query" in inputs:
             query = inputs["query"]
             if "query_id" in inputs:
@@ -172,6 +186,7 @@ class ContrastiveLearningTask(PredictionTask):
     def positive_items(
             self,
             inputs: Union[TabularData, tf.Tensor],
+            targets: Optional[Union[TabularData, tf.Tensor]] = None,
             training=False,
             testing=False,
     ) -> Items:
@@ -179,8 +194,10 @@ class ContrastiveLearningTask(PredictionTask):
 
         if isinstance(inputs, dict) and "item_id" in inputs:
             item_ids = inputs["item_id"]
+        elif targets:
+            item_ids = targets
         else:
-            item_ids = self.context[self.item_id_feature_name]
+            item_ids = tf.convert_to_tensor(self.context[self.item_id_feature_name])
         item_metadata: TabularData = {}
         item_features = self.get_features_from_context()
         if item_features:
@@ -204,7 +221,7 @@ class ContrastiveLearningTask(PredictionTask):
         # Adds items from the current batch into samplers and sample a number of negatives
         for sampler in self.samplers:
             sampling_kwargs = {"training": training}
-            extra_args = {"testing": testing, "inputs": inputs}
+            extra_args = {"testing": testing}
             for name, val in extra_args.items():
                 if name in sampler._call_fn_args:
                     sampling_kwargs[name] = val

@@ -107,6 +107,7 @@ class BlockContext(Layer):
         super(BlockContext, self).__init__(**kwargs)
         self._feature_names = feature_names
         self._feature_dtypes = feature_dtypes
+        self._schema = None
 
     def add_embedding_weight(self, name, **kwargs):
         table = self.add_weight(name=f"{str(name)}/embedding", **kwargs)
@@ -130,13 +131,23 @@ class BlockContext(Layer):
 
             self._feature_dtypes[feature_name] = dtype
 
+    def set_schema(self, schema):
+        self._schema = schema
+
+    @property
+    def schema(self):
+        return self._schema
+
     def __getitem__(self, item):
         if isinstance(item, Schema):
             if len(item.column_names) > 1:
                 raise ValueError("Schema contains more than one column.")
             item = item.column_names[0]
         elif isinstance(item, Tags):
-            item = item.value
+            item = self.schema.select_by_tag(item)
+            if len(item.column_names) > 1:
+                raise ValueError("Schema contains more than one column.")
+            item = item.column_names[0]
         else:
             item = str(item)
         return self.named_variables[item]
@@ -218,10 +229,13 @@ class BlockContext(Layer):
         super(BlockContext, self).build(input_shape)
 
     def call(self, features, **kwargs):
-        for feature_name in self._feature_names:
-            self.named_variables[feature_name].assign(features[feature_name])
+        self.store_features(features)
 
         return features
+
+    def store_features(self, features):
+        for feature_name in self._feature_names:
+            self.named_variables[feature_name].assign(features[feature_name])
 
     def get_config(self):
         config = super(BlockContext, self).get_config()
@@ -247,10 +261,12 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
     registry = block_registry
 
-    def __init__(self, context: Optional[BlockContext] = None, **kwargs):
+    def __init__(self, context: Optional[BlockContext] = None, schema: Optional[Schema] = None, **kwargs):
         super(Block, self).__init__(**kwargs)
         if context:
             self._set_context(context)
+        if schema:
+            self.set_schema(schema)
 
     @classmethod
     @tf.autograph.experimental.do_not_convert
@@ -426,6 +442,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             [self, *blocks], copy_layers=False, block_name=block_name, context=context
         )
 
+        # TODO: This doesn't work anymore. Should we remove this?
         if isinstance(blocks[-1], ModelLikeBlock):
             if (
                 any(isinstance(b, RetrievalBlock) for b in blocks)

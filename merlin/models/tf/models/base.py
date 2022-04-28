@@ -176,8 +176,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         ):
             self.block = blocks[0]
         else:
-            if not isinstance(blocks[-1], ModelLikeBlock):
-                raise ValueError("Last block must be able to calculate loss & metrics.")
+            # if not isinstance(blocks[-1], ModelLikeBlock):
+            #     raise ValueError("Last block must be able to calculate loss & metrics.")
             self.block = SequentialBlock(blocks, context=context)
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
@@ -434,7 +434,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         #     self.pre_loss = pre_loss
 
     def prediction_output(self, x, y=None, training=False, testing=False, **kwargs) -> PredictionOutput:
-        forward = self(x, training=training, testing=testing, **kwargs)
+        forward = self(x, targets=y, training=training, testing=testing, **kwargs)
         predictions, targets = {}, {}
         for task in self.prediction_tasks:
             task_x = forward
@@ -535,6 +535,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
+        maybe_schema = _maybe_get_schema(x)
+        if maybe_schema:
+            self.context.set_schema(maybe_schema)
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=False, **kwargs
         )
@@ -543,7 +546,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         fit_kwargs = {
             k: v
             for k, v in locals().items()
-            if k not in ["self", "kwargs", "train_metrics_steps", "__class__"]
+            if k not in ["self", "kwargs", "train_metrics_steps", "__class__", "maybe_schema"]
         }
 
         return super().fit(**fit_kwargs)
@@ -597,6 +600,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
+        maybe_schema = _maybe_get_schema(x)
+        if maybe_schema:
+            self.context.set_schema(maybe_schema)
 
         return super().evaluate(
             x,
@@ -674,8 +680,8 @@ class RetrievalModel(Model):
     ):
         super().__init__(*blocks, context=context, **kwargs)
 
-        if not any(isinstance(b, RetrievalBlock) for b in self.block):
-            raise ValueError("Model must contain a `RetrievalBlock`.")
+        # if not any(isinstance(b, RetrievalBlock) for b in self.block):
+        #     raise ValueError("Model must contain a `RetrievalBlock`.")
 
     def evaluate(
         self,
@@ -883,3 +889,10 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
             kwargs.pop("shuffle", None)
 
     return data
+
+
+def _maybe_get_schema(data) -> Optional[Schema]:
+    if isinstance(data, merlin.io.Dataset):
+        return data.schema
+
+    return None

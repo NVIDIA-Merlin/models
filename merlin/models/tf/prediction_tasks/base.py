@@ -29,7 +29,6 @@ from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-# class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 class PredictionTask(Block):
     """Base-class for prediction tasks.
 
@@ -157,16 +156,19 @@ class PredictionTask(Block):
 
         return out
 
-    def __call__(self, *args, **kwargs):
-        inputs = self.pre_call(*args, **kwargs)
+    def __call__(self, inputs, targets=None, **kwargs):
+        inputs = self.pre_call(inputs, **kwargs)
 
         # This will call the `call` method implemented by the super class.
-        outputs = super().__call__(inputs, **kwargs)  # noqa
+        outputs = super().__call__(inputs, targets=targets, **kwargs)  # noqa
 
         if self.post:
             outputs = self.post(outputs, **kwargs)
 
         return outputs
+
+    def call(self, inputs, features, targets=None, **kwargs):
+        return inputs
 
     def build_task(self, input_shape, schema: Schema, body: Block, **kwargs):
         return super().build(input_shape)
@@ -193,250 +195,6 @@ class PredictionTask(Block):
 
     def child_name(self, name):
         return name_fn(self.task_name, name)
-
-    def _compute_loss(
-            self,
-            outputs: PredictionOutput,
-            sample_weight: tf.Tensor = None,
-            training: bool = False,
-            **kwargs,
-    ) -> tf.Tensor:
-        if "sample_weight" in inspect.signature(self.loss).parameters:
-            kwargs["sample_weight"] = sample_weight
-        if "valid_negatives_mask" in inspect.signature(self.loss).parameters:
-            kwargs["valid_negatives_mask"] = outputs.valid_negatives_mask
-
-        return self.loss(outputs.targets, outputs.predictions, **kwargs)
-
-    def compute_loss(  # type: ignore
-            self,
-            predictions: tf.Tensor,
-            targets: tf.Tensor,
-            training: bool = False,
-            compute_metrics=False,
-            sample_weight: Optional[tf.Tensor] = None,
-            **kwargs,
-    ) -> tf.Tensor:
-        """Method to compute the loss and metrics during
-        training/evaluation.
-
-
-        Parameters
-        ----------
-        predictions : tf.Tesor
-            The tensor of prediction scores.
-        targets : _type_
-            The tensor of true labels.
-        training : bool, optional
-            Compute loss in `training` mode,
-            by default False.
-        compute_metrics : bool, optional
-            Compute metrics in addition to the loss,
-            by default False
-
-        Returns
-        -------
-        tf.Tensor
-        """
-        # if isinstance(targets, dict) and self.target_name:
-        #     targets = targets[self.target_name]
-        #
-        # if isinstance(predictions, dict) and self.target_name and self.task_name in predictions:
-        #     predictions = predictions[self.task_name]
-        #
-        prediction_output = PredictionOutput(predictions, targets)
-
-        # if self.pre:
-        #     prediction_output = self.pre_loss(prediction_output, training=training, **kwargs)
-        #
-        # if (
-        #     isinstance(prediction_output.targets, tf.Tensor)
-        #     and len(prediction_output.targets.shape) == len(prediction_output.predictions.shape) - 1
-        # ):
-        #     prediction_output = prediction_output.copy_with_updates(
-        #         predictions=tf.squeeze(prediction_output.predictions)
-        #     )
-        #
-        # if not training and self._pre_eval_topk:
-        #     # During eval, the retrieval-task only returns positive scores
-        #     # so we need to retrieve top-k negative scores to compute the loss
-        #     prediction_output = self._pre_eval_topk.call_outputs(prediction_output, **kwargs)
-
-        loss = self._compute_loss(
-            prediction_output,
-            sample_weight=sample_weight,
-            training=training,
-        )
-
-        loss = tf.cond(
-            tf.convert_to_tensor(compute_metrics),
-            lambda: self.attach_metrics_calculation_to_loss(prediction_output, loss, training),
-            lambda: loss,
-        )
-
-        return loss
-
-    def attach_metrics_calculation_to_loss(
-            self, outputs: PredictionOutput, loss: tf.Tensor, training: bool
-    ):
-        update_ops = self.calculate_metrics(outputs, loss=loss, forward=False, training=training)
-
-        update_ops = [x for x in update_ops if x is not None]
-
-        with tf.control_dependencies(update_ops):
-            return tf.identity(loss)
-
-    # def repr_add(self):
-    #     return [("loss", self.loss)]
-
-    def calculate_metrics(
-            self,
-            outputs: PredictionOutput,
-            sample_weight: Optional[tf.Tensor] = None,
-            forward: Optional[bool] = True,
-            loss: Optional[tf.Tensor] = None,
-            training: Optional[bool] = False,
-            **kwargs,
-    ):
-        """Method to compute the metrics.
-
-        Parameters
-        ----------
-        outputs : PredictionOutput
-            The named tuple containing predictions and targets tensors
-        forward : bool, optional
-            Apply the `call` of Prediction Task, by default True
-        loss : tf.Tensor, optional
-            The loss value to attach the metric to, by default None
-        training : bool, optional
-            Compute metrics in `training` mode,
-            by default False
-
-        Returns
-        -------
-        _type_
-            _description_
-
-        Raises
-        ------
-        Exception
-            _description_
-        """
-        predictions, targets, label_relevant_counts_eval = (
-            outputs.predictions,
-            outputs.targets,
-            outputs.label_relevant_counts,
-        )
-        if isinstance(targets, dict) and self.target_name:
-            targets = targets[self.target_name]
-
-        if forward:
-            predictions = self(predictions)
-
-        update_ops = []
-        if len(self.eval_metrics) > 0:
-            predictions_eval = predictions
-            targets_eval = targets
-
-            ranking_metrics = list(
-                [metric for metric in self.eval_metrics if isinstance(metric, RankingMetric)]
-            )
-
-            if len(ranking_metrics) > 0:
-
-                tf.assert_equal(
-                    tf.shape(targets),
-                    tf.shape(predictions),
-                    f"Predictions ({tf.shape(predictions)}) and targets ({tf.shape(targets)}) "
-                    f"should have the same shape. Check if targets were one-hot encoded "
-                    f"(with LabelToOneHot() block for example).",
-                )
-
-                max_k = tf.reduce_max([metric.k for metric in ranking_metrics])
-                tf.debugging.assert_greater_equal(
-                    tf.shape(predictions_eval)[-1],
-                    max_k,
-                    f"The max k for ranking metrics ({max_k}) is higher than "
-                    f"the number of predictions in this batch",
-                )
-
-                pre_sorted_ranking_metrics = list(
-                    [metric for metric in ranking_metrics if metric.pre_sorted]
-                )
-
-                if len(pre_sorted_ranking_metrics) > 0:
-
-                    if len(ranking_metrics) > len(pre_sorted_ranking_metrics):
-                        raise Exception(
-                            "If one of the ranking metrics is set to 'pre_sorted=True', all the "
-                            "other ranking metrics should have the same configuration to avoid "
-                            "sorting predictions twice."
-                        )
-
-                    if training or self._pre_eval_topk is None:
-                        # Checking the highest k used in ranking metrics
-                        max_k = tf.reduce_max([metric.k for metric in pre_sorted_ranking_metrics])
-                        # Pre-sorts predictions and targets (by prediction scores) only once
-                        # for all ranking metric (for performance optimization) and extracts
-                        # only the top-k predictions/targets.
-                        # The label_relevant_counts is necessary because when extracting the labels
-                        # from the top-k predictions some relevant items might not be included, but
-                        # the relevant count is necessary for many ranking metrics (recall, ndcg)
-                        (
-                            predictions_eval,
-                            targets_eval,
-                            label_relevant_counts_eval,
-                        ) = tf_utils.extract_topk(max_k, predictions, targets)
-
-            for metric in self.eval_metrics:
-                if isinstance(metric, RankingMetric) and metric.pre_sorted:
-                    metric_state = metric.update_state(
-                        targets_eval,
-                        predictions_eval,
-                        label_relevant_counts_eval,
-                        sample_weight=sample_weight,
-                    )
-                else:
-                    metric_state = metric.update_state(
-                        y_true=targets, y_pred=predictions, sample_weight=sample_weight
-                    )
-                update_ops.append(metric_state)
-
-        for metric in self.prediction_metrics:
-            update_ops.append(metric.update_state(predictions, sample_weight=sample_weight))
-
-        for metric in self.label_metrics:
-            update_ops.append(metric.update_state(targets, sample_weight=sample_weight))
-
-        for metric in self.loss_metrics:
-            if not loss:
-                loss = self.loss(y_true=targets, y_pred=predictions, sample_weight=sample_weight)
-            update_ops.append(metric.update_state(loss, sample_weight=sample_weight))
-
-        return update_ops
-
-    def metric_results(self, mode: str = "val"):
-        """Computes and returns the  computed metric values
-
-        Parameters
-        ----------
-        mode : str, optional
-            string prefix to indicate the mode used to compute metrics,
-            by default "val"
-
-        Returns
-        -------
-        dict
-            dictionary of scalar metrics
-        """
-        return {metric.name: metric.result() for metric in self.metrics}
-
-    def metric_result_dict(self, mode=None):
-        return self.metric_results(mode=mode)
-
-    def reset_metrics(self):
-        for metric in self.metrics:
-            metric.reset()
 
     @classmethod
     def from_config(cls, config):
