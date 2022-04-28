@@ -39,16 +39,11 @@ def test_embedding_features(tf_cat_features):
 def test_embedding_features_yoochoose(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-<<<<<<< HEAD
-    emb_module = ml.EmbeddingFeatures.from_schema(
+    emb_module = mm.EmbeddingFeatures.from_schema(
         schema,
-        embedding_options=ml.EmbeddingOptions(embedding_dim_default=512),
+        embedding_options=mm.EmbeddingOptions(embedding_dim_default=512),
     )
-    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
-=======
-    emb_module = mm.EmbeddingFeatures.from_schema(schema)
     embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
->>>>>>> Adding TensorInitializer that can be used to initialize variables/embeddings with pretrained weights
 
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
     assert all(emb.shape[-1] == 512 for emb in embeddings.values())
@@ -115,14 +110,14 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: Dataset):
 def test_embedding_features_l2_reg(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    emb_module = ml.EmbeddingFeatures.from_schema(
+    emb_module = mm.EmbeddingFeatures.from_schema(
         schema,
-        embedding_options=ml.EmbeddingOptions(
+        embedding_options=mm.EmbeddingOptions(
             embedding_dims={"item_id": 100}, embedding_dim_default=64, embeddings_l2_reg=0.1
         ),
     )
 
-    _ = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    _ = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     l2_emb_losses = emb_module.losses
 
@@ -157,9 +152,9 @@ def test_embedding_features_yoochoose_custom_initializers(testing_data: Dataset)
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
     random_max_abs_value = 0.3
-    emb_module = ml.EmbeddingFeatures.from_schema(
+    emb_module = mm.EmbeddingFeatures.from_schema(
         schema,
-        embedding_options=ml.EmbeddingOptions(
+        embedding_options=mm.EmbeddingOptions(
             embedding_dim_default=512,
             embeddings_initializers={
                 "user_id": RandomUniform(minval=-random_max_abs_value, maxval=random_max_abs_value),
@@ -215,6 +210,30 @@ def test_embedding_features_yoochoose_pretrained_initializer(testing_data: Datas
 
     assert np.allclose(emb_module.embedding_tables["item_id"].numpy(), pretrained_emb_item_ids)
     assert np.allclose(emb_module.embedding_tables["categories"].numpy(), pretrained_emb_categories)
+
+
+@pytest.mark.skip(
+    reason="This test fails because cudf.from_dlpack() we use internally in "
+    "EmbeddingFeatures().embedding_table_dataset() does not work properly. "
+    "This test should be enabled when the following cudf issue we reported is resolved: "
+    "https://github.com/rapidsai/cudf/issues/10754"
+)
+def test_embedding_features_exporting_and_loading_pretrained_initializer(testing_data: Dataset):
+    schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+    emb_module = mm.EmbeddingFeatures.from_schema(schema)
+
+    # Calling the first batch, so that embedding tables are build
+    _ = emb_module(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
+    item_id_embeddings = emb_module.embedding_tables["item_id"]
+
+    items_embeddings_dataset = emb_module.embedding_table_dataset(Tags.ITEM_ID)
+    assert np.allclose(
+        item_id_embeddings.numpy(), items_embeddings_dataset.to_ddf().compute().to_pandas().values
+    )
+
+    emb_init = mm.TensorInitializer.from_dataset(items_embeddings_dataset)
+
+    assert np.allclose(item_id_embeddings.numpy(), emb_init(item_id_embeddings.shape).numpy())
 
 
 def test_shared_embeddings(music_streaming_data: Dataset):
