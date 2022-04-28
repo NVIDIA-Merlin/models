@@ -15,7 +15,7 @@ def test_func(tb):
         """
     )
     NUM_OF_CELLS = len(tb.cells)
-    tb.execute_cell(list(range(0, NUM_OF_CELLS - 3)))
+    tb.execute_cell(list(range(0, NUM_OF_CELLS - 5)))
     metrics_ncf = tb.ref("metrics_ncf")
     assert sorted(list(metrics_ncf.keys())) == [
         "auc",
@@ -45,4 +45,4 @@ def test_func(tb):
         "total_loss",
     ]
     assert os.path.isfile("results.txt")
-    tb.execute_cell(NUM_OF_CELLS)
+    tb.execute_cell(NUM_OF_CELLS - 2)
