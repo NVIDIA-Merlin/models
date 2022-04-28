@@ -1,0 +1,6 @@
+﻿merlin.models.tf.NextItemPredictionTask
+=======================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: NextItemPredictionTask
