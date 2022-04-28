@@ -144,7 +144,7 @@ Usage:</p>
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.__init__">
 <code class="sig-name descname"><span class="pre">__init__</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.schema.schema.Schema</span><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.schema.tags.Tags</span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.models.tf.blocks.core.tabular.Filter</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_aggregation</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.models.tf.blocks.core.tabular.TabularAggregation</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_name</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy_layers</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/combinators.html#SequentialBlock.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequentialBlock.__init__" title="Permalink to this definition"></a></dt>
-<dd><p>Create a composition.</p>
+<dd><p>Create a sequential composition.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -166,7 +166,7 @@ Usage:</p>
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.__init__" title="merlin.models.tf.SequentialBlock.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(*layers[, filter, pre_aggregation, …])</p></td>
-<td><p>Create a composition.</p></td>
+<td><p>Create a sequential composition.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_loss</span></code>(losses, **kwargs)</p></td>
 <td><p>Add loss tensor(s), potentially dependent on layer inputs.</p></td>
@@ -190,7 +190,7 @@ Usage:</p>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.build" title="merlin.models.tf.SequentialBlock.build"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code></a>([input_shape])</p></td>
-<td><p></p></td>
+<td><p>Builds the sequential block</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.call" title="merlin.models.tf.SequentialBlock.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs[, training])</p></td>
 <td><p></p></td>
@@ -208,7 +208,7 @@ Usage:</p>
 <td><p>Computes an output mask tensor.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.compute_output_shape" title="merlin.models.tf.SequentialBlock.compute_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code></a>(input_shape)</p></td>
-<td><p></p></td>
+<td><p>Computes the output shape based on the input shape</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.compute_output_signature" title="merlin.models.tf.SequentialBlock.compute_output_signature"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code></a>(input_signature)</p></td>
 <td><p></p></td>
@@ -346,7 +346,7 @@ Usage:</p>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.first" title="merlin.models.tf.SequentialBlock.first"><code class="xref py py-obj docutils literal notranslate"><span class="pre">first</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Returns the first block in the SequenceBlock</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_schema</span></code></p></td>
 <td><p></p></td>
@@ -367,13 +367,13 @@ Usage:</p>
 <td><p><cite>InputSpec</cite> instance(s) describing the input format for this layer.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.inputs" title="merlin.models.tf.SequentialBlock.inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Returns the InputBlock, if it is the first block within SequenceBlock</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.is_tabular" title="merlin.models.tf.SequentialBlock.is_tabular"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_tabular</span></code></a></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.last" title="merlin.models.tf.SequentialBlock.last"><code class="xref py py-obj docutils literal notranslate"><span class="pre">last</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Returns the last block in the SequenceBlock</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.losses" title="merlin.models.tf.SequentialBlock.losses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">losses</span></code></a></p></td>
 <td><p></p></td>
@@ -391,7 +391,7 @@ Usage:</p>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.non_trainable_weights" title="merlin.models.tf.SequentialBlock.non_trainable_weights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">non_trainable_weights</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Returns non-trainable weights of all layers of this block</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outbound_nodes</span></code></p></td>
 <td><p>Deprecated, do NOT use! Only for compatibility with external Keras.</p></td>
@@ -424,13 +424,13 @@ Usage:</p>
 <td><p>Whether this layer supports computing a mask using <cite>compute_mask</cite>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.trainable" title="merlin.models.tf.SequentialBlock.trainable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Returns whether all layer within SequentialBlock are trainable</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable_variables</span></code></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.SequentialBlock.trainable_weights" title="merlin.models.tf.SequentialBlock.trainable_weights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">trainable_weights</span></code></a></p></td>
-<td><p></p></td>
+<td><p>Returns trainable weights of all layers of this block</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">updates</span></code></p></td>
 <td><p></p></td>
@@ -449,7 +449,19 @@ Usage:</p>
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.compute_output_shape">
 <code class="sig-name descname"><span class="pre">compute_output_shape</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/combinators.html#SequentialBlock.compute_output_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequentialBlock.compute_output_shape" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Computes the output shape based on the input shape</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shape</strong> (<em>tf.TensorShape</em>) – The input shape</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The output shape</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>tf.TensorShape</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.compute_output_signature">
@@ -459,7 +471,13 @@ Usage:</p>
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.build">
 <code class="sig-name descname"><span class="pre">build</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/combinators.html#SequentialBlock.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.SequentialBlock.build" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Builds the sequential block</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shape</strong> (<em>tf.TensorShape</em><em>, </em><em>optional</em>) – The input shape, by default None</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.set_schema">
@@ -469,17 +487,45 @@ Usage:</p>
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.inputs">
 <em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">inputs</span></code><a class="headerlink" href="#merlin.models.tf.SequentialBlock.inputs" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Returns the InputBlock, if it is the first
+block within SequenceBlock</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The input block</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>InputBlock</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.first">
 <em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">first</span></code><a class="headerlink" href="#merlin.models.tf.SequentialBlock.first" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Returns the first block in the SequenceBlock</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The first block of SequenceBlock</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Block</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.last">
 <em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">last</span></code><a class="headerlink" href="#merlin.models.tf.SequentialBlock.last" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Returns the last block in the SequenceBlock</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>The last block of SequenceBlock</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Block</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.filter_features">
@@ -489,17 +535,46 @@ Usage:</p>
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.trainable_weights">
 <em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">trainable_weights</span></code><a class="headerlink" href="#merlin.models.tf.SequentialBlock.trainable_weights" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Returns trainable weights of all layers
+of this block</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>List with trainable weights</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>List</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.non_trainable_weights">
 <em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">non_trainable_weights</span></code><a class="headerlink" href="#merlin.models.tf.SequentialBlock.non_trainable_weights" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Returns non-trainable weights of all layers
+of this block</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>List with non-trainable weights</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>List</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.trainable">
 <em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">trainable</span></code><a class="headerlink" href="#merlin.models.tf.SequentialBlock.trainable" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Returns whether all layer within SequentialBlock are trainable</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>True if all layer within SequentialBlock are trainable, otherwise False</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.SequentialBlock.losses">
