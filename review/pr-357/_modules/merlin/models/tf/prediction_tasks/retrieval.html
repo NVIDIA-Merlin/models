@@ -87,13 +87,14 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.layers.base</span> <span class="kn">import</span> <span class="n">Layer</span>
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">MetricOrMetrics</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">L2Norm</span><span class="p">,</span> <span class="n">LogitsTemperatureScaler</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">LogitsTemperatureScaler</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.base</span> <span class="kn">import</span> <span class="n">ItemRetrievalScorer</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.base</span> <span class="kn">import</span> <span class="n">ItemSampler</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.in_batch</span> <span class="kn">import</span> <span class="n">InBatchSampler</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.losses</span> <span class="kn">import</span> <span class="n">LossType</span><span class="p">,</span> <span class="n">loss_registry</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.metrics.ranking</span> <span class="kn">import</span> <span class="n">ranking_metrics</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.classification</span> <span class="kn">import</span> <span class="n">MultiClassClassificationTask</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">schema_utils</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 
@@ -113,8 +114,10 @@
 <span class="sd">            Defaults to a number of ranking metrics.</span>
 <span class="sd">        samplers: List[ItemSampler]</span>
 <span class="sd">            List of samplers for negative sampling, by default `[InBatchSampler()]`</span>
-<span class="sd">        extra_pre_call: Optional[PredictionBlock]</span>
-<span class="sd">            Optional extra pre-call block. Defaults to None.</span>
+<span class="sd">        post_logits: Optional[PredictionBlock]</span>
+<span class="sd">            Optional extra pre-call block for post-processing the logits, by default None.</span>
+<span class="sd">            You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`</span>
+<span class="sd">            for populariy sampling correction.</span>
 <span class="sd">        target_name: Optional[str]</span>
 <span class="sd">            If specified, name of the target tensor to retrieve from dataloader.</span>
 <span class="sd">            Defaults to None.</span>
@@ -127,10 +130,6 @@
 <span class="sd">        logits_temperature: float</span>
 <span class="sd">            Parameter used to reduce the model overconfidence, so that logits / T.</span>
 <span class="sd">            Defaults to 1.</span>
-<span class="sd">        normalize: bool</span>
-<span class="sd">            Apply L2 normalization before computing dot interactions.</span>
-<span class="sd">            Defaults to True.</span>
-
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">        PredictionTask</span>
@@ -149,15 +148,21 @@
         <span class="n">target_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">extra_pre_call</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">post_logits</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">logits_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">cache_query</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">store_negative_ids</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">item_domain</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">categorical_domains</span><span class="p">(</span><span class="n">schema</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span> <span class="o">=</span> <span class="n">cache_query</span>
-        <span class="n">pre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_prediction_call</span><span class="p">(</span><span class="n">samplers</span><span class="p">,</span> <span class="n">normalize</span><span class="p">,</span> <span class="n">logits_temperature</span><span class="p">,</span> <span class="n">extra_pre_call</span><span class="p">)</span>
+        <span class="n">pre</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_prediction_call</span><span class="p">(</span>
+            <span class="n">samplers</span><span class="p">,</span>
+            <span class="n">logits_temperature</span><span class="p">,</span>
+            <span class="n">post_logits</span><span class="p">,</span>
+            <span class="n">store_negative_ids</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss_registry</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
@@ -170,12 +175,16 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span></div>
 
+<div class="viewcode-block" id="ItemRetrievalTask.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ItemRetrievalTask.html#merlin.models.tf.ItemRetrievalTask.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">eval_sampling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">inputs</span></div>
+
     <span class="k">def</span> <span class="nf">_build_prediction_call</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">samplers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ItemSampler</span><span class="p">],</span>
-        <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">logits_temperature</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">extra_pre_call</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">post_logits</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">store_negative_ids</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="n">samplers</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">samplers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">samplers</span> <span class="o">=</span> <span class="p">(</span><span class="n">InBatchSampler</span><span class="p">(),)</span>
@@ -183,17 +192,16 @@
         <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">ItemRetrievalScorer</span><span class="p">(</span>
             <span class="n">samplers</span><span class="o">=</span><span class="n">samplers</span><span class="p">,</span>
             <span class="n">item_id_feature_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">,</span>
+            <span class="n">item_domain</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">item_domain</span><span class="p">,</span>
             <span class="n">cache_query</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span><span class="p">,</span>
+            <span class="n">store_negative_ids</span><span class="o">=</span><span class="n">store_negative_ids</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
-            <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">L2Norm</span><span class="p">()</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">prediction_call</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">post_logits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">prediction_call</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">post_logits</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">logits_temperature</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">prediction_call</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">logits_temperature</span><span class="p">))</span>
-
-        <span class="k">if</span> <span class="n">extra_pre_call</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">prediction_call</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">extra_pre_call</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">prediction_call</span>
 

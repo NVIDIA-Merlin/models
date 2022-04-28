@@ -47,6 +47,7 @@
       ~EmbeddingFeatures.from_layer
       ~EmbeddingFeatures.from_schema
       ~EmbeddingFeatures.get_config
+      ~EmbeddingFeatures.get_embedding_table
       ~EmbeddingFeatures.get_input_at
       ~EmbeddingFeatures.get_input_mask_at
       ~EmbeddingFeatures.get_input_shape_at

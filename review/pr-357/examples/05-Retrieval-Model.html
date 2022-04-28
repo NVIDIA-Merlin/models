@@ -340,24 +340,24 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Copyright 2021 NVIDIA Corporation. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ================================
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2021 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ================================</span>
 </pre></div>
 </div>
 </div>
-<p><img alt="b69b01ea465544d2b7333e2deb7220fb" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="9dc15af700ff42488b42fd6c98891d42" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Two-Stage-Recommender-Systems">
 <h1>Two-Stage Recommender Systems<a class="headerlink" href="#Two-Stage-Recommender-Systems" title="Permalink to this headline"></a></h1>
 <p>In large scale recommender systems pipelines, the size of the item catalog (number of unique items) might be in the order of millions. At such scale, a typical setup is having two-stage pipeline, where a faster candidate retrieval model quickly extracts thousands of relevant items and a then a more powerful ranking model (i.e. with more features and more powerful architecture) ranks the top-k items that are going to be displayed to the user. For ML-based candidate retrieval model, as it needs to
@@ -372,20 +372,18 @@ quickly score millions of items for a given user, a popular choices are models t
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
-os.environ[&quot;TF_GPU_ALLOCATOR&quot;]=&quot;cuda_malloc_async&quot;
-import cudf
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
 
-import nvtabular as nvt
-from nvtabular.ops import *
-from merlin.models.utils.example_utils import workflow_fit_transform
+<span class="kn">import</span> <span class="nn">nvtabular</span> <span class="k">as</span> <span class="nn">nvt</span>
+<span class="kn">from</span> <span class="nn">nvtabular.ops</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils.example_utils</span> <span class="kn">import</span> <span class="n">workflow_fit_transform</span>
 
-from merlin.schema.tags import Tags
+<span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
 
-import merlin.models.tf as mm
-from merlin.io.dataset import Dataset
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
+<span class="kn">from</span> <span class="nn">merlin.io.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
 
-import tensorflow as tf
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 </pre></div>
 </div>
 </div>
@@ -394,19 +392,18 @@ import tensorflow as tf
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-05 16:17:19.854912: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
+2022-04-21 10:15:45.581013: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-04-05 16:17:20.952592: I tensorflow/core/common_runtime/gpu/gpu_process_state.cc:214] Using CUDA malloc Async allocator for GPU: 0
-2022-04-05 16:17:20.952717: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2022-04-21 10:15:47.757897: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16255 MB memory:  -&gt; device: 0, name: Tesla V100-SXM2-32GB-LS, pci bus id: 0000:8a:00.0, compute capability: 7.0
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># disable INFO and DEBUG logging everywhere
-import logging
-logging.disable(logging.WARNING)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># disable INFO and DEBUG logging everywhere</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">disable</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -418,10 +415,12 @@ logging.disable(logging.WARNING)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.datasets.synthetic import generate_data
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
 
-DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
-train, valid = generate_data(&quot;aliccp-raw&quot;, 1000000, set_sizes=(0.7, 0.3))
+<span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;/workspace/data/&quot;</span><span class="p">)</span>
+<span class="n">NUM_ROWS</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NUM_ROWS&quot;</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
+
+<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;aliccp-raw&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">NUM_ROWS</span><span class="p">),</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -429,8 +428,8 @@ train, valid = generate_data(&quot;aliccp-raw&quot;, 1000000, set_sizes=(0.7, 0.
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># define output path for the processed parquet files
-output_path = os.path.join(DATA_FOLDER, &quot;processed&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># define output path for the processed parquet files</span>
+<span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;processed&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -439,19 +438,19 @@ output_path = os.path.join(DATA_FOLDER, &quot;processed&quot;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_id = [&quot;user_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsUserID()
-item_id = [&quot;item_id&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemID()
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">user_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserID</span><span class="p">()</span>
+<span class="n">item_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemID</span><span class="p">()</span>
 
-item_features = [&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify() &gt;&gt; TagAsItemFeatures()
+<span class="n">item_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_category&quot;</span><span class="p">,</span> <span class="s2">&quot;item_shop&quot;</span><span class="p">,</span> <span class="s2">&quot;item_brand&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemFeatures</span><span class="p">()</span>
 
-user_features = [&#39;user_shops&#39;, &#39;user_profile&#39;, &#39;user_group&#39;,
-       &#39;user_gender&#39;, &#39;user_age&#39;, &#39;user_consumption_2&#39;, &#39;user_is_occupied&#39;,
-       &#39;user_geography&#39;, &#39;user_intentions&#39;, &#39;user_brands&#39;, &#39;user_categories&#39;] \
-        &gt;&gt; Categorify() &gt;&gt; TagAsUserFeatures()
+<span class="n">user_features</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;user_shops&#39;</span><span class="p">,</span> <span class="s1">&#39;user_profile&#39;</span><span class="p">,</span> <span class="s1">&#39;user_group&#39;</span><span class="p">,</span>
+       <span class="s1">&#39;user_gender&#39;</span><span class="p">,</span> <span class="s1">&#39;user_age&#39;</span><span class="p">,</span> <span class="s1">&#39;user_consumption_2&#39;</span><span class="p">,</span> <span class="s1">&#39;user_is_occupied&#39;</span><span class="p">,</span>
+       <span class="s1">&#39;user_geography&#39;</span><span class="p">,</span> <span class="s1">&#39;user_intentions&#39;</span><span class="p">,</span> <span class="s1">&#39;user_brands&#39;</span><span class="p">,</span> <span class="s1">&#39;user_categories&#39;</span><span class="p">]</span> \
+        <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserFeatures</span><span class="p">()</span>
 
-inputs = user_id + item_id + item_features + user_features + [&#39;click&#39;]
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">user_id</span> <span class="o">+</span> <span class="n">item_id</span> <span class="o">+</span> <span class="n">item_features</span> <span class="o">+</span> <span class="n">user_features</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;click&#39;</span><span class="p">]</span>
 
-outputs = inputs &gt;&gt; Filter(f=lambda df: df[&quot;click&quot;] == 1)
+<span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span> <span class="o">&gt;&gt;</span> <span class="n">Filter</span><span class="p">(</span><span class="n">f</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;click&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -460,8 +459,8 @@ outputs = inputs &gt;&gt; Filter(f=lambda df: df[&quot;click&quot;] == 1)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.datasets.ecommerce import transform_aliccp
-transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.datasets.ecommerce</span> <span class="kn">import</span> <span class="n">transform_aliccp</span>
+<span class="n">transform_aliccp</span><span class="p">((</span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span><span class="p">),</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">nvt_workflow</span><span class="o">=</span><span class="n">outputs</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -470,7 +469,7 @@ transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
   warnings.warn(
 </pre></div></div>
 </div>
@@ -480,14 +479,14 @@ transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
 <h1>Building a Two-Tower Model with Merlin Models<a class="headerlink" href="#Building-a-Two-Tower-Model-with-Merlin-Models" title="Permalink to this headline"></a></h1>
 <p>We will use Two-Tower Model for item retrieval task. Real-world large scale recommender systems have hundreds of millions of items (products) and users. Thus, these systems often composed of two stages: candidate generation (retrieval) and ranking (scoring the retrieved items). At candidate generation step, a subset of relevant items from large item corpus is retrieved. You can read more about two stage Recommender Systems here. In this example, we’re going to focus on the retrieval stage.</p>
 <p>A Two-Tower Model consists of item (candidate) and user (query) encoder towers. With two towers, the model can learn representations (embeddings) for queries and candidates separately.</p>
-<p><img alt="ea9e8eb4122a441398638dfbc5b5a520" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
+<p><img alt="500775d8ba8d405aba83c4552e5e1c07" class="no-scaled-link" src="../_images/TwoTower.png" style="width: 30%;" /></p>
 <p>Image Adapted from: <a class="reference external" href="https://dl.acm.org/doi/abs/10.1145/3366423.3380130">Off-policy Learning in Two-stage Recommender Systems</a></p>
 <p>We use the <code class="docutils literal notranslate"><span class="pre">schema</span></code> object to define our model.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>output_path
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">output_path</span>
 </pre></div>
 </div>
 </div>
@@ -504,10 +503,10 @@ transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path, &#39;train&#39;, &#39;*.parquet&#39;))
-valid = Dataset(os.path.join(output_path, &#39;valid&#39;, &#39;*.parquet&#39;))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="s1">&#39;*.parquet&#39;</span><span class="p">))</span>
+<span class="n">valid</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;valid&#39;</span><span class="p">,</span> <span class="s1">&#39;*.parquet&#39;</span><span class="p">))</span>
 
-schema = train.schema
+<span class="n">schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span>
 </pre></div>
 </div>
 </div>
@@ -515,7 +514,7 @@ schema = train.schema
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema = schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">([</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
@@ -524,7 +523,7 @@ schema = train.schema
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema.column_names
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
@@ -557,8 +556,8 @@ schema = train.schema
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>label_names = schema.select_by_tag(Tags.TARGET).column_names
-label_names
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">label_names</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
+<span class="n">label_names</span>
 </pre></div>
 </div>
 </div>
@@ -584,14 +583,14 @@ also multiplied by the user embedding. Then we apply the loss function on top of
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.TwoTowerModel(
-    schema,
-    query_tower=mm.MLPBlock([128, 64], no_activation_last_layer=True),
-    loss=&quot;categorical_crossentropy&quot;,
-    samplers=[mm.InBatchSampler()],
-    embedding_options = mm.EmbeddingOptions(infer_embedding_sizes=True),
-    metrics=[mm.RecallAt(10), mm.NDCGAt(10)]
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">TwoTowerModel</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">,</span>
+    <span class="n">query_tower</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">],</span> <span class="n">no_activation_last_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">loss</span><span class="o">=</span><span class="s2">&quot;categorical_crossentropy&quot;</span><span class="p">,</span>
+    <span class="n">samplers</span><span class="o">=</span><span class="p">[</span><span class="n">mm</span><span class="o">.</span><span class="n">InBatchSampler</span><span class="p">()],</span>
+    <span class="n">embedding_options</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">EmbeddingOptions</span><span class="p">(</span><span class="n">infer_embedding_sizes</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">mm</span><span class="o">.</span><span class="n">RecallAt</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="n">mm</span><span class="o">.</span><span class="n">NDCGAt</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -607,9 +606,8 @@ also multiplied by the user embedding. Then we apply the loss function on top of
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.set_retrieval_candidates_for_evaluation(train)
-model.compile(optimizer=&#39;adam&#39;, run_eagerly=False)
-model.fit(train, validation_data=valid, batch_size=4096, epochs=3)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s1">&#39;adam&#39;</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -618,7 +616,7 @@ model.fit(train, validation_data=valid, batch_size=4096, epochs=3)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-05 16:17:25.278668: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+2022-04-21 10:15:57.763520: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -627,7 +625,7 @@ model.fit(train, validation_data=valid, batch_size=4096, epochs=3)
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Epoch 1/3
-85/86 [============================&gt;.] - ETA: 0s - recall_at_10: 0.0177 - ndcg_10: 0.0088 - loss: 8.3001 - regularization_loss: 0.0000e+00 - total_loss: 8.3001
+84/86 [============================&gt;.] - ETA: 0s - recall_at_10: 0.0062 - ndcg_10: 0.0036 - loss: 8.3027 - regularization_loss: 0.0000e+00 - total_loss: 8.3027
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -635,7 +633,7 @@ Epoch 1/3
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-05 16:17:42.029046: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_185
+2022-04-21 10:16:15.071222: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_23
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -643,11 +641,11 @@ Epoch 1/3
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-86/86 [==============================] - 17s 110ms/step - recall_at_10: 0.0177 - ndcg_10: 0.0089 - loss: 8.2735 - regularization_loss: 0.0000e+00 - total_loss: 8.2735 - val_recall_at_10: 0.0252 - val_ndcg_10: 0.0142 - val_loss: 7.7711 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.7711
+86/86 [==============================] - 16s 44ms/step - recall_at_10: 0.0062 - ndcg_10: 0.0036 - loss: 8.2675 - regularization_loss: 0.0000e+00 - total_loss: 8.2675 - val_recall_at_10: 0.0062 - val_ndcg_10: 0.0033 - val_loss: 7.9288 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.9288
 Epoch 2/3
-86/86 [==============================] - 7s 85ms/step - recall_at_10: 0.0263 - ndcg_10: 0.0192 - loss: 8.2724 - regularization_loss: 0.0000e+00 - total_loss: 8.2724 - val_recall_at_10: 0.0245 - val_ndcg_10: 0.0202 - val_loss: 7.7719 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.7719
+86/86 [==============================] - 2s 23ms/step - recall_at_10: 0.0087 - ndcg_10: 0.0047 - loss: 8.2635 - regularization_loss: 0.0000e+00 - total_loss: 8.2635 - val_recall_at_10: 0.0076 - val_ndcg_10: 0.0041 - val_loss: 7.9288 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.9288
 Epoch 3/3
-86/86 [==============================] - 7s 81ms/step - recall_at_10: 0.0226 - ndcg_10: 0.0188 - loss: 8.2719 - regularization_loss: 0.0000e+00 - total_loss: 8.2719 - val_recall_at_10: 0.0203 - val_ndcg_10: 0.0164 - val_loss: 7.7722 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.7722
+86/86 [==============================] - 2s 23ms/step - recall_at_10: 0.0117 - ndcg_10: 0.0068 - loss: 8.2624 - regularization_loss: 0.0000e+00 - total_loss: 8.2624 - val_recall_at_10: 0.0084 - val_ndcg_10: 0.0045 - val_loss: 7.9306 - val_regularization_loss: 0.0000e+00 - val_total_loss: 7.9306
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -656,7 +654,7 @@ Epoch 3/3
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7f35dc1f5e50&gt;
+&lt;keras.callbacks.History at 0x7fa13ea8ebb0&gt;
 </pre></div></div>
 </div>
 </div>
@@ -676,8 +674,8 @@ score user embeddings over all indexed top-K item embeddings within the ANN engi
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>query_tower = model.retrieval_block.query_block()
-query_tower.save(&#39;query_tower&#39;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">query_tower</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">retrieval_block</span><span class="o">.</span><span class="n">query_block</span><span class="p">()</span>
+<span class="n">query_tower</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;query_tower&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -686,8 +684,8 @@ query_tower.save(&#39;query_tower&#39;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from merlin.models.utils.dataset import unique_rows_by_features
-user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute().reset_index(drop=True)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.utils.dataset</span> <span class="kn">import</span> <span class="n">unique_rows_by_features</span>
+<span class="n">user_features</span> <span class="o">=</span> <span class="n">unique_rows_by_features</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -695,7 +693,7 @@ user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute(
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_features.head()
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">user_features</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -820,7 +818,7 @@ user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute(
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>user_features.shape
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">user_features</span><span class="o">.</span><span class="n">shape</span>
 </pre></div>
 </div>
 </div>
@@ -830,15 +828,15 @@ user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute(
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-(646, 12)
+(676, 12)
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
-user_features.to_parquet(&#39;user_features.parquet&#39;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># save to disk</span>
+<span class="n">user_features</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s1">&#39;user_features.parquet&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -846,7 +844,7 @@ user_features.to_parquet(&#39;user_features.parquet&#39;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_features = unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID).compute().reset_index(drop=True)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_features</span> <span class="o">=</span> <span class="n">unique_rows_by_features</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -854,7 +852,7 @@ user_features.to_parquet(&#39;user_features.parquet&#39;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_features.head()
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_features</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -931,8 +929,8 @@ user_features.to_parquet(&#39;user_features.parquet&#39;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
-item_features.to_parquet(&#39;item_features.parquet&#39;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># save to disk</span>
+<span class="n">item_features</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s1">&#39;item_features.parquet&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -940,8 +938,8 @@ item_features.to_parquet(&#39;item_features.parquet&#39;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_embs = model.item_embeddings(Dataset(item_features, schema=schema), batch_size=1024)
-item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_embs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">item_embeddings</span><span class="p">(</span><span class="n">Dataset</span><span class="p">(</span><span class="n">item_features</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
+<span class="n">item_embs_df</span> <span class="o">=</span> <span class="n">item_embs</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">scheduler</span><span class="o">=</span><span class="s2">&quot;synchronous&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -949,7 +947,7 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_embs_df
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_embs_df</span>
 </pre></div>
 </div>
 </div>
@@ -1006,23 +1004,23 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
       <td>1</td>
       <td>1</td>
       <td>1</td>
-      <td>0.119024</td>
-      <td>0.023623</td>
-      <td>-0.039086</td>
-      <td>-0.000039</td>
-      <td>0.070910</td>
-      <td>-0.005304</td>
+      <td>-0.073576</td>
+      <td>0.085595</td>
+      <td>-0.180240</td>
+      <td>-0.027148</td>
+      <td>-0.191017</td>
+      <td>-0.104568</td>
       <td>...</td>
-      <td>0.085932</td>
-      <td>-0.102355</td>
-      <td>-0.058122</td>
-      <td>-0.088331</td>
-      <td>0.059050</td>
-      <td>-0.025986</td>
-      <td>-0.023549</td>
-      <td>0.159494</td>
-      <td>0.311440</td>
-      <td>-0.172660</td>
+      <td>0.248656</td>
+      <td>-0.045637</td>
+      <td>0.076258</td>
+      <td>-0.081022</td>
+      <td>0.060888</td>
+      <td>0.162383</td>
+      <td>0.078302</td>
+      <td>-0.216183</td>
+      <td>-0.144103</td>
+      <td>-0.223617</td>
     </tr>
     <tr>
       <th>1</th>
@@ -1030,23 +1028,23 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
       <td>2</td>
       <td>2</td>
       <td>2</td>
-      <td>0.006361</td>
-      <td>0.003338</td>
-      <td>0.124567</td>
-      <td>-0.069380</td>
-      <td>0.122115</td>
-      <td>-0.201470</td>
+      <td>0.106903</td>
+      <td>0.024441</td>
+      <td>-0.055793</td>
+      <td>-0.141893</td>
+      <td>-0.078035</td>
+      <td>-0.036643</td>
       <td>...</td>
-      <td>0.026831</td>
-      <td>-0.132266</td>
-      <td>0.129241</td>
-      <td>-0.088970</td>
-      <td>-0.108118</td>
-      <td>0.021614</td>
-      <td>-0.081004</td>
-      <td>0.124680</td>
-      <td>0.345408</td>
-      <td>-0.209228</td>
+      <td>0.071353</td>
+      <td>-0.061388</td>
+      <td>0.100870</td>
+      <td>-0.176205</td>
+      <td>-0.091968</td>
+      <td>0.078213</td>
+      <td>0.111239</td>
+      <td>-0.038364</td>
+      <td>-0.010783</td>
+      <td>-0.153099</td>
     </tr>
     <tr>
       <th>2</th>
@@ -1054,23 +1052,23 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
       <td>3</td>
       <td>3</td>
       <td>3</td>
-      <td>0.074537</td>
-      <td>0.001323</td>
-      <td>0.090352</td>
-      <td>-0.175259</td>
-      <td>0.179352</td>
-      <td>-0.021959</td>
+      <td>-0.183815</td>
+      <td>0.066229</td>
+      <td>-0.169174</td>
+      <td>-0.011347</td>
+      <td>-0.293196</td>
+      <td>0.133997</td>
       <td>...</td>
-      <td>-0.026903</td>
-      <td>-0.045079</td>
-      <td>0.189090</td>
-      <td>0.133597</td>
-      <td>-0.008829</td>
-      <td>-0.157224</td>
-      <td>0.050934</td>
-      <td>0.161178</td>
-      <td>0.242915</td>
-      <td>-0.130376</td>
+      <td>0.242444</td>
+      <td>-0.164485</td>
+      <td>0.186567</td>
+      <td>-0.027846</td>
+      <td>0.047943</td>
+      <td>0.129363</td>
+      <td>0.071678</td>
+      <td>-0.315024</td>
+      <td>-0.112482</td>
+      <td>0.003846</td>
     </tr>
     <tr>
       <th>3</th>
@@ -1078,23 +1076,23 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
       <td>4</td>
       <td>4</td>
       <td>4</td>
-      <td>0.153636</td>
-      <td>-0.080778</td>
-      <td>-0.123449</td>
-      <td>-0.089321</td>
-      <td>0.139870</td>
-      <td>0.015942</td>
+      <td>-0.103461</td>
+      <td>-0.035693</td>
+      <td>-0.137998</td>
+      <td>0.056771</td>
+      <td>-0.322394</td>
+      <td>0.082303</td>
       <td>...</td>
-      <td>-0.076668</td>
-      <td>-0.113005</td>
-      <td>0.069237</td>
-      <td>0.238331</td>
-      <td>0.085635</td>
-      <td>-0.083087</td>
-      <td>0.018781</td>
-      <td>0.139706</td>
-      <td>0.167688</td>
-      <td>-0.141418</td>
+      <td>0.065095</td>
+      <td>-0.177354</td>
+      <td>0.051345</td>
+      <td>-0.110389</td>
+      <td>-0.004062</td>
+      <td>0.077395</td>
+      <td>0.009678</td>
+      <td>-0.142832</td>
+      <td>-0.128338</td>
+      <td>-0.012429</td>
     </tr>
     <tr>
       <th>4</th>
@@ -1102,23 +1100,23 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
       <td>5</td>
       <td>5</td>
       <td>5</td>
-      <td>-0.011768</td>
-      <td>0.018682</td>
-      <td>-0.025512</td>
-      <td>-0.085963</td>
-      <td>-0.134499</td>
-      <td>-0.186269</td>
+      <td>0.117509</td>
+      <td>-0.060412</td>
+      <td>-0.043300</td>
+      <td>-0.058867</td>
+      <td>-0.221357</td>
+      <td>-0.016098</td>
       <td>...</td>
-      <td>0.061904</td>
-      <td>-0.109536</td>
-      <td>0.095276</td>
-      <td>0.032400</td>
-      <td>-0.116568</td>
-      <td>0.061201</td>
-      <td>0.125158</td>
-      <td>-0.042238</td>
-      <td>0.208102</td>
-      <td>-0.167115</td>
+      <td>0.112433</td>
+      <td>-0.064500</td>
+      <td>0.005503</td>
+      <td>0.029761</td>
+      <td>0.070613</td>
+      <td>0.098602</td>
+      <td>0.075473</td>
+      <td>-0.226324</td>
+      <td>-0.129227</td>
+      <td>-0.049931</td>
     </tr>
     <tr>
       <th>...</th>
@@ -1145,136 +1143,136 @@ item_embs_df = item_embs.compute(scheduler=&quot;synchronous&quot;)
       <td>...</td>
     </tr>
     <tr>
-      <th>630</th>
-      <td>743</td>
-      <td>743</td>
-      <td>743</td>
-      <td>743</td>
-      <td>0.064798</td>
-      <td>-0.065997</td>
-      <td>-0.031717</td>
-      <td>-0.067496</td>
-      <td>-0.004143</td>
-      <td>-0.014273</td>
-      <td>...</td>
-      <td>0.060530</td>
-      <td>-0.230824</td>
-      <td>0.015961</td>
-      <td>0.040368</td>
-      <td>-0.074561</td>
-      <td>-0.002969</td>
-      <td>-0.199503</td>
-      <td>0.121633</td>
-      <td>0.207420</td>
-      <td>-0.342876</td>
-    </tr>
-    <tr>
-      <th>631</th>
-      <td>749</td>
-      <td>749</td>
-      <td>749</td>
-      <td>749</td>
-      <td>-0.008370</td>
-      <td>0.082715</td>
-      <td>0.117570</td>
-      <td>0.019689</td>
-      <td>0.087900</td>
-      <td>-0.079214</td>
-      <td>...</td>
-      <td>0.023555</td>
-      <td>-0.114855</td>
-      <td>-0.063390</td>
-      <td>0.111346</td>
-      <td>-0.263790</td>
-      <td>0.061215</td>
-      <td>0.143212</td>
-      <td>0.041604</td>
-      <td>0.319031</td>
-      <td>-0.119142</td>
-    </tr>
-    <tr>
-      <th>632</th>
-      <td>752</td>
-      <td>752</td>
-      <td>752</td>
-      <td>752</td>
-      <td>-0.109725</td>
-      <td>0.286749</td>
-      <td>-0.070979</td>
-      <td>-0.030827</td>
-      <td>-0.008561</td>
-      <td>-0.039951</td>
-      <td>...</td>
-      <td>-0.021042</td>
-      <td>-0.058173</td>
-      <td>-0.141470</td>
-      <td>-0.028167</td>
-      <td>-0.035519</td>
-      <td>-0.103719</td>
-      <td>0.089092</td>
-      <td>0.027004</td>
-      <td>0.279829</td>
-      <td>-0.315001</td>
-    </tr>
-    <tr>
-      <th>633</th>
-      <td>753</td>
-      <td>753</td>
-      <td>753</td>
-      <td>753</td>
-      <td>-0.048022</td>
-      <td>0.033861</td>
-      <td>-0.245225</td>
-      <td>-0.045610</td>
-      <td>0.033465</td>
-      <td>-0.101318</td>
-      <td>...</td>
-      <td>-0.165817</td>
-      <td>0.000217</td>
-      <td>0.043540</td>
-      <td>-0.102218</td>
-      <td>-0.152996</td>
-      <td>-0.059092</td>
-      <td>0.099988</td>
-      <td>-0.010920</td>
-      <td>0.136724</td>
-      <td>0.016220</td>
-    </tr>
-    <tr>
-      <th>634</th>
+      <th>659</th>
       <td>761</td>
       <td>761</td>
       <td>761</td>
       <td>761</td>
-      <td>0.061938</td>
-      <td>0.029517</td>
-      <td>-0.072761</td>
-      <td>-0.101128</td>
-      <td>0.080592</td>
-      <td>-0.028033</td>
+      <td>-0.034865</td>
+      <td>0.018155</td>
+      <td>-0.053817</td>
+      <td>-0.031378</td>
+      <td>-0.214945</td>
+      <td>0.058257</td>
       <td>...</td>
-      <td>-0.049143</td>
-      <td>-0.149057</td>
-      <td>0.153742</td>
-      <td>-0.037752</td>
-      <td>-0.049190</td>
-      <td>-0.039576</td>
-      <td>0.111076</td>
-      <td>0.125575</td>
-      <td>0.472521</td>
-      <td>-0.132032</td>
+      <td>0.144927</td>
+      <td>-0.182747</td>
+      <td>0.003142</td>
+      <td>-0.076069</td>
+      <td>-0.011294</td>
+      <td>0.081166</td>
+      <td>0.273015</td>
+      <td>-0.279196</td>
+      <td>-0.179816</td>
+      <td>0.047407</td>
+    </tr>
+    <tr>
+      <th>660</th>
+      <td>763</td>
+      <td>763</td>
+      <td>763</td>
+      <td>763</td>
+      <td>0.056317</td>
+      <td>-0.063410</td>
+      <td>-0.064464</td>
+      <td>-0.036865</td>
+      <td>0.015957</td>
+      <td>-0.037839</td>
+      <td>...</td>
+      <td>0.083606</td>
+      <td>0.073531</td>
+      <td>-0.038036</td>
+      <td>0.075931</td>
+      <td>0.037699</td>
+      <td>0.094174</td>
+      <td>0.083045</td>
+      <td>-0.163806</td>
+      <td>-0.060995</td>
+      <td>-0.029095</td>
+    </tr>
+    <tr>
+      <th>661</th>
+      <td>764</td>
+      <td>764</td>
+      <td>764</td>
+      <td>764</td>
+      <td>-0.048466</td>
+      <td>0.105521</td>
+      <td>-0.041466</td>
+      <td>0.124590</td>
+      <td>-0.390372</td>
+      <td>0.002299</td>
+      <td>...</td>
+      <td>0.107293</td>
+      <td>-0.121716</td>
+      <td>0.035031</td>
+      <td>-0.363069</td>
+      <td>-0.071770</td>
+      <td>-0.120439</td>
+      <td>0.053240</td>
+      <td>-0.328661</td>
+      <td>-0.090173</td>
+      <td>-0.005702</td>
+    </tr>
+    <tr>
+      <th>662</th>
+      <td>766</td>
+      <td>766</td>
+      <td>766</td>
+      <td>766</td>
+      <td>-0.101014</td>
+      <td>-0.149288</td>
+      <td>-0.065700</td>
+      <td>-0.066804</td>
+      <td>-0.224008</td>
+      <td>0.081384</td>
+      <td>...</td>
+      <td>-0.055213</td>
+      <td>-0.229109</td>
+      <td>-0.065813</td>
+      <td>-0.020026</td>
+      <td>-0.135153</td>
+      <td>0.224883</td>
+      <td>0.089857</td>
+      <td>-0.158738</td>
+      <td>-0.102280</td>
+      <td>0.047453</td>
+    </tr>
+    <tr>
+      <th>663</th>
+      <td>767</td>
+      <td>767</td>
+      <td>767</td>
+      <td>767</td>
+      <td>-0.004216</td>
+      <td>-0.052974</td>
+      <td>-0.006410</td>
+      <td>0.042287</td>
+      <td>-0.022653</td>
+      <td>0.053430</td>
+      <td>...</td>
+      <td>0.082339</td>
+      <td>-0.107670</td>
+      <td>-0.097196</td>
+      <td>0.003726</td>
+      <td>-0.051594</td>
+      <td>0.003086</td>
+      <td>0.055449</td>
+      <td>-0.004521</td>
+      <td>0.065674</td>
+      <td>0.023406</td>
     </tr>
   </tbody>
 </table>
-<p>635 rows × 68 columns</p>
+<p>664 rows × 68 columns</p>
 </div></div>
 </div>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># select only embedding columns
-item_embeddings = item_embs_df.iloc[:, 4:]
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># select only embedding columns</span>
+<span class="n">item_embeddings</span> <span class="o">=</span> <span class="n">item_embs_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:]</span>
 </pre></div>
 </div>
 </div>
@@ -1282,7 +1280,7 @@ item_embeddings = item_embs_df.iloc[:, 4:]
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>item_embeddings.head()
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_embeddings</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -1335,123 +1333,123 @@ item_embeddings = item_embs_df.iloc[:, 4:]
   <tbody>
     <tr>
       <th>0</th>
-      <td>0.119024</td>
-      <td>0.023623</td>
-      <td>-0.039086</td>
-      <td>-0.000039</td>
-      <td>0.070910</td>
-      <td>-0.005304</td>
-      <td>-0.046084</td>
-      <td>-0.071140</td>
-      <td>0.053499</td>
-      <td>0.149303</td>
+      <td>-0.073576</td>
+      <td>0.085595</td>
+      <td>-0.180240</td>
+      <td>-0.027148</td>
+      <td>-0.191017</td>
+      <td>-0.104568</td>
+      <td>0.004146</td>
+      <td>-0.170429</td>
+      <td>-0.071614</td>
+      <td>-0.087105</td>
       <td>...</td>
-      <td>0.085932</td>
-      <td>-0.102355</td>
-      <td>-0.058122</td>
-      <td>-0.088331</td>
-      <td>0.059050</td>
-      <td>-0.025986</td>
-      <td>-0.023549</td>
-      <td>0.159494</td>
-      <td>0.311440</td>
-      <td>-0.172660</td>
+      <td>0.248656</td>
+      <td>-0.045637</td>
+      <td>0.076258</td>
+      <td>-0.081022</td>
+      <td>0.060888</td>
+      <td>0.162383</td>
+      <td>0.078302</td>
+      <td>-0.216183</td>
+      <td>-0.144103</td>
+      <td>-0.223617</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>0.006361</td>
-      <td>0.003338</td>
-      <td>0.124567</td>
-      <td>-0.069380</td>
-      <td>0.122115</td>
-      <td>-0.201470</td>
-      <td>-0.095038</td>
-      <td>0.078551</td>
-      <td>0.133017</td>
-      <td>-0.013526</td>
+      <td>0.106903</td>
+      <td>0.024441</td>
+      <td>-0.055793</td>
+      <td>-0.141893</td>
+      <td>-0.078035</td>
+      <td>-0.036643</td>
+      <td>0.055592</td>
+      <td>-0.008832</td>
+      <td>-0.137167</td>
+      <td>0.261487</td>
       <td>...</td>
-      <td>0.026831</td>
-      <td>-0.132266</td>
-      <td>0.129241</td>
-      <td>-0.088970</td>
-      <td>-0.108118</td>
-      <td>0.021614</td>
-      <td>-0.081004</td>
-      <td>0.124680</td>
-      <td>0.345408</td>
-      <td>-0.209228</td>
+      <td>0.071353</td>
+      <td>-0.061388</td>
+      <td>0.100870</td>
+      <td>-0.176205</td>
+      <td>-0.091968</td>
+      <td>0.078213</td>
+      <td>0.111239</td>
+      <td>-0.038364</td>
+      <td>-0.010783</td>
+      <td>-0.153099</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>0.074537</td>
-      <td>0.001323</td>
-      <td>0.090352</td>
-      <td>-0.175259</td>
-      <td>0.179352</td>
-      <td>-0.021959</td>
-      <td>-0.197854</td>
-      <td>0.132899</td>
-      <td>0.135168</td>
-      <td>0.017511</td>
+      <td>-0.183815</td>
+      <td>0.066229</td>
+      <td>-0.169174</td>
+      <td>-0.011347</td>
+      <td>-0.293196</td>
+      <td>0.133997</td>
+      <td>-0.136634</td>
+      <td>-0.095579</td>
+      <td>-0.037962</td>
+      <td>0.049111</td>
       <td>...</td>
-      <td>-0.026903</td>
-      <td>-0.045079</td>
-      <td>0.189090</td>
-      <td>0.133597</td>
-      <td>-0.008829</td>
-      <td>-0.157224</td>
-      <td>0.050934</td>
-      <td>0.161178</td>
-      <td>0.242915</td>
-      <td>-0.130376</td>
+      <td>0.242444</td>
+      <td>-0.164485</td>
+      <td>0.186567</td>
+      <td>-0.027846</td>
+      <td>0.047943</td>
+      <td>0.129363</td>
+      <td>0.071678</td>
+      <td>-0.315024</td>
+      <td>-0.112482</td>
+      <td>0.003846</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>0.153636</td>
-      <td>-0.080778</td>
-      <td>-0.123449</td>
-      <td>-0.089321</td>
-      <td>0.139870</td>
-      <td>0.015942</td>
-      <td>-0.062343</td>
-      <td>-0.102844</td>
-      <td>0.021416</td>
-      <td>0.109875</td>
+      <td>-0.103461</td>
+      <td>-0.035693</td>
+      <td>-0.137998</td>
+      <td>0.056771</td>
+      <td>-0.322394</td>
+      <td>0.082303</td>
+      <td>0.053787</td>
+      <td>0.075843</td>
+      <td>-0.042746</td>
+      <td>-0.175128</td>
       <td>...</td>
-      <td>-0.076668</td>
-      <td>-0.113005</td>
-      <td>0.069237</td>
-      <td>0.238331</td>
-      <td>0.085635</td>
-      <td>-0.083087</td>
-      <td>0.018781</td>
-      <td>0.139706</td>
-      <td>0.167688</td>
-      <td>-0.141418</td>
+      <td>0.065095</td>
+      <td>-0.177354</td>
+      <td>0.051345</td>
+      <td>-0.110389</td>
+      <td>-0.004062</td>
+      <td>0.077395</td>
+      <td>0.009678</td>
+      <td>-0.142832</td>
+      <td>-0.128338</td>
+      <td>-0.012429</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>-0.011768</td>
-      <td>0.018682</td>
-      <td>-0.025512</td>
-      <td>-0.085963</td>
-      <td>-0.134499</td>
-      <td>-0.186269</td>
-      <td>-0.103873</td>
-      <td>0.053713</td>
-      <td>0.100448</td>
-      <td>0.005378</td>
+      <td>0.117509</td>
+      <td>-0.060412</td>
+      <td>-0.043300</td>
+      <td>-0.058867</td>
+      <td>-0.221357</td>
+      <td>-0.016098</td>
+      <td>0.026822</td>
+      <td>-0.036691</td>
+      <td>-0.077781</td>
+      <td>-0.048962</td>
       <td>...</td>
-      <td>0.061904</td>
-      <td>-0.109536</td>
-      <td>0.095276</td>
-      <td>0.032400</td>
-      <td>-0.116568</td>
-      <td>0.061201</td>
-      <td>0.125158</td>
-      <td>-0.042238</td>
-      <td>0.208102</td>
-      <td>-0.167115</td>
+      <td>0.112433</td>
+      <td>-0.064500</td>
+      <td>0.005503</td>
+      <td>0.029761</td>
+      <td>0.070613</td>
+      <td>0.098602</td>
+      <td>0.075473</td>
+      <td>-0.226324</td>
+      <td>-0.129227</td>
+      <td>-0.049931</td>
     </tr>
   </tbody>
 </table>
@@ -1462,8 +1460,8 @@ item_embeddings = item_embs_df.iloc[:, 4:]
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># save to disk
-item_embeddings.to_parquet(&#39;item_embeddings.parquet&#39;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># save to disk</span>
+<span class="n">item_embeddings</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s1">&#39;item_embeddings.parquet&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

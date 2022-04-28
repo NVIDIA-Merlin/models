@@ -360,33 +360,29 @@ div.rendered_html tbody tr:hover {
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Copyright 2021 NVIDIA Corporation. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ================================
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2021 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ================================</span>
 </pre></div>
 </div>
 </div>
-<p><img alt="0589bdeaa9084cf9b2d19fd320cf5fc1" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="18880d206c4f41e5bb0af38d14f4ba2a" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Iterating-over-Deep-Learning-Models-using-Merlin-Models">
 <h1>Iterating over Deep Learning Models using Merlin Models<a class="headerlink" href="#Iterating-over-Deep-Learning-Models-using-Merlin-Models" title="Permalink to this headline"></a></h1>
 <p>In this example, we’ll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.</p>
-<p>In this example notebook, we use the Ali-CCP: Alibaba Click and Conversion Prediction dataset to build our recommender system models. This is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. We have curated the raw dataset via this <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43">get_aliccp()
-function</a> and generated the parquet files that we use in this example. If you want to use synthetic ali-ccp dataset instead, you can simple run the following command:</p>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>from merlin.datasets.synthetic import generate_data
-train, valid = generate_data(&quot;aliccp-raw&quot;, 1000000, set_sizes=(0.7, 0.3))
-</pre></div>
-</div>
+<p>In this example notebook, we use synthetic dataset that is mimicking the Ali-CCP: Alibaba Click and Conversion Prediction dataset to build our recommender system models. ALI-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. You can curate the raw dataset via this
+<a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43">get_aliccp() function</a> and generated the parquet files to be used in this example.</p>
 <div class="section" id="Learning-objectives">
 <h2>Learning objectives<a class="headerlink" href="#Learning-objectives" title="Permalink to this headline"></a></h2>
 <ul class="simple">
@@ -400,22 +396,22 @@ train, valid = generate_data(&quot;aliccp-raw&quot;, 1000000, set_sizes=(0.7, 0.
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import os
-import numpy as np
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-from nvtabular.loader.tf_utils import configure_tensorflow
-configure_tensorflow()
+<span class="kn">from</span> <span class="nn">nvtabular.loader.tf_utils</span> <span class="kn">import</span> <span class="n">configure_tensorflow</span>
+<span class="n">configure_tensorflow</span><span class="p">()</span>
 
-import nvtabular as nvt
-from nvtabular.ops import *
-from merlin.models.utils.example_utils import workflow_fit_transform, save_results
+<span class="kn">import</span> <span class="nn">nvtabular</span> <span class="k">as</span> <span class="nn">nvt</span>
+<span class="kn">from</span> <span class="nn">nvtabular.ops</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils.example_utils</span> <span class="kn">import</span> <span class="n">workflow_fit_transform</span><span class="p">,</span> <span class="n">save_results</span>
 
-from merlin.schema.tags import Tags
+<span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
 
-import merlin.models.tf as mm
-from merlin.io.dataset import Dataset
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
+<span class="kn">from</span> <span class="nn">merlin.io.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
 
-import tensorflow as tf
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 </pre></div>
 </div>
 </div>
@@ -424,23 +420,49 @@ import tensorflow as tf
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-05 16:19:29.988780: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
+2022-04-26 16:50:26.243192: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-04-05 16:19:31.114629: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2022-04-26 16:50:28.181122: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
+2022-04-26 16:50:28.181758: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 30390 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
 </pre></div></div>
 </div>
 </div>
 <div class="section" id="Feature-Engineering-with-NVTabular">
 <h3>Feature Engineering with NVTabular<a class="headerlink" href="#Feature-Engineering-with-NVTabular" title="Permalink to this headline"></a></h3>
 <p>When we work on a new recommender systems, we explore the dataset, first. In doing so, we define our input and output paths. We will use the parquet files in the test folder to validate our trained model.</p>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>DATA_FOLDER = os.environ.get(&quot;DATA_FOLDER&quot;, &quot;/workspace/data/&quot;)
-train_path = os.path.join(DATA_FOLDER, &#39;train&#39;, &#39;*.parquet&#39;)
-valid_path = os.path.join(DATA_FOLDER, &#39;test&#39;,&#39;*.parquet&#39;)
-output_path =os.path.join(DATA_FOLDER, &quot;processed&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
+
+<span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;/workspace/data/&quot;</span><span class="p">)</span>
+<span class="n">NUM_ROWS</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NUM_ROWS&quot;</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
+
+<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;aliccp-raw&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">NUM_ROWS</span><span class="p">),</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
+
+<span class="c1"># save the datasets as parquet files</span>
+<span class="n">train</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">))</span>
+<span class="n">valid</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(None,)
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;part.0.parquet&quot;</span><span class="p">)</span>
+<span class="n">valid_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;part.0.parquet&quot;</span><span class="p">)</span>
+<span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;processed&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -449,33 +471,35 @@ blog</a>.</p>
 <p>Note that the <code class="docutils literal notranslate"><span class="pre">Ali-CCP</span></code> dataset has <code class="docutils literal notranslate"><span class="pre">click</span></code> and <code class="docutils literal notranslate"><span class="pre">conversion</span></code> target columns but we only focus on building different ranking models with binary target column <code class="docutils literal notranslate"><span class="pre">click</span></code>.</p>
 <p>We use a utility function, <code class="docutils literal notranslate"><span class="pre">workflow_fit_transform</span></code> perform to fit and transform steps on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, and also save our workflow model. After fit and transform, the processed parquet files are saved to <code class="docutils literal notranslate"><span class="pre">output_path</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
 
-user_id = [&quot;user_id&quot;] &gt;&gt; Categorify(freq_threshold=5) &gt;&gt; TagAsUserID()
-item_id = [&quot;item_id&quot;] &gt;&gt; Categorify(freq_threshold=5) &gt;&gt; TagAsItemID()
-add_feat = [&quot;user_item_categories&quot;, &quot;user_item_shops&quot;, &quot;user_item_brands&quot;, &quot;user_item_intentions&quot;,&quot;item_category&quot;, &quot;item_shop&quot;, &quot;item_brand&quot;] &gt;&gt; Categorify()
+<span class="n">user_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">freq_threshold</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserID</span><span class="p">()</span>
+<span class="n">item_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">freq_threshold</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemID</span><span class="p">()</span>
+<span class="n">add_feat</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_item_categories&quot;</span><span class="p">,</span> <span class="s2">&quot;user_item_shops&quot;</span><span class="p">,</span> <span class="s2">&quot;user_item_brands&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;user_item_intentions&quot;</span><span class="p">,</span><span class="s2">&quot;item_category&quot;</span><span class="p">,</span> <span class="s2">&quot;item_shop&quot;</span><span class="p">,</span> <span class="s2">&quot;item_brand&quot;</span>
+           <span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span>
 
-te_feat = (
-    [&quot;user_id&quot;, &quot;item_id&quot;] + add_feat &gt;&gt;
-    TargetEncoding(
-        [&#39;click&#39;],
-        kfold=1,
-        p_smooth=20
-    ) &gt;&gt;
-    Normalize()
-)
+<span class="n">te_feat</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">add_feat</span> <span class="o">&gt;&gt;</span>
+    <span class="n">TargetEncoding</span><span class="p">(</span>
+        <span class="p">[</span><span class="s1">&#39;click&#39;</span><span class="p">],</span>
+        <span class="n">kfold</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">p_smooth</span><span class="o">=</span><span class="mi">20</span>
+    <span class="p">)</span> <span class="o">&gt;&gt;</span>
+    <span class="n">Normalize</span><span class="p">()</span>
+<span class="p">)</span>
 
-targets = [&quot;click&quot;] &gt;&gt; AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, &quot;target&quot;])
+<span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;click&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">AddMetadata</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">])</span>
 
-outputs = user_id + item_id + targets + add_feat + te_feat
+<span class="n">outputs</span> <span class="o">=</span> <span class="n">user_id</span> <span class="o">+</span> <span class="n">item_id</span> <span class="o">+</span> <span class="n">targets</span> <span class="o">+</span> <span class="n">add_feat</span> <span class="o">+</span> <span class="n">te_feat</span>
 
-# Remove rows where item_id==0 and user_id==0
-outputs = outputs&gt;&gt; Filter(f=lambda df: (df[&quot;item_id&quot;] != 0) &amp; (df[&quot;user_id&quot;] != 0))
+<span class="c1"># Remove rows where item_id==0 and user_id==0</span>
+<span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">&gt;&gt;</span> <span class="n">Filter</span><span class="p">(</span><span class="n">f</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">))</span>
 
-workflow_fit_transform(outputs, train_path, valid_path, output_path)
+<span class="n">workflow_fit_transform</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">train_path</span><span class="p">,</span> <span class="n">valid_path</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -484,7 +508,7 @@ workflow_fit_transform(outputs, train_path, valid_path, output_path)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
   warnings.warn(
 </pre></div></div>
 </div>
@@ -493,8 +517,8 @@ workflow_fit_transform(outputs, train_path, valid_path, output_path)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CPU times: user 23.2 s, sys: 30.2 s, total: 53.4 s
-Wall time: 57.1 s
+CPU times: user 2.44 s, sys: 1.26 s, total: 3.7 s
+Wall time: 3.7 s
 </pre></div></div>
 </div>
 </div>
@@ -503,14 +527,14 @@ Wall time: 57.1 s
 <p>NVTabular exported the schema file of our processed dataset. The <code class="docutils literal notranslate"><span class="pre">schema.pbtxt</span></code> is a protobuf text file contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to
 automatically build all necessary input and output layers.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>train = Dataset(os.path.join(output_path, &#39;train&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
-valid = Dataset(os.path.join(output_path, &#39;valid&#39;, &#39;*.parquet&#39;), part_size=&quot;500MB&quot;)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="s1">&#39;*.parquet&#39;</span><span class="p">),</span> <span class="n">part_size</span><span class="o">=</span><span class="s2">&quot;500MB&quot;</span><span class="p">)</span>
+<span class="n">valid</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s1">&#39;valid&#39;</span><span class="p">,</span> <span class="s1">&#39;*.parquet&#39;</span><span class="p">),</span> <span class="n">part_size</span><span class="o">=</span><span class="s2">&quot;500MB&quot;</span><span class="p">)</span>
 
-# define schema object
-schema = train.schema
+<span class="c1"># define schema object</span>
+<span class="n">schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span>
 </pre></div>
 </div>
 </div>
@@ -519,21 +543,21 @@ schema = train.schema
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
   warnings.warn(
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>target_column = schema.select_by_tag(Tags.TARGET).column_names[0]
-target_column
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">target_column</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">target_column</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -543,15 +567,15 @@ target_column
 </div>
 <p>We can print out all the features that are included in the <code class="docutils literal notranslate"><span class="pre">schema.pbtxt</span></code> file.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>schema.column_names
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span>
 </pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -587,33 +611,33 @@ target_column
 <h2>NCF Model<a class="headerlink" href="#NCF-Model" title="Permalink to this headline"></a></h2>
 <p>We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">(NCF)</a> Model architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.</p>
 <p>NCF feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers via its MLP layer tower as seen in the figure. GMF and MLP uses separate user and item embeddings, and then outputs of their interactions from GMF Layer and MLP Layer are concatenated and fed to the final NeuMF (Neural Matrix Factorisation) layer.</p>
-<p><img alt="75260cf234864ad4b261894cd1d1c352" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
+<p><img alt="a774c1ea4e1a429d860d5cc46e069e6f" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
 <p>Image Source: NCF paper</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">schema</span></code> object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.benchmark.NCFModel(
-    schema,
-    embedding_dim=64,
-    mlp_block=mm.MLPBlock([128, 64]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">benchmark</span><span class="o">.</span><span class="n">NCFModel</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">,</span>
+    <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">mlp_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">target_column</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()]),</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
-batch_size = 16*1024
-LR=0.01
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">batch_size</span> <span class="o">=</span> <span class="mi">16</span><span class="o">*</span><span class="mi">1024</span>
+<span class="n">LR</span><span class="o">=</span><span class="mf">0.03</span>
 
-opt = tf.keras.optimizers.Adagrad(learning_rate=LR)
-model.compile(optimizer=opt, run_eagerly=False)
-model.fit(train, validation_data=valid, batch_size=batch_size)
+<span class="n">opt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adagrad</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="n">LR</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">opt</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -622,7 +646,7 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-05 16:20:29.232080: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+2022-04-26 16:50:34.950287: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -630,7 +654,7 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2207/2209 [============================&gt;.] - ETA: 0s - auc: 0.5287 - loss: 0.1823 - regularization_loss: 0.0000e+00 - total_loss: 0.1823
+41/43 [===========================&gt;..] - ETA: 0s - auc: 0.5003 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -638,7 +662,7 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-05 16:21:34.753153: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/else/_1/cond/cond/branch_executed/_139
+2022-04-26 16:50:41.997596: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -646,60 +670,90 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2209/2209 [==============================] - 90s 35ms/step - auc: 0.5287 - loss: 0.1822 - regularization_loss: 0.0000e+00 - total_loss: 0.1822 - val_auc: 0.5001 - val_loss: 0.1327 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1327
-CPU times: user 2min 24s, sys: 20.2 s, total: 2min 44s
-Wall time: 1min 32s
+43/43 [==============================] - 6s 36ms/step - auc: 0.5003 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.5001 - val_loss: 0.6932 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6932
+CPU times: user 8.09 s, sys: 716 ms, total: 8.81 s
+Wall time: 7.65 s
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7f09c037f160&gt;
+&lt;keras.callbacks.History at 0x7f20e86d5280&gt;
 </pre></div></div>
 </div>
 <p>Let’s save our accuracy results</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&#39;NCF&#39;, model)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s1">&#39;NCF&#39;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<p>Let’s check out the model evaluation scores</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_ncf</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics_ncf</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+293/293 [==============================] - 2s 8ms/step - auc: 0.5001 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;auc&#39;: 0.5000803470611572,
+ &#39;loss&#39;: 0.692772626876831,
+ &#39;regularization_loss&#39;: 0.0,
+ &#39;total_loss&#39;: 0.692772626876831}
+</pre></div></div>
 </div>
 </div>
 <div class="section" id="MLP-Model">
 <h2>MLP Model<a class="headerlink" href="#MLP-Model" title="Permalink to this headline"></a></h2>
 <p>Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers.</p>
-<p><img alt="554b7126b7d449e0b58d1c921d418254" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
+<p><img alt="ddcdb25223444f409b8316007c0d73a2" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
 <p>Steps:</p>
 <ul class="simple">
 <li><p>Change the model to MLP model</p></li>
 <li><p>Rerun the pipeline from there from model.fit</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># uses default embedding_dim = 64
-model = mm.MLPBlock([64, 32]).to_model(
-    schema,
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># uses default embedding_dim = 64</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">])</span><span class="o">.</span><span class="n">to_model</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">,</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">target_column</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
 
-opt = tf.keras.optimizers.Adagrad(learning_rate=LR)
-model.compile(optimizer=opt, run_eagerly=False)
-model.fit(train, validation_data=valid, batch_size=batch_size)
+<span class="n">opt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adagrad</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="n">LR</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">opt</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -708,7 +762,7 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2209/2209 [==============================] - ETA: 0s - auc_1: 0.6690 - loss: 0.1677 - regularization_loss: 0.0000e+00 - total_loss: 0.1677
+41/43 [===========================&gt;..] - ETA: 0s - auc_1: 0.8475 - loss: 0.6075 - regularization_loss: 0.0000e+00 - total_loss: 0.6075
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -716,7 +770,7 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-05 16:23:02.687741: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_140
+2022-04-26 16:50:48.464147: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -724,27 +778,57 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2209/2209 [==============================] - 89s 38ms/step - auc_1: 0.6690 - loss: 0.1677 - regularization_loss: 0.0000e+00 - total_loss: 0.1677 - val_auc_1: 0.5746 - val_loss: 0.1365 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1365
-CPU times: user 2min 55s, sys: 28 s, total: 3min 23s
-Wall time: 1min 29s
+43/43 [==============================] - 3s 36ms/step - auc_1: 0.8496 - loss: 0.6004 - regularization_loss: 0.0000e+00 - total_loss: 0.6004 - val_auc_1: 0.4991 - val_loss: 0.7456 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7456
+CPU times: user 4.73 s, sys: 658 ms, total: 5.38 s
+Wall time: 3.76 s
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7f09b05ed0a0&gt;
+&lt;keras.callbacks.History at 0x7f207809bfd0&gt;
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&#39;MLP&#39;, model)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s1">&#39;MLP&#39;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<p>Let’s check out the model evaluation scores</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_mlp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics_mlp</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+293/293 [==============================] - 2s 8ms/step - auc_1: 0.4991 - loss: 0.7471 - regularization_loss: 0.0000e+00 - total_loss: 0.7471
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;auc_1&#39;: 0.49909618496894836,
+ &#39;loss&#39;: 0.7657854557037354,
+ &#39;regularization_loss&#39;: 0.0,
+ &#39;total_loss&#39;: 0.7657854557037354}
+</pre></div></div>
 </div>
 </div>
 <div class="section" id="DLRM-Model">
@@ -756,27 +840,27 @@ interaction operation (see Pairwise interaction step). The output of “dot inte
 news page.</p>
 <p>Steps: * Change the model to <code class="docutils literal notranslate"><span class="pre">DLRMModel</span></code> * Rerun the pipeline from there from model.fit</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.DLRMModel(
-    schema,
-    embedding_dim=64,
-    bottom_block=mm.MLPBlock([128, 64]),
-    top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DLRMModel</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">,</span>
+    <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
+    <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">target_column</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
-opt = tf.keras.optimizers.Adagrad(learning_rate=LR)
-model.compile(optimizer=opt, run_eagerly=False)
-model.fit(train, validation_data=valid, batch_size=batch_size)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adagrad</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="n">LR</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">opt</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -785,7 +869,7 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2207/2209 [============================&gt;.] - ETA: 0s - auc_2: 0.6915 - loss: 0.1616 - regularization_loss: 0.0000e+00 - total_loss: 0.1616
+41/43 [===========================&gt;..] - ETA: 0s - auc_2: 0.6902 - loss: 0.6890 - regularization_loss: 0.0000e+00 - total_loss: 0.6890
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -793,7 +877,7 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-05 16:24:57.719674: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_158
+2022-04-26 16:50:56.202769: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -801,27 +885,57 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2209/2209 [==============================] - 116s 49ms/step - auc_2: 0.6915 - loss: 0.1616 - regularization_loss: 0.0000e+00 - total_loss: 0.1616 - val_auc_2: 0.5724 - val_loss: 0.1364 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1364
-CPU times: user 3min 43s, sys: 38.6 s, total: 4min 21s
-Wall time: 1min 57s
+43/43 [==============================] - 5s 54ms/step - auc_2: 0.6983 - loss: 0.6883 - regularization_loss: 0.0000e+00 - total_loss: 0.6883 - val_auc_2: 0.4995 - val_loss: 0.6935 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6935
+CPU times: user 5.82 s, sys: 786 ms, total: 6.6 s
+Wall time: 5.04 s
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7f09a3226550&gt;
+&lt;keras.callbacks.History at 0x7f204c2079d0&gt;
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&quot;DLRM&quot;, model)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;DLRM&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<p>Let’s check out the model evaluation scores</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_dlrm</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics_dlrm</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+293/293 [==============================] - 3s 9ms/step - auc_2: 0.4995 - loss: 0.6937 - regularization_loss: 0.0000e+00 - total_loss: 0.6937
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;auc_2&#39;: 0.4995212256908417,
+ &#39;loss&#39;: 0.693181037902832,
+ &#39;regularization_loss&#39;: 0.0,
+ &#39;total_loss&#39;: 0.693181037902832}
+</pre></div></div>
 </div>
 </div>
 <div class="section" id="DCN-Model">
@@ -833,26 +947,26 @@ concatenation of all the embedded vectors and the normalized dense features: x0 
 <p>In this example, we build <code class="docutils literal notranslate"><span class="pre">DCN-v2</span> <span class="pre">stacked</span></code> architecture.</p>
 <p>Steps: * Change the model to <code class="docutils literal notranslate"><span class="pre">DCNModel</span></code> * Rerun the pipeline from there to model.fit</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model = mm.DCNModel(
-    schema,
-    depth=2,
-    deep_block=mm.MLPBlock([64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
-)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">DCNModel</span><span class="p">(</span>
+    <span class="n">schema</span><span class="p">,</span>
+    <span class="n">depth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">deep_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">target_column</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
-opt = tf.keras.optimizers.Adagrad(learning_rate=0.005)
-model.compile(optimizer=opt, run_eagerly=False)
-model.fit(train, validation_data=valid, batch_size=batch_size)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adagrad</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="n">LR</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">opt</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -861,7 +975,7 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2208/2209 [============================&gt;.] - ETA: 0s - auc_3: 0.6411 - loss: 0.1858 - regularization_loss: 0.0000e+00 - total_loss: 0.1858
+43/43 [==============================] - ETA: 0s - auc_3: 0.8623 - loss: 0.5652 - regularization_loss: 0.0000e+00 - total_loss: 0.5652
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -869,7 +983,7 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-05 16:26:44.596443: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/else/_1/cond/cond/branch_executed/_166
+2022-04-26 16:51:04.050993: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -877,62 +991,92 @@ model.fit(train, validation_data=valid, batch_size=batch_size)
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-2209/2209 [==============================] - 106s 45ms/step - auc_3: 0.6411 - loss: 0.1858 - regularization_loss: 0.0000e+00 - total_loss: 0.1858 - val_auc_3: 0.5726 - val_loss: 0.1385 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.1385
-CPU times: user 3min 26s, sys: 35.7 s, total: 4min 1s
-Wall time: 1min 46s
+43/43 [==============================] - 4s 48ms/step - auc_3: 0.8623 - loss: 0.5622 - regularization_loss: 0.0000e+00 - total_loss: 0.5622 - val_auc_3: 0.4993 - val_loss: 0.7936 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7936
+CPU times: user 5.46 s, sys: 716 ms, total: 6.17 s
+Wall time: 4.62 s
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7f09a2158fd0&gt;
+&lt;keras.callbacks.History at 0x7f1c177f2e50&gt;
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>save_results(&quot;DCN&quot;, model)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;DCN&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<p>Let’s check out the model evaluation scores</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_dcn</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics_dcn</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+293/293 [==============================] - 3s 8ms/step - auc_3: 0.4993 - loss: 0.7978 - regularization_loss: 0.0000e+00 - total_loss: 0.7978
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;auc_3&#39;: 0.4993017315864563,
+ &#39;loss&#39;: 0.8253191113471985,
+ &#39;regularization_loss&#39;: 0.0,
+ &#39;total_loss&#39;: 0.8253191113471985}
+</pre></div></div>
 </div>
 <p>Let’s visualize our model validation accuracy values. Since we did not do any hyper-parameter optimization or extensive feature engineering here, we do not come up with a final conclusion that one model is superior to another.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import matplotlib.pyplot as plt
-def create_bar_chart(text_file_name, models_name):
-    &quot;&quot;&quot;a func to plot barcharts via parsing the  accuracy results in a text file&quot;&quot;&quot;
-    auc = []
-    with open(text_file_name, &quot;r&quot;) as infile:
-        for line in infile:
-            if &quot;auc&quot; in line:
-                data = [line.rstrip().split(&quot;:&quot;)]
-                key, value = zip(*data)
-                auc.append(float(value[0]))
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="k">def</span> <span class="nf">create_bar_chart</span><span class="p">(</span><span class="n">text_file_name</span><span class="p">,</span> <span class="n">models_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;a func to plot barcharts via parsing the  accuracy results in a text file&quot;&quot;&quot;</span>
+    <span class="n">auc</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">text_file_name</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">infile</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;auc&quot;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)]</span>
+                <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">data</span><span class="p">)</span>
+                <span class="n">auc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 
-    X_axis = np.arange(len(models_name))
+    <span class="n">X_axis</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">models_name</span><span class="p">))</span>
 
-    plt.title(&quot;Models&#39; accuracy metrics comparison&quot;, pad=20)
-    plt.bar(X_axis - 0.2, auc, 0.4, label=&quot;AUC&quot;)
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Models&#39; accuracy metrics comparison&quot;</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">X_axis</span> <span class="o">-</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">auc</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;AUC&quot;</span><span class="p">)</span>
 
-    plt.xticks(X_axis, models_name)
-    plt.xlabel(&quot;Models&quot;)
-    plt.ylabel(&quot;AUC&quot;)
-    plt.show()
+    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">X_axis</span><span class="p">,</span> <span class="n">models_name</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Models&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;AUC&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>models_name = [&quot;NCF&quot;, &quot;MLP&quot;, &quot;DLRM&quot;, &quot;DCN&quot;]
-create_bar_chart(&quot;results.txt&quot;, models_name)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">models_name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;NCF&quot;</span><span class="p">,</span> <span class="s2">&quot;MLP&quot;</span><span class="p">,</span> <span class="s2">&quot;DLRM&quot;</span><span class="p">,</span> <span class="s2">&quot;DCN&quot;</span><span class="p">]</span>
+<span class="n">create_bar_chart</span><span class="p">(</span><span class="s2">&quot;results.txt&quot;</span><span class="p">,</span> <span class="n">models_name</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -940,7 +1084,7 @@ create_bar_chart(&quot;results.txt&quot;, models_name)
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../_images/examples_03-Exploring-different-models_45_0.png" src="../_images/examples_03-Exploring-different-models_45_0.png" />
+<img alt="../_images/examples_03-Exploring-different-models_54_0.png" src="../_images/examples_03-Exploring-different-models_54_0.png" />
 </div>
 </div>
 </div>

@@ -139,6 +139,7 @@
         <span class="n">schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Schema</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">l2_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Prepare the Query and Item towers of a Retrieval block</span>
@@ -162,9 +163,14 @@
 <span class="sd">            Name of the layer.</span>
 <span class="sd">        strict : bool, optional</span>
 <span class="sd">            If enabled, check that the input of the ParallelBlock instance is a dictionary.</span>
+<span class="sd">        l2_normalization: bool</span>
+<span class="sd">            Apply L2 normalization to the user and item representations before</span>
+<span class="sd">            computing dot interactions.</span>
+<span class="sd">            Defaults to False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">query_block</span> <span class="o">=</span> <span class="n">query_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">L2Norm</span><span class="p">())</span>
-        <span class="n">item_block</span> <span class="o">=</span> <span class="n">item_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">L2Norm</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">l2_normalization</span><span class="p">:</span>
+            <span class="n">query_block</span> <span class="o">=</span> <span class="n">query_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">L2Norm</span><span class="p">())</span>
+            <span class="n">item_block</span> <span class="o">=</span> <span class="n">item_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">L2Norm</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_query_block</span> <span class="o">=</span> <span class="n">TowerBlock</span><span class="p">(</span><span class="n">query_block</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_item_block</span> <span class="o">=</span> <span class="n">TowerBlock</span><span class="p">(</span><span class="n">item_block</span><span class="p">)</span>
 
@@ -226,6 +232,8 @@
 <span class="sd">        Add query embeddings to the context block, by default False</span>
 <span class="sd">    sampled_softmax_mode: bool</span>
 <span class="sd">        Use sampled softmax for scoring, by default False</span>
+<span class="sd">    store_negative_ids: bool</span>
+<span class="sd">        Returns negative items ids as part of the output, by default False</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -234,10 +242,12 @@
         <span class="n">sampling_downscore_false_negatives</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">sampling_downscore_false_negatives_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">MIN_FLOAT</span><span class="p">,</span>
         <span class="n">item_id_feature_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;item_id&quot;</span><span class="p">,</span>
+        <span class="n">item_domain</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;item_id&quot;</span><span class="p">,</span>
         <span class="n">query_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;query&quot;</span><span class="p">,</span>
         <span class="n">item_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;item&quot;</span><span class="p">,</span>
         <span class="n">cache_query</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">sampled_softmax_mode</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">store_negative_ids</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -245,9 +255,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">downscore_false_negatives</span> <span class="o">=</span> <span class="n">sampling_downscore_false_negatives</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">false_negatives_score</span> <span class="o">=</span> <span class="n">sampling_downscore_false_negatives_value</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span> <span class="o">=</span> <span class="n">item_id_feature_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">item_domain</span> <span class="o">=</span> <span class="n">item_domain</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">query_name</span> <span class="o">=</span> <span class="n">query_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">item_name</span> <span class="o">=</span> <span class="n">item_name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span> <span class="o">=</span> <span class="n">cache_query</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">store_negative_ids</span> <span class="o">=</span> <span class="n">store_negative_ids</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">samplers</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
             <span class="n">samplers</span> <span class="o">=</span> <span class="p">(</span><span class="n">samplers</span><span class="p">,)</span>  <span class="c1"># type: ignore</span>
@@ -269,16 +281,7 @@
                     <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]),</span>
                 <span class="p">)</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
-                    <span class="n">initial_value</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="n">query_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;positive_candidates_embeddings&quot;</span><span class="p">,</span>
-                    <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">validate_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-                    <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="n">query_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]),</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
+
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">set_required_features</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -319,12 +322,16 @@
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">],</span> <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">],</span>
+        <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">eval_sampling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Based on the user/query embedding (inputs[self.query_name]), uses dot product to score</span>
 <span class="sd">            the positive item (inputs[&quot;item&quot;]).</span>
 <span class="sd">            For the sampled-softmax mode, logits are computed by multiplying the query vector</span>
-<span class="sd">            and the item embeddings matrix (self.context.get_embedding(self.item_column)))</span>
+<span class="sd">            and the item embeddings matrix (self.context.get_embedding(self.item_domain))</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        inputs : Union[tf.Tensor, TabularData]</span>
@@ -341,11 +348,8 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span><span class="p">:</span>
             <span class="c1"># enabled only during top-k evaluation</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="s2">&quot;positive_candidates_embeddings&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-            <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">training</span> <span class="ow">or</span> <span class="n">eval_sampling</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">inputs</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampled_softmax_mode</span><span class="p">:</span>
@@ -359,7 +363,7 @@
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span>
     <span class="k">def</span> <span class="nf">call_outputs</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">PredictionOutput</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">outputs</span><span class="p">:</span> <span class="n">PredictionOutput</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eval_sampling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PredictionOutput&quot;</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Based on the user/query embedding (inputs[self.query_name]), uses dot product to score</span>
 <span class="sd">            the positive item and also sampled negative items (during training).</span>
@@ -386,7 +390,9 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
+        <span class="n">neg_items_ids</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">training</span> <span class="ow">or</span> <span class="n">eval_sampling</span><span class="p">:</span>
+
             <span class="k">assert</span> <span class="p">(</span>
                 <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
             <span class="p">),</span> <span class="s2">&quot;At least one sampler is required by ItemRetrievalScorer for negative sampling&quot;</span>
@@ -411,11 +417,10 @@
             <span class="c1"># Adds items from the current batch into samplers and sample a number of negatives</span>
             <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">:</span>
                 <span class="n">input_data</span> <span class="o">=</span> <span class="n">EmbeddingWithMetadata</span><span class="p">(</span><span class="n">batch_items_embeddings</span><span class="p">,</span> <span class="n">batch_items_metadata</span><span class="p">)</span>
+                <span class="n">sampling_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;training&quot;</span><span class="p">:</span> <span class="n">training</span><span class="p">}</span>
                 <span class="k">if</span> <span class="s2">&quot;item_weights&quot;</span> <span class="ow">in</span> <span class="n">sampler</span><span class="o">.</span><span class="n">_call_fn_args</span><span class="p">:</span>
-                    <span class="n">embedding_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">get_embedding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">)</span>
-                    <span class="n">neg_items</span> <span class="o">=</span> <span class="n">sampler</span><span class="p">(</span><span class="n">input_data</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">item_weights</span><span class="o">=</span><span class="n">embedding_table</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">neg_items</span> <span class="o">=</span> <span class="n">sampler</span><span class="p">(</span><span class="n">input_data</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+                    <span class="n">sampling_kwargs</span><span class="p">[</span><span class="s2">&quot;item_weights&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">get_embedding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_domain</span><span class="p">)</span>
+                <span class="n">neg_items</span> <span class="o">=</span> <span class="n">sampler</span><span class="p">(</span><span class="n">input_data</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="o">**</span><span class="n">sampling_kwargs</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">neg_items</span><span class="o">.</span><span class="n">embeddings</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="c1"># Accumulates sampled negative items from all samplers</span>
@@ -438,7 +443,7 @@
                 <span class="n">predictions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">],</span> <span class="n">neg_items_embeddings</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="kc">True</span>
             <span class="p">)</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downscore_false_negatives</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downscore_false_negatives</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_negative_ids</span><span class="p">:</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
                     <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">targets</span>
                 <span class="k">else</span><span class="p">:</span>
@@ -470,6 +475,7 @@
                 <span class="n">targets_one_hot</span><span class="p">,</span>
                 <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span><span class="p">,</span>
                 <span class="n">valid_negatives_mask</span><span class="o">=</span><span class="n">valid_negatives_mask</span><span class="p">,</span>
+                <span class="n">negative_item_ids</span><span class="o">=</span><span class="n">neg_items_ids</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Positives in the first column and negatives in the subsequent columns</span>
@@ -488,6 +494,7 @@
                 <span class="n">targets</span><span class="p">,</span>
                 <span class="n">positive_item_ids</span><span class="o">=</span><span class="n">positive_item_ids</span><span class="p">,</span>
                 <span class="n">valid_negatives_mask</span><span class="o">=</span><span class="n">valid_negatives_mask</span><span class="p">,</span>
+                <span class="n">negative_item_ids</span><span class="o">=</span><span class="n">neg_items_ids</span><span class="p">,</span>
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_logits_for_sampled_softmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -495,7 +502,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Inputs to the Sampled Softmax block should be tensors, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-        <span class="n">embedding_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">get_embedding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">)</span>
+        <span class="n">embedding_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">get_embedding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_domain</span><span class="p">)</span>
         <span class="n">all_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">embedding_table</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">all_scores</span>
 
@@ -507,7 +514,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Inputs to the Sampled Softmax block should be tensors, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">predictions</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-        <span class="n">embedding_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">get_embedding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">)</span>
+        <span class="n">embedding_table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">get_embedding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">item_domain</span><span class="p">)</span>
         <span class="n">batch_items_embeddings</span> <span class="o">=</span> <span class="n">embedding_ops</span><span class="o">.</span><span class="n">embedding_lookup</span><span class="p">(</span><span class="n">embedding_table</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
         <span class="n">predictions</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">:</span> <span class="n">predictions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">:</span> <span class="n">batch_items_embeddings</span><span class="p">}</span>
         <span class="k">return</span> <span class="n">predictions</span>
