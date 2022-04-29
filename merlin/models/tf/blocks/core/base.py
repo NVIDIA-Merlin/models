@@ -50,6 +50,11 @@ class TaskWithOutputs(NamedTuple):
     targets: Union[TabularData, tf.Tensor]
 
 
+class TaskResults(NamedTuple):
+    predictions: Union[TabularData, tf.Tensor]
+    targets: Union[TabularData, tf.Tensor]
+
+
 @dataclass
 class EmbeddingWithMetadata:
     embeddings: tf.Tensor

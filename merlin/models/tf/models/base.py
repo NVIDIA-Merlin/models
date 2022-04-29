@@ -11,7 +11,7 @@ from merlin.models.tf.losses.base import loss_registry
 from tensorflow.python.keras.engine import compile_utils, data_adapter
 from tensorflow.python.keras.metrics import Metric
 
-from merlin.models.tf.blocks.core.base import Block, BlockContext, PredictionOutput, TaskWithOutputs
+from merlin.models.tf.blocks.core.base import Block, BlockContext, PredictionOutput, TaskWithOutputs, TaskResults
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
@@ -440,48 +440,20 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             task_x = forward
             if isinstance(forward, dict) and task.task_name in forward:
                 task_x = forward[task.task_name]
-            task_y = y[task.target_name] if isinstance(y, dict) and y else y
+            if isinstance(task_x, TaskResults):
+                task_y = task_x.targets
+                task_x = task_x.predictions
+            else:
+                task_y = y[task.target_name] if isinstance(y, dict) and y else y
 
-            prediction_output = self.prediction_task_pre_loss(
-                task, x, task_x, task_y, training=training, testing=testing
-            )
-
-            targets[task.task_name] = prediction_output.targets
-            predictions[task.task_name] = prediction_output.predictions
+            targets[task.task_name] = task_y
+            predictions[task.task_name] = task_x
 
         if len(predictions) == 1 and len(targets) == 1:
             predictions = predictions[list(predictions.keys())[0]]
             targets = targets[list(targets.keys())[0]]
 
         return PredictionOutput(predictions, targets)
-
-    def prediction_task_pre_loss(
-            self,
-            task: PredictionTask,
-            features: Dict[str, tf.Tensor],
-            task_outputs: Dict[str, tf.Tensor],
-            task_targets: Dict[str, tf.Tensor],
-            training=False,
-            testing=False
-    ) -> PredictionOutput:
-        prediction_output = PredictionOutput(task_outputs, task_targets)
-        # task_output = TaskWithOutputs(task, task_outputs, task_targets)
-        #
-        # pre_loss = getattr(self, 'pre_loss', None)
-        # if pre_loss and task.task_name in pre_loss:
-        #     prediction_output = self.pre_loss[task.task_name](
-        #         features,
-        #         task_output,
-        #         self,
-        #         training=training,
-        #         testing=testing
-        #     )
-
-        prediction_output = task.pre_loss(
-            prediction_output, training=training, testing=testing
-        )
-
-        return prediction_output
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
@@ -534,10 +506,10 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         train_metrics_steps=1,
         **kwargs,
     ):
-        x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
         maybe_schema = _maybe_get_schema(x)
         if maybe_schema:
             self.context.set_schema(maybe_schema)
+        x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=False, **kwargs
         )
@@ -599,10 +571,10 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         return_dict=False,
         **kwargs,
     ):
-        x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
         maybe_schema = _maybe_get_schema(x)
         if maybe_schema:
             self.context.set_schema(maybe_schema)
+        x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
         return super().evaluate(
             x,

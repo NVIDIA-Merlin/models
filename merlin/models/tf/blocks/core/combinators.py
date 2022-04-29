@@ -16,6 +16,7 @@ from merlin.models.tf.blocks.core.base import (
 )
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType, TabularBlock
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.dataset import DictWithSchema
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
 from merlin.models.utils.misc_utils import filter_kwargs, has_kwargs
@@ -216,8 +217,13 @@ class SequentialBlock(Block):
             # convert sparse inputs to dense before storing them to the context?
             self.context(AsDenseFeatures()(inputs))
 
+        # TODO fix this
         if "features" not in kwargs:
-            kwargs["features"] = inputs
+            features = AsDenseFeatures()(inputs)
+            schema = kwargs.get("schema", self.context.schema)
+            if schema and not isinstance(inputs, DictWithSchema):
+                features = DictWithSchema(schema, features)
+            kwargs["features"] = features
 
         maybe_forward = {"training": training, "testing": testing}
         outputs = inputs

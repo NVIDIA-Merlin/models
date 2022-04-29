@@ -568,3 +568,11 @@ def remove_pad_3d(outputs: PredictionOutput, padding_idx=0):
         predictions=predictions,
         targets=targets,
     )
+
+
+def remove_pad_3d_targets(targets, padding_idx=0):
+    targets = tf.reshape(targets, (-1,))
+    non_pad_mask = targets != padding_idx
+    targets = tf.boolean_mask(targets, non_pad_mask)
+
+    return targets

@@ -16,7 +16,7 @@ from merlin.models.tf.blocks.core.base import (
     MetricOrMetrics,
     PredictionOutput,
     _output_metrics,
-    name_fn,
+    name_fn, TaskResults,
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.metrics.ranking import RankingMetric
@@ -167,7 +167,7 @@ class PredictionTask(Block):
 
         return outputs
 
-    def call(self, inputs, features, targets=None, **kwargs):
+    def call(self, inputs, features, targets=None, **kwargs) -> Union[tf.Tensor, TaskResults]:
         return inputs
 
     def build_task(self, input_shape, schema: Schema, body: Block, **kwargs):

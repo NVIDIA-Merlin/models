@@ -16,6 +16,7 @@
 import contextlib
 import logging
 import os
+from typing import Dict, Any, Optional, Union, Sequence
 
 import dask.dataframe as dd
 import numpy as np
@@ -26,8 +27,8 @@ from merlin.core.dispatch import HAS_GPU
 from merlin.io import Dataset
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
-from merlin.models.utils.schema_utils import select_targets
-from merlin.schema import Tags
+from merlin.models.utils.schema_utils import select_targets, filter_dict_by_schema
+from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin.models")
 
@@ -525,3 +526,42 @@ def sample_batch(
     if not include_targets:
         return inputs
     return inputs, targets
+
+
+class DictWithSchema:
+    def __init__(self, schema: Schema, data: Optional[Dict[str, Any]] = None, **kwargs):
+        if not (data or kwargs):
+            raise ValueError("Must provide either data or kwargs")
+
+        self.data = data if data else dict(**kwargs)
+        self.schema = schema
+
+    def __getitem__(self, key: Union[str, Tags, Sequence[str], Sequence[Tags], Schema]) -> Any:
+        if isinstance(key, Tags):
+            sub_schema = self.schema.select_by_tag(key)
+            if len(sub_schema.column_schemas) == 0:
+                raise KeyError(f"No columns found for tag {key}")
+            elif len(sub_schema.column_schemas) == 1:
+                key = sub_schema.first.name
+            else:
+                key = sub_schema
+
+        if isinstance(key, (list, tuple)):
+            sub_schema = self.schema.select_by_name(key)
+            sub_data = {k: v for k, v in self.data.items() if k in set(key)}
+
+            return DictWithSchema(sub_schema, sub_data)
+
+        if isinstance(key, Schema):
+            return DictWithSchema(key, self.data)
+
+        return self.data[key]
+
+    def items(self):
+        return self.data.items()
+
+    def keys(self):
+        return self.data.keys()
+
+    def values(self):
+        return self.data.values()

@@ -194,7 +194,7 @@ class CategoricalPrediction(Block):
         return super().build(input_shape)
 
     def embedding_lookup(self, inputs, **kwargs):
-        return embedding_ops.embedding_lookup(self.kernel, inputs, **kwargs)
+        return embedding_ops.embedding_lookup(tf.transpose(self.kernel), inputs, **kwargs)
 
     def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
         # This code is the same as in Dense
@@ -242,6 +242,22 @@ class CategoricalPrediction(Block):
 
         if self.output_activation is not None:
             outputs = self.output_activation(outputs)
+
+        return outputs
+
+    def apply_mask(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
+        # targets = self.context[self.item_id_feature_name]
+        targets = self.prediction_block.get_targets(outputs)
+        mask = self.context.get_mask()
+        targets = tf.where(mask, targets, self.context.padding_idx)
+
+        outputs = remove_pad_3d(outputs.copy_with_updates(targets=targets))
+
+        # Convert labels to one-hot if necessary
+        if outputs.targets.shape != outputs.predictions.shape:
+            num_classes = tf.shape(outputs.predictions)[-1]
+            targets = transform_label_to_onehot(outputs.targets, num_classes)
+            outputs = outputs.copy_with_updates(targets=targets)
 
         return outputs
 
@@ -411,18 +427,7 @@ class MultiClassClassificationTask(PredictionTask):
 
     def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
         if self.context.has_mask:
-            # targets = self.context[self.item_id_feature_name]
-            targets = self.prediction_block.get_targets(outputs)
-            mask = self.context.get_mask()
-            targets = tf.where(mask, targets, self.context.padding_idx)
-
-            outputs = remove_pad_3d(outputs.copy_with_updates(targets=targets))
-
-            # Convert labels to one-hot if necessary
-            if outputs.targets.shape != outputs.predictions.shape:
-                num_classes = tf.shape(outputs.predictions)[-1]
-                targets = transform_label_to_onehot(outputs.targets, num_classes)
-                outputs = outputs.copy_with_updates(targets=targets)
+            outputs = self.prediction_block.apply_mask(outputs, **kwargs)
 
         return outputs
 
