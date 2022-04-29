@@ -399,35 +399,16 @@ class PopularityBasedSampler(ItemSampler):
 
     def __init__(
         self,
-        max_id: int,
-        min_id: int = 0,
+        feature_tag=Tags.ITEM_ID,
         max_num_samples: int = 100,
+        min_id: int = 0,
         seed: Optional[int] = None,
-        item_id_feature_name: str = "item_id",
         **kwargs,
     ):
         super().__init__(max_num_samples=max_num_samples, **kwargs)
-        self.max_id = max_id
-        self.min_id = min_id
+        self.feature_tag = feature_tag
         self.seed = seed
-        self.item_id_feature_name = item_id_feature_name
-
-        assert (
-            self.max_num_samples <= self.max_id
-        ), f"Number of items to sample `{self.max_num_samples}`"
-        f" should be less than total number of ids `{self.max_id}`"
-
-    @classmethod
-    def from_schema(cls, schema: Schema, max_num_samples: int, min_id: int = 0, **kwargs):
-        item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        num_classes = categorical_cardinalities(schema)[item_id_feature_name]
-
-        return cls(
-            max_num_samples=max_num_samples,
-            max_id=num_classes,
-            min_id=min_id,
-            item_id_feature_name=item_id_feature_name,
-        )
+        self.min_id = min_id
 
     def add(self, items: Items):
         pass
@@ -439,8 +420,16 @@ class PopularityBasedSampler(ItemSampler):
 
         return items
 
-    def _required_features(self):
-        return [self.item_id_feature_name]
+    def build(self, input_shape):
+        feature_name = self.context.schema.select_by_tag(self.feature_tag).column_names[0]
+        self.max_id = categorical_cardinalities(self.context.schema)[feature_name]
+
+        assert (
+                self.max_num_samples <= self.max_id
+        ), f"Number of items to sample `{self.max_num_samples}`"
+        f" should be less than total number of ids `{self.max_id}`"
+
+        super(PopularityBasedSampler, self).build(input_shape)
 
     def sample(self) -> Items:
         sampled_ids, _, _ = tf.random.log_uniform_candidate_sampler(

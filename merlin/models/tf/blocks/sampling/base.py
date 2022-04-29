@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Union, Callable
 
 import tensorflow as tf
+from merlin.models.tf.blocks.core.base import Block
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.typing import TabularData
@@ -59,7 +60,7 @@ class Items:
         )
 
 
-class ItemSampler(abc.ABC, Layer):
+class ItemSampler(abc.ABC, Block):
     ITEM_EMBEDDING_KEY = "__item_embedding__"
 
     def __init__(

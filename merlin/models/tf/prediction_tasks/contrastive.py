@@ -33,7 +33,10 @@ from merlin.models.tf.blocks.core.base import (
     EmbeddingWithMetadata,
     PredictionOutput, TaskWithOutputs, MetricOrMetrics, TaskResults,
 )
-from merlin.models.tf.prediction_tasks.classification import CategoricalPrediction
+from merlin.models.tf.prediction_tasks.classification import (
+    CategoricalPrediction,
+    MultiClassClassificationTask
+)
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -71,13 +74,9 @@ class ContrastiveRepresentation:
         return ContrastiveRepresentation(self.query.shape, self.positive.shape, self.negative.shape)
 
 
-class ContrastiveLearningTask(PredictionTask):
-    DEFAULT_LOSS = "categorical_crossentropy"
-    DEFAULT_METRICS: MetricOrMetrics = (tf.keras.metrics.Accuracy,)
-
+class ContrastiveLearningTask(MultiClassClassificationTask):
     def __init__(
             self,
-            schema: Schema,
             *samplers: ItemSampler,
             prediction_block: Optional[CategoricalPrediction] = None,
             item_metadata_schema: Optional[Schema] = None,
@@ -94,18 +93,22 @@ class ContrastiveLearningTask(PredictionTask):
             **kwargs,
     ):
         self.samplers = list(samplers)
-        self.schema = schema
         self.item_metadata_schema = item_metadata_schema
-        # self.item_id_feature_name = schema.select_by_tag(item_id_tag).first.name
-        # self.query_id_feature_name = schema.select_by_tag(query_id_tag).first.name
         self.item_id_tag = item_id_tag
         self.query_id_tag = query_id_tag
         self.downscore_false_negatives = downscore_false_negatives
         self.false_negative_score = false_negative_score
-        self.prediction_block = prediction_block
 
-        super().__init__(target_name=target_name, task_name=task_name, pre=pre, post=post, task_block=task_block,
-                         name=name, **kwargs)
+        super().__init__(
+            prediction_block=prediction_block,
+            target_name=target_name,
+            task_name=task_name,
+            pre=pre,
+            post=post,
+            task_block=task_block,
+            name=name,
+            **kwargs
+        )
 
     def call(
             self,
@@ -116,18 +119,20 @@ class ContrastiveLearningTask(PredictionTask):
             testing=False,
     ) -> Union[tf.Tensor, TaskResults]:
         if not (training or testing):
-            if isinstance(inputs, dict):
-                scores = tf.reduce_sum(
-                    tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
-                )
-                return scores
-            else:
-                if self.prediction_block:
-                    return self.prediction_block(inputs, training=training, testing=testing)
+            return self.prediction_block(inputs, training=training, testing=testing)
 
-                return inputs
+            # if isinstance(inputs, dict):
+            #     scores = tf.reduce_sum(
+            #         tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
+            #     )
+            #     return scores
+            # else:
+            #     if self.prediction_block:
+            #         return self.prediction_block(inputs, training=training, testing=testing)
+            #
+            #     return inputs
 
-        targets = self.create_targets(inputs, features, targets, training=training, testing=testing)
+        targets = self.get_targets(inputs, features, targets, training=training, testing=testing)
         representation = self.create_representation(inputs, features, targets, training, testing)
         predictions = self.process_representation(representation, training, testing)
 
@@ -153,26 +158,26 @@ class ContrastiveLearningTask(PredictionTask):
 
         return input_shape
 
-    def create_targets(
-            self,
-            inputs: Union[TabularData, tf.Tensor],
-            features: DictWithSchema,
-            targets: Optional[Union[TabularData, tf.Tensor]] = None,
-            **kwargs
-    ):
-        if isinstance(inputs, dict) and "item_id" in inputs:
-            targets = inputs["item_id"]
-        elif targets:
-            targets = targets
-        else:
-            targets = features[Tags.ITEM_ID]
-
-        if self.context.has_mask:
-            mask = self.context.get_mask()
-            targets = tf.where(mask, targets, self.context.padding_idx)
-            targets = remove_pad_3d_targets(targets)
-
-        return targets
+    # def create_targets(
+    #         self,
+    #         inputs: Union[TabularData, tf.Tensor],
+    #         features: DictWithSchema,
+    #         targets: Optional[Union[TabularData, tf.Tensor]] = None,
+    #         **kwargs
+    # ):
+    #     if isinstance(inputs, dict) and "item_id" in inputs:
+    #         targets = inputs["item_id"]
+    #     elif targets:
+    #         targets = targets
+    #     else:
+    #         targets = features[Tags.ITEM_ID]
+    #
+    #     if self.context.has_mask:
+    #         mask = self.context.get_mask()
+    #         targets = tf.where(mask, targets, self.context.padding_idx)
+    #         targets = remove_pad_3d_targets(targets)
+    #
+    #     return targets
 
     def create_representation(
             self,
@@ -311,21 +316,6 @@ class ContrastiveLearningTask(PredictionTask):
         assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
 
         return predictions
-
-    def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
-        predictions = outputs.predictions
-        targets = tf.concat(
-            [
-                tf.ones([tf.shape(predictions)[0], 1], dtype=predictions.dtype),
-                tf.zeros(
-                    [tf.shape(predictions)[0], tf.shape(predictions)[1] - 1],
-                    dtype=predictions.dtype,
-                ),
-            ],
-            axis=1,
-        )
-
-        return outputs.copy_with_updates(targets=targets)
 
     def add_sampler(self, sampler: ItemSampler):
         self.samplers.append(sampler)

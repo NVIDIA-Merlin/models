@@ -35,7 +35,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     item_retrieval_scorer = ml.ItemRetrievalScorer(
         samplers=[cached_batches_sampler, inbatch_sampler],
         sampling_downscore_false_negatives=False,
-        context=ml.BlockContext(),
+        context=ml.ModelContext(),
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
@@ -114,7 +114,7 @@ def test_item_retrieval_scorer_no_sampler():
         items_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
         positive_items = tf.random.uniform(shape=(10,), minval=1, maxval=100, dtype=tf.int32)
         item_retrieval_scorer = ml.ItemRetrievalScorer(
-            samplers=[], sampling_downscore_false_negatives=False, context=ml.BlockContext()
+            samplers=[], sampling_downscore_false_negatives=False, context=ml.ModelContext()
         )
         item_retrieval_scorer.call_outputs(
             PredictionOutput(
@@ -160,7 +160,7 @@ def test_item_retrieval_scorer_downscore_false_negatives():
 
     # Adding item id to the context
     item_ids = tf.random.uniform(shape=(batch_size,), minval=1, maxval=10000000, dtype=tf.int32)
-    context = ml.BlockContext(feature_names=["item_id"], feature_dtypes={"item_id": tf.int32})
+    context = ml.ModelContext(feature_names=["item_id"], feature_dtypes={"item_id": tf.int32})
     _ = context({"item_id": item_ids})
 
     FALSE_NEGATIVE_SCORE = -100_000_000.0
@@ -201,7 +201,7 @@ def test_item_retrieval_scorer_only_positive_when_not_training():
     item_retrieval_scorer = ml.ItemRetrievalScorer(
         samplers=[ml.InBatchSampler()],
         sampling_downscore_false_negatives=False,
-        context=ml.BlockContext(),
+        context=ml.ModelContext(),
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
@@ -329,17 +329,14 @@ def test_last_item_prediction_task(
         masking="clm",
         split_sparse=True,
     )
-    loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-    task = ml.NextItemPredictionTask(
-        schema=sequence_testing_data.schema,
-        loss=loss,
-        masking=True,
-        weight_tying=weight_tying,
-        sampled_softmax=sampled_softmax,
-        logits_temperature=0.5,
+    task = ml.ItemPredictionTask(
+        sequence_testing_data.schema, weight_tying=weight_tying, logits_temperature=0.5
     )
 
-    model = inputs.connect(ml.MLPBlock([64]), task)
+    if sampled_softmax:
+        task = task.to_sampled_softmax()
+
+    model = ml.Model(inputs, ml.MLPBlock([64]), task)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     losses = model.fit(sequence_testing_data, batch_size=50, epochs=2)
 

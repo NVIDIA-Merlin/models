@@ -98,7 +98,7 @@ class PredictionOutput(NamedTuple):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class BlockContext(Layer):
+class ModelContext(Layer):
     """BlockContext is part of each block.
 
     It is used to store/retrieve public variables, and can be used to retrieve features.
@@ -109,7 +109,7 @@ class BlockContext(Layer):
     def __init__(self, **kwargs):
         feature_names = kwargs.pop("feature_names", [])
         feature_dtypes = kwargs.pop("feature_dtypes", {})
-        super(BlockContext, self).__init__(**kwargs)
+        super(ModelContext, self).__init__(**kwargs)
         self._feature_names = feature_names
         self._feature_dtypes = feature_dtypes
         self._schema = None
@@ -188,7 +188,7 @@ class BlockContext(Layer):
 
         return outputs
 
-    def _merge(self, other: "BlockContext"):
+    def _merge(self, other: "ModelContext"):
         self.public_variables.update(other.public_variables)
         self._feature_names = list(set(self._feature_names + other._feature_names))
 
@@ -231,7 +231,7 @@ class BlockContext(Layer):
                     ),
                 )
 
-        super(BlockContext, self).build(input_shape)
+        super(ModelContext, self).build(input_shape)
 
     def call(self, features, **kwargs):
         self.store_features(features)
@@ -243,7 +243,7 @@ class BlockContext(Layer):
             self.named_variables[feature_name].assign(features[feature_name])
 
     def get_config(self):
-        config = super(BlockContext, self).get_config()
+        config = super(ModelContext, self).get_config()
         config["feature_names"] = self._feature_names
         config["feature_dtypes"] = self._feature_dtypes
 
@@ -252,13 +252,13 @@ class BlockContext(Layer):
 
 class ContextMixin:
     @property
-    def context(self) -> BlockContext:
+    def context(self) -> ModelContext:
         return self._context
 
-    def _set_context(self, context: BlockContext):
+    def _set_context(self, context: ModelContext):
         if hasattr(self, "_context"):
             context._merge(self._context)
-        self._context: BlockContext = context
+        self._context: ModelContext = context
 
 
 class Block(SchemaMixin, ContextMixin, Layer):
@@ -266,7 +266,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
     registry = block_registry
 
-    def __init__(self, context: Optional[BlockContext] = None, schema: Optional[Schema] = None, **kwargs):
+    def __init__(self, context: Optional[ModelContext] = None, schema: Optional[Schema] = None, **kwargs):
         super(Block, self).__init__(**kwargs)
         if context:
             self._set_context(context)
@@ -418,7 +418,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         self,
         *block: Union[tf.keras.layers.Layer, str],
         block_name: Optional[str] = None,
-        context: Optional[BlockContext] = None,
+        context: Optional[ModelContext] = None,
     ) -> Union["SequentialBlock", "Model", "RetrievalModel"]:
         """Connect the block to other blocks sequentially.
 
@@ -428,7 +428,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Blocks to connect to.
         block_name: str
             Name of the block.
-        context: Optional[BlockContext]
+        context: Optional[ModelContext]
             Context to use for the block.
 
         """

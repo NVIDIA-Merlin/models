@@ -291,7 +291,7 @@ def YoutubeDNNRetrievalModel(
         weight_tying=False,
         logits_temperature=logits_temperature,
         normalize=normalize,
-    ).to_contrastive(PopularityBasedSampler.from_schema(schema, max_num_samples=num_sampled))
+    ).to_sampled_softmax(num_sampled)
 
     model = RetrievalModel(body, task)
 

@@ -9,7 +9,7 @@ from tensorflow.python.keras.utils import generic_utils
 
 from merlin.models.tf.blocks.core.base import (
     Block,
-    BlockContext,
+    ModelContext,
     BlockType,
     ContextMixin,
     MetricOrMetricClass,
@@ -519,7 +519,7 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
     def __len__(self):
         return len(self.prediction_task_dict)
 
-    def _set_context(self, context: "BlockContext"):
+    def _set_context(self, context: "ModelContext"):
         for task in self.prediction_task_dict.values():
             task._set_context(context)
         super(ParallelPredictionBlock, self)._set_context(context)

@@ -35,7 +35,7 @@ from merlin.models.tf.blocks.core.aggregation import (
 )
 from merlin.models.tf.blocks.core.base import (
     Block,
-    BlockContext,
+    ModelContext,
     EmbeddingWithMetadata,
     NoOp,
     right_shift_layer,
@@ -103,6 +103,7 @@ from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, Pred
 from merlin.models.tf.prediction_tasks.classification import (
     BinaryClassificationTask,
     MultiClassClassificationTask,
+    ItemPredictionTask
 )
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
@@ -126,7 +127,7 @@ OptimizerV2.__repr__ = repr_utils.layer_repr_no_children
 
 __all__ = [
     "Block",
-    "BlockContext",
+    "ModelContext",
     "SequentialBlock",
     "ResidualBlock",
     "DualEncoderBlock",
@@ -167,6 +168,7 @@ __all__ = [
     "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
+    "ItemPredictionTask",
     "RegressionTask",
     "ItemRetrievalTask",
     "ItemRetrievalScorer",
