@@ -326,11 +326,11 @@ def test_last_item_prediction_task(
         aggregation="concat",
         seq=False,
         max_seq_length=4,
-        masking="clm",
+        masking={Tags.ITEM_ID: "clm"},
         split_sparse=True,
     )
     task = ml.ItemPredictionTask(
-        sequence_testing_data.schema, weight_tying=weight_tying, logits_temperature=0.5
+        weight_tying=weight_tying, logits_temperature=0.5
     )
 
     if sampled_softmax:

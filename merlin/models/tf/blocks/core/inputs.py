@@ -20,7 +20,7 @@ from typing import Dict, Optional, Tuple, Type, Union
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularAggregationType
-from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
+from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry, MaskInputs
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import (
@@ -145,12 +145,13 @@ def InputBlock(
             add_embedding_branch=add_embedding_branch,
             embedding_options=embedding_options,
             categorical_tags=categorical_tags,
+            masking=masking,
             split_sparse=False,
         )
-        if masking:
-            if isinstance(masking, str):
-                masking = masking_registry.parse(masking)()
-            sparse_interactions = sparse_interactions.connect(masking)
+        # if masking:
+        #     # if isinstance(masking, str):
+        #     #     masking = masking_registry.parse(masking)()
+        #     sparse_interactions = sparse_interactions.connect(MaskInputs(masking))
 
         if not seq:
             sparse_interactions = sparse_interactions.connect(seq_aggregator)
@@ -173,6 +174,7 @@ def InputBlock(
             categorical_tags=categorical_tags,
             split_sparse=False,
         )
+
 
     if add_continuous_branch and schema.select_by_tag(continuous_tags).column_schemas:
         pre = None
@@ -201,5 +203,8 @@ def InputBlock(
             post=post,
             name="continuous_projection",
         )
+
+    if masking:
+        kwargs["masking"] = masking
 
     return ParallelBlock(branches, aggregation=aggregation, post=post, is_input=True, **kwargs)

@@ -302,7 +302,7 @@ TupleAggregation.__call__ = _tuple_aggregation_call  # type: ignore
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class CosineSimilarity(TupleAggregation):
     def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
-        super().__init__(trainable, name, dtype, dynamic, **kwargs)
+        super().__init__(trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs)
         self.dot = Dot(axes=1, normalize=True)
 
     def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore

@@ -6,6 +6,7 @@ import tensorflow as tf
 
 from merlin.models.config.schema import SchemaMixin
 from merlin.models.tf.blocks.core.base import Block, BlockType, right_shift_layer
+from merlin.models.tf.blocks.core.masking import MaskingBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
@@ -16,15 +17,46 @@ from merlin.schema import Schema, Tags
 tabular_aggregation_registry: Registry = Registry.class_registry("tf.tabular_aggregations")
 
 
-class TabularAggregation(
-    SchemaMixin, tf.keras.layers.Layer, RegistryMixin["TabularAggregation"], abc.ABC
-):
+class TabularAggregation(Block, RegistryMixin["TabularAggregation"], abc.ABC):
     registry = tabular_aggregation_registry
 
     """Aggregation of `TabularData` that outputs a single `Tensor`"""
 
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
         raise NotImplementedError()
+
+    def build(self, input_shapes):
+        if hasattr(self, "mask"):
+            if not self.context.is_masked(self.mask_feature):
+                self.context.register_mask(self.mask_feature, self.mask)
+        else:
+            self.check_for_masks(input_shapes)
+
+        return super().build(input_shapes)
+
+    def with_mask(self, feature: Union[str, Tags], mask: Union[str, MaskingBlock]):
+        self.mask_feature = feature
+        self.mask = mask
+
+        return self
+
+    def check_for_masks(self, inputs):
+        for key in inputs.keys():
+            if self.context.is_masked(key):
+                self.mask_feature = key
+                self.mask = self.context.get_mask(key)
+
+    def apply_mask(self, inputs, features, **kwargs):
+        return self.mask(inputs, features[self.mask_feature], **kwargs)
+
+    def __call__(self, inputs, features, **kwargs):
+        self.check_for_masks(inputs)
+        aggregated = super().__call__(inputs, features=features, **kwargs)
+
+        if hasattr(self, "mask"):
+            aggregated = self.apply_mask(aggregated, features, **kwargs)
+
+        return aggregated
 
     def _expand_non_sequential_features(self, inputs: TabularData) -> TabularData:
         inputs_sizes = {k: v.shape for k, v in inputs.items()}
@@ -126,6 +158,7 @@ class TabularBlock(Block):
         post: Optional[BlockType] = None,
         aggregation: Optional[TabularAggregationType] = None,
         schema: Optional[Schema] = None,
+        masking=None,
         name: Optional[str] = None,
         is_input: bool = False,
         **kwargs,
@@ -134,7 +167,7 @@ class TabularBlock(Block):
         self.input_size = None
         self.set_pre(pre)
         self.set_post(post)
-        self.set_aggregation(aggregation)
+        self.set_aggregation(aggregation, masking=masking)
         self._is_input = is_input
 
         if schema:
@@ -225,6 +258,7 @@ class TabularBlock(Block):
     def post_call(
         self,
         inputs: TabularData,
+        features,
         transformations: Optional[BlockType] = None,
         merge_with: Optional[Union["TabularBlock", List["TabularBlock"]]] = None,
         aggregation: Optional[TabularAggregationType] = None,
@@ -266,7 +300,7 @@ class TabularBlock(Block):
         if _aggregation:
             if self.has_schema:
                 _aggregation.set_schema(self.schema)
-            return _aggregation(outputs)
+            return _aggregation(outputs, features)
 
         return outputs
 
@@ -413,7 +447,7 @@ class TabularBlock(Block):
         """
         return self._aggregation
 
-    def set_aggregation(self, value: Optional[Union[str, TabularAggregation]]):
+    def set_aggregation(self, value: Optional[Union[str, TabularAggregation]], masking=None):
         """
 
         Parameters
@@ -422,6 +456,10 @@ class TabularBlock(Block):
         """
         if value:
             self._aggregation: Optional[TabularAggregation] = TabularAggregation.parse(value)
+            if masking:
+                # TODO: Fix this
+                key, val = tuple(masking.items())[0]
+                self._aggregation = self._aggregation.with_mask(key, val)
         else:
             self._aggregation = None
 
@@ -450,6 +488,7 @@ def _tabular_call(  # type: ignore
     self,
     inputs: TabularData,
     *args,
+    features=None,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     merge_with: Optional[Union["TabularBlock", List["TabularBlock"]]] = None,
@@ -484,7 +523,7 @@ def _tabular_call(  # type: ignore
 
     if isinstance(outputs, dict):
         outputs = self.post_call(
-            outputs, transformations=post, merge_with=merge_with, aggregation=aggregation
+            outputs, features, transformations=post, merge_with=merge_with, aggregation=aggregation
         )
 
     return outputs

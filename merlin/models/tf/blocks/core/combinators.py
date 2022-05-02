@@ -213,9 +213,9 @@ class SequentialBlock(Block):
     ):
         from merlin.models.tf import PredictionTask
 
-        if getattr(self, "_need_to_call_context", False):
-            # convert sparse inputs to dense before storing them to the context?
-            self.context(AsDenseFeatures()(inputs))
+        # if getattr(self, "_need_to_call_context", False):
+        #     # convert sparse inputs to dense before storing them to the context?
+        #     self.context(AsDenseFeatures()(inputs))
 
         # TODO fix this
         if "features" not in kwargs:

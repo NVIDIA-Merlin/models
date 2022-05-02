@@ -41,6 +41,33 @@ MASK_SEQUENCE_PARAMETERS_DOCSTRING = """
 """
 
 
+class MaskInputs(Block):
+    def __init__(self, to_mask, **kwargs):
+        self.features_to_mask = to_mask
+        super().__init__(**kwargs)
+
+    def build(self, input_shapes):
+        # self.input_features = set(input_shapes.keys())
+        for feature, mask in self.features_to_mask.items():
+            if not self.context.is_masked(feature):
+                self.context.register_mask(feature, mask)
+            # if feature not in input_shapes:
+            #     raise ValueError(
+            #         f"{feature} is not in input_shapes. "
+            #         f"Available keys are {list(input_shapes.keys())}"
+            #     )
+
+            # self.context.register_mask(feature, mask)
+
+    def call(self, inputs, features, **kwargs):
+        outputs = self.context.apply_masks(inputs, features, **kwargs)
+
+        return outputs
+
+    def compute_output_shape(self, input_shapes):
+        return input_shapes
+
+
 @docstring_parameter(mask_sequence_parameters=MASK_SEQUENCE_PARAMETERS_DOCSTRING)
 @Block.registry.register_with_multiple_names("masking_block")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -79,17 +106,14 @@ class MaskingBlock(Block):
         self.item_id_feature_name = item_id_feature_name
 
     def build(self, input_shapes):
-        self.context.add_variable(
-            tf.Variable(
-                initial_value=tf.zeros([1, input_shapes[1]], dtype=tf.bool),
-                name="masking_schema",
-                trainable=False,
-                validate_shape=False,
-                shape=tf.TensorShape([None, input_shapes[1]]),
-            )
+        self.masking_schema = tf.Variable(
+            initial_value=tf.zeros([1, input_shapes[1]], dtype=tf.bool),
+            name="masking_schema",
+            trainable=False,
+            validate_shape=False,
+            shape=tf.TensorShape([None, input_shapes[1]]),
         )
-        self.context.padding_idx = self.padding_idx
-        self.context.item_id_feature_name = self.item_id_feature_name
+        self.feature_hash = -1
 
         self.masked_item_embedding = self.add_weight(
             name="mask_embedding",
@@ -109,17 +133,12 @@ class MaskingBlock(Block):
 
         super().build(input_shapes)
 
-    def add_features_to_context(self, feature_shapes) -> List[str]:
-        if not self.item_id_feature_name:
-            self.item_id_feature_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-
-        return [self.item_id_feature_name]
-
     def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
         raise NotImplementedError()
 
     def store_mask_schema(self, mask_schema: tf.Tensor):
-        self.context["masking_schema"].assign(mask_schema)
+        # self.context["masking_schema"].assign(mask_schema)
+        self.masking_schema.assign(mask_schema)
 
     def apply_mask_to_inputs(self, inputs: tf.Tensor, schema: tf.Tensor) -> tf.Tensor:
         inputs = tf.where(
@@ -129,12 +148,25 @@ class MaskingBlock(Block):
         )
         return inputs
 
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        items = self.context[self.schema.select_by_tag(Tags.ITEM_ID)]
-        mask_schema = self.compute_mask_schema(items, training=training)
-        self.store_mask_schema(mask_schema)
-        inputs = self.apply_mask_to_inputs(inputs, mask_schema)
-        return inputs
+    def apply_mask_to_targets(self, targets: tf.Tensor, schema: Optional[tf.Tensor] = None) -> tf.Tensor:
+        if schema is None:
+            schema = tf.convert_to_tensor(self.masking_schema)
+
+        targets = tf.where(schema, targets, self.padding_idx)
+
+        return targets
+
+    def call(self, inputs, feature: tf.Tensor, training=True, **kwargs) -> tf.Tensor:
+        if not hash(feature.ref()) == self.feature_hash:
+            mask_schema = self.compute_mask_schema(feature, training=training)
+            self.store_mask_schema(mask_schema)
+            self.feature_hash = hash(feature.ref())
+        else:
+            mask_schema = tf.convert_to_tensor(self.masking_schema)
+
+        outputs = self.apply_mask_to_inputs(inputs, mask_schema)
+
+        return outputs
 
     def get_config(self):
         config = super(MaskingBlock, self).get_config()

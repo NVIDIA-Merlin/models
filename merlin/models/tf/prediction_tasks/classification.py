@@ -205,11 +205,12 @@ class CategoricalPrediction(Block):
     def build(self, input_shape):
         if self.weight_tying:
             self.kernel = self.context.get_embedding(self.feature_name)
-            self.bias = self.add_weight(
-                name="output_layer_bias",
-                shape=(self.num_classes,),
-                initializer=self.bias_initializer,
-            )
+            if self.use_bias:
+                self.bias = self.add_weight(
+                    name="output_layer_bias",
+                    shape=(self.num_classes,),
+                    initializer=self.bias_initializer,
+                )
         else:
             self.output_classes.units = self.num_classes
             self.output_classes.build(input_shape)
@@ -271,26 +272,26 @@ class CategoricalPrediction(Block):
         if self.use_bias:
             outputs = nn_ops.bias_add(outputs, self.bias)
 
-        if self.output_activation is not None:
-            outputs = self.output_activation(outputs)
+        # if self.output_activation is not None:
+        #     outputs = self.output_activation(outputs)
 
         return outputs
 
-    def apply_mask(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
-        # targets = self.context[self.item_id_feature_name]
-        targets = self.prediction_block.get_targets(outputs)
-        mask = self.context.get_mask()
-        targets = tf.where(mask, targets, self.context.padding_idx)
-
-        outputs = remove_pad_3d(outputs.copy_with_updates(targets=targets))
-
-        # Convert labels to one-hot if necessary
-        if outputs.targets.shape != outputs.predictions.shape:
-            num_classes = tf.shape(outputs.predictions)[-1]
-            targets = transform_label_to_onehot(outputs.targets, num_classes)
-            outputs = outputs.copy_with_updates(targets=targets)
-
-        return outputs
+    # def apply_mask(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
+    #     # targets = self.context[self.item_id_feature_name]
+    #     targets = self.prediction_block.get_targets(outputs)
+    #     mask = self.context.get_mask()
+    #     targets = tf.where(mask, targets, self.context.padding_idx)
+    #
+    #     outputs = remove_pad_3d(outputs.copy_with_updates(targets=targets))
+    #
+    #     # Convert labels to one-hot if necessary
+    #     if outputs.targets.shape != outputs.predictions.shape:
+    #         num_classes = tf.shape(outputs.predictions)[-1]
+    #         targets = transform_label_to_onehot(outputs.targets, num_classes)
+    #         outputs = outputs.copy_with_updates(targets=targets)
+    #
+    #     return outputs
 
     def get_targets(
             self,
@@ -299,8 +300,20 @@ class CategoricalPrediction(Block):
             targets: Optional[Union[TabularData, tf.Tensor]] = None,
             **kwargs
     ):
+        feature_name = self.feature_name
+
         if not targets:
-            targets = features[self.feature_name]
+            targets = features[feature_name]
+
+        if self.context.is_masked(feature_name):
+            targets = self.context.get_mask(feature_name).apply_mask_to_targets(targets)
+            targets = remove_pad_3d_targets(targets)
+            # targets = transform_label_to_onehot(targets, self.num_classes)
+
+            # Convert labels to one-hot if necessary
+            # if isinstance(predictions, tf.Tensor) and targets.shape != predictions.shape:
+            #     num_classes = tf.shape(predictions)[-1]
+            #     targets = transform_label_to_onehot(targets, num_classes)
 
         return targets
 
@@ -387,38 +400,6 @@ class MultiClassClassificationTask(PredictionTask):
         )
         self.prediction_block = prediction_block
 
-    # @classmethod
-    # def from_schema(
-    #     cls,
-    #     schema: Schema,
-    #     feature: str = Tags.ITEM_ID,
-    #     weight_tying: bool = False,
-    #     masking: bool = False,
-    #     logits_temperature: float = 1.0,
-    #     bias_initializer="zeros",
-    #     kernel_initializer="random_normal",
-    #     pre: Optional[Block] = None,
-    #     post: Optional[Block] = None,
-    #     **kwargs,
-    # ) -> "MultiClassClassificationTask":
-    #     """Create from Schema."""
-    #     block = CategoricalPrediction(
-    #         schema,
-    #         feature_name,
-    #         bias_initializer=bias_initializer,
-    #         kernel_initializer=kernel_initializer,
-    #     )
-    #
-    #     return cls(
-    #         block,
-    #         pre=pre,
-    #         post=post,
-    #         weight_tying=weight_tying,
-    #         masking=masking,
-    #         logits_temperature=logits_temperature,
-    #         **kwargs,
-    #     )
-
     def to_contrastive(
             self,
             *samplers: ItemSampler,
@@ -482,31 +463,23 @@ class MultiClassClassificationTask(PredictionTask):
         predictions = self.prediction_block(inputs, training=training, testing=testing)
 
         if training or testing:
-            targets = self.prediction_block.get_targets(
-                inputs, features, targets, training=training, testing=testing
+            targets = self.get_targets(
+                inputs, features, predictions, targets, training=training, testing=testing
             )
 
             return TaskResults(predictions=predictions, targets=targets)
 
-    # def pre_loss(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
-    #     if self.context.has_mask:
-    #         outputs = self.prediction_block.apply_mask(outputs, **kwargs)
-    #
-    #     return outputs
+        return predictions
 
     def get_targets(
             self,
             inputs: Union[TabularData, tf.Tensor],
             features: DictWithSchema,
+            predictions: Optional[tf.Tensor] = None,
             targets: Optional[Union[TabularData, tf.Tensor]] = None,
             **kwargs
     ):
         targets = self.prediction_block.get_targets(inputs, features, targets, **kwargs)
-
-        if self.context.has_mask:
-            mask = self.context.get_mask()
-            targets = tf.where(mask, targets, self.context.padding_idx)
-            targets = remove_pad_3d_targets(targets)
 
         return targets
 
@@ -527,7 +500,6 @@ class MultiClassClassificationTask(PredictionTask):
 
 
 def ItemPredictionTask(
-        schema: Schema,
         dot_product: bool = False,
         weight_tying: bool = True,
         feature: Union[str, Tags] = Tags.ITEM_ID,
