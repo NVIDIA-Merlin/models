@@ -323,8 +323,6 @@ def test_last_item_prediction_task(
 ):
     inputs = ml.InputBlock(
         sequence_testing_data.schema,
-        aggregation="concat",
-        seq=False,
         max_seq_length=4,
         masking={Tags.ITEM_ID: "clm"},
         split_sparse=True,

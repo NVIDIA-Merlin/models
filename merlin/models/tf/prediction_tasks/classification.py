@@ -277,27 +277,12 @@ class CategoricalPrediction(Block):
 
         return outputs
 
-    # def apply_mask(self, outputs: PredictionOutput, **kwargs) -> "PredictionOutput":
-    #     # targets = self.context[self.item_id_feature_name]
-    #     targets = self.prediction_block.get_targets(outputs)
-    #     mask = self.context.get_mask()
-    #     targets = tf.where(mask, targets, self.context.padding_idx)
-    #
-    #     outputs = remove_pad_3d(outputs.copy_with_updates(targets=targets))
-    #
-    #     # Convert labels to one-hot if necessary
-    #     if outputs.targets.shape != outputs.predictions.shape:
-    #         num_classes = tf.shape(outputs.predictions)[-1]
-    #         targets = transform_label_to_onehot(outputs.targets, num_classes)
-    #         outputs = outputs.copy_with_updates(targets=targets)
-    #
-    #     return outputs
-
     def get_targets(
             self,
             inputs: Union[TabularData, tf.Tensor],
             features: DictWithSchema,
             targets: Optional[Union[TabularData, tf.Tensor]] = None,
+            one_hot: bool = True,
             **kwargs
     ):
         feature_name = self.feature_name
@@ -308,12 +293,8 @@ class CategoricalPrediction(Block):
         if self.context.is_masked(feature_name):
             targets = self.context.get_mask(feature_name).apply_mask_to_targets(targets)
             targets = remove_pad_3d_targets(targets)
-            # targets = transform_label_to_onehot(targets, self.num_classes)
-
-            # Convert labels to one-hot if necessary
-            # if isinstance(predictions, tf.Tensor) and targets.shape != predictions.shape:
-            #     num_classes = tf.shape(predictions)[-1]
-            #     targets = transform_label_to_onehot(targets, num_classes)
+            if one_hot:
+                targets = transform_label_to_onehot(targets, self.num_classes)
 
         return targets
 
@@ -477,9 +458,10 @@ class MultiClassClassificationTask(PredictionTask):
             features: DictWithSchema,
             predictions: Optional[tf.Tensor] = None,
             targets: Optional[Union[TabularData, tf.Tensor]] = None,
+            one_hot: bool = True,
             **kwargs
     ):
-        targets = self.prediction_block.get_targets(inputs, features, targets, **kwargs)
+        targets = self.prediction_block.get_targets(inputs, features, targets, one_hot=one_hot, **kwargs)
 
         return targets
 

@@ -132,7 +132,7 @@ class ContrastiveLearningTask(MultiClassClassificationTask):
             #
             #     return inputs
 
-        targets = self.get_targets(inputs, features, targets, training=training, testing=testing)
+        targets = self.get_targets(inputs, features, targets, training=training, testing=testing, one_hot=False)
         representation = self.create_representation(inputs, features, targets, training, testing)
         predictions = self.process_representation(representation, training, testing)
 

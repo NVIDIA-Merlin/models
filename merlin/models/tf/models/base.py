@@ -268,7 +268,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
     def compile(self,
                 optimizer='rmsprop',
-                # pre_loss=None,
                 prediction_task=None,
                 loss=None,
                 metrics=None,
@@ -477,6 +476,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
         outputs = self.prediction_output(x, y, testing=True)
+
         loss = self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
         metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
 

@@ -179,7 +179,6 @@ def TwoTowerModel(
 
     if not prediction_tasks:
         prediction_tasks = ItemPredictionTask(
-            schema,
             dot_product=True,
             logits_temperature=logits_temperature,
             **kwargs,
@@ -271,20 +270,6 @@ def YoutubeDNNRetrievalModel(
         split_sparse=True,
         seq_aggregator=seq_aggregator,
     ).connect(top_block)
-
-    # task = NextItemPredictionTask(
-    #     schema=schema,
-    #     loss=loss,
-    #     metrics=metrics,
-    #     masking=True,
-    #     weight_tying=False,
-    #     sampled_softmax=True,
-    #     extra_pre_call=extra_pre_call,
-    #     task_block=task_block,
-    #     logits_temperature=logits_temperature,
-    #     normalize=normalize,
-    #     num_sampled=num_sampled,
-    # )
 
     task = ItemPredictionTask(
         schema=schema,
