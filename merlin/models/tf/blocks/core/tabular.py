@@ -20,6 +20,8 @@ tabular_aggregation_registry: Registry = Registry.class_registry("tf.tabular_agg
 class TabularAggregation(Block, RegistryMixin["TabularAggregation"], abc.ABC):
     registry = tabular_aggregation_registry
 
+    _has_custom__call__ = True
+
     """Aggregation of `TabularData` that outputs a single `Tensor`"""
 
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
@@ -41,15 +43,19 @@ class TabularAggregation(Block, RegistryMixin["TabularAggregation"], abc.ABC):
         return self
 
     def check_for_masks(self, inputs):
-        for key in inputs.keys():
-            if self.context.is_masked(key):
-                self.mask_feature = key
-                self.mask = self.context.get_mask(key)
+        if isinstance(inputs, dict):
+            for key in inputs.keys():
+                if self.context.is_masked(key):
+                    self.mask_feature = key
+                    self.mask = self.context.get_mask(key)
 
     def apply_mask(self, inputs, features, **kwargs):
         return self.mask(inputs, features[self.mask_feature], **kwargs)
 
     def __call__(self, inputs, features, **kwargs):
+        if isinstance(inputs, tf.Tensor):
+            return inputs
+
         self.check_for_masks(inputs)
         aggregated = super().__call__(inputs, features=features, **kwargs)
 

@@ -18,6 +18,7 @@ from typing import Optional
 from merlin.models.tf.blocks.sampling.base import ItemSampler, Items
 
 
+@ItemSampler.registry.register("in-batch")
 class InBatchSampler(ItemSampler):
     """Provides in-batch sampling [1]_ for two-tower item retrieval
     models. The implementation is very simple, as it
@@ -64,6 +65,12 @@ class InBatchSampler(ItemSampler):
     def add(self, items: Items):
         self._check_inputs_batch_sizes(items)
         self._last_batch = items
+
+    def call(self, items: Items, training=False) -> Items:
+        self.add(items)
+        items = self.sample()
+
+        return items
 
     def sample(self) -> Items:
         return self._last_batch

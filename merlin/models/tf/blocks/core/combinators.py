@@ -18,6 +18,7 @@ from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType,
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.dataset import DictWithSchema
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import filter_kwargs_layer
 from merlin.models.utils import schema_utils
 from merlin.models.utils.misc_utils import filter_kwargs, has_kwargs
 from merlin.schema import Schema, Tags
@@ -37,6 +38,8 @@ class SequentialBlock(Block):
         c = SequentialLayer([layer1, layer2, layer3])
         output = c(inputs)    # Equivalent to: output = layer3(layer2(layer1(inputs)))
     """
+
+    _has_custom__call__ = True
 
     def __init__(
         self,
@@ -76,6 +79,9 @@ class SequentialBlock(Block):
                         layer
                     )
                 )
+
+        if block_name and "name" not in kwargs:
+            kwargs["name"] = block_name
 
         super(SequentialBlock, self).__init__(**kwargs)
 
@@ -225,27 +231,21 @@ class SequentialBlock(Block):
                 features = DictWithSchema(schema, features)
             kwargs["features"] = features
 
-        maybe_forward = {"training": training, "testing": testing}
+        flags = {"training": training, "testing": testing}
         outputs = inputs
 
         for i, layer in enumerate(self.layers):
+            filtered_kwargs = dict(**flags, **kwargs)
+            # We need to check if we need to forward kwargs to last layer
             if i == len(self.layers) - 1:
-                filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
-                filtered_kwargs.update(
-                    filter_kwargs(
-                        dict(**maybe_forward, **kwargs),
-                        layer.call,
-                        filter_positional_or_keyword=False,
-                    )
-                )
-            if isinstance(layer, PredictionTask):
-                filtered_kwargs = dict(targets=targets, **maybe_forward, **kwargs)
-            else:
-                filtered_kwargs = dict(**maybe_forward, **kwargs)
                 if not has_kwargs(layer):
-                    filtered_kwargs = filter_kwargs(
-                        filtered_kwargs, layer, filter_positional_or_keyword=False
-                    )
+                    filtered_kwargs = filter_kwargs_layer(filtered_kwargs, layer, filter_positional_or_keyword=False)
+            if isinstance(layer, PredictionTask):
+                filtered_kwargs = dict(targets=targets, **filtered_kwargs)
+            else:
+                filtered_kwargs = filter_kwargs_layer(
+                    filtered_kwargs, layer, filter_positional_or_keyword=False
+                )
             outputs = layer(outputs, **filtered_kwargs)
 
         return outputs
@@ -306,6 +306,8 @@ class ParallelBlock(TabularBlock):
         name the module should have.
     {tabular_module_parameters}
     """
+
+    _has_custom__call__ = True
 
     def __init__(
         self,

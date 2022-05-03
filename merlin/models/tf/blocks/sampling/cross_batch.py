@@ -360,6 +360,7 @@ class CachedUniformSampler(CachedCrossBatchSampler):
         )
 
 
+@ItemSampler.registry.register_with_multiple_names("popularity", "sampled-softmax")
 class PopularityBasedSampler(ItemSampler):
     """
     Provides a popularity-based negative sampling for the softmax layer

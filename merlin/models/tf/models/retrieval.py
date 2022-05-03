@@ -182,7 +182,7 @@ def TwoTowerModel(
             dot_product=True,
             logits_temperature=logits_temperature,
             **kwargs,
-        )
+        ).to_contrastive("in-batch")
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     two_tower = TwoTowerBlock(

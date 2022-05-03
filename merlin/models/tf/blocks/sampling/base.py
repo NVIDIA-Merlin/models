@@ -15,15 +15,11 @@
 #
 import abc
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Union, Callable
+from typing import List, Optional, Dict, Union, Callable, Sequence
 
 import tensorflow as tf
 from merlin.models.tf.blocks.core.base import Block
-from tensorflow.keras.layers import Layer
-
-from merlin.models.tf.typing import TabularData
-
-TensorOrCallable = Union[tf.Tensor, Callable[[tf.Tensor], tf.Tensor]]
+from merlin.models.utils.registry import Registry, RegistryMixin
 
 
 @dataclass
@@ -60,8 +56,12 @@ class Items:
         )
 
 
-class ItemSampler(abc.ABC, Block):
+negative_sampling_registry: Registry = Registry.class_registry("tf.negative_sampling")
+
+
+class ItemSampler(Block, RegistryMixin["ItemSampler"], abc.ABC):
     ITEM_EMBEDDING_KEY = "__item_embedding__"
+    registry = negative_sampling_registry
 
     def __init__(
             self,
@@ -120,3 +120,6 @@ def _list_to_tensor(input_list: List[tf.Tensor]) -> tf.Tensor:
         output = tf.concat(input_list, axis=0)
 
     return output
+
+
+ItemSamplersType = Union[ItemSampler, Sequence[Union[ItemSampler, str]], str]

@@ -24,7 +24,7 @@ from merlin.models.tf.blocks.core.transformations import remove_pad_3d_targets
 from merlin.models.tf.dataset import DictWithSchema
 from merlin.models.tf.prediction_tasks.base import PredictionTask
 
-from merlin.models.tf.blocks.sampling.base import ItemSampler, Items
+from merlin.models.tf.blocks.sampling.base import ItemSampler, Items, ItemSamplersType
 from merlin.schema import Schema, Tags
 
 from merlin.models.tf.blocks.core.base import (
@@ -35,6 +35,7 @@ from merlin.models.tf.blocks.core.base import (
 )
 from merlin.models.tf.prediction_tasks.classification import (
     CategoricalPrediction,
+    DotProductPrediction,
     MultiClassClassificationTask
 )
 from merlin.models.tf.typing import TabularData
@@ -77,8 +78,8 @@ class ContrastiveRepresentation:
 class ContrastiveLearningTask(MultiClassClassificationTask):
     def __init__(
             self,
-            *samplers: ItemSampler,
-            prediction_block: Optional[CategoricalPrediction] = None,
+            samplers: ItemSamplersType,
+            prediction_block: Union[CategoricalPrediction, DotProductPrediction],
             item_metadata_schema: Optional[Schema] = None,
             item_id_tag: Tags = Tags.ITEM_ID,
             query_id_tag: Tags = Tags.USER_ID,
@@ -92,7 +93,9 @@ class ContrastiveLearningTask(MultiClassClassificationTask):
             name: Optional[Text] = None,
             **kwargs,
     ):
-        self.samplers = list(samplers)
+        if not isinstance(samplers, (list, tuple)):
+            samplers = [samplers]
+        self.samplers = [ItemSampler.parse(s) for s in list(samplers)]
         self.item_metadata_schema = item_metadata_schema
         self.item_id_tag = item_id_tag
         self.query_id_tag = query_id_tag
@@ -121,17 +124,6 @@ class ContrastiveLearningTask(MultiClassClassificationTask):
         if not (training or testing):
             return self.prediction_block(inputs, training=training, testing=testing)
 
-            # if isinstance(inputs, dict):
-            #     scores = tf.reduce_sum(
-            #         tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
-            #     )
-            #     return scores
-            # else:
-            #     if self.prediction_block:
-            #         return self.prediction_block(inputs, training=training, testing=testing)
-            #
-            #     return inputs
-
         targets = self.get_targets(inputs, features, targets, training=training, testing=testing, one_hot=False)
         representation = self.create_representation(inputs, features, targets, training, testing)
         predictions = self.process_representation(representation, training, testing)
@@ -157,27 +149,6 @@ class ContrastiveLearningTask(MultiClassClassificationTask):
             return self.prediction_block.compute_output_shape(input_shape)
 
         return input_shape
-
-    # def create_targets(
-    #         self,
-    #         inputs: Union[TabularData, tf.Tensor],
-    #         features: DictWithSchema,
-    #         targets: Optional[Union[TabularData, tf.Tensor]] = None,
-    #         **kwargs
-    # ):
-    #     if isinstance(inputs, dict) and "item_id" in inputs:
-    #         targets = inputs["item_id"]
-    #     elif targets:
-    #         targets = targets
-    #     else:
-    #         targets = features[Tags.ITEM_ID]
-    #
-    #     if self.context.has_mask:
-    #         mask = self.context.get_mask()
-    #         targets = tf.where(mask, targets, self.context.padding_idx)
-    #         targets = remove_pad_3d_targets(targets)
-    #
-    #     return targets
 
     def create_representation(
             self,

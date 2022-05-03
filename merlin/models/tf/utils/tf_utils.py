@@ -20,6 +20,7 @@ import tensorflow as tf
 from packaging import version
 
 from merlin.models.tf.typing import TabularData
+from merlin.models.utils.misc_utils import filter_kwargs
 
 if version.parse(tf.__version__) < version.parse("2.3.0"):
     try:
@@ -248,3 +249,18 @@ def add_epsilon_to_zeros(tensor: tf.Tensor, epsilon: float = 1e-24) -> tf.Tensor
         The tensor without zeros
     """
     return tf.where(tf.equal(tensor, 0.0), tensor + epsilon, tensor)
+
+
+def filter_kwargs_layer(kwargs, layer, filter_positional_or_keyword=True):
+    has_custom_call = getattr(layer, "_has_custom__call__", False)
+
+    filtered_kwargs = filter_kwargs(
+        kwargs, layer, filter_positional_or_keyword=filter_positional_or_keyword
+    )
+
+    if not has_custom_call:
+        filtered_kwargs = filter_kwargs(
+            filtered_kwargs, layer.call, filter_positional_or_keyword=filter_positional_or_keyword
+        )
+
+    return filtered_kwargs

@@ -15,12 +15,12 @@
 #
 from __future__ import annotations
 
-from typing import Optional, Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING, Sequence
 
 import tensorflow as tf
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 
-from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.blocks.sampling.base import ItemSampler, ItemSamplersType
 from tensorflow.keras.layers import Layer
 from tensorflow.python.eager import context
 from tensorflow.python.framework import sparse_tensor
@@ -30,8 +30,13 @@ from tensorflow.python.ops import embedding_ops, math_ops, sparse_ops, gen_math_
 from merlin.models.tf.dataset import DictWithSchema
 from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics, PredictionOutput, TaskResults
-from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler, RemovePad3D, L2Norm, remove_pad_3d, \
+from merlin.models.tf.blocks.core.transformations import (
+    LogitsTemperatureScaler,
+    RemovePad3D,
+    L2Norm,
+    remove_pad_3d,
     remove_pad_3d_targets
+)
 from merlin.models.tf.prediction_tasks.base import PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
@@ -302,7 +307,7 @@ class CategoricalPrediction(Block):
         return input_shape[:-1] + (self.num_classes,)
 
 
-class DotProduct(Layer):
+class DotProductPrediction(Layer):
     def call(self, inputs, training=False, testing=False):
         scores = tf.reduce_sum(
             tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
@@ -383,7 +388,7 @@ class MultiClassClassificationTask(PredictionTask):
 
     def to_contrastive(
             self,
-            *samplers: ItemSampler,
+            samplers: ItemSamplersType,
             item_metadata_schema: Optional[Schema] = None,
             item_id_tag: Tags = Tags.ITEM_ID,
             query_id_tag: Tags = Tags.USER_ID,
@@ -393,7 +398,7 @@ class MultiClassClassificationTask(PredictionTask):
         from merlin.models.tf import ContrastiveLearningTask
 
         return ContrastiveLearningTask(
-            *samplers,
+            samplers,
             prediction_block=self.prediction_block,
             item_metadata_schema=item_metadata_schema,
             item_id_tag=item_id_tag,
@@ -498,7 +503,7 @@ def ItemPredictionTask(
         masking = False
         if normalize:
             pre = L2Norm().connect(pre) if pre else L2Norm()
-        prediction_block = DotProduct(**kwargs)
+        prediction_block = DotProductPrediction(**kwargs)
     else:
         prediction_block = CategoricalPrediction(
             feature, weight_tying=weight_tying, **kwargs

@@ -37,18 +37,11 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
     metrics = [RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)]
-    model = mm.TwoTowerModel(
-        schema=ecommerce_data.schema,
-        query_tower=mm.MLPBlock([128, 64]),
-        # samplers=[mm.InBatchSampler()],
-        # metrics=metrics,
-        # loss=loss,
-    )
+    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([128, 64]))
     model.compile(
         optimizer="adam",
         run_eagerly=run_eagerly,
         metrics=metrics,
-        pre_loss=mm.NegativeSampling(ecommerce_data.schema, mm.InBatchSampler()),
         loss=loss
     )
 

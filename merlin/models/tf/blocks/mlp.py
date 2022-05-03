@@ -91,18 +91,21 @@ def MLPBlock(
         if no_activation_last_layer and idx == len(dimensions) - 1:
             activation = "linear"
 
-        block_layers.append(
-            _Dense(
-                dim,
-                activation=activation,
-                use_bias=use_bias,
-                kernel_initializer=kernel_initializer,
-                bias_initializer=bias_initializer,
-                kernel_regularizer=kernel_regularizer,
-                bias_regularizer=bias_regularizer,
-                activity_regularizer=activity_regularizer,
-            )
+        dense = tf.keras.layers.Dense(
+            dim,
+            activation=activation,
+            use_bias=use_bias,
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            kernel_regularizer=kernel_regularizer,
+            bias_regularizer=bias_regularizer,
+            activity_regularizer=activity_regularizer,
         )
+
+        if idx == 0:
+            dense = DenseBlock(dense)
+
+        block_layers.append(dense)
         if dropout:
             block_layers.append(tf.keras.layers.Dropout(dropout))
         if normalization:
@@ -164,66 +167,20 @@ def DenseResidualBlock(
     return output
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class _Dense(tf.keras.layers.Layer):
-    def __init__(
-        self,
-        units,
-        activation=None,
-        use_bias=True,
-        kernel_initializer="glorot_uniform",
-        bias_initializer="zeros",
-        kernel_regularizer=None,
-        bias_regularizer=None,
-        activity_regularizer=None,
-        kernel_constraint=None,
-        bias_constraint=None,
-        pre_aggregation="concat",
-        dense=None,
-        **kwargs
-    ):
-        super(_Dense, self).__init__(**kwargs)
-        self.dense = dense or tf.keras.layers.Dense(
-            units,
-            activation,
-            use_bias,
-            kernel_initializer,
-            bias_initializer,
-            kernel_regularizer,
-            bias_regularizer,
-            activity_regularizer,
-            kernel_constraint,
-            bias_constraint,
-            **kwargs
-        )
-        self.pre_aggregation = pre_aggregation
-        self.units = units
+def DenseBlock(dense: tf.keras.layers.Dense, pre_aggregation="concat", **kwargs) -> SequentialBlock:
+    """A block that applies a dense block to the input.
 
-    def call(self, inputs, training=False, **kwargs):
-        if isinstance(inputs, dict):
-            inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
+    Parameters
+    ----------
+    dense: tf.keras.layers.Dense
+        The dense layer to apply.
+    pre_aggregation: str
+        The aggregation method to use before the dense layer.
+    """
 
-        return self.dense(inputs, training=training)
+    _pre_aggregation = tabular_aggregation_registry.parse(pre_aggregation)
 
-    def compute_output_shape(self, input_shape):
-        if isinstance(input_shape, dict):
-            agg = tabular_aggregation_registry.parse(self.pre_aggregation)
-            input_shape = agg.compute_output_shape(input_shape)
-
-        return super(_Dense, self).compute_output_shape(input_shape)
-
-    def get_config(self):
-        config = super(_Dense, self).get_config()
-        config["pre_aggregation"] = self.pre_aggregation
-        config["units"] = self.units
-
-        return maybe_serialize_keras_objects(self, config, ["dense"])
-
-    @classmethod
-    def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, {"dense": tf.keras.layers.deserialize})
-
-        return cls(**config)
+    return SequentialBlock(_pre_aggregation, dense, block_name="DenseBlock", **kwargs)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -258,7 +215,7 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         last_dim = input_shape[-1]
 
         if self.dense is None:
-            self.dense = _Dense(
+            self.dense = tf.keras.layers.Dense(
                 last_dim,
                 activation=self.activation,
                 kernel_initializer=self.kernel_initializer,
@@ -269,7 +226,7 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
             )
 
         if self.low_rank_dim is not None and self.dense_u is None:
-            self.dense_u = _Dense(
+            self.dense_u = tf.keras.layers.Dense(
                 self.low_rank_dim,
                 activation=self.activation,
                 kernel_initializer=self.kernel_initializer,
@@ -278,9 +235,11 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
             )
         super(DenseMaybeLowRank, self).build(input_shape)
 
-    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, features=None, **kwargs) -> tf.Tensor:
         if isinstance(inputs, dict):
-            inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
+            inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(
+                inputs, features=features, training=kwargs.get("training", False)
+            )
 
         if self.low_rank_dim is None:
             return self.dense(inputs)  # type: ignore

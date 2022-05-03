@@ -126,8 +126,10 @@ class DualEncoderBlock(ParallelBlock):
         strict : bool, optional
             If enabled, check that the input of the ParallelBlock instance is a dictionary.
         """
-        self._query_block = TowerBlock(query_block)
-        self._item_block = TowerBlock(item_block)
+        self._query_block = TowerBlock(query_block, block_name="QueryBlock")
+        self._query_block._name = "query"
+        self._item_block = TowerBlock(item_block, block_name="ItemBlock")
+        self._item_block._name = "item"
 
         if output_ids:
             query_id = query_block.schema.select_by_tag(query_id_tag)

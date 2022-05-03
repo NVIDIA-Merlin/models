@@ -299,6 +299,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
     """Core abstraction in Merlin models."""
 
     registry = block_registry
+    _has_custom__call__ = False
 
     def __init__(self, context: Optional[ModelContext] = None, schema: Optional[Schema] = None, **kwargs):
         super(Block, self).__init__(**kwargs)

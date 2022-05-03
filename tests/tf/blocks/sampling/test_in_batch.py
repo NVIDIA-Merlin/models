@@ -64,14 +64,11 @@ def test_inbatch_sampler_metadata_diff_shape():
     assert "The batch size (first dim) of embedding" in str(excinfo.value)
 
 
-def test_inbatch_sampler_in_model(ecommerce_data: Dataset):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_inbatch_sampler_in_model(ecommerce_data: Dataset, run_eagerly: bool):
     ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
     model = ml.TwoTowerModel(ecommerce_data.schema, ml.MLPBlock([512, 128]))
-    model.compile(
-        # pre_loss=ml.ContrastiveLearning(ecommerce_data.schema, ml.InBatchSampler()),
-        run_eagerly=True,
-        prediction_task=ml.ContrastiveLearningTask(ecommerce_data.schema, ml.InBatchSampler()),
-    )
+    model.compile(run_eagerly=run_eagerly)
 
     model.fit(ecommerce_data, epochs=1, batch_size=100)

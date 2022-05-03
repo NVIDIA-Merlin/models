@@ -57,9 +57,11 @@ class MetricsComputeCallback(tf.keras.callbacks.Callback):
 class ModelBlock(Block, tf.keras.Model):
     """Block that extends `tf.keras.Model` to make it saveable."""
 
-    def __init__(self, block: Block, **kwargs):
+    def __init__(self, block: Block, block_name: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
         self.block = block
+        if block_name:
+            self.block.block_name = block_name
 
     def call(self, inputs, **kwargs):
         outputs = self.block(inputs, **kwargs)
@@ -178,7 +180,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             # if not isinstance(blocks[-1], ModelLikeBlock):
             #     raise ValueError("Last block must be able to calculate loss & metrics.")
-            self.block = SequentialBlock(blocks, context=context)
+            self.block = SequentialBlock(blocks, context=context, block_name="blocks")
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
         self.context = context
@@ -674,39 +676,39 @@ class RetrievalModel(Model):
         self.has_ranking_metric = any(isinstance(m, RankingMetric) for m in self.metrics)
         self.has_item_corpus = False
 
-        if item_corpus:
-            from merlin.models.tf.blocks.core.index import TopKIndexBlock
-
-            self.has_item_corpus = True
-
-            if isinstance(item_corpus, TopKIndexBlock):
-                self.loss_block.pre_eval_topk = item_corpus  # type: ignore
-            elif isinstance(item_corpus, merlin.io.Dataset):
-                item_corpus = unique_rows_by_features(item_corpus, Tags.ITEM, Tags.ITEM_ID)
-                item_block = self.retrieval_block.item_block()
-                loss_block = self.loss_block
-
-                if loss_block.pre_eval_topk is None:
-                    ranking_metrics = list(
-                        [metric for metric in self.metrics if isinstance(metric, RankingMetric)]
-                    )
-                    loss_block.pre_eval_topk = TopKIndexBlock.from_block(
-                        item_block,
-                        data=item_corpus,
-                        k=tf.reduce_max([metric.k for metric in ranking_metrics]),
-                        context=self.context,
-                        **kwargs,
-                    )
-                else:
-                    loss_block.pre_eval_topk.update_from_block(item_block, item_corpus)
-            else:
-                raise ValueError(
-                    "`item_corpus` must be either a `TopKIndexBlock` or a `Dataset`. ",
-                    f"Got {type(item_corpus)}",
-                )
+        # if item_corpus:
+        #     from merlin.models.tf.blocks.core.index import TopKIndexBlock
+        #
+        #     self.has_item_corpus = True
+        #
+        #     if isinstance(item_corpus, TopKIndexBlock):
+        #         self.loss_block.pre_eval_topk = item_corpus  # type: ignore
+        #     elif isinstance(item_corpus, merlin.io.Dataset):
+        #         item_corpus = unique_rows_by_features(item_corpus, Tags.ITEM, Tags.ITEM_ID)
+        #         item_block = self.retrieval_block.item_block()
+        #         loss_block = self.loss_block
+        #
+        #         if loss_block.pre_eval_topk is None:
+        #             ranking_metrics = list(
+        #                 [metric for metric in self.metrics if isinstance(metric, RankingMetric)]
+        #             )
+        #             loss_block.pre_eval_topk = TopKIndexBlock.from_block(
+        #                 item_block,
+        #                 data=item_corpus,
+        #                 k=tf.reduce_max([metric.k for metric in ranking_metrics]),
+        #                 context=self.context,
+        #                 **kwargs,
+        #             )
+        #         else:
+        #             loss_block.pre_eval_topk.update_from_block(item_block, item_corpus)
+        #     else:
+        #         raise ValueError(
+        #             "`item_corpus` must be either a `TopKIndexBlock` or a `Dataset`. ",
+        #             f"Got {type(item_corpus)}",
+        #         )
 
             # set cache_query to True in the ItemRetrievalScorer
-            self.loss_block.set_retrieval_cache_query(True)  # type: ignore
+            # self.loss_block.set_retrieval_cache_query(True)  # type: ignore
 
         return super().evaluate(
             x,
