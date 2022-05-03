@@ -75,6 +75,7 @@ class ContrastiveRepresentation:
         return ContrastiveRepresentation(self.query.shape, self.positive.shape, self.negative.shape)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ContrastiveLearningTask(MultiClassClassificationTask):
     def __init__(
             self,

@@ -110,6 +110,7 @@ class EmbeddingFeatures(TabularBlock):
         embedding_options: EmbeddingOptions = EmbeddingOptions(),
         tags: Optional[TagsType] = None,
         max_sequence_length: Optional[int] = None,
+        namespace: Optional[str] = None,
         **kwargs,
     ) -> Optional["EmbeddingFeatures"]:
         schema_copy = copy(schema)
@@ -154,6 +155,9 @@ class EmbeddingFeatures(TabularBlock):
         if not feature_config:
             return None
 
+        if namespace:
+            kwargs["name"] = f"{namespace}/EmbeddingFeatures"
+
         output = cls(feature_config, schema=schema_copy, **kwargs)
 
         return output
@@ -170,12 +174,15 @@ class EmbeddingFeatures(TabularBlock):
             add_fn = (
                 self.context.add_embedding_weight if hasattr(self, "_context") else self.add_weight
             )
+            # add_fn = self.add_weight
             self.embedding_tables[name] = add_fn(
                 name=name,
                 trainable=True,
                 initializer=table.initializer,
                 shape=(table.vocabulary_size, table.dim),
             )
+
+        # self.context.register_block(self, name=self.name)
         if isinstance(input_shapes, dict):
             super().build(input_shapes)
         else:
@@ -223,8 +230,16 @@ class EmbeddingFeatures(TabularBlock):
 
         return out
 
-    def table_config(self, feature_name: str):
-        return self.feature_config[feature_name].table
+    def table_config(self, feature: Union[str, Tags]):
+        if isinstance(feature, Tags):
+            feature = self.context.schema.select_by_tag(feature).first.name
+        return self.feature_config[feature].table
+
+    def embedding_table(self, feature: Union[str, Tags]):
+        table = self.table_config(feature)
+        table_var = self.embedding_tables[table.name]
+
+        return table_var
 
     def embedding_table_df(self, table_name: Union[str, Tags], gpu=True):
         if isinstance(table_name, Tags):

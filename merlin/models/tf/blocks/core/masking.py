@@ -41,33 +41,6 @@ MASK_SEQUENCE_PARAMETERS_DOCSTRING = """
 """
 
 
-class MaskInputs(Block):
-    def __init__(self, to_mask, **kwargs):
-        self.features_to_mask = to_mask
-        super().__init__(**kwargs)
-
-    def build(self, input_shapes):
-        # self.input_features = set(input_shapes.keys())
-        for feature, mask in self.features_to_mask.items():
-            if not self.context.is_masked(feature):
-                self.context.register_mask(feature, mask)
-            # if feature not in input_shapes:
-            #     raise ValueError(
-            #         f"{feature} is not in input_shapes. "
-            #         f"Available keys are {list(input_shapes.keys())}"
-            #     )
-
-            # self.context.register_mask(feature, mask)
-
-    def call(self, inputs, features, **kwargs):
-        outputs = self.context.apply_masks(inputs, features, **kwargs)
-
-        return outputs
-
-    def compute_output_shape(self, input_shapes):
-        return input_shapes
-
-
 @docstring_parameter(mask_sequence_parameters=MASK_SEQUENCE_PARAMETERS_DOCSTRING)
 @Block.registry.register_with_multiple_names("masking_block")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

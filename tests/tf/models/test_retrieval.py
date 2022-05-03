@@ -6,6 +6,8 @@ from merlin.io import Dataset
 from merlin.models.tf.metrics.ranking import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
 from merlin.schema import Tags
 
+from merlin.models.tf.utils.testing_utils import assert_model_is_retrainable
+
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
@@ -77,6 +79,8 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     metrics = model.evaluate(ecommerce_data, batch_size=10, item_corpus=ecommerce_data)
 
     assert len(metrics) == 6
+
+    assert_model_is_retrainable(model, ecommerce_data, run_eagerly=run_eagerly)
 
 
 # def test_retrieval_evaluation_without_negatives(ecommerce_data: Dataset):

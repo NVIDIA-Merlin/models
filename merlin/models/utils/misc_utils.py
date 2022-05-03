@@ -32,20 +32,17 @@ def has_kwargs(to_check):
     return any([True for p in params if p.kind == p.VAR_KEYWORD])
 
 
-def filter_kwargs(kwargs, thing_with_kwargs, filter_positional_or_keyword=True):
-    sig = inspect.signature(thing_with_kwargs)
-    if filter_positional_or_keyword:
-        filter_keys = [
-            param.name
-            for param in sig.parameters.values()
-            if param.kind == param.POSITIONAL_OR_KEYWORD
-        ]
+def filter_kwargs(kwargs, thing_with_kwargs, cascade_kwargs_if_possible=False):
+    # sig = inspect.signature(thing_with_kwargs)
+    arg_spec = inspect.getfullargspec(thing_with_kwargs)
+    if cascade_kwargs_if_possible and arg_spec.varkw is not None:
+        return kwargs
     else:
-        filter_keys = [param.name for param in sig.parameters.values()]
-    filtered_dict = {
-        filter_key: kwargs[filter_key] for filter_key in filter_keys if filter_key in kwargs
-    }
-    return filtered_dict
+        filter_keys = arg_spec.args
+        filtered_dict = {
+            filter_key: kwargs[filter_key] for filter_key in filter_keys if filter_key in kwargs
+        }
+        return filtered_dict
 
 
 def safe_json(data):

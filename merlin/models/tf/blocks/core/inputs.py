@@ -20,7 +20,7 @@ from typing import Dict, Optional, Tuple, Type, Union
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularAggregationType
-from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry, MaskInputs
+from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import (
@@ -49,8 +49,9 @@ def InputBlock(
     categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
     sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
     split_sparse: bool = False,
-    masking: Optional[Union[str, MaskingBlock]] = None,
+    masking: Optional[Dict[Union[str, Tags], Union[str, MaskingBlock]]] = None,
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+    name: Optional[str] = None,
     **kwargs,
 ) -> Block:
     """The entry block of the model to process input features from a schema.
@@ -147,6 +148,7 @@ def InputBlock(
             categorical_tags=categorical_tags,
             masking=masking,
             split_sparse=False,
+            name=f"{name}/sparse" if name else "sparse",
         )
         # if masking:
         #     # if isinstance(masking, str):
@@ -173,8 +175,8 @@ def InputBlock(
             embedding_options=embedding_options,
             categorical_tags=categorical_tags,
             split_sparse=False,
+            name=name
         )
-
 
     if add_continuous_branch and schema.select_by_tag(continuous_tags).column_schemas:
         pre = None
@@ -192,7 +194,11 @@ def InputBlock(
             emb_kwargs["max_seq_length"] = max_seq_length
 
         branches["categorical"] = emb_cls.from_schema(  # type: ignore
-            schema, tags=categorical_tags, embedding_options=embedding_options, **emb_kwargs
+            schema,
+            tags=categorical_tags,
+            embedding_options=embedding_options,
+            **emb_kwargs,
+            namespace=name,
         )
 
     if continuous_projection:

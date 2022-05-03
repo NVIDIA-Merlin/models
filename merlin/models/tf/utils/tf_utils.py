@@ -251,16 +251,16 @@ def add_epsilon_to_zeros(tensor: tf.Tensor, epsilon: float = 1e-24) -> tf.Tensor
     return tf.where(tf.equal(tensor, 0.0), tensor + epsilon, tensor)
 
 
-def filter_kwargs_layer(kwargs, layer, filter_positional_or_keyword=True):
+def filter_kwargs_layer(kwargs, layer, cascade_kwargs_if_possible=False):
     has_custom_call = getattr(layer, "_has_custom__call__", False)
 
     filtered_kwargs = filter_kwargs(
-        kwargs, layer, filter_positional_or_keyword=filter_positional_or_keyword
+        kwargs, layer, cascade_kwargs_if_possible=cascade_kwargs_if_possible
     )
 
     if not has_custom_call:
         filtered_kwargs = filter_kwargs(
-            filtered_kwargs, layer.call, filter_positional_or_keyword=filter_positional_or_keyword
+            filtered_kwargs, layer.call, cascade_kwargs_if_possible=cascade_kwargs_if_possible
         )
 
     return filtered_kwargs

@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Sequence, Union, overload
 
 import tensorflow as tf
 
-from merlin.models.config.schema import SchemaMixin
+# from merlin.models.config.schema import SchemaMixin
 from merlin.models.tf.blocks.core.base import Block, BlockType, right_shift_layer
 from merlin.models.tf.blocks.core.masking import MaskingBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
@@ -43,7 +43,7 @@ class TabularAggregation(Block, RegistryMixin["TabularAggregation"], abc.ABC):
         return self
 
     def check_for_masks(self, inputs):
-        if isinstance(inputs, dict):
+        if isinstance(inputs, dict) and hasattr(self, "context"):
             for key in inputs.keys():
                 if self.context.is_masked(key):
                     self.mask_feature = key
@@ -52,7 +52,7 @@ class TabularAggregation(Block, RegistryMixin["TabularAggregation"], abc.ABC):
     def apply_mask(self, inputs, features, **kwargs):
         return self.mask(inputs, features[self.mask_feature], **kwargs)
 
-    def __call__(self, inputs, features, **kwargs):
+    def __call__(self, inputs, features=None, **kwargs):
         if isinstance(inputs, tf.Tensor):
             return inputs
 

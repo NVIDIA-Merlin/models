@@ -24,7 +24,7 @@ def DLRMModel(
     embedding_dim: int,
     bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
-    prediction_tasks: Optional[
+    prediction_task: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
 ) -> Model:
@@ -51,7 +51,7 @@ def DLRMModel(
     top_block : Optional[Block], optional
         The optional `Block` that combines the outputs of bottom layer and of
         the factorization machine layer, by default None
-    prediction_tasks: optional
+    prediction_task: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
 
     Returns
@@ -59,16 +59,16 @@ def DLRMModel(
     Model
 
     """
-
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-
     dlrm_body = DLRMBlock(
         schema,
         embedding_dim=embedding_dim,
         bottom_block=bottom_block,
         top_block=top_block,
     )
-    model = dlrm_body.connect(prediction_tasks)
+    if not prediction_task:
+        model = Model(dlrm_body, infer_prediction_tasks=True)
+    else:
+        model = Model(dlrm_body, prediction_task)
 
     return model
 

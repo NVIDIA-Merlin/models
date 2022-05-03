@@ -75,17 +75,14 @@ def MatrixFactorizationModel(
     """
 
     if not prediction_tasks:
-        prediction_tasks = ItemRetrievalTask(
-            schema,
-            metrics=metrics,
+        prediction_tasks = ItemPredictionTask(
+            dot_product=True,
             logits_temperature=logits_temperature,
-            samplers=list(samplers),
-            loss=loss,
             **kwargs,
-        )
+        ).to_contrastive("in-batch")
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    two_tower = QueryItemIdsEmbeddingsBlock(
+    mf = QueryItemIdsEmbeddingsBlock(
         schema=schema,
         dim=dim,
         query_id_tag=query_id_tag,
@@ -95,7 +92,7 @@ def MatrixFactorizationModel(
         **kwargs,
     )
 
-    model = two_tower.connect(prediction_tasks)
+    model = RetrievalModel(mf, prediction_tasks)
 
     return model
 
@@ -266,13 +263,12 @@ def YoutubeDNNRetrievalModel(
         aggregation=aggregation,
         seq=False,
         max_seq_length=max_seq_length,
-        masking="clm",
+        masking={Tags.ITEM_ID: "clm"},
         split_sparse=True,
         seq_aggregator=seq_aggregator,
     ).connect(top_block)
 
     task = ItemPredictionTask(
-        schema=schema,
         weight_tying=False,
         logits_temperature=logits_temperature,
         normalize=normalize,

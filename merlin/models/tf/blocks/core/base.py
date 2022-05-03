@@ -106,14 +106,22 @@ class ModelContext(Layer):
 
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, schema: Optional[Schema] = None, **kwargs):
         feature_names = kwargs.pop("feature_names", [])
         feature_dtypes = kwargs.pop("feature_dtypes", {})
         super(ModelContext, self).__init__(**kwargs)
         self._feature_names = feature_names
         self._feature_dtypes = feature_dtypes
-        self._schema = None
+        self._schema = schema
         self._masks = {}
+        self._blocks = {}
+
+    def register_block(self, block: Block,  name: Optional[str] = None):
+        name = name or block.name
+        self._blocks[name] = block
+
+    def get_block(self, name: str) -> Block:
+        return self._blocks[name]
 
     def register_mask(self, feature: Union[str, Tags], mask):
         if isinstance(feature, Tags):
@@ -130,17 +138,6 @@ class ModelContext(Layer):
             feature = self.schema.select_by_tag(feature).first.name
 
         return feature in self._masks
-
-    # def apply_masks(self, inputs, features, **kwargs):
-    #     if isinstance(inputs, dict):
-    #         for key, val in inputs.items():
-    #             if self.is_masked(key):
-    #                 inputs[key] = self._masks[key](val, features[key], **kwargs)
-    #
-    #     else:
-    #         pass
-    #
-    #     return inputs
 
     def get_mask(self, feature: Union[str, Tags]):
         if isinstance(feature, Tags):
@@ -197,6 +194,14 @@ class ModelContext(Layer):
         else:
             item = str(item)
         return self.named_variables[f"{item}/embedding"]
+
+    @property
+    def trainable_weights(self):
+        return []
+
+    @property
+    def non_trainable_weights(self):
+        return []
 
     # def get_mask(self):
     #     mask_schema = self.named_variables.get("masking_schema", None)

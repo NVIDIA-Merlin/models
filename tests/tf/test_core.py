@@ -72,17 +72,18 @@ def test_serialization_continuous_features(
 
 
 class DummyFeaturesBlock(ml.Block):
-    def add_features_to_context(self, feature_shapes) -> List[str]:
-        return [Tags.ITEM_ID.value]
+    def call(self, inputs, features, **kwargs):
+        items = features[Tags.ITEM_ID]
 
-    def call(self, inputs, **kwargs):
-        items = self.context[Tags.ITEM_ID]
-        emb_table = self.context.get_embedding(Tags.ITEM_ID)
-        item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
-        if tf.rank(item_embeddings) == 3:
-            item_embeddings = tf.squeeze(item_embeddings)
+        # emb_block: ml.EmbeddingFeatures = self.context._blocks["embedding_features"]
+        # emb_table = emb_block.embedding_table(Tags.ITEM_ID)
+        # item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
+        # if tf.rank(item_embeddings) == 3:
+        #     item_embeddings = tf.squeeze(item_embeddings)
+        #
+        # return inputs * item_embeddings
 
-        return inputs * item_embeddings
+        return inputs
 
     def compute_output_shape(self, input_shapes):
         return input_shapes
@@ -95,14 +96,12 @@ class DummyFeaturesBlock(ml.Block):
 def test_block_context(ecommerce_data: Dataset):
     inputs = ml.InputBlock(ecommerce_data.schema)
     dummy = DummyFeaturesBlock()
-    model = inputs.connect(ml.MLPBlock([64]), dummy, context=ml.ModelContext())
+    model = inputs.connect(
+        ml.MLPBlock([64]), dummy, context=ml.ModelContext(ecommerce_data.schema)
+    )
     out = model(ml.sample_batch(ecommerce_data, batch_size=100, include_targets=False))
 
     embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)
-    assert (
-        dummy.context.get_embedding(Tags.ITEM_ID).shape
-        == embeddings.embedding_tables[Tags.ITEM_ID.value].shape
-    )
 
     assert out.shape[-1] == 64
 

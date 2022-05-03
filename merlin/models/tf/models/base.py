@@ -7,9 +7,11 @@ import inspect
 import tensorflow as tf
 
 import merlin.io
+from merlin.models.tf.prediction_tasks.multi import PredictionTasks
+
 from merlin.models.tf.losses.base import loss_registry
 from tensorflow.python.keras.engine import compile_utils, data_adapter
-from tensorflow.python.keras.metrics import Metric
+from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, TaskWithOutputs, TaskResults
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
@@ -165,7 +167,8 @@ class ModelBlock(Block, tf.keras.Model):
 class Model(tf.keras.Model, LossMixin, MetricsMixin):
     def __init__(
         self,
-        *blocks: Union[Block, ModelLikeBlock],
+        *blocks: Block,
+        infer_prediction_tasks=False,
         context: Optional[ModelContext] = None,
         **kwargs,
     ):
@@ -178,13 +181,20 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         ):
             self.block = blocks[0]
         else:
-            # if not isinstance(blocks[-1], ModelLikeBlock):
-            #     raise ValueError("Last block must be able to calculate loss & metrics.")
-            self.block = SequentialBlock(blocks, context=context, block_name="blocks")
+            _blocks = []
+            for block in blocks:
+                if isinstance(block, Layer):
+                    _blocks.append(block)
+                elif isinstance(block, (list, tuple) and all(isinstance(b, PredictionTask) for b in block)):
+                    _blocks.append(ParallelPredictionBlock(*block))
+                else:
+                    raise ValueError(f"Unsupported block type: {type(block)}")
+            self.block = SequentialBlock(_blocks, context=context, block_name="blocks")
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
         self.context = context
         self._is_fitting = False
+        self._infer_prediction_tasks = infer_prediction_tasks
 
         # Initializing model control flags controlled by MetricsComputeCallback()
         self._should_compute_train_metrics_for_batch = tf.Variable(
@@ -271,6 +281,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     def compile(self,
                 optimizer='rmsprop',
                 prediction_task=None,
+                schema=None,
                 loss=None,
                 metrics=None,
                 loss_weights=None,
@@ -366,6 +377,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
               more details.
             **kwargs: Arguments supported for backwards compatibility only.
         """
+
+        if schema and self._infer_prediction_tasks:
+            prediction_task = PredictionTasks(schema)
 
         if prediction_task:
             allowed_types = (PredictionTask, ParallelPredictionBlock, Schema, list, tuple)
@@ -623,6 +637,26 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         predictions = dataset.map_partitions(model_encode)
 
         return merlin.io.Dataset(predictions)
+
+    def save(self,
+             filepath,
+             overwrite=True,
+             include_optimizer=True,
+             save_format=None,
+             signatures=None,
+             options=None,
+             save_traces=True):
+        context = self.context
+        del self.context
+        super(Model, self).save(
+            filepath,
+            overwrite=overwrite,
+            include_optimizer=include_optimizer,
+            save_format=save_format,
+            signatures=signatures,
+            options=options,
+            save_traces=save_traces,
+        )
 
     @classmethod
     def from_config(cls, config, custom_objects=None):

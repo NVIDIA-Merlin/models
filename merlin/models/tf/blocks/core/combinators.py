@@ -223,28 +223,31 @@ class SequentialBlock(Block):
         #     # convert sparse inputs to dense before storing them to the context?
         #     self.context(AsDenseFeatures()(inputs))
 
+        all_kwargs = {"training": training, "testing": testing}
+
         # TODO fix this
-        if "features" not in kwargs:
+        if "features" not in kwargs and isinstance(inputs, dict):
             features = AsDenseFeatures()(inputs)
-            schema = kwargs.get("schema", self.context.schema)
+            schema = None
+            if getattr(self, "context", None):
+                schema = kwargs.get("schema", self.context.schema)
             if schema and not isinstance(inputs, DictWithSchema):
                 features = DictWithSchema(schema, features)
-            kwargs["features"] = features
+            all_kwargs["features"] = features
 
-        flags = {"training": training, "testing": testing}
         outputs = inputs
 
         for i, layer in enumerate(self.layers):
-            filtered_kwargs = dict(**flags, **kwargs)
+            filtered_kwargs = all_kwargs
             # We need to check if we need to forward kwargs to last layer
-            if i == len(self.layers) - 1:
-                if not has_kwargs(layer):
-                    filtered_kwargs = filter_kwargs_layer(filtered_kwargs, layer, filter_positional_or_keyword=False)
             if isinstance(layer, PredictionTask):
                 filtered_kwargs = dict(targets=targets, **filtered_kwargs)
+            elif i == len(self.layers) - 1:
+                filtered_kwargs = dict(**all_kwargs, **kwargs)
+                filtered_kwargs = filter_kwargs_layer(filtered_kwargs, layer, cascade_kwargs_if_possible=True)
             else:
                 filtered_kwargs = filter_kwargs_layer(
-                    filtered_kwargs, layer, filter_positional_or_keyword=False
+                    filtered_kwargs, layer, cascade_kwargs_if_possible=True
                 )
             outputs = layer(outputs, **filtered_kwargs)
 

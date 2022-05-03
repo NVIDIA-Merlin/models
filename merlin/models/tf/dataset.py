@@ -538,6 +538,8 @@ class DictWithSchema:
 
     def __getitem__(self, key: Union[str, Tags, Sequence[str], Sequence[Tags], Schema]) -> Any:
         if isinstance(key, Tags):
+            if not hasattr(self, "schema"):
+                raise ValueError("Schema not found. Please provide this in model.compile()")
             sub_schema = self.schema.select_by_tag(key)
             if len(sub_schema.column_schemas) == 0:
                 raise KeyError(f"No columns found for tag {key}")
