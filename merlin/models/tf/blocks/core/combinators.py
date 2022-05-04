@@ -46,7 +46,7 @@ class SequentialBlock(Block):
         copy_layers: bool = False,
         **kwargs,
     ):
-        """Create a composition.
+        """Create a sequential composition.
 
         Parameters
         ----------
@@ -90,6 +90,18 @@ class SequentialBlock(Block):
             self.layers = list(layers)
 
     def compute_output_shape(self, input_shape):
+        """Computes the output shape based on the input shape
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape
+            The input shape
+
+        Returns
+        -------
+        tf.TensorShape
+            The output shape
+        """
         output_shape = input_shape
         for layer in self.layers:
             output_shape = layer.compute_output_shape(output_shape)
@@ -102,6 +114,13 @@ class SequentialBlock(Block):
         return output_signature
 
     def build(self, input_shape=None):
+        """Builds the sequential block
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape, optional
+            The input shape, by default None
+        """
         self._maybe_propagate_context(input_shape)
         last_layer = None
         for layer in self.layers:
@@ -130,6 +149,14 @@ class SequentialBlock(Block):
 
     @property
     def inputs(self):
+        """Returns the InputBlock, if it is the first
+        block within SequenceBlock
+
+        Returns
+        -------
+        InputBlock
+            The input block
+        """
         first = list(self)[0]
         if isinstance(first, SequentialBlock):
             return first.inputs
@@ -138,10 +165,24 @@ class SequentialBlock(Block):
 
     @property
     def first(self):
+        """Returns the first block in the SequenceBlock
+
+        Returns
+        -------
+        Block
+            The first block of SequenceBlock
+        """
         return self.layers[0]
 
     @property
     def last(self):
+        """Returns the last block in the SequenceBlock
+
+        Returns
+        -------
+        Block
+            The last block of SequenceBlock
+        """
         return self.layers[-1]
 
     @property
@@ -155,6 +196,14 @@ class SequentialBlock(Block):
 
     @property
     def trainable_weights(self):
+        """Returns trainable weights of all layers
+        of this block
+
+        Returns
+        -------
+        List
+            List with trainable weights
+        """
         if not self.trainable:
             return []
         weights = {}
@@ -165,6 +214,14 @@ class SequentialBlock(Block):
 
     @property
     def non_trainable_weights(self):
+        """Returns non-trainable weights of all layers
+        of this block
+
+        Returns
+        -------
+        List
+            List with non-trainable weights
+        """
         weights = {}
         for layer in self.layers:
             for v in layer.non_trainable_weights:
@@ -173,10 +230,24 @@ class SequentialBlock(Block):
 
     @property
     def trainable(self):
+        """Returns whether all layer within SequentialBlock are trainable
+
+        Returns
+        -------
+        bool
+            True if all layer within SequentialBlock are trainable, otherwise False
+        """
         return all(layer.trainable for layer in self.layers)
 
     @trainable.setter
     def trainable(self, value):
+        """Makes all block layers trainable or not
+
+        Parameters
+        ----------
+        value : bool
+            Sets all layers trainable flag
+        """
         for layer in self.layers:
             layer.trainable = value
 
@@ -209,19 +280,19 @@ class SequentialBlock(Block):
 
         outputs = inputs
         for i, layer in enumerate(self.layers):
-            if i == len(self.layers) - 1:
-                filtered_kwargs = filter_kwargs(kwargs, layer, filter_positional_or_keyword=False)
-                filtered_kwargs.update(
-                    filter_kwargs(
-                        {**dict(training=training), **kwargs},
-                        layer.call,
-                        filter_positional_or_keyword=False,
-                    )
+            filtered_kwargs = filter_kwargs(
+                {"training": training, **kwargs},
+                layer,
+                cascade_kwargs_if_possible=True,
+            )
+            filtered_kwargs.update(
+                filter_kwargs(
+                    {"training": training, **kwargs},
+                    layer.call,
+                    cascade_kwargs_if_possible=True,
                 )
-            else:
-                filtered_kwargs = filter_kwargs(
-                    dict(training=training), layer, filter_positional_or_keyword=False
-                )
+            )
+
             outputs = layer(outputs, **filtered_kwargs)
 
         return outputs
@@ -343,6 +414,13 @@ class ParallelBlock(TabularBlock):
         return {str(i): m for i, m in enumerate(self.parallel_layers)}
 
     def select_by_name(self, name: str) -> Optional["Block"]:
+        """Select a parallel block by name
+
+        Returns
+        -------
+        Block
+            The block corresponding to the name
+        """
         return self.parallel_dict.get(name)
 
     def __getitem__(self, key) -> "Block":
@@ -362,6 +440,18 @@ class ParallelBlock(TabularBlock):
             self.parallel_layers[branch_name] = self.parallel_layers[branch_name].apply(*block)
 
     def call(self, inputs, **kwargs):
+        """The call method for ParallelBlock
+
+        Parameters
+        ----------
+        inputs : TabularData
+            The inputs for the Parallel Block
+
+        Returns
+        -------
+        TabularData
+            Outputs of the ParallelBlock
+        """
         if self.strict:
             assert isinstance(inputs, dict), "Inputs needs to be a dict"
 

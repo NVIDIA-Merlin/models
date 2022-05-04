@@ -27,6 +27,7 @@ from merlin.models.tf.blocks.core.base import (
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
+from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
@@ -70,6 +71,7 @@ class DualEncoderBlock(ParallelBlock):
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
         strict: bool = False,
+        l2_normalization: bool = False,
         **kwargs,
     ):
         """Prepare the Query and Item towers of a Retrieval block
@@ -93,7 +95,14 @@ class DualEncoderBlock(ParallelBlock):
             Name of the layer.
         strict : bool, optional
             If enabled, check that the input of the ParallelBlock instance is a dictionary.
+        l2_normalization: bool
+            Apply L2 normalization to the user and item representations before
+            computing dot interactions.
+            Defaults to False.
         """
+        if l2_normalization:
+            query_block = query_block.connect(L2Norm())
+            item_block = item_block.connect(L2Norm())
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 
@@ -155,6 +164,8 @@ class ItemRetrievalScorer(Block):
         Add query embeddings to the context block, by default False
     sampled_softmax_mode: bool
         Use sampled softmax for scoring, by default False
+    store_negative_ids: bool
+        Returns negative items ids as part of the output, by default False
     """
 
     def __init__(
@@ -163,10 +174,12 @@ class ItemRetrievalScorer(Block):
         sampling_downscore_false_negatives=True,
         sampling_downscore_false_negatives_value: float = MIN_FLOAT,
         item_id_feature_name: str = "item_id",
+        item_domain: str = "item_id",
         query_name: str = "query",
         item_name: str = "item",
         cache_query: bool = False,
         sampled_softmax_mode: bool = False,
+        store_negative_ids: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -174,9 +187,11 @@ class ItemRetrievalScorer(Block):
         self.downscore_false_negatives = sampling_downscore_false_negatives
         self.false_negatives_score = sampling_downscore_false_negatives_value
         self.item_id_feature_name = item_id_feature_name
+        self.item_domain = item_domain
         self.query_name = query_name
         self.item_name = item_name
         self.cache_query = cache_query
+        self.store_negative_ids = store_negative_ids
 
         if not isinstance(samplers, (list, tuple)):
             samplers = (samplers,)  # type: ignore
@@ -198,16 +213,7 @@ class ItemRetrievalScorer(Block):
                     shape=tf.TensorShape([None, query_shape[-1]]),
                 )
             )
-            self.context.add_variable(
-                tf.Variable(
-                    initial_value=tf.zeros([1, query_shape[-1]], dtype=tf.float32),
-                    name="positive_candidates_embeddings",
-                    trainable=False,
-                    validate_shape=False,
-                    dtype=tf.float32,
-                    shape=tf.TensorShape([None, query_shape[-1]]),
-                )
-            )
+
         super().build(input_shapes)
 
     def set_required_features(self):
@@ -248,12 +254,16 @@ class ItemRetrievalScorer(Block):
             )
 
     def call(
-        self, inputs: Union[tf.Tensor, TabularData], training: bool = True, **kwargs
+        self,
+        inputs: Union[tf.Tensor, TabularData],
+        training: bool = True,
+        eval_sampling: bool = False,
+        **kwargs,
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item (inputs["item"]).
             For the sampled-softmax mode, logits are computed by multiplying the query vector
-            and the item embeddings matrix (self.context.get_embedding(self.item_column)))
+            and the item embeddings matrix (self.context.get_embedding(self.item_domain))
         Parameters
         ----------
         inputs : Union[tf.Tensor, TabularData]
@@ -270,11 +280,8 @@ class ItemRetrievalScorer(Block):
         if self.cache_query:
             # enabled only during top-k evaluation
             self.context["query"].assign(tf.cast(inputs[self.query_name], tf.float32))
-            self.context["positive_candidates_embeddings"].assign(
-                tf.cast(inputs[self.item_name], tf.float32)
-            )
 
-        if training:
+        if training or eval_sampling:
             return inputs
 
         if self.sampled_softmax_mode:
@@ -288,7 +295,7 @@ class ItemRetrievalScorer(Block):
 
     @tf.function
     def call_outputs(
-        self, outputs: PredictionOutput, training=True, **kwargs
+        self, outputs: PredictionOutput, training=True, eval_sampling=False, **kwargs
     ) -> "PredictionOutput":
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item and also sampled negative items (during training).
@@ -315,7 +322,9 @@ class ItemRetrievalScorer(Block):
         else:
             positive_item_ids = self.context[self.item_id_feature_name]
 
-        if training:
+        neg_items_ids = None
+        if training or eval_sampling:
+
             assert (
                 len(self.samplers) > 0
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
@@ -340,11 +349,10 @@ class ItemRetrievalScorer(Block):
             # Adds items from the current batch into samplers and sample a number of negatives
             for sampler in self.samplers:
                 input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
+                sampling_kwargs = {"training": training}
                 if "item_weights" in sampler._call_fn_args:
-                    embedding_table = self.context.get_embedding(self.item_id_feature_name)
-                    neg_items = sampler(input_data.__dict__, item_weights=embedding_table)
-                else:
-                    neg_items = sampler(input_data.__dict__)
+                    sampling_kwargs["item_weights"] = self.context.get_embedding(self.item_domain)
+                neg_items = sampler(input_data.__dict__, **sampling_kwargs)
 
                 if tf.shape(neg_items.embeddings)[0] > 0:
                     # Accumulates sampled negative items from all samplers
@@ -367,7 +375,7 @@ class ItemRetrievalScorer(Block):
                 predictions[self.query_name], neg_items_embeddings, transpose_b=True
             )
 
-            if self.downscore_false_negatives:
+            if self.downscore_false_negatives or self.store_negative_ids:
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:
@@ -399,6 +407,7 @@ class ItemRetrievalScorer(Block):
                 targets_one_hot,
                 positive_item_ids=positive_item_ids,
                 valid_negatives_mask=valid_negatives_mask,
+                negative_item_ids=neg_items_ids,
             )
         else:
             # Positives in the first column and negatives in the subsequent columns
@@ -417,6 +426,7 @@ class ItemRetrievalScorer(Block):
                 targets,
                 positive_item_ids=positive_item_ids,
                 valid_negatives_mask=valid_negatives_mask,
+                negative_item_ids=neg_items_ids,
             )
 
     def _get_logits_for_sampled_softmax(self, inputs):
@@ -424,7 +434,7 @@ class ItemRetrievalScorer(Block):
             raise ValueError(
                 f"Inputs to the Sampled Softmax block should be tensors, got {type(inputs)}"
             )
-        embedding_table = self.context.get_embedding(self.item_id_feature_name)
+        embedding_table = self.context.get_embedding(self.item_domain)
         all_scores = tf.matmul(inputs, tf.transpose(embedding_table))
         return all_scores
 
@@ -436,7 +446,7 @@ class ItemRetrievalScorer(Block):
             raise ValueError(
                 f"Inputs to the Sampled Softmax block should be tensors, got {type(predictions)}"
             )
-        embedding_table = self.context.get_embedding(self.item_id_feature_name)
+        embedding_table = self.context.get_embedding(self.item_domain)
         batch_items_embeddings = embedding_ops.embedding_lookup(embedding_table, targets)
         predictions = {self.query_name: predictions, self.item_name: batch_items_embeddings}
         return predictions

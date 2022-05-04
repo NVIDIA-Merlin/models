@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+import tempfile
+
 import pytest
 import tensorflow as tf
 
@@ -180,3 +182,98 @@ def test_categorical_one_hot_encoding():
 
     assert inputs["cat1"][0].numpy() == tf.where(outputs["cat1"][0, :] == 1).numpy()[0]
     assert list(outputs.keys()) == ["cat1", "cat2", "cat3"]
+
+
+def test_popularity_logits_correct():
+    from merlin.models.tf.blocks.core.base import PredictionOutput
+    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+
+    schema = Schema(
+        [
+            create_categorical_column(
+                "item_feature", num_items=100, tags=[Tags.CATEGORICAL, Tags.ITEM_ID]
+            ),
+        ]
+    )
+
+    NUM_ITEMS = 101
+    NUM_ROWS = 16
+    NUM_SAMPLE = 20
+
+    logits = tf.random.uniform((NUM_ROWS, NUM_SAMPLE))
+    negative_item_ids = tf.random.uniform(
+        (NUM_SAMPLE - 1,), minval=1, maxval=NUM_ITEMS, dtype=tf.int32
+    )
+    positive_item_ids = tf.random.uniform((NUM_ROWS,), minval=1, maxval=NUM_ITEMS, dtype=tf.int32)
+    item_frequency = tf.sort(tf.random.uniform((NUM_ITEMS,), minval=0, maxval=1000, dtype=tf.int32))
+
+    inputs = PredictionOutput(
+        predictions=logits,
+        targets=[],
+        positive_item_ids=positive_item_ids,
+        negative_item_ids=negative_item_ids,
+    )
+
+    corrected_logits = PopularityLogitsCorrection(
+        item_frequency, reg_factor=0.5, schema=schema
+    ).call_outputs(outputs=inputs)
+
+    tf.debugging.assert_less_equal(logits, corrected_logits.predictions)
+
+
+def test_popularity_logits_correct_from_parquet():
+    import numpy as np
+    import pandas as pd
+
+    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+
+    schema = Schema(
+        [
+            create_categorical_column(
+                "item_feature", num_items=100, tags=[Tags.CATEGORICAL, Tags.ITEM_ID]
+            ),
+        ]
+    )
+    NUM_ITEMS = 101
+
+    frequency_table = pd.DataFrame(
+        {"frequency": list(np.sort(np.random.randint(0, 1000, size=(NUM_ITEMS,))))}
+    )
+    with tempfile.TemporaryDirectory() as tmpdir:
+        frequency_table.to_parquet(tmpdir + "/frequency_table.parquet")
+        corrected_logits = PopularityLogitsCorrection.from_parquet(
+            tmpdir + "/frequency_table.parquet",
+            frequencies_probs_col="frequency",
+            gpu=False,
+            schema=schema,
+        )
+    assert corrected_logits.get_candidate_probs().shape == (NUM_ITEMS,)
+
+
+def test_items_weight_tying_with_different_domain_name():
+    from merlin.models.tf.blocks.core.transformations import ItemsPredictionWeightTying
+
+    NUM_ROWS = 16
+    schema = Schema(
+        [
+            create_categorical_column(
+                "item_id",
+                domain_name="joint_item_id",
+                num_items=100,
+                tags=[Tags.CATEGORICAL, Tags.ITEM_ID],
+            ),
+        ]
+    )
+    inputs = {
+        "item_id": tf.random.uniform((NUM_ROWS, 1), minval=1, maxval=101, dtype=tf.int32),
+        "target": tf.random.uniform((NUM_ROWS, 1), minval=0, maxval=10, dtype=tf.int32),
+    }
+
+    weight_tying_block = ItemsPredictionWeightTying(schema=schema)
+    input_block = ml.InputBlock(schema)
+    task = ml.MultiClassClassificationTask("target", loss="categorical_crossentropy")
+    model = input_block.connect(ml.MLPBlock([64]), weight_tying_block, task)
+
+    _ = model(inputs)
+    weight_tying_embeddings = model.block[2].context.get_embedding("joint_item_id")
+    assert weight_tying_embeddings.shape == (101, 64)

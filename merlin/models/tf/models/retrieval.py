@@ -23,7 +23,10 @@ def MatrixFactorizationModel(
     dim: int,
     query_id_tag=Tags.USER_ID,
     item_id_tag=Tags.ITEM_ID,
-    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None,
+    embeddings_initializers: Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+    ] = None,
+    embeddings_l2_reg: float = 0.0,
     post: Optional[BlockType] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
@@ -51,8 +54,11 @@ def MatrixFactorizationModel(
         The tag to select query features, by default `Tags.USER`
     item_id_tag : Tag
         The tag to select item features, by default `Tags.ITEM`
-    embeddings_initializers: Dict[str, Callable[[Any], None]]
-        A dictionary of initializers for embeddings.
+    embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]] = None
+        An initializer function or a dict where keys are feature names and values are
+        callable to initialize embedding tables
+    embeddings_l2_reg: float = 0.0
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
     post: Optional[Block], optional
         The optional `Block` to apply on both outputs of Two-tower model
     prediction_tasks: optional
@@ -88,6 +94,7 @@ def MatrixFactorizationModel(
         query_id_tag=query_id_tag,
         item_id_tag=item_id_tag,
         embeddings_initializers=embeddings_initializers,
+        embeddings_l2_reg=embeddings_l2_reg,
         post=post,
         **kwargs,
     )
@@ -181,8 +188,6 @@ def TwoTowerModel(
             logits_temperature=logits_temperature,
             samplers=list(samplers),
             loss=loss,
-            # Two-tower outputs are already L2-normalized
-            normalize=False,
             **kwargs,
         )
 
@@ -211,7 +216,7 @@ def YoutubeDNNRetrievalModel(
     num_sampled: int = 100,
     loss: Optional[LossType] = "categorical_crossentropy",
     metrics=ranking_metrics(top_ks=[10]),
-    normalize: bool = True,
+    l2_normalization: bool = True,
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
     logits_temperature: float = 1.0,
@@ -249,8 +254,8 @@ def YoutubeDNNRetrievalModel(
     metrics: List[Metric]
         List of metrics to use.
         Defaults to `ranking_metrics(top_ks=[10])`
-    normalize: bool
-        Whether to normalize the embeddings.
+    l2_normalization: bool
+        Whether to apply L2 normalization before computing dot interactions.
         Defaults to True.
     extra_pre_call: Optional[Block]
         The optional `Block` to apply before the model.
@@ -283,7 +288,7 @@ def YoutubeDNNRetrievalModel(
         extra_pre_call=extra_pre_call,
         task_block=task_block,
         logits_temperature=logits_temperature,
-        normalize=normalize,
+        l2_normalization=l2_normalization,
         num_sampled=num_sampled,
     )
 

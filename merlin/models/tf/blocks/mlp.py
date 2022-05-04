@@ -25,6 +25,7 @@ from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
 )
+from merlin.models.utils.misc_utils import filter_kwargs
 from merlin.schema import Schema, Tags
 
 InitializerType = Union[str, tf.keras.initializers.Initializer]
@@ -79,8 +80,8 @@ def MLPBlock(
     filter: Schema, Tag, List[str], or Filter
         The filter to apply to the inputs of the MLP.
     no_activation_last_layer: bool
-        Ensures that no activation function (i.e. 'linear') is used in the output of the
-        layer MLP layer
+        Ensures that no activation function (i.e. 'linear') or droptout is used in the
+        output of the last MLP layer
     block_name: str
         The name of the block.
     """
@@ -88,8 +89,17 @@ def MLPBlock(
     block_layers = []
 
     for idx, dim in enumerate(dimensions):
+        dropout_layer = None
         if no_activation_last_layer and idx == len(dimensions) - 1:
             activation = "linear"
+        else:
+            if dropout:
+                if activation in ["selu", tf.keras.activations.selu]:
+                    # Best practice for SeLU. It is also recommended
+                    # kernel_initializer="lecun_normal"
+                    dropout_layer = tf.keras.layers.AlphaDropout(dropout)
+                else:
+                    dropout_layer = tf.keras.layers.Dropout(dropout)
 
         block_layers.append(
             _Dense(
@@ -103,8 +113,9 @@ def MLPBlock(
                 activity_regularizer=activity_regularizer,
             )
         )
-        if dropout:
-            block_layers.append(tf.keras.layers.Dropout(dropout))
+        if dropout_layer:
+            block_layers.append(dropout_layer)
+
         if normalization:
             if normalization == "batch_norm":
                 block_layers.append(tf.keras.layers.BatchNormalization())
@@ -203,7 +214,8 @@ class _Dense(tf.keras.layers.Layer):
         if isinstance(inputs, dict):
             inputs = tabular_aggregation_registry.parse(self.pre_aggregation)(inputs)
 
-        return self.dense(inputs, **kwargs)
+        filtered_kwargs = filter_kwargs(kwargs, self.dense)
+        return self.dense(inputs, **filtered_kwargs)
 
     def compute_output_shape(self, input_shape):
         if isinstance(input_shape, dict):

@@ -15,6 +15,8 @@
 #
 import os
 
+import tensorflow as tf
+
 import merlin.models.tf as ml
 from merlin.io import Dataset
 from merlin.schema import Tags
@@ -30,6 +32,7 @@ def test_matrix_factorization_block(music_streaming_data: Dataset):
 
 
 def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tmp_path):
+    import numpy as np
     import pandas as pd
 
     from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
@@ -42,6 +45,22 @@ def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tm
     model.compile(optimizer="adam")
 
     model.fit(music_streaming_data, epochs=5, batch_size=100)
+
+    user_embeddings = mf.get_embedding_table(Tags.USER_ID)
+    tf.debugging.assert_shapes([(user_embeddings, (10001, 128))])
+    # Checking if embeddings are NOT unit norm (NO L2-normalization by default)
+    norm = tf.reduce_mean(tf.reduce_sum(user_embeddings, axis=-1))
+    assert not np.isclose(
+        norm.numpy(), 1.0
+    ), "The embeddings should NOT be L2-normalized by default"
+
+    item_embeddings = mf.get_embedding_table(Tags.ITEM_ID, l2_normalization=True)
+    tf.debugging.assert_shapes([(item_embeddings, (10001, 128))])
+    tf.debugging.assert_near(
+        tf.reduce_mean(tf.reduce_sum(tf.square(item_embeddings), axis=-1)),
+        1.0,
+        message="These embeddings should be L2-normalized with l2_normalization=True",
+    )
 
     item_embedding_parquet = str(tmp_path / "items.parquet")
     mf.export_embedding_table(Tags.ITEM_ID, item_embedding_parquet, gpu=False)

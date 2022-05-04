@@ -36,7 +36,7 @@ from merlin.models.tf.prediction_tasks.classification import (
     CategFeaturePrediction,
     MultiClassClassificationTask,
 )
-from merlin.models.utils.schema_utils import categorical_cardinalities
+from merlin.models.utils.schema_utils import categorical_cardinalities, categorical_domains
 from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin.models")
@@ -86,6 +86,7 @@ def ItemsPredictionSampled(
             During evaluation, returns the input tensor of true class, and the related logits.
     """
     item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    item_domain = categorical_domains(schema)[item_id_feature_name]
     num_classes = categorical_cardinalities(schema)[item_id_feature_name]
     samplers = PopularityBasedSampler(
         max_num_samples=num_sampled,
@@ -98,6 +99,7 @@ def ItemsPredictionSampled(
         samplers=[samplers],
         sampling_downscore_false_negatives=ignore_false_negatives,
         item_id_feature_name=item_id_feature_name,
+        item_domain=item_domain,
         sampled_softmax_mode=True,
     )
 
@@ -115,7 +117,7 @@ def NextItemPredictionTask(
     task_name: Optional[str] = None,
     task_block: Optional[Layer] = None,
     logits_temperature: float = 1.0,
-    normalize: bool = True,
+    l2_normalization: bool = False,
     sampled_softmax: bool = False,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
@@ -152,9 +154,9 @@ def NextItemPredictionTask(
         logits_temperature: float
             Parameter used to reduce the model overconfidence, so that logits / T.
             Defaults to 1.
-        normalize: bool
+        l2_normalization: bool
             Apply L2 normalization before computing dot interactions.
-            Defaults to True.
+            Defaults to False.
         sampled_softmax: bool
             Compute the logits scores over all items of the catalog or
             generate a subset of candidates
@@ -196,7 +198,7 @@ def NextItemPredictionTask(
             RemovePad3D(), prediction_call
         )
 
-    if normalize:
+    if l2_normalization:
         prediction_call = L2Norm().connect(prediction_call)
 
     if extra_pre_call is not None:

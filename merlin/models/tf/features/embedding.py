@@ -57,7 +57,11 @@ class EmbeddingOptions:
     embedding_dim_default: Optional[int] = 64
     infer_embedding_sizes: bool = False
     infer_embedding_sizes_multiplier: float = 2.0
-    embeddings_initializers: Optional[Dict[str, Callable[[Any], None]]] = None
+    infer_embeddings_ensure_dim_multiple_of_8: bool = False
+    embeddings_initializers: Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+    ] = None
+    embeddings_l2_reg: float = 0.0
     combiner: Optional[str] = "mean"
 
 
@@ -86,13 +90,14 @@ class EmbeddingFeatures(TabularBlock):
         schema: Optional[Schema] = None,
         name=None,
         add_default_pre=True,
+        l2_reg: Optional[float] = 0.0,
         **kwargs,
     ):
         if add_default_pre:
             embedding_pre = [Filter(list(feature_config.keys())), AsSparseFeatures()]
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
         self.feature_config = feature_config
-
+        self.l2_reg = l2_reg
         super().__init__(
             pre=pre,
             post=post,
@@ -112,6 +117,26 @@ class EmbeddingFeatures(TabularBlock):
         max_sequence_length: Optional[int] = None,
         **kwargs,
     ) -> Optional["EmbeddingFeatures"]:
+        """Instantiates embedding features from the schema
+
+        Parameters
+        ----------
+        schema : Schema
+            The features chema
+        embedding_options : EmbeddingOptions, optional
+            An EmbeddingOptions instance, which allows for a number of
+            options for the embedding table, by default EmbeddingOptions()
+        tags : Optional[TagsType], optional
+            If provided, keeps only features from those tags, by default None
+        max_sequence_length : Optional[int], optional
+            Maximum sequence length of sparse features (if any), by default None
+
+        Returns
+        -------
+        EmbeddingFeatures
+            An instance of EmbeddingFeatures block, with the embedding
+            layers created under-the-hood
+        """
         schema_copy = copy(schema)
 
         if tags:
@@ -120,18 +145,25 @@ class EmbeddingFeatures(TabularBlock):
         embedding_dims = embedding_options.embedding_dims
         if embedding_options.infer_embedding_sizes:
             embedding_dims = schema_utils.get_embedding_sizes_from_schema(
-                schema, embedding_options.infer_embedding_sizes_multiplier
+                schema,
+                embedding_options.infer_embedding_sizes_multiplier,
+                embedding_options.infer_embeddings_ensure_dim_multiple_of_8,
             )
 
         embedding_dims = embedding_dims or {}
-        embeddings_initializers = embedding_options.embeddings_initializers or {}
+
+        initializer_default = tf.keras.initializers.TruncatedNormal(mean=0.0, stddev=0.05)
+        embeddings_initializer = embedding_options.embeddings_initializers or initializer_default
 
         emb_config = {}
         cardinalities = schema_utils.categorical_cardinalities(schema)
         for key, cardinality in cardinalities.items():
             embedding_size = embedding_dims.get(key, embedding_options.embedding_dim_default)
-            embedding_initializer = embeddings_initializers.get(key, None)
-            emb_config[key] = (cardinality, embedding_size, embedding_initializer)
+            if isinstance(embeddings_initializer, dict):
+                emb_initializer = embeddings_initializer.get(key, initializer_default)
+            else:
+                emb_initializer = embeddings_initializer
+            emb_config[key] = (cardinality, embedding_size, emb_initializer)
 
         feature_config: Dict[str, FeatureConfig] = {}
         tables: Dict[str, TableConfig] = {}
@@ -154,7 +186,12 @@ class EmbeddingFeatures(TabularBlock):
         if not feature_config:
             return None
 
-        output = cls(feature_config, schema=schema_copy, **kwargs)
+        output = cls(
+            feature_config,
+            schema=schema_copy,
+            l2_reg=embedding_options.embeddings_l2_reg,
+            **kwargs,
+        )
 
         return output
 
@@ -185,6 +222,8 @@ class EmbeddingFeatures(TabularBlock):
         embedded_outputs = {}
         for name, val in inputs.items():
             embedded_outputs[name] = self.lookup_feature(name, val)
+            if self.l2_reg > 0:
+                self.add_loss(self.l2_reg * tf.reduce_sum(tf.square(embedded_outputs[name])))
 
         return embedded_outputs
 
@@ -226,11 +265,46 @@ class EmbeddingFeatures(TabularBlock):
     def table_config(self, feature_name: str):
         return self.feature_config[feature_name].table
 
-    def embedding_table_df(self, table_name: Union[str, Tags], gpu=True):
+    def get_embedding_table(self, table_name: Union[str, Tags], l2_normalization: bool = False):
         if isinstance(table_name, Tags):
-            table_name = table_name.value
-        embeddings = self.embedding_tables[table_name]
+            feature_names = self.schema.select_by_tag(table_name).column_names
+            if len(feature_names) == 1:
+                table_name = feature_names[0]
+            elif len(feature_names) > 1:
+                raise ValueError(
+                    f"There is more than one feature associated to the tag {table_name}"
+                )
+            else:
+                raise ValueError(f"Could not find a feature associated to the tag {table_name}")
 
+        embeddings = self.embedding_tables[table_name]
+        if l2_normalization:
+            embeddings = tf.linalg.l2_normalize(embeddings, axis=-1)
+
+        return embeddings
+
+    def embedding_table_df(
+        self, table_name: Union[str, Tags], l2_normalization: bool = False, gpu: bool = True
+    ):
+        """Retrieves a dataframe with the embedding table
+
+        Parameters
+        ----------
+        table_name : Union[str, Tags]
+            Tag or name of the embedding table
+        l2_normalization : bool, optional
+            Whether the L2-normalization should be applied to
+            embeddings (common approach for Matrix Factorization
+            and Retrieval models in general), by default False
+        gpu : bool, optional
+            Whether or not should use GPU, by default True
+
+        Returns
+        -------
+        Union[pd.DataFrame, cudf.DataFrame]
+            Returns a dataframe (cudf or pandas), depending on the gpu
+        """
+        embeddings = self.get_embedding_table(table_name, l2_normalization)
         if gpu:
             import cudf
 
@@ -246,11 +320,52 @@ class EmbeddingFeatures(TabularBlock):
 
         return df
 
-    def embedding_table_dataset(self, table_name: Union[str, Tags], gpu=True) -> merlin.io.Dataset:
-        return merlin.io.Dataset(self.embedding_table_df(table_name, gpu))
+    def embedding_table_dataset(
+        self, table_name: Union[str, Tags], l2_normalization: bool = False, gpu=True
+    ) -> merlin.io.Dataset:
+        """Creates a Dataset for the embedding table
 
-    def export_embedding_table(self, table_name: Union[str, Tags], export_path: str, gpu=True):
-        df = self.embedding_table_df(table_name, gpu=gpu)
+        Parameters
+        ----------
+        table_name : Union[str, Tags]
+            Tag or name of the embedding table
+        l2_normalization : bool, optional
+            Whether the L2-normalization should be applied to
+            embeddings (common approach for Matrix Factorization
+            and Retrieval models in general), by default False
+        gpu : bool, optional
+            Whether or not should use GPU, by default True
+
+        Returns
+        -------
+        merlin.io.Dataset
+            Returns a Dataset with the embeddings
+        """
+        return merlin.io.Dataset(self.embedding_table_df(table_name, l2_normalization, gpu))
+
+    def export_embedding_table(
+        self,
+        table_name: Union[str, Tags],
+        export_path: str,
+        l2_normalization: bool = False,
+        gpu=True,
+    ):
+        """Exports the embedding table to parquet file
+
+        Parameters
+        ----------
+        table_name : Union[str, Tags]
+            Tag or name of the embedding table
+        export_path : str
+            Path for the generated parquet file
+        l2_normalization : bool, optional
+            Whether the L2-normalization should be applied to
+            embeddings (common approach for Matrix Factorization
+            and Retrieval models in general), by default False
+        gpu : bool, optional
+            Whether or not should use GPU, by default True
+        """
+        df = self.embedding_table_df(table_name, l2_normalization, gpu=gpu)
         df.to_parquet(export_path)
 
     def get_config(self):

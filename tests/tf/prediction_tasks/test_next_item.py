@@ -292,16 +292,72 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
     )
     model = two_tower.connect(task)
 
-    # Setting up evaluation
-    model.set_retrieval_candidates_for_evaluation(ecommerce_data)
-
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-
     losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
+    metrics = model.evaluate(
+        x=ecommerce_data, batch_size=50, item_corpus=ecommerce_data, return_dict=True
+    )
+
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+    assert sorted(list(metrics)) == [
+        "loss",
+        "map_at_10",
+        "mrr_at_10",
+        "ndcg_10",
+        "precision_at_10",
+        "recall_at_10",
+        "regularization_loss",
+        "total_loss",
+    ]
 
-    _ = model.evaluate(x=ecommerce_data, batch_size=50)
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_retrieval_task_inbatch_cached_samplers_with_logits_correction(ecommerce_data, run_eagerly):
+    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+
+    batch_size = 100
+    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+
+    two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([512, 256]))
+    samplers = [
+        ml.InBatchSampler(),
+        ml.CachedCrossBatchSampler(
+            capacity=batch_size * 3,
+            ignore_last_batch_on_sample=True,
+        ),
+        ml.CachedUniformSampler(
+            capacity=batch_size * 3,
+            ignore_last_batch_on_sample=False,
+        ),
+    ]
+    NUM_ITEMS = 1001
+    item_frequency = tf.sort(
+        tf.random.uniform((NUM_ITEMS,), minval=0, maxval=NUM_ITEMS, dtype=tf.int32)
+    )
+    popularity_sampling_block = PopularityLogitsCorrection(
+        item_frequency, schema=ecommerce_data.schema
+    )
+
+    task = ml.ItemRetrievalTask(
+        ecommerce_data.schema,
+        logits_temperature=2,
+        samplers=samplers,
+        post_logits=popularity_sampling_block,
+        store_negative_ids=True,
+    )
+    model = two_tower.connect(task)
+
+    # Setting up evaluation
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(ecommerce_data, batch_size=50, epochs=1)
+
+    _ = model.evaluate(
+        x=ecommerce_data, batch_size=50, item_corpus=ecommerce_data, return_dict=True
+    )
+
+    assert len(losses.epoch) == 1
 
 
 @pytest.mark.parametrize("run_eagerly", [True])

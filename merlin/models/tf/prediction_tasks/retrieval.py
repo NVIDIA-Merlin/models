@@ -19,13 +19,14 @@ import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
 from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
-from merlin.models.tf.blocks.core.transformations import L2Norm, LogitsTemperatureScaler
+from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
+from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
 
@@ -45,8 +46,10 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             Defaults to a number of ranking metrics.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
-        extra_pre_call: Optional[PredictionBlock]
-            Optional extra pre-call block. Defaults to None.
+        post_logits: Optional[PredictionBlock]
+            Optional extra pre-call block for post-processing the logits, by default None.
+            You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`
+            for populariy sampling correction.
         target_name: Optional[str]
             If specified, name of the target tensor to retrieve from dataloader.
             Defaults to None.
@@ -59,10 +62,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         logits_temperature: float
             Parameter used to reduce the model overconfidence, so that logits / T.
             Defaults to 1.
-        normalize: bool
-            Apply L2 normalization before computing dot interactions.
-            Defaults to True.
-
     Returns
     -------
         PredictionTask
@@ -81,15 +80,21 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        extra_pre_call: Optional[Block] = None,
+        post_logits: Optional[Block] = None,
         logits_temperature: float = 1.0,
-        normalize: bool = True,
         cache_query: bool = False,
+        store_negative_ids: bool = False,
         **kwargs,
     ):
         self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        self.item_domain = schema_utils.categorical_domains(schema)[self.item_id_feature_name]
         self.cache_query = cache_query
-        pre = self._build_prediction_call(samplers, normalize, logits_temperature, extra_pre_call)
+        pre = self._build_prediction_call(
+            samplers,
+            logits_temperature,
+            post_logits,
+            store_negative_ids,
+        )
         self.loss = loss_registry.parse(loss)
 
         super().__init__(
@@ -102,12 +107,16 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             **kwargs,
         )
 
+    def call(self, inputs, training=False, eval_sampling=False, **kwargs):
+        return inputs
+
     def _build_prediction_call(
         self,
         samplers: Sequence[ItemSampler],
-        normalize: bool,
         logits_temperature: float,
-        extra_pre_call: Optional[Block] = None,
+        post_logits: Optional[Block] = None,
+        store_negative_ids: bool = False,
+        **kwargs,
     ):
         if samplers is None or len(samplers) == 0:
             samplers = (InBatchSampler(),)
@@ -115,17 +124,16 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         prediction_call = ItemRetrievalScorer(
             samplers=samplers,
             item_id_feature_name=self.item_id_feature_name,
+            item_domain=self.item_domain,
             cache_query=self.cache_query,
+            store_negative_ids=store_negative_ids,
         )
 
-        if normalize:
-            prediction_call = L2Norm().connect(prediction_call)
+        if post_logits is not None:
+            prediction_call = prediction_call.connect(post_logits)
 
         if logits_temperature != 1:
             prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
-
-        if extra_pre_call is not None:
-            prediction_call = prediction_call.connect(extra_pre_call)
 
         return prediction_call
 
