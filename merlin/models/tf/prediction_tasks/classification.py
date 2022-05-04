@@ -176,14 +176,14 @@ class CategoricalPrediction(Block):
         self.weight_tying = weight_tying
         self.use_bias = use_bias
         if not self.weight_tying:
-            self.output_classes = Dense(
+            self.output_classes = kwargs.pop("output_classes", Dense(
                 units=1,  # Will be overwritten in the build-method when we know the number of classes
                 # units=self.num_classes,
                 bias_initializer=bias_initializer,
                 name=f"{self.feature}-prediction",
                 activation="linear",
                 **kwargs,
-            )
+            ))
 
         # To ensure that the output is always fp32, avoiding numerical
         # instabilities with mixed_float16 policy
@@ -306,7 +306,15 @@ class CategoricalPrediction(Block):
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.num_classes,)
 
+    def get_config(self):
+        config = super().get_config()
+        config.update({"use_bias": self.use_bias, "weight_tying": self.weight_tying})
+        config = maybe_serialize_keras_objects(self, config, ["output_classes"])
 
+        return config
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DotProductPrediction(Layer):
     def call(self, inputs, training=False, testing=False):
         scores = tf.reduce_sum(
@@ -475,13 +483,13 @@ class MultiClassClassificationTask(PredictionTask):
 
     def get_config(self):
         config = super().get_config()
-        config = maybe_serialize_keras_objects(self, config, {"loss": tf.keras.losses.serialize})
+        config = maybe_serialize_keras_objects(self, config, ["prediction_block"])
 
         return config
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["loss"], tf.keras.losses.deserialize)
+        config = maybe_deserialize_keras_objects(config, ["prediction_block"])
 
         return super().from_config(config)
 

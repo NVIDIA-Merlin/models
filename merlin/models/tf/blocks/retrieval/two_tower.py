@@ -76,48 +76,36 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
     """
 
     def __init__(
-        self,
-        schema: Schema,
-        query_tower: Block,
-        item_tower: Optional[Block] = None,
-        query_tower_tag=Tags.USER,
-        item_tower_tag=Tags.ITEM,
-        query_id_tag=Tags.USER_ID,
-        item_id_tag=Tags.ITEM_ID,
-        output_ids: bool = True,
-        embedding_options: EmbeddingOptions = EmbeddingOptions(
-            embedding_dims=None,
-            embedding_dim_default=64,
-            infer_embedding_sizes=False,
-            infer_embedding_sizes_multiplier=2.0,
-        ),
-        post: Optional[BlockType] = None,
-        **kwargs,
+            self,
+            schema: Schema,
+            query_tower: Block,
+            item_tower: Optional[Block] = None,
+            query_tower_tag=Tags.USER,
+            item_tower_tag=Tags.ITEM,
+            query_id_tag=Tags.USER_ID,
+            item_id_tag=Tags.ITEM_ID,
+            output_ids: bool = True,
+            embedding_options: EmbeddingOptions = EmbeddingOptions(
+                embedding_dims=None,
+                embedding_dim_default=64,
+                infer_embedding_sizes=False,
+                infer_embedding_sizes_multiplier=2.0,
+            ),
+            post: Optional[BlockType] = None,
+            normalize: bool = True,
+            **kwargs,
     ):
         if schema is None:
             raise ValueError("The schema is required by TwoTower")
         if query_tower is None:
             raise ValueError("The query_tower is required by TwoTower")
 
-        _item_tower: Block = item_tower or query_tower.copy()
-        if not getattr(_item_tower, "inputs", None):
-            item_schema = schema.select_by_tag(item_tower_tag) if item_tower_tag else schema
-            if not item_schema:
-                raise ValueError(
-                    f"The schema should contain features with the tag `{item_tower_tag}`,"
-                    "required by item-tower"
-                )
-            item_tower_inputs = InputBlock(item_schema, embedding_options=embedding_options)
-            _item_tower = item_tower_inputs.connect(_item_tower).connect(L2Norm())
-        if not getattr(query_tower, "inputs", None):
-            query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
-            if not query_schema:
-                raise ValueError(
-                    f"The schema should contain features with the tag `{query_schema}`,"
-                    "required by query-tower"
-                )
-            query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
-            query_tower = query_inputs.connect(query_tower).connect(L2Norm())
+        _item_tower: Block = _parse_tower(
+            item_tower or query_tower .copy(), schema, item_tower_tag, normalize, embedding_options=embedding_options
+        )
+        query_tower = _parse_tower(
+            query_tower, schema, query_tower_tag, normalize, embedding_options=embedding_options
+        )
 
         super().__init__(
             query_block=query_tower,
@@ -128,3 +116,21 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
             post=post,
             **kwargs,
         )
+
+
+def _parse_tower(tower: Block, schema: Schema, tag: str, normalize: bool = True, **kwargs) -> Block:
+    if not getattr(tower, "inputs", None):
+        schema = schema.select_by_tag(tag)
+        if not schema:
+            raise ValueError(
+                f"The schema should contain features with the tag `{tag}`,"
+                "required by the tower"
+            )
+        tower_inputs = InputBlock(schema)
+
+        tower = tower_inputs.connect(tower)
+
+    if normalize:
+        tower = tower.connect(L2Norm())
+
+    return tower

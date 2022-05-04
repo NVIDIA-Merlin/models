@@ -293,3 +293,15 @@ class ContrastiveLearningTask(MultiClassClassificationTask):
         self.samplers.append(sampler)
 
         return self
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(self, config, ["samplers"])
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["samplers"])
+
+        return super().from_config(config)

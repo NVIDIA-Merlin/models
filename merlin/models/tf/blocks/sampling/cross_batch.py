@@ -361,6 +361,7 @@ class CachedUniformSampler(CachedCrossBatchSampler):
 
 
 @ItemSampler.registry.register_with_multiple_names("popularity", "sampled-softmax")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PopularityBasedSampler(ItemSampler):
     """
     Provides a popularity-based negative sampling for the softmax layer
@@ -446,3 +447,13 @@ class PopularityBasedSampler(ItemSampler):
         sampled_ids += self.min_id
 
         return Items(tf.cast(sampled_ids, tf.int32))
+
+    def get_config(self):
+        config = super().get_config()
+
+        config.update({
+            "feature_tag": self.feature_tag,
+            "min_id": self.min_id,
+            "seed": self.seed,
+            "max_num_samples": self._max_num_samples
+        })

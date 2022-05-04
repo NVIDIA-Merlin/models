@@ -9,6 +9,7 @@ from merlin.models.tf.blocks.core.base import Block, BlockType, right_shift_laye
 from merlin.models.tf.blocks.core.masking import MaskingBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import filter_kwargs_layer
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.registry import Registry, RegistryMixin
@@ -22,13 +23,18 @@ class TabularAggregation(Block, RegistryMixin["TabularAggregation"], abc.ABC):
 
     _has_custom__call__ = True
 
+    def __init__(self, **kwargs):
+        self.mask_feature = kwargs.pop("mask_feature", None)
+        self.mask = kwargs.pop("mask", None)
+        super().__init__(**kwargs)
+
     """Aggregation of `TabularData` that outputs a single `Tensor`"""
 
     def call(self, inputs: TabularData, **kwargs) -> tf.Tensor:
         raise NotImplementedError()
 
     def build(self, input_shapes):
-        if hasattr(self, "mask"):
+        if getattr(self, "mask", None):
             if not self.context.is_masked(self.mask_feature):
                 self.context.register_mask(self.mask_feature, self.mask)
         else:
@@ -59,7 +65,9 @@ class TabularAggregation(Block, RegistryMixin["TabularAggregation"], abc.ABC):
         self.check_for_masks(inputs)
         aggregated = super().__call__(inputs, features=features, **kwargs)
 
-        if hasattr(self, "mask"):
+        if getattr(self, "mask", None):
+            if not features:
+                raise Exception("Features must be provided in order to apply a mask.")
             aggregated = self.apply_mask(aggregated, features, **kwargs)
 
         return aggregated
@@ -121,6 +129,14 @@ class TabularAggregation(Block, RegistryMixin["TabularAggregation"], abc.ABC):
 
         return values
 
+    def get_config(self):
+        config = super().get_config()
+        config = tf_utils.maybe_serialize_keras_objects(self, config, ["mask"])
+        if self.mask_feature:
+            config["mask_feature"] = self.mask_feature
+
+        return config
+
 
 TabularAggregationType = Union[str, TabularAggregation]
 
@@ -157,6 +173,8 @@ class TabularBlock(Block):
     ----------
     {tabular_module_parameters}
     """
+
+    _has_custom__call__ = True
 
     def __init__(
         self,
@@ -264,7 +282,7 @@ class TabularBlock(Block):
     def post_call(
         self,
         inputs: TabularData,
-        features,
+        features=None,
         transformations: Optional[BlockType] = None,
         merge_with: Optional[Union["TabularBlock", List["TabularBlock"]]] = None,
         aggregation: Optional[TabularAggregationType] = None,
@@ -378,7 +396,7 @@ class TabularBlock(Block):
         return True
 
     def __add__(self, other):
-        from models.tf.blocks.core.combinators import ParallelBlock
+        from merlin.models.tf.blocks.core.combinators import ParallelBlock
 
         return ParallelBlock(self, other)
 
@@ -494,7 +512,6 @@ def _tabular_call(  # type: ignore
     self,
     inputs: TabularData,
     *args,
-    features=None,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     merge_with: Optional[Union["TabularBlock", List["TabularBlock"]]] = None,
@@ -529,7 +546,11 @@ def _tabular_call(  # type: ignore
 
     if isinstance(outputs, dict):
         outputs = self.post_call(
-            outputs, features, transformations=post, merge_with=merge_with, aggregation=aggregation
+            outputs,
+            features=kwargs.get("features"),
+            transformations=post,
+            merge_with=merge_with,
+            aggregation=aggregation,
         )
 
     return outputs

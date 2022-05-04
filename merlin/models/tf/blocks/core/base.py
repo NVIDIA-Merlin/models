@@ -20,6 +20,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Sequence, Type, Union
 
 import tensorflow as tf
+from merlin.models.tf.utils import tf_utils
+
+from merlin.models.utils import schema_utils
 from tensorflow.keras.layers import Layer
 
 from merlin.models.config.schema import SchemaMixin
@@ -107,13 +110,9 @@ class ModelContext(Layer):
     """
 
     def __init__(self, schema: Optional[Schema] = None, **kwargs):
-        feature_names = kwargs.pop("feature_names", [])
-        feature_dtypes = kwargs.pop("feature_dtypes", {})
+        self._masks = kwargs.pop("_masks", {})
         super(ModelContext, self).__init__(**kwargs)
-        self._feature_names = feature_names
-        self._feature_dtypes = feature_dtypes
         self._schema = schema
-        self._masks = {}
         self._blocks = {}
 
     def register_block(self, block: Block,  name: Optional[str] = None):
@@ -231,49 +230,49 @@ class ModelContext(Layer):
         self.public_variables.update(other.public_variables)
         self._feature_names = list(set(self._feature_names + other._feature_names))
 
-    def build(self, input_shape):
-        for feature_name in self._feature_names:
-            if feature_name not in self.named_variables:
-                shape = input_shape[feature_name]
-                dtype = self._feature_dtypes.get(feature_name, tf.float32)
-
-                if len(tuple(shape)) == 2:
-                    s = (
-                        shape[-1]
-                        if not isinstance(shape[-1], (tuple, tf.TensorShape))
-                        else int(shape[0][0] / shape[-1][0])
-                    )
-                    if s == 1:
-                        shape = tf.TensorShape(
-                            [
-                                None,
-                            ]
-                        )
-                        var = tf.zeros([1], dtype=dtype)
-                    else:
-                        shape = tf.TensorShape([None, s])
-                        var = tf.zeros([1, s], dtype=dtype)
-                elif tuple(shape) != (None,):
-                    var = tf.zeros((shape), dtype=dtype)
-                else:
-                    var = tf.zeros([1], dtype=dtype)
-
-                setattr(
-                    self,
-                    feature_name,
-                    tf.Variable(
-                        var,
-                        name=feature_name,
-                        trainable=False,
-                        dtype=dtype,
-                        shape=shape,
-                    ),
-                )
-
-        super(ModelContext, self).build(input_shape)
+    # def build(self, input_shape):
+    #     for feature_name in self._feature_names:
+    #         if feature_name not in self.named_variables:
+    #             shape = input_shape[feature_name]
+    #             dtype = self._feature_dtypes.get(feature_name, tf.float32)
+    #
+    #             if len(tuple(shape)) == 2:
+    #                 s = (
+    #                     shape[-1]
+    #                     if not isinstance(shape[-1], (tuple, tf.TensorShape))
+    #                     else int(shape[0][0] / shape[-1][0])
+    #                 )
+    #                 if s == 1:
+    #                     shape = tf.TensorShape(
+    #                         [
+    #                             None,
+    #                         ]
+    #                     )
+    #                     var = tf.zeros([1], dtype=dtype)
+    #                 else:
+    #                     shape = tf.TensorShape([None, s])
+    #                     var = tf.zeros([1, s], dtype=dtype)
+    #             elif tuple(shape) != (None,):
+    #                 var = tf.zeros((shape), dtype=dtype)
+    #             else:
+    #                 var = tf.zeros([1], dtype=dtype)
+    #
+    #             setattr(
+    #                 self,
+    #                 feature_name,
+    #                 tf.Variable(
+    #                     var,
+    #                     name=feature_name,
+    #                     trainable=False,
+    #                     dtype=dtype,
+    #                     shape=shape,
+    #                 ),
+    #             )
+    #
+    #     super(ModelContext, self).build(input_shape)
 
     def call(self, features, **kwargs):
-        self.store_features(features)
+        # self.store_features(features)
 
         return features
 
@@ -283,10 +282,23 @@ class ModelContext(Layer):
 
     def get_config(self):
         config = super(ModelContext, self).get_config()
-        config["feature_names"] = self._feature_names
-        config["feature_dtypes"] = self._feature_dtypes
+        # config["feature_names"] = self._feature_names
+        # config["feature_dtypes"] = self._feature_dtypes
+        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self._schema)
+
+        config = tf_utils.maybe_serialize_keras_objects(self, config, ["_masks"])
 
         return config
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        schema = config.pop("schema", None)
+        if schema:
+            schema = schema_utils.tensorflow_metadata_json_to_schema(schema)
+
+        config = tf_utils.maybe_deserialize_keras_objects(config, ["_masks"])
+
+        return cls(schema=schema, **config)
 
 
 class ContextMixin:
@@ -346,11 +358,11 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         return super().build(input_shapes)
 
-    def _maybe_build(self, inputs):
-        if getattr(self, "_context", None) and not self.context.built:
-            self.context.set_dtypes(inputs)
-
-        super()._maybe_build(inputs)
+    # def _maybe_build(self, inputs):
+    #     if getattr(self, "_context", None) and not self.context.built:
+    #         self.context.set_dtypes(inputs)
+    #
+    #     super()._maybe_build(inputs)
 
     def call_outputs(
         self, outputs: PredictionOutput, training=False, **kwargs

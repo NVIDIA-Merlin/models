@@ -227,13 +227,12 @@ class SequentialBlock(Block):
 
         # TODO fix this
         if "features" not in kwargs and isinstance(inputs, dict):
-            features = AsDenseFeatures()(inputs)
-            schema = None
-            if getattr(self, "context", None):
-                schema = kwargs.get("schema", self.context.schema)
-            if schema and not isinstance(inputs, DictWithSchema):
-                features = DictWithSchema(schema, features)
-            all_kwargs["features"] = features
+            context_schema = getattr(self.context, "schema", None)
+            schema = kwargs.get("schema", context_schema)
+
+            if schema and len(schema.column_names) == len(inputs):
+                features = DictWithSchema(schema, AsDenseFeatures()(inputs))
+                all_kwargs["features"] = features
 
         outputs = inputs
 
@@ -268,7 +267,7 @@ class SequentialBlock(Block):
         return outputs
 
     def get_config(self):
-        config = {}
+        config = {"block_name": self.block_name}
         for i, layer in enumerate(self.layers):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
 
@@ -283,12 +282,13 @@ class SequentialBlock(Block):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
+        block_name = config.pop("block_name", None)
         layers = [
             tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
             for conf in config.values()
         ]
 
-        return SequentialBlock(layers)
+        return SequentialBlock(layers, block_name=block_name)
 
     def __rrshift__(self, other):
         return right_shift_layer(self, other)
@@ -398,9 +398,6 @@ class ParallelBlock(TabularBlock):
         if self.strict:
             assert isinstance(inputs, dict), "Inputs needs to be a dict"
 
-        if getattr(self, "_need_to_call_context", False):
-            self.context(inputs)
-
         outputs = {}
         input_fn = lambda name: inputs      # noqa
         if (
@@ -410,10 +407,9 @@ class ParallelBlock(TabularBlock):
             block_input_fn = lambda name: inputs[name]
         for name, layer in self.parallel_dict.items():
             filtered_kwargs = dict(training=training, testing=testing, **kwargs)
-            if not has_kwargs(layer):
-                filtered_kwargs = filter_kwargs(
-                    filtered_kwargs, layer, filter_positional_or_keyword=False
-                )
+            filtered_kwargs = filter_kwargs(
+                filtered_kwargs, layer, cascade_kwargs_if_possible=True
+            )
             from merlin.models.tf import PredictionTask
             if isinstance(layer, PredictionTask):
                 filtered_kwargs["targets"] = targets

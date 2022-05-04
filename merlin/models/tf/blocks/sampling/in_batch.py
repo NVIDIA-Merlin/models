@@ -15,10 +15,13 @@
 #
 from typing import Optional
 
+import tensorflow as tf
+
 from merlin.models.tf.blocks.sampling.base import ItemSampler, Items
 
 
 @ItemSampler.registry.register("in-batch")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class InBatchSampler(ItemSampler):
     """Provides in-batch sampling [1]_ for two-tower item retrieval
     models. The implementation is very simple, as it
@@ -59,6 +62,8 @@ class InBatchSampler(ItemSampler):
             self.set_max_num_samples(value)
 
     def build(self, items: Items) -> None:
+        if isinstance(items, dict):
+            items = Items.from_config(items)
         if self._batch_size is None:
             self.set_batch_size(items.ids[0])
 
@@ -74,3 +79,12 @@ class InBatchSampler(ItemSampler):
 
     def sample(self) -> Items:
         return self._last_batch
+
+    def get_config(self):
+        config = super().get_config()
+        config["batch_size"] = self._batch_size
+
+        # TODO: This is a side-effect, could this lead to problems?
+        self._last_batch = None
+
+        return config

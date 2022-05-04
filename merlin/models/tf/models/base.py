@@ -20,6 +20,7 @@ from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, Pred
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers, replace_all_instances_in_layers
+from merlin.models.tf.utils.tf_utils import maybe_serialize_keras_objects, maybe_deserialize_keras_objects
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
@@ -164,7 +165,7 @@ class ModelBlock(Block, tf.keras.Model):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class Model(tf.keras.Model, LossMixin, MetricsMixin):
+class Model(tf.keras.Model):
     def __init__(
         self,
         *blocks: Block,
@@ -177,7 +178,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if (
             len(blocks) == 1
             and isinstance(blocks[0], SequentialBlock)
-            and isinstance(blocks[0].layers[-1], ModelLikeBlock)
         ):
             self.block = blocks[0]
         else:
@@ -498,6 +498,14 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
         return metrics
 
+    # def predict_step(self, data):
+    #     """Custom predict step using the `compute_loss` method."""
+    #
+    #     x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+    #     outputs = self.prediction_output(x, y)
+    #
+    #     return outputs
+
     def fit(
         self,
         x=None,
@@ -607,6 +615,32 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             **kwargs,
         )
 
+    def predict(
+        self,
+        x,
+        batch_size=None,
+        verbose=0,
+        steps=None,
+        callbacks=None,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        **kwargs,
+    ):
+        shuffle = kwargs.pop("shuffle", False)
+        x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=shuffle, **kwargs)
+
+        return super(Model, self).predict(
+            x,
+            batch_size=batch_size,
+            verbose=verbose,
+            steps=steps,
+            callbacks=callbacks,
+            max_queue_size=max_queue_size,
+            workers=workers,
+            use_multiprocessing=use_multiprocessing,
+        )
+
     def batch_predict(
         self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
     ) -> merlin.io.Dataset:
@@ -646,8 +680,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
              signatures=None,
              options=None,
              save_traces=True):
-        context = self.context
-        del self.context
+        # context = self.context
+        # del self.context
         super(Model, self).save(
             filepath,
             overwrite=overwrite,
@@ -658,14 +692,17 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             save_traces=save_traces,
         )
 
-    @classmethod
-    def from_config(cls, config, custom_objects=None):
-        block = tf.keras.utils.deserialize_keras_object(config.pop("block"))
-
-        return cls(block, **config)
-
     def get_config(self):
-        return {"block": tf.keras.utils.serialize_keras_object(self.block)}
+        config = maybe_serialize_keras_objects(self, {}, ["block", "context"])
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["block", "context"])
+        blocks = config.pop("block")
+
+        return cls(blocks, **config)
 
 
 @runtime_checkable
@@ -677,6 +714,7 @@ class RetrievalBlock(Protocol):
         ...
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class RetrievalModel(Model):
     """Embedding-based retrieval model."""
 
@@ -891,7 +929,7 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
             raise ValueError("batch_size must be specified when using merlin-dataset.")
         from merlin.models.tf.dataset import BatchedDataset
 
-        data = BatchedDataset(data, batch_size=batch_size, **kwargs)
+        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle, **kwargs)
 
         if not shuffle:
             kwargs.pop("shuffle", None)

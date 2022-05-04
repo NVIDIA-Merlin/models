@@ -18,11 +18,6 @@
       }
     },
     {
-      "name": "event_timestamp",
-      "type": "INT",
-      "annotation": {}
-    },
-    {
       "name": "item_age_days_norm",
       "type": "FLOAT",
       "valueCount": {

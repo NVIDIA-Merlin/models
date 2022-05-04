@@ -16,11 +16,15 @@
 
 import platform
 import tempfile
+from typing import Any, Tuple
 
+import merlin.io
 import pytest
-import tensorflow as tf
 
-from merlin.models.tf.models.base import Model
+import tensorflow as tf
+import numpy as np
+
+from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.tf.prediction_tasks.classification import BinaryClassificationTask
 
 
@@ -100,7 +104,7 @@ def assert_regression_loss_metrics(losses, metrics, target_name, num_epochs):
 
 
 def assert_loss_and_metrics_are_valid(
-    loss_block, features_and_targets, call_body=True, training=False
+        loss_block, features_and_targets, call_body=True, training=False
 ):
     loss_block.compile(optimizer="adam")
     metrics = loss_block.train_step(features_and_targets)
@@ -119,7 +123,7 @@ def assert_serialization(layer):
 
 
 def assert_model_is_retrainable(
-    model: Model, data, run_eagerly: bool = True, optimizer="adam", **kwargs
+        model: Model, data, run_eagerly: bool = True, optimizer="adam", **kwargs
 ):
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
     losses = model.fit(data, batch_size=50, epochs=1)
@@ -133,7 +137,13 @@ def assert_model_is_retrainable(
         model.save(tmpdir)
         loaded_model = tf.keras.models.load_model(tmpdir)
 
-    assert isinstance(loaded_model, Model)
+    assert isinstance(loaded_model, type(model))
+
+    np.array_equal(
+        model.predict(data, batch_size=50),
+        loaded_model.predict(data, batch_size=50)
+    )
+
     loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
     losses = loaded_model.fit(data, batch_size=50, epochs=1)
 
@@ -141,3 +151,37 @@ def assert_model_is_retrainable(
     # assert all(0 <= loss <= 1 for loss in losses.history["loss"])
 
     return loaded_model
+
+
+def model_test(
+        model: Model,
+        dataset: merlin.io.Dataset,
+        run_eagerly: bool = True,
+        optimizer="adam",
+        epochs: int = 1,
+        **kwargs
+) -> Tuple[Model, Any]:
+    model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
+    losses = model.fit(dataset, batch_size=50, epochs=epochs)
+
+    assert len(losses.epoch) == epochs
+
+    assert isinstance(model.from_config(model.get_config()), type(model))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        model.save(tmpdir)
+        loaded_model = tf.keras.models.load_model(tmpdir)
+
+    assert isinstance(loaded_model, type(model))
+
+    # np.array_equal(
+    #     model.predict(dataset, batch_size=50),
+    #     loaded_model.predict(dataset, batch_size=50)
+    # )
+
+    loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
+    losses = loaded_model.fit(dataset, batch_size=50, epochs=epochs)
+
+    assert len(losses.epoch) == epochs
+
+    return loaded_model, losses

@@ -55,6 +55,29 @@ class Items:
             {key: val.shape for key, val in self.metadata.items()}
         )
 
+    def __repr__(self):
+        metadata = {key: str(val) for key, val in self.metadata.items()}
+
+        return f"Items({self.ids}, {metadata})"
+
+    def __str__(self):
+        metadata = {key: str(val) for key, val in self.metadata.items()}
+
+        return f"Items({self.ids}, {metadata})"
+
+    def get_config(self):
+        return {
+            "ids": self.ids.as_list(),
+            "metadata": {key: val.as_list() for key, val in self.metadata.items()}
+        }
+
+    @classmethod
+    def from_config(cls, config):
+        ids = tf.TensorShape(config["config"]["ids"])
+        metadata = {key: tf.TensorShape(val) for key, val in config["config"]["metadata"].items()}
+
+        return cls(ids, metadata)
+
 
 negative_sampling_registry: Registry = Registry.class_registry("tf.negative_sampling")
 
