@@ -36,8 +36,8 @@ from merlin.core.dispatch import (
     make_df,
     pull_apart_list,
 )
+from merlin.io.shuffle import shuffle_df
 from merlin.models.loader.dataframe_iter import DataFrameIter
-from merlin.models.loader.shuffle import _shuffle_df
 from merlin.schema import Tags
 
 
@@ -132,7 +132,7 @@ class ChunkQueue:
             chunks.reset_index(drop=True, inplace=True)
             chunks, spill = self.get_batch_div_chunk(chunks, self.dataloader.batch_size)
             if self.shuffle:
-                chunks = _shuffle_df(chunks)
+                chunks = shuffle_df(chunks)
 
             if len(chunks) > 0:
                 chunks = self.dataloader.make_tensors(chunks, self.dataloader._use_nnz)
