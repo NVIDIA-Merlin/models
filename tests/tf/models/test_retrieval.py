@@ -26,6 +26,9 @@ def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly, 
 def test_two_tower_model(music_streaming_data: Dataset, run_eagerly):
     music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
+    schema = music_streaming_data.schema
+    user_schema, item_schema = schema.select_by_tag(Tags.USER), schema.select_by_tag(Tags.ITEM)
+
     model, losses = testing_utils.model_test(
         mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([64, 32])),
         music_streaming_data,
@@ -96,7 +99,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
 #         )
 
 
-@pytest.mark.parametrize("run_eagerly", [True])
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_youtube_dnn_retrieval(
         sequence_testing_data: Dataset,
         run_eagerly: bool,

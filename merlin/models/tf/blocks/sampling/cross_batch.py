@@ -407,6 +407,7 @@ class PopularityBasedSampler(ItemSampler):
         seed: Optional[int] = None,
         **kwargs,
     ):
+        self.max_id = kwargs.pop("max_id", None)
         super().__init__(max_num_samples=max_num_samples, **kwargs)
         self.feature_tag = feature_tag
         self.seed = seed
@@ -423,8 +424,9 @@ class PopularityBasedSampler(ItemSampler):
         return items
 
     def build(self, input_shape):
-        feature_name = self.context.schema.select_by_tag(self.feature_tag).column_names[0]
-        self.max_id = categorical_cardinalities(self.context.schema)[feature_name]
+        if not self.max_id:
+            feature_name = self.context.schema.select_by_tag(self.feature_tag).column_names[0]
+            self.max_id = categorical_cardinalities(self.context.schema)[feature_name]
 
         assert (
                 self.max_num_samples <= self.max_id
@@ -454,6 +456,9 @@ class PopularityBasedSampler(ItemSampler):
         config.update({
             "feature_tag": self.feature_tag,
             "min_id": self.min_id,
+            "max_id": self.max_id,
             "seed": self.seed,
             "max_num_samples": self._max_num_samples
         })
+
+        return config

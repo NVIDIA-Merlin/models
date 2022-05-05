@@ -17,6 +17,7 @@ import logging
 from typing import List, Optional, Sequence, Union, TypedDict, Callable
 
 import tensorflow as tf
+from merlin.models.tf.blocks.core.inputs import InputBlock
 from tensorflow.python.ops import embedding_ops
 
 from merlin.models.tf.blocks.core.base import (
@@ -42,19 +43,19 @@ from merlin.schema import Schema, Tags
 LOG = logging.getLogger("merlin_models")
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class TowerBlock(ModelBlock):
-    """TowerBlock to wrap item or query tower"""
-
-    pass
+# @tf.keras.utils.register_keras_serializable(package="merlin_models")
+# class TowerBlock(ModelBlock):
+#     """TowerBlock to wrap item or query tower"""
+#
+#     pass
 
 
 class RetrievalMixin:
-    def query_block(self) -> TowerBlock:
+    def query_block(self) -> ModelBlock:
         """Method to return the query tower from a RetrievalModel instance"""
         raise NotImplementedError()
 
-    def item_block(self) -> TowerBlock:
+    def item_block(self) -> ModelBlock:
         """Method to return the item tower from a RetrievalModel instance"""
         raise NotImplementedError()
 
@@ -84,7 +85,7 @@ class ContrastiveInputs(TypedDict):
     negative_item_id: Optional[tf.Tensor]
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
+# @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DualEncoderBlock(ParallelBlock):
     QUERY_BRANCH_NAME = "query"
     ITEM_BRANCH_NAME = "item"
@@ -96,6 +97,7 @@ class DualEncoderBlock(ParallelBlock):
             query_id_tag=Tags.USER_ID,
             item_id_tag=Tags.ITEM_ID,
             output_ids: bool = True,
+            normalize: bool = True,
             pre: Optional[BlockType] = None,
             post: Optional[BlockType] = None,
             aggregation: Optional[TabularAggregationType] = None,
@@ -126,9 +128,9 @@ class DualEncoderBlock(ParallelBlock):
         strict : bool, optional
             If enabled, check that the input of the ParallelBlock instance is a dictionary.
         """
-        self._query_block = TowerBlock(query_block, block_name="QueryBlock")
+        self._query_block = ModelBlock(query_block, block_name="QueryBlock")
         self._query_block._name = "query"
-        self._item_block = TowerBlock(item_block, block_name="ItemBlock")
+        self._item_block = ModelBlock(item_block, block_name="ItemBlock")
         self._item_block._name = "item"
 
         if output_ids:
@@ -177,10 +179,10 @@ class DualEncoderBlock(ParallelBlock):
             **kwargs,
         )
 
-    def query_block(self) -> TowerBlock:
+    def query_block(self) -> ModelBlock:
         return self._query_block
 
-    def item_block(self) -> TowerBlock:
+    def item_block(self) -> ModelBlock:
         return self._item_block
 
     @classmethod
@@ -190,6 +192,25 @@ class DualEncoderBlock(ParallelBlock):
         output.__class__ = cls
 
         return output
+
+    @classmethod
+    def create_with_inputs(
+            cls,
+            schema: Schema,
+            query_tower: Optional[Block] = None,
+            item_tower: Optional[Block] = None,
+            query_id_tag=Tags.USER_ID,
+            item_id_tag=Tags.ITEM_ID,
+            **kwargs
+    ):
+        _query_tower = InputBlock(schema.select_by_tag(query_id_tag))
+        if query_tower is not None:
+            _query_tower = _query_tower.connect(query_tower)
+        _item_tower = InputBlock(schema.select_by_tag(item_id_tag)).connect(item_tower)
+        if item_tower is not None:
+            _item_tower = _item_tower.connect(item_tower)
+
+        return cls(_query_tower, _item_tower, query_id_tag, item_id_tag, **kwargs)
 
 
 @Block.registry.register_with_multiple_names("item_retrieval_scorer")

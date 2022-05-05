@@ -286,7 +286,7 @@ class ModelContext(Layer):
         # config["feature_dtypes"] = self._feature_dtypes
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self._schema)
 
-        config = tf_utils.maybe_serialize_keras_objects(self, config, ["_masks"])
+        # config = tf_utils.maybe_serialize_keras_objects(self, config, ["_masks"])
 
         return config
 
@@ -296,7 +296,10 @@ class ModelContext(Layer):
         if schema:
             schema = schema_utils.tensorflow_metadata_json_to_schema(schema)
 
-        config = tf_utils.maybe_deserialize_keras_objects(config, ["_masks"])
+        # if "_masks" in config:
+        #     config["_masks"] = {
+        #         key: tf.keras.layers.deserialize(val) for key, val in config["_masks"].items()
+        #     }
 
         return cls(schema=schema, **config)
 

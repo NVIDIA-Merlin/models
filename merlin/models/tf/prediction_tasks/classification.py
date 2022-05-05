@@ -18,6 +18,8 @@ from __future__ import annotations
 from typing import Optional, Union, TYPE_CHECKING, Sequence
 
 import tensorflow as tf
+from merlin.models.tf.utils import tf_utils
+
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 
 from merlin.models.tf.blocks.sampling.base import ItemSampler, ItemSamplersType
@@ -82,13 +84,13 @@ class BinaryClassificationTask(PredictionTask):
     )
 
     def __init__(
-        self,
-        target: Optional[Union[str, Schema]] = None,
-        task_name: Optional[str] = None,
-        task_block: Optional[Layer] = None,
-        loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS,
-        **kwargs,
+            self,
+            target: Optional[Union[str, Schema]] = None,
+            task_name: Optional[str] = None,
+            task_block: Optional[Layer] = None,
+            loss: Optional[LossType] = DEFAULT_LOSS,
+            metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS,
+            **kwargs,
     ):
         if isinstance(target, Schema):
             target_name = target.select_by_tag(Tags.BINARY_CLASSIFICATION)
@@ -154,42 +156,28 @@ class BinaryClassificationTask(PredictionTask):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class CategoricalPrediction(Block):
-    """Block that predicts a categorical feature. num_classes is inferred from the"""
-
+class CategoricalPrediction(Dense, Block):
     def __init__(
-        self,
-        feature: Union[str, Tags] = Tags.ITEM_ID,
-        weight_tying: bool = False,
-        use_bias=True,
-        bias_initializer="zeros",
-        activation=None,
-        trainable=True,
-        name=None,
-        dtype=None,
-        dynamic=False,
-        **kwargs,
+            self,
+            feature: Union[str, Tags] = Tags.ITEM_ID,
+            activation=None,
+            use_bias=True,
+            kernel_initializer='glorot_uniform',
+            bias_initializer='zeros',
+            kernel_regularizer=None,
+            bias_regularizer=None,
+            activity_regularizer=None,
+            kernel_constraint=None,
+            bias_constraint=None,
+            **kwargs
     ):
-        super(CategoricalPrediction, self).__init__(trainable=trainable, name=name, dtype=dtype, dynamic=dynamic)
-        self.bias_initializer = bias_initializer
         self.feature = feature
-        self.weight_tying = weight_tying
-        self.use_bias = use_bias
-        if not self.weight_tying:
-            self.output_classes = kwargs.pop("output_classes", Dense(
-                units=1,  # Will be overwritten in the build-method when we know the number of classes
-                # units=self.num_classes,
-                bias_initializer=bias_initializer,
-                name=f"{self.feature}-prediction",
-                activation="linear",
-                **kwargs,
-            ))
+        units = kwargs.pop("units", 1)
+        super().__init__(units, activation, use_bias, kernel_initializer, bias_initializer, kernel_regularizer,
+                         bias_regularizer, activity_regularizer, kernel_constraint, bias_constraint, **kwargs)
 
-        # To ensure that the output is always fp32, avoiding numerical
-        # instabilities with mixed_float16 policy
-        self.output_activation = tf.keras.layers.Activation(
-            activation, dtype="float32", name="predictions"
-        )
+    def embedding_lookup(self, inputs, **kwargs):
+        return embedding_ops.embedding_lookup(tf.transpose(self.kernel), inputs, **kwargs)
 
     @property
     def feature_name(self):
@@ -208,79 +196,10 @@ class CategoricalPrediction(Block):
         return categorical_cardinalities(self.context.schema)[self.feature_name]
 
     def build(self, input_shape):
-        if self.weight_tying:
-            self.kernel = self.context.get_embedding(self.feature_name)
-            if self.use_bias:
-                self.bias = self.add_weight(
-                    name="output_layer_bias",
-                    shape=(self.num_classes,),
-                    initializer=self.bias_initializer,
-                )
-        else:
-            self.output_classes.units = self.num_classes
-            self.output_classes.build(input_shape)
-            self.kernel = self.output_classes.kernel
-            self.bias = self.output_classes.bias
-        return super().build(input_shape)
+        if self.units != self.num_classes:
+            self.units = self.num_classes
 
-    def embedding_lookup(self, inputs, **kwargs):
-        kernel = self.kernel if self.weight_tying else tf.transpose(self.kernel)
-
-        return embedding_ops.embedding_lookup(kernel, inputs, **kwargs)
-
-    def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
-        if not self.weight_tying:
-            return self.output_classes(inputs, training=training)
-
-        kernel = tf.transpose(self.kernel)
-
-        # This code is the same as in Dense
-        if inputs.dtype.base_dtype != self._compute_dtype_object.base_dtype:
-            inputs = math_ops.cast(inputs, dtype=self._compute_dtype_object)
-
-        rank = inputs.shape.rank
-        if rank == 2 or rank is None:
-            # We use embedding_lookup_sparse as a more efficient matmul operation for
-            # large sparse input tensors. The op will result in a sparse gradient, as
-            # opposed to sparse_ops.sparse_tensor_dense_matmul which results in dense
-            # gradients. This can lead to sigfinicant speedups, see b/171762937.
-            if isinstance(inputs, sparse_tensor.SparseTensor):
-                # We need to fill empty rows, as the op assumes at least one id per row.
-                inputs, _ = sparse_ops.sparse_fill_empty_rows(inputs, 0)
-                # We need to do some munging of our input to use the embedding lookup as
-                # a matrix multiply. We split our input matrix into separate ids and
-                # weights tensors. The values of the ids tensor should be the column
-                # indices of our input matrix and the values of the weights tensor
-                # can continue to the actual matrix weights.
-                # The column arrangement of ids and weights
-                # will be summed over and does not matter. See the documentation for
-                # sparse_ops.sparse_tensor_dense_matmul a more detailed explanation
-                # of the inputs to both ops.
-                ids = sparse_tensor.SparseTensor(
-                    indices=inputs.indices,
-                    values=inputs.indices[:, 1],
-                    dense_shape=inputs.dense_shape)
-                weights = inputs
-                outputs = embedding_ops.embedding_lookup_sparse_v2(
-                    kernel, ids, weights, combiner='sum')
-            else:
-                outputs = gen_math_ops.MatMul(a=inputs, b=kernel)
-        # Broadcast kernel to inputs.
-        else:
-            outputs = standard_ops.tensordot(inputs, kernel, [[rank - 1], [0]])
-            # Reshape the output back to the original ndim of the input.
-            if not context.executing_eagerly():
-                shape = inputs.shape.as_list()
-                output_shape = shape[:-1] + [kernel.shape[-1]]
-                outputs.set_shape(output_shape)
-
-        if self.use_bias:
-            outputs = nn_ops.bias_add(outputs, self.bias)
-
-        # if self.output_activation is not None:
-        #     outputs = self.output_activation(outputs)
-
-        return outputs
+        super().build(input_shape)
 
     def get_targets(
             self,
@@ -306,22 +225,205 @@ class CategoricalPrediction(Block):
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.num_classes,)
 
-    def get_config(self):
-        config = super().get_config()
-        config.update({"use_bias": self.use_bias, "weight_tying": self.weight_tying})
-        config = maybe_serialize_keras_objects(self, config, ["output_classes"])
 
-        return config
+# @tf.keras.utils.register_keras_serializable(package="merlin.models")
+# class CategoricalPrediction(Block):
+#     """Block that predicts a categorical feature. num_classes is inferred from the"""
+#
+#     def __init__(
+#             self,
+#             feature: Union[str, Tags] = Tags.ITEM_ID,
+#             # weight_tying: bool = False,
+#             use_bias=True,
+#             bias_initializer="zeros",
+#             kernel_initializer="random_normal",
+#             activation=None,
+#             trainable=True,
+#             name=None,
+#             dtype=None,
+#             dynamic=False,
+#             **kwargs,
+#     ):
+#         self.output_layer = kwargs.pop("output_layer", None)
+#         super(CategoricalPrediction, self).__init__(trainable=trainable, name=name, dtype=dtype, dynamic=dynamic)
+#         self.bias_initializer = bias_initializer
+#         self.kernel_initializer = kernel_initializer
+#         self.feature = feature
+#         # self.weight_tying = weight_tying
+#         self._use_bias = use_bias
+#         # if not self.weight_tying:
+#         # self.output_classes = _output_classes or Dense(
+#         #     units=1,  # Will be overwritten in the build-method when we know the number of classes
+#         #     bias_initializer=bias_initializer,
+#         #     name=f"{self.feature}-prediction",
+#         #     activation="linear",
+#         #     use_bias=self.use_bias,
+#         #     **kwargs,
+#         # )
+#
+#         # To ensure that the output is always fp32, avoiding numerical
+#         # instabilities with mixed_float16 policy
+#         self.output_activation = None
+#         if activation:
+#             self.output_activation = tf.keras.layers.Activation(
+#                 activation, dtype="float32", name="predictions"
+#             )
+#
+#     @property
+#     def feature_name(self):
+#         if isinstance(self.feature, Tags):
+#             feature_schema = self.context.schema.select_by_tag(self.feature)
+#             if not len(feature_schema) == 1:
+#                 raise ValueError(
+#                     f"{self.feature} is a tag, but the schema contains multiple features with that tag."
+#                 )
+#             return feature_schema.column_names[0]
+#
+#         return self.feature
+#
+#     @property
+#     def num_classes(self):
+#         return categorical_cardinalities(self.context.schema)[self.feature_name]
+#
+#     def build(self, input_shape):
+#         # if self.weight_tying:
+#         #     self.kernel = self.context.get_embedding(self.feature_name)
+#         #     if self.use_bias:
+#         #         self.bias = self.add_weight(
+#         #             name="output_layer_bias",
+#         #             shape=(self.num_classes,),
+#         #             initializer=self.bias_initializer,
+#         #         )
+#         # else:
+#
+#         if not self.output_layer:
+#             self.output_layer = Dense(
+#                 units=self.num_classes,
+#                 kernel_initializer=self.kernel_initializer,
+#                 bias_initializer=self.bias_initializer,
+#                 name=f"{self.feature_name}-prediction",
+#                 use_bias=self._use_bias,
+#                 activation="linear",
+#             )
+#         self.output_layer.build(input_shape)
+#
+#         # if self.output_classes.units == 1:
+#         #     self.output_classes.units = self.num_classes
+#         # self.output_classes.build(input_shape)
+#         # self.kernel = self.output_classes.kernel
+#         # self.bias = self.output_classes.bias
+#         return super().build(input_shape)
+#
+#     def embedding_lookup(self, inputs, **kwargs):
+#         # if self.weight_tying:
+#         #     kernel = self.kernel
+#         # else:
+#         kernel = tf.transpose(self.output_layer.kernel)
+#
+#         return embedding_ops.embedding_lookup(kernel, inputs, **kwargs)
+#
+#     def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
+#         return self.output_layer(inputs, training=training)
+#         # if not self.weight_tying:
+#         #     return self.output_classes(inputs, training=training)
+#         #
+#         # kernel = tf.transpose(self.kernel)
+#         #
+#         # # This code is the same as in Dense
+#         # if inputs.dtype.base_dtype != self._compute_dtype_object.base_dtype:
+#         #     inputs = math_ops.cast(inputs, dtype=self._compute_dtype_object)
+#         #
+#         # rank = inputs.shape.rank
+#         # if rank == 2 or rank is None:
+#         #     # We use embedding_lookup_sparse as a more efficient matmul operation for
+#         #     # large sparse input tensors. The op will result in a sparse gradient, as
+#         #     # opposed to sparse_ops.sparse_tensor_dense_matmul which results in dense
+#         #     # gradients. This can lead to sigfinicant speedups, see b/171762937.
+#         #     if isinstance(inputs, sparse_tensor.SparseTensor):
+#         #         # We need to fill empty rows, as the op assumes at least one id per row.
+#         #         inputs, _ = sparse_ops.sparse_fill_empty_rows(inputs, 0)
+#         #         # We need to do some munging of our input to use the embedding lookup as
+#         #         # a matrix multiply. We split our input matrix into separate ids and
+#         #         # weights tensors. The values of the ids tensor should be the column
+#         #         # indices of our input matrix and the values of the weights tensor
+#         #         # can continue to the actual matrix weights.
+#         #         # The column arrangement of ids and weights
+#         #         # will be summed over and does not matter. See the documentation for
+#         #         # sparse_ops.sparse_tensor_dense_matmul a more detailed explanation
+#         #         # of the inputs to both ops.
+#         #         ids = sparse_tensor.SparseTensor(
+#         #             indices=inputs.indices,
+#         #             values=inputs.indices[:, 1],
+#         #             dense_shape=inputs.dense_shape)
+#         #         weights = inputs
+#         #         outputs = embedding_ops.embedding_lookup_sparse_v2(
+#         #             kernel, ids, weights, combiner='sum')
+#         #     else:
+#         #         outputs = gen_math_ops.MatMul(a=inputs, b=kernel)
+#         # # Broadcast kernel to inputs.
+#         # else:
+#         #     outputs = standard_ops.tensordot(inputs, kernel, [[rank - 1], [0]])
+#         #     # Reshape the output back to the original ndim of the input.
+#         #     if not context.executing_eagerly():
+#         #         shape = inputs.shape.as_list()
+#         #         output_shape = shape[:-1] + [kernel.shape[-1]]
+#         #         outputs.set_shape(output_shape)
+#         #
+#         # if self.use_bias:
+#         #     outputs = nn_ops.bias_add(outputs, self.bias)
+#         #
+#         # # if self.output_activation is not None:
+#         # #     outputs = self.output_activation(outputs)
+#         #
+#         # return outputs
+#
+#     def get_targets(
+#             self,
+#             inputs: Union[TabularData, tf.Tensor],
+#             features: DictWithSchema,
+#             targets: Optional[Union[TabularData, tf.Tensor]] = None,
+#             one_hot: bool = True,
+#             **kwargs
+#     ):
+#         feature_name = self.feature_name
+#
+#         if not targets:
+#             targets = features[feature_name]
+#
+#         if self.context.is_masked(feature_name):
+#             targets = self.context.get_mask(feature_name).apply_mask_to_targets(targets)
+#             targets = remove_pad_3d_targets(targets)
+#             if one_hot:
+#                 targets = transform_label_to_onehot(targets, self.num_classes)
+#
+#         return targets
+#
+#     def compute_output_shape(self, input_shape):
+#         return input_shape[:-1] + (self.num_classes,)
+#
+#     def get_config(self):
+#         config = super().get_config()
+#         # config.update({"use_bias": self.use_bias, "weight_tying": self.weight_tying})
+#         config.update({"use_bias": self._use_bias})
+#         config["output_layer"] = tf.keras.utils.serialize_keras_object(self.output_layer)
+#         # if not self.weight_tying:
+#
+#         return config
+#
+#     @classmethod
+#     def from_config(cls, config):
+#         if "output_layer" in config:
+#             config["output_layer"] = tf.keras.layers.deserialize(config["output_layer"])
+#
+#         return cls(**config)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DotProductPrediction(Layer):
-    def call(self, inputs, training=False, testing=False):
+    def call(self, inputs, **kwargs):
         scores = tf.reduce_sum(
             tf.multiply(inputs["query"], inputs["item"]), keepdims=True, axis=-1
         )
-
-        self.targets = inputs["item_id"]
 
         return scores
 
@@ -333,12 +435,14 @@ class DotProductPrediction(Layer):
             **kwargs
     ):
         if targets is None:
-            if isinstance(inputs, dict) and "item_id" in inputs:
-                targets = inputs["item_id"]
-            else:
-                targets = features[Tags.ITEM_ID]
+            targets = features[Tags.ITEM_ID]
 
         return targets
+
+    def compute_output_shape(self, input_shapes):
+        batch_size = tf_utils.calculate_batch_size_from_input_shapes(input_shapes)
+
+        return batch_size, 1
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -370,15 +474,15 @@ class MultiClassClassificationTask(PredictionTask):
     DEFAULT_METRICS: MetricOrMetrics = (tf.keras.metrics.Accuracy,)
 
     def __init__(
-        self,
-        prediction_block: CategoricalPrediction,
-        target_name: Optional[Union[str, Schema]] = None,
-        task_name: Optional[str] = None,
-        task_block: Optional[Layer] = None,
-        pre: Optional[Block] = None,
-        post: Optional[Block] = None,
-        logits_temperature: float = 1.0,
-        **kwargs,
+            self,
+            prediction_block: CategoricalPrediction,
+            target_name: Optional[Union[str, Schema]] = None,
+            task_name: Optional[str] = None,
+            task_block: Optional[Layer] = None,
+            pre: Optional[Block] = None,
+            post: Optional[Block] = None,
+            logits_temperature: float = 1.0,
+            **kwargs,
     ):
         if logits_temperature != 1:
             logits_scaler = LogitsTemperatureScaler(logits_temperature)
@@ -489,7 +593,7 @@ class MultiClassClassificationTask(PredictionTask):
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["prediction_block"])
+        config = maybe_deserialize_keras_objects(config, ["prediction_block"], tf.keras.layers.deserialize)
 
         return super().from_config(config)
 
@@ -514,7 +618,9 @@ def ItemPredictionTask(
         prediction_block = DotProductPrediction(**kwargs)
     else:
         prediction_block = CategoricalPrediction(
-            feature, weight_tying=weight_tying, **kwargs
+            feature,
+            # weight_tying=weight_tying,
+            **kwargs
         )
 
     return MultiClassClassificationTask(

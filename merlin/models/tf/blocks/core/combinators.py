@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import copy
 import sys
 from functools import reduce
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, TYPE_CHECKING
 
 import six
 import tensorflow as tf
@@ -15,13 +17,16 @@ from merlin.models.tf.blocks.core.base import (
     right_shift_layer,
 )
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType, TabularBlock
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, L2Norm
 from merlin.models.tf.dataset import DictWithSchema
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import filter_kwargs_layer
 from merlin.models.utils import schema_utils
 from merlin.models.utils.misc_utils import filter_kwargs, has_kwargs
 from merlin.schema import Schema, Tags
+
+if TYPE_CHECKING:
+    from merlin.models.tf.models.base import ModelBlock
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -474,6 +479,133 @@ class ParallelBlock(TabularBlock):
         inputs, config = cls.parse_config(config, custom_objects)
 
         return cls(inputs, **config)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class DualEncoderBlock(ParallelBlock):
+    QUERY_BRANCH_NAME = "query"
+    ITEM_BRANCH_NAME = "item"
+
+    def __init__(
+            self,
+            query_block: Block,
+            item_block: Block,
+            normalize: bool = True,
+            pre: Optional[BlockType] = None,
+            post: Optional[BlockType] = None,
+            aggregation: Optional[TabularAggregationType] = None,
+            schema: Optional[Schema] = None,
+            name: Optional[str] = None,
+            strict: bool = False,
+            **kwargs,
+    ):
+        """Prepare the Query and Item towers of a Retrieval block
+
+        Parameters
+        ----------
+        query_block : Block
+            The `Block` instance that combines user features
+        item_block : Block
+            Optional `Block` instance that combines items features.
+        pre : Optional[BlockType], optional
+            Optional `Block` instance to apply before the `call` method of the Two-Tower block
+        post : Optional[BlockType], optional
+            Optional `Block` instance to apply on both outputs of Two-tower model
+        aggregation : Optional[TabularAggregationType], optional
+            The Aggregation operation to apply after processing the `call` method
+            to output a single Tensor.
+        schema : Optional[Schema], optional
+            The `Schema` object with the input features.
+        name : Optional[str], optional
+            Name of the layer.
+        strict : bool, optional
+            If enabled, check that the input of the ParallelBlock instance is a dictionary.
+        """
+        if normalize:
+            query_block = query_block.connect(L2Norm())
+            item_block = item_block.connect(L2Norm())
+
+        from merlin.models.tf.models.base import ModelBlock
+
+        self._query_block = ModelBlock(query_block, block_name="QueryBlock")
+        self._query_block._name = "query"
+        self._item_block = ModelBlock(item_block, block_name="ItemBlock")
+        self._item_block._name = "item"
+
+        query_branch = Filter(query_block.schema).connect(self._query_block)
+        item_branch = Filter(item_block.schema).connect(self._item_block)
+
+        branches = {
+            self.QUERY_BRANCH_NAME: query_branch,
+            self.ITEM_BRANCH_NAME: item_branch,
+        }
+
+        super().__init__(
+            branches,
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+            schema=schema,
+            name=name,
+            strict=strict,
+            **kwargs,
+        )
+
+    def query_block(self) -> ModelBlock:
+        return self._query_block
+
+    def item_block(self) -> ModelBlock:
+        return self._item_block
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        inputs, config = cls.parse_config(config, custom_objects)
+        output = ParallelBlock(inputs, **config)
+        output.__class__ = cls
+
+        return output
+
+    @classmethod
+    def create_with_inputs(
+            cls,
+            schema: Schema,
+            query_block: Optional[Block] = None,
+            item_block: Optional[Block] = None,
+            query_tag=Tags.USER,
+            item_tag=Tags.ITEM,
+            **kwargs
+    ):
+        from merlin.models.tf import InputBlock
+
+        query_schema = schema.select_by_tag(query_tag)
+        _query_block = InputBlock(
+            query_schema, aggregation="concat" if len(query_schema) == 1 else None
+        )
+        if query_block is not None:
+            _query_block = _query_block.connect(query_block)
+        item_schema = schema.select_by_tag(item_tag)
+        _item_block = InputBlock(
+            item_schema, aggregation="concat" if len(item_schema) == 1 else None
+        )
+        if item_block is not None:
+            _item_block = _item_block.connect(item_block)
+
+        return cls(_query_block, _item_block, **kwargs)
+
+    @classmethod
+    def create_with_id_inputs(
+            cls,
+            schema: Schema,
+            query_id_tag=Tags.USER_ID,
+            item_id_tag=Tags.ITEM_ID,
+            **kwargs
+    ):
+        return cls.create_with_inputs(
+            schema,
+            query_tag=query_id_tag,
+            item_tag=item_id_tag,
+            **kwargs
+        )
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

@@ -123,7 +123,7 @@ class ContrastiveLearningTask(MultiClassClassificationTask):
             testing=False,
     ) -> Union[tf.Tensor, TaskResults]:
         if not (training or testing):
-            return self.prediction_block(inputs, training=training, testing=testing)
+            return self.prediction_block(inputs, training=training)
 
         targets = self.get_targets(inputs, features, targets, training=training, testing=testing, one_hot=False)
         representation = self.create_representation(inputs, features, targets, training, testing)

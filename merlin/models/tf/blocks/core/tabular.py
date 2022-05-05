@@ -137,6 +137,12 @@ class TabularAggregation(Block, RegistryMixin["TabularAggregation"], abc.ABC):
 
         return config
 
+    @classmethod
+    def from_config(cls, config):
+        config = tf_utils.maybe_deserialize_keras_objects(config, ["mask"])
+
+        return cls(**config)
+
 
 TabularAggregationType = Union[str, TabularAggregation]
 

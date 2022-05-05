@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.blocks.core.combinators import DualEncoderBlock
 from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
@@ -16,8 +17,6 @@ from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.classification import ItemPredictionTask
-from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
-from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.schema import Schema, Tags
 
 
@@ -32,9 +31,6 @@ def MatrixFactorizationModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     logits_temperature: float = 1.0,
-    loss: Optional[LossType] = "bpr",
-    metrics: MetricOrMetrics = ranking_metrics(top_ks=[10]),
-    samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Union[Model, RetrievalModel]:
     """Builds a matrix factorization model.
@@ -82,15 +78,20 @@ def MatrixFactorizationModel(
         ).to_contrastive("in-batch")
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    mf = QueryItemIdsEmbeddingsBlock(
-        schema=schema,
-        dim=dim,
-        query_id_tag=query_id_tag,
-        item_id_tag=item_id_tag,
-        embeddings_initializers=embeddings_initializers,
-        post=post,
-        **kwargs,
+
+    mf = DualEncoderBlock.create_with_inputs(
+        schema, query_tag=query_id_tag, item_tag=item_id_tag, post=post, **kwargs
     )
+
+    # mf = QueryItemIdsEmbeddingsBlock(
+    #     schema=schema,
+    #     dim=dim,
+    #     query_id_tag=query_id_tag,
+    #     item_id_tag=item_id_tag,
+    #     embeddings_initializers=embeddings_initializers,
+    #     post=post,
+    #     **kwargs,
+    # )
 
     model = RetrievalModel(mf, prediction_tasks)
 
@@ -114,9 +115,6 @@ def TwoTowerModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     logits_temperature: float = 1.0,
-    # loss: Optional[LossType] = "categorical_crossentropy",
-    # metrics: MetricOrMetrics = ranking_metrics(top_ks=[10]),
-    # samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> Union[Model, RetrievalModel]:
     """Builds the Two-tower architecture, as proposed in [1].
@@ -182,16 +180,27 @@ def TwoTowerModel(
         ).to_contrastive("in-batch")
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    two_tower = TwoTowerBlock(
-        schema=schema,
-        query_tower=query_tower,
-        item_tower=item_tower,
-        query_tower_tag=query_tower_tag,
-        item_tower_tag=item_tower_tag,
-        embedding_options=embedding_options,
+
+    two_tower = DualEncoderBlock.create_with_inputs(
+        schema,
+        query_block=query_tower,
+        item_block=item_tower or query_tower.copy(),
+        query_tag=query_tower_tag,
+        item_tag=item_tower_tag,
         post=post,
         **kwargs,
     )
+
+    # two_tower = TwoTowerBlock(
+    #     schema=schema,
+    #     query_tower=query_tower,
+    #     item_tower=item_tower,
+    #     query_tower_tag=query_tower_tag,
+    #     item_tower_tag=item_tower_tag,
+    #     embedding_options=embedding_options,
+    #     post=post,
+    #     **kwargs,
+    # )
 
     model = RetrievalModel(two_tower, prediction_tasks)
 
@@ -204,10 +213,7 @@ def YoutubeDNNRetrievalModel(
     aggregation: str = "concat",
     top_block: Block = MLPBlock([64]),
     num_sampled: int = 100,
-    loss: Optional[LossType] = "categorical_crossentropy",
-    metrics=ranking_metrics(top_ks=[10]),
     normalize: bool = True,
-    extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
     logits_temperature: float = 1.0,
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
@@ -272,6 +278,7 @@ def YoutubeDNNRetrievalModel(
         weight_tying=False,
         logits_temperature=logits_temperature,
         normalize=normalize,
+        task_block=task_block,
     ).to_sampled_softmax(num_sampled)
 
     model = RetrievalModel(body, task)

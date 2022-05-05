@@ -338,6 +338,12 @@ class SequenceAggregation(Enum):
     def __eq__(self, o: object) -> bool:
         return str(o) == str(self)
 
+    @classmethod
+    def from_str(cls, s: str) -> "SequenceAggregation":
+        for val in [cls.MEAN, cls.SUM, cls.MAX, cls.MIN]:
+            if tf.keras.layers.serialize(val) == s:
+                return val
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class SequenceAggregator(Block):
@@ -373,7 +379,5 @@ class SequenceAggregator(Block):
 
     @classmethod
     def from_config(cls, config):
-        config = tf_utils.maybe_deserialize_keras_objects(
-            config, ["combiner"], tf.keras.layers.deserialize
-        )
+        config["combiner"] = SequenceAggregation.from_str(config["combiner"])
         return super().from_config(config)

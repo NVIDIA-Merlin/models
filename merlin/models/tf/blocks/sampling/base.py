@@ -67,7 +67,7 @@ class Items:
 
     def get_config(self):
         return {
-            "ids": self.ids.as_list(),
+            "ids": self.ids.as_list() if self.ids else None,
             "metadata": {key: val.as_list() for key, val in self.metadata.items()}
         }
 

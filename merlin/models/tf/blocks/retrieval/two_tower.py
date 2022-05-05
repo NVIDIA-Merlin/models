@@ -101,9 +101,10 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
             raise ValueError("The query_tower is required by TwoTower")
 
         _item_tower: Block = _parse_tower(
-            item_tower or query_tower .copy(), schema, item_tower_tag, normalize, embedding_options=embedding_options
+            item_tower or query_tower.copy(), schema, item_tower_tag, normalize,
+            embedding_options=embedding_options
         )
-        query_tower = _parse_tower(
+        query_tower: Block = _parse_tower(
             query_tower, schema, query_tower_tag, normalize, embedding_options=embedding_options
         )
 
@@ -126,7 +127,7 @@ def _parse_tower(tower: Block, schema: Schema, tag: str, normalize: bool = True,
                 f"The schema should contain features with the tag `{tag}`,"
                 "required by the tower"
             )
-        tower_inputs = InputBlock(schema)
+        tower_inputs = InputBlock(schema, **kwargs)
 
         tower = tower_inputs.connect(tower)
 
