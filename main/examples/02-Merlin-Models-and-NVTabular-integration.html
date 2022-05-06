@@ -378,7 +378,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p><img alt="2c8af02f47a44f969fd1cad3b0603a25" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="b9fe381ce54b4ac38d95cd5e1748017e" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="From-ETL-to-Training-RecSys-models---NVTabular-and-Merlin-Models-integrated-example">
 <h1>From ETL to Training RecSys models - NVTabular and Merlin Models integrated example<a class="headerlink" href="#From-ETL-to-Training-RecSys-models---NVTabular-and-Merlin-Models-integrated-example" title="Permalink to this headline"></a></h1>
 <div class="section" id="Overview">
@@ -400,7 +400,7 @@ benchmark their new models on example offline datasets.</p>
 </div>
 <div class="section" id="Integration-of-NVTabular-and-Merlin-Models">
 <h2>Integration of NVTabular and Merlin Models<a class="headerlink" href="#Integration-of-NVTabular-and-Merlin-Models" title="Permalink to this headline"></a></h2>
-<p><img alt="7583f7672fe74ebc8c35552cc3817fc7" src="../_images/schema.png" /></p>
+<p><img alt="afefcb4c76ce458e963aea8ce9d68354" src="../_images/schema.png" /></p>
 <p>In this notebook, we focus on an important piece of an ML pipeline: feature engineering and model training.</p>
 <p>If you use NVTabular for feature engineering, NVTabular will output (in addition to the preprocessed parquet files), a <strong>schema</strong> file describing the dataset structures. The schema contains columns statistics, tags and metadata collected by NVTabular. Here are some examples of such metadata computed by some NVTabular preprocessing ops:</p>
 <ul class="simple">
@@ -433,9 +433,9 @@ benchmark their new models on example offline datasets.</p>
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-12 13:35:02.320071: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+2022-05-03 09:41:22.016529: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-04-12 13:35:03.226345: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0
+2022-05-03 09:41:23.018388: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0
 </pre></div></div>
 </div>
 <p>We will use the utils function to download, extract and preprocess the dataset.</p>
@@ -443,7 +443,11 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="s2">&quot;INPUT_DATA_DIR&quot;</span><span class="p">,</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/merlin-models-data/movielens/&quot;</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">input_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -465,7 +469,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
 Instructions for updating:
 Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
-2022-04-12 13:35:03.428084: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0
+2022-05-03 09:41:23.192916: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0
 /usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
   warnings.warn(
 </pre></div></div>
@@ -533,7 +537,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>0</th>
       <td>userId</td>
-      <td>(Tags.USER_ID, Tags.USER, Tags.CATEGORICAL)</td>
+      <td>(Tags.USER, Tags.CATEGORICAL, Tags.USER_ID)</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -552,7 +556,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>1</th>
       <td>movieId</td>
-      <td>(Tags.ITEM, Tags.ITEM_ID, Tags.CATEGORICAL)</td>
+      <td>(Tags.ITEM, Tags.CATEGORICAL, Tags.ITEM_ID)</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -561,10 +565,10 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.movieId.parquet</td>
-      <td>3680.0</td>
+      <td>3688.0</td>
       <td>159.0</td>
       <td>0.0</td>
-      <td>3680.0</td>
+      <td>3688.0</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -580,17 +584,17 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.title.parquet</td>
-      <td>3680.0</td>
+      <td>3688.0</td>
       <td>159.0</td>
       <td>0.0</td>
-      <td>3680.0</td>
+      <td>3688.0</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
     <tr>
       <th>3</th>
       <td>genres</td>
-      <td>(Tags.ITEM, Tags.CATEGORICAL)</td>
+      <td>(Tags.CATEGORICAL, Tags.ITEM)</td>
       <td>int32</td>
       <td>True</td>
       <td>True</td>
@@ -685,7 +689,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>8</th>
       <td>TE_age_rating</td>
-      <td>(Tags.USER, Tags.CONTINUOUS)</td>
+      <td>(Tags.CONTINUOUS, Tags.USER)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -704,7 +708,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>9</th>
       <td>TE_gender_rating</td>
-      <td>(Tags.USER, Tags.CONTINUOUS)</td>
+      <td>(Tags.CONTINUOUS, Tags.USER)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -723,7 +727,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>10</th>
       <td>TE_occupation_rating</td>
-      <td>(Tags.USER, Tags.CONTINUOUS)</td>
+      <td>(Tags.CONTINUOUS, Tags.USER)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -742,7 +746,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>11</th>
       <td>TE_zipcode_rating</td>
-      <td>(Tags.USER, Tags.CONTINUOUS)</td>
+      <td>(Tags.CONTINUOUS, Tags.USER)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -761,7 +765,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>12</th>
       <td>TE_movieId_rating</td>
-      <td>(Tags.ITEM, Tags.CONTINUOUS)</td>
+      <td>(Tags.CONTINUOUS, Tags.ITEM)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -780,7 +784,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>13</th>
       <td>TE_userId_rating</td>
-      <td>(Tags.USER, Tags.CONTINUOUS)</td>
+      <td>(Tags.CONTINUOUS, Tags.USER)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -818,7 +822,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>15</th>
       <td>rating</td>
-      <td>(Tags.TARGET, Tags.REGRESSION)</td>
+      <td>(Tags.REGRESSION, Tags.TARGET)</td>
       <td>float32</td>
       <td>False</td>
       <td>False</td>
@@ -890,7 +894,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>0</th>
       <td>userId</td>
-      <td>(Tags.USER_ID, Tags.USER, Tags.CATEGORICAL)</td>
+      <td>(Tags.USER, Tags.CATEGORICAL, Tags.USER_ID)</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -1105,7 +1109,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>0</th>
       <td>movieId</td>
-      <td>(Tags.ITEM, Tags.ITEM_ID, Tags.CATEGORICAL)</td>
+      <td>(Tags.ITEM, Tags.CATEGORICAL, Tags.ITEM_ID)</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -1114,10 +1118,10 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.movieId.parquet</td>
-      <td>3680.0</td>
+      <td>3688.0</td>
       <td>159.0</td>
       <td>0</td>
-      <td>3680</td>
+      <td>3688</td>
     </tr>
   </tbody>
 </table>
@@ -1145,6 +1149,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 <span class="n">download_file</span><span class="p">(</span>
     <span class="s2">&quot;http://files.grouplens.org/datasets/movielens/ml-1m.zip&quot;</span><span class="p">,</span>
     <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="s2">&quot;ml-1m.zip&quot;</span><span class="p">),</span>
+    <span class="n">redownload</span><span class="o">=</span><span class="kc">False</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -1154,8 +1159,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-downloading ml-1m.zip: 5.93MB [00:00, 12.4MB/s]
-unzipping files: 100%|██████████| 5/5 [00:00&lt;00:00, 40.17files/s]
+unzipping files: 100%|██████████| 5/5 [00:00&lt;00:00, 40.65files/s]
 </pre></div></div>
 </div>
 <p>We preprocess the dataset and split it into training and validation.</p>
@@ -1242,8 +1246,8 @@ unzipping files: 100%|██████████| 5/5 [00:00&lt;00:00, 40.17
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CPU times: user 633 ms, sys: 301 ms, total: 934 ms
-Wall time: 1.15 s
+CPU times: user 663 ms, sys: 269 ms, total: 932 ms
+Wall time: 1.01 s
 </pre></div></div>
 </div>
 </div>
@@ -1332,7 +1336,7 @@ Wall time: 1.15 s
     <tr>
       <th>0</th>
       <td>movieId</td>
-      <td>(Tags.ITEM, Tags.ITEM_ID, Tags.CATEGORICAL)</td>
+      <td>(Tags.ITEM_ID, Tags.CATEGORICAL, Tags.ITEM)</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -1341,15 +1345,15 @@ Wall time: 1.15 s
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.movieId.parquet</td>
-      <td>3683.0</td>
+      <td>3682.0</td>
       <td>159.0</td>
       <td>0.0</td>
-      <td>3683.0</td>
+      <td>3682.0</td>
     </tr>
     <tr>
       <th>1</th>
       <td>userId</td>
-      <td>(Tags.USER_ID, Tags.USER, Tags.CATEGORICAL)</td>
+      <td>(Tags.USER_ID, Tags.CATEGORICAL, Tags.USER)</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
@@ -1409,8 +1413,8 @@ Wall time: 1.15 s
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-12 13:35:11.013552: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
-2022-04-12 13:35:11.938335: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+2022-05-03 09:41:29.062309: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+2022-05-03 09:41:30.155353: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -1418,7 +1422,7 @@ Wall time: 1.15 s
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-782/782 [==============================] - 7s 4ms/step - rating_binary/binary_classification_task/precision: 0.7112 - rating_binary/binary_classification_task/recall: 0.8267 - rating_binary/binary_classification_task/binary_accuracy: 0.7073 - rating_binary/binary_classification_task/auc: 0.7690 - loss: 0.5624 - regularization_loss: 0.0000e+00 - total_loss: 0.5624
+782/782 [==============================] - 8s 5ms/step - rating_binary/binary_classification_task/precision: 0.7083 - rating_binary/binary_classification_task/recall: 0.8311 - rating_binary/binary_classification_task/binary_accuracy: 0.7059 - rating_binary/binary_classification_task/auc: 0.7671 - loss: 0.5653 - regularization_loss: 0.0000e+00 - total_loss: 0.5653
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1427,7 +1431,7 @@ Wall time: 1.15 s
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-&lt;keras.callbacks.History at 0x7fd88cf69af0&gt;
+&lt;keras.callbacks.History at 0x7f40f8239700&gt;
 </pre></div></div>
 </div>
 <p>Let’s run the evaluation on validations set. We use by default typical binary classification metrics – Precision, Recall, Accuracy and AUC. But you also can provide your own metrics list by setting <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask(...,</span> <span class="pre">metrics=[])</span></code>.</p>
@@ -1444,7 +1448,7 @@ Wall time: 1.15 s
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-  1/196 [..............................] - ETA: 3:22 - rating_binary/binary_classification_task/precision: 0.7402 - rating_binary/binary_classification_task/recall: 0.8263 - rating_binary/binary_classification_task/binary_accuracy: 0.7314 - rating_binary/binary_classification_task/auc: 0.7917 - loss: 0.5366 - regularization_loss: 0.0000e+00 - total_loss: 0.5366
+ 16/196 [=&gt;............................] - ETA: 0s - rating_binary/binary_classification_task/precision: 0.7338 - rating_binary/binary_classification_task/recall: 0.8259 - rating_binary/binary_classification_task/binary_accuracy: 0.7275 - rating_binary/binary_classification_task/auc: 0.7888 - loss: 0.5428 - regularization_loss: 0.0000e+00 - total_loss: 0.5428
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -1452,7 +1456,7 @@ Wall time: 1.15 s
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-2022-04-12 13:35:19.964534: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_101
+2022-05-03 09:41:38.534255: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_19
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1460,7 +1464,7 @@ Wall time: 1.15 s
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-196/196 [==============================] - 2s 3ms/step - rating_binary/binary_classification_task/precision: 0.7389 - rating_binary/binary_classification_task/recall: 0.8113 - rating_binary/binary_classification_task/binary_accuracy: 0.7260 - rating_binary/binary_classification_task/auc: 0.7915 - loss: 0.5400 - regularization_loss: 0.0000e+00 - total_loss: 0.5400
+196/196 [==============================] - 1s 3ms/step - rating_binary/binary_classification_task/precision: 0.7323 - rating_binary/binary_classification_task/recall: 0.8276 - rating_binary/binary_classification_task/binary_accuracy: 0.7272 - rating_binary/binary_classification_task/auc: 0.7902 - loss: 0.5419 - regularization_loss: 0.0000e+00 - total_loss: 0.5419
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
@@ -1477,13 +1481,13 @@ Wall time: 1.15 s
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-{&#39;rating_binary/binary_classification_task/precision&#39;: 0.7389050722122192,
- &#39;rating_binary/binary_classification_task/recall&#39;: 0.8112649321556091,
- &#39;rating_binary/binary_classification_task/binary_accuracy&#39;: 0.7260411381721497,
- &#39;rating_binary/binary_classification_task/auc&#39;: 0.7915205359458923,
- &#39;loss&#39;: 0.5440562963485718,
+{&#39;rating_binary/binary_classification_task/precision&#39;: 0.73233962059021,
+ &#39;rating_binary/binary_classification_task/recall&#39;: 0.8276368975639343,
+ &#39;rating_binary/binary_classification_task/binary_accuracy&#39;: 0.7271909117698669,
+ &#39;rating_binary/binary_classification_task/auc&#39;: 0.7902334928512573,
+ &#39;loss&#39;: 0.5232772827148438,
  &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.5440562963485718}
+ &#39;total_loss&#39;: 0.5232772827148438}
 </pre></div></div>
 </div>
 </div>
