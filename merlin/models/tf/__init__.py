@@ -16,17 +16,13 @@
 
 # flake8: noqa
 
-# Must happen before any importing of tensorflow to curtail mem usage
-from merlin.models.loader.tf_utils import configure_tensorflow
-
-configure_tensorflow()
-
 from tensorflow.keras.layers import Dense, Layer
 from tensorflow.python.keras.losses import Loss
 from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
+from merlin.models.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.blocks.core.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
@@ -35,8 +31,8 @@ from merlin.models.tf.blocks.core.aggregation import (
 )
 from merlin.models.tf.blocks.core.base import (
     Block,
-    BlockContext,
     EmbeddingWithMetadata,
+    ModelContext,
     NoOp,
     right_shift_layer,
 )
@@ -108,7 +104,12 @@ from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+
+# Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.tf.utils import repr_utils
+
+configure_tensorflow()
+
 
 # Must happen before any importing of tensorflow to curtail mem usage
 
@@ -124,7 +125,7 @@ OptimizerV2.__repr__ = repr_utils.layer_repr_no_children
 
 __all__ = [
     "Block",
-    "BlockContext",
+    "ModelContext",
     "SequentialBlock",
     "ResidualBlock",
     "DualEncoderBlock",
