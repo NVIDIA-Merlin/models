@@ -377,7 +377,7 @@ div.rendered_html tbody tr:hover {
 </pre></div>
 </div>
 </div>
-<p><img alt="6c92dce31856468680929c4db9069c5e" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
+<p><img alt="68c01793da5841c8a2d0bf6f8aeb5350" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" /></p>
 <div class="section" id="Iterating-over-Deep-Learning-Models-using-Merlin-Models">
 <h1>Iterating over Deep Learning Models using Merlin Models<a class="headerlink" href="#Iterating-over-Deep-Learning-Models-using-Merlin-Models" title="Permalink to this headline"></a></h1>
 <p>In this example, we’ll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.</p>
@@ -611,7 +611,7 @@ automatically build all necessary input and output layers.</p>
 <h2>NCF Model<a class="headerlink" href="#NCF-Model" title="Permalink to this headline"></a></h2>
 <p>We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">(NCF)</a> Model architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.</p>
 <p>NCF feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers via its MLP layer tower as seen in the figure. GMF and MLP uses separate user and item embeddings, and then outputs of their interactions from GMF Layer and MLP Layer are concatenated and fed to the final NeuMF (Neural Matrix Factorisation) layer.</p>
-<p><img alt="b79da9241ab04545926eae6690cc0085" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
+<p><img alt="48873450c6c64f4da3b50ea44cfc63d5" class="no-scaled-link" src="../_images/ncf.png" style="width: 30%;" /></p>
 <p>Image Source: NCF paper</p>
 <p>With <code class="docutils literal notranslate"><span class="pre">schema</span></code> object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure.</p>
 <div class="nbinput nblast docutils container">
@@ -736,7 +736,7 @@ Wall time: 7.65 s
 <div class="section" id="MLP-Model">
 <h2>MLP Model<a class="headerlink" href="#MLP-Model" title="Permalink to this headline"></a></h2>
 <p>Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers.</p>
-<p><img alt="3ac8b1edafce414885f7e9c82cd5d636" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
+<p><img alt="bfabe108faf04a5ca0f4260dd30d8c91" class="no-scaled-link" src="../_images/mlp.png" style="width: 30%;" /></p>
 <p>Steps:</p>
 <ul class="simple">
 <li><p>Change the model to MLP model</p></li>

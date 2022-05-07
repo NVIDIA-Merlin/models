@@ -97,8 +97,6 @@
 <span class="kn">from</span> <span class="nn">merlin.models.utils.schema_utils</span> <span class="kn">import</span> <span class="n">select_targets</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Tags</span>
 
-<span class="c1"># from merlin.schema import Schema, Tags, TagSet</span>
-
 <span class="n">LOG</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">version</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="s2">&quot;2.3.0&quot;</span><span class="p">):</span>
@@ -595,118 +593,6 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">include_targets</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">inputs</span>
     <span class="k">return</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span>
-
-
-<span class="c1"># class FeatureCollection:</span>
-<span class="c1">#     # {</span>
-<span class="c1">#     #   &quot;feature_name&quot;: tf.Tensor([1.0, 2.0, 3.0]),</span>
-<span class="c1">#     #   ...</span>
-<span class="c1">#     # }</span>
-<span class="c1">#     def __init__(self, schema: Schema, data: Dict[str, Any]):</span>
-<span class="c1">#         self.data = data</span>
-<span class="c1">#         self.schema = schema</span>
-
-<span class="c1">#     def with_schema(self, schema: Schema) -&gt; &quot;FeatureCollection&quot;:</span>
-<span class="c1">#         &quot;&quot;&quot;</span>
-<span class="c1">#         Create a new FeatureCollection with the same data and an updated Schema.</span>
-
-<span class="c1">#         Parameters</span>
-<span class="c1">#         ----------</span>
-<span class="c1">#         schema : Schema</span>
-<span class="c1">#             Schema to be applied to FeatureCollection</span>
-
-<span class="c1">#         Returns</span>
-<span class="c1">#         -------</span>
-<span class="c1">#         FeatureCollection</span>
-<span class="c1">#             New collection of features with updated Schema</span>
-<span class="c1">#         &quot;&quot;&quot;</span>
-<span class="c1">#         return FeatureCollection(schema, self.data)</span>
-
-<span class="c1">#     def select_by_name(self, names=Union[str, Sequence[str]]) -&gt; &quot;FeatureCollection&quot;:</span>
-<span class="c1">#         if isinstance(names, (list, tuple)):</span>
-<span class="c1">#             sub_schema = self.schema.select_by_name(names)</span>
-<span class="c1">#             sub_data = {k: v for k, v in self.data.items() if k in set(names)}</span>
-
-<span class="c1">#             return FeatureCollection(sub_schema, sub_data)</span>
-
-<span class="c1">#     def select_by_tag(</span>
-<span class="c1">#         self, tags=Union[str, Tags, Sequence[str], Sequence[Tags]]</span>
-<span class="c1">#     ) -&gt; &quot;FeatureCollection&quot;:</span>
-<span class="c1">#         &quot;&quot;&quot;</span>
-<span class="c1">#         Create a new FeatureCollection with only the features that match the provided tags.</span>
-
-<span class="c1">#         Parameters</span>
-<span class="c1">#         ----------</span>
-<span class="c1">#         tags : _type_, optional</span>
-<span class="c1">#             _description_, by default Union[str, Sequence[str], Tags, Sequence[Tags]]</span>
-
-<span class="c1">#         Returns</span>
-<span class="c1">#         -------</span>
-<span class="c1">#         Any</span>
-<span class="c1">#             _description_</span>
-<span class="c1">#         &quot;&quot;&quot;</span>
-<span class="c1">#         if isinstance(key, Tags):</span>
-<span class="c1">#             if not hasattr(self, &quot;schema&quot;):</span>
-<span class="c1">#                 raise ValueError(&quot;Schema not found. Please provide this in model.compile()&quot;)</span>
-<span class="c1">#             sub_schema = self.schema.select_by_tag(key)</span>
-<span class="c1">#             if len(sub_schema.column_schemas) == 0:</span>
-<span class="c1">#                 raise KeyError(f&quot;No columns found for tag {key}&quot;)</span>
-<span class="c1">#             elif len(sub_schema.column_schemas) == 1:</span>
-<span class="c1">#                 key = sub_schema.first.name</span>
-<span class="c1">#             else:</span>
-<span class="c1">#                 key = sub_schema</span>
-
-<span class="c1">#             # ... What goes here???</span>
-
-<span class="c1">#             return FeatureCollection(sub_schema, sub_data)</span>
-
-<span class="c1">#     @property</span>
-<span class="c1">#     def feature_names(self):</span>
-<span class="c1">#         return list(self.data.keys())</span>
-
-<span class="c1">#     def __getitem__(self, feature_name: str) -&gt; Any:</span>
-<span class="c1">#         return self.data[feature_name]</span>
-
-
-<span class="c1"># class DictWithSchema:</span>
-<span class="c1">#     def __init__(self, schema: Schema, data: Optional[Dict[str, Any]] = None, **kwargs):</span>
-<span class="c1">#         if not (data or kwargs):</span>
-<span class="c1">#             raise ValueError(&quot;Must provide either data or kwargs&quot;)</span>
-
-<span class="c1">#         self.data = data if data else dict(**kwargs)</span>
-<span class="c1">#         self.schema = schema</span>
-
-<span class="c1">#     def __getitem__(self, key: Union[str, Tags, Sequence[str], Sequence[Tags], Schema]) -&gt; Any:</span>
-<span class="c1">#         if isinstance(key, Tags):</span>
-<span class="c1">#             if not hasattr(self, &quot;schema&quot;):</span>
-<span class="c1">#                 raise ValueError(&quot;Schema not found. Please provide this in model.compile()&quot;)</span>
-<span class="c1">#             sub_schema = self.schema.select_by_tag(key)</span>
-<span class="c1">#             if len(sub_schema.column_schemas) == 0:</span>
-<span class="c1">#                 raise KeyError(f&quot;No columns found for tag {key}&quot;)</span>
-<span class="c1">#             elif len(sub_schema.column_schemas) == 1:</span>
-<span class="c1">#                 key = sub_schema.first.name</span>
-<span class="c1">#             else:</span>
-<span class="c1">#                 key = sub_schema</span>
-
-<span class="c1">#         if isinstance(key, (list, tuple)):</span>
-<span class="c1">#             sub_schema = self.schema.select_by_name(key)</span>
-<span class="c1">#             sub_data = {k: v for k, v in self.data.items() if k in set(key)}</span>
-
-<span class="c1">#             return DictWithSchema(sub_schema, sub_data)</span>
-
-<span class="c1">#         if isinstance(key, Schema):</span>
-<span class="c1">#             return DictWithSchema(key, self.data)</span>
-
-<span class="c1">#         return self.data[key]</span>
-
-<span class="c1">#     def items(self):</span>
-<span class="c1">#         return self.data.items()</span>
-
-<span class="c1">#     def keys(self):</span>
-<span class="c1">#         return self.data.keys()</span>
-
-<span class="c1">#     def values(self):</span>
-<span class="c1">#         return self.data.values()</span>
 </pre></div>
 
            </div>
