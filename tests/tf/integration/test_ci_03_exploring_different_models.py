@@ -10,7 +10,7 @@ def test_func(tb):
     tb.inject(
         """
         import os
-        os.environ["DATA_FOLDER"] = "/raid/data/aliccp/transformed/"
+        os.environ["DATA_FOLDER"] = "/raid/data/aliccp/raw/"
         os.environ["NUM_ROWS"] = "999"
         os.environ["SYNTHETIC_DATA"] = "False"
         """
