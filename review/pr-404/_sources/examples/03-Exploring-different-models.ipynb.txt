@@ -3,7 +3,7 @@
   {
    "cell_type": "code",
    "execution_count": null,
-   "id": "426dff70",
+   "id": "5f49a48e",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -25,7 +25,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "263a14c1",
+   "id": "30be5b7b",
    "metadata": {},
    "source": [
     "<img src=\"http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png\" style=\"width: 90px; float: right;\">\n",
@@ -43,7 +43,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "cd91c2e6",
+   "id": "eb81305c",
    "metadata": {},
    "source": [
     "## Importing Libraries"
@@ -51,7 +51,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "e3c53c81",
+   "id": "56ecea23",
    "metadata": {},
    "source": [
     "Let's start with importing the libraries that we'll use in this notebook."
@@ -60,7 +60,7 @@
   {
    "cell_type": "code",
    "execution_count": 2,
-   "id": "a90035f4",
+   "id": "76f70af7",
    "metadata": {},
    "outputs": [
     {
@@ -95,7 +95,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "0d3cfd69",
+   "id": "6f3b6bc9",
    "metadata": {},
    "source": [
     "## Feature Engineering with NVTabular"
@@ -103,7 +103,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "0e93886f",
+   "id": "1e2dd281",
    "metadata": {},
    "source": [
     "When we work on a new recommender systems, we explore the dataset, first. In doing so, we define our input and output paths. We will use the parquet files in the test folder to validate our trained model."
@@ -112,7 +112,7 @@
   {
    "cell_type": "code",
    "execution_count": 3,
-   "id": "3b7990aa",
+   "id": "4a5069aa",
    "metadata": {},
    "outputs": [
     {
@@ -142,7 +142,7 @@
   {
    "cell_type": "code",
    "execution_count": 4,
-   "id": "eeeb4d04",
+   "id": "4510d0f4",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -153,7 +153,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "b5494e7e",
+   "id": "4a1ad3a9",
    "metadata": {},
    "source": [
     "Our dataset has only categorical features. Below, we create continuous features using target encoding (TE) technique. Target Encoding calculates the statistics from a target variable grouped by the unique values of one or more categorical features. For example, in a binary classification problem, TE calculates the conditional probability that the target is true for each category value- a simple mean. To learn more about TE, visit this [medium blog](https://medium.com/rapids-ai/target-encoding-with-rapids-cuml-do-more-with-your-categorical-data-8c762c79e784).\n",
@@ -163,7 +163,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "43fce992",
+   "id": "391c4390",
    "metadata": {},
    "source": [
     "We use a utility function, `workflow_fit_transform` perform to fit and transform steps on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, and also save our workflow model. After fit and transform, the processed parquet files are saved to `output_path`."
@@ -172,7 +172,7 @@
   {
    "cell_type": "code",
    "execution_count": 5,
-   "id": "806f162b",
+   "id": "fd248fe0",
    "metadata": {},
    "outputs": [
     {
@@ -223,7 +223,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "573e3f52",
+   "id": "cc05c0a9",
    "metadata": {
     "tags": []
    },
@@ -233,7 +233,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "b98daa1e",
+   "id": "3d964063",
    "metadata": {},
    "source": [
     "NVTabular exported the schema file of our processed dataset. The `schema.pbtxt` is a protobuf text file contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to automatically build all necessary input and output layers."
@@ -242,7 +242,7 @@
   {
    "cell_type": "code",
    "execution_count": 6,
-   "id": "a676be09",
+   "id": "a0f0cc5f",
    "metadata": {},
    "outputs": [
     {
@@ -265,7 +265,7 @@
   {
    "cell_type": "code",
    "execution_count": 7,
-   "id": "91b2b6f2",
+   "id": "09740153",
    "metadata": {},
    "outputs": [
     {
@@ -286,7 +286,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "fc49fead",
+   "id": "12958761",
    "metadata": {},
    "source": [
     "We can print out all the features that are included in the `schema.pbtxt` file."
@@ -295,7 +295,7 @@
   {
    "cell_type": "code",
    "execution_count": 8,
-   "id": "cdbc9a41",
+   "id": "12187f95",
    "metadata": {},
    "outputs": [
     {
@@ -333,7 +333,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "14dd6f15",
+   "id": "20119aa6",
    "metadata": {},
    "source": [
     "### Initialize Dataloaders"
@@ -341,7 +341,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "38e70f38",
+   "id": "16f61f8e",
    "metadata": {},
    "source": [
     "We're ready to start training, for that, we create our dataset objects, and under the hood we use Merlin `BatchedDataset` class for reading chunks of parquet files. `BatchedDataset` asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular `Dataset`. To read more about Merlin optimized dataloaders visit [here](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141)."
@@ -349,7 +349,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "69c3e425",
+   "id": "9489d87b",
    "metadata": {},
    "source": [
     "### NCF Model"
@@ -357,7 +357,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "8f3efbad",
+   "id": "7a457c84",
    "metadata": {},
    "source": [
     "We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering [(NCF)](https://arxiv.org/pdf/1708.05031.pdf) Model  architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.\n",
@@ -367,7 +367,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "13ba5c64",
+   "id": "2493b71e",
    "metadata": {},
    "source": [
     "<img src=\"./images/ncf.png\"  width=\"30%\">\n",
@@ -377,7 +377,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "4bb6e78a",
+   "id": "26496e78",
    "metadata": {},
    "source": [
     "With `schema` object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure."
@@ -386,7 +386,7 @@
   {
    "cell_type": "code",
    "execution_count": 9,
-   "id": "656cb6f8",
+   "id": "8ca039f4",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -401,7 +401,7 @@
   {
    "cell_type": "code",
    "execution_count": 10,
-   "id": "abe28afd",
+   "id": "be0acf82",
    "metadata": {},
    "outputs": [
     {
@@ -457,7 +457,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "9070894b",
+   "id": "8f89a022",
    "metadata": {},
    "source": [
     "Let's save our accuracy results"
@@ -465,8 +465,19 @@
   },
   {
    "cell_type": "code",
+   "execution_count": null,
+   "id": "1c009df7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "if os.path.isfile(\"results.txt\"):\n",
+    "    os.remove(\"results.txt\")"
+   ]
+  },
+  {
+   "cell_type": "code",
    "execution_count": 11,
-   "id": "155e03fb",
+   "id": "a9d454eb",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -475,7 +486,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "6c6b8376",
+   "id": "c5c64fd7",
    "metadata": {},
    "source": [
     "Let's check out the model evaluation scores"
@@ -484,7 +495,7 @@
   {
    "cell_type": "code",
    "execution_count": 12,
-   "id": "646d4bd2",
+   "id": "151e4c70",
    "metadata": {},
    "outputs": [
     {
@@ -515,7 +526,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "f142d683",
+   "id": "db61f076",
    "metadata": {},
    "source": [
     "### MLP Model"
@@ -523,7 +534,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "0b0d3a3f",
+   "id": "67fcd99c",
    "metadata": {},
    "source": [
     "Now we will change our model to Multi-Layer Percepton (MLP) model. MLP models feed categorical features into embedding layer, concat the embedding outputs and add multiple hidden layers."
@@ -531,7 +542,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "6e689cc8",
+   "id": "7d3e82c9",
    "metadata": {},
    "source": [
     "<img src=\"./images/mlp.png\"  width=\"30%\">\n",
@@ -545,7 +556,7 @@
   {
    "cell_type": "code",
    "execution_count": 13,
-   "id": "3d7e8158",
+   "id": "4ee0e94e",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -559,7 +570,7 @@
   {
    "cell_type": "code",
    "execution_count": 14,
-   "id": "87a554a4",
+   "id": "531685bf",
    "metadata": {},
    "outputs": [
     {
@@ -607,7 +618,7 @@
   {
    "cell_type": "code",
    "execution_count": 15,
-   "id": "973788b7",
+   "id": "c5ee49c7",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -616,7 +627,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "91820b35",
+   "id": "c83e1e48",
    "metadata": {},
    "source": [
     "Let's check out the model evaluation scores"
@@ -625,7 +636,7 @@
   {
    "cell_type": "code",
    "execution_count": 16,
-   "id": "09c65bd0",
+   "id": "cdab5932",
    "metadata": {},
    "outputs": [
     {
@@ -656,7 +667,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "8dc029ba",
+   "id": "9010c891",
    "metadata": {},
    "source": [
     "### DLRM Model"
@@ -664,7 +675,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "063b10ba",
+   "id": "f5ecf603",
    "metadata": {},
    "source": [
     "Deep Learning Recommendation Model [(DLRM)](https://arxiv.org/abs/1906.00091) architecture is a popular neural network model originally proposed by Facebook in 2019 as a personalization deep learning model.\n",
@@ -687,7 +698,7 @@
   {
    "cell_type": "code",
    "execution_count": 17,
-   "id": "a1a6722a",
+   "id": "ff9f627b",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -703,7 +714,7 @@
   {
    "cell_type": "code",
    "execution_count": 18,
-   "id": "d65ef189",
+   "id": "c1a90353",
    "metadata": {},
    "outputs": [
     {
@@ -750,7 +761,7 @@
   {
    "cell_type": "code",
    "execution_count": 19,
-   "id": "13496259",
+   "id": "88ebb876",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -759,7 +770,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "f5c0860b",
+   "id": "c7b265e0",
    "metadata": {},
    "source": [
     "Let's check out the model evaluation scores"
@@ -768,7 +779,7 @@
   {
    "cell_type": "code",
    "execution_count": 20,
-   "id": "66db0de5",
+   "id": "b31d1de6",
    "metadata": {},
    "outputs": [
     {
@@ -799,7 +810,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "ed669987",
+   "id": "98c6a0e3",
    "metadata": {},
    "source": [
     "### DCN Model"
@@ -807,7 +818,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "d7551cda",
+   "id": "a821ee13",
    "metadata": {},
    "source": [
     "DCN-V2 is an architecture proposed as an improvement upon the original [DCN model](https://arxiv.org/pdf/1708.05123.pdf). The explicit feature interactions of the inputs are learned through cross layers, and then combined with a deep network to learn complementary implicit interactions. The overall model architecture is depicted in Figure below, with two ways to combine the cross network with the deep network: (1) stacked and (2) parallel. The output of the embbedding layer is the concatenation of all the embedded vectors and the normalized dense features: x<sub>0</sub> = [x<sub>embed,1</sub>; . . . ; x<sub>embed,𝑛</sub>; 𝑥<sub>dense</sub>].\n",
@@ -826,7 +837,7 @@
   {
    "cell_type": "code",
    "execution_count": 21,
-   "id": "adcdd924",
+   "id": "13cad8a8",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -841,7 +852,7 @@
   {
    "cell_type": "code",
    "execution_count": 22,
-   "id": "01ea0437",
+   "id": "5370a2d8",
    "metadata": {},
    "outputs": [
     {
@@ -888,7 +899,7 @@
   {
    "cell_type": "code",
    "execution_count": 23,
-   "id": "43430f82",
+   "id": "9b945b0f",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -897,7 +908,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "705b327d",
+   "id": "10fc848c",
    "metadata": {},
    "source": [
     "Let's check out the model evaluation scores"
@@ -906,7 +917,7 @@
   {
    "cell_type": "code",
    "execution_count": 24,
-   "id": "7689394a",
+   "id": "7e7c741f",
    "metadata": {},
    "outputs": [
     {
@@ -937,7 +948,7 @@
   },
   {
    "cell_type": "markdown",
-   "id": "0ff25ad1",
+   "id": "f7f19c4b",
    "metadata": {},
    "source": [
     "Let's visualize our model validation accuracy values. Since we did not do any hyper-parameter optimization or extensive feature engineering here, we do not come up with a final conclusion that one model is superior to another."
@@ -946,7 +957,7 @@
   {
    "cell_type": "code",
    "execution_count": 25,
-   "id": "7f7841e5",
+   "id": "d24c124b",
    "metadata": {},
    "outputs": [],
    "source": [
@@ -975,7 +986,7 @@
   {
    "cell_type": "code",
    "execution_count": 26,
-   "id": "de4bb37d",
+   "id": "50c44d96",
    "metadata": {},
    "outputs": [
     {
@@ -994,6 +1005,25 @@
    "source": [
     "models_name = [\"NCF\", \"MLP\", \"DLRM\", \"DCN\"]\n",
     "create_bar_chart(\"results.txt\", models_name)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "23997fbd",
+   "metadata": {},
+   "source": [
+    "Let's remove the results file."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5e245a49",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "if os.path.isfile(\"results.txt\"):\n",
+    "    os.remove(\"results.txt\")"
    ]
   }
  ],
