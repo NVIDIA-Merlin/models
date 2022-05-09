@@ -158,8 +158,16 @@
     <span class="n">_uses_feature_columns</span> <span class="o">=</span> <span class="n">feature_columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="n">_uses_explicit_schema</span> <span class="o">=</span> <span class="p">(</span><span class="n">cat_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">cont_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
 
-    <span class="n">cat_tag_names</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">([</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">])</span><span class="o">.</span><span class="n">column_names</span> <span class="k">if</span> <span class="n">schema</span> <span class="k">else</span> <span class="p">[]</span>
-    <span class="n">cont_tag_names</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">([</span><span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">])</span><span class="o">.</span><span class="n">column_names</span> <span class="k">if</span> <span class="n">schema</span> <span class="k">else</span> <span class="p">[]</span>
+    <span class="n">cat_tag_names</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">([</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">])</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
+        <span class="k">if</span> <span class="n">schema</span>
+        <span class="k">else</span> <span class="p">[]</span>
+    <span class="p">)</span>
+    <span class="n">cont_tag_names</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">([</span><span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">])</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
+        <span class="k">if</span> <span class="n">schema</span>
+        <span class="k">else</span> <span class="p">[]</span>
+    <span class="p">)</span>
     <span class="n">label_names</span> <span class="o">=</span> <span class="n">label_names</span> <span class="ow">or</span> <span class="p">[]</span>
     <span class="n">_uses_dataset_schema</span> <span class="o">=</span> <span class="n">cat_tag_names</span> <span class="ow">or</span> <span class="n">cont_tag_names</span>
 

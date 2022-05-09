@@ -242,7 +242,10 @@
             <span class="n">split_sparse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">add_continuous_branch</span> <span class="ow">and</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">continuous_tags</span><span class="p">)</span><span class="o">.</span><span class="n">column_schemas</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">add_continuous_branch</span>
+        <span class="ow">and</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">continuous_tags</span><span class="p">)</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_schemas</span>
+    <span class="p">):</span>
         <span class="n">pre</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">max_seq_length</span> <span class="ow">and</span> <span class="n">seq</span><span class="p">:</span>
             <span class="n">pre</span> <span class="o">=</span> <span class="n">AsDenseFeatures</span><span class="p">(</span><span class="n">max_seq_length</span><span class="p">)</span>
@@ -251,7 +254,10 @@
             <span class="n">tags</span><span class="o">=</span><span class="n">continuous_tags</span><span class="p">,</span>
             <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
         <span class="p">)</span>
-    <span class="k">if</span> <span class="n">add_embedding_branch</span> <span class="ow">and</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">categorical_tags</span><span class="p">)</span><span class="o">.</span><span class="n">column_schemas</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">add_embedding_branch</span>
+        <span class="ow">and</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">categorical_tags</span><span class="p">)</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_schemas</span>
+    <span class="p">):</span>
         <span class="n">emb_cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">EmbeddingFeatures</span><span class="p">]</span> <span class="o">=</span> <span class="n">SequenceEmbeddingFeatures</span> <span class="k">if</span> <span class="n">seq</span> <span class="k">else</span> <span class="n">EmbeddingFeatures</span>
         <span class="n">emb_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">max_seq_length</span> <span class="ow">and</span> <span class="n">seq</span><span class="p">:</span>
