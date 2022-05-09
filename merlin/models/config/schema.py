@@ -87,7 +87,7 @@ class Feature:
     """
 
     schema: ColumnSchema
-    data: Any
+    value: Any
 
 
 class FeatureCollection:
@@ -95,8 +95,8 @@ class FeatureCollection:
     A collection of features containing their schemas and data.
     """
 
-    def __init__(self, schema: Schema, data: Dict[str, Any]):
-        self.data = data
+    def __init__(self, schema: Schema, values: Dict[str, Any]):
+        self.values = values
         self.schema = schema
 
     def with_schema(self, schema: Schema) -> "FeatureCollection":
@@ -113,7 +113,7 @@ class FeatureCollection:
         FeatureCollection
             New collection of features with updated Schema
         """
-        return FeatureCollection(schema, self.data)
+        return FeatureCollection(schema, self.values)
 
     def select_by_name(self, names: Union[str, Sequence[str]]) -> "FeatureCollection":
         """
@@ -130,9 +130,9 @@ class FeatureCollection:
             A collection of the features that match the provided names
         """
         sub_schema = self.schema.select_by_name(names)
-        sub_data = {name: self.data[name] for name in sub_schema.column_names}
+        sub_values = {name: self.values[name] for name in sub_schema.column_names}
 
-        return FeatureCollection(sub_schema, sub_data)
+        return FeatureCollection(sub_schema, sub_values)
 
     def select_by_tag(
         self, tags: Union[str, Tags, Sequence[str], Sequence[Tags]]
@@ -150,9 +150,9 @@ class FeatureCollection:
             A collection of the features that match the provided tags
         """
         sub_schema = self.schema.select_by_tag(tags)
-        sub_data = {name: self.data[name] for name in sub_schema.column_names}
+        sub_values = {name: self.values[name] for name in sub_schema.column_names}
 
-        return FeatureCollection(sub_schema, sub_data)
+        return FeatureCollection(sub_schema, sub_values)
 
     def __getitem__(self, feature_name: str) -> Feature:
-        return Feature(self.schema.column_schemas[feature_name], self.data[feature_name])
+        return Feature(self.schema.column_schemas[feature_name], self.values[feature_name])

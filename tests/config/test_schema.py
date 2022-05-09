@@ -25,19 +25,19 @@ def test_select_features_by_name():
             ColumnSchema("c", tags=["c"]),
         ]
     )
-    data = {"a": [1, 2, 3], "b": [3, 4, 5], "c": [6, 7, 8]}
-    fc = FeatureCollection(schema, data)
+    value = {"a": [1, 2, 3], "b": [3, 4, 5], "c": [6, 7, 8]}
+    fc = FeatureCollection(schema, value)
     fc_b = fc.select_by_name("b")
     fc_bc = fc.select_by_name(["b", "c"])
 
     assert fc_b["b"].schema.name in "b"
-    assert fc_b["b"].data == data["b"]
+    assert fc_b["b"].value == value["b"]
 
     assert fc_bc["b"].schema.name in "b"
-    assert fc_bc["b"].data == data["b"]
+    assert fc_bc["b"].value == value["b"]
 
     assert fc_bc["c"].schema.name in "c"
-    assert fc_bc["c"].data == data["c"]
+    assert fc_bc["c"].value == value["c"]
 
 
 def test_select_features_by_tag():
@@ -49,25 +49,25 @@ def test_select_features_by_tag():
         ]
     )
 
-    data = {"a": [1, 2, 3], "b": [3, 4, 5], "c": [6, 7, 8]}
+    value = {"a": [1, 2, 3], "b": [3, 4, 5], "c": [6, 7, 8]}
 
-    features = FeatureCollection(schema, data)
+    features = FeatureCollection(schema, value)
 
     categorical = features.select_by_tag(Tags.CATEGORICAL)
     continuous = features.select_by_tag(Tags.CONTINUOUS)
 
     for feature_name in ["a", "b"]:
         assert categorical[feature_name].schema.name == feature_name
-        assert categorical[feature_name].data == data[feature_name]
+        assert categorical[feature_name].value == value[feature_name]
 
     assert continuous["c"].schema.name == "c"
-    assert continuous["c"].data == data["c"]
+    assert continuous["c"].value == value["c"]
 
 
 def test_update_feature_schemas():
     schema = Schema(["a"])
-    data = {"a": [1.0, 2.0]}
-    features = FeatureCollection(schema, data)
+    value = {"a": [1.0, 2.0]}
+    features = FeatureCollection(schema, value)
 
     new_schema = Schema([schema.column_schemas["a"].with_tags("updated")])
     updated_features = features.with_schema(new_schema)
@@ -77,11 +77,11 @@ def test_update_feature_schemas():
 
 def test_get_feature():
     schema = Schema(["a"])
-    data = {"a": [1.0, 2.0]}
-    features = FeatureCollection(schema, data)
+    value = {"a": [1.0, 2.0]}
+    features = FeatureCollection(schema, value)
 
     feature = features["a"]
 
     assert isinstance(feature, Feature)
     assert feature.schema.name == "a"
-    assert feature.data == data["a"]
+    assert feature.value == value["a"]
