@@ -148,10 +148,12 @@ if dependencies.is_pyarrow_available():
             """
 
             categorical_features = (
-                categorical_features or schema.select_by_tag(Tags.CATEGORICAL).column_names
+                categorical_features
+                or schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET).column_names
             )
             continuous_features = (
-                continuous_features or schema.select_by_tag(Tags.CONTINUOUS).column_names
+                continuous_features
+                or schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
             )
             targets = targets or schema.select_by_tag(Tags.TARGET).column_names
 
@@ -298,10 +300,12 @@ if dependencies.is_gpu_dataloader_available():
                     The maximum length of list features.
             """
             categorical_features = (
-                categorical_features or schema.select_by_tag(Tags.CATEGORICAL).column_names
+                categorical_features
+                or schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET).column_names
             )
             continuous_features = (
-                continuous_features or schema.select_by_tag(Tags.CONTINUOUS).column_names
+                continuous_features
+                or schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
             )
             targets = targets or schema.select_by_tag(Tags.TARGET).column_names
 

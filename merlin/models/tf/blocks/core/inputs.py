@@ -174,7 +174,10 @@ def InputBlock(
             split_sparse=False,
         )
 
-    if add_continuous_branch and schema.select_by_tag(continuous_tags).column_schemas:
+    if (
+        add_continuous_branch
+        and schema.select_by_tag(continuous_tags).excluding_by_tag(Tags.TARGET).column_schemas
+    ):
         pre = None
         if max_seq_length and seq:
             pre = AsDenseFeatures(max_seq_length)
@@ -183,7 +186,10 @@ def InputBlock(
             tags=continuous_tags,
             pre=pre,
         )
-    if add_embedding_branch and schema.select_by_tag(categorical_tags).column_schemas:
+    if (
+        add_embedding_branch
+        and schema.select_by_tag(categorical_tags).excluding_by_tag(Tags.TARGET).column_schemas
+    ):
         emb_cls: Type[EmbeddingFeatures] = SequenceEmbeddingFeatures if seq else EmbeddingFeatures
         emb_kwargs = {}
         if max_seq_length and seq:
