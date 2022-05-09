@@ -1,4 +1,5 @@
-## Merlin Models 
+## Merlin Models
+
 [![PyPI version shields.io](https://img.shields.io/pypi/v/merlin-models.svg)](https://pypi.python.org/pypi/merlin-models/)
 ![GitHub License](https://img.shields.io/github/license/NVIDIA-Merlin/models)
 [![Documentation](https://img.shields.io/badge/documentation-blue.svg)](https://nvidia-merlin.github.io/models/main/)
@@ -33,12 +34,13 @@ To address the challenge, Merlin has custom, highly-optimized dataloaders to acc
 The Merlin dataloaders can lead to a speedup that is nine times faster than the same training pipeline used with the GPU.
 
 With the Merlin dataloaders, you can:
+
 - Remove bottlenecks from data loading by processing large chunks of data at a time instead of item by item.
 - Process datasets that don't fit within the GPU or CPU memory by streaming from the disk.
 - Prepare batches asynchronously into the GPU to avoid CPU-to-GPU communication.
 - Integrate easily into existing TensorFlow or PyTorch training pipelines by using a similar API.
 
-To learn about the core features of Merlin Models, see the [Models Overview](docs/source/models_overview.md) page.
+To learn about the core features of Merlin Models, see the [Models Overview](https://nvidia-merlin.github.io/models/main/models_overview.html) page.
 
 ### Installation
 
@@ -61,7 +63,7 @@ Refer to the [Merlin Containers](https://nvidia-merlin.github.io/Merlin/main/con
 
 #### Installing Merlin Models from Source
 
-Merlin Models can be installed from source by running the following commands: 
+Merlin Models can be installed from source by running the following commands:
 
 ```shell
 git clone https://github.com/NVIDIA-Merlin/models
@@ -73,7 +75,7 @@ cd models && pip install -e .
 Merlin Models makes it straightforward to define architectures that adapt to different input features.
 This adaptability is provided by building on a core feature of the NVTabular library.
 When you use NVTabular for feature engineering, NVTabular creates a schema that identifies the input features.
-You can see the `Schema` object in action by looking at the [Applying to your own dataset with Merlin Models and NVTabular](https://github.com/NVIDIA-Merlin/models/examples/02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html) example notebook.
+You can see the `Schema` object in action by looking at the [From ETL to Training RecSys models - NVTabular and Merlin Models integrated example](https://nvidia-merlin.github.io/models/main/examples/02-Merlin-Models-and-NVTabular-integration.html) example notebook.
 
 You can easily build popular RecSys architectures like [DLRM](http://arxiv.org/abs/1906.00091), as shown in the following code sample.
 After you define the model, you can train and evaluate it with a typical Keras model.
@@ -98,11 +100,11 @@ model.fit(train, validation_data=valid, batch_size=1024)
 eval_metrics = model.evaluate(valid, batch_size=1024, return_dict=True)
 ```
 
-  1.  To build the internal input layer, the model identifies them from the schema object.
-      The schema identifies the continuous features and categorical features, for which embedding tables are created.
-  2.  To define the body of the architecture, MLP layers are used with configurable dimensions.
-  3.  The head of the architecture is created from the chosen task, `BinaryClassificationTask` in this example.
-      The target binary feature is also inferred from the schema (i.e., tagged as 'TARGET').
+1.  To build the internal input layer, the model identifies them from the schema object.
+    The schema identifies the continuous features and categorical features, for which embedding tables are created.
+2.  To define the body of the architecture, MLP layers are used with configurable dimensions.
+3.  The head of the architecture is created from the chosen task, `BinaryClassificationTask` in this example.
+    The target binary feature is also inferred from the schema (i.e., tagged as 'TARGET').
 
 You can find more details and information about a low-level API in our overview of the
 [Deep Learning Recommender Model](https://nvidia-merlin.github.io/models/main/models_overview.html#deep-learning-recommender-model).
@@ -118,4 +120,3 @@ The same notebooks are available in the `examples` directory from the [Merlin Mo
 If you'd like to contribute to the library directly, see the [CONTRIBUTING.md](CONTRIBUTING.md) file.
 We're particularly interested in contributions or feature requests for our feature engineering and preprocessing operations.
 To further advance our Merlin Roadmap, we encourage you to share all the details regarding your recommender system pipeline in this [survey](https://developer.nvidia.com/merlin-devzone-survey).
-
