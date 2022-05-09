@@ -223,10 +223,14 @@ class DataLoader:
         self._epochs = 1
 
         self.cat_names = cat_names or (
-            self.schema.select_by_tag(Tags.CATEGORICAL).column_names if self.schema else []
+            self.schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET).column_names
+            if self.schema
+            else []
         )
         self.cont_names = cont_names or (
-            self.schema.select_by_tag(Tags.CONTINUOUS).column_names if self.schema else []
+            self.schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
+            if self.schema
+            else []
         )
         self.label_names = label_names or (
             self.schema.select_by_tag(Tags.TARGET).column_names if self.schema else []
