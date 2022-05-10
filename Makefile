@@ -15,9 +15,8 @@ tests:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
-
 tests-tf:
-	coverage run -m pytest -rsx tests --ignore "tests/torch" || exit 1
+	coverage run -m pytest -rsx tests --ignore "tests/torch" --ignore "tests/tf/integration" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
@@ -25,6 +24,9 @@ tests-torch:
 	coverage run -m pytest -rsx tests --ignore "tests/tf" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
+
+tests-ci-tf:
+	coverage run -m pytest -rsx tests/tf/integration || exit 1
 
 dist:
 	python setup.py sdist

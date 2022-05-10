@@ -185,35 +185,6 @@ Schema Functions
    merlin.models.utils.schema_utils.get_embedding_size_from_cardinality
 
 
-Data
-----
-
-.. currentmodule:: merlin.models
-
-.. autosummary::
-   :toctree: generated
-
-   merlin.models.data.synthetic.SyntheticData
-
-
-Loader Utility Functions
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated
-
-   merlin.models.loader.utils.device_mem_size
-
-Loader Utility Functions for TensorFlow
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated
-
-   merlin.models.loader.tf_utils.configure_tensorflow
-   merlin.models.loader.tf_utils.get_dataset_schema_from_feature_columns
-
-
 Utilities
 ---------
 
