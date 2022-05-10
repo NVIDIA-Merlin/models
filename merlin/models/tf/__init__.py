@@ -16,6 +16,11 @@
 
 # flake8: noqa
 
+# Must happen before any importing of tensorflow to curtail mem usage
+from merlin.models.loader.tf_utils import configure_tensorflow
+
+configure_tensorflow()
+
 from tensorflow.keras.layers import Dense, Layer
 from tensorflow.python.keras.losses import Loss
 from tensorflow.python.keras.metrics import Metric
@@ -104,14 +109,7 @@ from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
-
-# Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.tf.utils import repr_utils
-
-configure_tensorflow()
-
-
-# Must happen before any importing of tensorflow to curtail mem usage
 
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr
