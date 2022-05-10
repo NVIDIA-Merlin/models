@@ -164,8 +164,8 @@ def encode_output(output: tf.Tensor):
 def data_iterator_func(schema, batch_size: int = 512):
     import merlin.io.dataset
 
-    cat_cols = schema.select_by_tag(Tags.CATEGORICAL).column_names
-    cont_cols = schema.select_by_tag(Tags.CONTINUOUS).column_names
+    cat_cols = schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET).column_names
+    cont_cols = schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).column_names
     targets = select_targets(schema).column_names
 
     def data_iterator(dataset):

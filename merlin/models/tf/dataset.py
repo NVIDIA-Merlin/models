@@ -90,8 +90,16 @@ def _validate_schema(feature_columns, cat_names, cont_names, label_names, schema
     _uses_feature_columns = feature_columns is not None
     _uses_explicit_schema = (cat_names is not None) or (cont_names is not None)
 
-    cat_tag_names = schema.select_by_tag([Tags.CATEGORICAL]).column_names if schema else []
-    cont_tag_names = schema.select_by_tag([Tags.CONTINUOUS]).column_names if schema else []
+    cat_tag_names = (
+        schema.select_by_tag([Tags.CATEGORICAL]).excluding_by_tag(Tags.TARGET).column_names
+        if schema
+        else []
+    )
+    cont_tag_names = (
+        schema.select_by_tag([Tags.CONTINUOUS]).excluding_by_tag(Tags.TARGET).column_names
+        if schema
+        else []
+    )
     label_names = label_names or []
     _uses_dataset_schema = cat_tag_names or cont_tag_names
 

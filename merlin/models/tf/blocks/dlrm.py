@@ -70,8 +70,8 @@ def DLRMBlock(
     if embedding_dim is None:
         raise ValueError("The embedding_dim is required")
 
-    con_schema = schema.select_by_tag(Tags.CONTINUOUS)
-    cat_schema = schema.select_by_tag(Tags.CATEGORICAL)
+    con_schema = schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET)
+    cat_schema = schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET)
 
     if not len(cat_schema) > 0:
         raise ValueError("DLRM requires categorical features")
