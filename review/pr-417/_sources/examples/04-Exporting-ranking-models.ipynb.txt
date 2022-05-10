@@ -30,7 +30,7 @@
    "source": [
     "<img src=\"http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png\" style=\"width: 90px; float: right;\">\n",
     "\n",
-    "## Exporting Ranking Models\n",
+    "# Exporting Ranking Models\n",
     "\n",
     "In this example notebook we demonstrate how to export (save) NVTabular `workflow` and a `ranking model` for model deployment with [Merlin Systems](https://github.com/NVIDIA-Merlin/systems) library. \n",
     "\n",
