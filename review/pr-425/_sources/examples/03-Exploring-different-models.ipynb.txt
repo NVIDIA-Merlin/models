@@ -2,7 +2,7 @@
  "cells": [
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 1,
    "id": "5f49a48e",
    "metadata": {},
    "outputs": [],
@@ -31,6 +31,8 @@
     "<img src=\"http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png\" style=\"width: 90px; float: right;\">\n",
     "\n",
     "# Iterating over Deep Learning Models using Merlin Models\n",
+    "\n",
+    "This notebook is created using the latest stable [merlin-tensorflow-training](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training/tags) container. \n",
     "\n",
     "In this example, we'll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.\n",
     "\n",
@@ -67,10 +69,9 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-26 16:50:26.243192: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX\n",
+      "2022-05-05 10:34:56.075160: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX\n",
       "To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
-      "2022-04-26 16:50:28.181122: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -> device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0\n",
-      "2022-04-26 16:50:28.181758: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 30390 MB memory:  -> device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0\n"
+      "2022-05-05 10:34:57.151786: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -> device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:0f:00.0, compute capability: 8.0\n"
      ]
     }
    ],
@@ -114,29 +115,19 @@
    "execution_count": 3,
    "id": "4a5069aa",
    "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "(None,)"
-      ]
-     },
-     "execution_count": 3,
-     "metadata": {},
-     "output_type": "execute_result"
-    }
-   ],
+   "outputs": [],
    "source": [
     "from merlin.datasets.synthetic import generate_data\n",
     "\n",
     "DATA_FOLDER = os.environ.get(\"DATA_FOLDER\", \"/workspace/data/\")\n",
     "NUM_ROWS = os.environ.get(\"NUM_ROWS\", 1000000)\n",
+    "SYNTHETIC_DATA = eval(os.environ.get(\"SYNTHETIC_DATA\", \"True\"))\n",
     "\n",
-    "train, valid = generate_data(\"aliccp-raw\", int(NUM_ROWS), set_sizes=(0.7, 0.3))\n",
-    "\n",
-    "# save the datasets as parquet files\n",
-    "train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"train\"))\n",
-    "valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"valid\"))"
+    "if SYNTHETIC_DATA:\n",
+    "    train, valid = generate_data(\"aliccp-raw\", int(NUM_ROWS), set_sizes=(0.7, 0.3))\n",
+    "    # save the datasets as parquet files\n",
+    "    train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"train\"))\n",
+    "    valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"valid\"))"
    ]
   },
   {
@@ -146,8 +137,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "train_path = os.path.join(DATA_FOLDER, \"train\", \"part.0.parquet\")\n",
-    "valid_path = os.path.join(DATA_FOLDER, \"valid\", \"part.0.parquet\")\n",
+    "train_path = os.path.join(DATA_FOLDER, \"train\", \"*.parquet\")\n",
+    "valid_path = os.path.join(DATA_FOLDER, \"valid\", \"*.parquet\")\n",
     "output_path = os.path.join(DATA_FOLDER, \"processed\")"
    ]
   },
@@ -187,8 +178,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "CPU times: user 2.44 s, sys: 1.26 s, total: 3.7 s\n",
-      "Wall time: 3.7 s\n"
+      "CPU times: user 2.33 s, sys: 2.21 s, total: 4.54 s\n",
+      "Wall time: 7.14 s\n"
      ]
     }
    ],
@@ -408,36 +399,37 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-26 16:50:34.950287: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.\n"
+      "2022-05-05 10:35:07.143311: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.\n",
+      "2022-05-05 10:35:08.373300: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "41/43 [===========================>..] - ETA: 0s - auc: 0.5003 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932"
+      "39/43 [==========================>...] - ETA: 0s - auc: 0.5007 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932"
      ]
     },
     {
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-26 16:50:41.997596: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
+      "2022-05-05 10:35:13.497816: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "43/43 [==============================] - 6s 36ms/step - auc: 0.5003 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.5001 - val_loss: 0.6932 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6932\n",
-      "CPU times: user 8.09 s, sys: 716 ms, total: 8.81 s\n",
-      "Wall time: 7.65 s\n"
+      "43/43 [==============================] - 5s 31ms/step - auc: 0.5005 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.4987 - val_loss: 0.6931 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6931\n",
+      "CPU times: user 6.31 s, sys: 7.34 s, total: 13.6 s\n",
+      "Wall time: 6.95 s\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "<keras.callbacks.History at 0x7f20e86d5280>"
+       "<keras.callbacks.History at 0x7f22e82fec70>"
       ]
      },
      "execution_count": 10,
@@ -465,7 +457,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 11,
    "id": "1c009df7",
    "metadata": {},
    "outputs": [],
@@ -476,7 +468,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 11,
+   "execution_count": 12,
    "id": "a9d454eb",
    "metadata": {},
    "outputs": [],
@@ -494,7 +486,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 12,
+   "execution_count": 13,
    "id": "151e4c70",
    "metadata": {},
    "outputs": [
@@ -502,19 +494,19 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "293/293 [==============================] - 2s 8ms/step - auc: 0.5001 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932\n"
+      "293/293 [==============================] - 1s 3ms/step - auc: 0.4987 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "{'auc': 0.5000803470611572,\n",
-       " 'loss': 0.692772626876831,\n",
+       "{'auc': 0.49869856238365173,\n",
+       " 'loss': 0.6935825943946838,\n",
        " 'regularization_loss': 0.0,\n",
-       " 'total_loss': 0.692772626876831}"
+       " 'total_loss': 0.6935825943946838}"
       ]
      },
-     "execution_count": 12,
+     "execution_count": 13,
      "metadata": {},
      "output_type": "execute_result"
     }
@@ -555,7 +547,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 13,
+   "execution_count": 14,
    "id": "4ee0e94e",
    "metadata": {},
    "outputs": [],
@@ -569,7 +561,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 14,
+   "execution_count": 15,
    "id": "531685bf",
    "metadata": {},
    "outputs": [
@@ -577,32 +569,32 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "41/43 [===========================>..] - ETA: 0s - auc_1: 0.8475 - loss: 0.6075 - regularization_loss: 0.0000e+00 - total_loss: 0.6075"
+      "40/43 [==========================>...] - ETA: 0s - auc_1: 0.8554 - loss: 0.6092 - regularization_loss: 0.0000e+00 - total_loss: 0.6092"
      ]
     },
     {
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-26 16:50:48.464147: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
+      "2022-05-05 10:35:18.922285: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "43/43 [==============================] - 3s 36ms/step - auc_1: 0.8496 - loss: 0.6004 - regularization_loss: 0.0000e+00 - total_loss: 0.6004 - val_auc_1: 0.4991 - val_loss: 0.7456 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7456\n",
-      "CPU times: user 4.73 s, sys: 658 ms, total: 5.38 s\n",
-      "Wall time: 3.76 s\n"
+      "43/43 [==============================] - 3s 38ms/step - auc_1: 0.8576 - loss: 0.5994 - regularization_loss: 0.0000e+00 - total_loss: 0.5994 - val_auc_1: 0.4993 - val_loss: 0.7385 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7385\n",
+      "CPU times: user 3.34 s, sys: 7.3 s, total: 10.6 s\n",
+      "Wall time: 3.58 s\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "<keras.callbacks.History at 0x7f207809bfd0>"
+       "<keras.callbacks.History at 0x7f22c2138c40>"
       ]
      },
-     "execution_count": 14,
+     "execution_count": 15,
      "metadata": {},
      "output_type": "execute_result"
     }
@@ -617,7 +609,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 15,
+   "execution_count": 16,
    "id": "c5ee49c7",
    "metadata": {},
    "outputs": [],
@@ -635,7 +627,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 16,
+   "execution_count": 17,
    "id": "cdab5932",
    "metadata": {},
    "outputs": [
@@ -643,19 +635,19 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "293/293 [==============================] - 2s 8ms/step - auc_1: 0.4991 - loss: 0.7471 - regularization_loss: 0.0000e+00 - total_loss: 0.7471\n"
+      "293/293 [==============================] - 2s 4ms/step - auc_1: 0.4993 - loss: 0.7403 - regularization_loss: 0.0000e+00 - total_loss: 0.7403\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "{'auc_1': 0.49909618496894836,\n",
-       " 'loss': 0.7657854557037354,\n",
+       "{'auc_1': 0.49930793046951294,\n",
+       " 'loss': 0.7259610295295715,\n",
        " 'regularization_loss': 0.0,\n",
-       " 'total_loss': 0.7657854557037354}"
+       " 'total_loss': 0.7259610295295715}"
       ]
      },
-     "execution_count": 16,
+     "execution_count": 17,
      "metadata": {},
      "output_type": "execute_result"
     }
@@ -697,7 +689,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 17,
+   "execution_count": 18,
    "id": "ff9f627b",
    "metadata": {},
    "outputs": [],
@@ -713,7 +705,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 18,
+   "execution_count": 19,
    "id": "c1a90353",
    "metadata": {},
    "outputs": [
@@ -721,32 +713,32 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "41/43 [===========================>..] - ETA: 0s - auc_2: 0.6902 - loss: 0.6890 - regularization_loss: 0.0000e+00 - total_loss: 0.6890"
+      "40/43 [==========================>...] - ETA: 0s - auc_2: 0.8259 - loss: 0.6265 - regularization_loss: 0.0000e+00 - total_loss: 0.6265"
      ]
     },
     {
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-26 16:50:56.202769: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
+      "2022-05-05 10:35:24.875211: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "43/43 [==============================] - 5s 54ms/step - auc_2: 0.6983 - loss: 0.6883 - regularization_loss: 0.0000e+00 - total_loss: 0.6883 - val_auc_2: 0.4995 - val_loss: 0.6935 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6935\n",
-      "CPU times: user 5.82 s, sys: 786 ms, total: 6.6 s\n",
-      "Wall time: 5.04 s\n"
+      "43/43 [==============================] - 4s 43ms/step - auc_2: 0.8294 - loss: 0.6112 - regularization_loss: 0.0000e+00 - total_loss: 0.6112 - val_auc_2: 0.4999 - val_loss: 0.8183 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.8183\n",
+      "CPU times: user 3.99 s, sys: 2.09 s, total: 6.08 s\n",
+      "Wall time: 4.14 s\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "<keras.callbacks.History at 0x7f204c2079d0>"
+       "<keras.callbacks.History at 0x7f209e1d1040>"
       ]
      },
-     "execution_count": 18,
+     "execution_count": 19,
      "metadata": {},
      "output_type": "execute_result"
     }
@@ -760,7 +752,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 19,
+   "execution_count": 20,
    "id": "88ebb876",
    "metadata": {},
    "outputs": [],
@@ -778,7 +770,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 20,
+   "execution_count": 21,
    "id": "b31d1de6",
    "metadata": {},
    "outputs": [
@@ -786,19 +778,19 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "293/293 [==============================] - 3s 9ms/step - auc_2: 0.4995 - loss: 0.6937 - regularization_loss: 0.0000e+00 - total_loss: 0.6937\n"
+      "293/293 [==============================] - 2s 5ms/step - auc_2: 0.4999 - loss: 0.8164 - regularization_loss: 0.0000e+00 - total_loss: 0.8164\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "{'auc_2': 0.4995212256908417,\n",
-       " 'loss': 0.693181037902832,\n",
+       "{'auc_2': 0.4999111294746399,\n",
+       " 'loss': 0.8085750341415405,\n",
        " 'regularization_loss': 0.0,\n",
-       " 'total_loss': 0.693181037902832}"
+       " 'total_loss': 0.8085750341415405}"
       ]
      },
-     "execution_count": 20,
+     "execution_count": 21,
      "metadata": {},
      "output_type": "execute_result"
     }
@@ -836,7 +828,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 21,
+   "execution_count": 22,
    "id": "13cad8a8",
    "metadata": {},
    "outputs": [],
@@ -851,7 +843,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 22,
+   "execution_count": 23,
    "id": "5370a2d8",
    "metadata": {},
    "outputs": [
@@ -859,32 +851,32 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "43/43 [==============================] - ETA: 0s - auc_3: 0.8623 - loss: 0.5652 - regularization_loss: 0.0000e+00 - total_loss: 0.5652"
+      "39/43 [==========================>...] - ETA: 0s - auc_3: 0.8615 - loss: 0.5912 - regularization_loss: 0.0000e+00 - total_loss: 0.5912"
      ]
     },
     {
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-26 16:51:04.050993: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
+      "2022-05-05 10:35:30.944628: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "43/43 [==============================] - 4s 48ms/step - auc_3: 0.8623 - loss: 0.5622 - regularization_loss: 0.0000e+00 - total_loss: 0.5622 - val_auc_3: 0.4993 - val_loss: 0.7936 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7936\n",
-      "CPU times: user 5.46 s, sys: 716 ms, total: 6.17 s\n",
-      "Wall time: 4.62 s\n"
+      "43/43 [==============================] - 3s 35ms/step - auc_3: 0.8637 - loss: 0.5776 - regularization_loss: 0.0000e+00 - total_loss: 0.5776 - val_auc_3: 0.4996 - val_loss: 0.7770 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7770\n",
+      "CPU times: user 4.1 s, sys: 3.49 s, total: 7.59 s\n",
+      "Wall time: 3.82 s\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "<keras.callbacks.History at 0x7f1c177f2e50>"
+       "<keras.callbacks.History at 0x7f209d3d8af0>"
       ]
      },
-     "execution_count": 22,
+     "execution_count": 23,
      "metadata": {},
      "output_type": "execute_result"
     }
@@ -898,7 +890,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 23,
+   "execution_count": 24,
    "id": "9b945b0f",
    "metadata": {},
    "outputs": [],
@@ -916,7 +908,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 24,
+   "execution_count": 25,
    "id": "7e7c741f",
    "metadata": {},
    "outputs": [
@@ -924,19 +916,19 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "293/293 [==============================] - 3s 8ms/step - auc_3: 0.4993 - loss: 0.7978 - regularization_loss: 0.0000e+00 - total_loss: 0.7978\n"
+      "293/293 [==============================] - 2s 4ms/step - auc_3: 0.4996 - loss: 0.7808 - regularization_loss: 0.0000e+00 - total_loss: 0.7808\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "{'auc_3': 0.4993017315864563,\n",
-       " 'loss': 0.8253191113471985,\n",
+       "{'auc_3': 0.4995594620704651,\n",
+       " 'loss': 0.76408851146698,\n",
        " 'regularization_loss': 0.0,\n",
-       " 'total_loss': 0.8253191113471985}"
+       " 'total_loss': 0.76408851146698}"
       ]
      },
-     "execution_count": 24,
+     "execution_count": 25,
      "metadata": {},
      "output_type": "execute_result"
     }
@@ -956,7 +948,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 25,
+   "execution_count": 26,
    "id": "d24c124b",
    "metadata": {},
    "outputs": [],
@@ -985,7 +977,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 26,
+   "execution_count": 27,
    "id": "50c44d96",
    "metadata": {},
    "outputs": [
@@ -1017,7 +1009,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 28,
    "id": "5e245a49",
    "metadata": {},
    "outputs": [],
@@ -1044,6 +1036,11 @@
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
    "version": "3.8.10"
+  },
+  "merlin": {
+   "containers": [
+    "nvcr.io/nvidia/merlin/merlin-tensorflow-training:latest"
+   ]
   }
  },
  "nbformat": 4,
