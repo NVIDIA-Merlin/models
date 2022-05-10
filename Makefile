@@ -26,6 +26,11 @@ tests-tf-examples:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
+tests-tf-integration:
+	coverage run -m pytest -rsx tests -m "tensorflow and integration" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
 tests-torch:
 	coverage run -m pytest -rsx tests -m "torch" || exit 1
 	coverage report --include 'merlin/models/*'
