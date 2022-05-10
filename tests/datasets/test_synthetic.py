@@ -20,8 +20,6 @@ from merlin.io import Dataset
 from merlin.models.utils.schema_utils import filter_dict_by_schema
 from merlin.schema import Tags
 
-pytestmark = pytest.mark.datasets
-
 
 def test_synthetic_sequence_testing_data():
     dataset = generate_data("testing", 100)

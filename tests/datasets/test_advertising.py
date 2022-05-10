@@ -6,7 +6,6 @@ import merlin.io
 from merlin.datasets.advertising import get_criteo
 from merlin.datasets.synthetic import generate_data
 
-pytestmark = pytest.mark.datasets
 MAYBE_DATA_DIR = os.environ.get("INPUT_DATA_DIR", None)
 
 

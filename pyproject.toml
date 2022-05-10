@@ -52,6 +52,7 @@ filterwarnings = [
 markers = [
     "datasets",
     "tensorflow",
+    "tensorflow_example",
     "torch",
     "lightfm",
     "implicit",

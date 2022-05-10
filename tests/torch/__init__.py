@@ -16,4 +16,3 @@
 import pytest
 
 pytest.importorskip("torch")
-pytestmark = pytest.mark.torch

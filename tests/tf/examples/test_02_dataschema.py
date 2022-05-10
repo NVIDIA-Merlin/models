@@ -3,11 +3,11 @@ from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
-pytestmark = pytest.mark.example
+pytestmark = pytest.mark.tensorflow_example
 
 
 @testbook(REPO_ROOT / "examples/02-Merlin-Models-and-NVTabular-integration.ipynb", execute=False)
-def test_func(tb):
+def test_example_02_nvt_integration(tb):
     tb.inject(
         """
         import os

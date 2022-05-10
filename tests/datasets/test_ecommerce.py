@@ -6,7 +6,6 @@ import merlin.io
 from merlin.datasets import ecommerce
 from merlin.datasets.synthetic import generate_data
 
-pytestmark = pytest.mark.datasets
 # This is the path to the raw ali-ccp dataset
 MAYBE_ALICCP_DATA = os.environ.get("DATA_PATH_ALICCP", None)
 

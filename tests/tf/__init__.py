@@ -16,5 +16,3 @@
 import pytest
 
 pytest.importorskip("tensorflow")
-
-pytestmark = pytest.mark.tensorflow

@@ -4,8 +4,8 @@ from testbook import testbook
 from tests.conftest import REPO_ROOT
 
 
-@pytest.mark.integration
 @testbook(REPO_ROOT / "examples/02-Merlin-Models-and-NVTabular-integration.ipynb", execute=False)
+@pytest.mark.integration
 def test_func(tb):
     tb.inject(
         """

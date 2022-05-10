@@ -1,17 +1,14 @@
 import os
 
-import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
-
-pytestmark = pytest.mark.example
 
 
 @testbook(
     REPO_ROOT / "examples/06-Define-your-own-architecture-with-Merlin-Models.ipynb", execute=False
 )
-def test_func(tb):
+def test_example_06_defining_own_architecture(tb):
     tb.inject(
         """
         from unittest.mock import patch
