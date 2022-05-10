@@ -1,8 +1,11 @@
 import os
 
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
+
+pytestmark = pytest.mark.example
 
 
 @testbook(REPO_ROOT / "examples/03-Exploring-different-models.ipynb", execute=False)
