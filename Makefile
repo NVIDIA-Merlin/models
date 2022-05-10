@@ -1,4 +1,5 @@
-all: tests lint
+
+all: install tests lint tests-tf tests-tf-examples tests-torch tests-implicit tests-lightfm tests-datasets dist clean docstrings docs
 
 install:
 	pip install -e .[all]
@@ -16,7 +17,12 @@ tests:
 	coverage html --include 'merlin/models/*'
 
 tests-tf:
-	coverage run -m pytest -rsx tests --ignore "tests/torch" --ignore "tests/tf/integration" || exit 1
+	coverage run -m pytest -rsx tests -m "tensorflow" -m "not example" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-tf-examples:
+	coverage run -m pytest -rsx tests -m "tensorflow" -m "example" || exit 1
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
@@ -25,8 +31,20 @@ tests-torch:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
-tests-ci-tf:
-	coverage run -m pytest -rsx tests/tf/integration || exit 1
+tests-implicit:
+	coverage run -m pytest -rsx tests -m "implicit" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-lightfm:
+	coverage run -m pytest -rsx tests -m "lightfm" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
+tests-datasets:
+	coverage run -m pytest -rsx tests -m "datasets" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
 
 dist:
 	python setup.py sdist
@@ -42,4 +60,4 @@ docs:
 	cd docs/build/html/ && python -m http.server
 
 
-.PHONY: docs tests lint dist clean
+.PHONY: install tests lint tests-tf tests-tf-examples tests-torch tests-implicit tests-lightfm tests-datasets dist clean docstrings docs

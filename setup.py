@@ -38,16 +38,23 @@ def read_requirements(filename):
         return [line for line in lineiter if line and not line.startswith("#")]
 
 
+_dev = read_requirements("requirements/dev.txt")
+_nvt = read_requirements("requirements/nvtabular.txt")
 requirements = {
     "base": read_requirements("requirements/base.txt"),
     "tensorflow": read_requirements("requirements/tensorflow.txt"),
     "pytorch": read_requirements("requirements/pytorch.txt"),
-    "nvtabular": read_requirements("requirements/nvtabular.txt"),
-    "implicit": read_requirements("requirements/implicit.txt"),
     "lightfm": read_requirements("requirements/lightfm.txt"),
-    "dev": read_requirements("requirements/dev.txt"),
+    "implicit": read_requirements("requirements/implicit.txt"),
+    "nvtabular": _nvt,
+    "dev": _dev,
 }
-
+dev_requirements = {
+    "tensorflow-dev": requirements["tensorflow"] + _dev + _nvt,
+    "pytorch-dev": requirements["pytorch"] + _dev + _nvt,
+    "implicit-dev": requirements["implicit"] + _dev + _nvt,
+    "lightfm-dev": requirements["lightfm"] + _dev + _nvt,
+}
 
 setup(
     name="merlin-models",
@@ -61,7 +68,11 @@ setup(
     long_description_content_type="text/markdown",
     install_requires=requirements["base"],
     test_suite="tests",
-    extras_require={**requirements, "all": list(itertools.chain(*list(requirements.values())))},
+    extras_require={
+        **requirements,
+        **dev_requirements,
+        "all": list(itertools.chain(*list(requirements.values()))),
+    },
     include_package_data=True,
     classifiers=[
         "Development Status :: 4 - Beta",

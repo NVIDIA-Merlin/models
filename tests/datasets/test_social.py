@@ -1,5 +1,9 @@
+import pytest
+
 import merlin.io
 from merlin.datasets.synthetic import generate_data
+
+pytestmark = pytest.mark.datasets
 
 
 def test_social_data():

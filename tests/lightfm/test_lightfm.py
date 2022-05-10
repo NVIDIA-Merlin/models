@@ -13,9 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
+
 from merlin.io import Dataset
 from merlin.models.lightfm import LightFM
 from merlin.schema import Tags
+
+pytestmark = pytest.mark.lightfm
 
 
 def test_warp(music_streaming_data: Dataset):
