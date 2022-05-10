@@ -56,4 +56,5 @@ markers = [
     "lightfm",
     "implicit",
     "example",
+    "integration"
 ]
