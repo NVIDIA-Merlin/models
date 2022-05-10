@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Index &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/mystnb.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -12,7 +14,11 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" /> 
@@ -37,8 +43,9 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="README.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="models_overview.html">Standard Models: Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/README.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="additional_resources.html">Additional Resources</a></li>
 </ul>
 
         </div>
@@ -347,6 +354,8 @@
 </li>
       <li><a href="generated/merlin.models.utils.registry.Registry.html#merlin.models.utils.registry.Registry.class_registry">class_registry() (merlin.models.utils.registry.Registry class method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/merlin.models.tf.losses.BPRLoss.html#merlin.models.tf.losses.BPRLoss.compute">compute() (merlin.models.tf.losses.BPRLoss method)</a>
 
       <ul>
@@ -363,8 +372,6 @@
         <li><a href="generated/merlin.models.tf.losses.TOP1v2Loss.html#merlin.models.tf.losses.TOP1v2Loss.compute">(merlin.models.tf.losses.TOP1v2Loss method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/merlin.models.tf.CGCBlock.html#merlin.models.tf.CGCBlock.compute_call_output_shape">compute_call_output_shape() (merlin.models.tf.CGCBlock method)</a>
 
       <ul>
@@ -421,8 +428,6 @@
       </ul></li>
       <li><a href="generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock.compute_output_signature">compute_output_signature() (merlin.models.tf.SequentialBlock method)</a>
 </li>
-      <li><a href="generated/merlin.models.loader.tf_utils.configure_tensorflow.html#merlin.models.loader.tf_utils.configure_tensorflow">configure_tensorflow() (in module merlin.models.loader.tf_utils)</a>
-</li>
       <li><a href="generated/merlin.models.tf.ContinuousEmbedding.html#merlin.models.tf.ContinuousEmbedding">ContinuousEmbedding() (in module merlin.models.tf)</a>
 </li>
       <li><a href="generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures">ContinuousFeatures (class in merlin.models.tf)</a>
@@ -470,8 +475,6 @@
       <li><a href="generated/merlin.models.utils.registry.default_object_name.html#merlin.models.utils.registry.default_object_name">default_object_name() (in module merlin.models.utils.registry)</a>
 </li>
       <li><a href="generated/merlin.models.tf.DenseResidualBlock.html#merlin.models.tf.DenseResidualBlock">DenseResidualBlock() (in module merlin.models.tf)</a>
-</li>
-      <li><a href="generated/merlin.models.loader.utils.device_mem_size.html#merlin.models.loader.utils.device_mem_size">device_mem_size() (in module merlin.models.loader.utils)</a>
 </li>
       <li><a href="generated/merlin.models.utils.registry.display_list_by_prefix.html#merlin.models.utils.registry.display_list_by_prefix">display_list_by_prefix() (in module merlin.models.utils.registry)</a>
 </li>
@@ -603,8 +606,6 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="generated/merlin.models.loader.tf_utils.get_dataset_schema_from_feature_columns.html#merlin.models.loader.tf_utils.get_dataset_schema_from_feature_columns">get_dataset_schema_from_feature_columns() (in module merlin.models.loader.tf_utils)</a>
-</li>
       <li><a href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality">get_embedding_size_from_cardinality() (in module merlin.models.utils.schema_utils)</a>
 </li>
       <li><a href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html#merlin.models.utils.schema_utils.get_embedding_sizes_from_schema">get_embedding_sizes_from_schema() (in module merlin.models.utils.schema_utils)</a>
