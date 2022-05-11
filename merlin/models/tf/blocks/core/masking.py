@@ -382,9 +382,13 @@ class MaskingHead(Block):
         self.item_id_feature_name = item_id_feature_name
 
     def call_outputs(
-        self, outputs: PredictionOutput, context: FeatureContext, training: bool = True, **kwargs
+        self,
+        outputs: PredictionOutput,
+        feature_context: FeatureContext,
+        training: bool = True,
+        **kwargs
     ) -> "PredictionOutput":
-        targets = context.features.values[self.item_id_feature_name]
+        targets = feature_context.features.values[self.item_id_feature_name]
         mask = self.context.get_mask()
         targets = tf.where(mask, targets, self.padding_idx)
         return outputs.copy_with_updates(
