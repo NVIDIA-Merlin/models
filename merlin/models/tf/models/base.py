@@ -200,8 +200,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
     def call(self, inputs, **kwargs):
         features = FeatureCollection(self.schema, self.as_dense(inputs))
-        context = FeatureContext(features)
-        outputs = call_layer(self.block, inputs, context=context, **kwargs)
+        feature_context = FeatureContext(features)
+        outputs = call_layer(self.block, inputs, feature_context=feature_context, **kwargs)
         return outputs
 
     @property
