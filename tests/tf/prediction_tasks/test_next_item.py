@@ -35,7 +35,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     item_retrieval_scorer = ml.ItemRetrievalScorer(
         samplers=[cached_batches_sampler, inbatch_sampler],
         sampling_downscore_false_negatives=False,
-        context=ml.BlockContext(),
+        context=ml.ModelContext(),
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
@@ -114,7 +114,7 @@ def test_item_retrieval_scorer_no_sampler():
         items_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
         positive_items = tf.random.uniform(shape=(10,), minval=1, maxval=100, dtype=tf.int32)
         item_retrieval_scorer = ml.ItemRetrievalScorer(
-            samplers=[], sampling_downscore_false_negatives=False, context=ml.BlockContext()
+            samplers=[], sampling_downscore_false_negatives=False, context=ml.ModelContext()
         )
         item_retrieval_scorer.call_outputs(
             PredictionOutput(
@@ -160,7 +160,7 @@ def test_item_retrieval_scorer_downscore_false_negatives():
 
     # Adding item id to the context
     item_ids = tf.random.uniform(shape=(batch_size,), minval=1, maxval=10000000, dtype=tf.int32)
-    context = ml.BlockContext(feature_names=["item_id"], feature_dtypes={"item_id": tf.int32})
+    context = ml.ModelContext(feature_names=["item_id"], feature_dtypes={"item_id": tf.int32})
     _ = context({"item_id": item_ids})
 
     FALSE_NEGATIVE_SCORE = -100_000_000.0
@@ -201,7 +201,7 @@ def test_item_retrieval_scorer_only_positive_when_not_training():
     item_retrieval_scorer = ml.ItemRetrievalScorer(
         samplers=[ml.InBatchSampler()],
         sampling_downscore_false_negatives=False,
-        context=ml.BlockContext(),
+        context=ml.ModelContext(),
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)

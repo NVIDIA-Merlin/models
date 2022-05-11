@@ -95,7 +95,7 @@ class DummyFeaturesBlock(ml.Block):
 def test_block_context(ecommerce_data: Dataset):
     inputs = ml.InputBlock(ecommerce_data.schema)
     dummy = DummyFeaturesBlock()
-    model = inputs.connect(ml.MLPBlock([64]), dummy, context=ml.BlockContext())
+    model = inputs.connect(ml.MLPBlock([64]), dummy, context=ml.ModelContext())
     out = model(ml.sample_batch(ecommerce_data, batch_size=100, include_targets=False))
 
     embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)

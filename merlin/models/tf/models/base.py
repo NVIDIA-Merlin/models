@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime
 import tensorflow as tf
 
 import merlin.io
-from merlin.models.tf.blocks.core.base import Block, BlockContext
+from merlin.models.tf.blocks.core.base import Block, ModelContext
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
@@ -158,11 +158,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     def __init__(
         self,
         *blocks: Union[Block, ModelLikeBlock],
-        context: Optional[BlockContext] = None,
+        context: Optional[ModelContext] = None,
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
-        context = context or BlockContext()
+        context = context or ModelContext()
         if (
             len(blocks) == 1
             and isinstance(blocks[0], SequentialBlock)
@@ -513,7 +513,7 @@ class RetrievalModel(Model):
     def __init__(
         self,
         *blocks: Union[Block, ModelLikeBlock],
-        context: Optional[BlockContext] = None,
+        context: Optional[ModelContext] = None,
         **kwargs,
     ):
         super().__init__(*blocks, context=context, **kwargs)

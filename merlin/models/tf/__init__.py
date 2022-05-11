@@ -28,6 +28,7 @@ from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
+from merlin.models.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.blocks.core.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
@@ -36,8 +37,8 @@ from merlin.models.tf.blocks.core.aggregation import (
 )
 from merlin.models.tf.blocks.core.base import (
     Block,
-    BlockContext,
     EmbeddingWithMetadata,
+    ModelContext,
     NoOp,
     right_shift_layer,
 )
@@ -111,8 +112,6 @@ from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.tf.utils import repr_utils
 
-# Must happen before any importing of tensorflow to curtail mem usage
-
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr
 
@@ -125,7 +124,7 @@ OptimizerV2.__repr__ = repr_utils.layer_repr_no_children
 
 __all__ = [
     "Block",
-    "BlockContext",
+    "ModelContext",
     "SequentialBlock",
     "ResidualBlock",
     "DualEncoderBlock",

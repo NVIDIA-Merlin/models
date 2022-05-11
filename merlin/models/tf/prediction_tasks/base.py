@@ -9,11 +9,11 @@ from tensorflow.python.keras.utils import generic_utils
 
 from merlin.models.tf.blocks.core.base import (
     Block,
-    BlockContext,
     BlockType,
     ContextMixin,
     MetricOrMetricClass,
     MetricOrMetrics,
+    ModelContext,
     PredictionOutput,
     _output_metrics,
     name_fn,
@@ -728,7 +728,7 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
     def repr_ignore(self) -> List[str]:
         return ["prediction_tasks", "parallel_layers"]
 
-    def _set_context(self, context: "BlockContext"):
+    def _set_context(self, context: "ModelContext"):
         for task in self.prediction_task_dict.values():
             task._set_context(context)
         super(ParallelPredictionBlock, self)._set_context(context)
