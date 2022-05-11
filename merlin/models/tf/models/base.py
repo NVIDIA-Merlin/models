@@ -10,6 +10,7 @@ from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
@@ -186,6 +187,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         ]
         self.schema = sum(input_block_schemas, Schema())
 
+        self.as_dense = AsDenseFeatures()
+
         # Initializing model control flags controlled by MetricsComputeCallback()
         self._should_compute_train_metrics_for_batch = tf.Variable(
             dtype=tf.bool,
@@ -196,7 +199,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         )
 
     def call(self, inputs, **kwargs):
-        features = FeatureCollection(self.schema, inputs)
+        features = FeatureCollection(self.schema, self.as_dense(inputs))
         context = FeatureContext(features)
         outputs = call_layer(self.block, inputs, context=context, **kwargs)
         return outputs
