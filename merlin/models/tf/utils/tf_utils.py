@@ -23,6 +23,7 @@ from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
+from merlin.models.utils.misc_utils import filter_kwargs
 
 if version.parse(tf.__version__) < version.parse("2.3.0"):
     try:
@@ -333,3 +334,18 @@ class TensorInitializer(tf.keras.initializers.Initializer):
 
     def get_config(self):  # To support serialization
         return {"weights": self._weights}
+
+
+def call_layer(layer: tf.keras.layers.Layer, inputs, *args, **kwargs):
+    """Calls a layer with the given inputs and filters kwargs. Returns the output"""
+
+    has_custom_call = getattr(layer, "_has_custom__call__", False)
+
+    filtered_kwargs = filter_kwargs(kwargs, layer, cascade_kwargs_if_possible=True)
+
+    if not has_custom_call:
+        filtered_kwargs = filter_kwargs(
+            filtered_kwargs, layer.call, cascade_kwargs_if_possible=True
+        )
+
+    return layer(inputs, *args, **filtered_kwargs)

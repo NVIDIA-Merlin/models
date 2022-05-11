@@ -6,12 +6,15 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime
 import tensorflow as tf
 
 import merlin.io
+from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
+from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
+from merlin.models.tf.utils.tf_utils import call_layer
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
@@ -178,6 +181,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         self.context = context
         self._is_fitting = False
 
+        input_block_schemas = [
+            block.schema for block in self.block.submodules if getattr(block, "is_input", False)
+        ]
+        self.schema = sum(input_block_schemas, Schema())
+
         # Initializing model control flags controlled by MetricsComputeCallback()
         self._should_compute_train_metrics_for_batch = tf.Variable(
             dtype=tf.bool,
@@ -188,12 +196,10 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         )
 
     def call(self, inputs, **kwargs):
-        outputs = self.block(inputs, **kwargs)
+        features = FeatureCollection(self.schema, inputs)
+        context = FeatureContext(features)
+        outputs = call_layer(self.block, inputs, context=context, **kwargs)
         return outputs
-
-    # @property
-    # def inputs(self):
-    #     return self.block.inputs
 
     @property
     def first(self):
@@ -206,10 +212,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     @property
     def loss_block(self) -> ModelLikeBlock:
         return self.block.last if isinstance(self.block, SequentialBlock) else self.block
-
-    @property
-    def schema(self) -> Schema:
-        return self.block.schema
 
     @classmethod
     def from_block(
