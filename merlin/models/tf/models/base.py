@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import Sequence as SequenceCollection
+from collections.abc import Sequence as SequenceCollection
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
