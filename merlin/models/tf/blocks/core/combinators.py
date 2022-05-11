@@ -14,7 +14,6 @@ from merlin.models.tf.blocks.core.base import (
     is_input_block,
     right_shift_layer,
 )
-from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType, TabularBlock
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.utils import tf_utils
@@ -297,12 +296,10 @@ class SequentialBlock(Block):
         return outputs, targets
 
     def call_outputs(
-        self, outputs: PredictionOutput, feature_context: FeatureContext, training=False, **kwargs
+        self, outputs: PredictionOutput, training=False, **kwargs
     ) -> "PredictionOutput":
         for layer in self.layers:
-            outputs = layer.call_outputs(
-                outputs, feature_context=feature_context, training=training, **kwargs
-            )
+            outputs = layer.call_outputs(outputs, training=training, **kwargs)
         return outputs
 
     def get_config(self):
