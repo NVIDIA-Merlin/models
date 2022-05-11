@@ -84,11 +84,11 @@
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Block</span><span class="p">,</span>
-    <span class="n">BlockContext</span><span class="p">,</span>
     <span class="n">BlockType</span><span class="p">,</span>
     <span class="n">ContextMixin</span><span class="p">,</span>
     <span class="n">MetricOrMetricClass</span><span class="p">,</span>
     <span class="n">MetricOrMetrics</span><span class="p">,</span>
+    <span class="n">ModelContext</span><span class="p">,</span>
     <span class="n">PredictionOutput</span><span class="p">,</span>
     <span class="n">_output_metrics</span><span class="p">,</span>
     <span class="n">name_fn</span><span class="p">,</span>
@@ -803,7 +803,7 @@
 <div class="viewcode-block" id="ParallelPredictionBlock.repr_ignore"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock.repr_ignore">[docs]</a>    <span class="k">def</span> <span class="nf">repr_ignore</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;prediction_tasks&quot;</span><span class="p">,</span> <span class="s2">&quot;parallel_layers&quot;</span><span class="p">]</span></div>
 
-    <span class="k">def</span> <span class="nf">_set_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="s2">&quot;BlockContext&quot;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_set_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="s2">&quot;ModelContext&quot;</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_task_dict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
             <span class="n">task</span><span class="o">.</span><span class="n">_set_context</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_set_context</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
