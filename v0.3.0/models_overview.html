@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Standard Models: Overview &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/mystnb.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -12,11 +14,15 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Merlin Models Example Notebooks" href="examples/README.html" />
+    <link rel="next" title="Merlin Models Example Notebooks" href="examples/index.html" />
     <link rel="prev" title="Merlin Models" href="README.html" /> 
 </head>
 
@@ -42,19 +48,11 @@
 <li class="toctree-l2"><a class="reference internal" href="#matrix-factorization">Matrix Factorization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#youtube-dnn">YouTube DNN</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#two-tower">Two Tower</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#ranking">Ranking</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#deep-learning-recommender-model">Deep Learning Recommender Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#dcn-v2">DCN-V2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#ranking">Ranking</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-task-learning">Multi-task Learning</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#multi-task-learning">Multi-task Learning</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#mixture-of-experts">Mixture-of-experts</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#progressive-layered-extraction">Progressive Layered Extraction</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="examples/README.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
 </ul>
 
@@ -81,31 +79,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="standard-models-overview">
+  <div class="tex2jax_ignore mathjax_ignore section" id="standard-models-overview">
 <h1>Standard Models: Overview<a class="headerlink" href="#standard-models-overview" title="Permalink to this headline"></a></h1>
 <div class="section" id="matrix-factorization">
 <h2>Matrix Factorization<a class="headerlink" href="#matrix-factorization" title="Permalink to this headline"></a></h2>
@@ -261,7 +235,7 @@ Virtual Event Brazil: ACM, 2020. <a class="reference external" href="https://doi
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="README.html" class="btn btn-neutral float-left" title="Merlin Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="examples/README.html" class="btn btn-neutral float-right" title="Merlin Models Example Notebooks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="examples/index.html" class="btn btn-neutral float-right" title="Merlin Models Example Notebooks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -290,8 +264,8 @@ Virtual Event Brazil: ACM, 2020. <a class="reference external" href="https://doi
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../v0.2.0/index.html">v0.2.0</a></dd>
       <dd><a href="models_overview.html">v0.3.0</a></dd>
+      <dd><a href="../v0.4.0/models_overview.html">v0.4.0</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>

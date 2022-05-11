@@ -28,7 +28,7 @@
    "id": "3d1cdb55",
    "metadata": {},
    "source": [
-    "## Taking the Next Step with Merlin Models: Define Your Own Architecture\n",
+    "# Taking the Next Step with Merlin Models: Define Your Own Architecture\n",
     "\n",
     "In [explore-different-models](https://github.com/NVIDIA-Merlin/models/blob/main/examples/Exploring-different-models.ipynb), we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.\n",
     "\n",

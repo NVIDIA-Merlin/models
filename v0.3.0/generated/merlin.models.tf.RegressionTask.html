@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>merlin.models.tf.RegressionTask &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -12,7 +14,11 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -39,33 +45,9 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/README.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Documentation</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="../api.html#ranking-model-constructors">Ranking Model Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#retrieval-model-constructors">Retrieval Model Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#input-block-constructors">Input Block Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#model-building-block-constructors">Model Building Block Constructors</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="../api.html#modeling-prediction-task-constructors">Modeling Prediction Task Constructors</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.PredictionTasks.html">merlin.models.tf.PredictionTasks</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.PredictionTask.html">merlin.models.tf.PredictionTask</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.BinaryClassificationTask.html">merlin.models.tf.BinaryClassificationTask</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.MultiClassClassificationTask.html">merlin.models.tf.MultiClassClassificationTask</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">merlin.models.tf.RegressionTask</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.ItemRetrievalTask.html">merlin.models.tf.ItemRetrievalTask</a></li>
-<li class="toctree-l4"><a class="reference internal" href="merlin.models.tf.NextItemPredictionTask.html">merlin.models.tf.NextItemPredictionTask</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#model-pipeline-constructors">Model Pipeline Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#masking-block-constructors">Masking Block Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#transformation-block-constructors">Transformation Block Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#multi-task-block-constructors">Multi-Task Block Constructors</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#data-loader-customization-constructor">Data Loader Customization Constructor</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#metrics">Metrics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#sampling">Sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api.html#losses">Losses</a></li>
-</ul>
-</li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#tensorflow-models">TensorFlow Models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#schema-functions">Schema Functions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#data">Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities">Utilities</a></li>
@@ -98,31 +80,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="merlin-models-tf-regressiontask">
+  <div class="section" id="merlin-models-tf-regressiontask">
 <h1>merlin.models.tf.RegressionTask<a class="headerlink" href="#merlin-models-tf-regressiontask" title="Permalink to this headline"></a></h1>
 <dl class="py class">
 <dt id="merlin.models.tf.RegressionTask">
@@ -446,8 +404,8 @@ Defaults to “mse”.</p></li>
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
       <dd><a href="merlin.models.tf.RegressionTask.html">v0.3.0</a></dd>
+      <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Merlin Models &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/mystnb.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -12,7 +14,11 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -39,20 +45,16 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#benefits-of-merlin-models">Benefits of Merlin Models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#installing-merlin-models-using-pip">Installing Merlin Models Using Pip</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#docker-containers-that-include-merlin-models">Docker Containers that include Merlin Models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#installing-merlin-models-from-source">Installing Merlin Models from Source</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting Started</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#notebook-examples-and-tutorials">Notebook Examples and Tutorials</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#feedback-and-support">Feedback and Support</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="models_overview.html">Standard Models: Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/README.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="additional_resources.html">Additional Resources</a></li>
 </ul>
 
         </div>
@@ -78,31 +80,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="merlin-models">
+  <div class="section" id="merlin-models">
 <h1>Merlin Models<a class="headerlink" href="#merlin-models" title="Permalink to this headline"></a></h1>
 <p><a class="reference external" href="https://pypi.python.org/pypi/merlin-models/"><img alt="PyPI version shields.io" src="https://img.shields.io/pypi/v/merlin-models.svg" /></a>
 <img alt="GitHub License" src="https://img.shields.io/github/license/NVIDIA-Merlin/models" />
@@ -118,7 +96,7 @@ datasets.</p>
 <div class="section" id="benefits-of-merlin-models">
 <h2>Benefits of Merlin Models<a class="headerlink" href="#benefits-of-merlin-models" title="Permalink to this headline"></a></h2>
 <p><strong><a class="reference external" href="https://nvidia-merlin.github.io/models/main/models_overview.html">RecSys model implementations</a></strong> - The library provides a high-level API for classic and state-of-the-art deep learning architectures for recommender models.
-These models include both retrieval (e.g. Matrix Factorization, Two tower, YouTube DNN, ..) and ranking (e.g. DLRM, DCN-v2, DeepFM, …) models.</p>
+These models include both retrieval (e.g. Matrix Factorization, Two tower, YouTube DNN, …) and ranking (e.g. DLRM, DCN-v2, DeepFM, …) models.</p>
 <p><strong>Building blocks</strong> - Within Merlin Models, recommender models are built on reusable building blocks.
 The design makes it easy to combine the blocks to define new architectures.
 The library provides model definition blocks (MLP layers, factorization layers, input blocks, negative samplers, loss functions), training models (data loaders from Parquet files), and evaluation (e.g. ranking metrics).</p>
@@ -136,7 +114,7 @@ The Merlin dataloaders can lead to a speedup that is nine times faster than the 
 <li><p>Prepare batches asynchronously into the GPU to avoid CPU-to-GPU communication.</p></li>
 <li><p>Integrate easily into existing TensorFlow or PyTorch training pipelines by using a similar API.</p></li>
 </ul>
-<p>To learn about the core features of Merlin Models, see the <a class="reference external" href="docs/source/models_overview">Models Overview</a> page.</p>
+<p>To learn about the core features of Merlin Models, see the <a class="reference external" href="https://nvidia-merlin.github.io/models/main/models_overview.html">Models Overview</a> page.</p>
 </div>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline"></a></h2>
@@ -170,7 +148,7 @@ When you run Merlin Models in one of our Docker containers, the dependencies are
 <p>Merlin Models makes it straightforward to define architectures that adapt to different input features.
 This adaptability is provided by building on a core feature of the NVTabular library.
 When you use NVTabular for feature engineering, NVTabular creates a schema that identifies the input features.
-You can see the <code class="docutils literal notranslate"><span class="pre">Schema</span></code> object in action by looking at the <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/examples/02-Merlin-Models-and-NVTabular-applying-to-your-own-dataset.html">Applying to your own dataset with Merlin Models and NVTabular</a> example notebook.</p>
+You can see the <code class="docutils literal notranslate"><span class="pre">Schema</span></code> object in action by looking at the <a class="reference external" href="https://nvidia-merlin.github.io/models/main/examples/02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a> example notebook.</p>
 <p>You can easily build popular RecSys architectures like <a class="reference external" href="http://arxiv.org/abs/1906.00091">DLRM</a>, as shown in the following code sample.
 After you define the model, you can train and evaluate it with a typical Keras model.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
@@ -209,7 +187,7 @@ The target binary feature is also inferred from the schema (i.e., tagged as ‘T
 </div>
 <div class="section" id="feedback-and-support">
 <h2>Feedback and Support<a class="headerlink" href="#feedback-and-support" title="Permalink to this headline"></a></h2>
-<p>If you’d like to contribute to the library directly, see the <a class="reference external" href="CONTRIBUTING">CONTRIBUTING.md</a> file.
+<p>If you’d like to contribute to the library directly, see the <a class="reference internal" href="CONTRIBUTING.html"><span class="doc std std-doc">CONTRIBUTING.md</span></a> file.
 We’re particularly interested in contributions or feature requests for our feature engineering and preprocessing operations.
 To further advance our Merlin Roadmap, we encourage you to share all the details regarding your recommender system pipeline in this <a class="reference external" href="https://developer.nvidia.com/merlin-devzone-survey">survey</a>.</p>
 </div>
@@ -249,8 +227,8 @@ To further advance our Merlin Roadmap, we encourage you to share all the details
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../v0.2.0/index.html">v0.2.0</a></dd>
       <dd><a href="../v0.3.0/README.html">v0.3.0</a></dd>
+      <dd><a href="../v0.4.0/index.html">v0.4.0</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>

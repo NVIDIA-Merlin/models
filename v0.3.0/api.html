@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>API Documentation &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="_static/mystnb.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -12,12 +14,16 @@
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="merlin.models.tf.DCNModel" href="generated/merlin.models.tf.DCNModel.html" />
-    <link rel="prev" title="Iterating over Deep Learning Models using Merlin Models" href="examples/03-Exploring-different-models.html" /> 
+    <link rel="prev" title="Taking the Next Step with Merlin Models: Define Your Own Architecture" href="examples/06-Define-your-own-architecture-with-Merlin-Models.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -39,159 +45,13 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="README.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="models_overview.html">Standard Models: Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/README.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Example Notebooks</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Documentation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#tensorflow-models">TensorFlow Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ranking-model-constructors">Ranking Model Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DCNModel.html">merlin.models.tf.DCNModel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DLRMModel.html">merlin.models.tf.DLRMModel</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#retrieval-model-constructors">Retrieval Model Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationModel.html">merlin.models.tf.MatrixFactorizationModel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.TwoTowerModel.html">merlin.models.tf.TwoTowerModel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.YoutubeDNNRetrievalModel.html">merlin.models.tf.YoutubeDNNRetrievalModel</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#input-block-constructors">Input Block Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.InputBlock.html">merlin.models.tf.InputBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ContinuousFeatures.html">merlin.models.tf.ContinuousFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ContinuousEmbedding.html">merlin.models.tf.ContinuousEmbedding</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.EmbeddingFeatures.html">merlin.models.tf.EmbeddingFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.SequenceEmbeddingFeatures.html">merlin.models.tf.SequenceEmbeddingFeatures</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#model-building-block-constructors">Model Building Block Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DLRMBlock.html">merlin.models.tf.DLRMBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MLPBlock.html">merlin.models.tf.MLPBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CrossBlock.html">merlin.models.tf.CrossBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.TwoTowerBlock.html">merlin.models.tf.TwoTowerBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationBlock.html">merlin.models.tf.MatrixFactorizationBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DotProductInteraction.html">merlin.models.tf.DotProductInteraction</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#modeling-prediction-task-constructors">Modeling Prediction Task Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.PredictionTasks.html">merlin.models.tf.PredictionTasks</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.PredictionTask.html">merlin.models.tf.PredictionTask</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.BinaryClassificationTask.html">merlin.models.tf.BinaryClassificationTask</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MultiClassClassificationTask.html">merlin.models.tf.MultiClassClassificationTask</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.RegressionTask.html">merlin.models.tf.RegressionTask</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ItemRetrievalTask.html">merlin.models.tf.ItemRetrievalTask</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.NextItemPredictionTask.html">merlin.models.tf.NextItemPredictionTask</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#model-pipeline-constructors">Model Pipeline Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.SequentialBlock.html">merlin.models.tf.SequentialBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ParallelBlock.html">merlin.models.tf.ParallelBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ParallelPredictionBlock.html">merlin.models.tf.ParallelPredictionBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DenseResidualBlock.html">merlin.models.tf.DenseResidualBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.DualEncoderBlock.html">merlin.models.tf.DualEncoderBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ResidualBlock.html">merlin.models.tf.ResidualBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.TabularBlock.html">merlin.models.tf.TabularBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.Filter.html">merlin.models.tf.Filter</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#masking-block-constructors">Masking Block Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CausalLanguageModeling.html">merlin.models.tf.CausalLanguageModeling</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MaskedLanguageModeling.html">merlin.models.tf.MaskedLanguageModeling</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#transformation-block-constructors">Transformation Block Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ExpandDims.html">merlin.models.tf.ExpandDims</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AsDenseFeatures.html">merlin.models.tf.AsDenseFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AsSparseFeatures.html">merlin.models.tf.AsSparseFeatures</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.StochasticSwapNoise.html">merlin.models.tf.StochasticSwapNoise</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AsTabular.html">merlin.models.tf.AsTabular</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#multi-task-block-constructors">Multi-Task Block Constructors</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.MMOEBlock.html">merlin.models.tf.MMOEBlock</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CGCBlock.html">merlin.models.tf.CGCBlock</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#data-loader-customization-constructor">Data Loader Customization Constructor</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.dataset.BatchedDataset.html">merlin.models.tf.dataset.BatchedDataset</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#metrics">Metrics</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.NDCGAt.html">merlin.models.tf.NDCGAt</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.AvgPrecisionAt.html">merlin.models.tf.AvgPrecisionAt</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.RecallAt.html">merlin.models.tf.RecallAt</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ranking_metrics.html">merlin.models.tf.ranking_metrics</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#sampling">Sampling</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.ItemSampler.html">merlin.models.tf.ItemSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.InBatchSampler.html">merlin.models.tf.InBatchSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CachedCrossBatchSampler.html">merlin.models.tf.CachedCrossBatchSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.CachedUniformSampler.html">merlin.models.tf.CachedUniformSampler</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.PopularityBasedSampler.html">merlin.models.tf.PopularityBasedSampler</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#losses">Losses</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.CategoricalCrossEntropy.html">merlin.models.tf.losses.CategoricalCrossEntropy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.SparseCategoricalCrossEntropy.html">merlin.models.tf.losses.SparseCategoricalCrossEntropy</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.BPRLoss.html">merlin.models.tf.losses.BPRLoss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.BPRmaxLoss.html">merlin.models.tf.losses.BPRmaxLoss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.HingeLoss.html">merlin.models.tf.losses.HingeLoss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.LogisticLoss.html">merlin.models.tf.losses.LogisticLoss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1Loss.html">merlin.models.tf.losses.TOP1Loss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1maxLoss.html">merlin.models.tf.losses.TOP1maxLoss</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1v2Loss.html">merlin.models.tf.losses.TOP1v2Loss</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#schema-functions">Schema Functions</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.select_targets.html">merlin.models.utils.schema_utils.select_targets</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json.html">merlin.models.utils.schema_utils.schema_to_tensorflow_metadata_json</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema.html">merlin.models.utils.schema_utils.tensorflow_metadata_json_to_schema</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_categorical_column.html">merlin.models.utils.schema_utils.create_categorical_column</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.create_continuous_column.html">merlin.models.utils.schema_utils.create_continuous_column</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.filter_dict_by_schema.html">merlin.models.utils.schema_utils.filter_dict_by_schema</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_cardinalities.html">merlin.models.utils.schema_utils.categorical_cardinalities</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.categorical_domains.html">merlin.models.utils.schema_utils.categorical_domains</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_sizes_from_schema.html">merlin.models.utils.schema_utils.get_embedding_sizes_from_schema</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#data">Data</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#loader-utility-functions">Loader Utility Functions</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.loader.utils.device_mem_size.html">merlin.models.loader.utils.device_mem_size</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#loader-utility-functions-for-tensorflow">Loader Utility Functions for TensorFlow</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.loader.tf_utils.configure_tensorflow.html">merlin.models.loader.tf_utils.configure_tensorflow</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.loader.tf_utils.get_dataset_schema_from_feature_columns.html">merlin.models.loader.tf_utils.get_dataset_schema_from_feature_columns</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#miscellaneous-utility-functions">Miscellaneous Utility Functions</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.filter_kwargs.html">merlin.models.utils.misc_utils.filter_kwargs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.safe_json.html">merlin.models.utils.misc_utils.safe_json</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_filenames.html">merlin.models.utils.misc_utils.get_filenames</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_label_feature_name.html">merlin.models.utils.misc_utils.get_label_feature_name</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_timestamp_feature_name.html">merlin.models.utils.misc_utils.get_timestamp_feature_name</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_parquet_files_names.html">merlin.models.utils.misc_utils.get_parquet_files_names</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.Timing.html">merlin.models.utils.misc_utils.Timing</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.get_object_size.html">merlin.models.utils.misc_utils.get_object_size</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/merlin.models.utils.misc_utils.validate_dataset.html">merlin.models.utils.misc_utils.validate_dataset</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#registry-functions">Registry Functions</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.camelcase_to_snakecase.html">merlin.models.utils.registry.camelcase_to_snakecase</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.snakecase_to_camelcase.html">merlin.models.utils.registry.snakecase_to_camelcase</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.default_name.html">merlin.models.utils.registry.default_name</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.default_object_name.html">merlin.models.utils.registry.default_object_name</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.Registry.html">merlin.models.utils.registry.Registry</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.RegistryMixin.html">merlin.models.utils.registry.RegistryMixin</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/merlin.models.utils.registry.display_list_by_prefix.html">merlin.models.utils.registry.display_list_by_prefix</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#tensorflow-models">TensorFlow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#schema-functions">Schema Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#utilities">Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#registry-functions">Registry Functions</a></li>
 </ul>
 </li>
 </ul>
@@ -219,31 +79,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="api-documentation">
+  <div class="section" id="api-documentation">
 <h1>API Documentation<a class="headerlink" href="#api-documentation" title="Permalink to this headline"></a></h1>
 <div class="section" id="tensorflow-models">
 <h2>TensorFlow Models<a class="headerlink" href="#tensorflow-models" title="Permalink to this headline"></a></h2>
@@ -730,7 +566,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="examples/03-Exploring-different-models.html" class="btn btn-neutral float-left" title="Iterating over Deep Learning Models using Merlin Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples/06-Define-your-own-architecture-with-Merlin-Models.html" class="btn btn-neutral float-left" title="Taking the Next Step with Merlin Models: Define Your Own Architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="generated/merlin.models.tf.DCNModel.html" class="btn btn-neutral float-right" title="merlin.models.tf.DCNModel" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
@@ -760,8 +596,8 @@
   <div class="rst-other-versions">
     <dl>
       <dt>Tags</dt>
-      <dd><a href="../v0.2.0/index.html">v0.2.0</a></dd>
       <dd><a href="api.html">v0.3.0</a></dd>
+      <dd><a href="../v0.4.0/api.html">v0.4.0</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>
