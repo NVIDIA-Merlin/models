@@ -32,6 +32,8 @@
     "\n",
     "# Exporting Ranking Models\n",
     "\n",
+    "This notebook is created using the latest stable [merlin-tensorflow-training](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training/tags) container. \n",
+    "\n",
     "In this example notebook we demonstrate how to export (save) NVTabular `workflow` and a `ranking model` for model deployment with [Merlin Systems](https://github.com/NVIDIA-Merlin/systems) library. \n",
     "\n",
     "Learning Objectives:\n",
@@ -70,9 +72,9 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-21 09:36:11.187627: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX\n",
+      "2022-05-09 08:28:51.816211: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX\n",
       "To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
-      "2022-04-21 09:36:13.394590: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16255 MB memory:  -> device: 0, name: Tesla V100-SXM2-32GB-LS, pci bus id: 0000:8a:00.0, compute capability: 7.0\n"
+      "2022-05-09 08:28:52.737662: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -> device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0\n"
      ]
     }
    ],
@@ -113,29 +115,20 @@
    "execution_count": 3,
    "id": "367766aa",
    "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "(None,)"
-      ]
-     },
-     "execution_count": 3,
-     "metadata": {},
-     "output_type": "execute_result"
-    }
-   ],
+   "outputs": [],
    "source": [
     "from merlin.datasets.synthetic import generate_data\n",
     "\n",
     "DATA_FOLDER = os.environ.get(\"DATA_FOLDER\", \"/workspace/data/\")\n",
     "NUM_ROWS = os.environ.get(\"NUM_ROWS\", 1000000)\n",
+    "SYNTHETIC_DATA = eval(os.environ.get(\"SYNTHETIC_DATA\", \"True\"))\n",
+    "BATCH_SIZE = int(os.environ.get(\"BATCH_SIZE\", 512))\n",
     "\n",
-    "train, valid = generate_data(\"aliccp-raw\", int(NUM_ROWS), set_sizes=(0.7, 0.3))\n",
-    "\n",
-    "# save the datasets as parquet files\n",
-    "train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"train\"))\n",
-    "valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"valid\"))"
+    "if SYNTHETIC_DATA:\n",
+    "    train, valid = generate_data(\"aliccp-raw\", int(NUM_ROWS), set_sizes=(0.7, 0.3))\n",
+    "    # save the datasets as parquet files\n",
+    "    train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"train\"))\n",
+    "    valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, \"valid\"))"
    ]
   },
   {
@@ -153,8 +146,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
-    "train_path = os.path.join(DATA_FOLDER, \"train\", \"part.0.parquet\")\n",
-    "valid_path = os.path.join(DATA_FOLDER, \"valid\", \"part.0.parquet\")\n",
+    "train_path = os.path.join(DATA_FOLDER, \"train\", \"*.parquet\")\n",
+    "valid_path = os.path.join(DATA_FOLDER, \"valid\", \"*.parquet\")\n",
     "output_path = os.path.join(DATA_FOLDER, \"processed\")"
    ]
   },
@@ -184,8 +177,8 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "CPU times: user 2.14 s, sys: 1.66 s, total: 3.8 s\n",
-      "Wall time: 6.01 s\n"
+      "CPU times: user 2.5 s, sys: 1.05 s, total: 3.54 s\n",
+      "Wall time: 15.2 s\n"
      ]
     }
    ],
@@ -263,47 +256,30 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "Get:1 http://archive.ubuntu.com/ubuntu focal InRelease [265 kB]\n",
-      "Get:2 http://security.ubuntu.com/ubuntu focal-security InRelease [114 kB]\n",
-      "Get:3 http://archive.ubuntu.com/ubuntu focal-updates InRelease [114 kB]\n",
-      "Get:4 http://archive.ubuntu.com/ubuntu focal-backports InRelease [108 kB]\n",
-      "Get:5 http://archive.ubuntu.com/ubuntu focal/restricted amd64 Packages [33.4 kB]\n",
-      "Get:6 http://archive.ubuntu.com/ubuntu focal/universe amd64 Packages [11.3 MB]\n",
-      "Get:7 http://archive.ubuntu.com/ubuntu focal/multiverse amd64 Packages [177 kB]\n",
-      "Get:8 http://archive.ubuntu.com/ubuntu focal/main amd64 Packages [1275 kB]     \n",
-      "Get:9 http://archive.ubuntu.com/ubuntu focal-updates/multiverse amd64 Packages [30.3 kB]\n",
-      "Get:10 http://archive.ubuntu.com/ubuntu focal-updates/restricted amd64 Packages [1214 kB]\n",
-      "Get:11 http://security.ubuntu.com/ubuntu focal-security/main amd64 Packages [1771 kB]\n",
-      "Get:12 http://archive.ubuntu.com/ubuntu focal-updates/universe amd64 Packages [1153 kB]\n",
-      "Get:13 http://archive.ubuntu.com/ubuntu focal-updates/main amd64 Packages [2186 kB]\n",
-      "Get:14 http://archive.ubuntu.com/ubuntu focal-backports/main amd64 Packages [51.2 kB]\n",
-      "Get:15 http://archive.ubuntu.com/ubuntu focal-backports/universe amd64 Packages [26.0 kB]\n",
-      "Get:16 http://security.ubuntu.com/ubuntu focal-security/restricted amd64 Packages [1139 kB]\n",
-      "Get:17 http://security.ubuntu.com/ubuntu focal-security/multiverse amd64 Packages [25.8 kB]\n",
-      "Get:18 http://security.ubuntu.com/ubuntu focal-security/universe amd64 Packages [870 kB]\n",
-      "Fetched 21.9 MB in 3s (6363 kB/s)                         \n",
-      "Reading package lists... Done\n",
-      "Reading package lists... Done\n",
-      "Building dependency tree       \n",
-      "Reading state information... Done\n",
-      "The following NEW packages will be installed:\n",
-      "  tree\n",
-      "0 upgraded, 1 newly installed, 0 to remove and 34 not upgraded.\n",
-      "Need to get 43.0 kB of archives.\n",
-      "After this operation, 115 kB of additional disk space will be used.\n",
-      "Get:1 http://archive.ubuntu.com/ubuntu focal/universe amd64 tree amd64 1.8.0-1 [43.0 kB]\n",
-      "Fetched 43.0 kB in 0s (139 kB/s)\n",
-      "Selecting previously unselected package tree.\n",
-      "(Reading database ... 44765 files and directories currently installed.)\n",
-      "Preparing to unpack .../tree_1.8.0-1_amd64.deb ...\n",
-      "Unpacking tree (1.8.0-1) ...\n",
-      "Setting up tree (1.8.0-1) ...\n"
+      "Looking in indexes: https://pypi.org/simple, https://pypi.ngc.nvidia.com\n",
+      "Collecting seedir\n",
+      "  Downloading seedir-0.3.0-py3-none-any.whl (112 kB)\n",
+      "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m112.4/112.4 KB\u001b[0m \u001b[31m49.2 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+      "\u001b[?25hCollecting natsort\n",
+      "  Downloading natsort-8.1.0-py3-none-any.whl (37 kB)\n",
+      "Collecting emoji\n",
+      "  Downloading emoji-1.7.0.tar.gz (175 kB)\n",
+      "\u001b[2K     \u001b[90m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m \u001b[32m175.4/175.4 KB\u001b[0m \u001b[31m227.4 MB/s\u001b[0m eta \u001b[36m0:00:00\u001b[0m\n",
+      "\u001b[?25h  Preparing metadata (setup.py) ... \u001b[?25ldone\n",
+      "\u001b[?25hBuilding wheels for collected packages: emoji\n",
+      "  Building wheel for emoji (setup.py) ... \u001b[?25ldone\n",
+      "\u001b[?25h  Created wheel for emoji: filename=emoji-1.7.0-py3-none-any.whl size=171046 sha256=a285d15db9a08814aebae5b9eabbccee1ff84a50f552e319ec807f6b2ce64490\n",
+      "  Stored in directory: /tmp/pip-ephem-wheel-cache-c2k9amz0/wheels/5e/8c/80/c3646df8201ba6f5070297fe3779a4b70265d0bfd961c15302\n",
+      "Successfully built emoji\n",
+      "Installing collected packages: emoji, natsort, seedir\n",
+      "Successfully installed emoji-1.7.0 natsort-8.1.0 seedir-0.3.0\n",
+      "\u001b[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\u001b[0m\u001b[33m\n",
+      "\u001b[0m"
      ]
     }
    ],
    "source": [
-    "!apt-get update\n",
-    "!apt-get install tree"
+    "!pip install seedir"
    ]
   },
   {
@@ -316,33 +292,39 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "\u001b[01;34m./workflow\u001b[00m\r\n",
-      "├── \u001b[01;34mcategories\u001b[00m\r\n",
-      "│   ├── unique.item_brand.parquet\r\n",
-      "│   ├── unique.item_category.parquet\r\n",
-      "│   ├── unique.item_id.parquet\r\n",
-      "│   ├── unique.item_shop.parquet\r\n",
-      "│   ├── unique.user_age.parquet\r\n",
-      "│   ├── unique.user_brands.parquet\r\n",
-      "│   ├── unique.user_categories.parquet\r\n",
-      "│   ├── unique.user_consumption_2.parquet\r\n",
-      "│   ├── unique.user_gender.parquet\r\n",
-      "│   ├── unique.user_geography.parquet\r\n",
-      "│   ├── unique.user_group.parquet\r\n",
-      "│   ├── unique.user_id.parquet\r\n",
-      "│   ├── unique.user_intentions.parquet\r\n",
-      "│   ├── unique.user_is_occupied.parquet\r\n",
-      "│   ├── unique.user_profile.parquet\r\n",
-      "│   └── unique.user_shops.parquet\r\n",
-      "├── metadata.json\r\n",
-      "└── workflow.pkl\r\n",
-      "\r\n",
-      "1 directory, 18 files\r\n"
+      "data/\n",
+      "├─processed/\n",
+      "│ ├─train/\n",
+      "│ │ ├─_file_list.txt\n",
+      "│ │ ├─_metadata\n",
+      "│ │ ├─_metadata.json\n",
+      "│ │ ├─part_0.parquet\n",
+      "│ │ └─schema.pbtxt\n",
+      "│ └─valid/\n",
+      "│   ├─_file_list.txt\n",
+      "│   ├─_metadata\n",
+      "│   ├─_metadata.json\n",
+      "│   ├─part_0.parquet\n",
+      "│   └─schema.pbtxt\n",
+      "├─train/\n",
+      "│ ├─_metadata\n",
+      "│ └─part.0.parquet\n",
+      "└─valid/\n",
+      "  ├─_metadata\n",
+      "  └─part.0.parquet\n"
      ]
     }
    ],
    "source": [
-    "!tree ./workflow"
+    "import seedir as sd\n",
+    "sd.seedir(\n",
+    "    DATA_FOLDER, \n",
+    "    style='lines', \n",
+    "    itemlimit=10, \n",
+    "    depthlimit=3, \n",
+    "    exclude_folders='.ipynb_checkpoints', \n",
+    "    sort=True\n",
+    ")"
    ]
   },
   {
@@ -434,36 +416,37 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-21 09:36:37.360581: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.\n"
+      "2022-05-09 08:29:15.386520: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.\n",
+      "2022-05-09 08:29:16.357112: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "1368/1368 [==============================] - ETA: 0s - auc: 0.5014 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932"
+      "1368/1368 [==============================] - ETA: 0s - auc: 0.4997 - loss: 0.6933 - regularization_loss: 0.0000e+00 - total_loss: 0.6933"
      ]
     },
     {
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-04-21 09:37:08.686596: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13\n"
+      "2022-05-09 08:29:32.099125: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_161\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "1368/1368 [==============================] - 33s 17ms/step - auc: 0.5014 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.4997 - val_loss: 0.6939 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6939\n",
-      "CPU times: user 56.3 s, sys: 9.24 s, total: 1min 5s\n",
-      "Wall time: 36.1 s\n"
+      "1368/1368 [==============================] - 18s 10ms/step - auc: 0.4997 - loss: 0.6933 - regularization_loss: 0.0000e+00 - total_loss: 0.6933 - val_auc: 0.4967 - val_loss: 0.6937 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6937\n",
+      "CPU times: user 35.5 s, sys: 4.04 s, total: 39.5 s\n",
+      "Wall time: 20.7 s\n"
      ]
     },
     {
      "data": {
       "text/plain": [
-       "<keras.callbacks.History at 0x7f19a12fc730>"
+       "<keras.callbacks.History at 0x7f84a82db3d0>"
       ]
      },
      "execution_count": 12,
@@ -475,7 +458,7 @@
     "%%time\n",
     "\n",
     "model.compile(\"adam\", run_eagerly=False)\n",
-    "model.fit(train, validation_data=valid, batch_size=512)"
+    "model.fit(train, validation_data=valid, batch_size=BATCH_SIZE)"
    ]
   },
   {
@@ -572,6 +555,11 @@
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
    "version": "3.8.10"
+  },
+  "merlin": {
+   "containers": [
+    "nvcr.io/nvidia/merlin/merlin-tensorflow-training:latest"
+   ]
   }
  },
  "nbformat": 4,
