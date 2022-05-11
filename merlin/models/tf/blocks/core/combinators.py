@@ -14,11 +14,12 @@ from merlin.models.tf.blocks.core.base import (
     is_input_block,
     right_shift_layer,
 )
+from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType, TabularBlock
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import call_layer
 from merlin.models.utils import schema_utils
-from merlin.models.utils.misc_utils import filter_kwargs
 from merlin.schema import Schema, Tags
 
 
@@ -284,20 +285,7 @@ class SequentialBlock(Block):
 
         outputs = inputs
         for i, layer in enumerate(self.layers):
-            filtered_kwargs = filter_kwargs(
-                {"training": training, **kwargs},
-                layer,
-                cascade_kwargs_if_possible=True,
-            )
-            filtered_kwargs.update(
-                filter_kwargs(
-                    {"training": training, **kwargs},
-                    layer.call,
-                    cascade_kwargs_if_possible=True,
-                )
-            )
-
-            outputs = layer(outputs, **filtered_kwargs)
+            outputs = call_layer(layer, outputs, **kwargs)
 
         return outputs
 
@@ -309,10 +297,12 @@ class SequentialBlock(Block):
         return outputs, targets
 
     def call_outputs(
-        self, outputs: PredictionOutput, training=False, **kwargs
+        self, outputs: PredictionOutput, feature_context: FeatureContext, training=False, **kwargs
     ) -> "PredictionOutput":
         for layer in self.layers:
-            outputs = layer.call_outputs(outputs, training=training, **kwargs)
+            outputs = layer.call_outputs(
+                outputs, feature_context=feature_context, training=training, **kwargs
+            )
         return outputs
 
     def get_config(self):
@@ -467,13 +457,13 @@ class ParallelBlock(TabularBlock):
             name in inputs for name in list(self.parallel_dict.keys())
         ):
             for name, block in self.parallel_dict.items():
-                out = block(inputs[name])
+                out = call_layer(block, inputs[name], **kwargs)
                 if not isinstance(out, dict):
                     out = {name: out}
                 outputs.update(out)
         else:
             for name, layer in self.parallel_dict.items():
-                out = layer(inputs)
+                out = call_layer(layer, inputs, **kwargs)
                 if not isinstance(out, dict):
                     out = {name: out}
                 outputs.update(out)
