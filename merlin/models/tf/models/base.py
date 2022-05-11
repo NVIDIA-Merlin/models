@@ -287,9 +287,13 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
                 targets = None
 
             predictions = self(inputs, training=True)
+            features = FeatureCollection(self.schema, self.as_dense(inputs))
+            feature_context = FeatureContext(features)
+
             loss = self.compute_loss(
                 predictions,
                 targets,
+                feature_context=feature_context,
                 training=True,
                 compute_metrics=self._should_compute_train_metrics_for_batch,
             )
@@ -345,7 +349,12 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             targets = None
 
-        loss = self.compute_loss_metrics(inputs, targets, training=False, compute_metrics=True)
+        features = FeatureCollection(self.schema, self.as_dense(inputs))
+        feature_context = FeatureContext(features)
+
+        loss = self.compute_loss_metrics(
+            inputs, targets, feature_context=feature_context, training=False, compute_metrics=True
+        )
 
         # Casting regularization loss to fp16 if needed to match the main loss
         regularization_loss = tf.cast(tf.reduce_sum(self.losses), loss.dtype)
