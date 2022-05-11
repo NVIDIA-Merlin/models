@@ -1,6 +1,6 @@
 import inspect
-from collections import Sequence as SequenceCollection
 from collections import defaultdict
+from collections.abc import Sequence as SequenceCollection
 from typing import Dict, List, Optional, Sequence, Text, Union
 
 import tensorflow as tf
