@@ -385,7 +385,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         *block: Union[tf.keras.layers.Layer, str],
         block_name: Optional[str] = None,
         context: Optional[ModelContext] = None,
-    ) -> Union["SequentialBlock", "Model", "RetrievalModel"]:
+    ) -> "SequentialBlock":
         """Connect the block to other blocks sequentially.
 
         Parameters
