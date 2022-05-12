@@ -141,7 +141,7 @@ Defaults to True.</p></li>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply</span></code>(inputs, *args, **kwargs)</p></td>
 <td><p>Deprecated, do NOT use!</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.CausalLanguageModeling.apply_mask_to_inputs" title="merlin.models.tf.CausalLanguageModeling.apply_mask_to_inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_mask_to_inputs</span></code></a>(inputs, mask_schema)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.CausalLanguageModeling.apply_mask_to_inputs" title="merlin.models.tf.CausalLanguageModeling.apply_mask_to_inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_mask_to_inputs</span></code></a>(inputs, mask)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">as_tabular</span></code>([name])</p></td>
@@ -159,11 +159,11 @@ Defaults to True.</p></li>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_schema</span></code>([schema])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
-<td><p>Computes an output mask tensor.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.CausalLanguageModeling.compute_mask_schema" title="merlin.models.tf.CausalLanguageModeling.compute_mask_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask_schema</span></code></a>(items[, training])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.CausalLanguageModeling.compute_feature_mask" title="merlin.models.tf.CausalLanguageModeling.compute_feature_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_feature_mask</span></code></a>(items[, training])</p></td>
 <td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
+<td><p>Computes an output mask tensor.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code>(input_shape)</p></td>
 <td><p>Computes the output shape of the layer.</p></td>
@@ -387,13 +387,13 @@ Defaults to True.</p></li>
 </tbody>
 </table>
 <dl class="py method">
-<dt id="merlin.models.tf.CausalLanguageModeling.compute_mask_schema">
-<code class="sig-name descname"><span class="pre">compute_mask_schema</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">items</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/masking.html#CausalLanguageModeling.compute_mask_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.CausalLanguageModeling.compute_mask_schema" title="Permalink to this definition"></a></dt>
+<dt id="merlin.models.tf.CausalLanguageModeling.compute_feature_mask">
+<code class="sig-name descname"><span class="pre">compute_feature_mask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">items</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/masking.html#CausalLanguageModeling.compute_feature_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.CausalLanguageModeling.compute_feature_mask" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.CausalLanguageModeling.apply_mask_to_inputs">
-<code class="sig-name descname"><span class="pre">apply_mask_to_inputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/masking.html#CausalLanguageModeling.apply_mask_to_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.CausalLanguageModeling.apply_mask_to_inputs" title="Permalink to this definition"></a></dt>
+<code class="sig-name descname"><span class="pre">apply_mask_to_inputs</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/masking.html#CausalLanguageModeling.apply_mask_to_inputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.CausalLanguageModeling.apply_mask_to_inputs" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
