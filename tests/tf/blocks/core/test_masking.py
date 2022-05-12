@@ -27,7 +27,7 @@ def test_masking_block(sequence_testing_data: Dataset, mask_block):
 
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", max_seq_length=4, seq=True)
-    model = ml.Model(embedding_block, mask_block(), context=ml.ModelContext())
+    model = ml.Model(embedding_block, mask_block())
 
     batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
     masked_input = model(batch)
@@ -38,7 +38,7 @@ def test_masking_block(sequence_testing_data: Dataset, mask_block):
 def test_mask_error(sequence_testing_data: Dataset):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
-    model = ml.Model(embedding_block, ml.MLPBlock([64]), context=ml.ModelContext())
+    model = ml.Model(embedding_block, ml.MLPBlock([64]))
 
     with pytest.raises(ValueError) as excinfo:
         _ = model.context.get_mask()
@@ -50,7 +50,7 @@ def test_mask_error(sequence_testing_data: Dataset):
 def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", max_seq_length=4, seq=True)
-    model = ml.Model(embedding_block, mask_block(), context=ml.ModelContext())
+    model = ml.Model(embedding_block, mask_block())
 
     batch = ml.sample_batch(
         sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
@@ -95,7 +95,7 @@ def test_not_all_masked_lm(sequence_testing_data):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True, max_seq_length=4)
     mask_block = ml.MaskedLanguageModeling()
-    model = ml.Model(embedding_block, mask_block, context=ml.ModelContext())
+    model = ml.Model(embedding_block, mask_block)
 
     batch = ml.sample_batch(
         sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
