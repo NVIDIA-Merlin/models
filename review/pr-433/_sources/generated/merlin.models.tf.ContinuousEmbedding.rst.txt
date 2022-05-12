@@ -1,0 +1,6 @@
+﻿merlin.models.tf.ContinuousEmbedding
+====================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: ContinuousEmbedding
