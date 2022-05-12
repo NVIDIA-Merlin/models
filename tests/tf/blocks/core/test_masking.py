@@ -35,14 +35,14 @@ def test_masking_block(sequence_testing_data: Dataset, mask_block):
     assert masked_input.shape[1] == 4
 
 
-def test_masking_schema_error(sequence_testing_data: Dataset):
+def test_mask_error(sequence_testing_data: Dataset):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
     model = embedding_block.connect(ml.MLPBlock([64]), context=ml.ModelContext())
 
     with pytest.raises(ValueError) as excinfo:
         _ = model.context.get_mask()
-    assert "The mask schema is not stored" in str(excinfo.value)
+    assert "The mask is not stored" in str(excinfo.value)
 
 
 # Test only last item is masked when eval_on_last_item_seq_only
@@ -66,7 +66,7 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
         [tf.expand_dims(rows_ids, 1), tf.expand_dims(last_item_sessions, 1)], axis=1
     )
     last_labels = tf.gather_nd(item_ids, indices).numpy()
-    # get the mask schema from the model
+    # get the mask from the model
     trgt_mask = model.context.get_mask()
 
     # check that only one item is masked for each session
