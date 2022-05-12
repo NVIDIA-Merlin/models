@@ -36,7 +36,7 @@ def test_simple_model(ecommerce_data: Dataset, num_epochs=5, run_eagerly=True):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_mf_model_signle_binary_task(ecommerce_data, run_eagerly, num_epochs=5):
+def test_mf_model_signle_binary_task(ecommerce_data, run_eagerly):
     model = ml.MatrixFactorizationModel(
         ecommerce_data.schema,
         dim=64,
@@ -46,10 +46,10 @@ def test_mf_model_signle_binary_task(ecommerce_data, run_eagerly, num_epochs=5):
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
+    losses = model.fit(ecommerce_data, batch_size=50, epochs=2)
     metrics = model.evaluate(ecommerce_data, batch_size=50, return_dict=True)
     testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
+        losses, metrics, target_name="click", num_epochs=2
     )
 
 
@@ -64,11 +64,7 @@ def test_dlrm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
-    metrics = model.evaluate(ecommerce_data, batch_size=50, return_dict=True)
-    testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
-    )
+    testing_utils.model_test(model, ecommerce_data)
 
 
 def test_deep_fm_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):

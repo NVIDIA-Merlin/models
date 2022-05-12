@@ -16,10 +16,13 @@
 
 import platform
 import tempfile
+from typing import Any, Tuple
 
+import numpy as np
 import pytest
 import tensorflow as tf
 
+import merlin.io
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.prediction_tasks.classification import BinaryClassificationTask
 
@@ -131,3 +134,38 @@ def assert_model_is_retrainable(
     # assert all(0 <= loss <= 1 for loss in losses.history["loss"])
 
     return loaded_model
+
+
+def model_test(
+    model: Model,
+    dataset: merlin.io.Dataset,
+    run_eagerly: bool = True,
+    optimizer="adam",
+    epochs: int = 1,
+    **kwargs,
+) -> Tuple[Model, Any]:
+    """Generic model test. It will compile & fit the model and make sure it can be re-trained."""
+
+    model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
+    losses = model.fit(dataset, batch_size=50, epochs=epochs)
+
+    assert len(losses.epoch) == epochs
+
+    assert isinstance(model.from_config(model.get_config()), type(model))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        model.save(tmpdir)
+        loaded_model = tf.keras.models.load_model(tmpdir)
+
+    assert isinstance(loaded_model, type(model))
+
+    np.array_equal(
+        model.predict(dataset, batch_size=50), loaded_model.predict(dataset, batch_size=50)
+    )
+
+    loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
+    losses = loaded_model.fit(dataset, batch_size=50, epochs=epochs)
+
+    assert len(losses.epoch) == epochs
+
+    return loaded_model, losses

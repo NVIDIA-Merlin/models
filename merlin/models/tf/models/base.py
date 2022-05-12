@@ -457,6 +457,32 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             **kwargs,
         )
 
+    def predict(
+        self,
+        x,
+        batch_size=None,
+        verbose=0,
+        steps=None,
+        callbacks=None,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        **kwargs,
+    ):
+        shuffle = kwargs.pop("shuffle", False)
+        x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=shuffle, **kwargs)
+
+        return super(Model, self).predict(
+            x,
+            batch_size=batch_size,
+            verbose=verbose,
+            steps=steps,
+            callbacks=callbacks,
+            max_queue_size=max_queue_size,
+            workers=workers,
+            use_multiprocessing=use_multiprocessing,
+        )
+
     def batch_predict(
         self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
     ) -> merlin.io.Dataset:

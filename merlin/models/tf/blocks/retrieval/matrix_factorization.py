@@ -16,6 +16,8 @@
 import logging
 from typing import Any, Callable, Dict, Optional, Union
 
+import tensorflow as tf
+
 from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
 from merlin.models.tf.blocks.core.transformations import RenameFeatures
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock
@@ -25,6 +27,7 @@ from merlin.schema import Schema, Tags, TagsType
 LOG = logging.getLogger("merlin_models")
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
     """
     An encoder for user ids and item ids
