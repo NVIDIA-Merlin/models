@@ -399,8 +399,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
 
         """
         from merlin.models.tf.blocks.core.combinators import SequentialBlock
-        from merlin.models.tf.models.base import Model, RetrievalBlock, RetrievalModel
-        from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 
         blocks = [self.parse(b) for b in block]
 
@@ -412,16 +410,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
         output = SequentialBlock(
             [self, *blocks], copy_layers=False, block_name=block_name, context=context
         )
-
-        if isinstance(blocks[-1], ModelLikeBlock):
-            if (
-                any(isinstance(b, RetrievalBlock) for b in blocks)
-                or isinstance(self, RetrievalBlock)
-                and any(isinstance(b, ItemRetrievalTask) for b in blocks)
-            ):
-                return RetrievalModel(output)
-
-            return Model(output)
 
         return output
 

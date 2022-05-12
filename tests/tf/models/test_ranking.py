@@ -25,7 +25,7 @@ from merlin.models.tf.utils import testing_utils
 # @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_simple_model(ecommerce_data: Dataset, num_epochs=5, run_eagerly=True):
     body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
-    model = body.connect(ml.BinaryClassificationTask("click"))
+    model = ml.Model(body, ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
@@ -131,7 +131,7 @@ def test_dlrm_model_single_head_multiple_tasks(
         task_weight_dict={"click": 2.0, "play_percentage": 1.0},
     )
 
-    model = dlrm_body.connect(ml.MLPBlock([64]), prediction_tasks)
+    model = ml.Model(dlrm_body, ml.MLPBlock([64]), prediction_tasks)
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
@@ -148,7 +148,7 @@ def test_dlrm_model_single_head_multiple_tasks(
 @pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
 def test_serialization_model(ecommerce_data: Dataset, prediction_task):
     body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
-    model = body.connect(prediction_task("click"))
+    model = ml.Model(body, prediction_task("click"))
 
     copy_model = testing_utils.assert_serialization(model)
     testing_utils.assert_loss_and_metrics_are_valid(
@@ -172,7 +172,7 @@ def test_resume_training(ecommerce_data: Dataset, prediction_task, run_eagerly, 
         body = ml.DLRMBlock(ecommerce_data.schema, embedding_dim=64, bottom_block=ml.MLPBlock([64]))
     else:
         body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
-    model = body.connect(prediction_task)
+    model = ml.Model(body, prediction_task)
 
     copy_model = testing_utils.assert_model_is_retrainable(
         model, ecommerce_data, run_eagerly=run_eagerly

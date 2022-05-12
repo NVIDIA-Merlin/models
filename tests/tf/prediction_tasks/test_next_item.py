@@ -237,13 +237,14 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     samplers = [inbatch_sampler, cached_batches_sampler]
 
-    model = two_tower.connect(
+    model = ml.Model(
+        two_tower,
         ml.ItemRetrievalTask(
             music_streaming_data.schema,
             logits_temperature=2,
             samplers=samplers,
             loss="bpr",
-        )
+        ),
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -290,7 +291,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
         logits_temperature=2,
         samplers=samplers,
     )
-    model = two_tower.connect(task)
+    model = ml.RetrievalModel(two_tower, task)
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
@@ -346,7 +347,7 @@ def test_retrieval_task_inbatch_cached_samplers_with_logits_correction(ecommerce
         post_logits=popularity_sampling_block,
         store_negative_ids=True,
     )
-    model = two_tower.connect(task)
+    model = ml.RetrievalModel(two_tower, task)
 
     # Setting up evaluation
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
@@ -387,7 +388,7 @@ def test_last_item_prediction_task(
         logits_temperature=0.5,
     )
 
-    model = inputs.connect(ml.MLPBlock([64]), task)
+    model = ml.Model(inputs, ml.MLPBlock([64]), task)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     losses = model.fit(sequence_testing_data, batch_size=50, epochs=2)
 
@@ -415,8 +416,9 @@ def test_retrieval_task_inbatch_default_sampler(
         music_streaming_data, batch_size=batch_size, include_targets=False
     )
 
-    model = two_tower.connect(
-        ml.ItemRetrievalTask(music_streaming_data.schema, logits_temperature=2, loss="bpr")
+    model = ml.Model(
+        two_tower,
+        ml.ItemRetrievalTask(music_streaming_data.schema, logits_temperature=2, loss="bpr"),
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)

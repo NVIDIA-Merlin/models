@@ -41,7 +41,7 @@ def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tm
         music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
     )
     mf = ml.MatrixFactorizationBlock(music_streaming_data.schema, dim=128, aggregation="cosine")
-    model = mf.connect(ml.BinaryClassificationTask("like"))
+    model = ml.Model(mf, ml.BinaryClassificationTask("like"))
     model.compile(optimizer="adam")
 
     model.fit(music_streaming_data, epochs=5, batch_size=100)

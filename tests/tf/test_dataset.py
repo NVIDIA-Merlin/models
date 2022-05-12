@@ -268,7 +268,7 @@ def test_model_with_sparse_inputs(music_streaming_data: Dataset):
     item_id_schema = music_streaming_data.schema.select_by_name(["user_id", "item_genres"])
 
     inputs = mm.InputBlock(item_id_schema)
-    model = inputs.connect(mm.MLPBlock([64]), context=mm.ModelContext())
+    model = mm.Model(inputs, mm.MLPBlock([64]), context=mm.ModelContext())
 
     df = pd.DataFrame(
         {

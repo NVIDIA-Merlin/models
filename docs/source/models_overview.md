@@ -41,7 +41,7 @@ High-level API:
 import merlin.models.tf as ml
 
 block = ml.TwoTowerBlock(schema, ml.MLPBlock([512, 256]))
-model = block.connect(ml.ItemRetrievalTask())
+model = ml.Model(block, ml.ItemRetrievalTask())
 ```
 
 Low-level API:
@@ -53,7 +53,7 @@ from merlin.schema import Tags
 user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER), ml.MLPBlock([512, 256]))
 item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM), ml.MLPBlock([512, 256]))
 two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower})
-model = two_tower.connect(ml.ItemRetrievalTask())
+model = ml.Model(two_tower, ml.ItemRetrievalTask())
 ```
 
 ## Ranking
@@ -78,7 +78,7 @@ dlrm = ml.DLRMBlock(
     bottom_block=ml.MLPBlock([512, 128]),
     top_block=ml.MLPBlock([512, 128])
 )
-model = dlrm.connect(ml.BinaryClassificationTask(schema))
+model = ml.Model(dlrm, ml.BinaryClassificationTask(schema))
 ```
 
 Low-level API:
@@ -140,7 +140,7 @@ inputs = ml.InputBlock(schema)
 prediction_tasks = ml.PredictionTasks(schema)
 block = ml.MLPBlock([64])
 mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
-model = inputs.connect(block, mmoe, prediction_tasks)
+model = ml.Model(inputs, block, mmoe, prediction_tasks)
 ```
 
 ### Progressive Layered Extraction
@@ -163,5 +163,5 @@ block = ml.MLPBlock([64])
 cgc = ml.CGCBlock(
     prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=2
 )
-model = inputs.connect(ml.MLPBlock([64]), cgc, prediction_tasks)
+model = ml.Model(inputs, ml.MLPBlock([64]), cgc, prediction_tasks)
 ```
