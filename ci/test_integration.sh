@@ -27,5 +27,5 @@ container=$1
 if [ "$container" == "merlin-tensorflow-training" ]; then
     ## TODO: Remove this when it would become part of the container
     pip3 install testbook
-    make tests-ci-tf
+    make tests-tf-integration
 # Pytorch training container

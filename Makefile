@@ -51,6 +51,11 @@ tests-datasets:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
+jenkins-tf:
+	coverage run -m pytest -rsx tests -m "tensorflow and not integration" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
 dist:
 	python setup.py sdist
 
