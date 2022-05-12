@@ -105,6 +105,8 @@ def dataset_to_dmatrix(dataset: Dataset, target_columns: List[str]) -> xgb.DMatr
     """Convert Merlin Dataset to XGBoost DMatrix"""
     df = dataset.to_ddf().compute(scheduler="synchronous")
 
+    all_target_columns = dataset.schema.select_by_tag(Tags.TARGET).column_names
+
     # Ignore list-like columns from schema
     list_column_names = [
         col_name
@@ -112,7 +114,7 @@ def dataset_to_dmatrix(dataset: Dataset, target_columns: List[str]) -> xgb.DMatr
         if col_schema.is_list
     ]
 
-    X = _to_numpy(df.drop(target_columns + list_column_names, axis=1))
+    X = _to_numpy(df.drop(all_target_columns + list_column_names, axis=1))
     y = _to_numpy(df[target_columns])
 
     return xgb.DMatrix(X, label=y)
