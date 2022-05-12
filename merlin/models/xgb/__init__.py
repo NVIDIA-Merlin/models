@@ -15,7 +15,7 @@ class XGBoost:
     Example usage::
 
         # get the movielens dataset
-        from merlin.models.data.movielens import get_movielens
+        from merlin.datasets.entertainment import get_movielens
 
         train, valid = get_movielens()
 
