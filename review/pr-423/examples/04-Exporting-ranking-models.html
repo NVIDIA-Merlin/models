@@ -107,6 +107,7 @@
 <img alt="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" />
 <div class="tex2jax_ignore mathjax_ignore section" id="exporting-ranking-models">
 <h1>Exporting Ranking Models<a class="headerlink" href="#exporting-ranking-models" title="Permalink to this headline"></a></h1>
+<p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training/tags">merlin-tensorflow-training</a> container.</p>
 <p>In this example notebook we demonstrate how to export (save) NVTabular <code class="docutils literal notranslate"><span class="pre">workflow</span></code> and a <code class="docutils literal notranslate"><span class="pre">ranking</span> <span class="pre">model</span></code> for model deployment with <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library.</p>
 <p>Learning Objectives:</p>
 <ul class="simple">
@@ -138,9 +139,9 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-21 09:36:11.187627: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-09 08:28:51.816211: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-04-21 09:36:13.394590: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16255 MB memory:  -&gt; device: 0, name: Tesla V100-SXM2-32GB-LS, pci bus id: 0000:8a:00.0, compute capability: 7.0
+2022-05-09 08:28:52.737662: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0
 </pre></div>
 </div>
 </div>
@@ -156,17 +157,14 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 
 <span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;/workspace/data/&quot;</span><span class="p">)</span>
 <span class="n">NUM_ROWS</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NUM_ROWS&quot;</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
+<span class="n">SYNTHETIC_DATA</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SYNTHETIC_DATA&quot;</span><span class="p">,</span> <span class="s2">&quot;True&quot;</span><span class="p">))</span>
+<span class="n">BATCH_SIZE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BATCH_SIZE&quot;</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>
 
-<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;aliccp-raw&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">NUM_ROWS</span><span class="p">),</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
-
-<span class="c1"># save the datasets as parquet files</span>
-<span class="n">train</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">))</span>
-<span class="n">valid</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">))</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(None,)
+<span class="k">if</span> <span class="n">SYNTHETIC_DATA</span><span class="p">:</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;aliccp-raw&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">NUM_ROWS</span><span class="p">),</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
+    <span class="c1"># save the datasets as parquet files</span>
+    <span class="n">train</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">))</span>
+    <span class="n">valid</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -174,8 +172,8 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <p>Let’s define our input and output paths.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;part.0.parquet&quot;</span><span class="p">)</span>
-<span class="n">valid_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;part.0.parquet&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;*.parquet&quot;</span><span class="p">)</span>
+<span class="n">valid_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;*.parquet&quot;</span><span class="p">)</span>
 <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;processed&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -227,8 +225,8 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
   warnings.warn(
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 2.14 s, sys: 1.66 s, total: 3.8 s
-Wall time: 6.01 s
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 2.5 s, sys: 1.05 s, total: 3.54 s
+Wall time: 15.2 s
 </pre></div>
 </div>
 </div>
@@ -244,80 +242,69 @@ Wall time: 6.01 s
 <p>Let’s check out our saved workflow model folder.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>apt-get update
-<span class="o">!</span>apt-get install tree
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>pip install seedir
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Get:1 http://archive.ubuntu.com/ubuntu focal InRelease [265 kB]
-Get:2 http://security.ubuntu.com/ubuntu focal-security InRelease [114 kB]
-Get:3 http://archive.ubuntu.com/ubuntu focal-updates InRelease [114 kB]
-Get:4 http://archive.ubuntu.com/ubuntu focal-backports InRelease [108 kB]
-Get:5 http://archive.ubuntu.com/ubuntu focal/restricted amd64 Packages [33.4 kB]
-Get:6 http://archive.ubuntu.com/ubuntu focal/universe amd64 Packages [11.3 MB]
-Get:7 http://archive.ubuntu.com/ubuntu focal/multiverse amd64 Packages [177 kB]
-Get:8 http://archive.ubuntu.com/ubuntu focal/main amd64 Packages [1275 kB]     
-Get:9 http://archive.ubuntu.com/ubuntu focal-updates/multiverse amd64 Packages [30.3 kB]
-Get:10 http://archive.ubuntu.com/ubuntu focal-updates/restricted amd64 Packages [1214 kB]
-Get:11 http://security.ubuntu.com/ubuntu focal-security/main amd64 Packages [1771 kB]
-Get:12 http://archive.ubuntu.com/ubuntu focal-updates/universe amd64 Packages [1153 kB]
-Get:13 http://archive.ubuntu.com/ubuntu focal-updates/main amd64 Packages [2186 kB]
-Get:14 http://archive.ubuntu.com/ubuntu focal-backports/main amd64 Packages [51.2 kB]
-Get:15 http://archive.ubuntu.com/ubuntu focal-backports/universe amd64 Packages [26.0 kB]
-Get:16 http://security.ubuntu.com/ubuntu focal-security/restricted amd64 Packages [1139 kB]
-Get:17 http://security.ubuntu.com/ubuntu focal-security/multiverse amd64 Packages [25.8 kB]
-Get:18 http://security.ubuntu.com/ubuntu focal-security/universe amd64 Packages [870 kB]
-Fetched 21.9 MB in 3s (6363 kB/s)                         
-Reading package lists... Done
-Reading package lists... Done
-Building dependency tree       
-Reading state information... Done
-The following NEW packages will be installed:
-  tree
-0 upgraded, 1 newly installed, 0 to remove and 34 not upgraded.
-Need to get 43.0 kB of archives.
-After this operation, 115 kB of additional disk space will be used.
-Get:1 http://archive.ubuntu.com/ubuntu focal/universe amd64 tree amd64 1.8.0-1 [43.0 kB]
-Fetched 43.0 kB in 0s (139 kB/s)
-Selecting previously unselected package tree.
-(Reading database ... 44765 files and directories currently installed.)
-Preparing to unpack .../tree_1.8.0-1_amd64.deb ...
-Unpacking tree (1.8.0-1) ...
-Setting up tree (1.8.0-1) ...
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Looking in indexes: https://pypi.org/simple, https://pypi.ngc.nvidia.com
+Collecting seedir
+  Downloading seedir-0.3.0-py3-none-any.whl (112 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ <span class=" -Color -Color-Green">112.4/112.4 KB</span> <span class=" -Color -Color-Red">49.2 MB/s</span> eta <span class=" -Color -Color-Cyan">0:00:00</span>
+?25hCollecting natsort
+  Downloading natsort-8.1.0-py3-none-any.whl (37 kB)
+Collecting emoji
+  Downloading emoji-1.7.0.tar.gz (175 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ <span class=" -Color -Color-Green">175.4/175.4 KB</span> <span class=" -Color -Color-Red">227.4 MB/s</span> eta <span class=" -Color -Color-Cyan">0:00:00</span>
+?25h  Preparing metadata (setup.py) ... ?25ldone
+?25hBuilding wheels for collected packages: emoji
+  Building wheel for emoji (setup.py) ... ?25ldone
+?25h  Created wheel for emoji: filename=emoji-1.7.0-py3-none-any.whl size=171046 sha256=a285d15db9a08814aebae5b9eabbccee1ff84a50f552e319ec807f6b2ce64490
+  Stored in directory: /tmp/pip-ephem-wheel-cache-c2k9amz0/wheels/5e/8c/80/c3646df8201ba6f5070297fe3779a4b70265d0bfd961c15302
+Successfully built emoji
+Installing collected packages: emoji, natsort, seedir
+Successfully installed emoji-1.7.0 natsort-8.1.0 seedir-0.3.0
+<span class=" -Color -Color-Yellow">WARNING: Running pip as the &#39;root&#39; user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv</span>
+
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>tree ./workflow
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">seedir</span> <span class="k">as</span> <span class="nn">sd</span>
+<span class="n">sd</span><span class="o">.</span><span class="n">seedir</span><span class="p">(</span>
+    <span class="n">DATA_FOLDER</span><span class="p">,</span> 
+    <span class="n">style</span><span class="o">=</span><span class="s1">&#39;lines&#39;</span><span class="p">,</span> 
+    <span class="n">itemlimit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> 
+    <span class="n">depthlimit</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> 
+    <span class="n">exclude_folders</span><span class="o">=</span><span class="s1">&#39;.ipynb_checkpoints&#39;</span><span class="p">,</span> 
+    <span class="n">sort</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Bold -Color-Bold-Blue">./workflow</span>
-├── <span class=" -Color -Color-Bold -Color-Bold-Blue">categories</span>
-│   ├── unique.item_brand.parquet
-│   ├── unique.item_category.parquet
-│   ├── unique.item_id.parquet
-│   ├── unique.item_shop.parquet
-│   ├── unique.user_age.parquet
-│   ├── unique.user_brands.parquet
-│   ├── unique.user_categories.parquet
-│   ├── unique.user_consumption_2.parquet
-│   ├── unique.user_gender.parquet
-│   ├── unique.user_geography.parquet
-│   ├── unique.user_group.parquet
-│   ├── unique.user_id.parquet
-│   ├── unique.user_intentions.parquet
-│   ├── unique.user_is_occupied.parquet
-│   ├── unique.user_profile.parquet
-│   └── unique.user_shops.parquet
-├── metadata.json
-└── workflow.pkl
-
-1 directory, 18 files
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>data/
+├─processed/
+│ ├─train/
+│ │ ├─_file_list.txt
+│ │ ├─_metadata
+│ │ ├─_metadata.json
+│ │ ├─part_0.parquet
+│ │ └─schema.pbtxt
+│ └─valid/
+│   ├─_file_list.txt
+│   ├─_metadata
+│   ├─_metadata.json
+│   ├─part_0.parquet
+│   └─schema.pbtxt
+├─train/
+│ ├─_metadata
+│ └─part.0.parquet
+└─valid/
+  ├─_metadata
+  └─part.0.parquet
 </pre></div>
 </div>
 </div>
@@ -370,26 +357,27 @@ Setting up tree (1.8.0-1) ...
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
 
 <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">512</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">BATCH_SIZE</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-21 09:36:37.360581: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-09 08:29:15.386520: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+2022-05-09 08:29:16.357112: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1368/1368 [==============================] - ETA: 0s - auc: 0.5014 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1368/1368 [==============================] - ETA: 0s - auc: 0.4997 - loss: 0.6933 - regularization_loss: 0.0000e+00 - total_loss: 0.6933
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-21 09:37:08.686596: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-09 08:29:32.099125: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_161
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1368/1368 [==============================] - 33s 17ms/step - auc: 0.5014 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.4997 - val_loss: 0.6939 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6939
-CPU times: user 56.3 s, sys: 9.24 s, total: 1min 5s
-Wall time: 36.1 s
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1368/1368 [==============================] - 18s 10ms/step - auc: 0.4997 - loss: 0.6933 - regularization_loss: 0.0000e+00 - total_loss: 0.6933 - val_auc: 0.4967 - val_loss: 0.6937 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6937
+CPU times: user 35.5 s, sys: 4.04 s, total: 39.5 s
+Wall time: 20.7 s
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f19a12fc730&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f84a82db3d0&gt;
 </pre></div>
 </div>
 </div>

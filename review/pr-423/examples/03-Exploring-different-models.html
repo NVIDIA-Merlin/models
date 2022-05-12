@@ -107,6 +107,7 @@
 <img alt="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" />
 <div class="tex2jax_ignore mathjax_ignore section" id="iterating-over-deep-learning-models-using-merlin-models">
 <h1>Iterating over Deep Learning Models using Merlin Models<a class="headerlink" href="#iterating-over-deep-learning-models-using-merlin-models" title="Permalink to this headline"></a></h1>
+<p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training/tags">merlin-tensorflow-training</a> container.</p>
 <p>In this example, we’ll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.</p>
 <p>In this example notebook, we use synthetic dataset that is mimicking the Ali-CCP: Alibaba Click and Conversion Prediction dataset to build our recommender system models. ALI-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. You can curate the raw dataset via this <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43">get_aliccp() function</a> and generated the parquet files to be used in this example.</p>
 <div class="section" id="learning-objectives">
@@ -141,10 +142,9 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-26 16:50:26.243192: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-05 10:34:56.075160: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-04-26 16:50:28.181122: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
-2022-04-26 16:50:28.181758: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:1 with 30390 MB memory:  -&gt; device: 1, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
+2022-05-05 10:34:57.151786: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:0f:00.0, compute capability: 8.0
 </pre></div>
 </div>
 </div>
@@ -159,25 +159,21 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 
 <span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;/workspace/data/&quot;</span><span class="p">)</span>
 <span class="n">NUM_ROWS</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NUM_ROWS&quot;</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
+<span class="n">SYNTHETIC_DATA</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SYNTHETIC_DATA&quot;</span><span class="p">,</span> <span class="s2">&quot;True&quot;</span><span class="p">))</span>
 
-<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;aliccp-raw&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">NUM_ROWS</span><span class="p">),</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
-
-<span class="c1"># save the datasets as parquet files</span>
-<span class="n">train</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">))</span>
-<span class="n">valid</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">))</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(None,)
+<span class="k">if</span> <span class="n">SYNTHETIC_DATA</span><span class="p">:</span>
+    <span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;aliccp-raw&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">NUM_ROWS</span><span class="p">),</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
+    <span class="c1"># save the datasets as parquet files</span>
+    <span class="n">train</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">))</span>
+    <span class="n">valid</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;part.0.parquet&quot;</span><span class="p">)</span>
-<span class="n">valid_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;part.0.parquet&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;*.parquet&quot;</span><span class="p">)</span>
+<span class="n">valid_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;*.parquet&quot;</span><span class="p">)</span>
 <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;processed&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -222,8 +218,8 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
   warnings.warn(
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 2.44 s, sys: 1.26 s, total: 3.7 s
-Wall time: 3.7 s
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 2.33 s, sys: 2.21 s, total: 4.54 s
+Wall time: 7.14 s
 </pre></div>
 </div>
 </div>
@@ -329,21 +325,22 @@ Wall time: 3.7 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-26 16:50:34.950287: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-05 10:35:07.143311: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+2022-05-05 10:35:08.373300: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>41/43 [===========================&gt;..] - ETA: 0s - auc: 0.5003 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>39/43 [==========================&gt;...] - ETA: 0s - auc: 0.5007 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-26 16:50:41.997596: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-05 10:35:13.497816: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 6s 36ms/step - auc: 0.5003 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.5001 - val_loss: 0.6932 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6932
-CPU times: user 8.09 s, sys: 716 ms, total: 8.81 s
-Wall time: 7.65 s
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 5s 31ms/step - auc: 0.5005 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932 - val_auc: 0.4987 - val_loss: 0.6931 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6931
+CPU times: user 6.31 s, sys: 7.34 s, total: 13.6 s
+Wall time: 6.95 s
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f20e86d5280&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f22e82fec70&gt;
 </pre></div>
 </div>
 </div>
@@ -373,13 +370,13 @@ Wall time: 7.65 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 2s 8ms/step - auc: 0.5001 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 1s 3ms/step - auc: 0.4987 - loss: 0.6932 - regularization_loss: 0.0000e+00 - total_loss: 0.6932
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;auc&#39;: 0.5000803470611572,
- &#39;loss&#39;: 0.692772626876831,
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;auc&#39;: 0.49869856238365173,
+ &#39;loss&#39;: 0.6935825943946838,
  &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.692772626876831}
+ &#39;total_loss&#39;: 0.6935825943946838}
 </pre></div>
 </div>
 </div>
@@ -416,18 +413,18 @@ Wall time: 7.65 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>41/43 [===========================&gt;..] - ETA: 0s - auc_1: 0.8475 - loss: 0.6075 - regularization_loss: 0.0000e+00 - total_loss: 0.6075
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>40/43 [==========================&gt;...] - ETA: 0s - auc_1: 0.8554 - loss: 0.6092 - regularization_loss: 0.0000e+00 - total_loss: 0.6092
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-26 16:50:48.464147: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-05 10:35:18.922285: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 3s 36ms/step - auc_1: 0.8496 - loss: 0.6004 - regularization_loss: 0.0000e+00 - total_loss: 0.6004 - val_auc_1: 0.4991 - val_loss: 0.7456 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7456
-CPU times: user 4.73 s, sys: 658 ms, total: 5.38 s
-Wall time: 3.76 s
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 3s 38ms/step - auc_1: 0.8576 - loss: 0.5994 - regularization_loss: 0.0000e+00 - total_loss: 0.5994 - val_auc_1: 0.4993 - val_loss: 0.7385 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7385
+CPU times: user 3.34 s, sys: 7.3 s, total: 10.6 s
+Wall time: 3.58 s
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f207809bfd0&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f22c2138c40&gt;
 </pre></div>
 </div>
 </div>
@@ -448,13 +445,13 @@ Wall time: 3.76 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 2s 8ms/step - auc_1: 0.4991 - loss: 0.7471 - regularization_loss: 0.0000e+00 - total_loss: 0.7471
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 2s 4ms/step - auc_1: 0.4993 - loss: 0.7403 - regularization_loss: 0.0000e+00 - total_loss: 0.7403
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;auc_1&#39;: 0.49909618496894836,
- &#39;loss&#39;: 0.7657854557037354,
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;auc_1&#39;: 0.49930793046951294,
+ &#39;loss&#39;: 0.7259610295295715,
  &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.7657854557037354}
+ &#39;total_loss&#39;: 0.7259610295295715}
 </pre></div>
 </div>
 </div>
@@ -499,18 +496,18 @@ Wall time: 3.76 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>41/43 [===========================&gt;..] - ETA: 0s - auc_2: 0.6902 - loss: 0.6890 - regularization_loss: 0.0000e+00 - total_loss: 0.6890
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>40/43 [==========================&gt;...] - ETA: 0s - auc_2: 0.8259 - loss: 0.6265 - regularization_loss: 0.0000e+00 - total_loss: 0.6265
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-26 16:50:56.202769: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-05 10:35:24.875211: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 5s 54ms/step - auc_2: 0.6983 - loss: 0.6883 - regularization_loss: 0.0000e+00 - total_loss: 0.6883 - val_auc_2: 0.4995 - val_loss: 0.6935 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6935
-CPU times: user 5.82 s, sys: 786 ms, total: 6.6 s
-Wall time: 5.04 s
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 4s 43ms/step - auc_2: 0.8294 - loss: 0.6112 - regularization_loss: 0.0000e+00 - total_loss: 0.6112 - val_auc_2: 0.4999 - val_loss: 0.8183 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.8183
+CPU times: user 3.99 s, sys: 2.09 s, total: 6.08 s
+Wall time: 4.14 s
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f204c2079d0&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f209e1d1040&gt;
 </pre></div>
 </div>
 </div>
@@ -531,13 +528,13 @@ Wall time: 5.04 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 3s 9ms/step - auc_2: 0.4995 - loss: 0.6937 - regularization_loss: 0.0000e+00 - total_loss: 0.6937
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 2s 5ms/step - auc_2: 0.4999 - loss: 0.8164 - regularization_loss: 0.0000e+00 - total_loss: 0.8164
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;auc_2&#39;: 0.4995212256908417,
- &#39;loss&#39;: 0.693181037902832,
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;auc_2&#39;: 0.4999111294746399,
+ &#39;loss&#39;: 0.8085750341415405,
  &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.693181037902832}
+ &#39;total_loss&#39;: 0.8085750341415405}
 </pre></div>
 </div>
 </div>
@@ -576,18 +573,18 @@ Wall time: 5.04 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - ETA: 0s - auc_3: 0.8623 - loss: 0.5652 - regularization_loss: 0.0000e+00 - total_loss: 0.5652
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>39/43 [==========================&gt;...] - ETA: 0s - auc_3: 0.8615 - loss: 0.5912 - regularization_loss: 0.0000e+00 - total_loss: 0.5912
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-26 16:51:04.050993: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-05 10:35:30.944628: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_13
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 4s 48ms/step - auc_3: 0.8623 - loss: 0.5622 - regularization_loss: 0.0000e+00 - total_loss: 0.5622 - val_auc_3: 0.4993 - val_loss: 0.7936 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7936
-CPU times: user 5.46 s, sys: 716 ms, total: 6.17 s
-Wall time: 4.62 s
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 3s 35ms/step - auc_3: 0.8637 - loss: 0.5776 - regularization_loss: 0.0000e+00 - total_loss: 0.5776 - val_auc_3: 0.4996 - val_loss: 0.7770 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.7770
+CPU times: user 4.1 s, sys: 3.49 s, total: 7.59 s
+Wall time: 3.82 s
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f1c177f2e50&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f209d3d8af0&gt;
 </pre></div>
 </div>
 </div>
@@ -608,13 +605,13 @@ Wall time: 4.62 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 3s 8ms/step - auc_3: 0.4993 - loss: 0.7978 - regularization_loss: 0.0000e+00 - total_loss: 0.7978
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 2s 4ms/step - auc_3: 0.4996 - loss: 0.7808 - regularization_loss: 0.0000e+00 - total_loss: 0.7808
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;auc_3&#39;: 0.4993017315864563,
- &#39;loss&#39;: 0.8253191113471985,
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;auc_3&#39;: 0.4995594620704651,
+ &#39;loss&#39;: 0.76408851146698,
  &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.8253191113471985}
+ &#39;total_loss&#39;: 0.76408851146698}
 </pre></div>
 </div>
 </div>

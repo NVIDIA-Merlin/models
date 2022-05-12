@@ -32,6 +32,8 @@
     "\n",
     "# From ETL to Training RecSys models - NVTabular and Merlin Models integrated example\n",
     "\n",
+    "This notebook is created using the latest stable [merlin-tensorflow-training](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training/tags) container. \n",
+    "\n",
     "## Overview\n",
     "\n",
     "In [01-Getting-started.ipynb](01-Getting-started.ipynb), we provide a getting started example to train a DLRM model on the MovieLens 1M dataset. In this notebook, we will explore how Merlin Models uses the ETL output from [NVTabular](https://github.com/NVIDIA-Merlin/NVTabular/).<br><br>\n",
@@ -1447,6 +1449,11 @@
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
    "version": "3.8.10"
+  },
+  "merlin": {
+   "containers": [
+    "nvcr.io/nvidia/merlin/merlin-tensorflow-training:latest"
+   ]
   }
  },
  "nbformat": 4,
