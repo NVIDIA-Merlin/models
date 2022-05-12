@@ -82,7 +82,7 @@ class MaskingBlock(Block):
         self.context.add_variable(
             tf.Variable(
                 initial_value=tf.zeros([1, input_shapes[1]], dtype=tf.bool),
-                name="masking_schema",
+                name="mask",
                 trainable=False,
                 validate_shape=False,
                 shape=tf.TensorShape([None, input_shapes[1]]),
@@ -112,7 +112,7 @@ class MaskingBlock(Block):
 
         return [f]
 
-    def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
+    def compute_feature_mask(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
         raise NotImplementedError()
 
     def apply_mask_to_inputs(self, inputs: tf.Tensor, schema: tf.Tensor) -> tf.Tensor:
@@ -125,8 +125,8 @@ class MaskingBlock(Block):
 
     def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
         items = self.context[self.schema.select_by_tag(Tags.ITEM_ID)]
-        mask_schema = self.compute_mask_schema(items, training=training)
-        inputs = self.apply_mask_to_inputs(inputs, mask_schema)
+        mask = self.compute_feature_mask(items, training=training)
+        inputs = self.apply_mask_to_inputs(inputs, mask)
         return inputs
 
     def get_config(self):
@@ -168,7 +168,7 @@ class CausalLanguageModeling(MaskingBlock):
         )
         self.train_on_last_item_seq_only = train_on_last_item_seq_only
 
-    def compute_mask_schema(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
+    def compute_feature_mask(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
         items = tf.cast(tf.squeeze(items), tf.int64)
         if (self.eval_on_last_item_seq_only and not training) or (
             self.train_on_last_item_seq_only and training
@@ -198,11 +198,11 @@ class CausalLanguageModeling(MaskingBlock):
             mask_labels = labels != self.padding_idx
 
         # store boolean tensor related to masked targets
-        self.context["masking_schema"].assign(mask_labels)
+        self.context["mask"].assign(mask_labels)
 
         return mask_labels
 
-    def apply_mask_to_inputs(self, inputs: tf.Tensor, mask_schema: tf.Tensor) -> tf.Tensor:
+    def apply_mask_to_inputs(self, inputs: tf.Tensor, mask: tf.Tensor) -> tf.Tensor:
         pos_emb_inp = inputs[:, :-1]
         # Adding a masked item in the sequence to return to the initial sequence length.
         pos_emb_inp = tf.concat(
@@ -216,7 +216,7 @@ class CausalLanguageModeling(MaskingBlock):
         )
 
         pos_emb_inp = tf.where(
-            tf.cast(tf.expand_dims(mask_schema, -1), tf.bool),
+            tf.cast(tf.expand_dims(mask, -1), tf.bool),
             pos_emb_inp,
             tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
         )
@@ -271,9 +271,9 @@ class MaskedLanguageModeling(MaskingBlock):
         )
         return config
 
-    def compute_mask_schema(self, item_ids: tf.Tensor, training: bool = False) -> tf.Tensor:
+    def compute_feature_mask(self, item_ids: tf.Tensor, training: bool = False) -> tf.Tensor:
         """
-        Compute the mask schema for masked language modeling task
+        Compute the mask for masked language modeling task
         the function is based on HuggingFace's transformers/data/data_collator.py
         """
         item_ids = tf.squeeze(item_ids)
@@ -348,7 +348,7 @@ class MaskedLanguageModeling(MaskingBlock):
             mask_labels = labels != self.padding_idx
 
         # Store boolean tensor related to masked targets
-        self.context["masking_schema"].assign(mask_labels)
+        self.context["mask"].assign(mask_labels)
         return mask_labels
 
 
