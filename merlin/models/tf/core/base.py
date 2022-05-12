@@ -33,7 +33,7 @@ BlockType = Union["Block", str, Sequence[str]]
 
 
 if TYPE_CHECKING:
-    from merlin.models.tf.blocks.core.combinators import (
+    from merlin.models.tf.core.combinators import (
         Filter,
         ParallelBlock,
         SequentialBlock,

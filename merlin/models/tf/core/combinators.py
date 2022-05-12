@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Union
 import six
 import tensorflow as tf
 
-from merlin.models.tf.blocks.core.base import (
+from merlin.models.tf.core.base import (
     Block,
     BlockType,
     NoOp,
@@ -14,8 +14,8 @@ from merlin.models.tf.blocks.core.base import (
     is_input_block,
     right_shift_layer,
 )
-from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType, TabularBlock
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.core.tabular import Filter, TabularAggregationType, TabularBlock
+from merlin.models.tf.core.transformations import AsDenseFeatures
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
 from merlin.models.utils.misc_utils import filter_kwargs

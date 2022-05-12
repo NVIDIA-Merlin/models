@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Sequence, Union, overload
 import tensorflow as tf
 
 from merlin.models.config.schema import SchemaMixin
-from merlin.models.tf.blocks.core.base import Block, BlockType, right_shift_layer
+from merlin.models.tf.core.base import Block, BlockType, right_shift_layer
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils

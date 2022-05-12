@@ -20,7 +20,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 
-from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
+from merlin.models.tf.core.base import Block, MetricOrMetrics
 from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.prediction_tasks.base import PredictionTask
 from merlin.models.tf.utils.tf_utils import (

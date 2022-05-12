@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime
 import tensorflow as tf
 
 import merlin.io
-from merlin.models.tf.blocks.core.base import Block, ModelContext
-from merlin.models.tf.blocks.core.combinators import SequentialBlock
+from merlin.models.tf.core.base import Block, ModelContext
+from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
@@ -16,7 +16,7 @@ from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
 if TYPE_CHECKING:
-    from merlin.models.tf.blocks.core.index import TopKIndexBlock
+    from merlin.models.tf.core.index import TopKIndexBlock
 
 
 class MetricsComputeCallback(tf.keras.callbacks.Callback):

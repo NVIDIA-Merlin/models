@@ -7,7 +7,7 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.utils import generic_utils
 
-from merlin.models.tf.blocks.core.base import (
+from merlin.models.tf.core.base import (
     Block,
     BlockType,
     ContextMixin,
@@ -18,7 +18,7 @@ from merlin.models.tf.blocks.core.base import (
     _output_metrics,
     name_fn,
 )
-from merlin.models.tf.blocks.core.combinators import ParallelBlock
+from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils import tf_utils

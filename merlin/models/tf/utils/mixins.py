@@ -24,7 +24,7 @@ import tensorflow as tf
 from merlin.models.tf.typing import TabularData
 
 if TYPE_CHECKING:
-    from merlin.models.tf.blocks.corer.base import PredictionOutput
+    from merlin.models.tf.core.base import PredictionOutput
 
 
 class LossMixin(abc.ABC):

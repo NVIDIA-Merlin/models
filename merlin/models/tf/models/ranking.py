@@ -2,15 +2,15 @@ from typing import List, Optional, Union
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.core.aggregation import ConcatFeatures, StackFeatures
-from merlin.models.tf.blocks.core.base import Block
-from merlin.models.tf.blocks.core.combinators import ParallelBlock
-from merlin.models.tf.blocks.core.inputs import InputBlock
-from merlin.models.tf.blocks.core.transformations import CategoricalOneHot
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
+from merlin.models.tf.core.base import Block
+from merlin.models.tf.core.combinators import ParallelBlock
+from merlin.models.tf.core.inputs import InputBlock
+from merlin.models.tf.core.transformations import CategoricalOneHot
 from merlin.models.tf.features.continuous import ContinuousFeatures
 from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model

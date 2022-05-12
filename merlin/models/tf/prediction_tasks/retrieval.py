@@ -18,11 +18,11 @@ from typing import Optional, Sequence
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
-from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
-from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
+from merlin.models.tf.core.base import Block, MetricOrMetrics
+from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask

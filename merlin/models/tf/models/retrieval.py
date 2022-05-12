@@ -1,12 +1,12 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
-from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
-from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
-from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.core.aggregation import SequenceAggregation, SequenceAggregator
+from merlin.models.tf.core.base import Block, BlockType, MetricOrMetrics
+from merlin.models.tf.core.inputs import InputBlock
 from merlin.models.tf.features.embedding import EmbeddingOptions
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.ranking import ranking_metrics

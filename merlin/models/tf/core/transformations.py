@@ -21,8 +21,8 @@ from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
 from merlin.models.config.schema import requires_schema
-from merlin.models.tf.blocks.core.base import Block, PredictionOutput
-from merlin.models.tf.blocks.core.combinators import TabularBlock
+from merlin.models.tf.core.base import Block, PredictionOutput
+from merlin.models.tf.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils.tf_utils import (
     df_to_tensor,
