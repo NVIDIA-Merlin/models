@@ -19,6 +19,9 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
+from merlin.models.config.schema import FeatureCollection
+from merlin.models.tf.blocks.core.context import FeatureContext
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.schema import Tags
 
 
@@ -30,7 +33,9 @@ def test_masking_block(sequence_testing_data: Dataset, mask_block):
     block = embedding_block.connect(mask_block(), context=ml.ModelContext())
 
     batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
-    masked_input = block(batch)
+    feature_context = FeatureContext(FeatureCollection(schema_list, AsDenseFeatures()(batch)))
+    masked_input = block(batch, feature_context=feature_context)
+
     assert masked_input.shape[-1] == 148
     assert masked_input.shape[1] == 4
 
