@@ -91,6 +91,6 @@ def NCFModel(
     ncf = ParallelBlock({"mf": mf_branch, "mlp": mlp_branch}, aggregation="concat")
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    model = ncf.connect(prediction_tasks)
+    model = Model(ncf, prediction_tasks)
 
     return model

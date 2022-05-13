@@ -44,7 +44,7 @@ def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tm
         music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
     )
     mf = ml.MatrixFactorizationBlock(music_streaming_data.schema, dim=128, aggregation="cosine")
-    model = mf.connect(ml.BinaryClassificationTask("like"))
+    model = ml.Model(mf, ml.BinaryClassificationTask("like"))
     model.compile(optimizer="adam")
 
     model.fit(music_streaming_data, batch_size=50, epochs=5)
@@ -147,7 +147,8 @@ def test_two_tower_block_serialization(testing_data: Dataset):
 # def test_two_tower_block_saving(ecommerce_data: SyntheticData):
 #     two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([64, 128]))
 #
-#     model = two_tower.connect(
+#     model = ml.RetrievalModel(
+#         two_tower,
 #         ml.ItemRetrievalTask(ecommerce_data.schema, target_name="click", metrics=[])
 #     )
 #

@@ -1,12 +1,15 @@
 import os
 
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
+pytestmark = pytest.mark.tensorflow_example
+
 
 @testbook(REPO_ROOT / "examples/03-Exploring-different-models.ipynb", execute=False)
-def test_func(tb):
+def test_example_03_exploring_different_models(tb):
     tb.inject(
         """
         import os

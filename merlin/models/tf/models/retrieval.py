@@ -36,7 +36,7 @@ def MatrixFactorizationModel(
     metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
-) -> Union[Model, RetrievalModel]:
+) -> RetrievalModel:
     """Builds a matrix factorization model.
 
     Example Usage::
@@ -74,7 +74,7 @@ def MatrixFactorizationModel(
 
     Returns
     -------
-    Union[Model, RetrievalModel]
+    RetrievalModel
     """
 
     if not prediction_tasks:
@@ -99,7 +99,7 @@ def MatrixFactorizationModel(
         **kwargs,
     )
 
-    model = two_tower.connect(prediction_tasks)
+    model = RetrievalModel(two_tower, prediction_tasks)
 
     return model
 
@@ -125,7 +125,7 @@ def TwoTowerModel(
     metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
-) -> Union[Model, RetrievalModel]:
+) -> RetrievalModel:
     """Builds the Two-tower architecture, as proposed in [1].
 
     Example Usage::
@@ -178,7 +178,7 @@ def TwoTowerModel(
 
     Returns
     -------
-    Union[Model, RetrievalModel]
+    RetrievalModel
     """
 
     if not prediction_tasks:
@@ -203,7 +203,7 @@ def TwoTowerModel(
         **kwargs,
     )
 
-    model = two_tower.connect(prediction_tasks)
+    model = RetrievalModel(two_tower, prediction_tasks)
 
     return model
 
@@ -292,4 +292,6 @@ def YoutubeDNNRetrievalModel(
         num_sampled=num_sampled,
     )
 
-    return inputs.connect(top_block, task)
+    # TODO: Figure out how to make this fit as
+    # a RetrievalModel (which must have a RetrievalBlock)
+    return Model(inputs, top_block, task)

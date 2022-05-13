@@ -264,11 +264,11 @@ def test_validater(batch_size):
     assert np.isclose(true_auc, estimated_auc, rtol=1e-6)
 
 
-def test_model_with_sparse_inputs(music_streaming_data: Dataset):
+def test_block_with_sparse_inputs(music_streaming_data: Dataset):
     item_id_schema = music_streaming_data.schema.select_by_name(["user_id", "item_genres"])
 
     inputs = mm.InputBlock(item_id_schema)
-    model = inputs.connect(mm.MLPBlock([64]), context=mm.ModelContext())
+    block = inputs.connect(mm.MLPBlock([64]), context=mm.ModelContext())
 
     df = pd.DataFrame(
         {
@@ -284,11 +284,11 @@ def test_model_with_sparse_inputs(music_streaming_data: Dataset):
     )
 
     batch = next(iter(train_dataset))[0]
-    out = model(batch)
+    out = block(batch)
     assert out.shape[-1] == 64
 
 
-def test_model_with_categorical_target():
+def test_block_with_categorical_target():
     import pandas as pd
 
     from merlin.schema import Schema, Tags
