@@ -19,7 +19,6 @@ set -e
 
 # Get latest models version
 cd /models/
-git pull origin main
 
 container=$1
 
