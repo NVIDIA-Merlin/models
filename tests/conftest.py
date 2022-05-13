@@ -68,3 +68,22 @@ try:
     from tests.torch._conftest import *  # noqa
 except ModuleNotFoundError:
     pass
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        path = item.location[0]
+        if path.startswith("tests/tf"):
+            item.add_marker(pytest.mark.tensorflow)
+            if path.startswith("tests/tf/examples"):
+                item.add_marker(pytest.mark.example)
+            if path.startswith("tests/tf/integration"):
+                item.add_marker(pytest.mark.integration)
+        elif path.startswith("tests/torch"):
+            item.add_marker(pytest.mark.torch)
+        elif path.startswith("tests/implicit"):
+            item.add_marker(pytest.mark.implicit)
+        elif path.startswith("tests/lightfm"):
+            item.add_marker(pytest.mark.lightfm)
+        elif path.startswith("tests/datasets"):
+            item.add_marker(pytest.mark.datasets)
