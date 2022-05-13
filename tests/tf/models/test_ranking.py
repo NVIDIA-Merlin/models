@@ -28,11 +28,7 @@ def test_simple_model(ecommerce_data: Dataset, num_epochs=5, run_eagerly=True):
     model = ml.Model(body, ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
-    metrics = model.evaluate(*ml.sample_batch(ecommerce_data, batch_size=100), return_dict=True)
-    testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
-    )
+    testing_utils.model_test(model, ecommerce_data)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
