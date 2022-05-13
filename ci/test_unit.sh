@@ -15,21 +15,4 @@
 #
 
 #!/bin/bash
-set -e
-
-# Get latest models version
-cd /models/
-
-container=$1
-
-## Tensorflow training container
-if [ "$container" == "merlin-tensorflow-training" ]; then
-    ## TODO: Remove this when it would become part of the container
-    pip3 install testbook
-    make tests-tf
-# Pytorch training container
-elif [ "$container" == "merlin-pytorch-training" ]; then
-    ## TODO: Remove this when it would become part of the container
-    pip3 install testbook
-    make tests-torch
-fi
+make jenkins-tf

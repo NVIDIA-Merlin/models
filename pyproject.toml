@@ -49,4 +49,13 @@ filterwarnings = [
                 'ignore:Call to deprecated create function:DeprecationWarning',
                 'ignore:distutils Version classes are deprecated. Use packaging.version instead:DeprecationWarning',
         ]
-
+markers = [
+    "datasets",
+    "tensorflow",
+    "tensorflow_example",
+    "torch",
+    "lightfm",
+    "implicit",
+    "example",
+    "integration"
+]
