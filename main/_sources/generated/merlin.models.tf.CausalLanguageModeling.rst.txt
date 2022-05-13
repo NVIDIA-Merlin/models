@@ -27,8 +27,8 @@
       ~CausalLanguageModeling.call
       ~CausalLanguageModeling.call_outputs
       ~CausalLanguageModeling.check_schema
+      ~CausalLanguageModeling.compute_feature_mask
       ~CausalLanguageModeling.compute_mask
-      ~CausalLanguageModeling.compute_mask_schema
       ~CausalLanguageModeling.compute_output_shape
       ~CausalLanguageModeling.compute_output_signature
       ~CausalLanguageModeling.connect

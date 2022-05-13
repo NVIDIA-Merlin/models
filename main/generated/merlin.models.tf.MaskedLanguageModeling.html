@@ -154,11 +154,11 @@ Defaults to 0.15</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_schema</span></code>([schema])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
-<td><p>Computes an output mask tensor.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.MaskedLanguageModeling.compute_feature_mask" title="merlin.models.tf.MaskedLanguageModeling.compute_feature_mask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_feature_mask</span></code></a>(item_ids[, training])</p></td>
+<td><p>Compute the mask for masked language modeling task the function is based on HuggingFace’s transformers/data/data_collator.py</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.MaskedLanguageModeling.compute_mask_schema" title="merlin.models.tf.MaskedLanguageModeling.compute_mask_schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask_schema</span></code></a>(item_ids[, training])</p></td>
-<td><p>Compute the mask schema for masked language modeling task the function is based on HuggingFace’s transformers/data/data_collator.py</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
+<td><p>Computes an output mask tensor.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code>(input_shape)</p></td>
 <td><p>Computes the output shape of the layer.</p></td>
@@ -387,9 +387,9 @@ Defaults to 0.15</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="merlin.models.tf.MaskedLanguageModeling.compute_mask_schema">
-<code class="sig-name descname"><span class="pre">compute_mask_schema</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/masking.html#MaskedLanguageModeling.compute_mask_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.MaskedLanguageModeling.compute_mask_schema" title="Permalink to this definition"></a></dt>
-<dd><p>Compute the mask schema for masked language modeling task
+<dt id="merlin.models.tf.MaskedLanguageModeling.compute_feature_mask">
+<code class="sig-name descname"><span class="pre">compute_feature_mask</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_ids</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">tensorflow.python.framework.ops.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">tensorflow.python.framework.ops.Tensor</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/core/masking.html#MaskedLanguageModeling.compute_feature_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.MaskedLanguageModeling.compute_feature_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the mask for masked language modeling task
 the function is based on HuggingFace’s transformers/data/data_collator.py</p>
 </dd></dl>
 
