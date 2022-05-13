@@ -1,0 +1,6 @@
+﻿merlin.models.tf.DLRMBlock
+==========================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: DLRMBlock
