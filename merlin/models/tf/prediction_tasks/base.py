@@ -436,7 +436,5 @@ class ParallelPredictionBlock(ParallelBlock):
     def get_config(self):
         config = super().get_config()
         config = tf_utils.maybe_serialize_keras_objects(self, config, ["body", "prediction_tasks"])
-        if self.task_weights:
-            config["task_weights"] = self.task_weights
 
         return config
