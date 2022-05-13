@@ -81,6 +81,10 @@ class SequentialBlock(Block):
         if getattr(layers[0], "has_schema", None):
             super().set_schema(layers[0].schema)
 
+            for layer in layers[1:]:
+                if hasattr(layer, "set_schema"):
+                    layer.set_schema(layers[0].schema)
+
         layers = copy.copy(layers) if copy_layers else layers
         if filter:
             if not isinstance(filter, Filter):

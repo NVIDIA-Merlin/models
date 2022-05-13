@@ -35,7 +35,7 @@ def mark_run_eagerly_modes(*args, **kwargs):
 
 
 def assert_body_works_in_model(dataset, body, run_eagerly, num_epochs=5):
-    model = body.connect(BinaryClassificationTask("click"))
+    model = Model(body, BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(dataset, batch_size=50, epochs=num_epochs)

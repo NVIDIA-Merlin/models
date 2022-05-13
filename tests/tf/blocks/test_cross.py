@@ -140,7 +140,7 @@ def test_dcn_v2_train_eval(ecommerce_data: Dataset, num_epochs=5, run_eagerly=Tr
         .connect(ml.CrossBlock(3, low_rank_dim=64))
         .connect(ml.MLPBlock([512, 256]))
     )
-    model = dcn_body.connect(ml.BinaryClassificationTask("click"))
+    model = ml.Model(dcn_body, ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(ecommerce_data, epochs=num_epochs, batch_size=50)
@@ -160,7 +160,7 @@ def test_dcn_v2_serialization(ecommerce_data: Dataset, run_eagerly=True):
         .connect(ml.CrossBlock(3, low_rank_dim=64))
         .connect(ml.MLPBlock([512, 256]))
     )
-    model = dcn_body.connect(ml.BinaryClassificationTask("click"))
+    model = ml.Model(dcn_body, ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     model.fit(ecommerce_data, batch_size=50, epochs=1)
 
