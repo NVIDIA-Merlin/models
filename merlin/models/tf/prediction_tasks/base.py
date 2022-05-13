@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import Dict, List, NamedTuple, Optional, Text, Union
 
 import tensorflow as tf
@@ -27,7 +26,7 @@ class TaskResults(NamedTuple):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
+class PredictionTask(Layer, ContextMixin):
     """Base-class for prediction tasks.
 
     Parameters
@@ -214,7 +213,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
+class ParallelPredictionBlock(ParallelBlock):
     """Multi-task prediction block.
 
     Parameters
@@ -236,15 +235,12 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
         self,
         *prediction_tasks: PredictionTask,
         task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
-        task_weights: Optional[List[float]] = None,
         bias_block: Optional[Layer] = None,
         pre: Optional[BlockType] = None,
         post: Optional[BlockType] = None,
         **kwargs,
     ):
         self.prediction_tasks = prediction_tasks
-        self.task_weights = task_weights
-
         self.bias_block = bias_block
         self.bias_logit = tf.keras.layers.Dense(1)
 
@@ -254,11 +250,6 @@ class ParallelPredictionBlock(ParallelBlock, LossMixin, MetricsMixin):
                 self.prediction_task_dict[task.task_name] = task
 
         super(ParallelPredictionBlock, self).__init__(self.prediction_task_dict, pre=pre, post=post)
-
-        self._task_weight_dict = defaultdict(lambda: 1.0)
-        if task_weights:
-            for task, val in zip(prediction_tasks, task_weights):
-                self._task_weight_dict[task.task_name] = val
 
         self._set_task_blocks(task_blocks)
 

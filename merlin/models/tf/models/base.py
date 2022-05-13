@@ -161,7 +161,7 @@ class ModelBlock(Block, tf.keras.Model):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class Model(tf.keras.Model, LossMixin, MetricsMixin):
+class Model(tf.keras.Model):
     def __init__(
         self,
         *blocks: Block,
@@ -170,11 +170,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     ):
         super(Model, self).__init__(**kwargs)
         context = context or ModelContext()
-        if (
-            len(blocks) == 1
-            and isinstance(blocks[0], SequentialBlock)
-            and isinstance(blocks[0].layers[-1], ModelLikeBlock)
-        ):
+        if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
             self.block = blocks[0]
         else:
             self.block = SequentialBlock(blocks, context=context, block_name="blocks")
@@ -353,10 +349,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
     @property
     def last(self):
         return self.block.layers[-1]
-
-    @property
-    def loss_block(self) -> ModelLikeBlock:
-        return self.block.last if isinstance(self.block, SequentialBlock) else self.block
 
     @property
     def prediction_tasks(self) -> List[PredictionTask]:
