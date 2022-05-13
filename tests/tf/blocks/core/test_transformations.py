@@ -272,7 +272,7 @@ def test_items_weight_tying_with_different_domain_name():
     weight_tying_block = ItemsPredictionWeightTying(schema=schema)
     input_block = ml.InputBlock(schema)
     task = ml.MultiClassClassificationTask("target", loss="categorical_crossentropy")
-    model = input_block.connect(ml.MLPBlock([64]), weight_tying_block, task)
+    model = ml.Model(input_block, ml.MLPBlock([64]), weight_tying_block, task)
 
     _ = model(inputs)
     weight_tying_embeddings = model.block[2].context.get_embedding("joint_item_id")

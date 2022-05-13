@@ -68,7 +68,7 @@ def DLRMModel(
         bottom_block=bottom_block,
         top_block=top_block,
     )
-    model = dlrm_body.connect(prediction_tasks)
+    model = Model(dlrm_body, prediction_tasks)
 
     return model
 
@@ -152,7 +152,7 @@ def DCNModel(
     else:
         dcn_body = input_block.connect_branch(CrossBlock(depth), deep_block, aggregation="concat")
 
-    model = dcn_body.connect(prediction_tasks)
+    model = Model(dcn_body, prediction_tasks)
 
     return model
 
@@ -230,6 +230,6 @@ def DeepFMModel(
     )
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    model = deep_fm.connect(prediction_tasks)
+    model = Model(deep_fm, prediction_tasks)
 
     return model

@@ -26,7 +26,7 @@ def test_regression_head(testing_data: Dataset):
     from merlin.models.tf.utils import testing_utils
 
     body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
-    model = body.connect(ml.RegressionTask("target"))
+    model = ml.Model(body, ml.RegressionTask("target"))
 
     batch = (ml.sample_batch(testing_data, batch_size=100, include_targets=False), targets)
     testing_utils.assert_loss_and_metrics_are_valid(model, batch)
@@ -36,7 +36,7 @@ def test_serialization_regression_head(testing_data: Dataset):
     from merlin.models.tf.utils import testing_utils
 
     body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
-    model = body.connect(ml.RegressionTask("target"))
+    model = ml.Model(body, ml.RegressionTask("target"))
 
     copy_model = testing_utils.assert_serialization(model)
     batch = (ml.sample_batch(testing_data, batch_size=100, include_targets=False), targets)
