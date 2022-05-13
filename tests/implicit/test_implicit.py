@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from merlin.io import Dataset
 from merlin.models.implicit import AlternatingLeastSquares
 from merlin.schema import Tags

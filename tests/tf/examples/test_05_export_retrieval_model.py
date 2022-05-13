@@ -6,7 +6,7 @@ from tests.conftest import REPO_ROOT
 
 
 @testbook(REPO_ROOT / "examples/05-Retrieval-Model.ipynb", execute=False)
-def test_func(tb):
+def test_example_05_retrieval_models(tb):
     tb.inject(
         """
         import os
