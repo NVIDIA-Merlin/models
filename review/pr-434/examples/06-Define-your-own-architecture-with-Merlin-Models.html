@@ -579,7 +579,7 @@ array([[0.00196931, 0.        , 0.01411253, ..., 0.00167978, 0.00330653,
 We note that the <code class="docutils literal notranslate"><span class="pre">Model</span></code> class inherits from <a class="reference external" href="https://keras.io/api/models/model/">tf.keras.Model</a> class:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">deep_dlrm_interaction</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">binary_task</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">deep_dlrm_interaction</span><span class="p">,</span> <span class="n">binary_task</span><span class="p">)</span>
 <span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
