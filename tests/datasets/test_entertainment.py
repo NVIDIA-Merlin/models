@@ -53,3 +53,9 @@ def test_get_movielens(tmp_path, variant):
 
     assert isinstance(train, merlin.io.Dataset)
     assert isinstance(valid, merlin.io.Dataset)
+
+
+def test_unsupported_variant():
+    with pytest.raises(ValueError) as excinfo:
+        get_movielens("/tmp", variant="unknown")
+    assert "MovieLens dataset variant not supported" in str(excinfo.value)
