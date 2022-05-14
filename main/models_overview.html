@@ -116,7 +116,7 @@ Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019.
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
 
 <span class="n">block</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">TwoTowerBlock</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]))</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">ItemRetrievalTask</span><span class="p">())</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">ItemRetrievalTask</span><span class="p">())</span>
 </pre></div>
 </div>
 <p>Low-level API:</p>
@@ -126,7 +126,7 @@ Conference on Recommender Systems, 269–77. Copenhagen Denmark: ACM, 2019.
 <span class="n">user_tower</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">),</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]))</span>
 <span class="n">item_tower</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">InputBlock</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">),</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">]))</span>
 <span class="n">two_tower</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">ParallelBlock</span><span class="p">({</span><span class="s2">&quot;user&quot;</span><span class="p">:</span> <span class="n">user_tower</span><span class="p">,</span> <span class="s2">&quot;item&quot;</span><span class="p">:</span> <span class="n">item_tower</span><span class="p">})</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">two_tower</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">ItemRetrievalTask</span><span class="p">())</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">two_tower</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">ItemRetrievalTask</span><span class="p">())</span>
 </pre></div>
 </div>
 </div>
@@ -148,7 +148,7 @@ May 31, 2019. <a class="reference external" href="http://arxiv.org/abs/1906.0009
     <span class="n">bottom_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">128</span><span class="p">]),</span>
     <span class="n">top_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">512</span><span class="p">,</span> <span class="mi">128</span><span class="p">])</span>
 <span class="p">)</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">dlrm</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">schema</span><span class="p">))</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">dlrm</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">schema</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>Low-level API:</p>
@@ -204,7 +204,7 @@ Mixture-of-Experts,” 2018, 1930–39. <a class="reference external" href="http
 <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">PredictionTasks</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 <span class="n">block</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">])</span>
 <span class="n">mmoe</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">MMOEBlock</span><span class="p">(</span><span class="n">prediction_tasks</span><span class="p">,</span> <span class="n">expert_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span> <span class="n">num_experts</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">mmoe</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span> <span class="n">mmoe</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -224,7 +224,7 @@ Virtual Event Brazil: ACM, 2020. <a class="reference external" href="https://doi
 <span class="n">cgc</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">CGCBlock</span><span class="p">(</span>
     <span class="n">prediction_tasks</span><span class="p">,</span> <span class="n">expert_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span> <span class="n">num_task_experts</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">num_shared_experts</span><span class="o">=</span><span class="mi">2</span>
 <span class="p">)</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span> <span class="n">cgc</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span> <span class="n">cgc</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
