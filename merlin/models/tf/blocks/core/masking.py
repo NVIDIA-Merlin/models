@@ -21,6 +21,7 @@ from tensorflow.keras import backend
 from tensorflow.python.ops import array_ops
 
 from merlin.models.tf.blocks.core.base import Block, PredictionOutput
+from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.registry import Registry
 from merlin.schema import Tags
@@ -123,8 +124,8 @@ class MaskingBlock(Block):
         )
         return inputs
 
-    def call(self, inputs, training=True, **kwargs) -> tf.Tensor:
-        items = self.context[self.schema.select_by_tag(Tags.ITEM_ID)]
+    def call(self, inputs, feature_context=None, training=True, **kwargs) -> tf.Tensor:
+        items = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
         mask = self.compute_feature_mask(items, training=training)
         inputs = self.apply_mask_to_inputs(inputs, mask)
         return inputs
@@ -138,6 +139,9 @@ class MaskingBlock(Block):
             }
         )
         return config
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 
 @masking_registry.register_with_multiple_names("clm", "causal")
@@ -378,9 +382,13 @@ class MaskingHead(Block):
         self.item_id_feature_name = item_id_feature_name
 
     def call_outputs(
-        self, outputs: PredictionOutput, training: bool = True, **kwargs
+        self,
+        outputs: PredictionOutput,
+        feature_context: FeatureContext,
+        training: bool = True,
+        **kwargs
     ) -> "PredictionOutput":
-        targets = self.context[self.item_id_feature_name]
+        targets = feature_context.features.values[self.item_id_feature_name]
         mask = self.context.get_mask()
         targets = tf.where(mask, targets, self.padding_idx)
         return outputs.copy_with_updates(

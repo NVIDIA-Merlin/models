@@ -17,8 +17,8 @@ from merlin.models.tf.blocks.core.base import (
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType, TabularBlock
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import call_layer
 from merlin.models.utils import schema_utils
-from merlin.models.utils.misc_utils import filter_kwargs
 from merlin.schema import Schema, Tags
 
 
@@ -284,20 +284,7 @@ class SequentialBlock(Block):
 
         outputs = inputs
         for i, layer in enumerate(self.layers):
-            filtered_kwargs = filter_kwargs(
-                {"training": training, **kwargs},
-                layer,
-                cascade_kwargs_if_possible=True,
-            )
-            filtered_kwargs.update(
-                filter_kwargs(
-                    {"training": training, **kwargs},
-                    layer.call,
-                    cascade_kwargs_if_possible=True,
-                )
-            )
-
-            outputs = layer(outputs, **filtered_kwargs)
+            outputs = call_layer(layer, outputs, **kwargs)
 
         return outputs
 
@@ -467,13 +454,13 @@ class ParallelBlock(TabularBlock):
             name in inputs for name in list(self.parallel_dict.keys())
         ):
             for name, block in self.parallel_dict.items():
-                out = block(inputs[name])
+                out = call_layer(block, inputs[name], **kwargs)
                 if not isinstance(out, dict):
                     out = {name: out}
                 outputs.update(out)
         else:
             for name, layer in self.parallel_dict.items():
-                out = layer(inputs)
+                out = call_layer(layer, inputs, **kwargs)
                 if not isinstance(out, dict):
                     out = {name: out}
                 outputs.update(out)
