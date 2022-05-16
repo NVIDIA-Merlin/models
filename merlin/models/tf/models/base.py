@@ -460,6 +460,11 @@ class Model(tf.keras.Model):
         x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
         outputs = self.prediction_output(x, y, testing=True)
 
+        if getattr(self, "pre_eval_k", False):
+            # During eval, the retrieval-task only returns positive scores
+            # so we need to retrieve top-k negative scores to compute the loss
+            outputs = self.pre_eval_topk.call_outputs(outputs)
+
         self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
         metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
 
@@ -660,13 +665,12 @@ class RetrievalModel(Model):
             elif isinstance(item_corpus, merlin.io.Dataset):
                 item_corpus = unique_rows_by_features(item_corpus, Tags.ITEM, Tags.ITEM_ID)
                 item_block = self.retrieval_block.item_block()
-                loss_block = self.loss_block
 
-                if loss_block.pre_eval_topk is None:
+                if not getattr(self, "pre_eval_topk", None):
                     ranking_metrics = list(
                         [metric for metric in self.metrics if isinstance(metric, RankingMetric)]
                     )
-                    loss_block.pre_eval_topk = TopKIndexBlock.from_block(
+                    self.pre_eval_topk = TopKIndexBlock.from_block(
                         item_block,
                         data=item_corpus,
                         k=tf.reduce_max([metric.k for metric in ranking_metrics]),
@@ -674,15 +678,18 @@ class RetrievalModel(Model):
                         **kwargs,
                     )
                 else:
-                    loss_block.pre_eval_topk.update_from_block(item_block, item_corpus)
+                    self.pre_eval_topk.update_from_block(item_block, item_corpus)
             else:
                 raise ValueError(
                     "`item_corpus` must be either a `TopKIndexBlock` or a `Dataset`. ",
                     f"Got {type(item_corpus)}",
                 )
 
+            from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
+
             # set cache_query to True in the ItemRetrievalScorer
-            self.loss_block.set_retrieval_cache_query(True)  # type: ignore
+            if isinstance(self.prediction_tasks[0], ItemRetrievalScorer):
+                self.prediction_tasks[0].set_retrieval_cache_query(True)  # type: ignore
 
         return super().evaluate(
             x,
