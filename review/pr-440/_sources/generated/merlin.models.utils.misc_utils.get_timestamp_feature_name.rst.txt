@@ -1,0 +1,6 @@
+﻿merlin.models.utils.misc\_utils.get\_timestamp\_feature\_name
+=============================================================
+
+.. currentmodule:: merlin.models.utils.misc_utils
+
+.. autofunction:: get_timestamp_feature_name
