@@ -29,6 +29,14 @@ except ImportError:
     Workflow = None
 
 
+VARIANTS = {"ml-25m", "ml-1m", "ml-100k"}
+
+
+def validate_variant(variant: str):
+    if variant not in VARIANTS:
+        raise ValueError("MovieLens dataset variant not supported. " f"Must be one of {VARIANTS}")
+
+
 def get_movielens(
     path: Union[str, Path] = None,
     variant="ml-25m",
@@ -49,14 +57,16 @@ def get_movielens(
     path : str
         The path to download the files locally to. If not set will default to
         the 'merlin-models-data` directory in your home folder
-    variant : "ml-25m" or "ml-100k"
-        Which variant of the movielens dataset to use. Must be either "ml-25m" or "ml-100k"
+    variant :  str
+        The variant of the movielens dataset to use.
+        Must be one of "ml-25m", "ml-1m" or "ml-100k"
 
     Returns
     -------
     tuple
         A tuple consisting of a merlin.io.Dataset for the training dataset and validation dataset
     """
+    validate_variant(variant)
     require_nvt()
 
     if path is None:
@@ -90,8 +100,9 @@ def download_movielens(path: Union[str, Path], variant: str = "ml-25m"):
     path : str
         The path to download the files locally to. If not set will default to
         the 'merlin-models-data` directory in your home folder
-    variant : "ml-25m" or "ml-100k"
-        Which variant of the movielens dataset to use. Must be either "ml-25m", "ml-1m" or "ml-100k"
+    variant :  str
+        The variant of the movielens dataset to use.
+        Must be one of "ml-25m", "ml-1m" or "ml-100k"
     """
     download_file(
         f"http://files.grouplens.org/datasets/movielens/{variant}.zip",
@@ -120,7 +131,7 @@ def transform_movielens(
         If not set, will use the default.
     variant: str
         The variant of the movielens dataset to use.
-        Must be either "ml-25m", "ml-1m" or "ml-100k"
+        Must be one of "ml-25m", "ml-1m" or "ml-100k"
     """
 
     if nvt_workflow:
