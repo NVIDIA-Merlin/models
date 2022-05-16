@@ -251,7 +251,8 @@ class ParallelPredictionBlock(ParallelBlock):
 
         super(ParallelPredictionBlock, self).__init__(self.prediction_task_dict, pre=pre, post=post)
 
-        self._set_task_blocks(task_blocks)
+        if task_blocks:
+            self._set_task_blocks(task_blocks)
 
     @classmethod
     def get_tasks_from_schema(cls, schema, task_weight_dict=None):
@@ -317,9 +318,6 @@ class ParallelPredictionBlock(ParallelBlock):
         return [task.task_name for task in tasks]
 
     def _set_task_blocks(self, task_blocks):
-        if not task_blocks:
-            return
-
         if isinstance(task_blocks, dict):
             tasks_multi_names = self._prediction_tasks_multi_names()
             for key, task_block in task_blocks.items():
