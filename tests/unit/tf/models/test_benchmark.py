@@ -15,11 +15,14 @@
 # #
 #
 
+import pytest
+
 import merlin.models.tf as ml
 from merlin.models.tf.utils import testing_utils
 
 
-def test_ncf_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_eagerly=True):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_ncf_model(ecommerce_data, run_eagerly):
     model = ml.benchmark.NCFModel(
         ecommerce_data.schema,
         embedding_dim=64,
@@ -27,10 +30,4 @@ def test_ncf_model_single_task_from_pred_task(ecommerce_data, num_epochs=5, run_
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
-
-    losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
-    metrics = model.evaluate(ecommerce_data, batch_size=50, return_dict=True)
-    testing_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
-    )
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
