@@ -90,13 +90,9 @@ def test_topk_recommender_outputs(ecommerce_data: Dataset):
             [64],
         ),
         samplers=[mm.InBatchSampler()],
-        metrics=[
-            mm.RecallAt(10),
-        ],
-        loss="categorical_crossentropy",
     )
     batch_size = 100
-    model.compile("adam", run_eagerly=False)
+    model.compile("adam", run_eagerly=False, metrics=[mm.RecallAt(10)])
 
     model.fit(
         ecommerce_data,

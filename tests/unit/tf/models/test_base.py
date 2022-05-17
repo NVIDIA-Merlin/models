@@ -68,12 +68,3 @@ def test_block_with_input_to_model(ecommerce_data: Dataset):
             input_block=inputs,
         )
     assert "The block already includes an InputBlock" in str(excinfo.value)
-
-
-def test_wrong_model(ecommerce_data: Dataset):
-    with pytest.raises(ValueError) as excinfo:
-        ml.Model(
-            ml.InputBlock(ecommerce_data.schema),
-            ml.MLPBlock([64]),
-        )
-    assert "Last block must be able to calculate loss & metrics." in str(excinfo.value)

@@ -40,11 +40,9 @@ def test_example_01_getting_started(tb):
     tb.execute()
     metrics = tb.ref("metrics")
     assert sorted(list(metrics.keys())) == [
+        "auc",
+        "binary_accuracy",
         "loss",
-        "rating_binary/binary_classification_task/auc",
-        "rating_binary/binary_classification_task/binary_accuracy",
-        "rating_binary/binary_classification_task/precision",
-        "rating_binary/binary_classification_task/recall",
-        "regularization_loss",
-        "total_loss",
+        "precision",
+        "recall",
     ]

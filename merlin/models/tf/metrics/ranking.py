@@ -265,6 +265,8 @@ class RankingMetric(Mean):
             base_config = super(RankingMetric, self).get_config()
             return dict(list(base_config.items()) + list(config.items()))
 
+        return {}
+
     @classmethod
     def from_config(cls, config):
         fn = config.pop("fn", None)
@@ -277,31 +279,31 @@ class RankingMetric(Mean):
 
 @metrics_registry.register_with_multiple_names("recall_at", "recall")
 class RecallAt(RankingMetric):
-    def __init__(self, k=10, pre_sorted=True, name="recall_at"):
+    def __init__(self, k=10, pre_sorted=False, name="recall_at"):
         super().__init__(recall_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("precision_at", "precision")
 class PrecisionAt(RankingMetric):
-    def __init__(self, k=10, pre_sorted=True, name="precision_at"):
+    def __init__(self, k=10, pre_sorted=False, name="precision_at"):
         super().__init__(precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("map_at", "map")
 class AvgPrecisionAt(RankingMetric):
-    def __init__(self, k=10, pre_sorted=True, name="map_at"):
+    def __init__(self, k=10, pre_sorted=False, name="map_at"):
         super().__init__(average_precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("mrr_at", "mrr")
 class MRRAt(RankingMetric):
-    def __init__(self, k=10, pre_sorted=True, name="mrr_at"):
+    def __init__(self, k=10, pre_sorted=False, name="mrr_at"):
         super().__init__(mrr_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 class NDCGAt(RankingMetric):
-    def __init__(self, k=10, pre_sorted=True, name="ndcg"):
+    def __init__(self, k=10, pre_sorted=False, name="ndcg"):
         super().__init__(ndcg_at, k=k, pre_sorted=pre_sorted, name=name)
 
 

@@ -279,7 +279,7 @@ class SequentialBlock(Block):
     def call(self, inputs, training=False, **kwargs):
         outputs = inputs
         for i, layer in enumerate(self.layers):
-            outputs = call_layer(layer, outputs, **kwargs)
+            outputs = call_layer(layer, outputs, training=training, **kwargs)
 
         return outputs
 
@@ -400,6 +400,10 @@ class ParallelBlock(TabularBlock):
             return self.parallel_layers
 
         return {str(i): m for i, m in enumerate(self.parallel_layers)}
+
+    @property
+    def layers(self) -> List[tf.keras.layers.Layer]:
+        return self.parallel_values
 
     def select_by_name(self, name: str) -> Optional["Block"]:
         """Select a parallel block by name

@@ -271,7 +271,7 @@ def test_items_weight_tying_with_different_domain_name():
 
     weight_tying_block = ItemsPredictionWeightTying(schema=schema)
     input_block = ml.InputBlock(schema)
-    task = ml.MultiClassClassificationTask("target", loss="categorical_crossentropy")
+    task = ml.MultiClassClassificationTask("target")
     model = ml.Model(input_block, ml.MLPBlock([64]), weight_tying_block, task)
 
     _ = model(inputs)

@@ -21,7 +21,6 @@ from tensorflow.keras.layers import Layer
 from tensorflow.python.keras.layers import Dense
 
 from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
-from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.prediction_tasks.base import PredictionTask
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -67,8 +66,6 @@ class BinaryClassificationTask(PredictionTask):
         target: Optional[Union[str, Schema]] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS,
         **kwargs,
     ):
         if isinstance(target, Schema):
@@ -91,7 +88,6 @@ class BinaryClassificationTask(PredictionTask):
 
         output_layer = kwargs.pop("output_layer", None)
         super().__init__(
-            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
@@ -106,7 +102,6 @@ class BinaryClassificationTask(PredictionTask):
         self.output_activation = tf.keras.layers.Activation(
             "sigmoid", dtype="float32", name="prediction"
         )
-        self.loss = loss_registry.parse(loss)
 
     def call(self, inputs, training=False, **kwargs):
         return self.output_activation(self.output_layer(inputs))
@@ -119,14 +114,13 @@ class BinaryClassificationTask(PredictionTask):
         config = maybe_serialize_keras_objects(
             self,
             config,
-            {"output_layer": tf.keras.layers.serialize, "loss": tf.keras.losses.serialize},
+            {"output_layer": tf.keras.layers.serialize},
         )
 
         return config
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["loss"], tf.keras.losses.deserialize)
         config = maybe_deserialize_keras_objects(
             config, ["output_layer"], tf.keras.layers.deserialize
         )
@@ -205,20 +199,16 @@ class MultiClassClassificationTask(PredictionTask):
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: Optional[MetricOrMetrics] = DEFAULT_METRICS,
         pre: Optional[Block] = None,
         **kwargs,
     ):
         super().__init__(
-            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
             pre=pre,
             **kwargs,
         )
-        self.loss = loss_registry.parse(loss)
 
     @classmethod
     def from_schema(
@@ -249,22 +239,3 @@ class MultiClassClassificationTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         return inputs
-
-    def metric_results(self, mode: str = "val"):
-        dict_results = {}
-        for metric in self.metrics:
-            dict_results.update({metric.name: metric.result()})
-
-        return dict_results
-
-    def get_config(self):
-        config = super().get_config()
-        config = maybe_serialize_keras_objects(self, config, {"loss": tf.keras.losses.serialize})
-
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["loss"], tf.keras.losses.deserialize)
-
-        return super().from_config(config)

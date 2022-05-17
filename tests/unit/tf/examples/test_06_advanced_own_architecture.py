@@ -27,10 +27,5 @@ def test_example_06_defining_own_architecture(tb):
     )
     tb.execute()
     metrics = tb.ref("metrics")
-    assert sorted(list(metrics.keys())) == [
-        "loss",
-        "rating_binary/binary_classification_task/auc",
-        "regularization_loss",
-        "total_loss",
-    ]
+    assert sorted(list(metrics.keys())) == ["auc", "loss"]
     assert os.path.isdir("custom_dlrm")
