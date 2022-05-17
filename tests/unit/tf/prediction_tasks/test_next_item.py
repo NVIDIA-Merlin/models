@@ -219,11 +219,10 @@ def test_retrieval_task_inbatch_cached_samplers(
             music_streaming_data.schema,
             logits_temperature=2,
             samplers=samplers,
-            loss="bpr",
         ),
     )
 
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss="bpr")
 
     for batch_step in range(1, 4):
         output = model(batch_inputs, training=True)
@@ -286,8 +285,6 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
         "ndcg_10",
         "precision_at_10",
         "recall_at_10",
-        "regularization_loss",
-        "total_loss",
     ]
 
 
@@ -359,7 +356,6 @@ def test_last_item_prediction_task(
     loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     task = ml.NextItemPredictionTask(
         schema=sequence_testing_data.schema,
-        loss=loss,
         masking=True,
         weight_tying=weight_tying,
         sampled_softmax=sampled_softmax,
@@ -367,7 +363,7 @@ def test_last_item_prediction_task(
     )
 
     model = ml.Model(inputs, ml.MLPBlock([64]), task)
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss=loss)
     losses = model.fit(sequence_testing_data, batch_size=50, epochs=2)
 
     assert len(losses.epoch) == 2
@@ -396,10 +392,10 @@ def test_retrieval_task_inbatch_default_sampler(
 
     model = ml.Model(
         two_tower,
-        ml.ItemRetrievalTask(music_streaming_data.schema, logits_temperature=2, loss="bpr"),
+        ml.ItemRetrievalTask(music_streaming_data.schema, logits_temperature=2),
     )
 
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss="bpr")
 
     for _ in range(1, 4):
         output = model(batch_inputs, training=True)
