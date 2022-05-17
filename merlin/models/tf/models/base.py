@@ -16,7 +16,6 @@ from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import call_layer
 from merlin.models.utils.dataset import unique_rows_by_features

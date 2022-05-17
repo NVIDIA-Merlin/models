@@ -15,7 +15,6 @@ from merlin.models.tf.blocks.core.base import (
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils import tf_utils
-from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin
 from merlin.models.utils.schema_utils import tensorflow_metadata_json_to_schema
 from merlin.schema import Schema, Tags
 
