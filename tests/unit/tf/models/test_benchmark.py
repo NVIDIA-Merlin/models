@@ -16,8 +16,6 @@
 #
 import pytest
 
-import pytest
-
 import merlin.models.tf as ml
 from merlin.models.tf.utils import testing_utils
 
