@@ -13,31 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-import tensorflow as tf
+import pytest
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
-
-targets = {"target": tf.cast(tf.random.uniform((100,), maxval=2, dtype=tf.int32), tf.float32)}
-
-
-def test_regression_head(testing_data: Dataset):
-    from merlin.models.tf.utils import testing_utils
-
-    body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
-    model = ml.Model(body, ml.RegressionTask("target"))
-
-    batch = (ml.sample_batch(testing_data, batch_size=100, include_targets=False), targets)
-    testing_utils.assert_loss_and_metrics_are_valid(model, batch)
+from merlin.models.tf.utils import testing_utils
 
 
-def test_serialization_regression_head(testing_data: Dataset):
-    from merlin.models.tf.utils import testing_utils
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_regression_head(ecommerce_data: Dataset, run_eagerly):
+    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    model = ml.Model(body, ml.RegressionTask("click"))
 
-    body = ml.InputBlock(testing_data.schema).connect(ml.MLPBlock([64]))
-    model = ml.Model(body, ml.RegressionTask("target"))
-
-    copy_model = testing_utils.assert_serialization(model)
-    batch = (ml.sample_batch(testing_data, batch_size=100, include_targets=False), targets)
-    testing_utils.assert_loss_and_metrics_are_valid(copy_model, batch)
+    testing_utils.model_test(model, ecommerce_data)
