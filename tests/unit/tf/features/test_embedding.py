@@ -82,8 +82,9 @@ def test_embedding_features_yoochoose_model(music_streaming_data: Dataset, run_e
 
     inputs = mm.EmbeddingFeatures.from_schema(schema, aggregation="concat")
     body = mm.SequentialBlock([inputs, mm.MLPBlock([64])])
+    model = mm.Model(body, mm.BinaryClassificationTask("click"))
 
-    testing_utils.assert_body_works_in_model(music_streaming_data, body, run_eagerly)
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
 
 
 def test_embedding_features_yoochoose_custom_dims(testing_data: Dataset):
