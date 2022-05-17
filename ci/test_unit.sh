@@ -15,4 +15,6 @@
 #
 
 #!/bin/bash
-make jenkins-tf
+set -e
+
+pytest tests/unit
