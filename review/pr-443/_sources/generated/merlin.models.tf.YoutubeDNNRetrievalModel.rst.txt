@@ -1,0 +1,6 @@
+﻿merlin.models.tf.YoutubeDNNRetrievalModel
+=========================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: YoutubeDNNRetrievalModel
