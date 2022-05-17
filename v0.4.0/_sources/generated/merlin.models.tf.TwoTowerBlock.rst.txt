@@ -20,7 +20,6 @@
       ~TwoTowerBlock.add_update
       ~TwoTowerBlock.add_variable
       ~TwoTowerBlock.add_weight
-      ~TwoTowerBlock.apply
       ~TwoTowerBlock.apply_to_all
       ~TwoTowerBlock.apply_to_branch
       ~TwoTowerBlock.as_tabular
@@ -50,12 +49,10 @@
       ~TwoTowerBlock.get_input_mask_at
       ~TwoTowerBlock.get_input_shape_at
       ~TwoTowerBlock.get_item_ids_from_inputs
-      ~TwoTowerBlock.get_losses_for
       ~TwoTowerBlock.get_output_at
       ~TwoTowerBlock.get_output_mask_at
       ~TwoTowerBlock.get_output_shape_at
       ~TwoTowerBlock.get_padding_mask_from_item_id
-      ~TwoTowerBlock.get_updates_for
       ~TwoTowerBlock.get_weights
       ~TwoTowerBlock.item_block
       ~TwoTowerBlock.parse

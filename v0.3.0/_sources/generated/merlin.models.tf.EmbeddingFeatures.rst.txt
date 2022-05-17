@@ -19,7 +19,6 @@
       ~EmbeddingFeatures.add_update
       ~EmbeddingFeatures.add_variable
       ~EmbeddingFeatures.add_weight
-      ~EmbeddingFeatures.apply
       ~EmbeddingFeatures.apply_to_all
       ~EmbeddingFeatures.as_tabular
       ~EmbeddingFeatures.build
@@ -51,12 +50,10 @@
       ~EmbeddingFeatures.get_input_mask_at
       ~EmbeddingFeatures.get_input_shape_at
       ~EmbeddingFeatures.get_item_ids_from_inputs
-      ~EmbeddingFeatures.get_losses_for
       ~EmbeddingFeatures.get_output_at
       ~EmbeddingFeatures.get_output_mask_at
       ~EmbeddingFeatures.get_output_shape_at
       ~EmbeddingFeatures.get_padding_mask_from_item_id
-      ~EmbeddingFeatures.get_updates_for
       ~EmbeddingFeatures.get_weights
       ~EmbeddingFeatures.lookup_feature
       ~EmbeddingFeatures.parse

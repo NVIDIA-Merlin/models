@@ -20,7 +20,6 @@
       ~PopularityBasedSampler.add_update
       ~PopularityBasedSampler.add_variable
       ~PopularityBasedSampler.add_weight
-      ~PopularityBasedSampler.apply
       ~PopularityBasedSampler.build
       ~PopularityBasedSampler.call
       ~PopularityBasedSampler.compute_mask
@@ -33,11 +32,9 @@
       ~PopularityBasedSampler.get_input_at
       ~PopularityBasedSampler.get_input_mask_at
       ~PopularityBasedSampler.get_input_shape_at
-      ~PopularityBasedSampler.get_losses_for
       ~PopularityBasedSampler.get_output_at
       ~PopularityBasedSampler.get_output_mask_at
       ~PopularityBasedSampler.get_output_shape_at
-      ~PopularityBasedSampler.get_updates_for
       ~PopularityBasedSampler.get_weights
       ~PopularityBasedSampler.sample
       ~PopularityBasedSampler.set_max_num_samples

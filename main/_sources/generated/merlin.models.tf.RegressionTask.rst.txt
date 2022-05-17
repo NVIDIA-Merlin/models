@@ -19,7 +19,6 @@
       ~RegressionTask.add_update
       ~RegressionTask.add_variable
       ~RegressionTask.add_weight
-      ~RegressionTask.apply
       ~RegressionTask.attach_metrics_calculation_to_loss
       ~RegressionTask.build
       ~RegressionTask.build_task
@@ -37,11 +36,9 @@
       ~RegressionTask.get_input_at
       ~RegressionTask.get_input_mask_at
       ~RegressionTask.get_input_shape_at
-      ~RegressionTask.get_losses_for
       ~RegressionTask.get_output_at
       ~RegressionTask.get_output_mask_at
       ~RegressionTask.get_output_shape_at
-      ~RegressionTask.get_updates_for
       ~RegressionTask.get_weights
       ~RegressionTask.metric_result_dict
       ~RegressionTask.metric_results

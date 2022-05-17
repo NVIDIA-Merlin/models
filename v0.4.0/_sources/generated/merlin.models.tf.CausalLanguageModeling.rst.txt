@@ -20,7 +20,6 @@
       ~CausalLanguageModeling.add_update
       ~CausalLanguageModeling.add_variable
       ~CausalLanguageModeling.add_weight
-      ~CausalLanguageModeling.apply
       ~CausalLanguageModeling.apply_mask_to_inputs
       ~CausalLanguageModeling.as_tabular
       ~CausalLanguageModeling.build
@@ -46,12 +45,10 @@
       ~CausalLanguageModeling.get_input_mask_at
       ~CausalLanguageModeling.get_input_shape_at
       ~CausalLanguageModeling.get_item_ids_from_inputs
-      ~CausalLanguageModeling.get_losses_for
       ~CausalLanguageModeling.get_output_at
       ~CausalLanguageModeling.get_output_mask_at
       ~CausalLanguageModeling.get_output_shape_at
       ~CausalLanguageModeling.get_padding_mask_from_item_id
-      ~CausalLanguageModeling.get_updates_for
       ~CausalLanguageModeling.get_weights
       ~CausalLanguageModeling.parse
       ~CausalLanguageModeling.parse_block
