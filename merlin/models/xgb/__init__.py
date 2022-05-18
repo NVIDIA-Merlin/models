@@ -23,8 +23,10 @@ class XGBoost:
         from merlin.schema import Tags
         from merlin.models.xgb import XGBoost
 
-        model = XGBoost(Tags.REGRESSION)
+        model = XGBoost("binary:logistic")
         model.fit(train)
+
+        model.evaluate(valid)
     """
 
     def __init__(self, objective: str, *args, **kwargs):
