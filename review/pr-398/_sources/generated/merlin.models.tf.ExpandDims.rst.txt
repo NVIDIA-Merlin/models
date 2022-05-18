@@ -19,7 +19,6 @@
       ~ExpandDims.add_update
       ~ExpandDims.add_variable
       ~ExpandDims.add_weight
-      ~ExpandDims.apply
       ~ExpandDims.apply_to_all
       ~ExpandDims.as_tabular
       ~ExpandDims.build
@@ -48,12 +47,10 @@
       ~ExpandDims.get_input_mask_at
       ~ExpandDims.get_input_shape_at
       ~ExpandDims.get_item_ids_from_inputs
-      ~ExpandDims.get_losses_for
       ~ExpandDims.get_output_at
       ~ExpandDims.get_output_mask_at
       ~ExpandDims.get_output_shape_at
       ~ExpandDims.get_padding_mask_from_item_id
-      ~ExpandDims.get_updates_for
       ~ExpandDims.get_weights
       ~ExpandDims.parse
       ~ExpandDims.parse_block

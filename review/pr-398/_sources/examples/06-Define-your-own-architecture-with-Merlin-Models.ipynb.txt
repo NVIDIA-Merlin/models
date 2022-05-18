@@ -28,9 +28,11 @@
    "id": "1399da61",
    "metadata": {},
    "source": [
-    "## Taking the Next Step with Merlin Models: Define Your Own Architecture\n",
+    "# Taking the Next Step with Merlin Models: Define Your Own Architecture\n",
     "\n",
-    "In [explore-different-models](https://github.com/NVIDIA-Merlin/models/blob/main/examples/03-Exploring-different-models.ipynb), we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.\n",
+    "This notebook is created using the latest stable [merlin-tensorflow-training](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training/tags) container. \n",
+    "\n",
+    "In [Iterating over Deep Learning Models using Merlin Models](https://nvidia-merlin.github.io/models/main/examples/03-Exploring-different-models.html), we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.\n",
     "\n",
     "\n",
     "In this example, we combine pre-existing blocks and demonstrate how to create the [DLRM](https://arxiv.org/abs/1906.00091) architecture.\n",
@@ -55,7 +57,7 @@
    "metadata": {},
    "source": [
     "The [Block](https://nvidia-merlin.github.io/models/review/pr-294/generated/merlin.models.tf.Block.html#merlin.models.tf.Block) is the core abstraction in Merlin Models and is the class from which all blocks inherit.\n",
-    "The class extends the [tf.keras.layers.Layer](https://www.tensorflow.org/api_docs/python/tf/keras/layers/Layer) base class and implements a number of properties that simplify the creation of custom blocks and models. These properties include the `Schema` object for determining the embedding dimensions, input shapes, and output shapes. Additionally, the `Block` has a `BlockContext` instance to store and retrieve public variables and share them with other blocks in the same model as additional meta-data. \n",
+    "The class extends the [tf.keras.layers.Layer](https://www.tensorflow.org/api_docs/python/tf/keras/layers/Layer) base class and implements a number of properties that simplify the creation of custom blocks and models. These properties include the `Schema` object for determining the embedding dimensions, input shapes, and output shapes. Additionally, the `Block` has a `ModelContext` instance to store and retrieve public variables and share them with other blocks in the same model as additional meta-data. \n",
     "\n",
     "Before deep-diving into the definition of the DLRM architecture, let's start by listing the core components you need to know to define a model from scratch:"
    ]
@@ -884,7 +886,7 @@
     }
    ],
    "source": [
-    "model = deep_dlrm_interaction.connect(binary_task)\n",
+    "model = mm.Model(deep_dlrm_interaction, binary_task)\n",
     "type(model)"
    ]
   },
@@ -1091,6 +1093,11 @@
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
    "version": "3.8.10"
+  },
+  "merlin": {
+   "containers": [
+    "nvcr.io/nvidia/merlin/merlin-tensorflow-training:latest"
+   ]
   }
  },
  "nbformat": 4,

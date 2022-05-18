@@ -20,7 +20,6 @@
       ~ParallelBlock.add_update
       ~ParallelBlock.add_variable
       ~ParallelBlock.add_weight
-      ~ParallelBlock.apply
       ~ParallelBlock.apply_to_all
       ~ParallelBlock.apply_to_branch
       ~ParallelBlock.as_tabular
@@ -50,12 +49,10 @@
       ~ParallelBlock.get_input_mask_at
       ~ParallelBlock.get_input_shape_at
       ~ParallelBlock.get_item_ids_from_inputs
-      ~ParallelBlock.get_losses_for
       ~ParallelBlock.get_output_at
       ~ParallelBlock.get_output_mask_at
       ~ParallelBlock.get_output_shape_at
       ~ParallelBlock.get_padding_mask_from_item_id
-      ~ParallelBlock.get_updates_for
       ~ParallelBlock.get_weights
       ~ParallelBlock.parse
       ~ParallelBlock.parse_block

@@ -20,15 +20,14 @@
       ~MaskedLanguageModeling.add_update
       ~MaskedLanguageModeling.add_variable
       ~MaskedLanguageModeling.add_weight
-      ~MaskedLanguageModeling.apply
       ~MaskedLanguageModeling.apply_mask_to_inputs
       ~MaskedLanguageModeling.as_tabular
       ~MaskedLanguageModeling.build
       ~MaskedLanguageModeling.call
       ~MaskedLanguageModeling.call_outputs
       ~MaskedLanguageModeling.check_schema
+      ~MaskedLanguageModeling.compute_feature_mask
       ~MaskedLanguageModeling.compute_mask
-      ~MaskedLanguageModeling.compute_mask_schema
       ~MaskedLanguageModeling.compute_output_shape
       ~MaskedLanguageModeling.compute_output_signature
       ~MaskedLanguageModeling.connect
@@ -46,12 +45,10 @@
       ~MaskedLanguageModeling.get_input_mask_at
       ~MaskedLanguageModeling.get_input_shape_at
       ~MaskedLanguageModeling.get_item_ids_from_inputs
-      ~MaskedLanguageModeling.get_losses_for
       ~MaskedLanguageModeling.get_output_at
       ~MaskedLanguageModeling.get_output_mask_at
       ~MaskedLanguageModeling.get_output_shape_at
       ~MaskedLanguageModeling.get_padding_mask_from_item_id
-      ~MaskedLanguageModeling.get_updates_for
       ~MaskedLanguageModeling.get_weights
       ~MaskedLanguageModeling.parse
       ~MaskedLanguageModeling.parse_block

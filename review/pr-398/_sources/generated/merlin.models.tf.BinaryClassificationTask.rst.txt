@@ -19,7 +19,6 @@
       ~BinaryClassificationTask.add_update
       ~BinaryClassificationTask.add_variable
       ~BinaryClassificationTask.add_weight
-      ~BinaryClassificationTask.apply
       ~BinaryClassificationTask.attach_metrics_calculation_to_loss
       ~BinaryClassificationTask.build
       ~BinaryClassificationTask.build_task
@@ -37,11 +36,9 @@
       ~BinaryClassificationTask.get_input_at
       ~BinaryClassificationTask.get_input_mask_at
       ~BinaryClassificationTask.get_input_shape_at
-      ~BinaryClassificationTask.get_losses_for
       ~BinaryClassificationTask.get_output_at
       ~BinaryClassificationTask.get_output_mask_at
       ~BinaryClassificationTask.get_output_shape_at
-      ~BinaryClassificationTask.get_updates_for
       ~BinaryClassificationTask.get_weights
       ~BinaryClassificationTask.metric_result_dict
       ~BinaryClassificationTask.metric_results

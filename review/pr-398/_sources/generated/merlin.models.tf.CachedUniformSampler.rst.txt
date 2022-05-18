@@ -20,7 +20,6 @@
       ~CachedUniformSampler.add_update
       ~CachedUniformSampler.add_variable
       ~CachedUniformSampler.add_weight
-      ~CachedUniformSampler.apply
       ~CachedUniformSampler.build
       ~CachedUniformSampler.call
       ~CachedUniformSampler.compute_mask
@@ -33,11 +32,9 @@
       ~CachedUniformSampler.get_input_at
       ~CachedUniformSampler.get_input_mask_at
       ~CachedUniformSampler.get_input_shape_at
-      ~CachedUniformSampler.get_losses_for
       ~CachedUniformSampler.get_output_at
       ~CachedUniformSampler.get_output_mask_at
       ~CachedUniformSampler.get_output_shape_at
-      ~CachedUniformSampler.get_updates_for
       ~CachedUniformSampler.get_weights
       ~CachedUniformSampler.sample
       ~CachedUniformSampler.set_max_num_samples

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Merlin Models Example Notebooks &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -12,7 +14,11 @@
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
-        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -40,16 +46,18 @@
 <li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Example Notebooks</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#inventory">Inventory</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
-<li class="toctree-l3"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
-<li class="toctree-l3"><a class="reference internal" href="03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#inventory">Inventory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-the-example-notebooks">Running the Example Notebooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="04-Exporting-ranking-models.html">Exporting Ranking Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="05-Retrieval-Model.html">Two-Stage Recommender Systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="06-Define-your-own-architecture-with-Merlin-Models.html">Taking the Next Step with Merlin Models: Define Your Own Architecture</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
 </ul>
 
         </div>
@@ -75,42 +83,19 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  
-<style>
-/* CSS overrides for sphinx_rtd_theme */
-
-/* 24px margin */
-.nbinput.nblast.container,
-.nboutput.nblast.container {
-    margin-bottom: 19px;  /* padding has already 5px */
-}
-
-/* ... except between code cells! */
-.nblast.container + .nbinput.container {
-    margin-top: -19px;
-}
-
-.admonition > p:before {
-    margin-right: 4px;  /* make room for the exclamation icon */
-}
-
-/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
-.math {
-    text-align: unset;
-}
-</style>
-<div class="section" id="merlin-models-example-notebooks">
+  <div class="tex2jax_ignore mathjax_ignore section" id="merlin-models-example-notebooks">
 <h1>Merlin Models Example Notebooks<a class="headerlink" href="#merlin-models-example-notebooks" title="Permalink to this headline"></a></h1>
 <p>The example notebooks demonstrate how to use Merlin Models with TensorFlow on a variety of datasets.</p>
 <div class="section" id="inventory">
 <h2>Inventory<a class="headerlink" href="#inventory" title="Permalink to this headline"></a></h2>
 <ul class="simple">
-<li><p><a class="reference internal" href="01-Getting-started.html"><span class="doc">Getting Started: Develop a Model for MovieLens</span></a>: Get started with Merlin Models by training <a class="reference external" href="https://arxiv.org/pdf/1906.00091.pdf">Facebook’s DLRM</a> architecture with only 3 commands.</p></li>
-<li><p><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html"><span class="doc">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</span></a>: Learn how the <cite>Schema</cite> object connects the feature engineering and training steps. You’ll learn how to apply Merlin Models to your own dataset structures.</p></li>
-<li><p><a class="reference internal" href="03-Exploring-different-models.html"><span class="doc">Iterating over Deep Learning Models</span></a>: Explore different ranking model architectures, such as <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">Neural Collaborative Filtering (NCF)</a>, MLP, <a class="reference external" href="https://arxiv.org/abs/1906.00091">DRLM</a>, and <a class="reference external" href="https://arxiv.org/pdf/1708.05123.pdf">Deep &amp; Cross Network (DCN)</a>.</p></li>
+<li><p><a class="reference internal" href="01-Getting-started.html"><span class="doc std std-doc">Getting Started: Develop a Model for MovieLens</span></a>: Get started with Merlin Models by training <a class="reference external" href="https://arxiv.org/pdf/1906.00091.pdf">Facebook’s DLRM</a> architecture with only 3 commands.</p></li>
+<li><p><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html"><span class="doc std std-doc">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</span></a>: Learn how the <code class="docutils literal notranslate"><span class="pre">Schema</span></code> object connects the feature engineering and training steps. You’ll learn how to apply Merlin Models to your own dataset structures.</p></li>
+<li><p><a class="reference internal" href="03-Exploring-different-models.html"><span class="doc std std-doc">Iterating over Deep Learning Models</span></a>: Explore different ranking model architectures, such as <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">Neural Collaborative Filtering (NCF)</a>, MLP, <a class="reference external" href="https://arxiv.org/abs/1906.00091.pdf">DRLM</a>, and <a class="reference external" href="https://arxiv.org/pdf/1708.05123.pdf">Deep &amp; Cross Network (DCN)</a>.</p></li>
+<li><p><a class="reference internal" href="04-Exporting-ranking-models.html"><span class="doc std std-doc">Exporting Ranking Models</span></a>: Save a <code class="docutils literal notranslate"><span class="pre">Workflow</span></code> object and a <code class="docutils literal notranslate"><span class="pre">Model</span></code> object in preparation of deploying the model to production.</p></li>
+<li><p><a class="reference internal" href="05-Retrieval-Model.html"><span class="doc std std-doc">Two-Stage Recommender Systems</span></a>: Build a two-tower model using synthetic data that mimics the <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">Ali-CCP: Alibaba Click and Conversion Prediction</a> dataset.</p></li>
+<li><p><a class="reference internal" href="06-Define-your-own-architecture-with-Merlin-Models.html"><span class="doc std std-doc">The Next Step: Define Your Own Architecture</span></a>: See how to combine pre-existing blocks to define a custom model.</p></li>
 </ul>
-<div class="toctree-wrapper compound">
-</div>
 </div>
 <div class="section" id="running-the-example-notebooks">
 <h2>Running the Example Notebooks<a class="headerlink" href="#running-the-example-notebooks" title="Permalink to this headline"></a></h2>
@@ -122,9 +107,9 @@ Access the catalog of containers at <a class="reference external" href="http://n
 <li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training">Merlin-Tensorflow-Training</a> (contains Merlin Core, Merlin Models, NVTabular and TensorFlow)</p></li>
 <li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-inference">Merlin-Inference</a> (contains Merlin Core, Merlin Models, Merlin Systems, NVTabular, TensorFlow and Triton Inference Server)</p></li>
 </ul>
-<p>Alternatively, you can <a class="reference internal" href="../README.html#installing-merlin-models-from-source"><span class="std std-ref">install Merlin Models from source</span></a> and other required libraries to run the notebooks on your host.</p>
+<p>Alternatively, you can <a class="reference external" href="https://github.com/NVIDIA-Merlin/models#installing-merlin-models-from-source">install Merlin Models from source</a> and other required libraries to run the notebooks on your host by following the instructions in the README from the GitHub repository.</p>
 <p>To run the example notebooks using Docker containers, perform the following steps:</p>
-<ol class="arabic">
+<ol>
 <li><p>Pull and start the container by running the following command:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>docker run --gpus all --rm -it <span class="se">\</span>
   -p <span class="m">8888</span>:8888 -p <span class="m">8797</span>:8787 -p <span class="m">8796</span>:8786 --ipc<span class="o">=</span>host <span class="se">\</span>
@@ -150,7 +135,7 @@ Your shell prompt should look similar to the following example:</p>
 <p>View the messages in your terminal to identify the URL for JupyterLab.
 The messages in your terminal show similar lines to the following example:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>Or copy and paste one of these URLs:
-   http://2efa5b50b909:8888/lab?token<span class="o">=</span>9b537d1fda9e4e9cadc673ba2a472e247deee69a6229ff8d
+http://2efa5b50b909:8888/lab?token<span class="o">=</span>9b537d1fda9e4e9cadc673ba2a472e247deee69a6229ff8d
 or http://127.0.0.1:8888/lab?token<span class="o">=</span>9b537d1fda9e4e9cadc673ba2a472e247deee69a6229ff8d
 </pre></div>
 </div>
@@ -158,6 +143,8 @@ or http://127.0.0.1:8888/lab?token<span class="o">=</span>9b537d1fda9e4e9cadc673
 <li><p>Open a browser and use the <code class="docutils literal notranslate"><span class="pre">127.0.0.1</span></code> URL provided in the messages by JupyterLab.</p></li>
 <li><p>After you log in to JupyterLab, navigate to the <code class="docutils literal notranslate"><span class="pre">/models/examples</span></code> directory to try out the example notebooks.</p></li>
 </ol>
+</div>
+<div class="toctree-wrapper compound">
 </div>
 </div>
 

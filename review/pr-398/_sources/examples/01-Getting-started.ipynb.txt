@@ -32,6 +32,8 @@
     "\n",
     "# Getting Started with Merlin Models: Develop a Model for MovieLens\n",
     "\n",
+    "This notebook is created using the latest stable [merlin-tensorflow-training](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training/tags) container. \n",
+    "\n",
     "## Overview\n",
     "\n",
     "[Merlin Models](https://github.com/NVIDIA-Merlin/models/) is a library for training recommender models. Merlin Models let Data Scientists and ML Engineers easily train standard RecSys models on their own dataset, getting GPU-accelerated models with best practices baked into the library. This will also let researchers to build custom models by incorporating standard components of deep learning recommender models, and then benchmark their new models on example offline datasets. Merlin Models is part of the [Merlin open source framework](https://developer.nvidia.com/nvidia-merlin).\n",
@@ -58,11 +60,22 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 2,
    "id": "60653f70",
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-05-03 09:40:44.983158: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX\n",
+      "To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
+      "2022-05-03 09:40:45.942290: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -> device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0\n"
+     ]
+    }
+   ],
    "source": [
+    "import os\n",
     "import merlin.models.tf as mm\n",
     "\n",
     "from merlin.datasets.entertainment import get_movielens"
@@ -78,12 +91,35 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 3,
    "id": "9ba8b53d",
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.\n",
+      "Instructions for updating:\n",
+      "Use `tf.config.list_physical_devices('GPU')` instead.\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.\n",
+      "Instructions for updating:\n",
+      "Use `tf.config.list_physical_devices('GPU')` instead.\n",
+      "2022-05-03 09:40:46.457693: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:0 with 20268 MB memory:  -> device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0\n",
+      "/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.\n",
+      "  warnings.warn(\n"
+     ]
+    }
+   ],
    "source": [
-    "train, valid = get_movielens(variant=\"ml-1m\")"
+    "input_path = os.environ.get(\"INPUT_DATA_DIR\", os.path.expanduser(\"~/merlin-models-data/movielens/\"))\n",
+    "train, valid = get_movielens(variant=\"ml-1m\", path=input_path)"
    ]
   },
   {
@@ -104,7 +140,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 4,
    "id": "d3b8942c",
    "metadata": {},
    "outputs": [],
@@ -130,10 +166,36 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 5,
    "id": "33343067",
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-05-03 09:40:47.887135: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.\n",
+      "2022-05-03 09:40:49.064501: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "782/782 [==============================] - 12s 9ms/step - rating_binary/binary_classification_task/precision: 0.7294 - rating_binary/binary_classification_task/recall: 0.8198 - rating_binary/binary_classification_task/binary_accuracy: 0.7214 - rating_binary/binary_classification_task/auc: 0.7843 - loss: 0.5477 - regularization_loss: 0.0000e+00 - total_loss: 0.5477\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "<keras.callbacks.History at 0x7f1c2d278b80>"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
    "source": [
     "model.fit(train, batch_size=1024)"
    ]
@@ -148,10 +210,25 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 6,
    "id": "13d60260",
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-05-03 09:41:02.880315: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_19\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "196/196 [==============================] - 2s 5ms/step - rating_binary/binary_classification_task/precision: 0.7409 - rating_binary/binary_classification_task/recall: 0.8057 - rating_binary/binary_classification_task/binary_accuracy: 0.7264 - rating_binary/binary_classification_task/auc: 0.7936 - loss: 0.5384 - regularization_loss: 0.0000e+00 - total_loss: 0.5384\n"
+     ]
+    }
+   ],
    "source": [
     "metrics = model.evaluate(valid, batch_size=1024, return_dict=True)"
    ]
@@ -166,14 +243,31 @@
   },
   {
    "cell_type": "code",
-   "execution_count": null,
+   "execution_count": 7,
    "id": "4d415278",
    "metadata": {
     "tags": [
      "metrics"
     ]
    },
-   "outputs": [],
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "{'rating_binary/binary_classification_task/precision': 0.7408556938171387,\n",
+       " 'rating_binary/binary_classification_task/recall': 0.8057063221931458,\n",
+       " 'rating_binary/binary_classification_task/binary_accuracy': 0.7263810634613037,\n",
+       " 'rating_binary/binary_classification_task/auc': 0.7936474680900574,\n",
+       " 'loss': 0.5632060170173645,\n",
+       " 'regularization_loss': 0.0,\n",
+       " 'total_loss': 0.5632060170173645}"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
    "source": [
     "metrics"
    ]
@@ -242,6 +336,11 @@
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
    "version": "3.8.10"
+  },
+  "merlin": {
+   "containers": [
+    "nvcr.io/nvidia/merlin/merlin-tensorflow-training:latest"
+   ]
   }
  },
  "nbformat": 4,
