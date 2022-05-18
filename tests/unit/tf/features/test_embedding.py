@@ -283,14 +283,29 @@ def test_embedding_features_exporting_and_loading_pretrained_initializer(testing
     _ = emb_module(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
     item_id_embeddings = emb_module.embedding_tables["item_id"]
 
-    items_embeddings_dataset = emb_module.embedding_table_dataset(Tags.ITEM_ID)
+    items_embeddings_dataset = emb_module.embedding_table_dataset(Tags.ITEM_ID, gpu=False)
     assert np.allclose(
         item_id_embeddings.numpy(), items_embeddings_dataset.to_ddf().compute().to_pandas().values
     )
 
     emb_init = mm.TensorInitializer.from_dataset(items_embeddings_dataset)
-
     assert np.allclose(item_id_embeddings.numpy(), emb_init(item_id_embeddings.shape).numpy())
+
+    # Test GPU export if available
+    try:
+        import cudf  # noqa: F401
+
+        items_embeddings_dataset = emb_module.embedding_table_dataset(Tags.ITEM_ID, gpu=True)
+        assert np.allclose(
+            item_id_embeddings.numpy(),
+            items_embeddings_dataset.to_ddf().compute().to_pandas().values,
+        )
+
+        emb_init = mm.TensorInitializer.from_dataset(items_embeddings_dataset)
+        assert np.allclose(item_id_embeddings.numpy(), emb_init(item_id_embeddings.shape).numpy())
+
+    except ImportError:
+        pass
 
 
 def test_shared_embeddings(music_streaming_data: Dataset):
