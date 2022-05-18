@@ -213,7 +213,6 @@ def YoutubeDNNRetrievalModel(
     max_seq_length: int,
     aggregation: str = "concat",
     top_block: Block = MLPBlock([64]),
-    num_sampled: int = 100,
     loss: Optional[LossType] = "categorical_crossentropy",
     metrics=ranking_metrics(top_ks=[10]),
     l2_normalization: bool = True,
@@ -221,6 +220,15 @@ def YoutubeDNNRetrievalModel(
     task_block: Optional[Block] = None,
     logits_temperature: float = 1.0,
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+    sampled_softmax: bool = True,
+    num_sampled: int = 100,
+    min_sampled_id: int = 0,
+    embedding_options: EmbeddingOptions = EmbeddingOptions(
+        embedding_dims=None,
+        embedding_dim_default=64,
+        infer_embedding_sizes=False,
+        infer_embedding_sizes_multiplier=2.0,
+    ),
 ) -> Model:
     """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
 
@@ -245,9 +253,6 @@ def YoutubeDNNRetrievalModel(
         Defaults to `concat`.
     top_block: Block
         The `Block` that combines the top features
-    num_sampled: int
-        The number of negative samples to use in the sampled-softmax.
-        Defaults to 100.
     loss: Optional[LossType]
         Loss function.
         Defaults to `categorical_crossentropy`.
@@ -266,6 +271,22 @@ def YoutubeDNNRetrievalModel(
         Defaults to 1.
     seq_aggregator: Block
         The `Block` to aggregate the sequence of features.
+    sampled_softmax: bool
+        Compute the logits scores over all items of the catalog or
+        generate a subset of candidates
+        Defaults to False
+    num_sampled: int
+        When sampled_softmax is enabled, specify the number of
+        negative candidates to generate for each batch.
+        Defaults to 100
+    min_sampled_id: int
+        The minimum id value to be sampled with sampled softmax.
+        Useful to ignore the first categorical
+        encoded ids, which are usually reserved for <nulls>,
+        out-of-vocabulary or padding. Defaults to 0.
+    embedding_options : EmbeddingOptions, optional
+        An EmbeddingOptions instance, which allows for a number of
+        options for the embedding table, by default EmbeddingOptions()
     """
 
     inputs = InputBlock(
@@ -276,6 +297,7 @@ def YoutubeDNNRetrievalModel(
         masking="clm",
         split_sparse=True,
         seq_aggregator=seq_aggregator,
+        embedding_options=embedding_options,
     )
 
     task = NextItemPredictionTask(
@@ -284,12 +306,13 @@ def YoutubeDNNRetrievalModel(
         metrics=metrics,
         masking=True,
         weight_tying=False,
-        sampled_softmax=True,
         extra_pre_call=extra_pre_call,
         task_block=task_block,
         logits_temperature=logits_temperature,
         l2_normalization=l2_normalization,
+        sampled_softmax=sampled_softmax,
         num_sampled=num_sampled,
+        min_sampled_id=min_sampled_id,
     )
 
     # TODO: Figure out how to make this fit as

@@ -98,6 +98,9 @@ def InputBlock(
     add_embedding_branch: bool
         If set, add the branch to process categorical features
         Defaults to True
+    embedding_options : EmbeddingOptions, optional
+        An EmbeddingOptions instance, which allows for a number of
+        options for the embedding table, by default EmbeddingOptions()
     categorical_tags: Optional[Union[TagsType, Tuple[Tags]]]
         Tags to filter the continuous features
         Defaults to (Tags.CATEGORICAL,)
