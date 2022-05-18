@@ -203,6 +203,8 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             features = FeatureCollection(self.schema, self.as_dense(inputs))
             kwargs["feature_context"] = FeatureContext(features)
 
+        self.feature_context = kwargs["feature_context"]
+
         outputs = call_layer(self.block, inputs, **kwargs)
         return outputs
 
@@ -288,9 +290,9 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             else:
                 targets = None
 
-            predictions = self(inputs, training=True)
             features = FeatureCollection(self.schema, self.as_dense(inputs))
             feature_context = FeatureContext(features)
+            predictions = self(inputs, feature_context=feature_context, training=True)
 
             loss = self.compute_loss(
                 predictions,

@@ -42,12 +42,12 @@ def test_masking_block(sequence_testing_data: Dataset, mask_block):
 
 def test_mask_error(sequence_testing_data: Dataset):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
-    embedding_block = ml.InputBlock(schema_list, aggregation="concat", seq=True)
-    task = ml.BinaryClassificationTask("click")
-    model = ml.Model(embedding_block, ml.MLPBlock([64]), task)
+
+    features = FeatureCollection(schema_list, None)
+    feature_context = FeatureContext(features)
 
     with pytest.raises(ValueError) as excinfo:
-        _ = model.context.get_mask()
+        _ = feature_context.mask
     assert "The mask is not stored" in str(excinfo.value)
 
 
@@ -57,12 +57,16 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
     schema_list = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     embedding_block = ml.InputBlock(schema_list, aggregation="concat", max_seq_length=4, seq=True)
     task = ml.BinaryClassificationTask("click")
+
     model = ml.Model(embedding_block, mask_block(), task)
 
     batch = ml.sample_batch(
         sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
     )
-    _ = model(batch, training=False)
+
+    features = FeatureCollection(schema_list, model.as_dense(batch))
+    feature_context = FeatureContext(features)
+    _ = model(batch, training=False, feature_context=feature_context)
 
     # Get last non-padded label from input
     item_ids = batch["item_id_seq"]
@@ -74,7 +78,7 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
     )
     last_labels = tf.gather_nd(item_ids, indices).numpy()
     # get the mask from the model
-    trgt_mask = model.context.get_mask()
+    trgt_mask = feature_context._mask
 
     # check that only one item is masked for each session
     assert tf.reduce_sum(tf.cast(trgt_mask, tf.int32)).numpy() == batch["item_id_seq"].shape[0]
@@ -92,9 +96,12 @@ def test_at_least_one_masked_item_mlm(sequence_testing_data):
     model = ml.Model(embedding_block, mask_block, task)
 
     batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
-    _ = model(batch, training=True)
 
-    trgt_mask = tf.cast(model.context.get_mask(), tf.int32)
+    features = FeatureCollection(schema_list, model.as_dense(batch))
+    feature_context = FeatureContext(features)
+    _ = model(batch, feature_context=feature_context, training=True)
+
+    trgt_mask = tf.cast(feature_context.mask, tf.int32)
     assert all(tf.reduce_sum(trgt_mask, axis=1).numpy() > 0)
 
 
@@ -109,8 +116,10 @@ def test_not_all_masked_lm(sequence_testing_data):
     batch = ml.sample_batch(
         sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
     )
-    _ = model(batch, training=True)
+    features = FeatureCollection(schema_list, model.as_dense(batch))
+    feature_context = FeatureContext(features)
+    _ = model(batch, feature_context=feature_context, training=True)
 
-    trgt_mask = tf.cast(model.context.get_mask(), tf.int32)
+    trgt_mask = tf.cast(feature_context.mask, tf.int32)
     non_padded_mask = batch["item_id_seq"] != 0
     assert all(trgt_mask.numpy().sum(axis=1) != non_padded_mask.numpy().sum(axis=1))
