@@ -17,4 +17,4 @@
 #!/bin/bash
 set -e
 
-pytest tests/unit
+pytest -rxs tests/unit

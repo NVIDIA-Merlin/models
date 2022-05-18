@@ -17,6 +17,4 @@
 #!/bin/bash
 set -e
 
-container=$1
-
-
+pytest -rxs tests/integration
