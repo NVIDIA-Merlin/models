@@ -58,14 +58,14 @@ def testing_data() -> Dataset:
 try:
     import tensorflow as tf  # noqa
 
-    from tests.tf._conftest import *  # noqa
+    from tests.unit.tf._conftest import *  # noqa
 except ImportError:
     pass
 
 try:
     import torchmetrics  # noqa
 
-    from tests.torch._conftest import *  # noqa
+    from tests.unit.torch._conftest import *  # noqa
 except ModuleNotFoundError:
     pass
 
@@ -73,17 +73,17 @@ except ModuleNotFoundError:
 def pytest_collection_modifyitems(items):
     for item in items:
         path = item.location[0]
-        if path.startswith("tests/tf"):
+        if path.startswith("tests/unit/tf"):
             item.add_marker(pytest.mark.tensorflow)
-            if path.startswith("tests/tf/examples"):
+            if path.startswith("tests/unit/tf/examples"):
                 item.add_marker(pytest.mark.example)
-            if path.startswith("tests/tf/integration"):
+            if path.startswith("tests/unit/tf/integration"):
                 item.add_marker(pytest.mark.integration)
-        elif path.startswith("tests/torch"):
+        elif path.startswith("tests/unit/torch"):
             item.add_marker(pytest.mark.torch)
-        elif path.startswith("tests/implicit"):
+        elif path.startswith("tests/unit/implicit"):
             item.add_marker(pytest.mark.implicit)
-        elif path.startswith("tests/lightfm"):
+        elif path.startswith("tests/unit/lightfm"):
             item.add_marker(pytest.mark.lightfm)
-        elif path.startswith("tests/datasets"):
+        elif path.startswith("tests/unit/datasets"):
             item.add_marker(pytest.mark.datasets)
