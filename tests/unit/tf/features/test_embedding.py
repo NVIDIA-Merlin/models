@@ -285,7 +285,7 @@ def test_embedding_features_exporting_and_loading_pretrained_initializer(testing
 
     items_embeddings_dataset = emb_module.embedding_table_dataset(Tags.ITEM_ID, gpu=False)
     assert np.allclose(
-        item_id_embeddings.numpy(), items_embeddings_dataset.to_ddf().compute().to_pandas().values
+        item_id_embeddings.numpy(), items_embeddings_dataset.to_ddf().compute().values
     )
 
     emb_init = mm.TensorInitializer.from_dataset(items_embeddings_dataset)
