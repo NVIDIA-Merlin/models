@@ -105,14 +105,6 @@ def get_targets(dataset: Dataset, target_tag: Tags) -> List[str]:
         )
 
 
-def _to_numpy(series):
-    """converts a pandas or cudf series to a numpy array"""
-    if isinstance(series, pd.Series):
-        return series.values
-    else:
-        return series.values_host
-
-
 def dataset_to_dmatrix(dataset: Dataset, target_columns: List[str]) -> xgb.DMatrix:
     """Convert Merlin Dataset to XGBoost DMatrix"""
     df = dataset.to_ddf().compute(scheduler="synchronous")
@@ -126,8 +118,8 @@ def dataset_to_dmatrix(dataset: Dataset, target_columns: List[str]) -> xgb.DMatr
         if col_schema.is_list
     ]
 
-    X = _to_numpy(df.drop(all_target_columns + list_column_names, axis=1))
-    y = _to_numpy(df[target_columns])
+    X = df.drop(all_target_columns + list_column_names, axis=1)
+    y = df[target_columns]
 
     return xgb.DMatrix(X, label=y)
 
