@@ -44,13 +44,13 @@ class XGBoost:
         """
         objective = self.objective
         target_tag = get_target_tag(objective)
-        target_columns = get_targets(train, target_tag)
+        self.target_columns = get_targets(train, target_tag)
 
         # if the target is a regression, normalize values
         if objective == "reg:logistic":
             train = normalize_regession_targets(train)
 
-        dtrain = dataset_to_dmatrix(train, target_columns)
+        dtrain = dataset_to_dmatrix(train, self.target_columns)
         watchlist = [(dtrain, "train")]
 
         params = params or {}
@@ -63,12 +63,15 @@ class XGBoost:
             }
         )
 
-        self.bst = xgb.train(params, dtrain, evals=watchlist, **kwargs)
+        self.bst: xgb.Booster = xgb.train(params, dtrain, evals=watchlist, **kwargs)
 
         return self.bst
 
-    def evaluate(self, test_dataset: Dataset, k=10):
-        pass
+    def evaluate(self, test_dataset: Dataset):
+        data: xgb.DMatrix = dataset_to_dmatrix(test_dataset, self.target_columns)
+        preds = self.bst.predict(data)
+        data.set_label(preds)
+        return self.bst.eval(data)
 
 
 OBJECTIVES = {
