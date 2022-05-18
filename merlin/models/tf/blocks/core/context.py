@@ -14,9 +14,22 @@
 # limitations under the License.
 #
 
+import tensorflow as tf
+
 from merlin.models.config.schema import FeatureCollection
 
 
 class FeatureContext:
-    def __init__(self, features: FeatureCollection):
+    def __init__(self, features: FeatureCollection, mask: tf.Tensor = None):
         self.features = features
+        self._mask = mask
+
+    @property
+    def mask(self):
+        if self._mask is None:
+            raise ValueError("The mask is not stored, " "please make sure that a mask was set")
+        return self._mask
+
+    @mask.setter
+    def mask(self, mask: tf.Tensor):
+        self._mask = mask
