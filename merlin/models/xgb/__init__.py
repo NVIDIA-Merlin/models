@@ -27,8 +27,13 @@ class XGBoost:
         model.fit(train)
     """
 
-    def __init__(self, target_type: Tags, *args, **kwargs):
-        self.target_type = target_type
+    def __init__(self, objective: str, *args, **kwargs):
+        """
+
+        List of XGBoost objective functions:
+        https://xgboost.readthedocs.io/en/stable/gpu/index.html#objective-functions
+        """
+        self.objective = objective
 
     def fit(self, train: Dataset, params: Optional[dict] = None, **kwargs) -> xgb.Booster:
         """Trains the XGBoost Model
@@ -37,16 +42,16 @@ class XGBoost:
         constructor as the labels.  And all other non-list columns as
         input features.
         """
-        target_columns = get_targets(train, self.target_type)
+        objective = self.objective
+        target_tag = get_target_tag(objective)
+        target_columns = get_targets(train, target_tag)
 
         # if the target is a regression, normalize values
-        if self.target_type is Tags.REGRESSION:
+        if objective == "reg:logistic":
             train = normalize_regession_targets(train)
 
         dtrain = dataset_to_dmatrix(train, target_columns)
         watchlist = [(dtrain, "train")]
-
-        objective = get_objective(self.target_type)
 
         params = params or {}
         params.update(
@@ -67,29 +72,29 @@ class XGBoost:
 
 
 OBJECTIVES = {
-    Tags.BINARY_CLASSIFICATION: "binary:logistic",
-    Tags.REGRESSION: "reg:logistic",
+    "binary:logistic": Tags.BINARY_CLASSIFICATION,
+    "reg:logistic": Tags.REGRESSION,
 }
 
 
-def get_objective(target_type: Tags) -> str:
-    # get the objective from the specified target type
+def get_target_tag(objective: str) -> Tags:
+    """Get the target tag from the specified objective"""
     try:
-        return OBJECTIVES[target_type]
+        return OBJECTIVES[objective]
     except KeyError:
         target_options_str = str(list(OBJECTIVES.keys()))
-        raise ValueError(f"Target Objective not supported. Must be one of: {target_options_str}")
+        raise ValueError(f"Objective not supported. Must be one of: {target_options_str}")
 
 
-def get_targets(dataset: Dataset, target_type: Tags) -> List[str]:
+def get_targets(dataset: Dataset, target_tag: Tags) -> List[str]:
     """Find target columns from dataset or specified target_column"""
-    targets = dataset.schema.select_by_tag(Tags.TARGET).select_by_tag(target_type)
+    targets = dataset.schema.select_by_tag(Tags.TARGET).select_by_tag(target_tag)
 
     if len(targets) >= 1:
         return targets.column_names
     else:
         raise ValueError(
-            f"No target columns in the dataset schema with tags TARGET and {target_type.name}"
+            f"No target columns in the dataset schema with tags TARGET and {target_tag.name}"
         )
 
 
