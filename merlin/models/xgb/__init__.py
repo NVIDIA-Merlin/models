@@ -56,10 +56,7 @@ class XGBoost:
         params = params or {}
         params.update(
             {
-                "max_depth": 2,
-                "eta": 1,
                 "objective": objective,
-                "eval_metric": "auc",
             }
         )
 
