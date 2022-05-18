@@ -158,16 +158,16 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Datase
 def test_embedding_features_yoochoose_infer_embedding_sizes_multiple_8(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    emb_module = ml.EmbeddingFeatures.from_schema(
+    emb_module = mm.EmbeddingFeatures.from_schema(
         schema,
-        embedding_options=ml.EmbeddingOptions(
+        embedding_options=mm.EmbeddingOptions(
             infer_embedding_sizes=True,
             infer_embedding_sizes_multiplier=3.0,
             infer_embeddings_ensure_dim_multiple_of_8=True,
         ),
     )
 
-    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert emb_module.embedding_tables["user_id"].shape[1] == embeddings["user_id"].shape[1] == 24
     assert (
@@ -186,16 +186,16 @@ def test_embedding_features_yoochoose_infer_embedding_sizes_multiple_8(testing_d
 def test_embedding_features_yoochoose_partially_infer_embedding_sizes(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
-    emb_module = ml.EmbeddingFeatures.from_schema(
+    emb_module = mm.EmbeddingFeatures.from_schema(
         schema,
-        embedding_options=ml.EmbeddingOptions(
+        embedding_options=mm.EmbeddingOptions(
             embedding_dims={"user_id": 50, "user_country": 100},
             infer_embedding_sizes=True,
             infer_embedding_sizes_multiplier=3.0,
         ),
     )
 
-    embeddings = emb_module(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert emb_module.embedding_tables["user_id"].shape[1] == embeddings["user_id"].shape[1] == 50
     assert (
