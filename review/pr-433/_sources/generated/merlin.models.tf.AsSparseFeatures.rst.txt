@@ -19,7 +19,6 @@
       ~AsSparseFeatures.add_update
       ~AsSparseFeatures.add_variable
       ~AsSparseFeatures.add_weight
-      ~AsSparseFeatures.apply
       ~AsSparseFeatures.apply_to_all
       ~AsSparseFeatures.as_tabular
       ~AsSparseFeatures.build
@@ -48,12 +47,10 @@
       ~AsSparseFeatures.get_input_mask_at
       ~AsSparseFeatures.get_input_shape_at
       ~AsSparseFeatures.get_item_ids_from_inputs
-      ~AsSparseFeatures.get_losses_for
       ~AsSparseFeatures.get_output_at
       ~AsSparseFeatures.get_output_mask_at
       ~AsSparseFeatures.get_output_shape_at
       ~AsSparseFeatures.get_padding_mask_from_item_id
-      ~AsSparseFeatures.get_updates_for
       ~AsSparseFeatures.get_weights
       ~AsSparseFeatures.parse
       ~AsSparseFeatures.parse_block

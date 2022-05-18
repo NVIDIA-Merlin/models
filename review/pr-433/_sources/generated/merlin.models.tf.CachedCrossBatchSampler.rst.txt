@@ -20,7 +20,6 @@
       ~CachedCrossBatchSampler.add_update
       ~CachedCrossBatchSampler.add_variable
       ~CachedCrossBatchSampler.add_weight
-      ~CachedCrossBatchSampler.apply
       ~CachedCrossBatchSampler.build
       ~CachedCrossBatchSampler.call
       ~CachedCrossBatchSampler.compute_mask
@@ -33,11 +32,9 @@
       ~CachedCrossBatchSampler.get_input_at
       ~CachedCrossBatchSampler.get_input_mask_at
       ~CachedCrossBatchSampler.get_input_shape_at
-      ~CachedCrossBatchSampler.get_losses_for
       ~CachedCrossBatchSampler.get_output_at
       ~CachedCrossBatchSampler.get_output_mask_at
       ~CachedCrossBatchSampler.get_output_shape_at
-      ~CachedCrossBatchSampler.get_updates_for
       ~CachedCrossBatchSampler.get_weights
       ~CachedCrossBatchSampler.sample
       ~CachedCrossBatchSampler.set_max_num_samples

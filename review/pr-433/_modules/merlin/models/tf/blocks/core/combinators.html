@@ -92,8 +92,8 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.tabular</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">TabularAggregationType</span><span class="p">,</span> <span class="n">TabularBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils</span> <span class="kn">import</span> <span class="n">tf_utils</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="n">call_layer</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">schema_utils</span>
-<span class="kn">from</span> <span class="nn">merlin.models.utils.misc_utils</span> <span class="kn">import</span> <span class="n">filter_kwargs</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 
@@ -155,6 +155,10 @@
 
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;has_schema&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">set_schema</span><span class="p">(</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="s2">&quot;set_schema&quot;</span><span class="p">):</span>
+                    <span class="n">layer</span><span class="o">.</span><span class="n">set_schema</span><span class="p">(</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
 
         <span class="n">layers</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span> <span class="k">if</span> <span class="n">copy_layers</span> <span class="k">else</span> <span class="n">layers</span>
         <span class="k">if</span> <span class="nb">filter</span><span class="p">:</span>
@@ -355,20 +359,7 @@
 
         <span class="n">outputs</span> <span class="o">=</span> <span class="n">inputs</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
-            <span class="n">filtered_kwargs</span> <span class="o">=</span> <span class="n">filter_kwargs</span><span class="p">(</span>
-                <span class="p">{</span><span class="s2">&quot;training&quot;</span><span class="p">:</span> <span class="n">training</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">},</span>
-                <span class="n">layer</span><span class="p">,</span>
-                <span class="n">cascade_kwargs_if_possible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">filtered_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                <span class="n">filter_kwargs</span><span class="p">(</span>
-                    <span class="p">{</span><span class="s2">&quot;training&quot;</span><span class="p">:</span> <span class="n">training</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">},</span>
-                    <span class="n">layer</span><span class="o">.</span><span class="n">call</span><span class="p">,</span>
-                    <span class="n">cascade_kwargs_if_possible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-
-            <span class="n">outputs</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="o">**</span><span class="n">filtered_kwargs</span><span class="p">)</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">outputs</span></div>
 
@@ -538,13 +529,13 @@
             <span class="n">name</span> <span class="ow">in</span> <span class="n">inputs</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="p">):</span>
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">out</span><span class="p">}</span>
                 <span class="n">outputs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">out</span><span class="p">}</span>
                 <span class="n">outputs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
