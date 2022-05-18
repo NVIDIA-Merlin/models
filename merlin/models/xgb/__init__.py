@@ -77,6 +77,11 @@ class XGBoost:
             metrics[metric_name.removeprefix("eval-")] = float(metric_value)
         return metrics
 
+    def predict(self, dataset: Dataset):
+        data: xgb.DMatrix = dataset_to_dmatrix(dataset, self.target_columns)
+        preds = self.bst.predict(data)
+        return preds
+
 
 OBJECTIVES = {
     "binary:logistic": Tags.BINARY_CLASSIFICATION,
