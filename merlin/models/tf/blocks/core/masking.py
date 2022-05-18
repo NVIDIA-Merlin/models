@@ -80,6 +80,7 @@ class MaskingBlock(Block):
         self.item_id_feature_name = item_id_feature_name
 
     def build(self, input_shapes):
+        # TODO: Make sure this can be removed safely
         self.context.add_variable(
             tf.Variable(
                 initial_value=tf.zeros([1, input_shapes[1]], dtype=tf.bool),
@@ -116,9 +117,9 @@ class MaskingBlock(Block):
     def compute_feature_mask(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
         raise NotImplementedError()
 
-    def apply_mask_to_inputs(self, inputs: tf.Tensor, schema: tf.Tensor) -> tf.Tensor:
+    def apply_mask_to_inputs(self, inputs: tf.Tensor, mask: tf.Tensor) -> tf.Tensor:
         inputs = tf.where(
-            tf.cast(tf.expand_dims(schema, -1), tf.bool),
+            tf.cast(tf.expand_dims(mask, -1), tf.bool),
             inputs,
             tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
         )
@@ -128,6 +129,7 @@ class MaskingBlock(Block):
         items = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
         mask = self.compute_feature_mask(items, training=training)
         inputs = self.apply_mask_to_inputs(inputs, mask)
+        feature_context.mask = mask
         return inputs
 
     def get_config(self):
@@ -389,7 +391,7 @@ class MaskingHead(Block):
         **kwargs
     ) -> "PredictionOutput":
         targets = feature_context.features.values[self.item_id_feature_name]
-        mask = self.context.get_mask()
+        mask = feature_context._mask
         targets = tf.where(mask, targets, self.padding_idx)
         return outputs.copy_with_updates(
             targets=targets,

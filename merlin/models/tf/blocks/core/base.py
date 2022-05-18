@@ -138,14 +138,6 @@ class ModelContext(Layer):
             item = str(item)
         return self.named_variables[f"{item}/embedding"]
 
-    def get_mask(self):
-        mask = self.named_variables.get("mask", None)
-        if mask is None:
-            raise ValueError(
-                "The mask is not stored, " "please make sure that a MaskingBlock was set"
-            )
-        return mask
-
     @property
     def named_variables(self) -> Dict[str, tf.Variable]:
         outputs = {}
