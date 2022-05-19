@@ -90,5 +90,7 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.implicit)
         elif path.startswith("tests/unit/lightfm"):
             item.add_marker(pytest.mark.lightfm)
+        elif path.startswith("tests/unit/xgb"):
+            item.add_marker(pytest.mark.xgboost)
         elif path.startswith("tests/unit/datasets"):
             item.add_marker(pytest.mark.datasets)
