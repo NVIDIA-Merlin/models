@@ -297,19 +297,6 @@ def YoutubeDNNRetrievalModel(
         Useful to ignore the first categorical
         encoded ids, which are usually reserved for <nulls>,
         out-of-vocabulary or padding. Defaults to 0.
-    logq_correction_factor: float
-        The logQ correction proposed in sampled softmax [2]_ [3]_ [4]_
-        corrects the predicted logit scores based on the item frequency,
-        as items are sampled according to popularity distribution
-        The correction is done as `logits -= log(item_prob) * logq_correction_factor`,
-        where `item_prob = item_freq_count / sum(item_freq_count)` is
-        a probability distribution of the item frequency. In a nutshell,
-        the logQ correction aims to increase the prediction scores (logits)
-        for infrequent items and decrease the ones for frequent items.
-        If logq_correction_factor > 0, logQ correction is enabled.
-        Defaults to 0 (logq disabled).
-    logq_items_frequencies: Union[tf.Tensor, Sequence]
-        A Tensor or list with item frequencies or with item probabilities
     embedding_options : EmbeddingOptions, optional
         An EmbeddingOptions instance, which allows for a number of
         options for the embedding table, by default EmbeddingOptions()
