@@ -1,0 +1,6 @@
+﻿merlin.models.tf.DLRMModel
+==========================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: DLRMModel
