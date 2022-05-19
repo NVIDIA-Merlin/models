@@ -1,7 +1,7 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
+import numpy as np
 import nvtabular as nvt
-import pandas as pd
 import xgboost as xgb
 
 from merlin.io import Dataset
@@ -9,7 +9,7 @@ from merlin.schema import Tags
 
 
 class XGBoost:
-    """
+    """Create an XGBoost model.
     The class adapts an XGBoost model to work with the high level merlin-models API.
 
     Example usage::
@@ -29,24 +29,48 @@ class XGBoost:
         model.evaluate(valid)
     """
 
-    def __init__(self, objective: str, *args, **kwargs):
+    def __init__(self, objective="reg:squarederror", **params):
         """
-
-        List of XGBoost objective functions:
-        https://xgboost.readthedocs.io/en/stable/gpu/index.html#objective-functions
+        Parameters
+        ----------
+        objective : str
+            The XGBoost objective to use. List of XGBoost objective functions:
+            https://xgboost.readthedocs.io/en/stable/gpu/index.html#objective-functions
+        **params
+            The parameters to use for the XGBoost train method
         """
-        self.objective = objective
+        self.params = {**params, "objective": objective}
+        self.bst = None
 
-    def fit(self, train: Dataset, params: Optional[dict] = None, **kwargs) -> xgb.Booster:
-        """Trains the XGBoost Model
+    def fit(self, train: Dataset, target_columns: Optional[list] = None, **kwargs) -> xgb.Booster:
+        """Trains the XGBoost Model.
 
         Will use the columns tagged with the target_type passed to the
         constructor as the labels.  And all other non-list columns as
         input features.
+
+        Parameters
+        ----------
+        train: merlin.io.Dataset
+            The training dataset to use to fit the model.
+            We will use the column(s) tagged with merlin.schema.Tags.TARGET that match the objective as the label(s).
+        target_columns: Optional[list]
+            The target columns to use. If provided, will be used as the label(s).
+        **kwargs
+            Additional keyword arguments passed to the xgboost.train function
+
+        Returns
+        -------
+        xgb.Booster
+
+        Raises
+        ------
+        ValueError
+           If objective is not supported. Or if the target columns cannot be found.
         """
-        objective = self.objective
+        objective = self.params["objective"]
         target_tag = get_target_tag(objective)
-        self.target_columns = get_targets(train, target_tag)
+        self.target_columns = target_columns or get_targets(train, target_tag)
 
         # if the target is a regression, normalize values
         if objective == "reg:logistic":
@@ -55,14 +79,7 @@ class XGBoost:
         dtrain = dataset_to_dmatrix(train, self.target_columns)
         watchlist = [(dtrain, "train")]
 
-        params = params or {}
-        params.update(
-            {
-                "objective": objective,
-            }
-        )
-
-        self.bst: xgb.Booster = xgb.train(params, dtrain, evals=watchlist, **kwargs)
+        self.bst: xgb.Booster = xgb.train(self.params, dtrain, evals=watchlist, **kwargs)
 
         return self.bst
 
