@@ -18,7 +18,8 @@ from enum import Enum
 from typing import Union
 
 import tensorflow as tf
-from tensorflow.python.keras.layers import Dot
+from tensorflow.python.keras import backend
+from tensorflow.python.ops import nn
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block
@@ -192,6 +193,8 @@ class SumResidual(Sum):
 @TabularAggregation.registry.register("add-left")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AddLeft(ElementwiseFeatureAggregation):
+    """Concat tensors & add it to left_name"""
+
     def __init__(self, left_name="bias", **kwargs):
         super().__init__(**kwargs)
         self.left_name = left_name
@@ -215,6 +218,8 @@ class AddLeft(ElementwiseFeatureAggregation):
 @TabularAggregation.registry.register("element-wise-sum")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ElementwiseSum(ElementwiseFeatureAggregation):
+    """Element-wise sum of all features."""
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.stack = StackFeatures(axis=0)
@@ -236,6 +241,8 @@ class ElementwiseSum(ElementwiseFeatureAggregation):
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 @requires_schema
 class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
+    """Element-wise sum of features."""
+
     def __init__(self, schema=None, **kwargs):
         super().__init__(**kwargs)
         self.stack = StackFeatures(axis=0)
@@ -274,6 +281,8 @@ class ElementwiseSumItemMulti(ElementwiseFeatureAggregation):
 
 
 class TupleAggregation(TabularAggregation, abc.ABC):
+    """Aggregation between two features."""
+
     def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
         raise NotImplementedError()
 
@@ -301,14 +310,16 @@ TupleAggregation.__call__ = _tuple_aggregation_call  # type: ignore
 @TabularAggregation.registry.register_with_multiple_names("cosine", "cosine-similarity")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class CosineSimilarity(TupleAggregation):
+    """Cosine similarity aggregation"""
+
     def __init__(self, trainable=True, name=None, dtype=None, dynamic=False, **kwargs):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
-        self.dot = Dot(axes=1, normalize=True)
 
     def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
-        out = self.dot([left, right])
-
-        return out
+        left = nn.l2_normalize(left, axis=1)
+        right = nn.l2_normalize(right, axis=1)
+        output = backend.batch_dot(left, right, 1)
+        return output
 
 
 @TabularAggregation.registry.register("elementwise-multiply")

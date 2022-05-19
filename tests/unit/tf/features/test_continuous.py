@@ -52,5 +52,6 @@ def test_continuous_features_yoochoose_model(music_streaming_data: Dataset, run_
 
     inputs = ml.ContinuousFeatures.from_schema(schema, aggregation="concat")
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
+    model = ml.Model(body, ml.BinaryClassificationTask("click"))
 
-    testing_utils.assert_body_works_in_model(music_streaming_data, body, run_eagerly)
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)

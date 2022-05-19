@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022, NVIDIA CORPORATION.
+# Copyright (c) 2021, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pytest
 
-#!/bin/bash
-set -e
+import merlin.models.tf as ml
+from merlin.io import Dataset
+from merlin.models.tf.utils import testing_utils
 
-pytest -rxs tests/unit
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_regression_head(ecommerce_data: Dataset, run_eagerly):
+    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    model = ml.Model(body, ml.RegressionTask("click"))
+
+    testing_utils.model_test(model, ecommerce_data)

@@ -17,15 +17,4 @@
 #!/bin/bash
 set -e
 
-# Get latest models version
-cd /models/
-git pull origin main
-
-container=$1
-
-## Tensorflow training container
-if [ "$container" == "merlin-tensorflow-training" ]; then
-    ## TODO: Remove this when it would become part of the container
-    pip3 install testbook
-    make tests-tf-integration
-# Pytorch training container
+pytest -rxs tests/integration
