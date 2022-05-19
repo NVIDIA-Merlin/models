@@ -134,6 +134,7 @@ class XGBoost:
 OBJECTIVES = {
     "binary:logistic": Tags.BINARY_CLASSIFICATION,
     "reg:logistic": Tags.REGRESSION,
+    "reg:squarederror": Tags.REGRESSION,
 }
 
 
