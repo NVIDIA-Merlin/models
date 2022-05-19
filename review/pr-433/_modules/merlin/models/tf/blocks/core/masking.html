@@ -155,17 +155,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span> <span class="o">=</span> <span class="n">item_id_feature_name</span>
 
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
-        <span class="c1"># TODO: Make sure this can be removed safely</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">add_variable</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
-                <span class="n">initial_value</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span>
-                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;mask&quot;</span><span class="p">,</span>
-                <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">validate_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">[</span><span class="mi">1</span><span class="p">]]),</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">masked_item_embedding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;mask_embedding&quot;</span><span class="p">,</span>
             <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -277,9 +266,6 @@
                 <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">mask_labels</span> <span class="o">=</span> <span class="n">labels</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span>
-
-        <span class="c1"># store boolean tensor related to masked targets</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">mask_labels</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">mask_labels</span></div>
 
@@ -428,8 +414,6 @@
             <span class="p">)</span>
             <span class="n">mask_labels</span> <span class="o">=</span> <span class="n">labels</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span>
 
-        <span class="c1"># Store boolean tensor related to masked targets</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">mask_labels</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">mask_labels</span></div></div>
 
 
