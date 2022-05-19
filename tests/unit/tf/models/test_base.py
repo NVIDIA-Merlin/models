@@ -20,17 +20,19 @@ from merlin.io.dataset import Dataset
 from merlin.models.tf.utils import testing_utils
 
 
-def test_simple_model(ecommerce_data: Dataset):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_simple_model(ecommerce_data: Dataset, run_eagerly):
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),
         ml.MLPBlock([64]),
         ml.BinaryClassificationTask("click"),
     )
 
-    testing_utils.model_test(model, ecommerce_data)
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
 
-def test_block_to_model(ecommerce_data: Dataset):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_block_to_model(ecommerce_data: Dataset, run_eagerly):
     embedding_options = ml.EmbeddingOptions(embedding_dim_default=32)
     model = ml.MLPBlock([64]).to_model(
         ecommerce_data.schema,
@@ -42,17 +44,18 @@ def test_block_to_model(ecommerce_data: Dataset):
         [f.table.dim == 32 for f in list(model.block.inputs["categorical"].feature_config.values())]
     )
 
-    testing_utils.model_test(model, ecommerce_data)
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
 
-def test_model_from_block(ecommerce_data: Dataset):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
     model = ml.Model.from_block(
         ml.MLPBlock([64]),
         ecommerce_data.schema,
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 
-    testing_utils.model_test(model, ecommerce_data)
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
 
 def test_block_with_input_to_model(ecommerce_data: Dataset):
