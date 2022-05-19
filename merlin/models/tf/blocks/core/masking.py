@@ -116,6 +116,19 @@ class MaskingBlock(Block):
 
     def call(self, inputs, feature_context=None, training=True, **kwargs) -> tf.Tensor:
         items = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
+        if isinstance(items, tf.RaggedTensor):
+            s = items.row_lengths(axis=-1)
+            r = tf.ragged.range(s.flat_values)
+            r = tf.RaggedTensor.from_row_lengths(r, items.row_lengths(1))
+
+            # Option 1
+            masked = tf.map_fn(lambda x: x[:-1], items)
+
+            # Option 2
+
+
+
+            items = items.to_tensor()
         mask = self.compute_feature_mask(items, training=training)
         inputs = self.apply_mask_to_inputs(inputs, mask)
         feature_context.mask = mask
@@ -376,6 +389,8 @@ class MaskingHead(Block):
     ) -> "PredictionOutput":
         targets = feature_context.features.values[self.item_id_feature_name]
         mask = feature_context._mask
+        # Ragged version
+        # tf.ragged.boolean_mask(targets, mask)
         targets = tf.where(mask, targets, self.padding_idx)
         return outputs.copy_with_updates(
             targets=targets,

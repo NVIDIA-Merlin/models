@@ -10,7 +10,7 @@ from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsRaggedFeatures
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
@@ -187,7 +187,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         ]
         self.schema = sum(input_block_schemas, Schema())
 
-        self.as_dense = AsDenseFeatures()
+        self.as_ragged = AsRaggedFeatures()
 
         # Initializing model control flags controlled by MetricsComputeCallback()
         self._should_compute_train_metrics_for_batch = tf.Variable(
@@ -200,7 +200,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
     def call(self, inputs, **kwargs):
         if not kwargs.get("feature_context", None):
-            features = FeatureCollection(self.schema, self.as_dense(inputs))
+            features = FeatureCollection(self.schema, self.as_ragged(inputs))
             kwargs["feature_context"] = FeatureContext(features)
 
         self.feature_context = kwargs["feature_context"]
@@ -290,7 +290,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             else:
                 targets = None
 
-            features = FeatureCollection(self.schema, self.as_dense(inputs))
+            features = FeatureCollection(self.schema, self.as_ragged(inputs))
             feature_context = FeatureContext(features)
             predictions = self(inputs, feature_context=feature_context, training=True)
 
@@ -353,7 +353,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         else:
             targets = None
 
-        features = FeatureCollection(self.schema, self.as_dense(inputs))
+        features = FeatureCollection(self.schema, self.as_ragged(inputs))
         feature_context = FeatureContext(features)
 
         loss = self.compute_loss_metrics(

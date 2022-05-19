@@ -33,6 +33,35 @@ from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
 
+@Block.registry.register("as-ragged")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class AsRaggedFeatures(TabularBlock):
+    """
+    Convert inputs to sparse tensors.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            if isinstance(val, tuple):
+                values = val[0][:, 0]
+                row_lengths = val[1][:, 0]
+
+                if values.dtype.is_floating:
+                    values = tf.cast(values, tf.int32)
+                if row_lengths.dtype.is_floating:
+                    row_lengths = tf.cast(row_lengths, tf.int32)
+
+                outputs[name] = tf.RaggedTensor.from_row_lengths(values, row_lengths)
+            else:
+                outputs[name] = val
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
 @Block.registry.register("as-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsSparseFeatures(TabularBlock):
