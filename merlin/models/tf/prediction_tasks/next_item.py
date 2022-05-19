@@ -121,6 +121,7 @@ def NextItemPredictionTask(
     sampled_softmax: bool = False,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
+    post_logits: Optional[Block] = None,
 ) -> MultiClassClassificationTask:
     """
     Function to create the NextItemPrediction task with the right parameters.
@@ -169,6 +170,10 @@ def NextItemPredictionTask(
             The minimum id value to be sampled. Useful to ignore the first categorical
             encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
             Defaults to 0.
+        post_logits: Optional[PredictionBlock]
+            Optional extra pre-call block for post-processing the logits, by default None.
+            You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`
+            for populariy sampling correction.
     Returns
     -------
         PredictionTask
@@ -189,6 +194,9 @@ def NextItemPredictionTask(
             prediction_call = ItemsPrediction(schema)
 
         prediction_call = prediction_call.connect(LabelToOneHot())
+
+    if post_logits is not None:
+        prediction_call = prediction_call.connect(post_logits)
 
     if logits_temperature != 1:
         prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))

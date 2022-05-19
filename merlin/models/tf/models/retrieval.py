@@ -1,8 +1,11 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
+import tensorflow as tf
+
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
 from merlin.models.tf.blocks.core.inputs import InputBlock
+from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
@@ -223,6 +226,8 @@ def YoutubeDNNRetrievalModel(
     sampled_softmax: bool = True,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
+    logq_correction_factor: float = 0,
+    logq_items_frequencies: Union[tf.Tensor, Sequence] = None,
     embedding_options: EmbeddingOptions = EmbeddingOptions(
         embedding_dims=None,
         embedding_dim_default=64,
@@ -239,9 +244,17 @@ def YoutubeDNNRetrievalModel(
 
     References
     ----------
-    [1] Covington, Paul, Jay Adams, and Emre Sargin.
+    .. [1] Covington, Paul, Jay Adams, and Emre Sargin.
         "Deep neural networks for youtube recommendations."
         Proceedings of the 10th ACM conference on recommender systems. 2016.
+
+    .. [2] Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic
+       Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial
+       Intelligence and Statistics (AISTATS).
+
+    .. [3] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
+       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
+       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
 
 
     Parameters
@@ -284,6 +297,19 @@ def YoutubeDNNRetrievalModel(
         Useful to ignore the first categorical
         encoded ids, which are usually reserved for <nulls>,
         out-of-vocabulary or padding. Defaults to 0.
+    logq_correction_factor: float
+        The logQ correction proposed in sampled softmax [2]_ [3]_
+        corrects the predicted logit scores based on the item frequency,
+        as items are sampled according to popularity distribution
+        The correction is done as `logits -= log(item_prob) * logq_correction_factor`,
+        where `item_prob = item_freq_count / sum(item_freq_count)` is
+        a probability distribution of the item frequency. In a nutshell,
+        the logQ correction aims to increase the prediction scores (logits)
+        for infrequent items and decrease the ones for frequent items.
+        If logq_correction_factor > 0, logQ correction is enabled.
+        Defaults to 0 (logq disabled).
+    logq_items_frequencies: Union[tf.Tensor, Sequence]
+        A Tensor or list with item frequencies or with item probabilities
     embedding_options : EmbeddingOptions, optional
         An EmbeddingOptions instance, which allows for a number of
         options for the embedding table, by default EmbeddingOptions()
@@ -300,6 +326,12 @@ def YoutubeDNNRetrievalModel(
         embedding_options=embedding_options,
     )
 
+    logq_correction = None
+    if logq_correction_factor > 0:
+        logq_correction = PopularityLogitsCorrection(
+            logq_items_frequencies, reg_factor=logq_correction_factor, schema=schema
+        )
+
     task = NextItemPredictionTask(
         schema=schema,
         loss=loss,
@@ -313,6 +345,7 @@ def YoutubeDNNRetrievalModel(
         sampled_softmax=sampled_softmax,
         num_sampled=num_sampled,
         min_sampled_id=min_sampled_id,
+        post_logits=logq_correction,
     )
 
     # TODO: Figure out how to make this fit as
