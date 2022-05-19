@@ -361,6 +361,8 @@ class ParallelBlock(TabularBlock):
         )
         self.strict = strict
         self.parallel_layers: Union[List[TabularBlock], Dict[str, TabularBlock]]
+        if isinstance(inputs, tuple) and len(inputs) == 1 and isinstance(inputs[0], (list, tuple)):
+            inputs = inputs[0]
         if all(isinstance(x, dict) for x in inputs):
             to_merge: Dict[str, tf.keras.layers.Layer] = reduce(
                 lambda a, b: dict(a, **b), inputs
@@ -508,10 +510,18 @@ class ParallelBlock(TabularBlock):
             config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
 
         parallel_layers = config.pop("parallel_layers")
-        inputs = {
-            name: tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
-            for name, conf in parallel_layers.items()
-        }
+        if isinstance(parallel_layers, dict):
+            inputs = {
+                name: tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+                for name, conf in parallel_layers.items()
+            }
+        elif isinstance(parallel_layers, (list, tuple)):
+            inputs = [
+                tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+                for conf in parallel_layers
+            ]
+        else:
+            raise ValueError("Parallel layers need to be a list or a dict")
 
         return inputs, config
 

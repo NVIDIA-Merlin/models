@@ -551,6 +551,7 @@ class RetrievalBlock(Protocol):
         ...
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RetrievalModel(Model):
     """Embedding-based retrieval model."""
 
