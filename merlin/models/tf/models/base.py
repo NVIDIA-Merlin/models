@@ -10,7 +10,7 @@ from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsRaggedFeatures
+from merlin.models.tf.blocks.core.transformations import AsRaggedFeatures
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
@@ -202,6 +202,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         if not kwargs.get("feature_context", None):
             features = FeatureCollection(self.schema, self.as_ragged(inputs))
             kwargs["feature_context"] = FeatureContext(features)
+            inputs = features.values
 
         self.feature_context = kwargs["feature_context"]
 
@@ -292,7 +293,7 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
 
             features = FeatureCollection(self.schema, self.as_ragged(inputs))
             feature_context = FeatureContext(features)
-            predictions = self(inputs, feature_context=feature_context, training=True)
+            predictions = self(features.values, feature_context=feature_context, training=True)
 
             loss = self.compute_loss(
                 predictions,
@@ -357,7 +358,11 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         feature_context = FeatureContext(features)
 
         loss = self.compute_loss_metrics(
-            inputs, targets, feature_context=feature_context, training=False, compute_metrics=True
+            features.values,
+            targets,
+            feature_context=feature_context,
+            training=False,
+            compute_metrics=True,
         )
 
         # Casting regularization loss to fp16 if needed to match the main loss
