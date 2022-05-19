@@ -66,15 +66,32 @@ class XGBoost:
 
         return self.bst
 
-    def evaluate(self, test_dataset: Dataset):
-        data: xgb.DMatrix = dataset_to_dmatrix(test_dataset, self.target_columns)
+    def evaluate(self, dataset: Dataset) -> Dict[str, float]:
+        """Evaluates the model on the dataset provided.
+
+        Parameters
+        ----------
+        dataset : merlin.io.Dataset
+            The dataset used to evaluate the model.
+
+        Returns
+        -------
+        Dict[str, float]
+            Dictionary of metrics of the form {metric_name: value}.
+        """
+        if self.bst is None:
+            raise ValueError("The fit method must be called before evaluate.")
+
+        data: xgb.DMatrix = dataset_to_dmatrix(dataset, self.target_columns)
         preds = self.bst.predict(data)
         data.set_label(preds)
+
         metrics_str = self.bst.eval(data)
         metrics = {}
         for metric in metrics_str.split("\t")[1:]:
             metric_name, metric_value = metric.split(":")
             metrics[metric_name.removeprefix("eval-")] = float(metric_value)
+
         return metrics
 
     def predict(self, dataset: Dataset, **kwargs) -> np.ndarray:
