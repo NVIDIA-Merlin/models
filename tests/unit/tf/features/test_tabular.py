@@ -66,4 +66,6 @@ def test_tabular_features_yoochoose_model(
     )
 
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
-    testing_utils.assert_body_works_in_model(music_streaming_data, body, run_eagerly)
+    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)

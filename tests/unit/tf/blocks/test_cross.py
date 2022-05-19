@@ -15,12 +15,11 @@
 #
 
 import pytest
+import tensorflow as tf
 
+import merlin.models.tf as mm
 from merlin.io import Dataset
-
-tf = pytest.importorskip("tensorflow")
-ml = pytest.importorskip("merlin.models.tf")
-test_utils = pytest.importorskip("merlin.models.tf.utils.testing_utils")
+from merlin.models.tf.utils import testing_utils
 
 
 @pytest.mark.parametrize("cross_layers", [1, 2, 3])
@@ -29,7 +28,7 @@ def test_cross(cross_layers):
     DIM = 200
 
     input = tf.random.uniform((NUM_SEQS, DIM))
-    cross = ml.CrossBlock(cross_layers)
+    cross = mm.CrossBlock(cross_layers)
     output = cross(input)
 
     assert list(output.shape) == [NUM_SEQS, DIM]
@@ -41,7 +40,7 @@ def test_cross_low_rank():
     DIM = 200
 
     input = tf.random.uniform((NUM_SEQS, DIM))
-    cross = ml.CrossBlock(depth=2, low_rank_dim=16)
+    cross = mm.CrossBlock(depth=2, low_rank_dim=16)
     output = cross(input)
 
     assert list(output.shape) == [NUM_SEQS, DIM]
@@ -54,7 +53,7 @@ def test_cross_input_tuple_x0_xl():
 
     x0 = tf.random.uniform((NUM_SEQS, DIM))
     x1 = tf.random.uniform((NUM_SEQS, DIM - 1))
-    cross = ml.CrossBlock(3)
+    cross = mm.CrossBlock(3)
     with pytest.raises(Exception) as excinfo:
         cross((x0, x1))
     assert "shapes mismatch" in str(excinfo.value)
@@ -62,17 +61,17 @@ def test_cross_input_tuple_x0_xl():
 
 def test_cross_0_layers():
     with pytest.raises(ValueError) as excinfo:
-        ml.CrossBlock(depth=0)
+        mm.CrossBlock(depth=0)
     assert "Number of cross layers (depth) should be positive but is" in str(excinfo.value)
 
 
 def test_cross_with_inputs_to_be_concat(testing_data: Dataset):
-    inputs = ml.InputBlock(
+    inputs = mm.InputBlock(
         testing_data.schema,
-        embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
+        embedding_options=mm.EmbeddingOptions(embedding_dim_default=128),
     )
-    cross = ml.CrossBlock(depth=1, inputs=inputs)
-    output = cross(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    cross = mm.CrossBlock(depth=1, inputs=inputs)
+    output = cross(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert list(output.shape) == [100, 518]
 
@@ -80,16 +79,16 @@ def test_cross_with_inputs_to_be_concat(testing_data: Dataset):
 def test_dcn_v2_stacked(testing_data: Dataset):
 
     dcn_body = (
-        ml.InputBlock(
+        mm.InputBlock(
             testing_data.schema,
-            embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
+            embedding_options=mm.EmbeddingOptions(embedding_dim_default=128),
             aggregation="concat",
         )
-        .connect(ml.CrossBlock(3))
-        .connect(ml.MLPBlock([512, 256]))
+        .connect(mm.CrossBlock(3))
+        .connect(mm.MLPBlock([512, 256]))
     )
 
-    output = dcn_body(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    output = dcn_body(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert list(output.shape) == [100, 256]
 
@@ -97,32 +96,32 @@ def test_dcn_v2_stacked(testing_data: Dataset):
 def test_dcn_v2_stacked_low_rank(testing_data: Dataset):
 
     dcn_body = (
-        ml.InputBlock(
+        mm.InputBlock(
             testing_data.schema,
-            embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
+            embedding_options=mm.EmbeddingOptions(embedding_dim_default=128),
             aggregation="concat",
         )
-        .connect(ml.CrossBlock(3, low_rank_dim=64))
-        .connect(ml.MLPBlock([512, 256]))
+        .connect(mm.CrossBlock(3, low_rank_dim=64))
+        .connect(mm.MLPBlock([512, 256]))
     )
 
-    output = dcn_body(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    output = dcn_body(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
     assert list(output.shape) == [100, 256]
 
 
 def test_dcn_v2_parallel(testing_data: Dataset):
-    input_layer = ml.InputBlock(
+    input_layer = mm.InputBlock(
         testing_data.schema,
-        embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
+        embedding_options=mm.EmbeddingOptions(embedding_dim_default=128),
         aggregation="concat",
     )
 
-    features = ml.sample_batch(testing_data, batch_size=100, include_targets=False)
+    features = mm.sample_batch(testing_data, batch_size=100, include_targets=False)
     concat_input_dim = input_layer(features).shape[-1]
     mlp_layers = [512, 256]
     dcn_body = input_layer.connect_branch(
-        ml.CrossBlock(3), ml.MLPBlock(mlp_layers), aggregation="concat"
+        mm.CrossBlock(3), mm.MLPBlock(mlp_layers), aggregation="concat"
     )
 
     output = dcn_body(features)
@@ -130,41 +129,15 @@ def test_dcn_v2_parallel(testing_data: Dataset):
     assert list(output.shape) == [100, concat_input_dim + mlp_layers[-1]]
 
 
-def test_dcn_v2_train_eval(ecommerce_data: Dataset, num_epochs=5, run_eagerly=True):
+def test_dcn_v2(ecommerce_data: Dataset, run_eagerly=True):
     dcn_body = (
-        ml.InputBlock(
+        mm.InputBlock(
             ecommerce_data.schema,
-            embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
+            embedding_options=mm.EmbeddingOptions(embedding_dim_default=128),
             aggregation="concat",
         )
-        .connect(ml.CrossBlock(3, low_rank_dim=64))
-        .connect(ml.MLPBlock([512, 256]))
+        .connect(mm.CrossBlock(3, low_rank_dim=64))
+        .connect(mm.MLPBlock([512, 256]))
     )
-    model = ml.Model(dcn_body, ml.BinaryClassificationTask("click"))
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
-
-    losses = model.fit(ecommerce_data, epochs=num_epochs, batch_size=50)
-    metrics = model.evaluate(*ml.sample_batch(ecommerce_data, batch_size=100), return_dict=True)
-    test_utils.assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
-    )
-
-
-def test_dcn_v2_serialization(ecommerce_data: Dataset, run_eagerly=True):
-    dcn_body = (
-        ml.InputBlock(
-            ecommerce_data.schema,
-            embedding_options=ml.EmbeddingOptions(embedding_dim_default=128),
-            aggregation="concat",
-        )
-        .connect(ml.CrossBlock(3, low_rank_dim=64))
-        .connect(ml.MLPBlock([512, 256]))
-    )
-    model = ml.Model(dcn_body, ml.BinaryClassificationTask("click"))
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    model.fit(ecommerce_data, batch_size=50, epochs=1)
-
-    copy_model = test_utils.assert_serialization(model)
-    test_utils.assert_loss_and_metrics_are_valid(
-        copy_model, ml.sample_batch(ecommerce_data, batch_size=100)
-    )
+    model = mm.Model(dcn_body, mm.BinaryClassificationTask("click"))
+    testing_utils.model_test(model, ecommerce_data)

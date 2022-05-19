@@ -24,7 +24,6 @@ import tensorflow as tf
 
 import merlin.io
 from merlin.models.tf.models.base import Model
-from merlin.models.tf.prediction_tasks.classification import BinaryClassificationTask
 
 
 def mark_run_eagerly_modes(*args, **kwargs):
@@ -35,71 +34,6 @@ def mark_run_eagerly_modes(*args, **kwargs):
         modes = [True]
 
     return pytest.mark.parametrize("run_eagerly", modes)(*args, **kwargs)
-
-
-def assert_body_works_in_model(dataset, body, run_eagerly, num_epochs=5):
-    model = Model(body, BinaryClassificationTask("click"))
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
-
-    losses = model.fit(dataset, batch_size=50, epochs=num_epochs)
-    metrics = model.evaluate(dataset, batch_size=50, return_dict=True)
-
-    assert_binary_classification_loss_metrics(
-        losses, metrics, target_name="click", num_epochs=num_epochs
-    )
-
-
-def assert_binary_classification_loss_metrics(losses, metrics, target_name, num_epochs):
-    metrics_names = [
-        f"{target_name}/binary_classification_task/precision",
-        f"{target_name}/binary_classification_task/recall",
-        f"{target_name}/binary_classification_task/binary_accuracy",
-        f"{target_name}/binary_classification_task/auc",
-        "loss",
-        "regularization_loss",
-        "total_loss",
-    ]
-
-    assert len(set(metrics.keys()).intersection(set(metrics_names))) == len(metrics_names)
-
-    assert len(set(losses.history.keys()).intersection(set(metrics_names))) == len(metrics_names)
-    assert len(losses.epoch) == num_epochs
-    for metric in losses.history.keys():
-        assert type(losses.history[metric]) is list
-        assert len(losses.history[metric]) == num_epochs
-
-    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
-
-
-def assert_regression_loss_metrics(losses, metrics, target_name, num_epochs):
-    metrics_names = [
-        f"{target_name}/regression_task/root_mean_squared_error",
-        "loss",
-        "regularization_loss",
-        "total_loss",
-    ]
-
-    assert len(set(metrics.keys()).intersection(set(metrics_names))) == len(metrics_names)
-
-    assert len(set(losses.history.keys()).intersection(set(metrics_names))) == len(metrics_names)
-    assert len(losses.epoch) == num_epochs
-    for metric in losses.history.keys():
-        assert type(losses.history[metric]) is list
-        assert len(losses.history[metric]) == num_epochs
-
-    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
-
-
-def assert_loss_and_metrics_are_valid(
-    loss_block, features_and_targets, call_body=True, training=False
-):
-    features, targets = features_and_targets
-    predictions = loss_block(features, training=training)
-    loss = loss_block.compute_loss(predictions, targets, call_body=call_body, training=training)
-    # metrics = input.metric_results()
-
-    assert loss is not None
-    # assert len(metrics) == len(input.metrics)
 
 
 def assert_serialization(layer):

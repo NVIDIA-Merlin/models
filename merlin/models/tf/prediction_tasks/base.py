@@ -435,6 +435,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
             config,
             {
                 "pre": tf.keras.layers.deserialize,
+                "task_block": tf.keras.layers.deserialize,
                 "metrics": tf.keras.metrics.deserialize,
                 "prediction_metrics": tf.keras.metrics.deserialize,
                 "label_metrics": tf.keras.metrics.deserialize,
@@ -449,7 +450,7 @@ class PredictionTask(Layer, LossMixin, MetricsMixin, ContextMixin):
         config = tf_utils.maybe_serialize_keras_objects(
             self,
             config,
-            ["metrics", "prediction_metrics", "label_metrics", "loss_metrics", "pre"],
+            ["metrics", "prediction_metrics", "label_metrics", "loss_metrics", "pre", "task_block"],
         )
 
         # config["summary_type"] = self.sequence_summary.summary_type
