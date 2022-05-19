@@ -80,17 +80,6 @@ class MaskingBlock(Block):
         self.item_id_feature_name = item_id_feature_name
 
     def build(self, input_shapes):
-        # TODO: Make sure this can be removed safely
-        self.context.add_variable(
-            tf.Variable(
-                initial_value=tf.zeros([1, input_shapes[1]], dtype=tf.bool),
-                name="mask",
-                trainable=False,
-                validate_shape=False,
-                shape=tf.TensorShape([None, input_shapes[1]]),
-            )
-        )
-
         self.masked_item_embedding = self.add_weight(
             name="mask_embedding",
             trainable=True,
@@ -202,9 +191,6 @@ class CausalLanguageModeling(MaskingBlock):
                 axis=-1,
             )
             mask_labels = labels != self.padding_idx
-
-        # store boolean tensor related to masked targets
-        self.context["mask"].assign(mask_labels)
 
         return mask_labels
 
@@ -353,8 +339,6 @@ class MaskedLanguageModeling(MaskingBlock):
             )
             mask_labels = labels != self.padding_idx
 
-        # Store boolean tensor related to masked targets
-        self.context["mask"].assign(mask_labels)
         return mask_labels
 
 
