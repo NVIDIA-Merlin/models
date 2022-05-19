@@ -72,10 +72,6 @@ class XGBoost:
         target_tag = get_target_tag(objective)
         self.target_columns = target_columns or get_targets(train, target_tag)
 
-        # if the target is a regression, normalize values
-        if objective == "reg:logistic":
-            train = normalize_regession_targets(train)
-
         dtrain = dataset_to_dmatrix(train, self.target_columns)
         watchlist = [(dtrain, "train")]
 
@@ -181,16 +177,3 @@ def dataset_to_dmatrix(dataset: Dataset, target_columns: List[str]) -> xgb.DMatr
     X = X[sorted(X.columns)]
 
     return xgb.DMatrix(X, label=y)
-
-
-def normalize_regession_targets(dataset: Dataset) -> Dataset:
-    """Normalize regression targets in a dataset to between 0 and 1"""
-    regession_targets = dataset.schema.select_by_tag(Tags.TARGET).select_by_tag(Tags.REGRESSION)
-    regression_features = regession_targets.column_names >> nvt.ops.NormalizeMinMax()
-    workflow = nvt.Workflow(
-        [c for c in dataset.schema.column_names if c not in regession_targets.column_names]
-        + regression_features
-    )
-    workflow = workflow.fit(dataset)
-    new_dataset = workflow.transform(dataset)
-    return new_dataset
