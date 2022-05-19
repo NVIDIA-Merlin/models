@@ -288,7 +288,6 @@
     <span class="n">max_seq_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">aggregation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;concat&quot;</span><span class="p">,</span>
     <span class="n">top_block</span><span class="p">:</span> <span class="n">Block</span> <span class="o">=</span> <span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span>
-    <span class="n">num_sampled</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LossType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;categorical_crossentropy&quot;</span><span class="p">,</span>
     <span class="n">metrics</span><span class="o">=</span><span class="n">ranking_metrics</span><span class="p">(</span><span class="n">top_ks</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">]),</span>
     <span class="n">l2_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -296,6 +295,15 @@
     <span class="n">task_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">logits_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="n">seq_aggregator</span><span class="p">:</span> <span class="n">Block</span> <span class="o">=</span> <span class="n">SequenceAggregator</span><span class="p">(</span><span class="n">SequenceAggregation</span><span class="o">.</span><span class="n">MEAN</span><span class="p">),</span>
+    <span class="n">sampled_softmax</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">num_sampled</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">min_sampled_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">embedding_options</span><span class="p">:</span> <span class="n">EmbeddingOptions</span> <span class="o">=</span> <span class="n">EmbeddingOptions</span><span class="p">(</span>
+        <span class="n">embedding_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">embedding_dim_default</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+        <span class="n">infer_embedding_sizes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">infer_embedding_sizes_multiplier</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
+    <span class="p">),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Build the Youtube-DNN retrieval model. More details of the model can be found in [1].</span>
 
@@ -320,9 +328,6 @@
 <span class="sd">        Defaults to `concat`.</span>
 <span class="sd">    top_block: Block</span>
 <span class="sd">        The `Block` that combines the top features</span>
-<span class="sd">    num_sampled: int</span>
-<span class="sd">        The number of negative samples to use in the sampled-softmax.</span>
-<span class="sd">        Defaults to 100.</span>
 <span class="sd">    loss: Optional[LossType]</span>
 <span class="sd">        Loss function.</span>
 <span class="sd">        Defaults to `categorical_crossentropy`.</span>
@@ -341,6 +346,22 @@
 <span class="sd">        Defaults to 1.</span>
 <span class="sd">    seq_aggregator: Block</span>
 <span class="sd">        The `Block` to aggregate the sequence of features.</span>
+<span class="sd">    sampled_softmax: bool</span>
+<span class="sd">        Compute the logits scores over all items of the catalog or</span>
+<span class="sd">        generate a subset of candidates</span>
+<span class="sd">        Defaults to False</span>
+<span class="sd">    num_sampled: int</span>
+<span class="sd">        When sampled_softmax is enabled, specify the number of</span>
+<span class="sd">        negative candidates to generate for each batch.</span>
+<span class="sd">        Defaults to 100</span>
+<span class="sd">    min_sampled_id: int</span>
+<span class="sd">        The minimum id value to be sampled with sampled softmax.</span>
+<span class="sd">        Useful to ignore the first categorical</span>
+<span class="sd">        encoded ids, which are usually reserved for &lt;nulls&gt;,</span>
+<span class="sd">        out-of-vocabulary or padding. Defaults to 0.</span>
+<span class="sd">    embedding_options : EmbeddingOptions, optional</span>
+<span class="sd">        An EmbeddingOptions instance, which allows for a number of</span>
+<span class="sd">        options for the embedding table, by default EmbeddingOptions()</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">InputBlock</span><span class="p">(</span>
@@ -351,6 +372,7 @@
         <span class="n">masking</span><span class="o">=</span><span class="s2">&quot;clm&quot;</span><span class="p">,</span>
         <span class="n">split_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">seq_aggregator</span><span class="o">=</span><span class="n">seq_aggregator</span><span class="p">,</span>
+        <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">task</span> <span class="o">=</span> <span class="n">NextItemPredictionTask</span><span class="p">(</span>
@@ -359,12 +381,13 @@
         <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
         <span class="n">masking</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">weight_tying</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">sampled_softmax</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">extra_pre_call</span><span class="o">=</span><span class="n">extra_pre_call</span><span class="p">,</span>
         <span class="n">task_block</span><span class="o">=</span><span class="n">task_block</span><span class="p">,</span>
         <span class="n">logits_temperature</span><span class="o">=</span><span class="n">logits_temperature</span><span class="p">,</span>
         <span class="n">l2_normalization</span><span class="o">=</span><span class="n">l2_normalization</span><span class="p">,</span>
+        <span class="n">sampled_softmax</span><span class="o">=</span><span class="n">sampled_softmax</span><span class="p">,</span>
         <span class="n">num_sampled</span><span class="o">=</span><span class="n">num_sampled</span><span class="p">,</span>
+        <span class="n">min_sampled_id</span><span class="o">=</span><span class="n">min_sampled_id</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># TODO: Figure out how to make this fit as</span>

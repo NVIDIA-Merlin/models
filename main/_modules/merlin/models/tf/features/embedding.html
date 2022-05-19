@@ -217,15 +217,19 @@
         <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
             <span class="n">schema_copy</span> <span class="o">=</span> <span class="n">schema_copy</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
 
-        <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dims</span>
+        <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dims</span> <span class="ow">or</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes</span><span class="p">:</span>
-            <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">get_embedding_sizes_from_schema</span><span class="p">(</span>
+            <span class="n">inferred_embedding_dims</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">get_embedding_sizes_from_schema</span><span class="p">(</span>
                 <span class="n">schema</span><span class="p">,</span>
                 <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes_multiplier</span><span class="p">,</span>
                 <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">,</span>
             <span class="p">)</span>
-
-        <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">embedding_dims</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="c1"># Adding inferred embedding dims only for features where the embedding sizes</span>
+            <span class="c1"># were not pre-defined</span>
+            <span class="n">inferred_embedding_dims</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inferred_embedding_dims</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">embedding_dims</span>
+            <span class="p">}</span>
+            <span class="n">embedding_dims</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">embedding_dims</span><span class="p">,</span> <span class="o">**</span><span class="n">inferred_embedding_dims</span><span class="p">}</span>
 
         <span class="n">initializer_default</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">TruncatedNormal</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
         <span class="n">embeddings_initializer</span> <span class="o">=</span> <span class="n">embedding_options</span><span class="o">.</span><span class="n">embeddings_initializers</span> <span class="ow">or</span> <span class="n">initializer_default</span>
