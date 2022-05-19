@@ -268,7 +268,7 @@ class ItemRetrievalScorer(Block):
     def call_outputs(
         self,
         outputs: PredictionOutput,
-        feature_context: FeatureContext,
+        feature_context: FeatureContext = None,
         training=True,
         eval_sampling=False,
         **kwargs,
