@@ -1,3 +1,4 @@
+import warnings
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -169,6 +170,9 @@ def dataset_to_dmatrix(dataset: Dataset, target_columns: List[str]) -> xgb.DMatr
         for col_name, col_schema in dataset.schema.column_schemas.items()
         if col_schema.is_list
     ]
+
+    if list_column_names:
+        warnings.warn(f"Ignoring list columns as inputs to XGBoost model: {list_column_names}.")
 
     X = df.drop(all_target_columns + list_column_names, axis=1)
     y = df[target_columns]
