@@ -2,7 +2,6 @@ import warnings
 from typing import Dict, List, Optional
 
 import numpy as np
-import nvtabular as nvt
 import xgboost as xgb
 
 from merlin.io import Dataset
@@ -54,7 +53,8 @@ class XGBoost:
         ----------
         train: merlin.io.Dataset
             The training dataset to use to fit the model.
-            We will use the column(s) tagged with merlin.schema.Tags.TARGET that match the objective as the label(s).
+            We will use the column(s) tagged with merlin.schema.Tags.TARGET that match the
+            objective as the label(s).
         target_columns: Optional[list]
             The target columns to use. If provided, will be used as the label(s).
         **kwargs
