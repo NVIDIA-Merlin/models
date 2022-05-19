@@ -142,15 +142,19 @@ class EmbeddingFeatures(TabularBlock):
         if tags:
             schema_copy = schema_copy.select_by_tag(tags)
 
-        embedding_dims = embedding_options.embedding_dims
+        embedding_dims = embedding_options.embedding_dims or {}
         if embedding_options.infer_embedding_sizes:
-            embedding_dims = schema_utils.get_embedding_sizes_from_schema(
+            inferred_embedding_dims = schema_utils.get_embedding_sizes_from_schema(
                 schema,
                 embedding_options.infer_embedding_sizes_multiplier,
                 embedding_options.infer_embeddings_ensure_dim_multiple_of_8,
             )
-
-        embedding_dims = embedding_dims or {}
+            # Adding inferred embedding dims only for features where the embedding sizes
+            # were not pre-defined
+            inferred_embedding_dims = {
+                k: v for k, v in inferred_embedding_dims.items() if k not in embedding_dims
+            }
+            embedding_dims = {**embedding_dims, **inferred_embedding_dims}
 
         initializer_default = tf.keras.initializers.TruncatedNormal(mean=0.0, stddev=0.05)
         embeddings_initializer = embedding_options.embeddings_initializers or initializer_default
