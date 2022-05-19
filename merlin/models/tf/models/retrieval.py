@@ -1,11 +1,8 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
-import tensorflow as tf
-
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
 from merlin.models.tf.blocks.core.inputs import InputBlock
-from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
@@ -226,8 +223,6 @@ def YoutubeDNNRetrievalModel(
     sampled_softmax: bool = True,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
-    logq_correction_factor: float = 0,
-    logq_items_frequencies: Union[tf.Tensor, Sequence] = None,
     embedding_options: EmbeddingOptions = EmbeddingOptions(
         embedding_dims=None,
         embedding_dim_default=64,
@@ -235,7 +230,9 @@ def YoutubeDNNRetrievalModel(
         infer_embedding_sizes_multiplier=2.0,
     ),
 ) -> Model:
-    """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
+    """Build the Youtube-DNN retrieval model.
+    More details of the architecture can be found in [1]_.
+    The sampled_softmax is enabled by default [2]_ [3]_ [4]_.
 
     Example Usage::
         model = YoutubeDNNRetrievalModel(schema, num_sampled=100)
@@ -255,6 +252,9 @@ def YoutubeDNNRetrievalModel(
     .. [3] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
        Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
        2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
+
+    .. [4] Jean, Sébastien, et al. "On using very large target vocabulary for neural
+        machine translation." arXiv preprint arXiv:1412.2007 (2014).
 
 
     Parameters
@@ -298,7 +298,7 @@ def YoutubeDNNRetrievalModel(
         encoded ids, which are usually reserved for <nulls>,
         out-of-vocabulary or padding. Defaults to 0.
     logq_correction_factor: float
-        The logQ correction proposed in sampled softmax [2]_ [3]_
+        The logQ correction proposed in sampled softmax [2]_ [3]_ [4]_
         corrects the predicted logit scores based on the item frequency,
         as items are sampled according to popularity distribution
         The correction is done as `logits -= log(item_prob) * logq_correction_factor`,
@@ -326,12 +326,6 @@ def YoutubeDNNRetrievalModel(
         embedding_options=embedding_options,
     )
 
-    logq_correction = None
-    if logq_correction_factor > 0:
-        logq_correction = PopularityLogitsCorrection(
-            logq_items_frequencies, reg_factor=logq_correction_factor, schema=schema
-        )
-
     task = NextItemPredictionTask(
         schema=schema,
         loss=loss,
@@ -345,7 +339,6 @@ def YoutubeDNNRetrievalModel(
         sampled_softmax=sampled_softmax,
         num_sampled=num_sampled,
         min_sampled_id=min_sampled_id,
-        post_logits=logq_correction,
     )
 
     # TODO: Figure out how to make this fit as
