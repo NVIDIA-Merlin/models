@@ -48,6 +48,11 @@ def social_data() -> Dataset:
 
 
 @pytest.fixture
+def criteo_data() -> Dataset:
+    return generate_data("criteo", num_rows=100)
+
+
+@pytest.fixture
 def testing_data() -> Dataset:
     data = generate_data("testing", num_rows=100)
     data.schema = data.schema.without(["session_id", "session_start", "day_idx"])
