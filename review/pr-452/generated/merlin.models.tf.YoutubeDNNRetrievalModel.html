@@ -85,7 +85,9 @@
 <dl class="py function">
 <dt id="merlin.models.tf.YoutubeDNNRetrievalModel">
 <code class="sig-prename descclassname"><span class="pre">merlin.models.tf.</span></code><code class="sig-name descname"><span class="pre">YoutubeDNNRetrievalModel</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/models/retrieval.html#YoutubeDNNRetrievalModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.YoutubeDNNRetrievalModel" title="Permalink to this definition"></a></dt>
-<dd><p>Build the Youtube-DNN retrieval model. More details of the model can be found in [1].</p>
+<dd><p>Build the Youtube-DNN retrieval model.
+More details of the architecture can be found in <a class="footnote-reference brackets" href="#id5" id="id1">1</a>.
+The sampled_softmax is enabled by default <a class="footnote-reference brackets" href="#id6" id="id2">2</a> <a class="footnote-reference brackets" href="#id7" id="id3">3</a> <a class="footnote-reference brackets" href="#id8" id="id4">4</a>.</p>
 <dl class="simple">
 <dt>Example Usage::</dt><dd><p>model = YoutubeDNNRetrievalModel(schema, num_sampled=100)
 model.compile(optimizer=”adam”)
@@ -93,9 +95,25 @@ model.fit(train_data, epochs=10)</p>
 </dd>
 </dl>
 <p class="rubric">References</p>
-<dl class="simple">
-<dt>[1] Covington, Paul, Jay Adams, and Emre Sargin.</dt><dd><p>“Deep neural networks for youtube recommendations.”
+<dl class="footnote brackets">
+<dt class="label" id="id5"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
+<dd><p>Covington, Paul, Jay Adams, and Emre Sargin.
+“Deep neural networks for youtube recommendations.”
 Proceedings of the 10th ACM conference on recommender systems. 2016.</p>
+</dd>
+<dt class="label" id="id6"><span class="brackets"><a class="fn-backref" href="#id2">2</a></span></dt>
+<dd><p>Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic
+Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial
+Intelligence and Statistics (AISTATS).</p>
+</dd>
+<dt class="label" id="id7"><span class="brackets"><a class="fn-backref" href="#id3">3</a></span></dt>
+<dd><p>Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
+Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
+2008), 713–722. <a class="reference external" href="https://doi.org/10.1109/TNN.2007.912312">https://doi.org/10.1109/TNN.2007.912312</a></p>
+</dd>
+<dt class="label" id="id8"><span class="brackets"><a class="fn-backref" href="#id4">4</a></span></dt>
+<dd><p>Jean, Sébastien, et al. “On using very large target vocabulary for neural
+machine translation.” arXiv preprint arXiv:1412.2007 (2014).</p>
 </dd>
 </dl>
 <dl class="field-list simple">
