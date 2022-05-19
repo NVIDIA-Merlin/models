@@ -203,7 +203,6 @@ def YoutubeDNNRetrievalModel(
     max_seq_length: int,
     aggregation: str = "concat",
     top_block: Block = MLPBlock([64]),
-    num_sampled: int = 100,
     l2_normalization: bool = True,
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
