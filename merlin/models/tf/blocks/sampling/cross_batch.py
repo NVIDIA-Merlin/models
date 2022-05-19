@@ -364,12 +364,12 @@ class PopularityBasedSampler(ItemSampler):
     The capacity of the queue is fixed and is equal to the catalog size.
     For each batch, we sample `max_num_samples` unique negatives.
 
-    We use the default log-uniform sampler given by tensorflow:
+    This implementation does not require the actual item frequencies/probabilities
+    distribution, but instead tries to approximate the item
+    probabilities using the log_uniform (zipfian) distribution.
+    The only requirement is that the item ids are decreasingly sorted by their count frequency.
+    We use the default log-uniform (zipfian) sampler given by Tensorflow:
         [log_uniform_candidate_sampler](https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)
-
-    We note that this default sampler requires that
-    item-ids are encoded based on a decreasing order of their count frequency
-    and that the classes' expected counts are approximated based on their index order.
     The `Categorify` op provided by nvtabular supports the frequency-based encoding as default.
 
     P.s. Ignoring the false negatives (negative items equal to the positive ones) is
@@ -430,10 +430,10 @@ class PopularityBasedSampler(ItemSampler):
 
         tf.assert_equal(
             int(tf.shape(item_weights)[0]),
-            self.max_id,
+            self.max_id + 1,
             "The first dimension of the items embeddings "
             f"({int(tf.shape(item_weights)[0])}) and "
-            f"the the number of possible classes ({self.max_id}) should match.",
+            f"the the number of possible classes ({self.max_id+1}) should match.",
         )
 
         items_embeddings = self.sample(item_weights)
@@ -461,3 +461,26 @@ class PopularityBasedSampler(ItemSampler):
             items_embeddings,
             metadata={self.item_id_feature_name: tf.cast(sampled_ids, tf.int32)},
         )
+
+    def get_distribution_probs(self):
+        """Tries to approximate the log uniform (zipfian) distribution
+        used by tf.random.log_uniform_candidate_sampler
+        (https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)
+
+        Returns
+        -------
+        tf.Tensor
+            A tensor with the expected probability distribution of item ids
+            assuming log-uniform (zipfian) distribution
+        """
+        range_max = self.max_id - self.min_id
+        ids = tf.range(0, range_max, dtype=tf.float32)
+        estimated_probs = (tf.math.log(ids + 2.0) - tf.math.log(ids + 1.0)) / tf.math.log(
+            range_max + 1.0
+        )
+        # Appending zero(s) in the beginning as padding items should never be samples
+        # (thus prob must be zero)
+        estimated_probs = tf.concat(
+            [tf.zeros(self.min_id + 1, dtype=tf.float32), estimated_probs], axis=0
+        )
+        return estimated_probs
