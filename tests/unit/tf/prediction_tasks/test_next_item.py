@@ -403,8 +403,10 @@ def test_retrieval_task_inbatch_default_sampler(
 
     for _ in range(1, 4):
         output = model(batch_inputs, training=True)
+        features = FeatureCollection(model.schema, model.as_dense(batch_inputs))
+        feature_context = FeatureContext(features)
         output = model.loss_block.pre.call_outputs(
-            PredictionOutput(output, {}), training=True
+            PredictionOutput(output, {}), training=True, feature_context=feature_context
         ).predictions
         expected_num_samples_inbatch = batch_size
 
