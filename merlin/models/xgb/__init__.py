@@ -77,9 +77,26 @@ class XGBoost:
             metrics[metric_name.removeprefix("eval-")] = float(metric_value)
         return metrics
 
-    def predict(self, dataset: Dataset):
+    def predict(self, dataset: Dataset, **kwargs) -> np.ndarray:
+        """Generate predictions from the dataset.
+
+        Parameters
+        ----------
+        dataset : merlin.io.Dataset
+            The dataset to use for predictions
+        **kwargs
+            keyword arguments passed to the xgboost.core.Booster.predict method
+
+        Returns
+        -------
+        numpy.ndarray
+            The predicions data
+        """
+        if self.bst is None:
+            raise ValueError("The fit method must be called before predict.")
+
         data: xgb.DMatrix = dataset_to_dmatrix(dataset, self.target_columns)
-        preds = self.bst.predict(data)
+        preds = self.bst.predict(data, **kwargs)
         return preds
 
 
