@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import logging
-from typing import List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
@@ -26,6 +26,7 @@ from merlin.models.tf.blocks.core.base import (
     PredictionOutput,
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
+from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
 from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.sampling.base import ItemSampler
@@ -216,41 +217,11 @@ class ItemRetrievalScorer(Block):
 
         super().build(input_shapes)
 
-    def set_required_features(self):
-        required_features = set()
-        if self.downscore_false_negatives:
-            required_features.add(self.item_id_feature_name)
-
-        required_features.update(
-            [feature for sampler in self.samplers for feature in sampler.required_features]
-        )
-
-        self._required_features = list(required_features)
-
-    def add_features_to_context(self, feature_shapes) -> List[str]:
-        return self._required_features
-
     def _check_input_from_two_tower(self, inputs):
         if set(inputs.keys()) != set([self.query_name, self.item_name]):
             raise ValueError(
                 f"Wrong input-names, expected: {[self.query_name, self.item_name]} "
                 f"but got: {inputs.keys()}"
-            )
-
-    def _check_required_context_item_features_are_present(self):
-        not_found = list(
-            [
-                feat_name
-                for feat_name in self._required_features
-                if getattr(self, "_context", None) is None
-                or feat_name not in self.context.named_variables
-            ]
-        )
-
-        if len(not_found) > 0:
-            raise ValueError(
-                f"The following required context features should be available "
-                f"for the samplers, but were not found: {not_found}"
             )
 
     def call(
@@ -295,7 +266,12 @@ class ItemRetrievalScorer(Block):
 
     @tf.function
     def call_outputs(
-        self, outputs: PredictionOutput, training=True, eval_sampling=False, **kwargs
+        self,
+        outputs: PredictionOutput,
+        feature_context: FeatureContext,
+        training=True,
+        eval_sampling=False,
+        **kwargs,
     ) -> "PredictionOutput":
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
             the positive item and also sampled negative items (during training).
@@ -313,14 +289,13 @@ class ItemRetrievalScorer(Block):
             for the negative sampled items too.
             Return tensor is 2D (batch size, 1 + #negatives)
         """
-        self._check_required_context_item_features_are_present()
         targets, predictions = outputs.targets, outputs.predictions
         valid_negatives_mask = None
 
         if self.sampled_softmax_mode or isinstance(targets, tf.Tensor):
             positive_item_ids = targets
         else:
-            positive_item_ids = self.context[self.item_id_feature_name]
+            positive_item_ids = feature_context.features.values[self.item_id_feature_name]
 
         neg_items_ids = None
         if training or eval_sampling:
@@ -335,7 +310,10 @@ class ItemRetrievalScorer(Block):
                 )
 
             batch_items_embeddings = predictions[self.item_name]
-            batch_items_metadata = self.get_batch_items_metadata()
+            batch_items_metadata = {
+                feat_name: feature_context.features.values[feat_name]
+                for feat_name in self._required_features
+            }
 
             positive_scores = tf.reduce_sum(
                 tf.multiply(predictions[self.query_name], predictions[self.item_name]),
@@ -379,7 +357,7 @@ class ItemRetrievalScorer(Block):
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:
-                    positive_item_ids = self.context[self.item_id_feature_name]
+                    positive_item_ids = feature_context.features.values[self.item_id_feature_name]
 
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]
@@ -451,9 +429,16 @@ class ItemRetrievalScorer(Block):
         predictions = {self.query_name: predictions, self.item_name: batch_items_embeddings}
         return predictions
 
-    def get_batch_items_metadata(self):
-        result = {feat_name: self.context[feat_name] for feat_name in self._required_features}
-        return result
+    def set_required_features(self):
+        required_features = set()
+        if self.downscore_false_negatives:
+            required_features.add(self.item_id_feature_name)
+
+        required_features.update(
+            [feature for sampler in self.samplers for feature in sampler.required_features]
+        )
+
+        self._required_features = list(required_features)
 
     def get_config(self):
         config = super().get_config()
