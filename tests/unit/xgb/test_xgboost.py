@@ -60,3 +60,12 @@ def test_criteo(criteo_data: Dataset):
     metrics = model.evaluate(criteo_data)
 
     assert "auc" in metrics
+
+
+def test_social_ranking(social_data: Dataset):
+    model = XGBoost(objective="rank:ndcg", eval_metric=["auc", "ndcg", "map"])
+    model.fit(social_data, target_columns="click")
+    model.predict(social_data)
+    metrics = model.evaluate(social_data)
+
+    assert "map" in metrics
