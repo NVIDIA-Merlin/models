@@ -378,9 +378,7 @@ class MaskingHead(Block):
     ) -> "PredictionOutput":
         targets = feature_context.features.values[self.item_id_feature_name]
         mask = feature_context._mask
-        # Ragged version
-        # tf.ragged.boolean_mask(targets, mask)
-        targets = tf.where(mask, targets, self.padding_idx)
+        targets = tf.ragged.boolean_mask(targets, mask).to_tensor()
         return outputs.copy_with_updates(
             targets=targets,
         )

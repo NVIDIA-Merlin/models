@@ -26,6 +26,7 @@ from merlin.core.dispatch import HAS_GPU
 from merlin.io import Dataset
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
+from merlin.models.tf.blocks.core.transformations import AsRaggedFeatures
 from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Tags
 
@@ -505,6 +506,7 @@ def sample_batch(
     shuffle: bool = False,
     include_targets: bool = True,
     to_dense: bool = False,
+    to_ragged: bool = True,
 ):
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
 
@@ -530,6 +532,8 @@ def sample_batch(
     inputs, targets = next(iter(BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)))
     if to_dense:
         inputs = AsDenseFeatures()(inputs)
+    if to_ragged:
+        inputs = AsRaggedFeatures()(inputs)
     if not include_targets:
         return inputs
     return inputs, targets

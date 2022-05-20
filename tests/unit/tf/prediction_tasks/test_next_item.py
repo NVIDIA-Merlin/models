@@ -374,9 +374,7 @@ def test_last_item_prediction_task(
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
 
-    batch = ml.sample_batch(
-        sequence_testing_data, batch_size=50, include_targets=False, to_dense=True
-    )
+    batch = ml.sample_batch(sequence_testing_data, batch_size=50, include_targets=False)
     out = model({k: tf.cast(v, tf.int64) for k, v in batch.items()})
     assert out.shape[-1] == 51997
 

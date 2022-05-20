@@ -217,9 +217,7 @@ def test_youtube_dnn_retrieval(
     assert len(losses.epoch) == 2
     for metric in losses.history.keys():
         assert type(losses.history[metric]) is list
-    batch = mm.sample_batch(
-        sequence_testing_data, batch_size=10, include_targets=False, to_dense=True
-    )
+    batch = mm.sample_batch(sequence_testing_data, batch_size=10, include_targets=False)
     out = model({k: tf.cast(v, tf.int64) for k, v in batch.items()})
 
     assert out.shape[-1] == 51997

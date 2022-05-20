@@ -99,7 +99,10 @@ class AsDenseFeatures(TabularBlock):
             if isinstance(val, tuple):
                 outputs[name] = list_col_to_ragged(val)
             if isinstance(val, tf.RaggedTensor):
-                outputs[name] = val.to_tensor(shape=[None, self.max_seq_length])
+                if self.max_seq_length:
+                    outputs[name] = val.to_tensor(shape=[None, self.max_seq_length])
+                else:
+                    outputs[name] = tf.squeeze(val.to_tensor())
             else:
                 outputs[name] = tf.squeeze(val)
 
@@ -707,8 +710,8 @@ class PopularityLogitsCorrection(Block):
         predictions = outputs.predictions
         if training:
             positive_item_ids, negative_item_ids = (
-                outputs.positive_item_ids,
-                outputs.negative_item_ids,
+                tf.squeeze(outputs.positive_item_ids),
+                tf.squeeze(outputs.negative_item_ids),
             )
             positive_probs = tf.gather(self.candidate_probs, positive_item_ids)
 

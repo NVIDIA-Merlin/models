@@ -60,9 +60,7 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
 
     model = ml.Model(embedding_block, mask_block(), task)
 
-    batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
-    )
+    batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
 
     features = FeatureCollection(schema_list, model.as_ragged(batch))
     feature_context = FeatureContext(features)
@@ -83,7 +81,7 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
     # check that only one item is masked for each session
     assert tf.reduce_sum(tf.cast(trgt_mask, tf.int32)).numpy() == batch["item_id_seq"].shape[0]
     # check only the last non-paded item is masked
-    out_targets = tf.boolean_mask(batch["item_id_seq"], trgt_mask).numpy()
+    out_targets = tf.boolean_mask(batch["item_id_seq"].to_tensor(), trgt_mask).numpy()
     assert all(last_labels == out_targets)
 
 
@@ -113,9 +111,7 @@ def test_not_all_masked_lm(sequence_testing_data):
     task = ml.BinaryClassificationTask("click")
     model = ml.Model(embedding_block, mask_block, task)
 
-    batch = ml.sample_batch(
-        sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
-    )
+    batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
     features = FeatureCollection(schema_list, model.as_ragged(batch))
     feature_context = FeatureContext(features)
     _ = model(batch, feature_context=feature_context, training=True)
