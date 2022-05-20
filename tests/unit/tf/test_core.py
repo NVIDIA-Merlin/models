@@ -1,13 +1,9 @@
-from typing import List
-
 import pytest
-import tensorflow as tf
 from tensorflow.keras import mixed_precision
 
 import merlin.models.tf as ml
 from merlin.io.dataset import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
 
 
 def test_filter_features(tf_con_features):
@@ -69,42 +65,6 @@ def test_serialization_continuous_features(
     assert inputs.aggregation.__class__.__name__ == copy_layer.aggregation.__class__.__name__
     if include_schema:
         assert inputs.schema == schema
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class DummyFeaturesBlock(ml.Block):
-    def add_features_to_context(self, feature_shapes) -> List[str]:
-        return [Tags.ITEM_ID.value]
-
-    def call(self, inputs, feature_context, **kwargs):
-        items = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
-        emb_table = self.context.get_embedding(Tags.ITEM_ID)
-        item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
-        if tf.rank(item_embeddings) == 3:
-            item_embeddings = tf.squeeze(item_embeddings)
-
-        return inputs * item_embeddings
-
-    def compute_output_shape(self, input_shapes):
-        return input_shapes
-
-    @property
-    def item_embedding_table(self):
-        return self.context.get_embedding(Tags.ITEM_ID)
-
-
-@pytest.mark.parametrize("run_eagerly", [True])
-def test_block_context_model(ecommerce_data: Dataset, run_eagerly: bool, tmp_path):
-    model = ml.Model(
-        ml.InputBlock(ecommerce_data.schema),
-        ml.MLPBlock([64]),
-        DummyFeaturesBlock(),
-        ml.BinaryClassificationTask("click"),
-    )
-
-    copy_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
-
-    assert copy_model.context == copy_model.block.layers[0].context
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
