@@ -23,7 +23,7 @@ class XGBoost:
         from merlin.schema import Tags
         from merlin.models.xgb import XGBoost
 
-        model = XGBoost("binary:logistic")
+        model = XGBoost(objective="binary:logistic")
         model.fit(train)
 
         model.evaluate(valid)
@@ -57,12 +57,13 @@ class XGBoost:
 
         Parameters
         ----------
-        train: merlin.io.Dataset
+        train : merlin.io.Dataset
             The training dataset to use to fit the model.
             We will use the column(s) tagged with merlin.schema.Tags.TARGET that match the
             objective as the label(s).
-        target_columns: Optional[list]
+        target_columns : Optional[Union[list, str]]
             The target columns to use. If provided, will be used as the label(s).
+            Otherwise the targets are automatically inferred from the objective and column tags.
         group_columns : Optional[Union[list, str]]
             For ranking objectives. The grouping columns to use. If not provided will use
             the user ID (tagged with merlin.schema.Tags.USER_ID) column as the group.
@@ -90,7 +91,7 @@ class XGBoost:
         dtrain = dataset_to_dmatrix(train, self.target_columns, self.group_columns)
         watchlist = [(dtrain, "train")]
 
-        self.bst: xgb.Booster = xgb.train(self.params, dtrain, evals=watchlist, **kwargs)
+        self.bst = xgb.train(self.params, dtrain, evals=watchlist, **kwargs)
 
         return self.bst
 
