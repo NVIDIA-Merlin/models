@@ -230,7 +230,9 @@ def YoutubeDNNRetrievalModel(
         infer_embedding_sizes_multiplier=2.0,
     ),
 ) -> Model:
-    """Build the Youtube-DNN retrieval model. More details of the model can be found in [1].
+    """Build the Youtube-DNN retrieval model.
+    More details of the architecture can be found in [1]_.
+    The sampled_softmax is enabled by default [2]_ [3]_ [4]_.
 
     Example Usage::
         model = YoutubeDNNRetrievalModel(schema, num_sampled=100)
@@ -239,9 +241,20 @@ def YoutubeDNNRetrievalModel(
 
     References
     ----------
-    [1] Covington, Paul, Jay Adams, and Emre Sargin.
+    .. [1] Covington, Paul, Jay Adams, and Emre Sargin.
         "Deep neural networks for youtube recommendations."
         Proceedings of the 10th ACM conference on recommender systems. 2016.
+
+    .. [2] Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic
+       Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial
+       Intelligence and Statistics (AISTATS).
+
+    .. [3] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
+       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
+       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
+
+    .. [4] Jean, Sébastien, et al. "On using very large target vocabulary for neural
+        machine translation." arXiv preprint arXiv:1412.2007 (2014).
 
 
     Parameters
