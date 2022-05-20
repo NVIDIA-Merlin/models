@@ -311,8 +311,15 @@ class EmbeddingFeatures(TabularBlock):
         embeddings = self.get_embedding_table(table_name, l2_normalization)
         if gpu:
             import cudf
+            import cupy
 
-            df = cudf.from_dlpack(to_dlpack(tf.convert_to_tensor(embeddings)))
+            # Note: It is not possible to convert Tensorflow tensors to the cudf dataframe
+            # directly using dlPack (as the example commented below) because cudf.from_dlpack()
+            # expects the 2D tensor to be in Fortran order (column-major), which is not
+            # supported by TF (https://github.com/rapidsai/cudf/issues/10754).
+            # df = cudf.from_dlpack(to_dlpack(tf.convert_to_tensor(embeddings)))
+            embeddings_cupy = cupy.fromDlpack(to_dlpack(tf.convert_to_tensor(embeddings)))
+            df = cudf.DataFrame(embeddings_cupy)
             df.columns = [str(col) for col in list(df.columns)]
             df.set_index(cudf.RangeIndex(0, embeddings.shape[0]))
         else:
