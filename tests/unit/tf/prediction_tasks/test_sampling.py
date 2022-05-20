@@ -68,7 +68,7 @@ def test_popularity_sampler():
     item_ids = tf.random.uniform(shape=(10,), minval=1, maxval=num_classes, dtype=tf.int32)
 
     popularity_sampler = ml.PopularityBasedSampler(
-        max_num_samples=num_sampled, max_id=num_classes, min_id=min_id
+        max_num_samples=num_sampled, max_id=num_classes - 1, min_id=min_id
     )
 
     input_data = ml.EmbeddingWithMetadata(item_embeddings, {"item_id": item_ids})

@@ -599,6 +599,8 @@ class PopularityLogitsCorrection(Block):
             self.set_schema(schema)
 
         self.reg_factor = reg_factor
+
+        self._check_items_cardinality(item_freq_probs)
         candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
 
         self.candidate_probs = tf.Variable(
@@ -680,6 +682,7 @@ class PopularityLogitsCorrection(Block):
             If True, the item_freq_probs should be a probability distribution of the items.
             If False, the item frequencies is converted to probabilities
         """
+        self._check_items_cardinality(item_freq_probs)
         candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
         self.candidate_probs.assign(candidate_probs)
 
