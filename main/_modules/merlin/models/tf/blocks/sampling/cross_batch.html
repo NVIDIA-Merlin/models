@@ -439,12 +439,12 @@
 <span class="sd">    The capacity of the queue is fixed and is equal to the catalog size.</span>
 <span class="sd">    For each batch, we sample `max_num_samples` unique negatives.</span>
 
-<span class="sd">    We use the default log-uniform sampler given by tensorflow:</span>
+<span class="sd">    This implementation does not require the actual item frequencies/probabilities</span>
+<span class="sd">    distribution, but instead tries to approximate the item</span>
+<span class="sd">    probabilities using the log_uniform (zipfian) distribution.</span>
+<span class="sd">    The only requirement is that the item ids are decreasingly sorted by their count frequency.</span>
+<span class="sd">    We use the default log-uniform (zipfian) sampler given by Tensorflow:</span>
 <span class="sd">        [log_uniform_candidate_sampler](https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)</span>
-
-<span class="sd">    We note that this default sampler requires that</span>
-<span class="sd">    item-ids are encoded based on a decreasing order of their count frequency</span>
-<span class="sd">    and that the classes&#39; expected counts are approximated based on their index order.</span>
 <span class="sd">    The `Categorify` op provided by nvtabular supports the frequency-based encoding as default.</span>
 
 <span class="sd">    P.s. Ignoring the false negatives (negative items equal to the positive ones) is</span>
@@ -505,10 +505,10 @@
 
         <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
             <span class="nb">int</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">item_weights</span><span class="p">)[</span><span class="mi">0</span><span class="p">]),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">max_id</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
             <span class="s2">&quot;The first dimension of the items embeddings &quot;</span>
             <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">item_weights</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s2">) and &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;the the number of possible classes (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_id</span><span class="si">}</span><span class="s2">) should match.&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;the the number of possible classes (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_id</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">) should match.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">items_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">item_weights</span><span class="p">)</span>
@@ -535,7 +535,30 @@
         <span class="k">return</span> <span class="n">EmbeddingWithMetadata</span><span class="p">(</span>
             <span class="n">items_embeddings</span><span class="p">,</span>
             <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">sampled_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)},</span>
-        <span class="p">)</span></div></div>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="PopularityBasedSampler.get_distribution_probs"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.PopularityBasedSampler.html#merlin.models.tf.PopularityBasedSampler.get_distribution_probs">[docs]</a>    <span class="k">def</span> <span class="nf">get_distribution_probs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tries to approximate the log uniform (zipfian) distribution</span>
+<span class="sd">        used by tf.random.log_uniform_candidate_sampler</span>
+<span class="sd">        (https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tf.Tensor</span>
+<span class="sd">            A tensor with the expected probability distribution of item ids</span>
+<span class="sd">            assuming log-uniform (zipfian) distribution</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">range_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_id</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_id</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">range_max</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">estimated_probs</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ids</span> <span class="o">+</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">ids</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+            <span class="n">range_max</span> <span class="o">+</span> <span class="mf">1.0</span>
+        <span class="p">)</span>
+        <span class="c1"># Appending zero(s) in the beginning as padding items should never be samples</span>
+        <span class="c1"># (thus prob must be zero)</span>
+        <span class="n">estimated_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">estimated_probs</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">estimated_probs</span></div></div>
 </pre></div>
 
            </div>

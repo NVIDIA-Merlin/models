@@ -101,6 +101,7 @@
     <span class="n">L2Norm</span><span class="p">,</span>
     <span class="n">LabelToOneHot</span><span class="p">,</span>
     <span class="n">LogitsTemperatureScaler</span><span class="p">,</span>
+    <span class="n">PopularityLogitsCorrection</span><span class="p">,</span>
     <span class="n">RemovePad3D</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.base</span> <span class="kn">import</span> <span class="n">ItemRetrievalScorer</span>
@@ -127,7 +128,7 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">ItemsPrediction</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">ItemsPredictionSampled</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">ItemsPredictionPopSampled</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
     <span class="n">num_sampled</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">min_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
@@ -137,7 +138,10 @@
 <span class="sd">    Compute the items logits on a subset of sampled candidates to optimize</span>
 <span class="sd">    training. During inference, the scores are computed over the whole</span>
 <span class="sd">    catalog of items.</span>
-<span class="sd">    Reference of the method can be found at [Jean et al., 2014](http://arxiv.org/abs/1412.2007)</span>
+<span class="sd">    The PopularityBasedSampler is used for sampled softmax [1]_ [2]_ [3]_.</span>
+<span class="sd">    That implementation does not require the actual item frequencies/probabilities</span>
+<span class="sd">    if the item ids are sorted by frequency. The PopularityBasedSampler</span>
+<span class="sd">    approximates the item probabilities using the log_uniform (zipfian) distribution.</span>
 
 <span class="sd">    Parameters:</span>
 <span class="sd">    -----------</span>
@@ -155,30 +159,44 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">    -------</span>
-<span class="sd">        targets, logits: tf.Tensor, tf.Tensor</span>
-<span class="sd">            During training, return the concatenated tensor of true class</span>
-<span class="sd">            and sampled negatives of shape (bs, num_sampled+1), as well as the related logits.</span>
-<span class="sd">            During evaluation, returns the input tensor of true class, and the related logits.</span>
+<span class="sd">        A SequenceBlock that performs popularity-based sampling of negatives, scores</span>
+<span class="sd">        the items and applies the logQ correction for sampled softmax</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic</span>
+<span class="sd">       Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial</span>
+<span class="sd">       Intelligence and Statistics (AISTATS).</span>
+
+<span class="sd">    .. [2 Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate</span>
+<span class="sd">       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April</span>
+<span class="sd">       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312</span>
+
+<span class="sd">    .. [3] Jean, Sébastien, et al. &quot;On using very large target vocabulary for neural</span>
+<span class="sd">        machine translation.&quot; arXiv preprint arXiv:1412.2007 (2014).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">item_id_feature_name</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">item_domain</span> <span class="o">=</span> <span class="n">categorical_domains</span><span class="p">(</span><span class="n">schema</span><span class="p">)[</span><span class="n">item_id_feature_name</span><span class="p">]</span>
     <span class="n">num_classes</span> <span class="o">=</span> <span class="n">categorical_cardinalities</span><span class="p">(</span><span class="n">schema</span><span class="p">)[</span><span class="n">item_id_feature_name</span><span class="p">]</span>
-    <span class="n">samplers</span> <span class="o">=</span> <span class="n">PopularityBasedSampler</span><span class="p">(</span>
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">PopularityBasedSampler</span><span class="p">(</span>
         <span class="n">max_num_samples</span><span class="o">=</span><span class="n">num_sampled</span><span class="p">,</span>
-        <span class="n">max_id</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
+        <span class="n">max_id</span><span class="o">=</span><span class="n">num_classes</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">min_id</span><span class="o">=</span><span class="n">min_id</span><span class="p">,</span>
         <span class="n">item_id_feature_name</span><span class="o">=</span><span class="n">item_id_feature_name</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">logits</span> <span class="o">=</span> <span class="n">ItemRetrievalScorer</span><span class="p">(</span>
-        <span class="n">samplers</span><span class="o">=</span><span class="p">[</span><span class="n">samplers</span><span class="p">],</span>
+    <span class="n">retrieval_scorer</span> <span class="o">=</span> <span class="n">ItemRetrievalScorer</span><span class="p">(</span>
+        <span class="n">samplers</span><span class="o">=</span><span class="p">[</span><span class="n">sampler</span><span class="p">],</span>
         <span class="n">sampling_downscore_false_negatives</span><span class="o">=</span><span class="n">ignore_false_negatives</span><span class="p">,</span>
         <span class="n">item_id_feature_name</span><span class="o">=</span><span class="n">item_id_feature_name</span><span class="p">,</span>
         <span class="n">item_domain</span><span class="o">=</span><span class="n">item_domain</span><span class="p">,</span>
         <span class="n">sampled_softmax_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">logits</span>
+    <span class="n">expected_items_distribution</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">get_distribution_probs</span><span class="p">()</span>
+    <span class="n">logq_correction</span> <span class="o">=</span> <span class="n">PopularityLogitsCorrection</span><span class="p">(</span><span class="n">expected_items_distribution</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">retrieval_scorer</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">logq_correction</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="NextItemPredictionTask"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.NextItemPredictionTask.html#merlin.models.tf.NextItemPredictionTask">[docs]</a><span class="k">def</span> <span class="nf">NextItemPredictionTask</span><span class="p">(</span>
@@ -196,6 +214,7 @@
     <span class="n">sampled_softmax</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">num_sampled</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">min_sampled_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">post_logits</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MultiClassClassificationTask</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function to create the NextItemPrediction task with the right parameters.</span>
@@ -244,6 +263,10 @@
 <span class="sd">            The minimum id value to be sampled. Useful to ignore the first categorical</span>
 <span class="sd">            encoded ids, which are usually reserved for &lt;nulls&gt;, out-of-vocabulary or padding.</span>
 <span class="sd">            Defaults to 0.</span>
+<span class="sd">        post_logits: Optional[PredictionBlock]</span>
+<span class="sd">            Optional extra pre-call block for post-processing the logits, by default None.</span>
+<span class="sd">            You can for example use `post_logits = mm.PopularitySamplingBlock(item_fequency)`</span>
+<span class="sd">            for populariy sampling correction.</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">        PredictionTask</span>
@@ -252,7 +275,7 @@
     <span class="n">item_id_feature_name</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">sampled_softmax</span><span class="p">:</span>
-        <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">ItemsPredictionSampled</span><span class="p">(</span>
+        <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">ItemsPredictionPopSampled</span><span class="p">(</span>
             <span class="n">schema</span><span class="p">,</span> <span class="n">num_sampled</span><span class="o">=</span><span class="n">num_sampled</span><span class="p">,</span> <span class="n">min_id</span><span class="o">=</span><span class="n">min_sampled_id</span>
         <span class="p">)</span>
 
@@ -264,6 +287,9 @@
             <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">ItemsPrediction</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 
         <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">prediction_call</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">LabelToOneHot</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">post_logits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">prediction_call</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">post_logits</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">logits_temperature</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">prediction_call</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">logits_temperature</span><span class="p">))</span>

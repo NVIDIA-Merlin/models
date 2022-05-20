@@ -305,7 +305,9 @@
         <span class="n">infer_embedding_sizes_multiplier</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
     <span class="p">),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Model</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Build the Youtube-DNN retrieval model. More details of the model can be found in [1].</span>
+    <span class="sd">&quot;&quot;&quot;Build the Youtube-DNN retrieval model.</span>
+<span class="sd">    More details of the architecture can be found in [1]_.</span>
+<span class="sd">    The sampled_softmax is enabled by default [2]_ [3]_ [4]_.</span>
 
 <span class="sd">    Example Usage::</span>
 <span class="sd">        model = YoutubeDNNRetrievalModel(schema, num_sampled=100)</span>
@@ -314,9 +316,20 @@
 
 <span class="sd">    References</span>
 <span class="sd">    ----------</span>
-<span class="sd">    [1] Covington, Paul, Jay Adams, and Emre Sargin.</span>
+<span class="sd">    .. [1] Covington, Paul, Jay Adams, and Emre Sargin.</span>
 <span class="sd">        &quot;Deep neural networks for youtube recommendations.&quot;</span>
 <span class="sd">        Proceedings of the 10th ACM conference on recommender systems. 2016.</span>
+
+<span class="sd">    .. [2] Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic</span>
+<span class="sd">       Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial</span>
+<span class="sd">       Intelligence and Statistics (AISTATS).</span>
+
+<span class="sd">    .. [3] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate</span>
+<span class="sd">       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April</span>
+<span class="sd">       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312</span>
+
+<span class="sd">    .. [4] Jean, Sébastien, et al. &quot;On using very large target vocabulary for neural</span>
+<span class="sd">        machine translation.&quot; arXiv preprint arXiv:1412.2007 (2014).</span>
 
 
 <span class="sd">    Parameters</span>

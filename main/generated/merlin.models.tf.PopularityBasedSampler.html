@@ -90,14 +90,15 @@
 to ensure training efficiency when the catalog of items is very large.
 The capacity of the queue is fixed and is equal to the catalog size.
 For each batch, we sample <cite>max_num_samples</cite> unique negatives.</p>
-<dl class="simple">
-<dt>We use the default log-uniform sampler given by tensorflow:</dt><dd><p>[log_uniform_candidate_sampler](<a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler">https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler</a>)</p>
-</dd>
-</dl>
-<p>We note that this default sampler requires that
-item-ids are encoded based on a decreasing order of their count frequency
-and that the classes’ expected counts are approximated based on their index order.
-The <cite>Categorify</cite> op provided by nvtabular supports the frequency-based encoding as default.</p>
+<p>This implementation does not require the actual item frequencies/probabilities
+distribution, but instead tries to approximate the item
+probabilities using the log_uniform (zipfian) distribution.
+The only requirement is that the item ids are decreasingly sorted by their count frequency.
+We use the default log-uniform (zipfian) sampler given by Tensorflow:</p>
+<blockquote>
+<div><p>[log_uniform_candidate_sampler](<a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler">https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler</a>)</p>
+</div></blockquote>
+<p>The <cite>Categorify</cite> op provided by nvtabular supports the frequency-based encoding as default.</p>
 <p>P.s. Ignoring the false negatives (negative items equal to the positive ones) is
 managed by <cite>ItemRetrievalScorer(…, sampling_downscore_false_negatives=True)</cite></p>
 <dl class="field-list simple">
@@ -176,37 +177,40 @@ Defaults to <cite>item_id</cite></p></li>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code>()</p></td>
 <td><p>Returns the config of the layer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.PopularityBasedSampler.get_distribution_probs" title="merlin.models.tf.PopularityBasedSampler.get_distribution_probs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_distribution_probs</span></code></a>()</p></td>
+<td><p>Tries to approximate the log uniform (zipfian) distribution used by tf.random.log_uniform_candidate_sampler (<a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler">https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler</a>)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input tensor(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_mask_at</span></code>(node_index)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_mask_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input mask tensor(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_shape_at</span></code>(node_index)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_shape_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input shape(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_at</span></code>(node_index)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the output tensor(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_mask_at</span></code>(node_index)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_mask_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the output mask tensor(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_shape_at</span></code>(node_index)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_shape_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the output shape(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
 <td><p>Returns the current weights of the layer, as NumPy arrays.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.PopularityBasedSampler.sample" title="merlin.models.tf.PopularityBasedSampler.sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample</span></code></a>(item_weights)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.PopularityBasedSampler.sample" title="merlin.models.tf.PopularityBasedSampler.sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample</span></code></a>(item_weights)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_max_num_samples</span></code>(value)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_max_num_samples</span></code>(value)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
 <td><p>Sets the weights of the layer, from NumPy arrays.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
 <td><p>Decorator to automatically enter the module name scope.</p></td>
 </tr>
 </tbody>
@@ -330,6 +334,23 @@ Defaults to <cite>item_id</cite></p></li>
 <dt id="merlin.models.tf.PopularityBasedSampler.sample">
 <code class="sig-name descname"><span class="pre">sample</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_weights</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">merlin.models.tf.blocks.core.base.EmbeddingWithMetadata</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/sampling/cross_batch.html#PopularityBasedSampler.sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PopularityBasedSampler.sample" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.PopularityBasedSampler.get_distribution_probs">
+<code class="sig-name descname"><span class="pre">get_distribution_probs</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/blocks/sampling/cross_batch.html#PopularityBasedSampler.get_distribution_probs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PopularityBasedSampler.get_distribution_probs" title="Permalink to this definition"></a></dt>
+<dd><p>Tries to approximate the log uniform (zipfian) distribution
+used by tf.random.log_uniform_candidate_sampler
+(<a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler">https://www.tensorflow.org/api_docs/python/tf/random/log_uniform_candidate_sampler</a>)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A tensor with the expected probability distribution of item ids
+assuming log-uniform (zipfian) distribution</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>tf.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

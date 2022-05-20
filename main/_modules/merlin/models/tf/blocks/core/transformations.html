@@ -674,6 +674,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">set_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reg_factor</span> <span class="o">=</span> <span class="n">reg_factor</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_items_cardinality</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">)</span>
         <span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">get_candidate_probs</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">is_prob_distribution</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
@@ -755,6 +757,7 @@
 <span class="sd">            If True, the item_freq_probs should be a probability distribution of the items.</span>
 <span class="sd">            If False, the item frequencies is converted to probabilities</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_items_cardinality</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">)</span>
         <span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">get_candidate_probs</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">is_prob_distribution</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">candidate_probs</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">candidate_probs</span><span class="p">)</span>
 
