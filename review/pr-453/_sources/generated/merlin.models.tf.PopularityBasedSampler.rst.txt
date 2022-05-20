@@ -29,6 +29,7 @@
       ~PopularityBasedSampler.finalize_state
       ~PopularityBasedSampler.from_config
       ~PopularityBasedSampler.get_config
+      ~PopularityBasedSampler.get_distribution_probs
       ~PopularityBasedSampler.get_input_at
       ~PopularityBasedSampler.get_input_mask_at
       ~PopularityBasedSampler.get_input_shape_at
