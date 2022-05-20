@@ -122,14 +122,15 @@ class FIFOQueue(Layer):
             self.at_full_capacity.assign(True)
 
     def _check_input_values(self, values):
-        assert len(tf.shape(values)) == len(self.dims) + 1, (
-            "The rank of values (ignoring the first dim which is the number of examples) and "
-            "self.dims should match"
-        )
-        assert list(values.shape[1:]) == self.dims, (
-            "The shape of values (ignoring the first dim which is the number of examples) and "
-            "self.dims should match"
-        )
+        if values.shape.dims is not None:
+            assert len(tf.shape(values)) == len(self.dims) + 1, (
+                "The rank of values (ignoring the first dim which is the number of examples) and "
+                "self.dims should match"
+            )
+            assert list(values.shape[1:]) == self.dims, (
+                "The shape of values (ignoring the first dim which is the number of examples) and "
+                "self.dims should match"
+            )
 
     def enqueue_many(self, vals: tf.Tensor) -> None:
         """Enqueues many examples into the queue.

@@ -15,7 +15,6 @@ from merlin.models.tf.blocks.core.base import (
     right_shift_layer,
 )
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType, TabularBlock
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer
 from merlin.models.utils import schema_utils
@@ -278,10 +277,6 @@ class SequentialBlock(Block):
         return list(values)
 
     def call(self, inputs, training=False, **kwargs):
-        if getattr(self, "_need_to_call_context", False):
-            # convert sparse inputs to dense before storing them to the context?
-            self.context(AsDenseFeatures()(inputs))
-
         outputs = inputs
         for i, layer in enumerate(self.layers):
             outputs = call_layer(layer, outputs, **kwargs)
@@ -447,9 +442,6 @@ class ParallelBlock(TabularBlock):
         """
         if self.strict:
             assert isinstance(inputs, dict), "Inputs needs to be a dict"
-
-        if getattr(self, "_need_to_call_context", False):
-            self.context(inputs)
 
         outputs = {}
         if isinstance(inputs, dict) and all(

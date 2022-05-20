@@ -103,9 +103,12 @@ class CachedCrossBatchSampler(ItemSampler):
         self.items_metadata_queue = dict()
         items_metadata = input_shapes["metadata"]
         for feat_name in items_metadata:
+            dims = []
+            if items_metadata[feat_name].dims is not None:
+                dims = list(items_metadata[feat_name][1:])
             self.items_metadata_queue[feat_name] = FIFOQueue(
                 capacity=queue_size,
-                dims=list(items_metadata[feat_name][1:]),
+                dims=dims,
                 dtype=self.item_metadata_dtypes[feat_name],
                 name=f"item_metadata_{feat_name}",
             )
