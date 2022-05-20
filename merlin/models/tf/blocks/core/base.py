@@ -91,20 +91,10 @@ class ModelContext(Layer):
     (This is created automatically in the model and doesn't need to be created manually.)
     """
 
-    def __init__(self, **kwargs):
-        feature_names = kwargs.pop("feature_names", [])
-        feature_dtypes = kwargs.pop("feature_dtypes", {})
-        super(ModelContext, self).__init__(**kwargs)
-        self._feature_names = feature_names
-        self._feature_dtypes = feature_dtypes
-
     def add_embedding_weight(self, name, **kwargs):
         table = self.add_weight(name=f"{str(name)}/embedding", **kwargs)
 
         return table
-
-    def add_features(self, *name):
-        self._feature_names = list({*self._feature_names, *name})
 
     def add_variable(self, variable):
         setattr(self, variable.name, variable)
@@ -150,61 +140,8 @@ class ModelContext(Layer):
 
         return outputs
 
-    def _merge(self, other: "ModelContext"):
-        self.public_variables.update(other.public_variables)
-        self._feature_names = list(set(self._feature_names + other._feature_names))
-
-    def build(self, input_shape):
-        for feature_name in self._feature_names:
-            if feature_name not in self.named_variables:
-                shape = input_shape[feature_name]
-                dtype = self._feature_dtypes.get(feature_name, tf.float32)
-
-                if len(tuple(shape)) == 2:
-                    s = (
-                        shape[-1]
-                        if not isinstance(shape[-1], (tuple, tf.TensorShape))
-                        else int(shape[0][0] / shape[-1][0])
-                    )
-                    if s == 1:
-                        shape = tf.TensorShape(
-                            [
-                                None,
-                            ]
-                        )
-                        var = tf.zeros([1], dtype=dtype)
-                    else:
-                        shape = tf.TensorShape([None, s])
-                        var = tf.zeros([1, s], dtype=dtype)
-                elif tuple(shape) != (None,):
-                    var = tf.zeros((shape), dtype=dtype)
-                else:
-                    var = tf.zeros([1], dtype=dtype)
-
-                setattr(
-                    self,
-                    feature_name,
-                    tf.Variable(
-                        var,
-                        name=feature_name,
-                        trainable=False,
-                        dtype=dtype,
-                        shape=shape,
-                    ),
-                )
-
-        super(ModelContext, self).build(input_shape)
-
-    def call(self, features, **kwargs):
-        for feature_name in self._feature_names:
-            self.named_variables[feature_name].assign(features[feature_name])
-
-        return features
-
     def get_config(self):
         config = super(ModelContext, self).get_config()
-        config["feature_names"] = self._feature_names
-        config["feature_dtypes"] = self._feature_dtypes
 
         return config
 
@@ -262,12 +199,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
         self._maybe_propagate_context(input_shapes)
 
         return super().build(input_shapes)
-
-    def _maybe_build(self, inputs):
-        if getattr(self, "_context", None) and not self.context.built:
-            self.context.set_dtypes(inputs)
-
-        super()._maybe_build(inputs)
 
     def call_outputs(
         self, outputs: PredictionOutput, training=False, **kwargs
@@ -597,18 +528,15 @@ class Block(SchemaMixin, ContextMixin, Layer):
             for module in self.submodules:
                 if hasattr(module, "_set_context") and not getattr(module, "context", False):
                     module._set_context(self.context)
-                if hasattr(module, "add_features_to_context") and not getattr(
-                    module, "_features_registered", False
-                ):
-                    feature_names = module.add_features_to_context(input_shapes)
-                    module._features_registered = True
-                    if feature_names:
-                        self.context.add_features(*feature_names)
             self._need_to_call_context = True
             self.context.build(input_shapes)
 
     def __rrshift__(self, other):
         return right_shift_layer(self, other)
+
+    def get_config(self):
+        config = super().get_config()
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

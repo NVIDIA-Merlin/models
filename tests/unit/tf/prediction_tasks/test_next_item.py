@@ -19,6 +19,8 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
+from merlin.models.config.schema import FeatureCollection
+from merlin.models.tf import FeatureContext
 from merlin.models.tf.blocks.core.base import PredictionOutput
 from merlin.schema import Tags
 
@@ -127,32 +129,6 @@ def test_item_retrieval_scorer_no_sampler():
     )
 
 
-def test_item_retrieval_scorer_cached_sampler_downscore_false_negatives_no_item_id_context():
-    batch_size = 10
-
-    # CachedCrossBatchSampler is the only sampler here and with ignore_last_batch_on_sample=True
-    # for the first batch no sample will be returned, which should raise an exception
-    cached_batches_sampler = ml.CachedCrossBatchSampler(
-        capacity=batch_size * 2,
-        ignore_last_batch_on_sample=False,
-    )
-
-    item_retrieval_scorer = ml.ItemRetrievalScorer(
-        samplers=[cached_batches_sampler], sampling_downscore_false_negatives=True
-    )
-
-    users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
-    items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
-
-    with pytest.raises(Exception) as excinfo:
-        _ = item_retrieval_scorer.call_outputs(
-            PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {})
-        )
-    assert "The following required context features should be available for the samplers" in str(
-        excinfo.value
-    )
-
-
 def test_item_retrieval_scorer_downscore_false_negatives():
     batch_size = 10
 
@@ -160,15 +136,14 @@ def test_item_retrieval_scorer_downscore_false_negatives():
 
     # Adding item id to the context
     item_ids = tf.random.uniform(shape=(batch_size,), minval=1, maxval=10000000, dtype=tf.int32)
-    context = ml.ModelContext(feature_names=["item_id"], feature_dtypes={"item_id": tf.int32})
-    _ = context({"item_id": item_ids})
+    features = FeatureCollection(None, {"item_id": item_ids})
+    feature_context = FeatureContext(features)
 
     FALSE_NEGATIVE_SCORE = -100_000_000.0
     item_retrieval_scorer = ml.ItemRetrievalScorer(
         samplers=[cached_batches_sampler],
         sampling_downscore_false_negatives=True,
         sampling_downscore_false_negatives_value=FALSE_NEGATIVE_SCORE,
-        context=context,
     )
 
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
@@ -177,6 +152,7 @@ def test_item_retrieval_scorer_downscore_false_negatives():
     outputs = item_retrieval_scorer.call_outputs(
         PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
         training=True,
+        feature_context=feature_context,
     )
     output_scores = outputs.predictions
 
@@ -251,8 +227,10 @@ def test_retrieval_task_inbatch_cached_samplers(
 
     for batch_step in range(1, 4):
         output = model(batch_inputs, training=True)
+        features = FeatureCollection(model.schema, model.as_dense(batch_inputs))
+        feature_context = FeatureContext(features)
         output = model.loss_block.pre.call_outputs(
-            PredictionOutput(output, {}), training=True
+            PredictionOutput(output, {}), training=True, feature_context=feature_context
         ).predictions
         expected_num_samples_inbatch = batch_size
         expected_num_samples_cached = min(
@@ -266,7 +244,7 @@ def test_retrieval_task_inbatch_cached_samplers(
         )
 
 
-@pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize("run_eagerly", [False])
 def test_retrieval_task_inbatch_cached_samplers_fit(
     ecommerce_data: Dataset, run_eagerly, num_epochs=2
 ):
@@ -425,8 +403,10 @@ def test_retrieval_task_inbatch_default_sampler(
 
     for _ in range(1, 4):
         output = model(batch_inputs, training=True)
+        features = FeatureCollection(model.schema, model.as_dense(batch_inputs))
+        feature_context = FeatureContext(features)
         output = model.loss_block.pre.call_outputs(
-            PredictionOutput(output, {}), training=True
+            PredictionOutput(output, {}), training=True, feature_context=feature_context
         ).predictions
         expected_num_samples_inbatch = batch_size
 
