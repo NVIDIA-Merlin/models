@@ -1,5 +1,5 @@
 import warnings
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import xgboost as xgb
@@ -42,7 +42,13 @@ class XGBoost:
         self.params = {**params, "objective": objective}
         self.bst = None
 
-    def fit(self, train: Dataset, target_columns: Optional[list] = None, **kwargs) -> xgb.Booster:
+    def fit(
+        self,
+        train: Dataset,
+        target_columns: Optional[Union[str, list]] = None,
+        group_columns: Optional[Union[str, list]] = None,
+        **kwargs,
+    ) -> xgb.Booster:
         """Trains the XGBoost Model.
 
         Will use the columns tagged with the target_type passed to the
@@ -57,6 +63,9 @@ class XGBoost:
             objective as the label(s).
         target_columns: Optional[list]
             The target columns to use. If provided, will be used as the label(s).
+        group_columns : Optional[Union[list, str]]
+            For ranking objectives. The grouping columns to use. If not provided will use
+            the user ID (tagged with merlin.schema.Tags.USER_ID) column as the group.
         **kwargs
             Additional keyword arguments passed to the xgboost.train function
 
@@ -73,7 +82,12 @@ class XGBoost:
         target_tag = get_target_tag(objective)
         self.target_columns = target_columns or get_targets(train, target_tag)
 
-        dtrain = dataset_to_dmatrix(train, self.target_columns)
+        # for ranking objectives, set the grouping
+        if objective.startswith("rank") and group_columns is None:
+            group_columns = train.schema.select_by_tag(Tags.USER_ID).column_names
+        self.group_columns = group_columns
+
+        dtrain = dataset_to_dmatrix(train, self.target_columns, self.group_columns)
         watchlist = [(dtrain, "train")]
 
         self.bst: xgb.Booster = xgb.train(self.params, dtrain, evals=watchlist, **kwargs)
@@ -96,7 +110,7 @@ class XGBoost:
         if self.bst is None:
             raise ValueError("The fit method must be called before evaluate.")
 
-        data: xgb.DMatrix = dataset_to_dmatrix(dataset, self.target_columns)
+        data: xgb.DMatrix = dataset_to_dmatrix(dataset, self.target_columns, self.group_columns)
         preds = self.bst.predict(data)
         data.set_label(preds)
 
@@ -126,7 +140,7 @@ class XGBoost:
         if self.bst is None:
             raise ValueError("The fit method must be called before predict.")
 
-        data: xgb.DMatrix = dataset_to_dmatrix(dataset, self.target_columns)
+        data: xgb.DMatrix = dataset_to_dmatrix(dataset, self.target_columns, self.group_columns)
         preds = self.bst.predict(data, **kwargs)
         return preds
 
@@ -135,6 +149,9 @@ OBJECTIVES = {
     "binary:logistic": Tags.BINARY_CLASSIFICATION,
     "reg:logistic": Tags.REGRESSION,
     "reg:squarederror": Tags.REGRESSION,
+    "rank:pairwise": Tags.TARGET,
+    "rank:ndcg": Tags.TARGET,
+    "rank:map": Tags.TARGET,
 }
 
 
@@ -159,9 +176,14 @@ def get_targets(dataset: Dataset, target_tag: Tags) -> List[str]:
         )
 
 
-def dataset_to_dmatrix(dataset: Dataset, target_columns: List[str]) -> xgb.DMatrix:
+def dataset_to_dmatrix(
+    dataset: Dataset, target_columns: Union[str, list], group_columns: Optional[Union[str, list]]
+) -> xgb.DMatrix:
     """Convert Merlin Dataset to XGBoost DMatrix"""
     df = dataset.to_ddf().compute()
+
+    if group_columns:
+        df = df.sort_values(group_columns)
 
     all_target_columns = dataset.schema.select_by_tag(Tags.TARGET).column_names
 
@@ -181,4 +203,10 @@ def dataset_to_dmatrix(dataset: Dataset, target_columns: List[str]) -> xgb.DMatr
     # Ensure columns are in a consistent order
     X = X[sorted(X.columns)]
 
-    return xgb.DMatrix(X, label=y)
+    data = xgb.DMatrix(X, label=y)
+
+    if group_columns:
+        groups = df.groupby(group_columns).size().values
+        data.set_group(groups)
+
+    return data
