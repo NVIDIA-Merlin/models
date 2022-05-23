@@ -47,9 +47,9 @@ def test_tf_tensors_generation_cpu():
 
     tensors = sample_batch(data, batch_size=100, include_targets=False)
     assert tensors["user_id"].shape == (100, 1)
-    assert tensors["user_age"].dtype == tf.float64
-    for name, val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).items():
-        assert len(val) == 2
+    assert tensors["user_age"].dtype == tf.float32
+    for val in filter_dict_by_schema(tensors, schema.select_by_tag(Tags.LIST)).values():
+        assert isinstance(val, tf.RaggedTensor)
 
 
 def test_generate_item_interactions_cpu(testing_data: Dataset):

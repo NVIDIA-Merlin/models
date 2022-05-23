@@ -66,7 +66,7 @@ class AsSparseFeatures(TabularBlock):
         outputs = {}
         for name, val in inputs.items():
             if isinstance(val, tuple):
-                outputs[name] = list_col_to_ragged(val)
+                val = list_col_to_ragged(val)
             if isinstance(val, tf.RaggedTensor):
                 outputs[name] = val.to_sparse()
             else:
