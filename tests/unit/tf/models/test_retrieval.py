@@ -136,7 +136,6 @@ def test_two_tower_model_with_custom_options(
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-# @pytest.mark.parametrize("loss", ["bpr"])
 @pytest.mark.parametrize("loss", ["categorical_crossentropy", "bpr", "binary_crossentropy"])
 def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eagerly, loss):
     ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)

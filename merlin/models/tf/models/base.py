@@ -416,12 +416,13 @@ class Model(tf.keras.Model):
             feature_context=feature_context,
             **kwargs,
         )
-        predictions, targets = {}, {}
+        predictions, targets, output = {}, {}, None
         for task in self.prediction_tasks:
             task_x = forward
             if isinstance(forward, dict) and task.task_name in forward:
                 task_x = forward[task.task_name]
             if isinstance(task_x, PredictionOutput):
+                output = task_x
                 task_y = task_x.targets
                 task_x = task_x.predictions
             else:
@@ -433,6 +434,9 @@ class Model(tf.keras.Model):
         if len(predictions) == 1 and len(targets) == 1:
             predictions = predictions[list(predictions.keys())[0]]
             targets = targets[list(targets.keys())[0]]
+
+        if output:
+            return output.copy_with_updates(predictions, targets)
 
         return PredictionOutput(predictions, targets)
 
@@ -459,7 +463,7 @@ class Model(tf.keras.Model):
         x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
         outputs = self.prediction_output(x, y, testing=True)
 
-        if getattr(self, "pre_eval_k", False):
+        if getattr(self, "pre_eval_topk", None) is not None:
             # During eval, the retrieval-task only returns positive scores
             # so we need to retrieve top-k negative scores to compute the loss
             outputs = self.pre_eval_topk.call_outputs(outputs)
@@ -684,10 +688,10 @@ class RetrievalModel(Model):
                     f"Got {type(item_corpus)}",
                 )
 
-            from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
-
             # set cache_query to True in the ItemRetrievalScorer
-            if isinstance(self.prediction_tasks[0], ItemRetrievalScorer):
+            from merlin.models.tf import ItemRetrievalTask
+
+            if isinstance(self.prediction_tasks[0], ItemRetrievalTask):
                 self.prediction_tasks[0].set_retrieval_cache_query(True)  # type: ignore
 
         return super().evaluate(
