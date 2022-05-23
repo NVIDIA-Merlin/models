@@ -191,7 +191,7 @@ class MultiClassClassificationTask(PredictionTask):
         The metrics to use for the task. Defaults to [accuracy].
     """
 
-    DEFAULT_LOSS = "sparse_categorical_crossentropy"
+    DEFAULT_LOSS = "categorical_crossentropy"
     DEFAULT_METRICS: MetricOrMetrics = (tf.keras.metrics.Accuracy,)
 
     def __init__(
