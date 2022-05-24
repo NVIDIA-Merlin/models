@@ -134,7 +134,6 @@ class PredictionTask(Layer, ContextMixin):
 
         # This will call the `call` method implemented by the super class.
         outputs = super().__call__(inputs, **kwargs)  # noqa
-        training = kwargs.get("training", False)
 
         if "targets" in kwargs:
             targets = kwargs.get("targets", {})
@@ -157,11 +156,6 @@ class PredictionTask(Layer, ContextMixin):
                 prediction_output = prediction_output.copy_with_updates(
                     predictions=tf.squeeze(prediction_output.predictions)
                 )
-
-            if not training and self._pre_eval_topk:
-                # During eval, the retrieval-task only returns positive scores
-                # so we need to retrieve top-k negative scores to compute the loss
-                prediction_output = self._pre_eval_topk.call_outputs(prediction_output, **kwargs)
 
             return prediction_output
 
