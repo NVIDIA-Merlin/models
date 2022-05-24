@@ -48,6 +48,11 @@ def social_data() -> Dataset:
 
 
 @pytest.fixture
+def criteo_data() -> Dataset:
+    return generate_data("criteo", num_rows=100)
+
+
+@pytest.fixture
 def testing_data() -> Dataset:
     data = generate_data("testing", num_rows=100)
     data.schema = data.schema.without(["session_id", "session_start", "day_idx"])
@@ -85,5 +90,7 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.implicit)
         elif path.startswith("tests/unit/lightfm"):
             item.add_marker(pytest.mark.lightfm)
+        elif path.startswith("tests/unit/xgb"):
+            item.add_marker(pytest.mark.xgboost)
         elif path.startswith("tests/unit/datasets"):
             item.add_marker(pytest.mark.datasets)

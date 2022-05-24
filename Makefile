@@ -46,6 +46,11 @@ tests-lightfm:
 	coverage report --include 'merlin/models/*'
 	coverage html --include 'merlin/models/*'
 
+tests-xgboost:
+	coverage run -m pytest -rsx tests -m "xgboost" || exit 1
+	coverage report --include 'merlin/models/*'
+	coverage html --include 'merlin/models/*'
+
 tests-datasets:
 	coverage run -m pytest -rsx tests -m "datasets" || exit 1
 	coverage report --include 'merlin/models/*'
