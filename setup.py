@@ -46,6 +46,7 @@ requirements = {
     "pytorch": read_requirements("requirements/pytorch.txt"),
     "lightfm": read_requirements("requirements/lightfm.txt"),
     "implicit": read_requirements("requirements/implicit.txt"),
+    "xgboost": read_requirements("requirements/xgboost.txt"),
     "nvtabular": _nvt,
     "dev": _dev,
 }
@@ -54,6 +55,7 @@ dev_requirements = {
     "pytorch-dev": requirements["pytorch"] + _dev + _nvt,
     "implicit-dev": requirements["implicit"] + _dev + _nvt,
     "lightfm-dev": requirements["lightfm"] + _dev + _nvt,
+    "xgboost-dev": requirements["xgboost"] + _dev + _nvt,
 }
 
 setup(
