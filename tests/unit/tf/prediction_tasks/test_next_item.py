@@ -228,9 +228,13 @@ def test_retrieval_task_inbatch_cached_samplers(
         output = model(batch_inputs, training=True)
         features = FeatureCollection(model.schema, model.as_dense(batch_inputs))
         feature_context = FeatureContext(features)
-        output = model.loss_block.pre.call_outputs(
-            PredictionOutput(output, {}), training=True, feature_context=feature_context
-        ).predictions
+        output = (
+            model.prediction_tasks[0]
+            .pre.call_outputs(
+                PredictionOutput(output, {}), training=True, feature_context=feature_context
+            )
+            .predictions
+        )
         expected_num_samples_inbatch = batch_size
         expected_num_samples_cached = min(
             batch_size * (batch_step - 1 if ignore_last_batch_on_sample else batch_step),
@@ -401,9 +405,13 @@ def test_retrieval_task_inbatch_default_sampler(
         output = model(batch_inputs, training=True)
         features = FeatureCollection(model.schema, model.as_dense(batch_inputs))
         feature_context = FeatureContext(features)
-        output = model.loss_block.pre.call_outputs(
-            PredictionOutput(output, {}), training=True, feature_context=feature_context
-        ).predictions
+        output = (
+            model.prediction_tasks[0]
+            .pre.call_outputs(
+                PredictionOutput(output, {}), training=True, feature_context=feature_context
+            )
+            .predictions
+        )
         expected_num_samples_inbatch = batch_size
 
         tf.assert_equal(tf.shape(output)[0], batch_size)
