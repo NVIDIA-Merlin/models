@@ -106,9 +106,9 @@ class MaskingBlock(Block):
     def compute_feature_mask(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
         raise NotImplementedError()
 
-    def apply_mask_to_inputs(self, inputs: tf.Tensor, mask: tf.Tensor) -> tf.Tensor:
+    def apply_mask_to_inputs(self, inputs: tf.Tensor, input_mask: tf.Tensor) -> tf.Tensor:
         inputs = tf.where(
-            tf.cast(tf.expand_dims(mask, -1), tf.bool),
+            tf.cast(tf.expand_dims(input_mask, -1), tf.bool),
             tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
             inputs,
         )
@@ -116,9 +116,10 @@ class MaskingBlock(Block):
 
     def call(self, inputs, feature_context=None, training=True, **kwargs) -> tf.Tensor:
         items = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
-        mask = self.compute_feature_mask(items, training=training)
-        inputs = self.apply_mask_to_inputs(inputs, mask)
-        feature_context.mask = mask
+        mask_labels, mask_inputs = self.compute_feature_mask(items, training=training)
+        if mask_inputs:
+            inputs = self.apply_mask_to_inputs(inputs, mask_inputs)
+        feature_context.mask = mask_labels
         return inputs
 
     def get_config(self):
@@ -182,19 +183,15 @@ class CausalLanguageModeling(MaskingBlock):
             )
             # Updating labels and mask
             mask_labels = self.label_seq_trg_eval != self.padding_idx
+            mask_inputs = mask_labels
 
         else:
-            labels = items[:, 1:]
-            # pad shifted sequence to original length
-            labels = tf.concat(
-                [labels, tf.zeros((tf.shape(items)[0], 1), dtype=labels.dtype)],
-                axis=-1,
-            )
-            mask_labels = labels != self.padding_idx
+            mask_labels = items != self.padding_idx
+            mask_inputs = None
 
-        return mask_labels
+        return mask_labels, mask_inputs
 
-    def apply_mask_to_inputs(self, inputs: tf.Tensor, mask: tf.Tensor) -> tf.Tensor:
+    def apply_mask_to_inputs(self, inputs: tf.Tensor, input_mask: tf.Tensor) -> tf.Tensor:
         pos_emb_inp = inputs[:, :-1]
         # Adding a masked item in the sequence to return to the initial sequence length.
         pos_emb_inp = tf.concat(
@@ -208,7 +205,7 @@ class CausalLanguageModeling(MaskingBlock):
         )
 
         pos_emb_inp = tf.where(
-            tf.cast(tf.expand_dims(mask, -1), tf.bool),
+            tf.cast(tf.expand_dims(input_mask, -1), tf.bool),
             tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
             pos_emb_inp,
         )
@@ -315,6 +312,7 @@ class MaskedLanguageModeling(MaskingBlock):
                 indices, tf.cast(tf.fill((num_updates,), self.padding_idx), self.labels.dtype)
             )
             mask_labels = self.labels != self.padding_idx
+            mask_inputs = mask_labels
 
         elif self.eval_on_last_item_seq_only:
             last_item_sessions = tf.reduce_sum(non_padded_mask, axis=1) - 1
@@ -328,18 +326,12 @@ class MaskedLanguageModeling(MaskingBlock):
             )
             self.labels.scatter_nd_update(indices=indices, updates=tf.gather_nd(item_ids, indices))
             mask_labels = self.labels != self.padding_idx
+            mask_inputs = mask_labels
         else:
-            labels = item_ids[:, 1:]
-            labels = tf.concat(
-                [
-                    labels,
-                    tf.zeros((tf.shape(labels)[0], 1), dtype=labels.dtype),
-                ],
-                axis=-1,
-            )
-            mask_labels = labels != self.padding_idx
+            mask_labels = item_ids != self.padding_idx
+            mask_inputs = None
 
-        return mask_labels
+        return mask_labels, mask_inputs
 
 
 @Block.registry.register_with_multiple_names("masking_head")
