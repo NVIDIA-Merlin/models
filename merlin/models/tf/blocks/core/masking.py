@@ -88,14 +88,6 @@ class MaskingBlock(Block):
             dtype=tf.float32,
         )
 
-        self.label_seq_trg_eval = tf.Variable(
-            tf.zeros(shape=[1, input_shapes[1]], dtype=tf.int64),
-            name="target_labels",
-            dtype=tf.int64,
-            trainable=False,
-            shape=tf.TensorShape([None, input_shapes[1]]),
-        )
-
         super().build(input_shapes)
 
     def add_features_to_context(self, feature_shapes) -> List[str]:
@@ -118,6 +110,8 @@ class MaskingBlock(Block):
 
     def call(self, inputs, feature_context=None, training=True, **kwargs) -> tf.Tensor:
         item_ids = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
+        # Ensuring the item ids have not a dynamic shape (in order to avoid errors in graph mode)
+        item_ids = tf.reshape(item_ids, tf.shape(inputs)[:-1])
         mask_keep_labels, mask_replace_inputs = self.compute_feature_mask(
             item_ids, training=training
         )
@@ -176,24 +170,15 @@ class CausalLanguageModeling(MaskingBlock):
         self.train_on_last_item_seq_only = train_on_last_item_seq_only
 
     def compute_feature_mask(self, item_ids: tf.Tensor, training: bool = False) -> tf.Tensor:
-        item_ids = tf.cast(tf.squeeze(item_ids), tf.int64)
+        item_ids = tf.cast(item_ids, tf.int64)
         if (self.eval_on_last_item_seq_only and not training) or (
             self.train_on_last_item_seq_only and training
         ):
             mask_labels = item_ids != self.padding_idx
             last_item_sessions = tf.reduce_sum(tf.cast(mask_labels, item_ids.dtype), axis=1) - 1
-
-            rows_ids = tf.range(tf.shape(item_ids)[0], dtype=item_ids.dtype)
-            self.label_seq_trg_eval.assign(tf.zeros(tf.shape(item_ids), dtype=tf.int64))
-
-            indices = tf.concat(
-                [tf.expand_dims(rows_ids, 1), tf.expand_dims(last_item_sessions, 1)], axis=1
+            mask_labels = tf.cast(
+                tf.one_hot(last_item_sessions, depth=tf.shape(item_ids)[-1]), tf.bool
             )
-            self.label_seq_trg_eval.scatter_nd_update(
-                indices=indices, updates=tf.gather_nd(item_ids, indices)
-            )
-            # Updating labels and mask
-            mask_labels = self.label_seq_trg_eval != self.padding_idx
             mask_inputs = mask_labels
 
         else:
