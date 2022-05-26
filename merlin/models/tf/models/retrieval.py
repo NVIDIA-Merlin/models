@@ -207,7 +207,7 @@ def YoutubeDNNRetrievalModel(
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
     logits_temperature: float = 1.0,
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MASKED_MEAN),
     sampled_softmax: bool = True,
     num_sampled: int = 100,
     min_sampled_id: int = 0,

@@ -103,23 +103,34 @@ class MaskingBlock(Block):
 
         return [f]
 
-    def compute_feature_mask(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
+    def compute_feature_mask(self, item_ids: tf.Tensor, training: bool = False) -> tf.Tensor:
         raise NotImplementedError()
 
-    def apply_mask_to_inputs(self, inputs: tf.Tensor, input_mask: tf.Tensor) -> tf.Tensor:
+    def apply_mask_to_inputs(
+        self, inputs: tf.Tensor, input_mask_to_replace: tf.Tensor
+    ) -> tf.Tensor:
         inputs = tf.where(
-            tf.cast(tf.expand_dims(input_mask, -1), tf.bool),
+            tf.cast(tf.expand_dims(input_mask_to_replace, -1), tf.bool),
             tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
             inputs,
         )
         return inputs
 
     def call(self, inputs, feature_context=None, training=True, **kwargs) -> tf.Tensor:
-        items = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
-        mask_labels, mask_inputs = self.compute_feature_mask(items, training=training)
-        if mask_inputs is not None:
-            inputs = self.apply_mask_to_inputs(inputs, mask_inputs)
-        feature_context.mask = mask_labels
+        item_ids = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
+        mask_keep_labels, mask_replace_inputs = self.compute_feature_mask(
+            item_ids, training=training
+        )
+
+        valid_inputs_mask = item_ids != self.padding_idx
+        if mask_replace_inputs is not None:
+            inputs = self.apply_mask_to_inputs(inputs, mask_replace_inputs)
+            valid_inputs_mask = tf.logical_and(
+                valid_inputs_mask, tf.logical_not(mask_replace_inputs)
+            )
+        feature_context.mask = mask_keep_labels
+        self.context.valid_inputs_mask = valid_inputs_mask
+
         return inputs
 
     def get_config(self):
@@ -164,34 +175,36 @@ class CausalLanguageModeling(MaskingBlock):
         )
         self.train_on_last_item_seq_only = train_on_last_item_seq_only
 
-    def compute_feature_mask(self, items: tf.Tensor, training: bool = False) -> tf.Tensor:
-        items = tf.cast(tf.squeeze(items), tf.int64)
+    def compute_feature_mask(self, item_ids: tf.Tensor, training: bool = False) -> tf.Tensor:
+        item_ids = tf.cast(tf.squeeze(item_ids), tf.int64)
         if (self.eval_on_last_item_seq_only and not training) or (
             self.train_on_last_item_seq_only and training
         ):
-            mask_labels = items != self.padding_idx
-            last_item_sessions = tf.reduce_sum(tf.cast(mask_labels, items.dtype), axis=1) - 1
+            mask_labels = item_ids != self.padding_idx
+            last_item_sessions = tf.reduce_sum(tf.cast(mask_labels, item_ids.dtype), axis=1) - 1
 
-            rows_ids = tf.range(tf.shape(items)[0], dtype=items.dtype)
-            self.label_seq_trg_eval.assign(tf.zeros(tf.shape(items), dtype=tf.int64))
+            rows_ids = tf.range(tf.shape(item_ids)[0], dtype=item_ids.dtype)
+            self.label_seq_trg_eval.assign(tf.zeros(tf.shape(item_ids), dtype=tf.int64))
 
             indices = tf.concat(
                 [tf.expand_dims(rows_ids, 1), tf.expand_dims(last_item_sessions, 1)], axis=1
             )
             self.label_seq_trg_eval.scatter_nd_update(
-                indices=indices, updates=tf.gather_nd(items, indices)
+                indices=indices, updates=tf.gather_nd(item_ids, indices)
             )
             # Updating labels and mask
             mask_labels = self.label_seq_trg_eval != self.padding_idx
             mask_inputs = mask_labels
 
         else:
-            mask_labels = items != self.padding_idx
+            mask_labels = item_ids != self.padding_idx
             mask_inputs = None
 
         return mask_labels, mask_inputs
 
-    def apply_mask_to_inputs(self, inputs: tf.Tensor, input_mask: tf.Tensor) -> tf.Tensor:
+    def apply_mask_to_inputs(
+        self, inputs: tf.Tensor, input_mask_to_replace: tf.Tensor
+    ) -> tf.Tensor:
         pos_emb_inp = inputs[:, :-1]
         # Adding a masked item in the sequence to return to the initial sequence length.
         pos_emb_inp = tf.concat(
@@ -205,7 +218,7 @@ class CausalLanguageModeling(MaskingBlock):
         )
 
         pos_emb_inp = tf.where(
-            tf.cast(tf.expand_dims(input_mask, -1), tf.bool),
+            tf.cast(tf.expand_dims(input_mask_to_replace, -1), tf.bool),
             tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
             pos_emb_inp,
         )
