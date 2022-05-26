@@ -368,7 +368,6 @@ def masked_mean(
             tf.reduce_sum(tf.multiply(input_tensor, mask_float), axis=axis),
             tf.reduce_sum(mask_float, axis=axis),
         )
-        output_tensor = tf.reduce_sum(input_tensor, axis=axis)
     else:
         raise ValueError("The mask is required for masked mean")
 
