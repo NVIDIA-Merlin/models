@@ -16,7 +16,7 @@
 import abc
 import inspect
 from enum import Enum
-from typing import Union
+from typing import Optional, Union
 
 import tensorflow as tf
 from tensorflow.python.keras import backend
@@ -335,7 +335,32 @@ class ElementWiseMultiply(TupleAggregation):
         return out
 
 
-def masked_mean(input_tensor, axis=None, mask=None):
+def masked_mean(
+    input_tensor: tf.Tensor, axis: Optional[int] = None, mask: tf.Tensor = None
+) -> tf.Tensor:
+    """Computes the mean of the specified axis considering only
+    masked values
+
+    Parameters
+    ----------
+    input_tensor : tf.Tensor
+        Input tensor
+    axis : int, optional
+        axis to compute the mean over, by default None
+    mask : tf.Tensor
+        Mask tensor with the same shape as input_tensor.
+        Only values where mask=True will be considered for average, by default None
+
+    Returns
+    -------
+    tf.Tensor
+        A tensor with the values averaged of the specified axis considering only masked values
+
+    Raises
+    ------
+    ValueError
+        If mask is not provided
+    """
     output_tensor = input_tensor
     if mask is not None:
         mask_float = tf.expand_dims(tf.cast(mask, tf.float32), -1)
@@ -343,6 +368,8 @@ def masked_mean(input_tensor, axis=None, mask=None):
             tf.reduce_sum(tf.multiply(input_tensor, mask_float), axis=axis),
             tf.reduce_sum(mask_float, axis=axis),
         )
+    else:
+        raise ValueError("The mask is required for masked mean")
 
     return output_tensor
 
