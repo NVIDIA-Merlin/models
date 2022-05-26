@@ -117,7 +117,7 @@ class MaskingBlock(Block):
     def call(self, inputs, feature_context=None, training=True, **kwargs) -> tf.Tensor:
         items = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
         mask_labels, mask_inputs = self.compute_feature_mask(items, training=training)
-        if mask_inputs:
+        if mask_inputs is not None:
             inputs = self.apply_mask_to_inputs(inputs, mask_inputs)
         feature_context.mask = mask_labels
         return inputs
