@@ -109,8 +109,8 @@ class MaskingBlock(Block):
     def apply_mask_to_inputs(self, inputs: tf.Tensor, mask: tf.Tensor) -> tf.Tensor:
         inputs = tf.where(
             tf.cast(tf.expand_dims(mask, -1), tf.bool),
-            inputs,
             tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
+            inputs,
         )
         return inputs
 
@@ -209,8 +209,8 @@ class CausalLanguageModeling(MaskingBlock):
 
         pos_emb_inp = tf.where(
             tf.cast(tf.expand_dims(mask, -1), tf.bool),
-            pos_emb_inp,
             tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
+            pos_emb_inp,
         )
         return pos_emb_inp
 
