@@ -73,7 +73,7 @@ def test_topk_index_duplicate_indices(ecommerce_data: Dataset):
     assert "Please make sure that `data` contains unique indices" in str(excinfo.value)
 
 
-def test_topk_recommender_outputs(ecommerce_data: Dataset):
+def test_topk_recommender_outputs(ecommerce_data: Dataset, batch_size=100):
     import numpy as np
     import tensorflow as tf
 
@@ -86,23 +86,12 @@ def test_topk_recommender_outputs(ecommerce_data: Dataset):
 
     model = mm.TwoTowerModel(
         ecommerce_data.schema,
-        query_tower=mm.MLPBlock(
-            [64],
-        ),
+        query_tower=mm.MLPBlock([64]),
         samplers=[mm.InBatchSampler()],
-        metrics=[
-            mm.RecallAt(10),
-        ],
-        loss="categorical_crossentropy",
     )
-    batch_size = 100
-    model.compile("adam", run_eagerly=False)
 
-    model.fit(
-        ecommerce_data,
-        batch_size=batch_size,
-        epochs=3,
-    )
+    model.compile("adam", metrics=[mm.RecallAt(10)])
+    model.fit(ecommerce_data, batch_size=batch_size, epochs=3)
     eval_metrics = model.evaluate(
         ecommerce_data, item_corpus=ecommerce_data, batch_size=batch_size, return_dict=True
     )

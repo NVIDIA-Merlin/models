@@ -219,19 +219,22 @@ def test_retrieval_task_inbatch_cached_samplers(
             music_streaming_data.schema,
             logits_temperature=2,
             samplers=samplers,
-            loss="bpr",
         ),
     )
 
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss="bpr")
 
     for batch_step in range(1, 4):
         output = model(batch_inputs, training=True)
         features = FeatureCollection(model.schema, model.as_dense(batch_inputs))
         feature_context = FeatureContext(features)
-        output = model.loss_block.pre.call_outputs(
-            PredictionOutput(output, {}), training=True, feature_context=feature_context
-        ).predictions
+        output = (
+            model.prediction_tasks[0]
+            .pre.call_outputs(
+                PredictionOutput(output, {}), training=True, feature_context=feature_context
+            )
+            .predictions
+        )
         expected_num_samples_inbatch = batch_size
         expected_num_samples_cached = min(
             batch_size * (batch_step - 1 if ignore_last_batch_on_sample else batch_step),
@@ -286,8 +289,6 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
         "ndcg_10",
         "precision_at_10",
         "recall_at_10",
-        "regularization_loss",
-        "total_loss",
     ]
 
 
@@ -359,7 +360,6 @@ def test_last_item_prediction_task(
     loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     task = ml.NextItemPredictionTask(
         schema=sequence_testing_data.schema,
-        loss=loss,
         masking=True,
         weight_tying=weight_tying,
         sampled_softmax=sampled_softmax,
@@ -367,7 +367,7 @@ def test_last_item_prediction_task(
     )
 
     model = ml.Model(inputs, ml.MLPBlock([64]), task)
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss=loss)
     losses = model.fit(sequence_testing_data, batch_size=50, epochs=2)
 
     assert len(losses.epoch) == 2
@@ -396,18 +396,22 @@ def test_retrieval_task_inbatch_default_sampler(
 
     model = ml.Model(
         two_tower,
-        ml.ItemRetrievalTask(music_streaming_data.schema, logits_temperature=2, loss="bpr"),
+        ml.ItemRetrievalTask(music_streaming_data.schema, logits_temperature=2),
     )
 
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss="bpr")
 
     for _ in range(1, 4):
         output = model(batch_inputs, training=True)
         features = FeatureCollection(model.schema, model.as_dense(batch_inputs))
         feature_context = FeatureContext(features)
-        output = model.loss_block.pre.call_outputs(
-            PredictionOutput(output, {}), training=True, feature_context=feature_context
-        ).predictions
+        output = (
+            model.prediction_tasks[0]
+            .pre.call_outputs(
+                PredictionOutput(output, {}), training=True, feature_context=feature_context
+            )
+            .predictions
+        )
         expected_num_samples_inbatch = batch_size
 
         tf.assert_equal(tf.shape(output)[0], batch_size)

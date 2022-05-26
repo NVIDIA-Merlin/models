@@ -18,12 +18,11 @@ from typing import Optional, Sequence
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
-from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
+from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
-from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
 from merlin.models.utils import schema_utils
@@ -74,8 +73,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
     def __init__(
         self,
         schema: Schema,
-        loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics: MetricOrMetrics = DEFAULT_METRICS,
         samplers: Sequence[ItemSampler] = (),
         target_name: Optional[str] = None,
         task_name: Optional[str] = None,
@@ -95,11 +92,8 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             post_logits,
             store_negative_ids,
         )
-        self.loss = loss_registry.parse(loss)
 
         super().__init__(
-            loss=self.loss,
-            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,

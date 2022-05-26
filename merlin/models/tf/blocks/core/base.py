@@ -24,7 +24,6 @@ from tensorflow.keras.layers import Layer
 
 from merlin.models.config.schema import SchemaMixin
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.mixins import ModelLikeBlock
 from merlin.models.utils.registry import Registry
 from merlin.schema import Schema, Tags
 
@@ -461,15 +460,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
             rest_features = self.schema.without(list(set([str(f) for f in all_features])))
             rest_block = SequentialBlock([Filter(rest_features)])
             _branches.append(rest_block)
-
-        if all(isinstance(branch, ModelLikeBlock) for branch in _branches):
-            from merlin.models.tf import ParallelPredictionBlock
-
-            parallel = ParallelPredictionBlock(
-                *_branches, post=post, aggregation=aggregation, **kwargs
-            )
-
-            return Model(SequentialBlock([self, parallel]))
 
         return SequentialBlock(
             [self, ParallelBlock(*_branches, post=post, aggregation=aggregation, **kwargs)]

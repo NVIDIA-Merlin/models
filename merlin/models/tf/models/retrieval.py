@@ -1,15 +1,13 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
-from merlin.models.tf.blocks.core.base import Block, BlockType, MetricOrMetrics
+from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.inputs import InputBlock
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.features.embedding import EmbeddingOptions
-from merlin.models.tf.losses import LossType
-from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
@@ -32,8 +30,6 @@ def MatrixFactorizationModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     logits_temperature: float = 1.0,
-    loss: Optional[LossType] = "bpr",
-    metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> RetrievalModel:
@@ -80,15 +76,13 @@ def MatrixFactorizationModel(
     if not prediction_tasks:
         prediction_tasks = ItemRetrievalTask(
             schema,
-            metrics=metrics,
             logits_temperature=logits_temperature,
             samplers=list(samplers),
-            loss=loss,
             **kwargs,
         )
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    two_tower = QueryItemIdsEmbeddingsBlock(
+    mf = QueryItemIdsEmbeddingsBlock(
         schema=schema,
         dim=dim,
         query_id_tag=query_id_tag,
@@ -99,7 +93,7 @@ def MatrixFactorizationModel(
         **kwargs,
     )
 
-    model = RetrievalModel(two_tower, prediction_tasks)
+    model = RetrievalModel(mf, prediction_tasks)
 
     return model
 
@@ -121,8 +115,6 @@ def TwoTowerModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     logits_temperature: float = 1.0,
-    loss: Optional[LossType] = "categorical_crossentropy",
-    metrics: MetricOrMetrics = ItemRetrievalTask.DEFAULT_METRICS,
     samplers: Sequence[ItemSampler] = (),
     **kwargs,
 ) -> RetrievalModel:
@@ -184,10 +176,8 @@ def TwoTowerModel(
     if not prediction_tasks:
         prediction_tasks = ItemRetrievalTask(
             schema,
-            metrics=metrics,
             logits_temperature=logits_temperature,
             samplers=list(samplers),
-            loss=loss,
             **kwargs,
         )
 
@@ -213,8 +203,6 @@ def YoutubeDNNRetrievalModel(
     max_seq_length: int,
     aggregation: str = "concat",
     top_block: Block = MLPBlock([64]),
-    loss: Optional[LossType] = "categorical_crossentropy",
-    metrics=ranking_metrics(top_ks=[10]),
     l2_normalization: bool = True,
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
@@ -315,8 +303,6 @@ def YoutubeDNNRetrievalModel(
 
     task = NextItemPredictionTask(
         schema=schema,
-        loss=loss,
-        metrics=metrics,
         masking=True,
         weight_tying=False,
         extra_pre_call=extra_pre_call,

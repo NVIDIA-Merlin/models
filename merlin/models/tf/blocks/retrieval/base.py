@@ -228,7 +228,7 @@ class ItemRetrievalScorer(Block):
         self,
         inputs: Union[tf.Tensor, TabularData],
         training: bool = True,
-        eval_sampling: bool = False,
+        testing: bool = False,
         **kwargs,
     ) -> Union[tf.Tensor, TabularData]:
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
@@ -252,7 +252,7 @@ class ItemRetrievalScorer(Block):
             # enabled only during top-k evaluation
             self.context["query"].assign(tf.cast(inputs[self.query_name], tf.float32))
 
-        if training or eval_sampling:
+        if training or testing:
             return inputs
 
         if self.sampled_softmax_mode:
@@ -270,7 +270,7 @@ class ItemRetrievalScorer(Block):
         outputs: PredictionOutput,
         feature_context: FeatureContext = None,
         training=True,
-        eval_sampling=False,
+        testing=False,
         **kwargs,
     ) -> "PredictionOutput":
         """Based on the user/query embedding (inputs[self.query_name]), uses dot product to score
@@ -298,7 +298,7 @@ class ItemRetrievalScorer(Block):
             positive_item_ids = feature_context.features.values[self.item_id_feature_name]
 
         neg_items_ids = None
-        if training or eval_sampling:
+        if training or testing:
 
             assert (
                 len(self.samplers) > 0

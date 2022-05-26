@@ -86,10 +86,7 @@ def test_dlrm_model_multi_task(music_streaming_data, run_eagerly):
 
     tasks_blocks = dict(click=ml.MLPBlock([16]), play_percentage=ml.MLPBlock([20]))
 
-    prediction_tasks = ml.PredictionTasks(
-        music_streaming_data.schema,
-        task_blocks=tasks_blocks,
-    )
+    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema, task_blocks=tasks_blocks)
 
     model = ml.Model(dlrm_body, ml.MLPBlock([64]), prediction_tasks)
 

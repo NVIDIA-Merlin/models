@@ -27,12 +27,10 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks):
 
     step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
-    # assert 0 <= step["loss"] <= 1 # test failing with loss greater than 1
     assert step["loss"] >= 0
     assert len(step) == 8
     if task_blocks:
-        blocks = list(model.loss_block.task_blocks.values())
-        assert blocks[0] != blocks[1]
+        assert model.prediction_tasks[0].task_block != model.prediction_tasks[1].task_block
 
 
 def test_mmoe_head(music_streaming_data: Dataset):
@@ -45,7 +43,7 @@ def test_mmoe_head(music_streaming_data: Dataset):
     step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     assert step["loss"] >= 0
-    assert len(step) == 12
+    assert len(step) == 13
 
 
 def test_ple_head(music_streaming_data: Dataset):
@@ -60,4 +58,4 @@ def test_ple_head(music_streaming_data: Dataset):
     step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     assert step["loss"] >= 0
-    assert len(step) == 12
+    assert len(step) == 13

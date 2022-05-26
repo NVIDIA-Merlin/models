@@ -18,7 +18,6 @@ from typing import Optional, Union
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from merlin.models.tf.losses import LossType, loss_registry
 from merlin.models.tf.prediction_tasks.base import PredictionTask
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -55,8 +54,6 @@ class RegressionTask(PredictionTask):
         target: Optional[Union[str, Schema]] = None,
         task_name: Optional[str] = None,
         task_block: Optional[Layer] = None,
-        loss: Optional[LossType] = DEFAULT_LOSS,
-        metrics=DEFAULT_METRICS,
         **kwargs,
     ):
         if isinstance(target, Schema):
@@ -78,7 +75,6 @@ class RegressionTask(PredictionTask):
 
         logit = kwargs.pop("logit", None)
         super().__init__(
-            metrics=metrics,
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
@@ -90,7 +86,6 @@ class RegressionTask(PredictionTask):
         self.output_activation = tf.keras.layers.Activation(
             "linear", dtype="float32", name="prediction"
         )
-        self.loss = loss_registry.parse(loss)
 
     def call(self, inputs, training=False, **kwargs):
         return self.output_activation(self.logit(inputs))

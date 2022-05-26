@@ -31,8 +31,6 @@ from merlin.models.tf.blocks.core.transformations import (
 )
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
-from merlin.models.tf.losses.base import LossType
-from merlin.models.tf.metrics.ranking import ranking_metrics
 from merlin.models.tf.prediction_tasks.classification import (
     CategFeaturePrediction,
     MultiClassClassificationTask,
@@ -126,8 +124,6 @@ def ItemsPredictionPopSampled(
 
 def NextItemPredictionTask(
     schema: Schema,
-    loss: Optional[LossType] = "categorical_crossentropy",
-    metrics=ranking_metrics(top_ks=[10]),
     weight_tying: bool = True,
     masking: bool = True,
     extra_pre_call: Optional[Block] = None,
@@ -234,7 +230,5 @@ def NextItemPredictionTask(
         target_name,
         task_name,
         task_block,
-        loss=loss,
-        metrics=metrics,
         pre=prediction_call,
     )

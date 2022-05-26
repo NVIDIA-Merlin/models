@@ -15,7 +15,6 @@
 #
 from typing import Dict, Optional, Union
 
-import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock
@@ -27,7 +26,6 @@ def PredictionTasks(
     task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
     task_weight_dict: Optional[Dict[str, float]] = None,
     bias_block: Optional[Layer] = None,
-    loss_reduction=tf.reduce_mean,
     **kwargs,
 ) -> ParallelPredictionBlock:
     return ParallelPredictionBlock.from_schema(
@@ -35,6 +33,5 @@ def PredictionTasks(
         task_blocks=task_blocks,
         task_weight_dict=task_weight_dict,
         bias_block=bias_block,
-        loss_reduction=loss_reduction,
         **kwargs,
     )

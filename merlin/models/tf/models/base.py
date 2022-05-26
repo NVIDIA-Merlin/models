@@ -1,20 +1,22 @@
 from __future__ import annotations
 
+import inspect
 from collections.abc import Sequence as SequenceCollection
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
+from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
 from merlin.models.config.schema import FeatureCollection
-from merlin.models.tf.blocks.core.base import Block, ModelContext
+from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.mixins import LossMixin, MetricsMixin, ModelLikeBlock
+from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import call_layer
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
@@ -158,25 +160,19 @@ class ModelBlock(Block, tf.keras.Model):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class Model(tf.keras.Model, LossMixin, MetricsMixin):
+class Model(tf.keras.Model):
     def __init__(
         self,
-        *blocks: Union[Block, ModelLikeBlock],
+        *blocks: Block,
         context: Optional[ModelContext] = None,
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
         context = context or ModelContext()
-        if (
-            len(blocks) == 1
-            and isinstance(blocks[0], SequentialBlock)
-            and isinstance(blocks[0].layers[-1], ModelLikeBlock)
-        ):
+        if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
             self.block = blocks[0]
         else:
-            if not isinstance(blocks[-1], ModelLikeBlock):
-                raise ValueError("Last block must be able to calculate loss & metrics.")
-            self.block = SequentialBlock(blocks, context=context)
+            self.block = SequentialBlock(blocks, context=context, block_name="blocks")
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
         self.context = context
@@ -203,10 +199,147 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             features = FeatureCollection(self.schema, self.as_dense(inputs))
             kwargs["feature_context"] = FeatureContext(features)
 
-        self.feature_context = kwargs["feature_context"]
-
         outputs = call_layer(self.block, inputs, **kwargs)
         return outputs
+
+    def compile(
+        self,
+        optimizer="rmsprop",
+        loss=None,
+        metrics=None,
+        loss_weights=None,
+        weighted_metrics=None,
+        run_eagerly=None,
+        steps_per_execution=None,
+        jit_compile=None,
+        **kwargs,
+    ):
+        """Configures the model for training.
+        Example:
+        ```python
+        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+                      loss=tf.keras.losses.BinaryCrossentropy(),
+                      metrics=[tf.keras.metrics.BinaryAccuracy(),
+                               tf.keras.metrics.FalseNegatives()])
+        ```
+        Args:
+            optimizer: String (name of optimizer) or optimizer instance. See
+              `tf.keras.optimizers`.
+            loss: Loss function. Maybe be a string (name of loss function), or
+              a `tf.keras.losses.Loss` instance. See `tf.keras.losses`. A loss
+              function is any callable with the signature `loss = fn(y_true,
+              y_pred)`, where `y_true` are the ground truth values, and
+              `y_pred` are the model's predictions.
+              `y_true` should have shape
+              `(batch_size, d0, .. dN)` (except in the case of
+              sparse loss functions such as
+              sparse categorical crossentropy which expects integer arrays of shape
+              `(batch_size, d0, .. dN-1)`).
+              `y_pred` should have shape `(batch_size, d0, .. dN)`.
+              The loss function should return a float tensor.
+              If a custom `Loss` instance is
+              used and reduction is set to `None`, return value has shape
+              `(batch_size, d0, .. dN-1)` i.e. per-sample or per-timestep loss
+              values; otherwise, it is a scalar. If the model has multiple outputs,
+              you can use a different loss on each output by passing a dictionary
+              or a list of losses. The loss value that will be minimized by the
+              model will then be the sum of all individual losses, unless
+              `loss_weights` is specified.
+            metrics: List of metrics to be evaluated by the model during training
+              and testing. Each of this can be a string (name of a built-in
+              function), function or a `tf.keras.metrics.Metric` instance. See
+              `tf.keras.metrics`. Typically you will use `metrics=['accuracy']`. A
+              function is any callable with the signature `result = fn(y_true,
+              y_pred)`. To specify different metrics for different outputs of a
+              multi-output model, you could also pass a dictionary, such as
+              `metrics={'output_a': 'accuracy', 'output_b': ['accuracy', 'mse']}`.
+              You can also pass a list to specify a metric or a list of metrics
+              for each output, such as `metrics=[['accuracy'], ['accuracy', 'mse']]`
+              or `metrics=['accuracy', ['accuracy', 'mse']]`. When you pass the
+              strings 'accuracy' or 'acc', we convert this to one of
+              `tf.keras.metrics.BinaryAccuracy`,
+              `tf.keras.metrics.CategoricalAccuracy`,
+              `tf.keras.metrics.SparseCategoricalAccuracy` based on the loss
+              function used and the model output shape. We do a similar
+              conversion for the strings 'crossentropy' and 'ce' as well.
+            loss_weights: Optional list or dictionary specifying scalar coefficients
+              (Python floats) to weight the loss contributions of different model
+              outputs. The loss value that will be minimized by the model will then
+              be the *weighted sum* of all individual losses, weighted by the
+              `loss_weights` coefficients.
+                If a list, it is expected to have a 1:1 mapping to the model's
+                  outputs. If a dict, it is expected to map output names (strings)
+                  to scalar coefficients.
+            weighted_metrics: List of metrics to be evaluated and weighted by
+              `sample_weight` or `class_weight` during training and testing.
+            run_eagerly: Bool. Defaults to `False`. If `True`, this `Model`'s
+              logic will not be wrapped in a `tf.function`. Recommended to leave
+              this as `None` unless your `Model` cannot be run inside a
+              `tf.function`. `run_eagerly=True` is not supported when using
+              `tf.distribute.experimental.ParameterServerStrategy`.
+            steps_per_execution: Int. Defaults to 1. The number of batches to run
+              during each `tf.function` call. Running multiple batches inside a
+              single `tf.function` call can greatly improve performance on TPUs or
+              small models with a large Python overhead. At most, one full epoch
+              will be run each execution. If a number larger than the size of the
+              epoch is passed, the execution will be truncated to the size of the
+              epoch. Note that if `steps_per_execution` is set to `N`,
+              `Callback.on_batch_begin` and `Callback.on_batch_end` methods will
+              only be called every `N` batches (i.e. before/after each `tf.function`
+              execution).
+            jit_compile: If `True`, compile the model training step with XLA.
+              [XLA](https://www.tensorflow.org/xla) is an optimizing compiler for
+              machine learning.
+              `jit_compile` is not enabled for by default.
+              This option cannot be enabled with `run_eagerly=True`.
+              Note that `jit_compile=True` is
+              may not necessarily work for all models.
+              For more information on supported operations please refer to the
+              [XLA documentation](https://www.tensorflow.org/xla).
+              Also refer to
+              [known XLA issues](https://www.tensorflow.org/xla/known_issues) for
+              more details.
+            **kwargs: Arguments supported for backwards compatibility only.
+        """
+
+        self.output_names = [task.task_name for task in self.prediction_tasks]
+
+        _metrics = {}
+        if isinstance(metrics, (list, tuple)) and len(self.prediction_tasks) == 1:
+            _metrics = {task.task_name: metrics for task in self.prediction_tasks}
+
+        # If metrics are not provided, use the defaults from the prediction-tasks.
+        # TODO: Do the same for weight_metrics.
+        if not metrics:
+            for task_name, task in self.prediction_tasks_by_name().items():
+                _metrics[task_name] = [
+                    m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS
+                ]
+
+        _loss = {}
+        if isinstance(loss, (tf.keras.losses.Loss, str)) and len(self.prediction_tasks) == 1:
+            _loss = {task.task_name: loss for task in self.prediction_tasks}
+
+        # If loss is not provided, use the defaults from the prediction-tasks.
+        if not loss:
+            for task_name, task in self.prediction_tasks_by_name().items():
+                _loss[task_name] = task.DEFAULT_LOSS
+
+        for key in _loss:
+            if isinstance(_loss[key], str) and _loss[key] in loss_registry:
+                _loss[key] = loss_registry.parse(_loss[key])
+
+        super(Model, self).compile(
+            optimizer=optimizer,
+            loss=_loss,
+            metrics=_metrics,
+            weighted_metrics=weighted_metrics,
+            run_eagerly=run_eagerly,
+            loss_weights=loss_weights,
+            steps_per_execution=steps_per_execution,
+            jit_compile=jit_compile,
+            **kwargs,
+        )
 
     @property
     def first(self):
@@ -217,8 +350,27 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         return self.block.layers[-1]
 
     @property
-    def loss_block(self) -> ModelLikeBlock:
-        return self.block.last if isinstance(self.block, SequentialBlock) else self.block
+    def prediction_tasks(self) -> List[PredictionTask]:
+        from merlin.models.tf.prediction_tasks.base import PredictionTask
+
+        results = find_all_instances_in_layers(self.block, PredictionTask)
+
+        return results
+
+    def prediction_tasks_by_name(self) -> Dict[str, PredictionTask]:
+        return {task.task_name: task for task in self.prediction_tasks}
+
+    def prediction_tasks_by_target(self) -> Dict[str, List[PredictionTask]]:
+        outputs: Dict[str, Union[PredictionTask, List[PredictionTask]]] = {}
+        for task in self.prediction_tasks:
+            if task.target in outputs:
+                if isinstance(outputs[task.target], list):
+                    outputs[task.target].append(task)
+                else:
+                    outputs[task.target] = [outputs[task.target], task]
+            outputs[task.target] = task
+
+        return outputs
 
     @classmethod
     def from_block(
@@ -250,125 +402,74 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
             schema, input_block=input_block, prediction_tasks=prediction_tasks, **kwargs
         )
 
-    def compute_loss(
-        self,
-        inputs: Union[tf.Tensor, TabularData],
-        targets: Union[tf.Tensor, TabularData],
-        compute_metrics=False,
-        training: bool = False,
-        **kwargs,
-    ) -> tf.Tensor:
-        return self.loss_block.compute_loss(
-            inputs, targets, training=training, compute_metrics=compute_metrics, **kwargs
+    def prediction_output(
+        self, x, y=None, training=False, testing=False, **kwargs
+    ) -> PredictionOutput:
+        features = FeatureCollection(self.schema, self.as_dense(x))
+        feature_context = FeatureContext(features)
+
+        forward = self(
+            x,
+            targets=y,
+            training=training,
+            testing=testing,
+            feature_context=feature_context,
+            **kwargs,
         )
+        predictions, targets, output = {}, {}, None
+        for task in self.prediction_tasks:
+            task_x = forward
+            if isinstance(forward, dict) and task.task_name in forward:
+                task_x = forward[task.task_name]
+            if isinstance(task_x, PredictionOutput):
+                output = task_x
+                task_y = task_x.targets
+                task_x = task_x.predictions
+            else:
+                task_y = y[task.target_name] if isinstance(y, dict) and y else y
 
-    def calculate_metrics(
-        self,
-        outputs,
-        mode: str = "val",
-        forward: bool = True,
-        training: bool = False,
-        **kwargs,
-    ) -> Dict[str, Union[Dict[str, tf.Tensor], tf.Tensor]]:
-        return self.loss_block.calculate_metrics(
-            outputs=outputs, mode=mode, forward=forward, training=training, **kwargs
-        )
+            targets[task.task_name] = task_y
+            predictions[task.task_name] = task_x
 
-    def metric_results(self, mode=None):
-        return self.loss_block.metric_results(mode=mode)
+        if len(predictions) == 1 and len(targets) == 1:
+            predictions = predictions[list(predictions.keys())[0]]
+            targets = targets[list(targets.keys())[0]]
 
-    def train_step(self, inputs):
+        if output:
+            return output.copy_with_updates(predictions, targets)
+
+        return PredictionOutput(predictions, targets)
+
+    def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:
-            if isinstance(inputs, tuple):
-                if len(inputs) == 1:
-                    inputs = inputs[0]
-                    targets = None
-                else:
-                    inputs, targets = inputs
-            else:
-                targets = None
+            x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+            outputs = self.prediction_output(x, y, training=True)
+            loss = self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
 
-            features = FeatureCollection(self.schema, self.as_dense(inputs))
-            feature_context = FeatureContext(features)
-            predictions = self(inputs, feature_context=feature_context, training=True)
+        self._validate_target_and_loss(outputs.targets, loss)
 
-            loss = self.compute_loss(
-                predictions,
-                targets,
-                feature_context=feature_context,
-                training=True,
-                compute_metrics=self._should_compute_train_metrics_for_batch,
-            )
-            tf.assert_rank(
-                loss,
-                0,
-                "The loss tensor should have rank 0. "
-                "Check if you are using a tf.keras.losses.Loss with 'reduction' "
-                "properly set",
-            )
-            assert loss.dtype == tf.float32, (
-                f"The loss dtype should be tf.float32 but is rather {loss.dtype}. "
-                "Ensure that your model output has tf.float32 dtype, as "
-                "that should be the case when using mixed_float16 policy "
-                "to avoid numerical instabilities."
-            )
+        # Run backwards pass.
+        self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-            regularization_loss = tf.reduce_sum(self.losses)
-
-            total_loss = tf.add_n([loss, regularization_loss])
-
-            if getattr(self.optimizer, "get_scaled_loss", False):
-                scaled_loss = self.optimizer.get_scaled_loss(total_loss)
-
-        # If mixed precision (mixed_float16 policy) is enabled
-        # (and the optimizer is automatically wrapped by
-        #  tensorflow.keras.mixed_precision.LossScaleOptimizer())
-        if getattr(self.optimizer, "get_scaled_loss", False):
-            scaled_gradients = tape.gradient(scaled_loss, self.trainable_variables)
-            gradients = self.optimizer.get_unscaled_gradients(scaled_gradients)
-        else:
-            gradients = tape.gradient(total_loss, self.trainable_variables)
-
-        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
-
-        metrics = self.loss_block.metric_result_dict()
-
-        metrics["loss"] = loss
-        metrics["regularization_loss"] = regularization_loss
-        metrics["total_loss"] = total_loss
+        metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
 
         return metrics
 
-    def test_step(self, inputs):
+    def test_step(self, data):
         """Custom test step using the `compute_loss` method."""
 
-        if isinstance(inputs, tuple):
-            if len(inputs) == 1:
-                inputs = inputs[0]
-                targets = None
-            else:
-                inputs, targets = inputs
-        else:
-            targets = None
+        x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+        outputs = self.prediction_output(x, y, testing=True)
 
-        features = FeatureCollection(self.schema, self.as_dense(inputs))
-        feature_context = FeatureContext(features)
+        if getattr(self, "pre_eval_topk", None) is not None:
+            # During eval, the retrieval-task only returns positive scores
+            # so we need to retrieve top-k negative scores to compute the loss
+            outputs = self.pre_eval_topk.call_outputs(outputs)
 
-        loss = self.compute_loss_metrics(
-            inputs, targets, feature_context=feature_context, training=False, compute_metrics=True
-        )
-
-        # Casting regularization loss to fp16 if needed to match the main loss
-        regularization_loss = tf.cast(tf.reduce_sum(self.losses), loss.dtype)
-
-        total_loss = loss + regularization_loss
-
-        metrics = self.loss_block.metric_result_dict()
-        metrics["loss"] = loss
-        metrics["regularization_loss"] = regularization_loss
-        metrics["total_loss"] = total_loss
+        self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
+        metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
 
         return metrics
 
@@ -409,23 +510,6 @@ class Model(tf.keras.Model, LossMixin, MetricsMixin):
         }
 
         return super().fit(**fit_kwargs)
-
-    def compute_loss_metrics(
-        self, inputs, targets, training: bool = False, compute_metrics=True, **kwargs
-    ):
-        predictions = self(inputs, training=training, **kwargs)
-        loss = self.compute_loss(
-            predictions, targets, training=training, compute_metrics=compute_metrics, **kwargs
-        )
-        tf.assert_rank(
-            loss,
-            0,
-            "The loss tensor should have rank 0. "
-            "Check if you are using a tf.keras.losses.Loss with 'reduction' "
-            "properly set",
-        )
-
-        return loss
 
     def _add_metrics_callback(self, callbacks, train_metrics_steps):
         if callbacks is None:
@@ -551,20 +635,9 @@ class RetrievalBlock(Protocol):
         ...
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class RetrievalModel(Model):
     """Embedding-based retrieval model."""
-
-    def __init__(
-        self,
-        *blocks: Union[Block, ModelLikeBlock],
-        context: Optional[ModelContext] = None,
-        **kwargs,
-    ):
-        super().__init__(*blocks, context=context, **kwargs)
-
-        if not any(isinstance(b, RetrievalBlock) for b in self.block):
-            raise ValueError("Model must contain a `RetrievalBlock`.")
 
     def evaluate(
         self,
@@ -595,13 +668,12 @@ class RetrievalModel(Model):
             elif isinstance(item_corpus, merlin.io.Dataset):
                 item_corpus = unique_rows_by_features(item_corpus, Tags.ITEM, Tags.ITEM_ID)
                 item_block = self.retrieval_block.item_block()
-                loss_block = self.loss_block
 
-                if loss_block.pre_eval_topk is None:
+                if not getattr(self, "pre_eval_topk", None):
                     ranking_metrics = list(
                         [metric for metric in self.metrics if isinstance(metric, RankingMetric)]
                     )
-                    loss_block.pre_eval_topk = TopKIndexBlock.from_block(
+                    self.pre_eval_topk = TopKIndexBlock.from_block(
                         item_block,
                         data=item_corpus,
                         k=tf.reduce_max([metric.k for metric in ranking_metrics]),
@@ -609,7 +681,7 @@ class RetrievalModel(Model):
                         **kwargs,
                     )
                 else:
-                    loss_block.pre_eval_topk.update_from_block(item_block, item_corpus)
+                    self.pre_eval_topk.update_from_block(item_block, item_corpus)
             else:
                 raise ValueError(
                     "`item_corpus` must be either a `TopKIndexBlock` or a `Dataset`. ",
@@ -617,7 +689,10 @@ class RetrievalModel(Model):
                 )
 
             # set cache_query to True in the ItemRetrievalScorer
-            self.loss_block.set_retrieval_cache_query(True)  # type: ignore
+            from merlin.models.tf import ItemRetrievalTask
+
+            if isinstance(self.prediction_tasks[0], ItemRetrievalTask):
+                self.prediction_tasks[0].set_retrieval_cache_query(True)  # type: ignore
 
         return super().evaluate(
             x,

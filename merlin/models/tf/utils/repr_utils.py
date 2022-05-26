@@ -79,7 +79,9 @@ def _layer_repr(self, track_children=True, hide_context=True):
         if hide_context:
             to_remove.extend(["_context", "_self_saveable_object_factories"])
         children = [
-            x for x in self._self_unconditional_checkpoint_dependencies if x.name not in to_remove
+            x
+            for x in getattr(self, "_self_unconditional_checkpoint_dependencies", [])
+            if x.name not in to_remove
         ]
         to_add = self.repr_add() if getattr(self, "repr_add", None) else []
         if to_add:

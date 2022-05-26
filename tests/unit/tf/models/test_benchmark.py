@@ -14,7 +14,6 @@
 # # limitations under the License.
 # #
 #
-
 import pytest
 
 import merlin.models.tf as ml
