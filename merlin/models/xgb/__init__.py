@@ -1,15 +1,18 @@
 import warnings
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
+import dask_cudf
+import distributed
 import numpy as np
 import xgboost as xgb
 
+from merlin.core.utils import global_dask_client
 from merlin.io import Dataset
 from merlin.schema import Schema, Tags
 
 
 class XGBoost:
-    """Create an XGBoost model.
+    """Create an XGBoost model from a merlin dataset.
     The class adapts an XGBoost model to work with the high level merlin-models API.
 
     Example usage::
@@ -17,16 +20,16 @@ class XGBoost:
         # get the movielens dataset
         from merlin.datasets.entertainment import get_movielens
 
-        train, valid = get_movielens()
+        train, valid = get_movielens(variant="ml-1m")
 
         # Train an XGBoost model
-        from merlin.schema import Tags
+        from merlin.core.utils import Distributed
         from merlin.models.xgb import XGBoost
 
-        model = XGBoost(objective="binary:logistic")
-        model.fit(train)
-
-        model.evaluate(valid)
+        with Distributed():
+            model = XGBoost(train.schema, objective="binary:logistic")
+            model.fit(train)
+            metrics = model.evaluate(valid)
     """
 
     def __init__(
@@ -57,7 +60,6 @@ class XGBoost:
             The parameters to use for the XGBoost train method
         """
         self.params = {**params, "objective": objective}
-        self.bst = None
 
         target_tag = get_target_tag(objective)
         self.target_columns = target_columns or get_targets(schema, target_tag)
@@ -67,6 +69,10 @@ class XGBoost:
         self.qid_column = qid_column
 
         self.booster = booster
+
+    @property
+    def dask_client(self) -> Optional[distributed.Client]:
+        return global_dask_client()
 
     def fit(
         self,
@@ -97,13 +103,21 @@ class XGBoost:
         ValueError
            If objective is not supported. Or if the target columns cannot be found.
         """
+        X, y, qid = dataset_to_xy(
+            train,
+            self.target_columns,
+            self.qid_column,
+        )
 
-        dtrain = dataset_to_dmatrix(train, self.target_columns, self.qid_column)
+        dtrain = xgb.dask.DaskDMatrix(self.dask_client, X, label=y, qid=qid)
         watchlist = [(dtrain, "train")]
 
-        self.bst = xgb.train(self.params, dtrain, evals=watchlist, **train_kwargs)
+        booster: xgb.Booster = xgb.dask.train(
+            self.dask_client, self.params, dtrain, evals=watchlist, **train_kwargs
+        )["booster"]
+        self.booster = booster
 
-        return self.bst
+        return booster
 
     def evaluate(self, dataset: Dataset, **predict_kwargs) -> Dict[str, float]:
         """Evaluates the model on the dataset provided.
@@ -120,14 +134,20 @@ class XGBoost:
         Dict[str, float]
             Dictionary of metrics of the form {metric_name: value}.
         """
-        if self.bst is None:
+        if self.booster is None:
             raise ValueError("The fit method must be called before evaluate.")
 
-        data: xgb.DMatrix = dataset_to_dmatrix(dataset, self.target_columns, self.qid_column)
-        preds = self.bst.predict(data, **predict_kwargs)
-        data.set_label(preds)
+        X, _, qid = dataset_to_xy(dataset, self.target_columns, self.qid_column)
+        data = xgb.dask.DaskDMatrix(self.dask_client, X, qid=qid)
+        preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs)
 
-        metrics_str = self.bst.eval(data)
+        # convert to DMatrix
+        # (eval doesn't have dask support currently)
+        if qid is not None:
+            qid = qid.compute()
+        eval_data = xgb.DMatrix(X.compute(), label=preds.compute(), qid=qid)
+
+        metrics_str = self.booster.eval(eval_data)
         metrics = {}
         for metric in metrics_str.split("\t")[1:]:
             metric_name, metric_value = metric.split(":")
@@ -150,11 +170,12 @@ class XGBoost:
         numpy.ndarray
             The predicions data
         """
-        if self.bst is None:
+        if self.booster is None:
             raise ValueError("The fit method must be called before predict.")
 
-        data: xgb.DMatrix = dataset_to_dmatrix(dataset, self.target_columns, self.qid_column)
-        preds = self.bst.predict(data, **predict_kwargs)
+        X, _, qid = dataset_to_xy(dataset, self.target_columns, self.qid_column)
+        data = xgb.dask.DaskDMatrix(self.dask_client, X, qid=qid)
+        preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs).compute()
 
         return preds
 
@@ -189,11 +210,13 @@ def get_targets(schema: Schema, target_tag: Tags) -> List[str]:
     )
 
 
-def dataset_to_dmatrix(
-    dataset: Dataset, target_columns: Union[str, list], qid_column: Optional[str]
-) -> xgb.DMatrix:
+def dataset_to_xy(
+    dataset: Dataset,
+    target_columns: Union[str, list],
+    qid_column: Optional[str],
+) -> Tuple[dask_cudf.DataFrame, dask_cudf.DataFrame, Optional[dask_cudf.Series]]:
     """Convert Merlin Dataset to XGBoost DMatrix"""
-    df = dataset.to_ddf().compute()
+    df = dataset.to_ddf()
 
     qid = None
     if qid_column:
@@ -218,6 +241,4 @@ def dataset_to_dmatrix(
     # Ensure columns are in a consistent order
     X = X[sorted(X.columns)]
 
-    data = xgb.DMatrix(X, label=y, qid=qid)
-
-    return data
+    return X, y, qid
