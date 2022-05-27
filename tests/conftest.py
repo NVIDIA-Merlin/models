@@ -64,7 +64,7 @@ def testing_data() -> Dataset:
 
 @pytest.fixture(scope="module")
 def dask_client() -> distributed.Client:
-    with Distributed() as dist:
+    with Distributed(new_cluster="cpu") as dist:
         yield dist.client
 
 
