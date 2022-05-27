@@ -164,9 +164,9 @@ def get_target_tag(objective: str) -> Tags:
     """Get the target tag from the specified objective"""
     try:
         return OBJECTIVES[objective]
-    except KeyError:
+    except KeyError as exc:
         target_options_str = str(list(OBJECTIVES.keys()))
-        raise ValueError(f"Objective not supported. Must be one of: {target_options_str}")
+        raise ValueError(f"Objective not supported. Must be one of: {target_options_str}") from exc
 
 
 def get_targets(dataset: Dataset, target_tag: Tags) -> List[str]:
