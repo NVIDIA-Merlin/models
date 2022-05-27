@@ -19,13 +19,10 @@
       ~PredictionTask.add_update
       ~PredictionTask.add_variable
       ~PredictionTask.add_weight
-      ~PredictionTask.attach_metrics_calculation_to_loss
       ~PredictionTask.build
       ~PredictionTask.build_task
-      ~PredictionTask.calculate_metrics
       ~PredictionTask.call
       ~PredictionTask.child_name
-      ~PredictionTask.compute_loss
       ~PredictionTask.compute_mask
       ~PredictionTask.compute_output_shape
       ~PredictionTask.compute_output_signature
@@ -40,12 +37,8 @@
       ~PredictionTask.get_output_mask_at
       ~PredictionTask.get_output_shape_at
       ~PredictionTask.get_weights
-      ~PredictionTask.metric_result_dict
-      ~PredictionTask.metric_results
       ~PredictionTask.pre_call
       ~PredictionTask.pre_loss
-      ~PredictionTask.repr_add
-      ~PredictionTask.reset_metrics
       ~PredictionTask.set_weights
       ~PredictionTask.with_name_scope
    

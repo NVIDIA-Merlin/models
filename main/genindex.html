@@ -234,8 +234,6 @@
 </li>
       <li><a href="generated/merlin.models.tf.AsTabular.html#merlin.models.tf.AsTabular">AsTabular (class in merlin.models.tf)</a>
 </li>
-      <li><a href="generated/merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask.attach_metrics_calculation_to_loss">attach_metrics_calculation_to_loss() (merlin.models.tf.PredictionTask method)</a>
-</li>
       <li><a href="generated/merlin.models.tf.StochasticSwapNoise.html#merlin.models.tf.StochasticSwapNoise.augment">augment() (merlin.models.tf.StochasticSwapNoise method)</a>
 </li>
       <li><a href="generated/merlin.models.tf.AvgPrecisionAt.html#merlin.models.tf.AvgPrecisionAt">AvgPrecisionAt (class in merlin.models.tf)</a>
@@ -287,8 +285,6 @@
       <li><a href="generated/merlin.models.tf.CachedUniformSampler.html#merlin.models.tf.CachedUniformSampler">CachedUniformSampler (class in merlin.models.tf)</a>
 </li>
       <li><a href="generated/merlin.models.tf.TabularBlock.html#merlin.models.tf.TabularBlock.calculate_batch_size_from_input_shapes">calculate_batch_size_from_input_shapes() (merlin.models.tf.TabularBlock static method)</a>
-</li>
-      <li><a href="generated/merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask.calculate_metrics">calculate_metrics() (merlin.models.tf.PredictionTask method)</a>
 </li>
       <li><a href="generated/merlin.models.tf.AsDenseFeatures.html#merlin.models.tf.AsDenseFeatures.call">call() (merlin.models.tf.AsDenseFeatures method)</a>
 
@@ -396,14 +392,8 @@
         <li><a href="generated/merlin.models.tf.MaskedLanguageModeling.html#merlin.models.tf.MaskedLanguageModeling.compute_feature_mask">(merlin.models.tf.MaskedLanguageModeling method)</a>
 </li>
       </ul></li>
-      <li><a href="generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock.compute_loss">compute_loss() (merlin.models.tf.ParallelPredictionBlock method)</a>
-
-      <ul>
-        <li><a href="generated/merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask.compute_loss">(merlin.models.tf.PredictionTask method)</a>
+      <li><a href="generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock.compute_loss">compute_loss() (merlin.models.tf.SequentialBlock method)</a>
 </li>
-        <li><a href="generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock.compute_loss">(merlin.models.tf.SequentialBlock method)</a>
-</li>
-      </ul></li>
       <li><a href="generated/merlin.models.tf.SequenceEmbeddingFeatures.html#merlin.models.tf.SequenceEmbeddingFeatures.compute_mask">compute_mask() (merlin.models.tf.SequenceEmbeddingFeatures method)</a>
 </li>
       <li><a href="generated/merlin.models.tf.AsDenseFeatures.html#merlin.models.tf.AsDenseFeatures.compute_output_shape">compute_output_shape() (merlin.models.tf.AsDenseFeatures method)</a>
@@ -527,8 +517,6 @@
 </li>
         <li><a href="generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.from_config">(merlin.models.tf.EmbeddingFeatures class method)</a>
 </li>
-        <li><a href="generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask.from_config">(merlin.models.tf.MultiClassClassificationTask class method)</a>
-</li>
         <li><a href="generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.from_config">(merlin.models.tf.ParallelBlock class method)</a>
 </li>
         <li><a href="generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock.from_config">(merlin.models.tf.ParallelPredictionBlock class method)</a>
@@ -584,8 +572,6 @@
         <li><a href="generated/merlin.models.tf.Filter.html#merlin.models.tf.Filter.get_config">(merlin.models.tf.Filter method)</a>
 </li>
         <li><a href="generated/merlin.models.tf.MaskedLanguageModeling.html#merlin.models.tf.MaskedLanguageModeling.get_config">(merlin.models.tf.MaskedLanguageModeling method)</a>
-</li>
-        <li><a href="generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask.get_config">(merlin.models.tf.MultiClassClassificationTask method)</a>
 </li>
         <li><a href="generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.get_config">(merlin.models.tf.ParallelBlock method)</a>
 </li>
@@ -684,6 +670,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock.last">last() (merlin.models.tf.SequentialBlock property)</a>
 </li>
+      <li><a href="generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.layers">layers() (merlin.models.tf.ParallelBlock property)</a>
+</li>
       <li><a href="generated/merlin.models.tf.losses.LogisticLoss.html#merlin.models.tf.losses.LogisticLoss">LogisticLoss (class in merlin.models.tf.losses)</a>
 </li>
   </ul></td>
@@ -710,25 +698,9 @@
 </li>
       <li><a href="generated/merlin.models.tf.MatrixFactorizationModel.html#merlin.models.tf.MatrixFactorizationModel">MatrixFactorizationModel() (in module merlin.models.tf)</a>
 </li>
-      <li><a href="generated/merlin.models.tf.ItemSampler.html#merlin.models.tf.ItemSampler.max_num_samples">max_num_samples() (merlin.models.tf.ItemSampler property)</a>
-</li>
-      <li><a href="generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock.metric_result_dict">metric_result_dict() (merlin.models.tf.ParallelPredictionBlock method)</a>
-
-      <ul>
-        <li><a href="generated/merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask.metric_result_dict">(merlin.models.tf.PredictionTask method)</a>
-</li>
-      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask.metric_results">metric_results() (merlin.models.tf.MultiClassClassificationTask method)</a>
-
-      <ul>
-        <li><a href="generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock.metric_results">(merlin.models.tf.ParallelPredictionBlock method)</a>
-</li>
-        <li><a href="generated/merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask.metric_results">(merlin.models.tf.PredictionTask method)</a>
-</li>
-      </ul></li>
-      <li><a href="generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock.metrics">metrics() (merlin.models.tf.ParallelPredictionBlock property)</a>
+      <li><a href="generated/merlin.models.tf.ItemSampler.html#merlin.models.tf.ItemSampler.max_num_samples">max_num_samples() (merlin.models.tf.ItemSampler property)</a>
 </li>
       <li><a href="generated/merlin.models.tf.MLPBlock.html#merlin.models.tf.MLPBlock">MLPBlock() (in module merlin.models.tf)</a>
 </li>
@@ -848,14 +820,10 @@
 </li>
       <li><a href="generated/merlin.models.tf.SequentialBlock.html#merlin.models.tf.SequentialBlock.regularizers">regularizers() (merlin.models.tf.SequentialBlock property)</a>
 </li>
-      <li><a href="generated/merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask.repr_add">repr_add() (merlin.models.tf.PredictionTask method)</a>
-
-      <ul>
-        <li><a href="generated/merlin.models.tf.TabularBlock.html#merlin.models.tf.TabularBlock.repr_add">(merlin.models.tf.TabularBlock method)</a>
-</li>
-      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/merlin.models.tf.TabularBlock.html#merlin.models.tf.TabularBlock.repr_add">repr_add() (merlin.models.tf.TabularBlock method)</a>
+</li>
       <li><a href="generated/merlin.models.tf.ContinuousFeatures.html#merlin.models.tf.ContinuousFeatures.repr_extra">repr_extra() (merlin.models.tf.ContinuousFeatures method)</a>
 
       <ul>
@@ -872,12 +840,6 @@
       </ul></li>
       <li><a href="generated/merlin.models.tf.ItemSampler.html#merlin.models.tf.ItemSampler.required_features">required_features() (merlin.models.tf.ItemSampler property)</a>
 </li>
-      <li><a href="generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock.reset_metrics">reset_metrics() (merlin.models.tf.ParallelPredictionBlock method)</a>
-
-      <ul>
-        <li><a href="generated/merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask.reset_metrics">(merlin.models.tf.PredictionTask method)</a>
-</li>
-      </ul></li>
       <li><a href="generated/merlin.models.tf.ResidualBlock.html#merlin.models.tf.ResidualBlock">ResidualBlock (class in merlin.models.tf)</a>
 </li>
       <li><a href="generated/merlin.models.tf.ItemRetrievalTask.html#merlin.models.tf.ItemRetrievalTask.retrieval_scorer">retrieval_scorer() (merlin.models.tf.ItemRetrievalTask property)</a>

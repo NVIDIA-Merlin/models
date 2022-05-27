@@ -76,15 +76,13 @@
 <span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.aggregation</span> <span class="kn">import</span> <span class="n">SequenceAggregation</span><span class="p">,</span> <span class="n">SequenceAggregator</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span><span class="p">,</span> <span class="n">MetricOrMetrics</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.inputs</span> <span class="kn">import</span> <span class="n">InputBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.mlp</span> <span class="kn">import</span> <span class="n">MLPBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.matrix_factorization</span> <span class="kn">import</span> <span class="n">QueryItemIdsEmbeddingsBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.two_tower</span> <span class="kn">import</span> <span class="n">TwoTowerBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.base</span> <span class="kn">import</span> <span class="n">ItemSampler</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.features.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingOptions</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.losses</span> <span class="kn">import</span> <span class="n">LossType</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.metrics.ranking</span> <span class="kn">import</span> <span class="n">ranking_metrics</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.base</span> <span class="kn">import</span> <span class="n">Model</span><span class="p">,</span> <span class="n">RetrievalModel</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.utils</span> <span class="kn">import</span> <span class="n">parse_prediction_tasks</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">PredictionTask</span>
@@ -107,8 +105,6 @@
         <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">]</span>
     <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">logits_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LossType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;bpr&quot;</span><span class="p">,</span>
-    <span class="n">metrics</span><span class="p">:</span> <span class="n">MetricOrMetrics</span> <span class="o">=</span> <span class="n">ItemRetrievalTask</span><span class="o">.</span><span class="n">DEFAULT_METRICS</span><span class="p">,</span>
     <span class="n">samplers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ItemSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalModel</span><span class="p">:</span>
@@ -155,15 +151,13 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">prediction_tasks</span><span class="p">:</span>
         <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">ItemRetrievalTask</span><span class="p">(</span>
             <span class="n">schema</span><span class="p">,</span>
-            <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
             <span class="n">logits_temperature</span><span class="o">=</span><span class="n">logits_temperature</span><span class="p">,</span>
             <span class="n">samplers</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">samplers</span><span class="p">),</span>
-            <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">parse_prediction_tasks</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
-    <span class="n">two_tower</span> <span class="o">=</span> <span class="n">QueryItemIdsEmbeddingsBlock</span><span class="p">(</span>
+    <span class="n">mf</span> <span class="o">=</span> <span class="n">QueryItemIdsEmbeddingsBlock</span><span class="p">(</span>
         <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
         <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">,</span>
         <span class="n">query_id_tag</span><span class="o">=</span><span class="n">query_id_tag</span><span class="p">,</span>
@@ -174,7 +168,7 @@
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">model</span> <span class="o">=</span> <span class="n">RetrievalModel</span><span class="p">(</span><span class="n">two_tower</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">RetrievalModel</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span></div>
 
@@ -196,8 +190,6 @@
         <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">]</span>
     <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">logits_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LossType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;categorical_crossentropy&quot;</span><span class="p">,</span>
-    <span class="n">metrics</span><span class="p">:</span> <span class="n">MetricOrMetrics</span> <span class="o">=</span> <span class="n">ItemRetrievalTask</span><span class="o">.</span><span class="n">DEFAULT_METRICS</span><span class="p">,</span>
     <span class="n">samplers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">ItemSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RetrievalModel</span><span class="p">:</span>
@@ -259,10 +251,8 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">prediction_tasks</span><span class="p">:</span>
         <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">ItemRetrievalTask</span><span class="p">(</span>
             <span class="n">schema</span><span class="p">,</span>
-            <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
             <span class="n">logits_temperature</span><span class="o">=</span><span class="n">logits_temperature</span><span class="p">,</span>
             <span class="n">samplers</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">samplers</span><span class="p">),</span>
-            <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -288,8 +278,6 @@
     <span class="n">max_seq_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">aggregation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;concat&quot;</span><span class="p">,</span>
     <span class="n">top_block</span><span class="p">:</span> <span class="n">Block</span> <span class="o">=</span> <span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span>
-    <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LossType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;categorical_crossentropy&quot;</span><span class="p">,</span>
-    <span class="n">metrics</span><span class="o">=</span><span class="n">ranking_metrics</span><span class="p">(</span><span class="n">top_ks</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">]),</span>
     <span class="n">l2_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">extra_pre_call</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">task_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -390,8 +378,6 @@
 
     <span class="n">task</span> <span class="o">=</span> <span class="n">NextItemPredictionTask</span><span class="p">(</span>
         <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
-        <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span>
-        <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
         <span class="n">masking</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">weight_tying</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">extra_pre_call</span><span class="o">=</span><span class="n">extra_pre_call</span><span class="p">,</span>

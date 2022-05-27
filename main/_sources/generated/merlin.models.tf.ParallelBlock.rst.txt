@@ -100,6 +100,7 @@
       ~ParallelBlock.input_spec
       ~ParallelBlock.is_input
       ~ParallelBlock.is_tabular
+      ~ParallelBlock.layers
       ~ParallelBlock.losses
       ~ParallelBlock.metrics
       ~ParallelBlock.name

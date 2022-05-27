@@ -96,7 +96,6 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.keras.layers</span> <span class="kn">import</span> <span class="n">Dense</span>
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">MetricOrMetrics</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.losses</span> <span class="kn">import</span> <span class="n">LossType</span><span class="p">,</span> <span class="n">loss_registry</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">PredictionTask</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">maybe_deserialize_keras_objects</span><span class="p">,</span>
@@ -142,8 +141,6 @@
         <span class="n">target</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Schema</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LossType</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_LOSS</span><span class="p">,</span>
-        <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MetricOrMetrics</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_METRICS</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">Schema</span><span class="p">):</span>
@@ -166,7 +163,6 @@
 
         <span class="n">output_layer</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;output_layer&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
             <span class="n">target_name</span><span class="o">=</span><span class="n">target_name</span><span class="p">,</span>
             <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span>
             <span class="n">task_block</span><span class="o">=</span><span class="n">task_block</span><span class="p">,</span>
@@ -180,8 +176,7 @@
         <span class="c1"># instabilities with mixed_float16 (fp16) policy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_activation</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Activation</span><span class="p">(</span>
             <span class="s2">&quot;sigmoid&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;prediction&quot;</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss_registry</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span></div>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="BinaryClassificationTask.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BinaryClassificationTask.html#merlin.models.tf.BinaryClassificationTask.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span></div>
@@ -194,14 +189,13 @@
         <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_serialize_keras_objects</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">config</span><span class="p">,</span>
-            <span class="p">{</span><span class="s2">&quot;output_layer&quot;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">,</span> <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">serialize</span><span class="p">},</span>
+            <span class="p">{</span><span class="s2">&quot;output_layer&quot;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">},</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">config</span></div>
 
 <div class="viewcode-block" id="BinaryClassificationTask.from_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.BinaryClassificationTask.html#merlin.models.tf.BinaryClassificationTask.from_config">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_deserialize_keras_objects</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">deserialize</span><span class="p">)</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_deserialize_keras_objects</span><span class="p">(</span>
             <span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;output_layer&quot;</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span>
         <span class="p">)</span>
@@ -272,7 +266,7 @@
 <span class="sd">        The metrics to use for the task. Defaults to [accuracy].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">DEFAULT_LOSS</span> <span class="o">=</span> <span class="s2">&quot;sparse_categorical_crossentropy&quot;</span>
+    <span class="n">DEFAULT_LOSS</span> <span class="o">=</span> <span class="s2">&quot;categorical_crossentropy&quot;</span>
     <span class="n">DEFAULT_METRICS</span><span class="p">:</span> <span class="n">MetricOrMetrics</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Accuracy</span><span class="p">,)</span>
 
 <div class="viewcode-block" id="MultiClassClassificationTask.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -280,20 +274,16 @@
         <span class="n">target_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LossType</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_LOSS</span><span class="p">,</span>
-        <span class="n">metrics</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MetricOrMetrics</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_METRICS</span><span class="p">,</span>
         <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
             <span class="n">target_name</span><span class="o">=</span><span class="n">target_name</span><span class="p">,</span>
             <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span>
             <span class="n">task_block</span><span class="o">=</span><span class="n">task_block</span><span class="p">,</span>
             <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss_registry</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span></div>
+        <span class="p">)</span></div>
 
 <div class="viewcode-block" id="MultiClassClassificationTask.from_schema"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask.from_schema">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_schema</span><span class="p">(</span>
@@ -323,26 +313,7 @@
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="MultiClassClassificationTask.call"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask.call">[docs]</a>    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">inputs</span></div>
-
-<div class="viewcode-block" id="MultiClassClassificationTask.metric_results"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask.metric_results">[docs]</a>    <span class="k">def</span> <span class="nf">metric_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;val&quot;</span><span class="p">):</span>
-        <span class="n">dict_results</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">:</span>
-            <span class="n">dict_results</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">metric</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">metric</span><span class="o">.</span><span class="n">result</span><span class="p">()})</span>
-
-        <span class="k">return</span> <span class="n">dict_results</span></div>
-
-<div class="viewcode-block" id="MultiClassClassificationTask.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_serialize_keras_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">serialize</span><span class="p">})</span>
-
-        <span class="k">return</span> <span class="n">config</span></div>
-
-<div class="viewcode-block" id="MultiClassClassificationTask.from_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.MultiClassClassificationTask.html#merlin.models.tf.MultiClassClassificationTask.from_config">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="n">maybe_deserialize_keras_objects</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">deserialize</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">inputs</span></div></div>
 </pre></div>
 
            </div>

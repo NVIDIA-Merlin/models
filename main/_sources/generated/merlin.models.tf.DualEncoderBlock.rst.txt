@@ -102,6 +102,7 @@
       ~DualEncoderBlock.input_spec
       ~DualEncoderBlock.is_input
       ~DualEncoderBlock.is_tabular
+      ~DualEncoderBlock.layers
       ~DualEncoderBlock.losses
       ~DualEncoderBlock.metrics
       ~DualEncoderBlock.name

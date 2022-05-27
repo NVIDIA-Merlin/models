@@ -136,10 +136,7 @@
     }
    ],
    "source": [
-    "input_path = os.environ.get(\n",
-    "    \"INPUT_DATA_DIR\",\n",
-    "    os.path.expanduser(\"~/merlin-models-data/movielens/\")\n",
-    ")\n",
+    "input_path = os.environ.get(\"INPUT_DATA_DIR\", os.path.expanduser(\"~/merlin-models-data/movielens/\"))\n",
     "train, valid = get_movielens(variant=\"ml-1m\", path=input_path)"
    ]
   },
@@ -960,15 +957,12 @@
     }
    ],
    "source": [
-    "input_path = os.environ.get(\n",
-    "    \"INPUT_DATA_DIR\",\n",
-    "    os.path.expanduser(\"~/merlin-models-data/movielens/\")\n",
-    ")\n",
+    "input_path = os.environ.get(\"INPUT_DATA_DIR\", os.path.expanduser(\"~/merlin-models-data/movielens/\"))\n",
     "name = \"ml-1m\"\n",
     "download_file(\n",
     "    \"http://files.grouplens.org/datasets/movielens/ml-1m.zip\",\n",
     "    os.path.join(input_path, \"ml-1m.zip\"),\n",
-    "    redownload=False\n",
+    "    redownload=False,\n",
     ")"
    ]
   },

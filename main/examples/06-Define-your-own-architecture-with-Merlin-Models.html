@@ -565,7 +565,6 @@ array([[0.00196931, 0.        , 0.01411253, ..., 0.00167978, 0.00330653,
 
 <span class="n">binary_task</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span>
     <span class="n">sub_schema</span><span class="p">,</span>
-    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">],</span>
     <span class="n">pre</span><span class="o">=</span><span class="n">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">temperature</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
 <span class="p">)</span>
 </pre></div>
@@ -584,40 +583,12 @@ We note that the <code class="docutils literal notranslate"><span class="pre">Mo
 </pre></div>
 </div>
 </div>
-<div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>merlin.models.tf.models.base.Model
-</pre></div>
-</div>
-</div>
 </div>
 <p>We train the model using the built-in tf.keras <code class="docutils literal notranslate"><span class="pre">fit</span></code> method:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
 <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-12 17:57:49.043373: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
-</pre></div>
-</div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features/userId:0&#39;, &#39;embedding_features/movieId:0&#39;, &#39;embedding_features/title:0&#39;, &#39;embedding_features/gender:0&#39;, &#39;parallel_block/userId:0&#39;, &#39;parallel_block/movieId:0&#39;, &#39;parallel_block/title:0&#39;, &#39;parallel_block/gender:0&#39;, &#39;sequential_block_7/userId:0&#39;, &#39;sequential_block_7/movieId:0&#39;, &#39;sequential_block_7/title:0&#39;, &#39;sequential_block_7/gender:0&#39;, &#39;sequential_block_9/userId:0&#39;, &#39;sequential_block_9/movieId:0&#39;, &#39;sequential_block_9/title:0&#39;, &#39;sequential_block_9/gender:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features/userId:0&#39;, &#39;embedding_features/movieId:0&#39;, &#39;embedding_features/title:0&#39;, &#39;embedding_features/gender:0&#39;, &#39;parallel_block/userId:0&#39;, &#39;parallel_block/movieId:0&#39;, &#39;parallel_block/title:0&#39;, &#39;parallel_block/gender:0&#39;, &#39;sequential_block_7/userId:0&#39;, &#39;sequential_block_7/movieId:0&#39;, &#39;sequential_block_7/title:0&#39;, &#39;sequential_block_7/gender:0&#39;, &#39;sequential_block_9/userId:0&#39;, &#39;sequential_block_9/movieId:0&#39;, &#39;sequential_block_9/title:0&#39;, &#39;sequential_block_9/gender:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
-</pre></div>
-</div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features/userId:0&#39;, &#39;embedding_features/movieId:0&#39;, &#39;embedding_features/title:0&#39;, &#39;embedding_features/gender:0&#39;, &#39;parallel_block/userId:0&#39;, &#39;parallel_block/movieId:0&#39;, &#39;parallel_block/title:0&#39;, &#39;parallel_block/gender:0&#39;, &#39;sequential_block_7/userId:0&#39;, &#39;sequential_block_7/movieId:0&#39;, &#39;sequential_block_7/title:0&#39;, &#39;sequential_block_7/gender:0&#39;, &#39;sequential_block_9/userId:0&#39;, &#39;sequential_block_9/movieId:0&#39;, &#39;sequential_block_9/title:0&#39;, &#39;sequential_block_9/gender:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:Gradients do not exist for variables [&#39;embedding_features/userId:0&#39;, &#39;embedding_features/movieId:0&#39;, &#39;embedding_features/title:0&#39;, &#39;embedding_features/gender:0&#39;, &#39;parallel_block/userId:0&#39;, &#39;parallel_block/movieId:0&#39;, &#39;parallel_block/title:0&#39;, &#39;parallel_block/gender:0&#39;, &#39;sequential_block_7/userId:0&#39;, &#39;sequential_block_7/movieId:0&#39;, &#39;sequential_block_7/title:0&#39;, &#39;sequential_block_7/gender:0&#39;, &#39;sequential_block_9/userId:0&#39;, &#39;sequential_block_9/movieId:0&#39;, &#39;sequential_block_9/title:0&#39;, &#39;sequential_block_9/gender:0&#39;] when minimizing the loss. If you&#39;re using `model.compile()`, did you forget to provide a `loss`argument?
-</pre></div>
-</div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>782/782 [==============================] - 13s 12ms/step - rating_binary/binary_classification_task/auc: 0.7175 - loss: 0.6489 - regularization_loss: 0.0000e+00 - total_loss: 0.6489
-</pre></div>
-</div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f1551a2cf10&gt;
 </pre></div>
 </div>
 </div>
