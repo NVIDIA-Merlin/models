@@ -1,7 +1,6 @@
 import warnings
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
-import dask_cudf
 import distributed
 import numpy as np
 import xgboost as xgb
@@ -214,7 +213,7 @@ def dataset_to_xy(
     dataset: Dataset,
     target_columns: Union[str, list],
     qid_column: Optional[str],
-) -> Tuple[dask_cudf.DataFrame, dask_cudf.DataFrame, Optional[dask_cudf.Series]]:
+):
     """Convert Merlin Dataset to XGBoost DMatrix"""
     df = dataset.to_ddf()
 
