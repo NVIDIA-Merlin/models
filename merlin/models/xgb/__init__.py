@@ -5,7 +5,7 @@ import numpy as np
 import xgboost as xgb
 
 from merlin.io import Dataset
-from merlin.schema import Tags
+from merlin.schema import Schema, Tags
 
 
 class XGBoost:
@@ -29,10 +29,27 @@ class XGBoost:
         model.evaluate(valid)
     """
 
-    def __init__(self, *, objective="reg:squarederror", **params):
+    def __init__(
+        self,
+        schema: Schema,
+        *,
+        target_columns: Optional[Union[str, list]] = None,
+        qid_column: Optional[str] = None,
+        objective: str = "reg:squarederror",
+        booster: Optional[xgb.Booster] = None,
+        **params,
+    ):
         """
         Parameters
         ----------
+        schema : merlin.schema.Schema
+            The schema of the data that will be used to train and evaluate the model.
+        target_columns : Optional[Union[list, str]]
+            The target columns to use. If provided, will be used as the label(s).
+            Otherwise the targets are automatically inferred from the objective and column tags.
+        qid_column : Optional[str]
+            For ranking objectives. The query ID column. If not provided will use
+            the user ID (tagged with merlin.schema.Tags.USER_ID) column.
         objective : str
             The XGBoost objective to use. List of XGBoost objective functions:
             https://xgboost.readthedocs.io/en/stable/gpu/index.html#objective-functions
@@ -42,12 +59,18 @@ class XGBoost:
         self.params = {**params, "objective": objective}
         self.bst = None
 
+        target_tag = get_target_tag(objective)
+        self.target_columns = target_columns or get_targets(schema, target_tag)
+
+        if objective.startswith("rank") and qid_column is None:
+            qid_column = schema.select_by_tag(Tags.USER_ID).column_names[0]
+        self.qid_column = qid_column
+
+        self.booster = booster
+
     def fit(
         self,
         train: Dataset,
-        *,
-        target_columns: Optional[Union[str, list]] = None,
-        qid_column: Optional[str] = None,
         **train_kwargs,
     ) -> xgb.Booster:
         """Trains the XGBoost Model.
@@ -62,12 +85,6 @@ class XGBoost:
             The training dataset to use to fit the model.
             We will use the column(s) tagged with merlin.schema.Tags.TARGET that match the
             objective as the label(s).
-        target_columns : Optional[Union[list, str]]
-            The target columns to use. If provided, will be used as the label(s).
-            Otherwise the targets are automatically inferred from the objective and column tags.
-        qid_column : Optional[str]
-            For ranking objectives. The query ID column. If not provided will use
-            the user ID (tagged with merlin.schema.Tags.USER_ID) column.
         **train_kwargs
             Additional keyword arguments passed to the xgboost.train function
 
@@ -80,14 +97,6 @@ class XGBoost:
         ValueError
            If objective is not supported. Or if the target columns cannot be found.
         """
-        objective = self.params["objective"]
-        target_tag = get_target_tag(objective)
-        self.target_columns = target_columns or get_targets(train, target_tag)
-
-        # for ranking objectives, set the grouping
-        if objective.startswith("rank") and qid_column is None:
-            qid_column = train.schema.select_by_tag(Tags.USER_ID).column_names[0]
-        self.qid_column = qid_column
 
         dtrain = dataset_to_dmatrix(train, self.target_columns, self.qid_column)
         watchlist = [(dtrain, "train")]
@@ -169,9 +178,9 @@ def get_target_tag(objective: str) -> Tags:
         raise ValueError(f"Objective not supported. Must be one of: {target_options_str}") from exc
 
 
-def get_targets(dataset: Dataset, target_tag: Tags) -> List[str]:
+def get_targets(schema: Schema, target_tag: Tags) -> List[str]:
     """Find target columns from dataset or specified target_column"""
-    targets = dataset.schema.select_by_tag(Tags.TARGET).select_by_tag(target_tag)
+    targets = schema.select_by_tag(Tags.TARGET).select_by_tag(target_tag)
 
     if len(targets) >= 1:
         return targets.column_names
