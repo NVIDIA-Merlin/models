@@ -122,7 +122,7 @@ class XGBoost:
         metrics = {}
         for metric in metrics_str.split("\t")[1:]:
             metric_name, metric_value = metric.split(":")
-            metrics[metric_name.removeprefix("eval-")] = float(metric_value)
+            metrics[metric_name[len("eval-") :]] = float(metric_value)
 
         return metrics
 
