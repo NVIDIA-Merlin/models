@@ -19,8 +19,10 @@ from __future__ import absolute_import
 
 from pathlib import Path
 
+import distributed
 import pytest
 
+from merlin.core.utils import Distributed
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
 
@@ -58,6 +60,12 @@ def testing_data() -> Dataset:
     data.schema = data.schema.without(["session_id", "session_start", "day_idx"])
 
     return data
+
+
+@pytest.fixture(scope="module")
+def dask_client() -> distributed.Client:
+    with Distributed() as dist:
+        yield dist.client
 
 
 try:
