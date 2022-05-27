@@ -175,10 +175,9 @@ def get_targets(dataset: Dataset, target_tag: Tags) -> List[str]:
 
     if len(targets) >= 1:
         return targets.column_names
-    else:
-        raise ValueError(
-            f"No target columns in the dataset schema with tags TARGET and {target_tag.name}"
-        )
+    raise ValueError(
+        f"No target columns in the dataset schema with tags TARGET and {target_tag.name}"
+    )
 
 
 def dataset_to_dmatrix(
