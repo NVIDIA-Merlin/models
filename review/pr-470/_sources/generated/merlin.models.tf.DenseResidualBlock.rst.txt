@@ -1,0 +1,6 @@
+﻿merlin.models.tf.DenseResidualBlock
+===================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: DenseResidualBlock
