@@ -62,7 +62,7 @@ setup(
     name="merlin-models",
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    packages=find_namespace_packages(),
+    packages=find_namespace_packages(include=["merlin*"]),
     url="https://github.com/NVIDIA-Merlin/models",
     author="NVIDIA Corporation",
     license="Apache 2.0",
