@@ -21,7 +21,7 @@ import tensorflow as tf
 from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
 from merlin.models.tf.blocks.core.transformations import RenameFeatures
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock
-from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
+from merlin.models.tf.inputs.embedding import EmbeddingFeatures, EmbeddingOptions
 from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin_models")
