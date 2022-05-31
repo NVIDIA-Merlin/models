@@ -268,7 +268,13 @@
             <span class="n">mask_inputs</span> <span class="o">=</span> <span class="n">mask_labels</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">mask_labels</span> <span class="o">=</span> <span class="n">item_ids</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">item_ids</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+            <span class="c1"># pad shifted sequence to original length</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">labels</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">labels</span><span class="o">.</span><span class="n">dtype</span><span class="p">)],</span>
+                <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">mask_labels</span> <span class="o">=</span> <span class="n">labels</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span>
             <span class="n">mask_inputs</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">return</span> <span class="n">mask_labels</span><span class="p">,</span> <span class="n">mask_inputs</span></div>
