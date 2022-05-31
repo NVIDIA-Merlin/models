@@ -410,9 +410,9 @@ class SequenceAggregator(Block):
         kwargs = {}
         if (
             "mask" in inspect.signature(self.combiner).parameters
-            and getattr(self.context, "valid_inputs_mask", None) is not None
+            and "valid_items_mask" in self.context.named_variables
         ):
-            kwargs["mask"] = self.context.valid_inputs_mask
+            kwargs["mask"] = self.context.named_variables["valid_items_mask"]
 
         return self.combiner(inputs, axis=self.axis, **kwargs)
 

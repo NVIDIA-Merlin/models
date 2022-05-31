@@ -88,6 +88,17 @@ class MaskingBlock(Block):
             dtype=tf.float32,
         )
 
+        self.context.add_variable(
+            tf.Variable(
+                initial_value=tf.zeros([1, input_shapes[1]], dtype=tf.bool),
+                name="valid_items_mask",
+                trainable=False,
+                validate_shape=False,
+                dtype=tf.bool,
+                shape=tf.TensorShape([None, input_shapes[1]]),
+            )
+        )
+
         super().build(input_shapes)
 
     def add_features_to_context(self, feature_shapes) -> List[str]:
@@ -123,7 +134,7 @@ class MaskingBlock(Block):
                 valid_inputs_mask, tf.logical_not(mask_replace_inputs)
             )
         feature_context.mask = mask_keep_labels
-        self.context.valid_inputs_mask = valid_inputs_mask
+        self.context.named_variables["valid_items_mask"].assign(valid_inputs_mask)
 
         return inputs
 
