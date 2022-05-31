@@ -134,7 +134,7 @@ class MaskingBlock(Block):
                 valid_inputs_mask, tf.logical_not(mask_replace_inputs)
             )
         feature_context.mask = mask_keep_labels
-        self.context.named_variables["valid_items_mask"].assign(valid_inputs_mask)
+        self.context["valid_items_mask"].assign(valid_inputs_mask)
 
         return inputs
 
