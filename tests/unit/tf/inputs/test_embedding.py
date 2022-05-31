@@ -67,7 +67,7 @@ def test_serialization_embedding_features(testing_data: Dataset):
 
     assert list(inputs.feature_config.keys()) == list(copy_layer.feature_config.keys())
 
-    from merlin.models.tf.features.embedding import serialize_table_config as serialize
+    from merlin.models.tf.inputs.embedding import serialize_table_config as serialize
 
     assert all(
         serialize(inputs.feature_config[key].table)
