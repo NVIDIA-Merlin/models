@@ -488,7 +488,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Prediction tasks to use.
 
         """
-        from merlin.models.tf.blocks.core.inputs import InputBlock
+        from merlin.models.tf.inputs.base import InputBlock
         from merlin.models.tf.models.base import Model
         from merlin.models.tf.models.utils import parse_prediction_tasks
 
