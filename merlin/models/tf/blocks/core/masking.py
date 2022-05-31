@@ -193,7 +193,13 @@ class CausalLanguageModeling(MaskingBlock):
             mask_inputs = mask_labels
 
         else:
-            mask_labels = item_ids != self.padding_idx
+            labels = item_ids[:, 1:]
+            # pad shifted sequence to original length
+            labels = tf.concat(
+                [labels, tf.zeros((tf.shape(item_ids)[0], 1), dtype=labels.dtype)],
+                axis=-1,
+            )
+            mask_labels = labels != self.padding_idx
             mask_inputs = None
 
         return mask_labels, mask_inputs
