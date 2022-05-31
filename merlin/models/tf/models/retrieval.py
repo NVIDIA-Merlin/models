@@ -211,6 +211,8 @@ def YoutubeDNNRetrievalModel(
     sampled_softmax: bool = True,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
+    query_tower_tag=Tags.USER,
+    item_tower_tag=Tags.ITEM_ID,
     embedding_options: EmbeddingOptions = EmbeddingOptions(
         embedding_dims=None,
         embedding_dim_default=64,
@@ -290,8 +292,9 @@ def YoutubeDNNRetrievalModel(
         options for the embedding table, by default EmbeddingOptions()
     """
 
-    inputs = InputBlock(
-        schema,
+    user_schema = schema.excluding_by_tag(Tags.CONTINUOUS)
+    user_inputs = InputBlock(
+        user_schema,
         aggregation=aggregation,
         seq=False,
         max_seq_length=max_seq_length,
@@ -301,8 +304,16 @@ def YoutubeDNNRetrievalModel(
         embedding_options=embedding_options,
     )
 
+    item_schema = schema.select_by_tag(item_tower_tag)
+    if not item_schema:
+        raise ValueError(
+            f"The schema should contain features with the tag `{item_tower_tag}`,"
+            "required by item-tower"
+        )
+    item_inputs = InputBlock(item_schema, embedding_options=embedding_options)
+
     task = NextItemPredictionTask(
-        schema=schema,
+        schema=user_schema,
         masking=True,
         weight_tying=False,
         extra_pre_call=extra_pre_call,
@@ -314,6 +325,14 @@ def YoutubeDNNRetrievalModel(
         min_sampled_id=min_sampled_id,
     )
 
-    # TODO: Figure out how to make this fit as
-    # a RetrievalModel (which must have a RetrievalBlock)
-    return Model(inputs, top_block, task)
+    query_tower = user_inputs.connect(top_block)
+    item_tower = item_inputs
+
+    two_tower = TwoTowerBlock(
+        schema=user_schema,
+        query_tower=query_tower,
+        item_tower=item_tower,
+        embedding_options=embedding_options,
+    )
+
+    return RetrievalModel(two_tower, task)
