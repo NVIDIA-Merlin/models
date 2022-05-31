@@ -254,12 +254,6 @@ def YoutubeDNNRetrievalModel(
         Defaults to `concat`.
     top_block: Block
         The `Block` that combines the top features
-    loss: Optional[LossType]
-        Loss function.
-        Defaults to `categorical_crossentropy`.
-    metrics: List[Metric]
-        List of metrics to use.
-        Defaults to `ranking_metrics(top_ks=[10])`
     l2_normalization: bool
         Whether to apply L2 normalization before computing dot interactions.
         Defaults to True.
