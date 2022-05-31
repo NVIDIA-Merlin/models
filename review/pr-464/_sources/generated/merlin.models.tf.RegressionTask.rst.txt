@@ -19,13 +19,10 @@
       ~RegressionTask.add_update
       ~RegressionTask.add_variable
       ~RegressionTask.add_weight
-      ~RegressionTask.attach_metrics_calculation_to_loss
       ~RegressionTask.build
       ~RegressionTask.build_task
-      ~RegressionTask.calculate_metrics
       ~RegressionTask.call
       ~RegressionTask.child_name
-      ~RegressionTask.compute_loss
       ~RegressionTask.compute_mask
       ~RegressionTask.compute_output_shape
       ~RegressionTask.compute_output_signature
@@ -40,12 +37,8 @@
       ~RegressionTask.get_output_mask_at
       ~RegressionTask.get_output_shape_at
       ~RegressionTask.get_weights
-      ~RegressionTask.metric_result_dict
-      ~RegressionTask.metric_results
       ~RegressionTask.pre_call
       ~RegressionTask.pre_loss
-      ~RegressionTask.repr_add
-      ~RegressionTask.reset_metrics
       ~RegressionTask.set_weights
       ~RegressionTask.with_name_scope
    

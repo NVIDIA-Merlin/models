@@ -303,7 +303,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">],</span>
         <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">eval_sampling</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">testing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Based on the user/query embedding (inputs[self.query_name]), uses dot product to score</span>
@@ -327,7 +327,7 @@
             <span class="c1"># enabled only during top-k evaluation</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
 
-        <span class="k">if</span> <span class="n">training</span> <span class="ow">or</span> <span class="n">eval_sampling</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">training</span> <span class="ow">or</span> <span class="n">testing</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">inputs</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampled_softmax_mode</span><span class="p">:</span>
@@ -345,7 +345,7 @@
         <span class="n">outputs</span><span class="p">:</span> <span class="n">PredictionOutput</span><span class="p">,</span>
         <span class="n">feature_context</span><span class="p">:</span> <span class="n">FeatureContext</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">eval_sampling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">testing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PredictionOutput&quot;</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Based on the user/query embedding (inputs[self.query_name]), uses dot product to score</span>
@@ -373,7 +373,7 @@
             <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">feature_context</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">]</span>
 
         <span class="n">neg_items_ids</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">training</span> <span class="ow">or</span> <span class="n">eval_sampling</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">training</span> <span class="ow">or</span> <span class="n">testing</span><span class="p">:</span>
 
             <span class="k">assert</span> <span class="p">(</span>
                 <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>

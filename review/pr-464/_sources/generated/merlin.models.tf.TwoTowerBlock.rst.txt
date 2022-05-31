@@ -102,6 +102,7 @@
       ~TwoTowerBlock.input_spec
       ~TwoTowerBlock.is_input
       ~TwoTowerBlock.is_tabular
+      ~TwoTowerBlock.layers
       ~TwoTowerBlock.losses
       ~TwoTowerBlock.metrics
       ~TwoTowerBlock.name

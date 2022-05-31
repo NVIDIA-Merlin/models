@@ -162,10 +162,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <p>We will use the utils function to download, extract and preprocess the dataset.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-    <span class="s2">&quot;INPUT_DATA_DIR&quot;</span><span class="p">,</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/merlin-models-data/movielens/&quot;</span><span class="p">)</span>
-<span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;INPUT_DATA_DIR&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/merlin-models-data/movielens/&quot;</span><span class="p">))</span>
 <span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">input_path</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -799,15 +796,12 @@ In our example preprocessing workflow for this dataset, we also set the <code cl
 <p>We will download the dataset, if it is not already downloaded and cached locally.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-    <span class="s2">&quot;INPUT_DATA_DIR&quot;</span><span class="p">,</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/merlin-models-data/movielens/&quot;</span><span class="p">)</span>
-<span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;INPUT_DATA_DIR&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/merlin-models-data/movielens/&quot;</span><span class="p">))</span>
 <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ml-1m&quot;</span>
 <span class="n">download_file</span><span class="p">(</span>
     <span class="s2">&quot;http://files.grouplens.org/datasets/movielens/ml-1m.zip&quot;</span><span class="p">,</span>
     <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="s2">&quot;ml-1m.zip&quot;</span><span class="p">),</span>
-    <span class="n">redownload</span><span class="o">=</span><span class="kc">False</span>
+    <span class="n">redownload</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>

@@ -273,38 +273,15 @@ Successfully installed emoji-1.7.0 natsort-8.1.0 seedir-0.3.0
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">seedir</span> <span class="k">as</span> <span class="nn">sd</span>
+
 <span class="n">sd</span><span class="o">.</span><span class="n">seedir</span><span class="p">(</span>
-    <span class="n">DATA_FOLDER</span><span class="p">,</span> 
-    <span class="n">style</span><span class="o">=</span><span class="s1">&#39;lines&#39;</span><span class="p">,</span> 
-    <span class="n">itemlimit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> 
-    <span class="n">depthlimit</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> 
-    <span class="n">exclude_folders</span><span class="o">=</span><span class="s1">&#39;.ipynb_checkpoints&#39;</span><span class="p">,</span> 
-    <span class="n">sort</span><span class="o">=</span><span class="kc">True</span>
+    <span class="n">DATA_FOLDER</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="s2">&quot;lines&quot;</span><span class="p">,</span>
+    <span class="n">itemlimit</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">depthlimit</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">exclude_folders</span><span class="o">=</span><span class="s2">&quot;.ipynb_checkpoints&quot;</span><span class="p">,</span>
+    <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>data/
-├─processed/
-│ ├─train/
-│ │ ├─_file_list.txt
-│ │ ├─_metadata
-│ │ ├─_metadata.json
-│ │ ├─part_0.parquet
-│ │ └─schema.pbtxt
-│ └─valid/
-│   ├─_file_list.txt
-│   ├─_metadata
-│   ├─_metadata.json
-│   ├─part_0.parquet
-│   └─schema.pbtxt
-├─train/
-│ ├─_metadata
-│ └─part.0.parquet
-└─valid/
-  ├─_metadata
-  └─part.0.parquet
 </pre></div>
 </div>
 </div>
@@ -333,11 +310,6 @@ Successfully installed emoji-1.7.0 natsort-8.1.0 seedir-0.3.0
 </pre></div>
 </div>
 </div>
-<div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;click&#39;
-</pre></div>
-</div>
-</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -346,7 +318,7 @@ Successfully installed emoji-1.7.0 natsort-8.1.0 seedir-0.3.0
     <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
     <span class="n">bottom_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">]),</span>
     <span class="n">top_block</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
-    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">target_column</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()]),</span>
+    <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">target_column</span><span class="p">),</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -356,28 +328,8 @@ Successfully installed emoji-1.7.0 natsort-8.1.0 seedir-0.3.0
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
 
-<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
 <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">BATCH_SIZE</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-09 08:29:15.386520: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
-2022-05-09 08:29:16.357112: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
-</pre></div>
-</div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1368/1368 [==============================] - ETA: 0s - auc: 0.4997 - loss: 0.6933 - regularization_loss: 0.0000e+00 - total_loss: 0.6933
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-09 08:29:32.099125: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_161
-</pre></div>
-</div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1368/1368 [==============================] - 18s 10ms/step - auc: 0.4997 - loss: 0.6933 - regularization_loss: 0.0000e+00 - total_loss: 0.6933 - val_auc: 0.4967 - val_loss: 0.6937 - val_regularization_loss: 0.0000e+00 - val_total_loss: 0.6937
-CPU times: user 35.5 s, sys: 4.04 s, total: 39.5 s
-Wall time: 20.7 s
-</pre></div>
-</div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f84a82db3d0&gt;
 </pre></div>
 </div>
 </div>

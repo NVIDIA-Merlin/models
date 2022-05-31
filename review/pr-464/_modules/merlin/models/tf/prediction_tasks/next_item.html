@@ -106,8 +106,6 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.base</span> <span class="kn">import</span> <span class="n">ItemRetrievalScorer</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.cross_batch</span> <span class="kn">import</span> <span class="n">PopularityBasedSampler</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.losses.base</span> <span class="kn">import</span> <span class="n">LossType</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.metrics.ranking</span> <span class="kn">import</span> <span class="n">ranking_metrics</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.classification</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CategFeaturePrediction</span><span class="p">,</span>
     <span class="n">MultiClassClassificationTask</span><span class="p">,</span>
@@ -201,8 +199,6 @@
 
 <div class="viewcode-block" id="NextItemPredictionTask"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.NextItemPredictionTask.html#merlin.models.tf.NextItemPredictionTask">[docs]</a><span class="k">def</span> <span class="nf">NextItemPredictionTask</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
-    <span class="n">loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LossType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;categorical_crossentropy&quot;</span><span class="p">,</span>
-    <span class="n">metrics</span><span class="o">=</span><span class="n">ranking_metrics</span><span class="p">(</span><span class="n">top_ks</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">]),</span>
     <span class="n">weight_tying</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">extra_pre_call</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -309,8 +305,6 @@
         <span class="n">target_name</span><span class="p">,</span>
         <span class="n">task_name</span><span class="p">,</span>
         <span class="n">task_block</span><span class="p">,</span>
-        <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span>
-        <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
         <span class="n">pre</span><span class="o">=</span><span class="n">prediction_call</span><span class="p">,</span>
     <span class="p">)</span></div>
 </pre></div>

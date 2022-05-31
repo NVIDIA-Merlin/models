@@ -100,6 +100,7 @@
       ~ResidualBlock.input_spec
       ~ResidualBlock.is_input
       ~ResidualBlock.is_tabular
+      ~ResidualBlock.layers
       ~ResidualBlock.losses
       ~ResidualBlock.metrics
       ~ResidualBlock.name
