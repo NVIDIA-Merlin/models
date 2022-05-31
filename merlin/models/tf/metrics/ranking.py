@@ -176,7 +176,7 @@ def mrr_at(
     """
 
     first_rel_position = tf.cast(tf.argmax(y_true, axis=-1) + 1, backend.floatx())
-    relevant_mask = tf.reduce_max(y_true, axis=-1)
+    relevant_mask = tf.reduce_max(y_true[:, : int(k)], axis=-1)
 
     rel_position = first_rel_position * relevant_mask
     results = tf.cast(tf.math.divide_no_nan(1.0, rel_position), backend.floatx())
@@ -203,10 +203,13 @@ class RankingMetric(Mean):
         sample_weight: Optional[tf.Tensor] = None,
     ):
         y_true, y_pred = self.check_cast_inputs(y_true, y_pred)
-        [
-            y_true,
-            y_pred,
-        ], sample_weight = metrics_utils.ragged_assert_compatible_and_get_flat_values(
+        (
+            [
+                y_true,
+                y_pred,
+            ],
+            sample_weight,
+        ) = metrics_utils.ragged_assert_compatible_and_get_flat_values(
             [y_true, y_pred], sample_weight
         )
         y_pred, y_true = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true)
