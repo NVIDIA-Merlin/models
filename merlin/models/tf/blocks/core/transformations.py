@@ -387,16 +387,26 @@ class RemovePad3D(Block):
         non_pad_mask = targets != self.padding_idx
         targets = tf.boolean_mask(targets, non_pad_mask)
 
-        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
+        if isinstance(predictions, dict):
+            for name, tensor in predictions.items():
+                predictions[name] = self._flatten_and_filter(tensor, non_pad_mask)
+        elif isinstance(predictions, tf.Tensor):
+            predictions = self._flatten_and_filter(predictions, non_pad_mask)
+        else:
+            raise TypeError("Predictions must be a tensor or a dictionary of tensors.")
+
+        return outputs.copy_with_updates(
+            predictions=predictions,
+            targets=targets,
+        )
+
+    def _flatten_and_filter(self, predictions: tf.Tensor, non_pad_mask: tf.Tensor) -> tf.Tensor:
         if len(tuple(predictions.get_shape())) == 3:
             predictions = tf.reshape(predictions, (-1, predictions.shape[-1]))
             predictions = tf.boolean_mask(
                 predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
             )
-        return outputs.copy_with_updates(
-            predictions=predictions,
-            targets=targets,
-        )
+        return predictions
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
