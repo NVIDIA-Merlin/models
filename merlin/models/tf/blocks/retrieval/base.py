@@ -256,7 +256,7 @@ class ItemRetrievalScorer(Block):
             return inputs
 
         if self.sampled_softmax_mode:
-            return self._get_logits_for_sampled_softmax(inputs)
+            return self._get_logits_for_sampled_softmax(inputs[self.query_name])
 
         self._check_input_from_two_tower(inputs)
         positive_scores = tf.reduce_sum(
@@ -305,6 +305,8 @@ class ItemRetrievalScorer(Block):
             ), "At least one sampler is required by ItemRetrievalScorer for negative sampling"
 
             if self.sampled_softmax_mode:
+                if isinstance(predictions, dict):
+                    predictions = predictions[self.query_name]
                 predictions = self._prepare_query_item_vectors_for_sampled_softmax(
                     predictions, targets
                 )
@@ -407,13 +409,13 @@ class ItemRetrievalScorer(Block):
                 negative_item_ids=neg_items_ids,
             )
 
-    def _get_logits_for_sampled_softmax(self, inputs):
-        if not isinstance(inputs, tf.Tensor):
+    def _get_logits_for_sampled_softmax(self, query_inputs):
+        if not isinstance(query_inputs, tf.Tensor):
             raise ValueError(
-                f"Inputs to the Sampled Softmax block should be tensors, got {type(inputs)}"
+                f"Inputs to the Sampled Softmax block should be tensors, got {type(query_inputs)}"
             )
         embedding_table = self.context.get_embedding(self.item_domain)
-        all_scores = tf.matmul(inputs, tf.transpose(embedding_table))
+        all_scores = tf.matmul(query_inputs, tf.transpose(embedding_table))
         return all_scores
 
     def _prepare_query_item_vectors_for_sampled_softmax(
