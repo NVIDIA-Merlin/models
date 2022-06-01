@@ -315,5 +315,5 @@ def YoutubeDNNRetrievalModel(
     )
 
     # TODO: Figure out how to make this fit as
-    # a RetrievalModel (which must have a RetrievalBlock)
+    # a RetrievalModel (which must have a DualEncoderBlock)
     return Model(inputs, top_block, task)

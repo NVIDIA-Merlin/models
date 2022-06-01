@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Sequence as SequenceCollection
-from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import tensorflow as tf
 from tensorflow.python.keras.engine import data_adapter
@@ -13,6 +13,7 @@ from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOut
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
@@ -626,15 +627,6 @@ class Model(tf.keras.Model):
         return {"block": tf.keras.utils.serialize_keras_object(self.block)}
 
 
-@runtime_checkable
-class RetrievalBlock(Protocol):
-    def query_block(self) -> Block:
-        ...
-
-    def item_block(self) -> Block:
-        ...
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class RetrievalModel(Model):
     """Embedding-based retrieval model."""
@@ -719,8 +711,8 @@ class RetrievalModel(Model):
         )
 
     @property
-    def retrieval_block(self) -> RetrievalBlock:
-        return next(b for b in self.block if isinstance(b, RetrievalBlock))
+    def retrieval_block(self) -> DualEncoderBlock:
+        return next(b for b in self.block if isinstance(b, DualEncoderBlock))
 
     def query_embeddings(
         self,

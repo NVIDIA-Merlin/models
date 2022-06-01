@@ -50,16 +50,6 @@ class TowerBlock(ModelBlock):
     pass
 
 
-class RetrievalMixin:
-    def query_block(self) -> TowerBlock:
-        """Method to return the query tower from a RetrievalModel instance"""
-        raise NotImplementedError()
-
-    def item_block(self) -> TowerBlock:
-        """Method to return the item tower from a RetrievalModel instance"""
-        raise NotImplementedError()
-
-
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DualEncoderBlock(ParallelBlock):
     def __init__(

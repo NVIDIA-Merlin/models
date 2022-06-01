@@ -20,7 +20,7 @@ from typing import Optional
 import tensorflow as tf
 
 from merlin.models.tf.blocks.core.base import Block, BlockType
-from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, RetrievalMixin
+from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.schema import Schema, Tags
@@ -29,7 +29,7 @@ LOG = logging.getLogger("merlin_models")
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
+class TwoTowerBlock(DualEncoderBlock):
     """
     Builds the Two-tower architecture, as proposed in the following
     `paper https://doi.org/10.1145/3298689.3346996`_ [Xinyang19].
