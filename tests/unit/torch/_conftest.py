@@ -57,29 +57,6 @@ def torch_cat_features():
 
 
 @pytest.fixture
-def torch_masking_inputs():
-    # fixed parameters for tests
-    NUM_EXAMPLES = 20
-    MAX_LEN = 10
-    PAD_TOKEN = 0
-    hidden_dim = 16
-    features = {}
-    # generate random tensors for test
-    features["input_tensor"] = torch.tensor(
-        np.random.uniform(0, 1, (NUM_EXAMPLES, MAX_LEN, hidden_dim))
-    )
-    # create sequences
-    labels = torch.tensor(np.random.randint(1, MAX_CARDINALITY, (NUM_EXAMPLES, MAX_LEN)))
-    # replace last 2 items by zeros to mimic padding
-    labels[:, MAX_LEN - 2 :] = 0
-    features["labels"] = labels
-    features["padding_idx"] = PAD_TOKEN
-    features["vocab_size"] = MAX_CARDINALITY
-
-    return features
-
-
-@pytest.fixture
 def torch_seq_prediction_head_inputs():
     ITEM_DIM = 128
     POS_EXAMPLE = 25

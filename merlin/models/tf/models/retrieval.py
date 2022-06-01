@@ -295,7 +295,6 @@ def YoutubeDNNRetrievalModel(
         aggregation=aggregation,
         seq=False,
         max_seq_length=max_seq_length,
-        masking="clm",
         split_sparse=True,
         seq_aggregator=seq_aggregator,
         embedding_options=embedding_options,
@@ -303,7 +302,6 @@ def YoutubeDNNRetrievalModel(
 
     task = NextItemPredictionTask(
         schema=schema,
-        masking=True,
         weight_tying=False,
         extra_pre_call=extra_pre_call,
         task_block=task_block,

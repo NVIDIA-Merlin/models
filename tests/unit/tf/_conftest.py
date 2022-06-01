@@ -48,30 +48,6 @@ def tf_cat_features():
 
 
 @pytest.fixture
-def tf_masking_inputs():
-    # fixed parameters for tests
-    NUM_EXAMPLES = 20
-    MAX_LEN = 10
-    PAD_TOKEN = 0
-    hidden_dim = 16
-    features = {}
-    # generate random tensors for test
-    features["input_tensor"] = tf.convert_to_tensor(
-        np.random.uniform(0, 1, (NUM_EXAMPLES, MAX_LEN, hidden_dim))
-    )
-    # create sequences
-    labels = np.random.randint(1, MAX_CARDINALITY, (NUM_EXAMPLES, MAX_LEN))
-    # replace last 2 items by zeros to mimic padding
-    labels[:, MAX_LEN - 2 :] = 0
-    labels = tf.convert_to_tensor(labels)
-    features["labels"] = labels
-    features["padding_idx"] = PAD_TOKEN
-    features["vocab_size"] = MAX_CARDINALITY
-
-    return features
-
-
-@pytest.fixture
 def tf_ranking_metrics_inputs():
     POS_EXAMPLE = 30
     VOCAB_SIZE = 40

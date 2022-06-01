@@ -354,13 +354,11 @@ def test_last_item_prediction_task(
         aggregation="concat",
         seq=False,
         max_seq_length=4,
-        masking="clm",
         split_sparse=True,
     )
     loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     task = ml.NextItemPredictionTask(
         schema=sequence_testing_data.schema,
-        masking=True,
         weight_tying=weight_tying,
         sampled_softmax=sampled_softmax,
         logits_temperature=0.5,
