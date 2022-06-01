@@ -77,12 +77,12 @@
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.aggregation</span> <span class="kn">import</span> <span class="n">SequenceAggregation</span><span class="p">,</span> <span class="n">SequenceAggregator</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.inputs</span> <span class="kn">import</span> <span class="n">InputBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.mlp</span> <span class="kn">import</span> <span class="n">MLPBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.matrix_factorization</span> <span class="kn">import</span> <span class="n">QueryItemIdsEmbeddingsBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.two_tower</span> <span class="kn">import</span> <span class="n">TwoTowerBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.base</span> <span class="kn">import</span> <span class="n">ItemSampler</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.features.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingOptions</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.base</span> <span class="kn">import</span> <span class="n">InputBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingOptions</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.base</span> <span class="kn">import</span> <span class="n">Model</span><span class="p">,</span> <span class="n">RetrievalModel</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.utils</span> <span class="kn">import</span> <span class="n">parse_prediction_tasks</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="n">PredictionTask</span>
