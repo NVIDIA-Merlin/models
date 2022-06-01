@@ -11,7 +11,7 @@ def require_nvt():
 
             backend = tf
 
-            if tf.test.is_gpu_available():
+            if tf.config.list_physical_devices("GPU"):
                 _check_nvt_gpu()
 
         except ImportError:

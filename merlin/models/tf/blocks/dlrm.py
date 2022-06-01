@@ -19,8 +19,8 @@ from typing import Optional
 from merlin.models.tf.blocks.core.base import Block, Debug
 from merlin.models.tf.blocks.core.combinators import Filter, ParallelBlock, SequentialBlock
 from merlin.models.tf.blocks.interaction import DotProductInteraction
-from merlin.models.tf.features.continuous import ContinuousFeatures
-from merlin.models.tf.features.embedding import EmbeddingFeatures, EmbeddingOptions
+from merlin.models.tf.inputs.continuous import ContinuousFeatures
+from merlin.models.tf.inputs.embedding import EmbeddingFeatures, EmbeddingOptions
 from merlin.schema import Schema, Tags
 
 
@@ -101,14 +101,20 @@ def DLRMBlock(
         interaction_inputs = ParallelBlock({"embeddings": embeddings, "bottom_block": bottom_block})
     else:
         interaction_inputs = embeddings  # type: ignore
+        bottom_block = None
 
     interaction_inputs = interaction_inputs.connect(Debug())
 
     if not top_block:
         return interaction_inputs.connect(DotProductInteractionBlock())
 
+    if not bottom_block:
+        return interaction_inputs.connect(DotProductInteractionBlock(), top_block)
+
     top_block_inputs = interaction_inputs.connect_with_shortcut(
-        DotProductInteractionBlock(), shortcut_filter=Filter("bottom_block"), aggregation="concat"
+        DotProductInteractionBlock(),
+        shortcut_filter=Filter("bottom_block"),
+        aggregation="concat",
     )
     top_block_outputs = top_block_inputs.connect(top_block)
 
