@@ -94,8 +94,8 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">Debug</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">SequentialBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.interaction</span> <span class="kn">import</span> <span class="n">DotProductInteraction</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.features.continuous</span> <span class="kn">import</span> <span class="n">ContinuousFeatures</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.features.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingFeatures</span><span class="p">,</span> <span class="n">EmbeddingOptions</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.continuous</span> <span class="kn">import</span> <span class="n">ContinuousFeatures</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingFeatures</span><span class="p">,</span> <span class="n">EmbeddingOptions</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 
@@ -176,14 +176,20 @@
         <span class="n">interaction_inputs</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">({</span><span class="s2">&quot;embeddings&quot;</span><span class="p">:</span> <span class="n">embeddings</span><span class="p">,</span> <span class="s2">&quot;bottom_block&quot;</span><span class="p">:</span> <span class="n">bottom_block</span><span class="p">})</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">interaction_inputs</span> <span class="o">=</span> <span class="n">embeddings</span>  <span class="c1"># type: ignore</span>
+        <span class="n">bottom_block</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">interaction_inputs</span> <span class="o">=</span> <span class="n">interaction_inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">Debug</span><span class="p">())</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">top_block</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">interaction_inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">DotProductInteractionBlock</span><span class="p">())</span>
 
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">bottom_block</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">interaction_inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">DotProductInteractionBlock</span><span class="p">(),</span> <span class="n">top_block</span><span class="p">)</span>
+
     <span class="n">top_block_inputs</span> <span class="o">=</span> <span class="n">interaction_inputs</span><span class="o">.</span><span class="n">connect_with_shortcut</span><span class="p">(</span>
-        <span class="n">DotProductInteractionBlock</span><span class="p">(),</span> <span class="n">shortcut_filter</span><span class="o">=</span><span class="n">Filter</span><span class="p">(</span><span class="s2">&quot;bottom_block&quot;</span><span class="p">),</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span>
+        <span class="n">DotProductInteractionBlock</span><span class="p">(),</span>
+        <span class="n">shortcut_filter</span><span class="o">=</span><span class="n">Filter</span><span class="p">(</span><span class="s2">&quot;bottom_block&quot;</span><span class="p">),</span>
+        <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">top_block_outputs</span> <span class="o">=</span> <span class="n">top_block_inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">top_block</span><span class="p">)</span>
 
