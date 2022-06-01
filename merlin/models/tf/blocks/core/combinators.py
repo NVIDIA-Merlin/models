@@ -508,7 +508,9 @@ class ParallelBlock(TabularBlock):
         config = super(ParallelBlock, self).get_config()
         config.update({"automatic_pruning": self.automatic_pruning})
 
-        return tf_utils.maybe_serialize_keras_objects(self, config, ["parallel_layers"])
+        return tf_utils.maybe_serialize_keras_objects(
+            self, super(ParallelBlock, self).get_config(), ["parallel_layers"]
+        )
 
     @classmethod
     def parse_config(cls, config, custom_objects=None):
