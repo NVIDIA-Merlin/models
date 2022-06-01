@@ -388,11 +388,13 @@ class RemovePad3D(Block):
         targets = tf.boolean_mask(targets, non_pad_mask)
 
         assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
+
         if len(tuple(predictions.get_shape())) == 3:
             predictions = tf.reshape(predictions, (-1, predictions.shape[-1]))
             predictions = tf.boolean_mask(
                 predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
             )
+
         return outputs.copy_with_updates(
             predictions=predictions,
             targets=targets,
