@@ -43,11 +43,23 @@ def test_mf_model_single_binary_task(ecommerce_data, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_dlrm_model(ecommerce_data, run_eagerly):
+def test_dlrm_model(music_streaming_data, run_eagerly):
+    model = ml.DLRMModel(
+        music_streaming_data.schema,
+        embedding_dim=64,
+        bottom_block=ml.MLPBlock([64]),
+        top_block=ml.MLPBlock([32]),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_dlrm_model_without_continuous_features(ecommerce_data, run_eagerly):
     model = ml.DLRMModel(
         ecommerce_data.schema,
         embedding_dim=64,
-        bottom_block=ml.MLPBlock([64]),
         top_block=ml.MLPBlock([32]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
