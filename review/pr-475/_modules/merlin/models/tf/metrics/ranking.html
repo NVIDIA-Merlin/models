@@ -289,6 +289,13 @@
         <span class="p">)</span>
         <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span> <span class="o">=</span> <span class="n">losses_utils</span><span class="o">.</span><span class="n">squeeze_or_expand_dimensions</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">)</span>
 
+        <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_true</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;The ranking metric (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">) cutoff (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">) cannot be smaller than &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;the number of predictions per example&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
         <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_sort_top_k</span><span class="p">(</span>
             <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span>
         <span class="p">)</span>
