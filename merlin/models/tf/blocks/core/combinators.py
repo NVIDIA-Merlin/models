@@ -349,12 +349,14 @@ class ParallelBlock(TabularBlock):
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
         strict: bool = False,
+        automatic_pruning: bool = True,
         **kwargs,
     ):
         super().__init__(
             pre=pre, post=post, aggregation=aggregation, schema=schema, name=name, **kwargs
         )
         self.strict = strict
+        self.automatic_pruning = automatic_pruning
         self.parallel_layers: Union[List[TabularBlock], Dict[str, TabularBlock]]
         if isinstance(inputs, tuple) and len(inputs) == 1 and isinstance(inputs[0], (list, tuple)):
             inputs = inputs[0]
@@ -395,11 +397,11 @@ class ParallelBlock(TabularBlock):
         return self.parallel_layers
 
     @property
-    def parallel_dict(self) -> Dict[str, tf.keras.layers.Layer]:
+    def parallel_dict(self) -> Dict[Union[str, int], tf.keras.layers.Layer]:
         if isinstance(self.parallel_layers, dict):
             return self.parallel_layers
 
-        return {str(i): m for i, m in enumerate(self.parallel_layers)}
+        return {i: m for i, m in enumerate(self.parallel_layers)}
 
     @property
     def layers(self) -> List[tf.keras.layers.Layer]:
@@ -483,18 +485,29 @@ class ParallelBlock(TabularBlock):
         return output_shapes
 
     def build(self, input_shape):
+        to_prune = []
+        propagate_all_inputs = True
         if isinstance(input_shape, dict) and all(
             name in input_shape for name in list(self.parallel_dict.keys())
         ):
-            for key, block in self.parallel_dict.items():
-                block.build(input_shape[key])
-        else:
-            for layer in self.parallel_values:
-                layer.build(input_shape)
+            propagate_all_inputs = False
+
+        for key, branch in self.parallel_dict.items():
+            branch_shape = input_shape[key] if not propagate_all_inputs else input_shape
+            branch.build(branch_shape)
+            branch_out_shape = branch.compute_output_shape(branch_shape)
+            if self.automatic_pruning and branch_out_shape == {}:
+                to_prune.append(key)
+
+        for p in to_prune:
+            self.parallel_layers.pop(p)
 
         return super().build(input_shape)
 
     def get_config(self):
+        config = super(ParallelBlock, self).get_config()
+        config.update({"automatic_pruning": self.automatic_pruning})
+
         return tf_utils.maybe_serialize_keras_objects(
             self, super(ParallelBlock, self).get_config(), ["parallel_layers"]
         )
