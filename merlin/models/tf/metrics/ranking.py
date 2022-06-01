@@ -214,6 +214,13 @@ class RankingMetric(Mean):
         )
         y_pred, y_true = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true)
 
+        tf.debugging.assert_greater_equal(
+            tf.shape(y_true)[1],
+            self.k,
+            f"The ranking metric ({self.name}) cutoff ({self.k}) cannot be smaller than "
+            f"the number of predictions per example",
+        )
+
         y_pred, y_true, label_relevant_counts = self._maybe_sort_top_k(
             y_pred, y_true, label_relevant_counts
         )
