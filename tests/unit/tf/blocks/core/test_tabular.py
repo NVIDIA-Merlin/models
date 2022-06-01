@@ -19,8 +19,7 @@ def test_filter_call(tf_con_features):
     assert mm.Filter(Schema(["unknown"]))(tf_con_features) == {}
 
     assert mm.Filter(Tags.CONTINUOUS)({}) == {}
-    # TODO : Raises TypeError
-    # assert mm.Filter(Tags.CONTINUOUS)(tf_con_features) == {}
+    assert mm.Filter(Tags.CONTINUOUS).set_schema(Schema(["unknown"]))(tf_con_features) == {}
 
 
 def test_as_tabular(tf_con_features):
