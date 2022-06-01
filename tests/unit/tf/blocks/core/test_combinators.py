@@ -31,12 +31,12 @@ def test_parallel_block_pruning(music_streaming_data: Dataset, name_branches: bo
 
 
 def test_parallel_block_serialization(music_streaming_data: Dataset):
-    unkown_filter = mm.Filter(["none"])
-    block = mm.ParallelBlock(mm.Filter(["position"]), unkown_filter, automatic_pruning=False)
+    unknown_filter = mm.Filter(["none"])
+    block = mm.ParallelBlock(mm.Filter(["position"]), unknown_filter, automatic_pruning=False)
     block_copy = block.from_config(block.get_config())
 
     assert not block_copy.automatic_pruning
-    assert unkown_filter not in block_copy.parallel_values
+    assert unknown_filter not in block_copy.parallel_values
 
     features = mm.sample_batch(music_streaming_data, batch_size=10, include_targets=False)
 
