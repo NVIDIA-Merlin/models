@@ -196,7 +196,7 @@ class CausalLanguageModeling(MaskingBlock):
             labels = item_ids[:, 1:]
             # pad shifted sequence to original length
             labels = tf.concat(
-                [labels, tf.zeros((tf.shape(item_ids)[0], 1), dtype=labels.dtype)],
+                [labels, tf.zeros((tf.shape(labels)[0], 1), dtype=labels.dtype)],
                 axis=-1,
             )
             mask_labels = labels != self.padding_idx
@@ -268,11 +268,7 @@ class MaskedLanguageModeling(MaskingBlock):
 
     def get_config(self):
         config = super(MaskedLanguageModeling, self).get_config()
-        config.update(
-            {
-                "mlm_probability": self.mlm_probability,
-            }
-        )
+        config.update({"mlm_probability": self.mlm_probability})
         return config
 
     def compute_feature_mask(self, item_ids: tf.Tensor, training: bool = False) -> tf.Tensor:
@@ -343,7 +339,12 @@ class MaskedLanguageModeling(MaskingBlock):
             mask_labels = self.labels != self.padding_idx
             mask_inputs = mask_labels
         else:
-            mask_labels = item_ids != self.padding_idx
+            labels = item_ids[:, 1:]
+            labels = tf.concat(
+                [labels, tf.zeros((tf.shape(labels)[0], 1), dtype=labels.dtype)],
+                axis=-1,
+            )
+            mask_labels = labels != self.padding_idx
             mask_inputs = None
 
         return mask_labels, mask_inputs
