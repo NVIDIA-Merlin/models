@@ -394,6 +394,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             post=post,
             aggregation=aggregation,
             block_outputs_name=block_outputs_name,
+            automatic_pruning=False,
         )
 
         if isinstance(self, SequentialBlock):
