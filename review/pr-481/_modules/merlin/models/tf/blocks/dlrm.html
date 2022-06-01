@@ -187,7 +187,9 @@
         <span class="k">return</span> <span class="n">interaction_inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">DotProductInteractionBlock</span><span class="p">(),</span> <span class="n">top_block</span><span class="p">)</span>
 
     <span class="n">top_block_inputs</span> <span class="o">=</span> <span class="n">interaction_inputs</span><span class="o">.</span><span class="n">connect_with_shortcut</span><span class="p">(</span>
-        <span class="n">DotProductInteractionBlock</span><span class="p">(),</span> <span class="n">shortcut_filter</span><span class="o">=</span><span class="n">Filter</span><span class="p">(</span><span class="s2">&quot;bottom_block&quot;</span><span class="p">),</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span>
+        <span class="n">DotProductInteractionBlock</span><span class="p">(),</span>
+        <span class="n">shortcut_filter</span><span class="o">=</span><span class="n">Filter</span><span class="p">(</span><span class="s2">&quot;bottom_block&quot;</span><span class="p">),</span>
+        <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">top_block_outputs</span> <span class="o">=</span> <span class="n">top_block_inputs</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">top_block</span><span class="p">)</span>
 
