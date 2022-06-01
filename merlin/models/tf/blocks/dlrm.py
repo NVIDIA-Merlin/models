@@ -112,7 +112,9 @@ def DLRMBlock(
         return interaction_inputs.connect(DotProductInteractionBlock(), top_block)
 
     top_block_inputs = interaction_inputs.connect_with_shortcut(
-        DotProductInteractionBlock(), shortcut_filter=Filter("bottom_block"), aggregation="concat"
+        DotProductInteractionBlock(),
+        shortcut_filter=Filter("bottom_block"),
+        aggregation="concat",
     )
     top_block_outputs = top_block_inputs.connect(top_block)
 
