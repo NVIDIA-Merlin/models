@@ -14,8 +14,9 @@
 # limitations under the License.
 #
 import abc
+import inspect
 from enum import Enum
-from typing import Union
+from typing import Optional, Union
 
 import tensorflow as tf
 from tensorflow.python.keras import backend
@@ -334,11 +335,51 @@ class ElementWiseMultiply(TupleAggregation):
         return out
 
 
+def masked_mean(
+    input_tensor: tf.Tensor, axis: Optional[int] = None, mask: tf.Tensor = None
+) -> tf.Tensor:
+    """Computes the mean of the specified axis considering only
+    masked values
+
+    Parameters
+    ----------
+    input_tensor : tf.Tensor
+        Input tensor
+    axis : int, optional
+        axis to compute the mean over, by default None
+    mask : tf.Tensor
+        Mask tensor with the same shape as input_tensor.
+        Only values where mask=True will be considered for average, by default None
+
+    Returns
+    -------
+    tf.Tensor
+        A tensor with the values averaged of the specified axis considering only masked values
+
+    Raises
+    ------
+    ValueError
+        If mask is not provided
+    """
+    output_tensor = input_tensor
+    if mask is not None:
+        mask_float = tf.expand_dims(tf.cast(mask, tf.float32), -1)
+        output_tensor = tf.divide(
+            tf.reduce_sum(tf.multiply(input_tensor, mask_float), axis=axis),
+            tf.reduce_sum(mask_float, axis=axis),
+        )
+    else:
+        raise ValueError("The mask is required for masked mean")
+
+    return output_tensor
+
+
 class SequenceAggregation(Enum):
     MEAN = tf.reduce_mean
     SUM = tf.reduce_sum
     MAX = tf.reduce_max
     MIN = tf.reduce_min
+    MASKED_MEAN = masked_mean
 
     def __str__(self):
         return self.value
@@ -366,7 +407,14 @@ class SequenceAggregator(Block):
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         assert len(inputs.shape) == 3, "inputs should be a 3-D tensor"
-        return self.combiner(inputs, axis=self.axis)
+        kwargs = {}
+        if (
+            "mask" in inspect.signature(self.combiner).parameters
+            and "valid_items_mask" in self.context.named_variables
+        ):
+            kwargs["mask"] = self.context["valid_items_mask"]
+
+        return self.combiner(inputs, axis=self.axis, **kwargs)
 
     def compute_output_shape(self, input_shape):
         batch_size, _, last_dim = input_shape
