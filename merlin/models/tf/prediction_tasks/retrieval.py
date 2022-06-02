@@ -37,12 +37,6 @@ class ItemRetrievalTask(MultiClassClassificationTask):
     ----------
         schema: Schema
             The schema object including features to use and their properties.
-        loss: Optional[LossType]
-            Loss function.
-            Defaults to `categorical_crossentropy`.
-        metrics: MetricOrMetrics
-            List of top-k ranking metrics.
-            Defaults to a number of ranking metrics.
         samplers: List[ItemSampler]
             List of samplers for negative sampling, by default `[InBatchSampler()]`
         post_logits: Optional[PredictionBlock]
