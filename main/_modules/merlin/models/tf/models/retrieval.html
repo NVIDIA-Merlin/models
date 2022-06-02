@@ -282,7 +282,7 @@
     <span class="n">extra_pre_call</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">task_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">logits_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">seq_aggregator</span><span class="p">:</span> <span class="n">Block</span> <span class="o">=</span> <span class="n">SequenceAggregator</span><span class="p">(</span><span class="n">SequenceAggregation</span><span class="o">.</span><span class="n">MEAN</span><span class="p">),</span>
+    <span class="n">seq_aggregator</span><span class="p">:</span> <span class="n">Block</span> <span class="o">=</span> <span class="n">SequenceAggregator</span><span class="p">(</span><span class="n">SequenceAggregation</span><span class="o">.</span><span class="n">MASKED_MEAN</span><span class="p">),</span>
     <span class="n">sampled_softmax</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">num_sampled</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">min_sampled_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
@@ -329,12 +329,6 @@
 <span class="sd">        Defaults to `concat`.</span>
 <span class="sd">    top_block: Block</span>
 <span class="sd">        The `Block` that combines the top features</span>
-<span class="sd">    loss: Optional[LossType]</span>
-<span class="sd">        Loss function.</span>
-<span class="sd">        Defaults to `categorical_crossentropy`.</span>
-<span class="sd">    metrics: List[Metric]</span>
-<span class="sd">        List of metrics to use.</span>
-<span class="sd">        Defaults to `ranking_metrics(top_ks=[10])`</span>
 <span class="sd">    l2_normalization: bool</span>
 <span class="sd">        Whether to apply L2 normalization before computing dot interactions.</span>
 <span class="sd">        Defaults to True.</span>

@@ -91,10 +91,6 @@
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>schema</strong> (<em>Schema</em>) – The schema object including features to use and their properties.</p></li>
-<li><p><strong>loss</strong> (<em>Optional</em><em>[</em><em>LossType</em><em>]</em>) – Loss function.
-Defaults to <cite>categorical_crossentropy</cite>.</p></li>
-<li><p><strong>metrics</strong> (<em>MetricOrMetrics</em>) – List of top-k ranking metrics.
-Defaults to a number of ranking metrics.</p></li>
 <li><p><strong>samplers</strong> (<em>List</em><em>[</em><a class="reference internal" href="merlin.models.tf.ItemSampler.html#merlin.models.tf.ItemSampler" title="merlin.models.tf.ItemSampler"><em>ItemSampler</em></a><em>]</em>) – List of samplers for negative sampling, by default <cite>[InBatchSampler()]</cite></p></li>
 <li><p><strong>post_logits</strong> (<em>Optional</em><em>[</em><em>PredictionBlock</em><em>]</em>) – Optional extra pre-call block for post-processing the logits, by default None.
 You can for example use <cite>post_logits = mm.PopularitySamplingBlock(item_fequency)</cite>
