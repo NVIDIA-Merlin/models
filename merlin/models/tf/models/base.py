@@ -9,6 +9,7 @@ from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
 from merlin.models.config.schema import FeatureCollection
+from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
@@ -98,7 +99,7 @@ class ModelBlock(Block, tf.keras.Model):
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
         validation_data = _maybe_convert_merlin_dataset(
-            validation_data, batch_size, shuffle=False, **kwargs
+            validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
@@ -499,7 +500,7 @@ class Model(tf.keras.Model):
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
         validation_data = _maybe_convert_merlin_dataset(
-            validation_data, batch_size, shuffle=False, **kwargs
+            validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
@@ -542,7 +543,7 @@ class Model(tf.keras.Model):
         return_dict=False,
         **kwargs,
     ):
-        x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
+        x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
         return super().evaluate(
             x,
@@ -571,8 +572,7 @@ class Model(tf.keras.Model):
         use_multiprocessing=False,
         **kwargs,
     ):
-        shuffle = kwargs.pop("shuffle", False)
-        x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=shuffle, **kwargs)
+        x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
         return super(Model, self).predict(
             x,
@@ -850,9 +850,8 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
     if hasattr(data, "to_ddf"):
         if not batch_size:
             raise ValueError("batch_size must be specified when using merlin-dataset.")
-        from merlin.models.tf.dataset import BatchedDataset
 
-        data = BatchedDataset(data, batch_size=batch_size, **kwargs)
+        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle, **kwargs)
 
         if not shuffle:
             kwargs.pop("shuffle", None)
