@@ -54,7 +54,7 @@ pip install merlin-models
 
 > Installing Merlin Models with `pip` does not install some additional GPU dependencies, such as the CUDA Toolkit.
 > It is best to use the highly optimized Docker containers with dependencies installed.
-> The following script can be used for installing dependencies locally, however due to the intricacies of individual setups, we are only able to help you troubleshoot any issues you might encounter when running merlin-models inside one of the provided docker containers.
+> The following script can be used for installing dependencies locally, however due to the intricacies of individual setups, we are only able to help you troubleshoot any issues you might encounter when running Merlin Models inside one of the provided docker containers.
 
 ```
 sudo apt update -y --fix-missing
@@ -73,7 +73,7 @@ pip install git+https://github.com/rapidsai/asvdb.git@main
 pip install merlin-models
 ```
 
-You can consult the following [docker file](https://github.com/NVIDIA-Merlin/Merlin/tree/main/docker) for further details on the most up to date steps on installing dependencies.
+Please consult the Dockerfiles [here](https://github.com/NVIDIA-Merlin/Merlin/tree/main/docker) for further details on the most up to date steps for installing dependencies.
 
 #### Docker Containers that include Merlin Models
 
