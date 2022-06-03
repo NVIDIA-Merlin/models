@@ -127,7 +127,7 @@ The Merlin dataloaders can lead to a speedup that is nine times faster than the 
 <blockquote>
 <div><p>Installing Merlin Models with <code class="docutils literal notranslate"><span class="pre">pip</span></code> does not install some additional GPU dependencies, such as the CUDA Toolkit.
 It is best to use the highly optimized Docker containers with dependencies installed.
-The following script can be used for installing dependencies locally, however due to the intricacies of individual setups, we are only able to help you troubleshoot any issues you might encounter when running merlin-models inside one of the provided docker containers.</p>
+The following script can be used for installing dependencies locally, however due to the intricacies of individual setups, we are only able to help you troubleshoot any issues you might encounter when running Merlin Models inside one of the provided docker containers.</p>
 </div></blockquote>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span> <span class="n">update</span> <span class="o">-</span><span class="n">y</span> <span class="o">--</span><span class="n">fix</span><span class="o">-</span><span class="n">missing</span>
 <span class="n">sudo</span> <span class="n">apt</span> <span class="n">install</span> <span class="o">-</span><span class="n">y</span> <span class="o">--</span><span class="n">no</span><span class="o">-</span><span class="n">install</span><span class="o">-</span><span class="n">recommends</span> <span class="n">libexpat1</span><span class="o">-</span><span class="n">dev</span> <span class="n">libsasl2</span><span class="o">-</span><span class="mi">2</span> <span class="n">libssl</span><span class="o">-</span><span class="n">dev</span> <span class="n">graphviz</span> <span class="n">openssl</span> <span class="n">protobuf</span><span class="o">-</span><span class="n">compiler</span> <span class="n">software</span><span class="o">-</span><span class="n">properties</span><span class="o">-</span><span class="n">common</span>
@@ -145,7 +145,7 @@ The following script can be used for installing dependencies locally, however du
 <span class="n">pip</span> <span class="n">install</span> <span class="n">merlin</span><span class="o">-</span><span class="n">models</span>
 </pre></div>
 </div>
-<p>You can consult the following <a class="reference external" href="https://github.com/NVIDIA-Merlin/Merlin/tree/main/docker">docker file</a> for further details on the most up to date steps on installing dependencies.</p>
+<p>Please consult the Dockerfiles <a class="reference external" href="https://github.com/NVIDIA-Merlin/Merlin/tree/main/docker">here</a> for further details on the most up to date steps for installing dependencies.</p>
 </div>
 <div class="section" id="docker-containers-that-include-merlin-models">
 <h3>Docker Containers that include Merlin Models<a class="headerlink" href="#docker-containers-that-include-merlin-models" title="Permalink to this headline"></a></h3>
