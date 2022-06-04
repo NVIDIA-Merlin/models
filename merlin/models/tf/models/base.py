@@ -9,11 +9,11 @@ from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
 from merlin.models.config.schema import FeatureCollection
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.ranking import RankingMetric
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
