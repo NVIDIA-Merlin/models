@@ -96,7 +96,7 @@ from merlin.models.tf.metrics.ranking import (
 )
 from merlin.models.tf.models import benchmark
 from merlin.models.tf.models.base import Model, RetrievalModel
-from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel
+from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, WideAndDeepModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
     TwoTowerModel,
