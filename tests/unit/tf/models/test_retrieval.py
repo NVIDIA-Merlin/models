@@ -90,10 +90,10 @@ def test_two_tower_model_with_custom_options(
     data.schema = data.schema.remove_by_tag(Tags.TARGET)
     metrics = [
         tf.keras.metrics.AUC(from_logits=True),
+        mm.RecallAt(5),
         mm.RecallAt(10),
-        mm.RecallAt(50),
-        mm.MRRAt(50),
-        mm.NDCGAt(50),
+        mm.MRRAt(10),
+        mm.NDCGAt(10),
     ]
 
     post_logits = None
