@@ -9,12 +9,14 @@ from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
 from merlin.models.config.schema import FeatureCollection
-from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput
+from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.ranking import RankingMetric
+from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import call_layer
@@ -381,9 +383,11 @@ class Model(tf.keras.Model):
         prediction_tasks: Optional[
             Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
         ] = None,
+        aggregation="concat",
         **kwargs,
     ) -> "Model":
         """Create a model from a `block`
+
         Parameters
         ----------
         block: Block
@@ -397,10 +401,16 @@ class Model(tf.keras.Model):
         ]
             Prediction tasks to use.
         """
+        if is_input_block(block.first):
+            if input_block is not None:
+                raise ValueError("The block already includes an InputBlock")
+            input_block = block.first
 
-        return block.to_model(
-            schema, input_block=input_block, prediction_tasks=prediction_tasks, **kwargs
-        )
+        _input_block: Block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
+
+        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+
+        return cls(_input_block, block, prediction_tasks)
 
     def prediction_output(
         self, x, y=None, training=False, testing=False, **kwargs
