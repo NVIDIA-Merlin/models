@@ -251,7 +251,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">first_rel_position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">backend</span><span class="o">.</span><span class="n">floatx</span><span class="p">())</span>
-    <span class="n">relevant_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">relevant_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">y_true</span><span class="p">[:,</span> <span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">rel_position</span> <span class="o">=</span> <span class="n">first_rel_position</span> <span class="o">*</span> <span class="n">relevant_mask</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">divide_no_nan</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">rel_position</span><span class="p">),</span> <span class="n">backend</span><span class="o">.</span><span class="n">floatx</span><span class="p">())</span>
@@ -278,13 +278,23 @@
         <span class="n">sample_weight</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_cast_inputs</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
-        <span class="p">[</span>
-            <span class="n">y_true</span><span class="p">,</span>
-            <span class="n">y_pred</span><span class="p">,</span>
-        <span class="p">],</span> <span class="n">sample_weight</span> <span class="o">=</span> <span class="n">metrics_utils</span><span class="o">.</span><span class="n">ragged_assert_compatible_and_get_flat_values</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">y_true</span><span class="p">,</span>
+                <span class="n">y_pred</span><span class="p">,</span>
+            <span class="p">],</span>
+            <span class="n">sample_weight</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">metrics_utils</span><span class="o">.</span><span class="n">ragged_assert_compatible_and_get_flat_values</span><span class="p">(</span>
             <span class="p">[</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">],</span> <span class="n">sample_weight</span>
         <span class="p">)</span>
         <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span> <span class="o">=</span> <span class="n">losses_utils</span><span class="o">.</span><span class="n">squeeze_or_expand_dimensions</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">)</span>
+
+        <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_true</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;The ranking metric (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">) cutoff (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">) cannot be smaller than &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;the number of predictions per example&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_sort_top_k</span><span class="p">(</span>
             <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span>
