@@ -207,7 +207,7 @@ def YoutubeDNNRetrievalModel(
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
     logits_temperature: float = 1.0,
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
+    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MASKED_MEAN),
     sampled_softmax: bool = True,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
@@ -254,12 +254,6 @@ def YoutubeDNNRetrievalModel(
         Defaults to `concat`.
     top_block: Block
         The `Block` that combines the top features
-    loss: Optional[LossType]
-        Loss function.
-        Defaults to `categorical_crossentropy`.
-    metrics: List[Metric]
-        List of metrics to use.
-        Defaults to `ranking_metrics(top_ks=[10])`
     l2_normalization: bool
         Whether to apply L2 normalization before computing dot interactions.
         Defaults to True.
