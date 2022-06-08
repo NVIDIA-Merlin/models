@@ -57,7 +57,6 @@
       ~SequentialBlock.select_by_name
       ~SequentialBlock.set_schema
       ~SequentialBlock.set_weights
-      ~SequentialBlock.to_model
       ~SequentialBlock.with_name_scope
    
    

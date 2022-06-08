@@ -71,7 +71,6 @@
       ~Filter.set_schema
       ~Filter.set_weights
       ~Filter.super
-      ~Filter.to_model
       ~Filter.with_name_scope
    
    

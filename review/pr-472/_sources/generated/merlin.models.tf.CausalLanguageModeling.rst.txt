@@ -59,7 +59,6 @@
       ~CausalLanguageModeling.select_by_name
       ~CausalLanguageModeling.set_schema
       ~CausalLanguageModeling.set_weights
-      ~CausalLanguageModeling.to_model
       ~CausalLanguageModeling.with_name_scope
    
    
