@@ -392,7 +392,6 @@ def default_ml100k_transformation(raw_data_path: str, **kwargs):
         movies[col] = movies[col].replace(1, col)
         movies[col] = movies[col].replace(0, np.nan)
     s = movies[genres_]
-    s.notnull()
     movies["genres"] = s.notnull().dot(s.columns + ",").str[:-1]
     movies_converted = movies[
         ["movieId", "title", "release_date", "video_release_date", "genres", "imdb_URL"]
