@@ -57,15 +57,9 @@ pip install merlin-models
 > The following script can be used for installing dependencies locally, however due to the intricacies of individual setups, we are only able to help you troubleshoot any issues you might encounter when running Merlin Models inside one of the provided docker containers.
 
 ```
-sudo apt update -y --fix-missing
-sudo apt install -y --no-install-recommends libexpat1-dev libsasl2-2 libssl-dev graphviz openssl protobuf-compiler software-properties-common
-sudo apt autoremove -y
-sudo apt clean
-sudo rm -rf /var/lib/apt/lists/*
+sudo apt install -y --no-install-recommends libexpat1-dev libsasl2-2 libssl-dev graphviz openssl software-properties-common
 
 pip install betterproto graphviz pybind11 pydot pytest mpi4py transformers==4.12
-pip install --upgrade notebook
-pip install --upgrade ipython
 pip install nvidia-pyindex
 pip install tritonclient[all] grpcio-channelz
 pip install numba==0.55.1
