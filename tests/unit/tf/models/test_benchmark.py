@@ -18,6 +18,7 @@ import pytest
 
 import merlin.models.tf as ml
 from merlin.models.tf.utils import testing_utils
+from merlin.dag.selector import ColumnSelector
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -30,3 +31,21 @@ def test_ncf_model(ecommerce_data, run_eagerly):
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_wide_deep_model(music_streaming_data, run_eagerly):
+
+    # prepare wide_schema
+    selector = ColumnSelector(["user_genres", "country"])
+    wide_schema = music_streaming_data.schema.select(selector)
+
+    model = ml.benchmark.WideAndDeepModel(
+        music_streaming_data.schema,
+        embedding_dim=64,
+        wide_schema = wide_schema,
+        deep_block=ml.MLPBlock([32, 16]),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)

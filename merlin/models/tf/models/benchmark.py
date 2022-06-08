@@ -22,10 +22,14 @@ from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
     QueryItemIdsEmbeddingsBlock,
 )
+from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.schema import Schema
+import warnings
 
 
 def NCFModel(
@@ -92,5 +96,110 @@ def NCFModel(
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     model = Model(ncf, prediction_tasks)
+
+    return model
+
+def WideAndDeepModel(
+    schema: Schema,
+    embedding_dim: int,
+    wide_schema: Optional[Schema] = None,
+    deep_schema: Optional[Schema] = None,
+    deep_block: Optional[Block] = None,
+    deep_input_block: Optional[Block] = None,
+    wide_input_block: Optional[Block] = None,
+    prediction_tasks: Optional[
+        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+    ] = None,
+    embedding_option_kwargs: dict = {},
+    **kwargs
+ ) -> Model:
+    """Wide-and-Deep-model architecture.
+
+    Example Usage::
+        wide_deep = WideAndDeepModel(schema, embedding_dim=32)
+        wide_deep.compile(optimizer="adam")
+        wide_deep.fit(train_data, epochs=10)
+
+    References
+    ----------
+    [1] Cheng, Koc, Harmsen, Shaked, Chandra, Aradhye, Anderson et al. "Wide & deep learning for 
+    recommender systems." In Proceedings of the 1st workshop on deep learning for recommender 
+    systems, pp. 7-10. (2016).
+    
+    Parameters
+    ----------
+    schema : Schema
+        The `Schema` with the input features
+    embedding_dim : int
+        Dimension of the embeddings
+    wide_schema : optional
+        The 'Schema' of input features for wide model, by default all features would be sent
+        to wide model, if specified, only features in wide_schema would be sent to wide model
+    deep_schema : optional
+        The 'Schema' of input features for deep model, by default all features would be sent to
+        deep model. deep_schema and wide_schema could contain the same features
+    prediction_tasks: optional
+        The prediction tasks to be used, by default this will be inferred from the Schema.
+    embedding_option_kwargs: Optional[dict]
+        Additional arguments to provide to `EmbeddingOptions` object for embeddings tables setting.
+        Defaults to {}
+
+    Returns
+    -------
+    Model
+
+    """
+
+    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+    
+    if schema is None:
+        raise ValueError("The schema is required by Wide and Deep Model")
+
+    if embedding_dim is None:
+        raise ValueError("The embedding_dim is required")
+
+    if not wide_schema:
+        warnings.warn(
+            f"""If not specify wide_schema, all features would be sent to wide
+                model"""
+        )
+        wide_schema = schema
+
+    if not deep_schema:
+        deep_schema = schema
+    if len(deep_schema) > 0 and not deep_block:
+        raise ValueError(
+            "The deep_block is required by Deep & Wide Model when "
+            "features are available in the deep_schema"
+        )
+
+    if len(deep_schema) > 0:
+        if not deep_input_block:
+            deep_input_block = InputBlock(
+                deep_schema,
+                embedding_options=EmbeddingOptions(
+                    embedding_dim_default=embedding_dim, **embedding_option_kwargs
+                ),
+                **kwargs
+            )
+        deep_body = deep_input_block.connect(deep_block).connect(MLPBlock(dimensions=[1], no_activation_last_layer=True))
+
+    if len(wide_schema) > 0:
+        if not wide_input_block:
+            wide_input_block = InputBlock(
+                wide_schema,
+                embedding_options=EmbeddingOptions(
+                    embedding_dim_default=embedding_dim, **embedding_option_kwargs
+                ),
+                **kwargs
+            )
+        wide_body = wide_input_block.connect(MLPBlock(dimensions=[1], no_activation_last_layer=True))
+
+    branches = {
+        "wide": wide_body,
+        "deep": deep_body
+    }
+    wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
+    model = Model(wide_and_deep_body, prediction_tasks)
 
     return model
