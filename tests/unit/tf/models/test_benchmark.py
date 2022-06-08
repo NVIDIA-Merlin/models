@@ -17,8 +17,8 @@
 import pytest
 
 import merlin.models.tf as ml
-from merlin.models.tf.utils import testing_utils
 from merlin.dag.selector import ColumnSelector
+from merlin.models.tf.utils import testing_utils
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -43,7 +43,7 @@ def test_wide_deep_model(music_streaming_data, run_eagerly):
     model = ml.benchmark.WideAndDeepModel(
         music_streaming_data.schema,
         embedding_dim=64,
-        wide_schema = wide_schema,
+        wide_schema=wide_schema,
         deep_block=ml.MLPBlock([32, 16]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )

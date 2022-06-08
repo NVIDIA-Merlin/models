@@ -13,23 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import warnings
 from typing import List, Optional, Union
 
 from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
+from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
     QueryItemIdsEmbeddingsBlock,
 )
-from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.schema import Schema
-import warnings
 
 
 def NCFModel(
@@ -40,7 +40,7 @@ def NCFModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     embeddings_l2_reg: float = 0.0,
-    **kwargs
+    **kwargs,
 ) -> Model:
     """NCF-model architecture.
 
@@ -99,6 +99,7 @@ def NCFModel(
 
     return model
 
+
 def WideAndDeepModel(
     schema: Schema,
     embedding_dim: int,
@@ -111,8 +112,8 @@ def WideAndDeepModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     embedding_option_kwargs: dict = {},
-    **kwargs
- ) -> Model:
+    **kwargs,
+) -> Model:
     """Wide-and-Deep-model architecture.
 
     Example Usage::
@@ -122,10 +123,10 @@ def WideAndDeepModel(
 
     References
     ----------
-    [1] Cheng, Koc, Harmsen, Shaked, Chandra, Aradhye, Anderson et al. "Wide & deep learning for 
-    recommender systems." In Proceedings of the 1st workshop on deep learning for recommender 
+    [1] Cheng, Koc, Harmsen, Shaked, Chandra, Aradhye, Anderson et al. "Wide & deep learning for
+    recommender systems." In Proceedings of the 1st workshop on deep learning for recommender
     systems, pp. 7-10. (2016).
-    
+
     Parameters
     ----------
     schema : Schema
@@ -151,7 +152,7 @@ def WideAndDeepModel(
     """
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    
+
     if schema is None:
         raise ValueError("The schema is required by Wide and Deep Model")
 
@@ -159,10 +160,7 @@ def WideAndDeepModel(
         raise ValueError("The embedding_dim is required")
 
     if not wide_schema:
-        warnings.warn(
-            f"""If not specify wide_schema, all features would be sent to wide
-                model"""
-        )
+        warnings.warn("If not specify wide_schema, all features would be sent to wide " "model")
         wide_schema = schema
 
     if not deep_schema:
@@ -180,9 +178,11 @@ def WideAndDeepModel(
                 embedding_options=EmbeddingOptions(
                     embedding_dim_default=embedding_dim, **embedding_option_kwargs
                 ),
-                **kwargs
+                **kwargs,
             )
-        deep_body = deep_input_block.connect(deep_block).connect(MLPBlock(dimensions=[1], no_activation_last_layer=True))
+        deep_body = deep_input_block.connect(deep_block).connect(
+            MLPBlock(dimensions=[1], no_activation_last_layer=True)
+        )
 
     if len(wide_schema) > 0:
         if not wide_input_block:
@@ -191,14 +191,13 @@ def WideAndDeepModel(
                 embedding_options=EmbeddingOptions(
                     embedding_dim_default=embedding_dim, **embedding_option_kwargs
                 ),
-                **kwargs
+                **kwargs,
             )
-        wide_body = wide_input_block.connect(MLPBlock(dimensions=[1], no_activation_last_layer=True))
+        wide_body = wide_input_block.connect(
+            MLPBlock(dimensions=[1], no_activation_last_layer=True)
+        )
 
-    branches = {
-        "wide": wide_body,
-        "deep": deep_body
-    }
+    branches = {"wide": wide_body, "deep": deep_body}
     wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
     model = Model(wide_and_deep_body, prediction_tasks)
 

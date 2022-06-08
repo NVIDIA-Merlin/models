@@ -72,6 +72,7 @@ def DLRMModel(
 
     return model
 
+
 def DCNModel(
     schema: Schema,
     depth: int,
