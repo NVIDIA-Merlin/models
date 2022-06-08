@@ -71,7 +71,6 @@
       ~StochasticSwapNoise.set_schema
       ~StochasticSwapNoise.set_weights
       ~StochasticSwapNoise.super
-      ~StochasticSwapNoise.to_model
       ~StochasticSwapNoise.with_name_scope
    
    

@@ -70,7 +70,6 @@
       ~AsDenseFeatures.set_schema
       ~AsDenseFeatures.set_weights
       ~AsDenseFeatures.super
-      ~AsDenseFeatures.to_model
       ~AsDenseFeatures.with_name_scope
    
    
