@@ -71,8 +71,13 @@ def test_two_tower_model_l2_reg(testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("logits_pop_logq_correction", [True, False])
+@pytest.mark.parametrize("loss", ["categorical_crossentropy", "bpr-max", "binary_crossentropy"])
 def test_two_tower_model_with_custom_options(
-    music_streaming_data: Dataset, run_eagerly, logits_pop_logq_correction, num_epochs=2
+    ecommerce_data: Dataset,
+    run_eagerly,
+    logits_pop_logq_correction,
+    loss,
+    num_epochs=2,
 ):
 
     from tensorflow.keras import regularizers
@@ -80,39 +85,41 @@ def test_two_tower_model_with_custom_options(
     from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
     from merlin.models.utils import schema_utils
 
-    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    data = ecommerce_data
+
+    data.schema = data.schema.remove_by_tag(Tags.TARGET)
     metrics = [
         tf.keras.metrics.AUC(from_logits=True),
+        mm.RecallAt(5),
         mm.RecallAt(10),
-        mm.RecallAt(50),
-        mm.MRRAt(50),
-        mm.NDCGAt(50),
+        mm.MRRAt(10),
+        mm.NDCGAt(10),
     ]
 
     post_logits = None
     if logits_pop_logq_correction:
-        cardinalities = schema_utils.categorical_cardinalities(music_streaming_data.schema)
+        cardinalities = schema_utils.categorical_cardinalities(data.schema)
         item_id_cardinalities = cardinalities[
-            music_streaming_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+            data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         ]
         items_frequencies = tf.sort(
             tf.random.uniform((item_id_cardinalities,), minval=0, maxval=1000, dtype=tf.int32)
         )
         post_logits = PopularityLogitsCorrection(
             items_frequencies,
-            schema=music_streaming_data.schema,
+            schema=data.schema,
         )
 
     retrieval_task = mm.ItemRetrievalTask(
         samplers=[mm.InBatchSampler()],
-        schema=music_streaming_data.schema,
+        schema=data.schema,
         logits_temperature=0.1,
         post_logits=post_logits,
         store_negative_ids=True,
     )
 
     model = mm.TwoTowerModel(
-        music_streaming_data.schema,
+        data.schema,
         query_tower=mm.MLPBlock(
             [512, 256],
             activation="relu",
@@ -128,15 +135,20 @@ def test_two_tower_model_with_custom_options(
         prediction_tasks=retrieval_task,
     )
 
-    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss="bpr-max", metrics=metrics)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss=loss, metrics=metrics)
 
-    losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs)
+    losses = model.fit(data, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
+    metrics = model.evaluate(data, batch_size=10, item_corpus=data, return_dict=True)
+    assert len(metrics) == 6
+
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-@pytest.mark.parametrize("loss", ["categorical_crossentropy", "bpr", "binary_crossentropy"])
+@pytest.mark.parametrize(
+    "loss", ["categorical_crossentropy", "bpr", "bpr-max", "binary_crossentropy"]
+)
 def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eagerly, loss):
     ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
