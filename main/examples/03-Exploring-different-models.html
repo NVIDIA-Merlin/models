@@ -315,7 +315,7 @@
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># uses default embedding_dim = 64</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">])</span><span class="o">.</span><span class="n">to_model</span><span class="p">(</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">Model</span><span class="o">.</span><span class="n">from_block</span><span class="p">(</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">]),</span>
     <span class="n">schema</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">target_column</span><span class="p">)</span>
 <span class="p">)</span>
 </pre></div>
