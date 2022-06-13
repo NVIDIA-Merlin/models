@@ -1,0 +1,124 @@
+﻿merlin.models.tf.AsDenseFeatures
+================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: AsDenseFeatures
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~AsDenseFeatures.__init__
+      ~AsDenseFeatures.add_loss
+      ~AsDenseFeatures.add_metric
+      ~AsDenseFeatures.add_update
+      ~AsDenseFeatures.add_variable
+      ~AsDenseFeatures.add_weight
+      ~AsDenseFeatures.apply_to_all
+      ~AsDenseFeatures.as_tabular
+      ~AsDenseFeatures.build
+      ~AsDenseFeatures.calculate_batch_size_from_input_shapes
+      ~AsDenseFeatures.call
+      ~AsDenseFeatures.call_outputs
+      ~AsDenseFeatures.check_schema
+      ~AsDenseFeatures.compute_call_output_shape
+      ~AsDenseFeatures.compute_mask
+      ~AsDenseFeatures.compute_output_shape
+      ~AsDenseFeatures.compute_output_signature
+      ~AsDenseFeatures.connect
+      ~AsDenseFeatures.connect_branch
+      ~AsDenseFeatures.connect_debug_block
+      ~AsDenseFeatures.connect_with_residual
+      ~AsDenseFeatures.connect_with_shortcut
+      ~AsDenseFeatures.copy
+      ~AsDenseFeatures.count_params
+      ~AsDenseFeatures.finalize_state
+      ~AsDenseFeatures.from_config
+      ~AsDenseFeatures.from_features
+      ~AsDenseFeatures.from_layer
+      ~AsDenseFeatures.from_schema
+      ~AsDenseFeatures.get_config
+      ~AsDenseFeatures.get_input_at
+      ~AsDenseFeatures.get_input_mask_at
+      ~AsDenseFeatures.get_input_shape_at
+      ~AsDenseFeatures.get_item_ids_from_inputs
+      ~AsDenseFeatures.get_output_at
+      ~AsDenseFeatures.get_output_mask_at
+      ~AsDenseFeatures.get_output_shape_at
+      ~AsDenseFeatures.get_padding_mask_from_item_id
+      ~AsDenseFeatures.get_weights
+      ~AsDenseFeatures.parse
+      ~AsDenseFeatures.parse_block
+      ~AsDenseFeatures.post_call
+      ~AsDenseFeatures.pre_call
+      ~AsDenseFeatures.prepare
+      ~AsDenseFeatures.register_features
+      ~AsDenseFeatures.repeat
+      ~AsDenseFeatures.repeat_in_parallel
+      ~AsDenseFeatures.repr_add
+      ~AsDenseFeatures.repr_extra
+      ~AsDenseFeatures.repr_ignore
+      ~AsDenseFeatures.select_by_name
+      ~AsDenseFeatures.set_aggregation
+      ~AsDenseFeatures.set_post
+      ~AsDenseFeatures.set_pre
+      ~AsDenseFeatures.set_schema
+      ~AsDenseFeatures.set_weights
+      ~AsDenseFeatures.super
+      ~AsDenseFeatures.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~AsDenseFeatures.REQUIRES_SCHEMA
+      ~AsDenseFeatures.activity_regularizer
+      ~AsDenseFeatures.aggregation
+      ~AsDenseFeatures.compute_dtype
+      ~AsDenseFeatures.context
+      ~AsDenseFeatures.dtype
+      ~AsDenseFeatures.dtype_policy
+      ~AsDenseFeatures.dynamic
+      ~AsDenseFeatures.has_schema
+      ~AsDenseFeatures.inbound_nodes
+      ~AsDenseFeatures.input
+      ~AsDenseFeatures.input_mask
+      ~AsDenseFeatures.input_shape
+      ~AsDenseFeatures.input_spec
+      ~AsDenseFeatures.is_input
+      ~AsDenseFeatures.is_tabular
+      ~AsDenseFeatures.losses
+      ~AsDenseFeatures.metrics
+      ~AsDenseFeatures.name
+      ~AsDenseFeatures.name_scope
+      ~AsDenseFeatures.non_trainable_variables
+      ~AsDenseFeatures.non_trainable_weights
+      ~AsDenseFeatures.outbound_nodes
+      ~AsDenseFeatures.output
+      ~AsDenseFeatures.output_mask
+      ~AsDenseFeatures.output_shape
+      ~AsDenseFeatures.post
+      ~AsDenseFeatures.pre
+      ~AsDenseFeatures.registry
+      ~AsDenseFeatures.schema
+      ~AsDenseFeatures.stateful
+      ~AsDenseFeatures.submodules
+      ~AsDenseFeatures.supports_masking
+      ~AsDenseFeatures.trainable
+      ~AsDenseFeatures.trainable_variables
+      ~AsDenseFeatures.trainable_weights
+      ~AsDenseFeatures.updates
+      ~AsDenseFeatures.variable_dtype
+      ~AsDenseFeatures.variables
+      ~AsDenseFeatures.weights
+   
+   

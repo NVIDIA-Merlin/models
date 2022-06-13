@@ -1,0 +1,6 @@
+﻿merlin.models.tf.InputBlock
+===========================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: InputBlock
