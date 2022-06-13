@@ -73,7 +73,6 @@
       ~CGCBlock.set_schema
       ~CGCBlock.set_weights
       ~CGCBlock.super
-      ~CGCBlock.to_model
       ~CGCBlock.with_name_scope
    
    

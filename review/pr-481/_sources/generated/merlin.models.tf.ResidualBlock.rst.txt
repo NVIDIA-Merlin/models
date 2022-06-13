@@ -73,7 +73,6 @@
       ~ResidualBlock.set_schema
       ~ResidualBlock.set_weights
       ~ResidualBlock.super
-      ~ResidualBlock.to_model
       ~ResidualBlock.with_name_scope
    
    

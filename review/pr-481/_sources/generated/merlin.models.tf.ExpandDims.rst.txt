@@ -70,7 +70,6 @@
       ~ExpandDims.set_schema
       ~ExpandDims.set_weights
       ~ExpandDims.super
-      ~ExpandDims.to_model
       ~ExpandDims.with_name_scope
    
    
