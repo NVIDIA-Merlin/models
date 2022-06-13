@@ -75,7 +75,6 @@
       ~TwoTowerBlock.set_schema
       ~TwoTowerBlock.set_weights
       ~TwoTowerBlock.super
-      ~TwoTowerBlock.to_model
       ~TwoTowerBlock.with_name_scope
    
    
