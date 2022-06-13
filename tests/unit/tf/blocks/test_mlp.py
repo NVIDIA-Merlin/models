@@ -84,9 +84,12 @@ def test_mlp_block_no_activation_last_layer(no_activation_last_layer, dims):
 
 @pytest.mark.parametrize("run_eagerly", [True])
 def test_mlp_model_save(ecommerce_data: Dataset, run_eagerly: bool, tmp_path):
-    model = ml.MLPBlock(
-        [64], kernel_regularizer=regularizers.l2(1e-1), bias_regularizer=regularizers.l2(1e-1)
-    ).to_model(ecommerce_data.schema)
+    model = ml.Model.from_block(
+        ml.MLPBlock(
+            [64], kernel_regularizer=regularizers.l2(1e-1), bias_regularizer=regularizers.l2(1e-1)
+        ),
+        ecommerce_data.schema,
+    )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
     model.fit(ecommerce_data, batch_size=50, epochs=1)
