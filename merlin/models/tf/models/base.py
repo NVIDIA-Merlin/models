@@ -468,6 +468,8 @@ class Model(tf.keras.Model):
         metrics = self.compute_metrics(
             x, outputs.targets, outputs.predictions, sample_weight, training=True
         )
+        # Adding regularization loss to metrics
+        metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
         return metrics
 
@@ -486,6 +488,8 @@ class Model(tf.keras.Model):
         metrics = self.compute_metrics(
             x, outputs.targets, outputs.predictions, sample_weight, training=False
         )
+        # Adding regularization loss to metrics
+        metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
         return metrics
 
@@ -528,8 +532,6 @@ class Model(tf.keras.Model):
             self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Returns the current value of metrics
         metrics = self.metrics_results()
-        # Adding regularization loss
-        metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
         return metrics
 
     def metrics_results(self) -> Dict[str, tf.Tensor]:

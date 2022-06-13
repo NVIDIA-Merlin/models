@@ -131,6 +131,8 @@ def test_two_tower_model_with_custom_options(
         embedding_options=mm.EmbeddingOptions(
             infer_embedding_sizes=True,
             infer_embedding_sizes_multiplier=3.0,
+            infer_embeddings_ensure_dim_multiple_of_8=True,
+            embeddings_l2_reg=1e-5,
         ),
         prediction_tasks=retrieval_task,
     )
@@ -142,7 +144,17 @@ def test_two_tower_model_with_custom_options(
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
     metrics = model.evaluate(data, batch_size=10, item_corpus=data, return_dict=True)
-    assert len(metrics) == 6
+    assert set(metrics.keys()) == set(
+        [
+            "loss",
+            "regularization_loss",
+            "auc",
+            "recall_at_5",
+            "recall_at_10",
+            "mrr_at_10",
+            "ndcg_at_10",
+        ]
+    )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -169,12 +181,11 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     assert len(losses.epoch) == num_epochs
 
     # Checking train metrics
-    expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_5", "map_at_5", "precision_at_5"]
+    expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
     expected_loss_metrics = ["loss", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
-    assert len(expected_metrics_all) == len(
-        set(losses.history.keys()).intersection(set(expected_metrics_all))
-    )
+    expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
+    assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
 
     # TODO: This fails sometimes now
     # for metric_name in expected_metrics + expected_loss_metrics:
@@ -184,9 +195,10 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     #     elif metric_name in expected_loss_metrics:
     #         assert losses.history[metric_name][1] <= losses.history[metric_name][0]
 
-    metrics = model.evaluate(ecommerce_data, batch_size=10, item_corpus=ecommerce_data)
-
-    assert len(metrics) == 6
+    metrics = model.evaluate(
+        ecommerce_data, batch_size=10, item_corpus=ecommerce_data, return_dict=True
+    )
+    assert set(metrics.keys()) == set(expected_metrics_all)
 
 
 # def test_retrieval_evaluation_without_negatives(ecommerce_data: Dataset):
