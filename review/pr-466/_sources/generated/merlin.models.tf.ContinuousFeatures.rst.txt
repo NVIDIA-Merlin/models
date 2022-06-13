@@ -70,7 +70,6 @@
       ~ContinuousFeatures.set_schema
       ~ContinuousFeatures.set_weights
       ~ContinuousFeatures.super
-      ~ContinuousFeatures.to_model
       ~ContinuousFeatures.with_name_scope
    
    

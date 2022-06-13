@@ -73,7 +73,6 @@
       ~ParallelBlock.set_schema
       ~ParallelBlock.set_weights
       ~ParallelBlock.super
-      ~ParallelBlock.to_model
       ~ParallelBlock.with_name_scope
    
    
