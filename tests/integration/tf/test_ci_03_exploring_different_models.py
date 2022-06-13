@@ -25,28 +25,24 @@ def test_func(tb):
         "auc",
         "loss",
         "regularization_loss",
-        "total_loss",
     ]
     metrics_mlp = tb.ref("metrics_mlp")
     assert sorted(list(metrics_mlp.keys())) == [
         "auc_1",
         "loss",
         "regularization_loss",
-        "total_loss",
     ]
     metrics_dlrm = tb.ref("metrics_dlrm")
     assert sorted(list(metrics_dlrm.keys())) == [
         "auc_2",
         "loss",
         "regularization_loss",
-        "total_loss",
     ]
     metrics_dcn = tb.ref("metrics_dcn")
     assert sorted(list(metrics_dcn.keys())) == [
         "auc_3",
         "loss",
         "regularization_loss",
-        "total_loss",
     ]
     assert os.path.isfile("results.txt")
     tb.execute_cell(NUM_OF_CELLS - 2)
