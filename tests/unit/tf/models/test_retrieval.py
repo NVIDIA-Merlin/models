@@ -170,8 +170,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
 
     # Checking train metrics
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_5", "map_at_5", "precision_at_5"]
-    expected_loss_metrics = ["loss"]
-    # expected_loss_metrics = ["loss", "regularization_loss", "total_loss"]
+    expected_loss_metrics = ["loss", "regularization_loss"]
     expected_metrics_all = expected_metrics + expected_loss_metrics
     assert len(expected_metrics_all) == len(
         set(losses.history.keys()).intersection(set(expected_metrics_all))
