@@ -49,8 +49,6 @@ class PredictionTask(Layer, ContextMixin):
         List of Keras metrics used to summarize the predictions, by default None
     label_metrics : Optional[List[tf.keras.metrics.Metric]], optional
         List of Keras metrics used to summarize the labels, by default None
-    loss_metrics : Optional[List[tf.keras.metrics.Metric]], optional
-        List of Keras metrics used to summarize the loss, by default None
     compute_train_metrics : Optional[bool], optional
         Enable computing metrics during training, by default True
     name : Optional[Text], optional
@@ -219,9 +217,6 @@ class ParallelPredictionBlock(ParallelBlock):
         Weights for each task.
     bias_block : Optional[Layer]
         Bias block to be used for prediction.
-    loss_reduction : Callable
-        Reduction function for loss.
-
     """
 
     def __init__(
@@ -273,7 +268,6 @@ class ParallelPredictionBlock(ParallelBlock):
         task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
         task_weight_dict: Optional[Dict[str, float]] = None,
         bias_block: Optional[Layer] = None,
-        loss_reduction=tf.reduce_mean,
         **kwargs,
     ) -> "ParallelPredictionBlock":
         """Built Multi-task prediction Block from schema
@@ -288,8 +282,6 @@ class ParallelPredictionBlock(ParallelBlock):
             Weights for each task, by default None
         bias_block : Optional[Layer], optional
             Bias block to be used for prediction, by default None
-        loss_reduction : _type_, optional
-            Reduction function for loss, by default tf.reduce_mean
         """
         task_weight_dict = task_weight_dict or {}
 
@@ -300,7 +292,6 @@ class ParallelPredictionBlock(ParallelBlock):
             task_blocks=task_blocks,
             task_weights=task_weights,
             bias_block=bias_block,
-            loss_reduction=loss_reduction,
             **kwargs,
         )
 
