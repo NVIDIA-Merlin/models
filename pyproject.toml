@@ -58,5 +58,6 @@ markers = [
     "implicit",
     "xgboost",
     "example",
-    "integration"
+    "integration",
+    "unit",
 ]

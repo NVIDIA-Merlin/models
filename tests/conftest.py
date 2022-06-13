@@ -78,12 +78,14 @@ except ModuleNotFoundError:
 def pytest_collection_modifyitems(items):
     for item in items:
         path = item.location[0]
+        if path.startswith("tests/integration"):
+            item.add_marker(pytest.mark.integration)
+        elif path.startswith("tests/unit"):
+            item.add_marker(pytest.mark.unit)
         if path.startswith("tests/unit/tf"):
             item.add_marker(pytest.mark.tensorflow)
             if path.startswith("tests/unit/tf/examples"):
                 item.add_marker(pytest.mark.example)
-            if path.startswith("tests/unit/tf/integration"):
-                item.add_marker(pytest.mark.integration)
         elif path.startswith("tests/unit/torch"):
             item.add_marker(pytest.mark.torch)
         elif path.startswith("tests/unit/implicit"):
