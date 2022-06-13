@@ -32,9 +32,10 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_block_to_model(ecommerce_data: Dataset, run_eagerly):
+def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
     embedding_options = ml.EmbeddingOptions(embedding_dim_default=32)
-    model = ml.MLPBlock([64]).to_model(
+    model = ml.Model.from_block(
+        ml.MLPBlock([64]),
         ecommerce_data.schema,
         prediction_tasks=ml.BinaryClassificationTask("click"),
         embedding_options=embedding_options,
@@ -47,23 +48,13 @@ def test_block_to_model(ecommerce_data: Dataset, run_eagerly):
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
 
-@pytest.mark.parametrize("run_eagerly", [True, False])
-def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
-    model = ml.Model.from_block(
-        ml.MLPBlock([64]),
-        ecommerce_data.schema,
-        prediction_tasks=ml.BinaryClassificationTask("click"),
-    )
-
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
-
-
-def test_block_with_input_to_model(ecommerce_data: Dataset):
+def test_block_from_model_with_input(ecommerce_data: Dataset):
     inputs = ml.InputBlock(ecommerce_data.schema)
     block = inputs.connect(ml.MLPBlock([64]))
 
     with pytest.raises(ValueError) as excinfo:
-        block.to_model(
+        ml.Model.from_block(
+            block,
             ecommerce_data.schema,
             input_block=inputs,
         )
