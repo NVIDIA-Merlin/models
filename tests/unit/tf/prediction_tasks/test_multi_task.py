@@ -58,22 +58,28 @@ def test_mmoe_head(music_streaming_data: Dataset):
     metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     assert metrics["loss"] >= 0
-    assert len(metrics) == 10
+    assert len(metrics) == 14
     # TODO: Investigate why metrics names change when multiple tests are run,
     # but not when single tests run
     # assert set(metrics.keys()) == set(
     #     [
     #         [
-    #             "loss",
-    #             "click/binary_classification_task_loss",
-    #             "like/binary_classification_task_loss",
-    #             "play_percentage/regression_task_loss",
-    #             "like/binary_classification_task_click/binary_classification_task_precision",
-    #             "like/binary_classification_task_click/binary_classification_task_recall",
-    #             "like/binary_classification_task_click/binary_classification_task_binary_accuracy",
-    #             "like/binary_classification_task_click/binary_classification_task_auc",
-    #             "play_percentage/regression_task_root_mean_squared_error",
-    #             "regularization_loss",
+    #             [
+    #                 "loss",
+    #                 "click/binary_classification_task_loss",
+    #                 "like/binary_classification_task_loss",
+    #                 "play_percentage/regression_task_loss",
+    #                 "click/binary_classification_task_precision",
+    #                 "click/binary_classification_task_recall",
+    #                 "click/binary_classification_task_binary_accuracy",
+    #                 "click/binary_classification_task_auc",
+    #                 "like/binary_classification_task_precision_1",
+    #                 "like/binary_classification_task_recall_1",
+    #                 "like/binary_classification_task_binary_accuracy",
+    #                 "like/binary_classification_task_auc_1",
+    #                 "play_percentage/regression_task_root_mean_squared_error",
+    #                 "regularization_loss",
+    #             ]
     #         ]
     #     ]
     # )
@@ -91,22 +97,28 @@ def test_ple_head(music_streaming_data: Dataset):
     metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
     assert metrics["loss"] >= 0
-    assert len(metrics) == 10
+    assert len(metrics) == 14
     # TODO: Investigate why metrics names change when multiple tests are run,
     # but not when single tests run
     # assert set(metrics.keys()) == set(
     #     [
     #         [
-    #             "loss",
-    #             "click/binary_classification_task_loss",
-    #             "like/binary_classification_task_loss",
-    #             "play_percentage/regression_task_loss",
-    #             "like/binary_classification_task_click/binary_classification_task_precision",
-    #             "like/binary_classification_task_click/binary_classification_task_recall",
-    #             "like/binary_classification_task_click/binary_classification_task_binary_accuracy",
-    #             "like/binary_classification_task_click/binary_classification_task_auc",
-    #             "play_percentage/regression_task_root_mean_squared_error",
-    #             "regularization_loss",
+    #             [
+    #                 "loss",
+    #                 "click/binary_classification_task_loss",
+    #                 "like/binary_classification_task_loss",
+    #                 "play_percentage/regression_task_loss",
+    #                 "click/binary_classification_task_precision",
+    #                 "click/binary_classification_task_recall",
+    #                 "click/binary_classification_task_binary_accuracy",
+    #                 "click/binary_classification_task_auc",
+    #                 "like/binary_classification_task_precision_1",
+    #                 "like/binary_classification_task_recall_1",
+    #                 "like/binary_classification_task_binary_accuracy",
+    #                 "like/binary_classification_task_auc_1",
+    #                 "play_percentage/regression_task_root_mean_squared_error",
+    #                 "regularization_loss",
+    #             ]
     #         ]
     #     ]
     # )

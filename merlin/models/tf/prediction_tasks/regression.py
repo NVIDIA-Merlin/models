@@ -44,7 +44,7 @@ class RegressionTask(PredictionTask):
     """
 
     DEFAULT_LOSS = "mse"
-    DEFAULT_METRICS = (tf.keras.metrics.RootMeanSquaredError("root_mean_squared_error"),)
+    DEFAULT_METRICS = (tf.keras.metrics.RootMeanSquaredError,)
 
     def __init__(
         self,
