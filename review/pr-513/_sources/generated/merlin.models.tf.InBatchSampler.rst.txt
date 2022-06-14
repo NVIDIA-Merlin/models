@@ -1,0 +1,87 @@
+﻿merlin.models.tf.InBatchSampler
+===============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: InBatchSampler
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~InBatchSampler.__init__
+      ~InBatchSampler.add
+      ~InBatchSampler.add_loss
+      ~InBatchSampler.add_metric
+      ~InBatchSampler.add_update
+      ~InBatchSampler.add_variable
+      ~InBatchSampler.add_weight
+      ~InBatchSampler.build
+      ~InBatchSampler.call
+      ~InBatchSampler.compute_mask
+      ~InBatchSampler.compute_output_shape
+      ~InBatchSampler.compute_output_signature
+      ~InBatchSampler.count_params
+      ~InBatchSampler.finalize_state
+      ~InBatchSampler.from_config
+      ~InBatchSampler.get_config
+      ~InBatchSampler.get_input_at
+      ~InBatchSampler.get_input_mask_at
+      ~InBatchSampler.get_input_shape_at
+      ~InBatchSampler.get_output_at
+      ~InBatchSampler.get_output_mask_at
+      ~InBatchSampler.get_output_shape_at
+      ~InBatchSampler.get_weights
+      ~InBatchSampler.sample
+      ~InBatchSampler.set_batch_size
+      ~InBatchSampler.set_max_num_samples
+      ~InBatchSampler.set_weights
+      ~InBatchSampler.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~InBatchSampler.activity_regularizer
+      ~InBatchSampler.batch_size
+      ~InBatchSampler.compute_dtype
+      ~InBatchSampler.dtype
+      ~InBatchSampler.dtype_policy
+      ~InBatchSampler.dynamic
+      ~InBatchSampler.inbound_nodes
+      ~InBatchSampler.input
+      ~InBatchSampler.input_mask
+      ~InBatchSampler.input_shape
+      ~InBatchSampler.input_spec
+      ~InBatchSampler.losses
+      ~InBatchSampler.max_num_samples
+      ~InBatchSampler.metrics
+      ~InBatchSampler.name
+      ~InBatchSampler.name_scope
+      ~InBatchSampler.non_trainable_variables
+      ~InBatchSampler.non_trainable_weights
+      ~InBatchSampler.outbound_nodes
+      ~InBatchSampler.output
+      ~InBatchSampler.output_mask
+      ~InBatchSampler.output_shape
+      ~InBatchSampler.required_features
+      ~InBatchSampler.stateful
+      ~InBatchSampler.submodules
+      ~InBatchSampler.supports_masking
+      ~InBatchSampler.trainable
+      ~InBatchSampler.trainable_variables
+      ~InBatchSampler.trainable_weights
+      ~InBatchSampler.updates
+      ~InBatchSampler.variable_dtype
+      ~InBatchSampler.variables
+      ~InBatchSampler.weights
+   
+   
