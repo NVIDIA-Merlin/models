@@ -14,11 +14,12 @@
 # limitations under the License.
 #
 import warnings
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
+from merlin.models.tf.blocks.core.transformations import AsSparseFeatures
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
@@ -102,10 +103,11 @@ def NCFModel(
 
 def WideAndDeepModel(
     schema: Schema,
-    embedding_dim: int,
+    deep_block: Block,
+    embedding_dims: Optional[Dict[str, int]] = None,
+    embedding_dim_default: Optional[int] = None,
     wide_schema: Optional[Schema] = None,
     deep_schema: Optional[Schema] = None,
-    deep_block: Optional[Block] = None,
     deep_input_block: Optional[Block] = None,
     wide_input_block: Optional[Block] = None,
     prediction_tasks: Optional[
@@ -117,7 +119,14 @@ def WideAndDeepModel(
     """Wide-and-Deep-model architecture.
 
     Example Usage::
-        wide_deep = WideAndDeepModel(schema, embedding_dim=32)
+        wide_deep = ml.benchmark.WideAndDeepModel(
+                schema,
+                deep_block=ml.MLPBlock([32, 16]),
+                embedding_dims={"user_catetory": 32},
+                embedding_dim_default=64,
+                wide_schema=wide_schema,
+                prediction_tasks=ml.BinaryClassificationTask("click"),
+            )
         wide_deep.compile(optimizer="adam")
         wide_deep.fit(train_data, epochs=10)
 
@@ -131,15 +140,23 @@ def WideAndDeepModel(
     ----------
     schema : Schema
         The `Schema` with the input features
-    embedding_dim : int
-        Dimension of the embeddings
-    wide_schema : optional
-        The 'Schema' of input features for wide model, by default all features would be sent
-        to wide model, if specified, only features in wide_schema would be sent to wide model
-    deep_schema : optional
+    deep_block: Block
+        Block (structure) of deep model.
+    embedding_dims : Optional[dict]
+        Dimensions of the embeddings, in order to specify different dimensions for different
+        features, for features not specified by this dict, default dimension
+        (embedding_dim_default) would be used to set their embeddings.by default None, then
+        embedding_dim_default would be the fixed embedding dimension for all features
+    embedding_dim : Optional[int]
+        Default dimension of feateures not specified in embedding_dims
+    wide_schema : Optional[Schema]
+        The 'Schema' of input features for wide model, by default no features would be sent to
+        wide model, and the model would become a pure deep model, if specified, only features
+        in wide_schema would be sent to wide model
+    deep_schema : Optional[Schema]
         The 'Schema' of input features for deep model, by default all features would be sent to
         deep model. deep_schema and wide_schema could contain the same features
-    prediction_tasks: optional
+    prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
         The prediction tasks to be used, by default this will be inferred from the Schema.
     embedding_option_kwargs: Optional[dict]
         Additional arguments to provide to `EmbeddingOptions` object for embeddings tables setting.
@@ -153,44 +170,46 @@ def WideAndDeepModel(
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
 
-    if schema is None:
-        raise ValueError("The schema is required by Wide and Deep Model")
-
-    if embedding_dim is None:
-        raise ValueError("The embedding_dim is required")
+    if embedding_dims and embedding_dim_default:
+        embedding_options = EmbeddingOptions(
+            embedding_dims=embedding_dims,
+            embedding_dim_default=embedding_dim_default,
+            **embedding_option_kwargs,
+        )
+    elif embedding_dims:
+        embedding_options = EmbeddingOptions(
+            embedding_dims=embedding_dims, **embedding_option_kwargs
+        )
+    elif embedding_dim_default:
+        embedding_options = EmbeddingOptions(
+            embedding_dim_default=embedding_dim_default, **embedding_option_kwargs
+        )
+    else:
+        embedding_options = EmbeddingOptions(**embedding_option_kwargs)
 
     if not wide_schema:
-        warnings.warn("If not specify wide_schema, all features would be sent to wide " "model")
-        wide_schema = schema
+        warnings.warn("If not specify wide_schema, NO feature would be sent to wide " "model")
+        wide_schema = None
 
     if not deep_schema:
         deep_schema = schema
-    if len(deep_schema) > 0 and not deep_block:
-        raise ValueError(
-            "The deep_block is required by Deep & Wide Model when "
-            "features are available in the deep_schema"
-        )
 
     if len(deep_schema) > 0:
         if not deep_input_block:
             deep_input_block = InputBlock(
                 deep_schema,
-                embedding_options=EmbeddingOptions(
-                    embedding_dim_default=embedding_dim, **embedding_option_kwargs
-                ),
+                embedding_options=embedding_options,
                 **kwargs,
             )
-        deep_body = deep_input_block.connect(deep_block).connect(
-            MLPBlock(dimensions=[1], no_activation_last_layer=True)
+        deep_body = deep_input_block.connect(
+            deep_block, MLPBlock(dimensions=[1], no_activation_last_layer=True)
         )
 
     if len(wide_schema) > 0:
         if not wide_input_block:
             wide_input_block = InputBlock(
                 wide_schema,
-                embedding_options=EmbeddingOptions(
-                    embedding_dim_default=embedding_dim, **embedding_option_kwargs
-                ),
+                post=AsSparseFeatures(),
                 **kwargs,
             )
         wide_body = wide_input_block.connect(
