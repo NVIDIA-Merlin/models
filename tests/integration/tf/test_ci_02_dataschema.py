@@ -21,5 +21,4 @@ def test_func(tb):
         "rating_binary/binary_classification_task/precision",
         "rating_binary/binary_classification_task/recall",
         "regularization_loss",
-        "total_loss",
     ]

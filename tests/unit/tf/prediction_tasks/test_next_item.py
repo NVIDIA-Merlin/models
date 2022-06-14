@@ -282,14 +282,17 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
 
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
-    assert sorted(list(metrics)) == [
-        "loss",
-        "map_at_10",
-        "mrr_at_10",
-        "ndcg_10",
-        "precision_at_10",
-        "recall_at_10",
-    ]
+    assert set(metrics.keys()) == set(
+        [
+            "loss",
+            "regularization_loss",
+            "map_at_10",
+            "mrr_at_10",
+            "ndcg_at_10",
+            "precision_at_10",
+            "recall_at_10",
+        ]
+    )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
