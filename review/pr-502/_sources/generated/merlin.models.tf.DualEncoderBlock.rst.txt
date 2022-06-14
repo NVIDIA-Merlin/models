@@ -75,7 +75,6 @@
       ~DualEncoderBlock.set_schema
       ~DualEncoderBlock.set_weights
       ~DualEncoderBlock.super
-      ~DualEncoderBlock.to_model
       ~DualEncoderBlock.with_name_scope
    
    

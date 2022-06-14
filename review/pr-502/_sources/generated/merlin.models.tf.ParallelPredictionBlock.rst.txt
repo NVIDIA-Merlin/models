@@ -77,7 +77,6 @@
       ~ParallelPredictionBlock.set_weights
       ~ParallelPredictionBlock.super
       ~ParallelPredictionBlock.task_names_from_schema
-      ~ParallelPredictionBlock.to_model
       ~ParallelPredictionBlock.with_name_scope
    
    

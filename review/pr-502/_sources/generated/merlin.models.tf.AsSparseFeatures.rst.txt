@@ -70,7 +70,6 @@
       ~AsSparseFeatures.set_schema
       ~AsSparseFeatures.set_weights
       ~AsSparseFeatures.super
-      ~AsSparseFeatures.to_model
       ~AsSparseFeatures.with_name_scope
    
    

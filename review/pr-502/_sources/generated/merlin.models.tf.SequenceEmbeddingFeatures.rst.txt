@@ -76,7 +76,6 @@
       ~SequenceEmbeddingFeatures.set_weights
       ~SequenceEmbeddingFeatures.super
       ~SequenceEmbeddingFeatures.table_config
-      ~SequenceEmbeddingFeatures.to_model
       ~SequenceEmbeddingFeatures.with_name_scope
    
    
