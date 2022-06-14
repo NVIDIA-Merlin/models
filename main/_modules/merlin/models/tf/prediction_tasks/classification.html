@@ -118,11 +118,6 @@
 <span class="sd">        The name of the task.</span>
 <span class="sd">    task_block: Block, optional</span>
 <span class="sd">        The block to use for the task.</span>
-<span class="sd">    loss: LossType, optional</span>
-<span class="sd">        The loss to use for the task.</span>
-<span class="sd">        Defaults to &quot;binary_crossentropy&quot;.</span>
-<span class="sd">    metrics: MetricOrMetrics, optional</span>
-<span class="sd">        The metrics to use for the task. Defaults to [precision, recall, accuracy &amp; auc].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># Default loss to use</span>
@@ -259,11 +254,6 @@
 <span class="sd">        The name of the task.</span>
 <span class="sd">    task_block: Block, optional</span>
 <span class="sd">        The block to use for the task.</span>
-<span class="sd">    loss: LossType, optional</span>
-<span class="sd">        The loss to use for the task.</span>
-<span class="sd">        Defaults to &quot;sparse_categorical_crossentropy&quot;.</span>
-<span class="sd">    metrics: MetricOrMetrics, optional</span>
-<span class="sd">        The metrics to use for the task. Defaults to [accuracy].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">DEFAULT_LOSS</span> <span class="o">=</span> <span class="s2">&quot;categorical_crossentropy&quot;</span>
@@ -290,7 +280,6 @@
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
         <span class="n">feature_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">,</span>
-        <span class="n">loss</span><span class="o">=</span><span class="n">DEFAULT_LOSS</span><span class="p">,</span>
         <span class="n">bias_initializer</span><span class="o">=</span><span class="s2">&quot;zeros&quot;</span><span class="p">,</span>
         <span class="n">kernel_initializer</span><span class="o">=</span><span class="s2">&quot;random_normal&quot;</span><span class="p">,</span>
         <span class="n">extra_pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -308,7 +297,6 @@
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
-            <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span></div>
 

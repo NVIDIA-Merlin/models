@@ -124,8 +124,6 @@
 <span class="sd">        List of Keras metrics used to summarize the predictions, by default None</span>
 <span class="sd">    label_metrics : Optional[List[tf.keras.metrics.Metric]], optional</span>
 <span class="sd">        List of Keras metrics used to summarize the labels, by default None</span>
-<span class="sd">    loss_metrics : Optional[List[tf.keras.metrics.Metric]], optional</span>
-<span class="sd">        List of Keras metrics used to summarize the loss, by default None</span>
 <span class="sd">    compute_train_metrics : Optional[bool], optional</span>
 <span class="sd">        Enable computing metrics during training, by default True</span>
 <span class="sd">    name : Optional[Text], optional</span>
@@ -294,9 +292,6 @@
 <span class="sd">        Weights for each task.</span>
 <span class="sd">    bias_block : Optional[Layer]</span>
 <span class="sd">        Bias block to be used for prediction.</span>
-<span class="sd">    loss_reduction : Callable</span>
-<span class="sd">        Reduction function for loss.</span>
-
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ParallelPredictionBlock.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -348,7 +343,6 @@
         <span class="n">task_blocks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Layer</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Layer</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_weight_dict</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">bias_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">loss_reduction</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ParallelPredictionBlock&quot;</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Built Multi-task prediction Block from schema</span>
@@ -363,8 +357,6 @@
 <span class="sd">            Weights for each task, by default None</span>
 <span class="sd">        bias_block : Optional[Layer], optional</span>
 <span class="sd">            Bias block to be used for prediction, by default None</span>
-<span class="sd">        loss_reduction : _type_, optional</span>
-<span class="sd">            Reduction function for loss, by default tf.reduce_mean</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">task_weight_dict</span> <span class="o">=</span> <span class="n">task_weight_dict</span> <span class="ow">or</span> <span class="p">{}</span>
 
@@ -375,7 +367,6 @@
             <span class="n">task_blocks</span><span class="o">=</span><span class="n">task_blocks</span><span class="p">,</span>
             <span class="n">task_weights</span><span class="o">=</span><span class="n">task_weights</span><span class="p">,</span>
             <span class="n">bias_block</span><span class="o">=</span><span class="n">bias_block</span><span class="p">,</span>
-            <span class="n">loss_reduction</span><span class="o">=</span><span class="n">loss_reduction</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span></div>
 
