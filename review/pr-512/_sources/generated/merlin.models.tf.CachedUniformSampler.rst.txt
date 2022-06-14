@@ -1,0 +1,86 @@
+﻿merlin.models.tf.CachedUniformSampler
+=====================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: CachedUniformSampler
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CachedUniformSampler.__init__
+      ~CachedUniformSampler.add
+      ~CachedUniformSampler.add_loss
+      ~CachedUniformSampler.add_metric
+      ~CachedUniformSampler.add_update
+      ~CachedUniformSampler.add_variable
+      ~CachedUniformSampler.add_weight
+      ~CachedUniformSampler.build
+      ~CachedUniformSampler.call
+      ~CachedUniformSampler.compute_mask
+      ~CachedUniformSampler.compute_output_shape
+      ~CachedUniformSampler.compute_output_signature
+      ~CachedUniformSampler.count_params
+      ~CachedUniformSampler.finalize_state
+      ~CachedUniformSampler.from_config
+      ~CachedUniformSampler.get_config
+      ~CachedUniformSampler.get_input_at
+      ~CachedUniformSampler.get_input_mask_at
+      ~CachedUniformSampler.get_input_shape_at
+      ~CachedUniformSampler.get_output_at
+      ~CachedUniformSampler.get_output_mask_at
+      ~CachedUniformSampler.get_output_shape_at
+      ~CachedUniformSampler.get_weights
+      ~CachedUniformSampler.sample
+      ~CachedUniformSampler.set_max_num_samples
+      ~CachedUniformSampler.set_weights
+      ~CachedUniformSampler.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~CachedUniformSampler.activity_regularizer
+      ~CachedUniformSampler.compute_dtype
+      ~CachedUniformSampler.dtype
+      ~CachedUniformSampler.dtype_policy
+      ~CachedUniformSampler.dynamic
+      ~CachedUniformSampler.inbound_nodes
+      ~CachedUniformSampler.input
+      ~CachedUniformSampler.input_mask
+      ~CachedUniformSampler.input_shape
+      ~CachedUniformSampler.input_spec
+      ~CachedUniformSampler.item_embeddings_queue
+      ~CachedUniformSampler.losses
+      ~CachedUniformSampler.max_num_samples
+      ~CachedUniformSampler.metrics
+      ~CachedUniformSampler.name
+      ~CachedUniformSampler.name_scope
+      ~CachedUniformSampler.non_trainable_variables
+      ~CachedUniformSampler.non_trainable_weights
+      ~CachedUniformSampler.outbound_nodes
+      ~CachedUniformSampler.output
+      ~CachedUniformSampler.output_mask
+      ~CachedUniformSampler.output_shape
+      ~CachedUniformSampler.required_features
+      ~CachedUniformSampler.stateful
+      ~CachedUniformSampler.submodules
+      ~CachedUniformSampler.supports_masking
+      ~CachedUniformSampler.trainable
+      ~CachedUniformSampler.trainable_variables
+      ~CachedUniformSampler.trainable_weights
+      ~CachedUniformSampler.updates
+      ~CachedUniformSampler.variable_dtype
+      ~CachedUniformSampler.variables
+      ~CachedUniformSampler.weights
+   
+   
