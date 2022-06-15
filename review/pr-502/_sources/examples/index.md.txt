@@ -22,10 +22,10 @@ You can run the examples with Docker containers.
 Docker containers are available from the NVIDIA GPU Cloud.
 Access the catalog of containers at <http://ngc.nvidia.com/catalog/containers>.
 
-Depending on which example you want to run, you should use any one of these Docker containers:
+Most example notebooks demonstrate how to use Merlin Models with TensorFlow.
+The following container can train a model and perform inference and is capable for all the notebooks:
 
-- [Merlin-Tensorflow-Training](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training) (contains Merlin Core, Merlin Models, NVTabular and TensorFlow)
-- [Merlin-Inference](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-inference) (contains Merlin Core, Merlin Models, Merlin Systems, NVTabular, TensorFlow and Triton Inference Server)
+- [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow) (contains Merlin Core, Merlin Models, Merlin Systems, NVTabular, TensorFlow, and Triton Inference Server)
 
 Alternatively, you can [install Merlin Models from source](https://github.com/NVIDIA-Merlin/models#installing-merlin-models-from-source) and other required libraries to run the notebooks on your host by following the instructions in the README from the GitHub repository.
 
@@ -46,15 +46,7 @@ To run the example notebooks using Docker containers, perform the following step
    root@2efa5b50b909:
    ```
 
-2. Install JupyterLab with `pip` by running the following command:
-
-   ```shell
-   pip install jupyterlab
-   ```
-
-   For more information, see the JupyterLab [Installation Guide](https://jupyterlab.readthedocs.io/en/stable/getting_started/installation.html).
-
-3. Start the JupyterLab server by running the following command:
+1. Start the JupyterLab server by running the following command:
 
    ```shell
    jupyter-lab --allow-root --ip='0.0.0.0'
@@ -69,6 +61,6 @@ To run the example notebooks using Docker containers, perform the following step
    or http://127.0.0.1:8888/lab?token=9b537d1fda9e4e9cadc673ba2a472e247deee69a6229ff8d
    ```
 
-4. Open a browser and use the `127.0.0.1` URL provided in the messages by JupyterLab.
+1. Open a browser and use the `127.0.0.1` URL provided in the messages by JupyterLab.
 
-5. After you log in to JupyterLab, navigate to the `/models/examples` directory to try out the example notebooks.
+1. After you log in to JupyterLab, navigate to the `/models/examples` directory to try out the example notebooks.
