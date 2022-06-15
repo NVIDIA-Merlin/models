@@ -52,11 +52,11 @@ filterwarnings = [
 markers = [
     "datasets",
     "tensorflow",
-    "tensorflow_example",
     "torch",
     "lightfm",
     "implicit",
     "xgboost",
     "example",
-    "integration"
+    "integration",
+    "unit",
 ]

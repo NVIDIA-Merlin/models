@@ -5,6 +5,7 @@ from collections.abc import Sequence as SequenceCollection
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
+from keras.utils.losses_utils import cast_losses_to_common_dtype
 from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
@@ -464,7 +465,11 @@ class Model(tf.keras.Model):
         # Run backwards pass.
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-        metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
+        metrics = self.compute_metrics(
+            x, outputs.targets, outputs.predictions, sample_weight, training=True
+        )
+        # Adding regularization loss to metrics
+        metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
         return metrics
 
@@ -480,9 +485,72 @@ class Model(tf.keras.Model):
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
         self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
-        metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
+        metrics = self.compute_metrics(
+            x, outputs.targets, outputs.predictions, sample_weight, training=False
+        )
+        # Adding regularization loss to metrics
+        metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
         return metrics
+
+    @tf.function
+    def compute_metrics(
+        self,
+        x: tf.Tensor,
+        y: tf.Tensor,
+        y_pred: tf.Tensor,
+        sample_weight: tf.Tensor,
+        training: bool,
+    ) -> Dict[str, tf.Tensor]:
+        """Overrides default Keras Model.compute_metrics()
+           to compute metrics each N steps (and not for all steps)
+           during training
+
+        Parameters
+        ----------
+        x : tf.Tensor
+            Input features. Not used, and kept only to align with the signature
+            of super Model.compute_metrics()
+        y : tf.Tensor
+            Target values
+        y_pred : tf.Tensor
+            Predictions values
+        sample_weight : tf.Tensor
+            Sample weights for weighted metrics
+        training : bool
+            Flag that indicates if metrics are being computed during
+            training or evaluation
+
+        Returns
+        -------
+        Dict[str, tf.Tensor]
+            Dict with the metrics values
+        """
+        del x
+        # During training updates metric states each N steps
+        if self._should_compute_train_metrics_for_batch or not training:
+            self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        # Returns the current value of metrics
+        metrics = self.metrics_results()
+        return metrics
+
+    def metrics_results(self) -> Dict[str, tf.Tensor]:
+        """Logic to consolidate metrics results
+        extracted from standard Keras Model.compute_metrics()
+
+        Returns
+        -------
+        Dict[str, tf.Tensor]
+            Dict with the metrics values
+        """
+        return_metrics = {}
+        for metric in self.metrics:
+            result = metric.result()
+            if isinstance(result, dict):
+                return_metrics.update(result)
+            else:
+                return_metrics[metric.name] = result
+        return return_metrics
 
     def fit(
         self,
@@ -717,15 +785,6 @@ class RetrievalModel(Model):
             use_multiprocessing,
             return_dict,
             **kwargs,
-        )
-
-    def compute_loss_metrics(
-        self, inputs, targets, training: bool = False, compute_metrics=True, **kwargs
-    ):
-        if self.has_ranking_metric and not self.has_item_corpus:
-            kwargs["eval_sampling"] = True
-        return super(RetrievalModel, self).compute_loss_metrics(
-            inputs, targets, training, compute_metrics, **kwargs
         )
 
     @property

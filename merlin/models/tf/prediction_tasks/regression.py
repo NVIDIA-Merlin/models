@@ -39,9 +39,6 @@ class RegressionTask(PredictionTask):
         The name of the task.
     task_block: Block, optional
         The block to use for the task.
-    loss: LossType, optional
-        The loss to use for the task.
-        Defaults to "mse".
     metrics: MetricOrMetrics, optional
         The metrics to use for the task. Defaults to [root-mean-squared-error].
     """
@@ -92,15 +89,12 @@ class RegressionTask(PredictionTask):
 
     def get_config(self):
         config = super().get_config()
-        config = maybe_serialize_keras_objects(
-            self, config, {"logit": tf.keras.layers.serialize, "loss": tf.keras.losses.serialize}
-        )
+        config = maybe_serialize_keras_objects(self, config, {"logit": tf.keras.layers.serialize})
 
         return config
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["loss"], tf.keras.losses.deserialize)
         config = maybe_deserialize_keras_objects(config, ["logit"], tf.keras.layers.deserialize)
 
         return super().from_config(config)

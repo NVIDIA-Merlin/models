@@ -313,7 +313,7 @@ class MRRAt(RankingMetric):
 
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 class NDCGAt(RankingMetric):
-    def __init__(self, k=10, pre_sorted=False, name="ndcg"):
+    def __init__(self, k=10, pre_sorted=False, name="ndcg_at"):
         super().__init__(ndcg_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
