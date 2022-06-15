@@ -176,7 +176,7 @@ def mrr_at(
     """
 
     first_rel_position = tf.cast(tf.argmax(y_true, axis=-1) + 1, backend.floatx())
-    relevant_mask = tf.reduce_max(y_true, axis=-1)
+    relevant_mask = tf.reduce_max(y_true[:, : int(k)], axis=-1)
 
     rel_position = first_rel_position * relevant_mask
     results = tf.cast(tf.math.divide_no_nan(1.0, rel_position), backend.floatx())
@@ -203,13 +203,23 @@ class RankingMetric(Mean):
         sample_weight: Optional[tf.Tensor] = None,
     ):
         y_true, y_pred = self.check_cast_inputs(y_true, y_pred)
-        [
-            y_true,
-            y_pred,
-        ], sample_weight = metrics_utils.ragged_assert_compatible_and_get_flat_values(
+        (
+            [
+                y_true,
+                y_pred,
+            ],
+            sample_weight,
+        ) = metrics_utils.ragged_assert_compatible_and_get_flat_values(
             [y_true, y_pred], sample_weight
         )
         y_pred, y_true = losses_utils.squeeze_or_expand_dimensions(y_pred, y_true)
+
+        tf.debugging.assert_greater_equal(
+            tf.shape(y_true)[1],
+            self.k,
+            f"The ranking metric ({self.name}) cutoff ({self.k}) cannot be smaller than "
+            f"the number of predictions per example",
+        )
 
         y_pred, y_true, label_relevant_counts = self._maybe_sort_top_k(
             y_pred, y_true, label_relevant_counts
@@ -303,7 +313,7 @@ class MRRAt(RankingMetric):
 
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 class NDCGAt(RankingMetric):
-    def __init__(self, k=10, pre_sorted=False, name="ndcg"):
+    def __init__(self, k=10, pre_sorted=False, name="ndcg_at"):
         super().__init__(ndcg_at, k=k, pre_sorted=pre_sorted, name=name)
 
 

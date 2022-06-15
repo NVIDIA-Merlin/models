@@ -5,16 +5,20 @@ from collections.abc import Sequence as SequenceCollection
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
+from keras.utils.losses_utils import cast_losses_to_common_dtype
 from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
 from merlin.models.config.schema import FeatureCollection
-from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput
+from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.dataset import BatchedDataset
+from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.ranking import RankingMetric
+from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import call_layer
@@ -98,7 +102,7 @@ class ModelBlock(Block, tf.keras.Model):
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
         validation_data = _maybe_convert_merlin_dataset(
-            validation_data, batch_size, shuffle=False, **kwargs
+            validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
@@ -381,9 +385,11 @@ class Model(tf.keras.Model):
         prediction_tasks: Optional[
             Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
         ] = None,
+        aggregation="concat",
         **kwargs,
     ) -> "Model":
         """Create a model from a `block`
+
         Parameters
         ----------
         block: Block
@@ -397,10 +403,16 @@ class Model(tf.keras.Model):
         ]
             Prediction tasks to use.
         """
+        if is_input_block(block.first):
+            if input_block is not None:
+                raise ValueError("The block already includes an InputBlock")
+            input_block = block.first
 
-        return block.to_model(
-            schema, input_block=input_block, prediction_tasks=prediction_tasks, **kwargs
-        )
+        _input_block: Block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
+
+        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+
+        return cls(_input_block, block, prediction_tasks)
 
     def prediction_output(
         self, x, y=None, training=False, testing=False, **kwargs
@@ -453,7 +465,11 @@ class Model(tf.keras.Model):
         # Run backwards pass.
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-        metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
+        metrics = self.compute_metrics(
+            x, outputs.targets, outputs.predictions, sample_weight, training=True
+        )
+        # Adding regularization loss to metrics
+        metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
         return metrics
 
@@ -469,9 +485,72 @@ class Model(tf.keras.Model):
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
         self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
-        metrics = self.compute_metrics(x, outputs.targets, outputs.predictions, sample_weight)
+        metrics = self.compute_metrics(
+            x, outputs.targets, outputs.predictions, sample_weight, training=False
+        )
+        # Adding regularization loss to metrics
+        metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
         return metrics
+
+    @tf.function
+    def compute_metrics(
+        self,
+        x: tf.Tensor,
+        y: tf.Tensor,
+        y_pred: tf.Tensor,
+        sample_weight: tf.Tensor,
+        training: bool,
+    ) -> Dict[str, tf.Tensor]:
+        """Overrides default Keras Model.compute_metrics()
+           to compute metrics each N steps (and not for all steps)
+           during training
+
+        Parameters
+        ----------
+        x : tf.Tensor
+            Input features. Not used, and kept only to align with the signature
+            of super Model.compute_metrics()
+        y : tf.Tensor
+            Target values
+        y_pred : tf.Tensor
+            Predictions values
+        sample_weight : tf.Tensor
+            Sample weights for weighted metrics
+        training : bool
+            Flag that indicates if metrics are being computed during
+            training or evaluation
+
+        Returns
+        -------
+        Dict[str, tf.Tensor]
+            Dict with the metrics values
+        """
+        del x
+        # During training updates metric states each N steps
+        if self._should_compute_train_metrics_for_batch or not training:
+            self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        # Returns the current value of metrics
+        metrics = self.metrics_results()
+        return metrics
+
+    def metrics_results(self) -> Dict[str, tf.Tensor]:
+        """Logic to consolidate metrics results
+        extracted from standard Keras Model.compute_metrics()
+
+        Returns
+        -------
+        Dict[str, tf.Tensor]
+            Dict with the metrics values
+        """
+        return_metrics = {}
+        for metric in self.metrics:
+            result = metric.result()
+            if isinstance(result, dict):
+                return_metrics.update(result)
+            else:
+                return_metrics[metric.name] = result
+        return return_metrics
 
     def fit(
         self,
@@ -499,7 +578,7 @@ class Model(tf.keras.Model):
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
         validation_data = _maybe_convert_merlin_dataset(
-            validation_data, batch_size, shuffle=False, **kwargs
+            validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
 
@@ -542,7 +621,7 @@ class Model(tf.keras.Model):
         return_dict=False,
         **kwargs,
     ):
-        x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
+        x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
         return super().evaluate(
             x,
@@ -571,8 +650,7 @@ class Model(tf.keras.Model):
         use_multiprocessing=False,
         **kwargs,
     ):
-        shuffle = kwargs.pop("shuffle", False)
-        x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=shuffle, **kwargs)
+        x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
         return super(Model, self).predict(
             x,
@@ -709,15 +787,6 @@ class RetrievalModel(Model):
             **kwargs,
         )
 
-    def compute_loss_metrics(
-        self, inputs, targets, training: bool = False, compute_metrics=True, **kwargs
-    ):
-        if self.has_ranking_metric and not self.has_item_corpus:
-            kwargs["eval_sampling"] = True
-        return super(RetrievalModel, self).compute_loss_metrics(
-            inputs, targets, training, compute_metrics, **kwargs
-        )
-
     @property
     def retrieval_block(self) -> RetrievalBlock:
         return next(b for b in self.block if isinstance(b, RetrievalBlock))
@@ -850,9 +919,8 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
     if hasattr(data, "to_ddf"):
         if not batch_size:
             raise ValueError("batch_size must be specified when using merlin-dataset.")
-        from merlin.models.tf.dataset import BatchedDataset
 
-        data = BatchedDataset(data, batch_size=batch_size, **kwargs)
+        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle, **kwargs)
 
         if not shuffle:
             kwargs.pop("shuffle", None)

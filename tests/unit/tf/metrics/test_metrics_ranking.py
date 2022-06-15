@@ -38,7 +38,7 @@ from merlin.models.tf.utils.tf_utils import extract_topk
 
 @pytest.fixture
 def ranking_metrics_test_data():
-    labels = tf.convert_to_tensor([[0, 1, 0, 1, 0], [1, 0, 0, 1, 0], [0, 0, 0, 0, 0]], tf.float32)
+    labels = tf.convert_to_tensor([[0, 1, 0, 1, 0], [1, 0, 0, 1, 0], [0, 0, 0, 0, 1]], tf.float32)
     predictions = tf.convert_to_tensor(
         [[10, 9, 8, 7, 6], [1, 4, 3, 2, 5], [10, 9, 8, 7, 6]], tf.float32
     )
