@@ -43,11 +43,6 @@ class BinaryClassificationTask(PredictionTask):
         The name of the task.
     task_block: Block, optional
         The block to use for the task.
-    loss: LossType, optional
-        The loss to use for the task.
-        Defaults to "binary_crossentropy".
-    metrics: MetricOrMetrics, optional
-        The metrics to use for the task. Defaults to [precision, recall, accuracy & auc].
     """
 
     # Default loss to use
@@ -184,11 +179,6 @@ class MultiClassClassificationTask(PredictionTask):
         The name of the task.
     task_block: Block, optional
         The block to use for the task.
-    loss: LossType, optional
-        The loss to use for the task.
-        Defaults to "sparse_categorical_crossentropy".
-    metrics: MetricOrMetrics, optional
-        The metrics to use for the task. Defaults to [accuracy].
     """
 
     DEFAULT_LOSS = "categorical_crossentropy"
@@ -215,7 +205,6 @@ class MultiClassClassificationTask(PredictionTask):
         cls,
         schema: Schema,
         feature_name: str = Tags.ITEM_ID,
-        loss=DEFAULT_LOSS,
         bias_initializer="zeros",
         kernel_initializer="random_normal",
         extra_pre: Optional[Block] = None,
@@ -233,7 +222,6 @@ class MultiClassClassificationTask(PredictionTask):
 
         return cls(
             pre=pre,
-            loss=loss,
             **kwargs,
         )
 

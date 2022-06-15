@@ -143,12 +143,6 @@ def NextItemPredictionTask(
     ----------
         schema: Schema
             The schema object including features to use and their properties.
-        loss: Optional[LossType]
-            Loss function.
-            Defaults to `sparse_categorical_crossentropy`.
-        metrics: MetricOrMetrics
-            List of top-k ranking metrics.
-            Defaults to ranking_metrics(top_ks=[10]).
         weight_tying: bool
             The item_id embedding weights are shared with the prediction network layer.
             Defaults to True
