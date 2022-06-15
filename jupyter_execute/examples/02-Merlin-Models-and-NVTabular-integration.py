@@ -24,6 +24,8 @@
 # 
 # # From ETL to Training RecSys models - NVTabular and Merlin Models integrated example
 # 
+# This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. 
+# 
 # ## Overview
 # 
 # In [01-Getting-started.ipynb](01-Getting-started.ipynb), we provide a getting started example to train a DLRM model on the MovieLens 1M dataset. In this notebook, we will explore how Merlin Models uses the ETL output from [NVTabular](https://github.com/NVIDIA-Merlin/NVTabular/).<br><br>
@@ -79,10 +81,7 @@ from merlin.schema.tags import Tags
 # In[3]:
 
 
-input_path = os.environ.get(
-    "INPUT_DATA_DIR",
-    os.path.expanduser("~/merlin-models-data/movielens/")
-)
+input_path = os.environ.get("INPUT_DATA_DIR", os.path.expanduser("~/merlin-models-data/movielens/"))
 train, valid = get_movielens(variant="ml-1m", path=input_path)
 
 
@@ -192,15 +191,12 @@ train.schema.select_by_tag(Tags.ITEM_ID)
 # In[14]:
 
 
-input_path = os.environ.get(
-    "INPUT_DATA_DIR",
-    os.path.expanduser("~/merlin-models-data/movielens/")
-)
+input_path = os.environ.get("INPUT_DATA_DIR", os.path.expanduser("~/merlin-models-data/movielens/"))
 name = "ml-1m"
 download_file(
     "http://files.grouplens.org/datasets/movielens/ml-1m.zip",
     os.path.join(input_path, "ml-1m.zip"),
-    redownload=False
+    redownload=False,
 )
 
 

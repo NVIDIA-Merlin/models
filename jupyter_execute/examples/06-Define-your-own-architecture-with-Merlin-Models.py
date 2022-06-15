@@ -22,6 +22,8 @@
 
 # # Taking the Next Step with Merlin Models: Define Your Own Architecture
 # 
+# This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. 
+# 
 # In [Iterating over Deep Learning Models using Merlin Models](https://nvidia-merlin.github.io/models/main/examples/03-Exploring-different-models.html), we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.
 # 
 # 
@@ -35,7 +37,7 @@
 # ### Introduction to Merlin-models core building blocks
 
 # The [Block](https://nvidia-merlin.github.io/models/review/pr-294/generated/merlin.models.tf.Block.html#merlin.models.tf.Block) is the core abstraction in Merlin Models and is the class from which all blocks inherit.
-# The class extends the [tf.keras.layers.Layer](https://www.tensorflow.org/api_docs/python/tf/keras/layers/Layer) base class and implements a number of properties that simplify the creation of custom blocks and models. These properties include the `Schema` object for determining the embedding dimensions, input shapes, and output shapes. Additionally, the `Block` has a `BlockContext` instance to store and retrieve public variables and share them with other blocks in the same model as additional meta-data. 
+# The class extends the [tf.keras.layers.Layer](https://www.tensorflow.org/api_docs/python/tf/keras/layers/Layer) base class and implements a number of properties that simplify the creation of custom blocks and models. These properties include the `Schema` object for determining the embedding dimensions, input shapes, and output shapes. Additionally, the `Block` has a `ModelContext` instance to store and retrieve public variables and share them with other blocks in the same model as additional meta-data. 
 # 
 # Before deep-diving into the definition of the DLRM architecture, let's start by listing the core components you need to know to define a model from scratch:
 
@@ -242,14 +244,13 @@ deep_dlrm_interaction(batch)
 
 # We use the `BinaryClassificationTask` class and evaluate the performances using the `AUC` metric. We also use the `LogitsTemperatureScaler` block as a pre-transformation operation that scales the logits returned by the task before computing the loss and metrics:
 
-# In[16]:
+# In[ ]:
 
 
 from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
 
 binary_task = mm.BinaryClassificationTask(
     sub_schema,
-    metrics=[tf.keras.metrics.AUC],
     pre=LogitsTemperatureScaler(temperature=2),
 )
 
@@ -259,19 +260,19 @@ binary_task = mm.BinaryClassificationTask(
 # We connect the deep DLRM interaction to the binary task and the method automatically generates the `Model` class for us.
 # We note that the `Model` class inherits from [tf.keras.Model](https://keras.io/api/models/model/) class:
 
-# In[17]:
+# In[ ]:
 
 
-model = deep_dlrm_interaction.connect(binary_task)
+model = mm.Model(deep_dlrm_interaction, binary_task)
 type(model)
 
 
 # We train the model using the built-in tf.keras `fit` method: 
 
-# In[18]:
+# In[ ]:
 
 
-model.compile(optimizer="adam")
+model.compile(optimizer="adam", metrics=[tf.keras.metrics.AUC()])
 model.fit(train, batch_size=1024, epochs=1)
 
 

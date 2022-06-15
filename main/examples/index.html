@@ -102,10 +102,10 @@
 <p>You can run the examples with Docker containers.
 Docker containers are available from the NVIDIA GPU Cloud.
 Access the catalog of containers at <a class="reference external" href="http://ngc.nvidia.com/catalog/containers">http://ngc.nvidia.com/catalog/containers</a>.</p>
-<p>Depending on which example you want to run, you should use any one of these Docker containers:</p>
+<p>Most example notebooks demonstrate how to use Merlin Models with TensorFlow.
+The following container can train a model and perform inference and is capable for all the notebooks:</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training">Merlin-Tensorflow-Training</a> (contains Merlin Core, Merlin Models, NVTabular and TensorFlow)</p></li>
-<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-inference">Merlin-Inference</a> (contains Merlin Core, Merlin Models, Merlin Systems, NVTabular, TensorFlow and Triton Inference Server)</p></li>
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow">merlin-tensorflow</a> (contains Merlin Core, Merlin Models, Merlin Systems, NVTabular, TensorFlow, and Triton Inference Server)</p></li>
 </ul>
 <p>Alternatively, you can <a class="reference external" href="https://github.com/NVIDIA-Merlin/models#installing-merlin-models-from-source">install Merlin Models from source</a> and other required libraries to run the notebooks on your host by following the instructions in the README from the GitHub repository.</p>
 <p>To run the example notebooks using Docker containers, perform the following steps:</p>
@@ -121,12 +121,6 @@ Your shell prompt should look similar to the following example:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>root@2efa5b50b909:
 </pre></div>
 </div>
-</li>
-<li><p>Install JupyterLab with <code class="docutils literal notranslate"><span class="pre">pip</span></code> by running the following command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip install jupyterlab
-</pre></div>
-</div>
-<p>For more information, see the JupyterLab <a class="reference external" href="https://jupyterlab.readthedocs.io/en/stable/getting_started/installation.html">Installation Guide</a>.</p>
 </li>
 <li><p>Start the JupyterLab server by running the following command:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>jupyter-lab --allow-root --ip<span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span>
@@ -184,6 +178,7 @@ or http://127.0.0.1:8888/lab?token<span class="o">=</span>9b537d1fda9e4e9cadc673
       <dt>Tags</dt>
       <dd><a href="../../v0.3.0/examples/index.html">v0.3.0</a></dd>
       <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+      <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
     </dl>
     <dl>
       <dt>Branches</dt>

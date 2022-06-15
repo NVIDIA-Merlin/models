@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 # Copyright 2021 NVIDIA Corporation. All Rights Reserved.
@@ -24,6 +24,8 @@
 # 
 # # Iterating over Deep Learning Models using Merlin Models
 # 
+# This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. 
+# 
 # In this example, we'll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.
 # 
 # In this example notebook, we use synthetic dataset that is mimicking the Ali-CCP: Alibaba Click and Conversion Prediction dataset to build our recommender system models. ALI-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit [tianchi.aliyun.com](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1). You can curate the raw dataset via this [get_aliccp() function](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43) and generated the parquet files to be used in this example.
@@ -36,13 +38,14 @@
 
 # Let's start with importing the libraries that we'll use in this notebook.
 
-# In[2]:
+# In[ ]:
 
 
 import os
 import numpy as np
 
 from nvtabular.loader.tf_utils import configure_tensorflow
+
 configure_tensorflow()
 
 import nvtabular as nvt
@@ -61,26 +64,27 @@ import tensorflow as tf
 
 # When we work on a new recommender systems, we explore the dataset, first. In doing so, we define our input and output paths. We will use the parquet files in the test folder to validate our trained model.
 
-# In[3]:
+# In[ ]:
 
 
 from merlin.datasets.synthetic import generate_data
 
 DATA_FOLDER = os.environ.get("DATA_FOLDER", "/workspace/data/")
 NUM_ROWS = os.environ.get("NUM_ROWS", 1000000)
+SYNTHETIC_DATA = eval(os.environ.get("SYNTHETIC_DATA", "True"))
 
-train, valid = generate_data("aliccp-raw", int(NUM_ROWS), set_sizes=(0.7, 0.3))
-
-# save the datasets as parquet files
-train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, "train"))
-valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, "valid"))
-
-
-# In[4]:
+if SYNTHETIC_DATA:
+    train, valid = generate_data("aliccp-raw", int(NUM_ROWS), set_sizes=(0.7, 0.3))
+    # save the datasets as parquet files
+    train.to_ddf().to_parquet(os.path.join(DATA_FOLDER, "train"))
+    valid.to_ddf().to_parquet(os.path.join(DATA_FOLDER, "valid"))
 
 
-train_path = os.path.join(DATA_FOLDER, "train", "part.0.parquet")
-valid_path = os.path.join(DATA_FOLDER, "valid", "part.0.parquet")
+# In[ ]:
+
+
+train_path = os.path.join(DATA_FOLDER, "train", "*.parquet")
+valid_path = os.path.join(DATA_FOLDER, "valid", "*.parquet")
 output_path = os.path.join(DATA_FOLDER, "processed")
 
 
@@ -90,27 +94,27 @@ output_path = os.path.join(DATA_FOLDER, "processed")
 
 # We use a utility function, `workflow_fit_transform` perform to fit and transform steps on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, and also save our workflow model. After fit and transform, the processed parquet files are saved to `output_path`.
 
-# In[5]:
+# In[ ]:
 
 
-get_ipython().run_cell_magic('time', '', '\nuser_id = ["user_id"] >> Categorify(freq_threshold=5) >> TagAsUserID()\nitem_id = ["item_id"] >> Categorify(freq_threshold=5) >> TagAsItemID()\nadd_feat = ["user_item_categories", "user_item_shops", "user_item_brands", \n            "user_item_intentions","item_category", "item_shop", "item_brand"\n           ] >> Categorify()\n\nte_feat = (\n    ["user_id", "item_id"] + add_feat >>\n    TargetEncoding(\n        [\'click\'],\n        kfold=1,\n        p_smooth=20\n    ) >>\n    Normalize()\n)\n\ntargets = ["click"] >> AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, "target"])\n\noutputs = user_id + item_id + targets + add_feat + te_feat\n\n# Remove rows where item_id==0 and user_id==0\noutputs = outputs>> Filter(f=lambda df: (df["item_id"] != 0) & (df["user_id"] != 0))\n\nworkflow_fit_transform(outputs, train_path, valid_path, output_path)\n')
+get_ipython().run_cell_magic('time', '', '\nuser_id = ["user_id"] >> Categorify(freq_threshold=5) >> TagAsUserID()\nitem_id = ["item_id"] >> Categorify(freq_threshold=5) >> TagAsItemID()\nadd_feat = [\n    "user_item_categories",\n    "user_item_shops",\n    "user_item_brands",\n    "user_item_intentions",\n    "item_category",\n    "item_shop",\n    "item_brand",\n] >> Categorify()\n\nte_feat = (\n    ["user_id", "item_id"] + add_feat\n    >> TargetEncoding(["click"], kfold=1, p_smooth=20)\n    >> Normalize()\n)\n\ntargets = ["click"] >> AddMetadata(tags=[Tags.BINARY_CLASSIFICATION, "target"])\n\noutputs = user_id + item_id + targets + add_feat + te_feat\n\n# Remove rows where item_id==0 and user_id==0\noutputs = outputs >> Filter(f=lambda df: (df["item_id"] != 0) & (df["user_id"] != 0))\n\nworkflow_fit_transform(outputs, train_path, valid_path, output_path)\n')
 
 
 # ## Training Recommender Models
 
 # NVTabular exported the schema file of our processed dataset. The `schema.pbtxt` is a protobuf text file contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to automatically build all necessary input and output layers.
 
-# In[6]:
+# In[ ]:
 
 
-train = Dataset(os.path.join(output_path, 'train', '*.parquet'), part_size="500MB")
-valid = Dataset(os.path.join(output_path, 'valid', '*.parquet'), part_size="500MB")
+train = Dataset(os.path.join(output_path, "train", "*.parquet"), part_size="500MB")
+valid = Dataset(os.path.join(output_path, "valid", "*.parquet"), part_size="500MB")
 
 # define schema object
 schema = train.schema
 
 
-# In[7]:
+# In[ ]:
 
 
 target_column = schema.select_by_tag(Tags.TARGET).column_names[0]
@@ -119,7 +123,7 @@ target_column
 
 # We can print out all the features that are included in the `schema.pbtxt` file.
 
-# In[8]:
+# In[ ]:
 
 
 schema.column_names
@@ -141,21 +145,21 @@ schema.column_names
 
 # With `schema` object we enable NCF model easily to recognize item_id and user_id columns (defined in the schema.pbtxt with corresponding tags). Input block of embedding layers will be generated using item_id and user_id as seen in the Figure.
 
-# In[9]:
+# In[ ]:
 
 
 model = mm.benchmark.NCFModel(
     schema,
     embedding_dim=64,
     mlp_block=mm.MLPBlock([128, 64]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()]),
+    prediction_tasks=mm.BinaryClassificationTask(target_column),
 )
 
 
-# In[10]:
+# In[ ]:
 
 
-get_ipython().run_cell_magic('time', '', 'batch_size = 16*1024\nLR=0.03\n\nopt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False)\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', 'batch_size = 16 * 1024\nLR = 0.03\n\nopt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
 # Let's save our accuracy results
@@ -167,15 +171,15 @@ if os.path.isfile("results.txt"):
     os.remove("results.txt")
 
 
-# In[11]:
+# In[ ]:
 
 
-save_results('NCF', model)
+save_results("NCF", model)
 
 
 # Let's check out the model evaluation scores
 
-# In[12]:
+# In[ ]:
 
 
 metrics_ncf = model.evaluate(valid, batch_size=1024, return_dict=True)
@@ -193,31 +197,30 @@ metrics_ncf
 # - Change the model to MLP model
 # - Rerun the pipeline from there from model.fit
 
-# In[13]:
+# In[ ]:
 
 
 # uses default embedding_dim = 64
-model = mm.MLPBlock([64, 32]).to_model(
-    schema, 
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+model = mm.Model.from_block(mm.MLPBlock([64, 32]),
+    schema, prediction_tasks=mm.BinaryClassificationTask(target_column)
 )
 
 
-# In[14]:
+# In[ ]:
 
 
-get_ipython().run_cell_magic('time', '', '\nopt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False)\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', '\nopt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
-# In[15]:
+# In[ ]:
 
 
-save_results('MLP', model)
+save_results("MLP", model)
 
 
 # Let's check out the model evaluation scores
 
-# In[16]:
+# In[ ]:
 
 
 metrics_mlp = model.evaluate(valid, batch_size=1024, return_dict=True)
@@ -242,7 +245,7 @@ metrics_mlp
 # * Change the model to `DLRMModel`
 # * Rerun the pipeline from there from model.fit
 
-# In[17]:
+# In[ ]:
 
 
 model = mm.DLRMModel(
@@ -250,17 +253,17 @@ model = mm.DLRMModel(
     embedding_dim=64,
     bottom_block=mm.MLPBlock([128, 64]),
     top_block=mm.MLPBlock([128, 64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+    prediction_tasks=mm.BinaryClassificationTask(target_column),
 )
 
 
-# In[18]:
+# In[ ]:
 
 
-get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False)\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
-# In[19]:
+# In[ ]:
 
 
 save_results("DLRM", model)
@@ -268,7 +271,7 @@ save_results("DLRM", model)
 
 # Let's check out the model evaluation scores
 
-# In[20]:
+# In[ ]:
 
 
 metrics_dlrm = model.evaluate(valid, batch_size=1024, return_dict=True)
@@ -289,24 +292,24 @@ metrics_dlrm
 # * Change the model to `DCNModel`
 # * Rerun the pipeline from there to model.fit
 
-# In[21]:
+# In[ ]:
 
 
 model = mm.DCNModel(
     schema,
     depth=2,
     deep_block=mm.MLPBlock([64, 32]),
-    prediction_tasks=mm.BinaryClassificationTask(target_column, metrics=[tf.keras.metrics.AUC()])
+    prediction_tasks=mm.BinaryClassificationTask(target_column),
 )
 
 
-# In[22]:
+# In[ ]:
 
 
-get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False)\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
-# In[23]:
+# In[ ]:
 
 
 save_results("DCN", model)
@@ -314,7 +317,7 @@ save_results("DCN", model)
 
 # Let's check out the model evaluation scores
 
-# In[24]:
+# In[ ]:
 
 
 metrics_dcn = model.evaluate(valid, batch_size=1024, return_dict=True)
@@ -323,10 +326,12 @@ metrics_dcn
 
 # Let's visualize our model validation accuracy values. Since we did not do any hyper-parameter optimization or extensive feature engineering here, we do not come up with a final conclusion that one model is superior to another.
 
-# In[25]:
+# In[ ]:
 
 
 import matplotlib.pyplot as plt
+
+
 def create_bar_chart(text_file_name, models_name):
     """a func to plot barcharts via parsing the  accuracy results in a text file"""
     auc = []
@@ -348,7 +353,7 @@ def create_bar_chart(text_file_name, models_name):
     plt.show()
 
 
-# In[26]:
+# In[27]:
 
 
 models_name = ["NCF", "MLP", "DLRM", "DCN"]
@@ -357,7 +362,7 @@ create_bar_chart("results.txt", models_name)
 
 # Let's remove the results file.
 
-# In[ ]:
+# In[28]:
 
 
 if os.path.isfile("results.txt"):

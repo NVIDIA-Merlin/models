@@ -24,6 +24,8 @@
 # 
 # # Getting Started with Merlin Models: Develop a Model for MovieLens
 # 
+# This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. 
+# 
 # ## Overview
 # 
 # [Merlin Models](https://github.com/NVIDIA-Merlin/models/) is a library for training recommender models. Merlin Models let Data Scientists and ML Engineers easily train standard RecSys models on their own dataset, getting GPU-accelerated models with best practices baked into the library. This will also let researchers to build custom models by incorporating standard components of deep learning recommender models, and then benchmark their new models on example offline datasets. Merlin Models is part of the [Merlin open source framework](https://developer.nvidia.com/nvidia-merlin).

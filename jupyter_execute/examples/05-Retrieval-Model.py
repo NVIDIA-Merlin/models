@@ -24,6 +24,8 @@
 # 
 # # Two-Stage Recommender Systems
 # 
+# This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. 
+# 
 # In large scale recommender systems pipelines, the size of the item catalog (number of unique items) might be in the order of millions. At such scale, a typical setup is having two-stage pipeline, where a faster candidate retrieval model quickly extracts thousands of relevant items and a then a more powerful ranking model (i.e. with more features and more powerful architecture) ranks the top-k items that are going to be displayed to the user. For ML-based candidate retrieval model, as it needs to quickly score millions of items for a given user, a popular choices are models that can produce recommendation scores by just computing the dot product the user embeddings and item embeddings. Popular choices of such models are **Matrix Factorization**, which learns low-rank user and item embeddings, and the **Two-Tower architecture**, which is a neural network with two MLP towers where both user and item features are fed to generate user and item embeddings in the output.
 
 # 
@@ -54,11 +56,12 @@ from merlin.io.dataset import Dataset
 import tensorflow as tf
 
 
-# In[3]:
+# In[ ]:
 
 
 # disable INFO and DEBUG logging everywhere
 import logging
+
 logging.disable(logging.WARNING)
 
 
@@ -66,18 +69,23 @@ logging.disable(logging.WARNING)
 
 # Let's generate synthetic train and validation dataset objects.
 
-# In[4]:
+# In[ ]:
 
 
 from merlin.datasets.synthetic import generate_data
 
 DATA_FOLDER = os.environ.get("DATA_FOLDER", "/workspace/data/")
 NUM_ROWS = os.environ.get("NUM_ROWS", 1000000)
+SYNTHETIC_DATA = eval(os.environ.get("SYNTHETIC_DATA", "True"))
 
-train, valid = generate_data("aliccp-raw", int(NUM_ROWS), set_sizes=(0.7, 0.3))
+if SYNTHETIC_DATA:
+    train, valid = generate_data("aliccp-raw", int(NUM_ROWS), set_sizes=(0.7, 0.3))
+else:
+    train = nvt.Dataset(DATA_FOLDER + "/train/*.parquet")
+    valid = nvt.Dataset(DATA_FOLDER + "/valid/*.parquet")
 
 
-# In[5]:
+# In[ ]:
 
 
 # define output path for the processed parquet files
@@ -86,7 +94,7 @@ output_path = os.path.join(DATA_FOLDER, "processed")
 
 # We keep only positive interactions where clicks==1 in the dataset with `Filter()` op.
 
-# In[6]:
+# In[ ]:
 
 
 user_id = ["user_id"] >> Categorify() >> TagAsUserID()
@@ -94,22 +102,36 @@ item_id = ["item_id"] >> Categorify() >> TagAsItemID()
 
 item_features = ["item_category", "item_shop", "item_brand"] >> Categorify() >> TagAsItemFeatures()
 
-user_features = ['user_shops', 'user_profile', 'user_group', 
-       'user_gender', 'user_age', 'user_consumption_2', 'user_is_occupied',
-       'user_geography', 'user_intentions', 'user_brands', 'user_categories'] \
-        >> Categorify() >> TagAsUserFeatures()
+user_features = (
+    [
+        "user_shops",
+        "user_profile",
+        "user_group",
+        "user_gender",
+        "user_age",
+        "user_consumption_2",
+        "user_is_occupied",
+        "user_geography",
+        "user_intentions",
+        "user_brands",
+        "user_categories",
+    ]
+    >> Categorify()
+    >> TagAsUserFeatures()
+)
 
-inputs = user_id + item_id + item_features + user_features + ['click'] 
+inputs = user_id + item_id + item_features + user_features + ["click"]
 
 outputs = inputs >> Filter(f=lambda df: df["click"] == 1)
 
 
 # With `transform_aliccp` function, we can execute fit() and transform() on the raw dataset applying the operators defined in the NVTabular workflow pipeline above. The processed parquet files are saved to output_path.
 
-# In[7]:
+# In[ ]:
 
 
 from merlin.datasets.ecommerce import transform_aliccp
+
 transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
 
 
@@ -125,22 +147,22 @@ transform_aliccp((train, valid), output_path, nvt_workflow=outputs)
 
 # We use the `schema` object to define our model.
 
-# In[8]:
+# In[ ]:
 
 
 output_path
 
 
-# In[9]:
+# In[ ]:
 
 
-train = Dataset(os.path.join(output_path, 'train', '*.parquet'))
-valid = Dataset(os.path.join(output_path, 'valid', '*.parquet'))
+train = Dataset(os.path.join(output_path, "train", "*.parquet"))
+valid = Dataset(os.path.join(output_path, "valid", "*.parquet"))
 
 schema = train.schema
 
 
-# In[10]:
+# In[ ]:
 
 
 schema = schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])
@@ -148,7 +170,7 @@ schema = schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER]
 
 # We can print out the feature column names.
 
-# In[11]:
+# In[ ]:
 
 
 schema.column_names
@@ -156,7 +178,7 @@ schema.column_names
 
 # We expect the label names to be empty.
 
-# In[12]:
+# In[ ]:
 
 
 label_names = schema.select_by_tag(Tags.TARGET).column_names
@@ -171,16 +193,14 @@ label_names
 
 # Now, let's build our Two-Tower model. In a nutshell, we aggregate all user features to feed in user tower and feed the item features to the item tower. Then we compute the positive score by multiplying the user embedding with the item embedding and sample negative items (read more about negative sampling [here](https://openreview.net/pdf?id=824xC-SgWgU) and [here](https://medium.com/mlearning-ai/overview-negative-sampling-on-recommendation-systems-230a051c6cd7)), whose item embeddings are also multiplied by the user embedding. Then we apply the loss function on top of the positive and negative scores.
 
-# In[13]:
+# In[ ]:
 
 
 model = mm.TwoTowerModel(
     schema,
-    query_tower=mm.MLPBlock([128, 64], no_activation_last_layer=True),        
-    loss="categorical_crossentropy",  
+    query_tower=mm.MLPBlock([128, 64], no_activation_last_layer=True),
     samplers=[mm.InBatchSampler()],
-    embedding_options = mm.EmbeddingOptions(infer_embedding_sizes=True),
-    metrics=[mm.RecallAt(10), mm.NDCGAt(10)]
+    embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),
 )
 
 
@@ -198,10 +218,10 @@ model = mm.TwoTowerModel(
 
 # We need to initialize the dataloaders.
 
-# In[14]:
+# In[ ]:
 
 
-model.compile(optimizer='adam', run_eagerly=False)
+model.compile(optimizer="adam", run_eagerly=False, metrics=[mm.RecallAt(10), mm.NDCGAt(10)])
 model.fit(train, validation_data=valid, batch_size=4096, epochs=3)
 
 
@@ -219,97 +239,102 @@ model.fit(train, validation_data=valid, batch_size=4096, epochs=3)
 
 # We are able to save the user tower model as a TF model to disk. The user tower model is needed to generate a user embedding vector when a user feature vector <i>x</i> is fed into that model.
 
-# In[15]:
+# In[ ]:
 
 
 query_tower = model.retrieval_block.query_block()
-query_tower.save('query_tower')
+query_tower.save("query_tower")
 
 
 # #### Extract and save User features
 
 # With `unique_rows_by_features` utility function we can easily extract both unique user and item features tables as cuDF dataframes. Note that for user features table, we use `USER` and `USER_ID` tags.
 
-# In[16]:
+# In[ ]:
 
 
 from merlin.models.utils.dataset import unique_rows_by_features
-user_features = unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute().reset_index(drop=True)
+
+user_features = (
+    unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute().reset_index(drop=True)
+)
 
 
-# In[17]:
+# In[ ]:
 
 
 user_features.head()
 
 
-# In[18]:
+# In[ ]:
 
 
 user_features.shape
 
 
-# In[19]:
+# In[ ]:
 
 
 # save to disk
-user_features.to_parquet('user_features.parquet')
+user_features.to_parquet("user_features.parquet")
 
 
 # #### Extract and save Item features
 
-# In[20]:
+# In[ ]:
 
 
-item_features = unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID).compute().reset_index(drop=True)
+item_features = (
+    unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID).compute().reset_index(drop=True)
+)
 
 
-# In[21]:
+# In[ ]:
 
 
 item_features.head()
 
 
-# In[22]:
+# In[ ]:
 
 
 # save to disk
-item_features.to_parquet('item_features.parquet')
+item_features.to_parquet("item_features.parquet")
 
 
 # #### Extract and save Item embeddings
 
-# In[23]:
+# In[ ]:
 
 
 item_embs = model.item_embeddings(Dataset(item_features, schema=schema), batch_size=1024)
 item_embs_df = item_embs.compute(scheduler="synchronous")
 
 
-# In[24]:
+# In[ ]:
 
 
 item_embs_df
 
 
-# In[25]:
+# In[ ]:
 
 
 # select only embedding columns
 item_embeddings = item_embs_df.iloc[:, 4:]
 
 
-# In[26]:
+# In[ ]:
 
 
 item_embeddings.head()
 
 
-# In[27]:
+# In[ ]:
 
 
 # save to disk
-item_embeddings.to_parquet('item_embeddings.parquet')
+item_embeddings.to_parquet("item_embeddings.parquet")
 
 
 # That's it. You have learned how to train and evaluate your Two-Tower retrieval model, and then how to export the required components to be able to deploy this model to generate recommendations. In order to learn more on serving a model to [Triton Inference Server](https://github.com/triton-inference-server/server), please explore the examples in the [Merlin](https://github.com/NVIDIA-Merlin/Merlin) and [Merlin Systems](https://github.com/NVIDIA-Merlin/systems) repos.
