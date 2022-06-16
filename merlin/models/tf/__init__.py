@@ -92,6 +92,7 @@ from merlin.models.tf.metrics.topk import (
     NDCGAt,
     PrecisionAt,
     RecallAt,
+    TopKMetricsAggregator,
     topk_metrics_default,
 )
 from merlin.models.tf.models import benchmark
@@ -178,6 +179,7 @@ __all__ = [
     "MRRAt",
     "AvgPrecisionAt",
     "RecallAt",
+    "TopKMetricsAggregator",
     "topk_metrics_default",
     "Model",
     "RetrievalModel",
