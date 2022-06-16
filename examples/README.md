@@ -20,12 +20,9 @@ The example notebooks demonstrate how to use Merlin Models with TensorFlow on a 
 
 You can run the examples with Docker containers.
 Docker containers are available from the NVIDIA GPU Cloud.
-Access the catalog of containers at <http://ngc.nvidia.com/catalog/containers>.
-
-Depending on which example you want to run, you should use any one of these Docker containers:
-
-- [Merlin-Tensorflow-Training](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training) (contains Merlin Core, Merlin Models, NVTabular and TensorFlow)
-- [Merlin-Inference](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-inference) (contains Merlin Core, Merlin Models, Merlin Systems, NVTabular, TensorFlow and Triton Inference Server)
+Access the catalog of containers at <http://ngc.nvidia.com/catalog/containers> to get the
+[Merlin-Tensorflow container](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow)
+(contains Merlin Core, Merlin Models, NVTabular, TensorFlow and Triton Inference Server).
 
 Alternatively, you can [install Merlin Models from source](https://github.com/NVIDIA-Merlin/models#installing-merlin-models-from-source) and other required libraries to run the notebooks on your host by following the instructions in the README from the GitHub repository.
 
