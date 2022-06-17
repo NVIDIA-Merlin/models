@@ -25,6 +25,11 @@ MAX_CARDINALITY = 100
 ASSETS_DIR = pathlib.Path(__file__).parent.parent / "assets"
 
 
+@pytest.fixture(autouse=True)
+def tf_clear_session():
+    tf.keras.backend.clear_session()
+
+
 @pytest.fixture
 def tf_con_features():
     features = {}

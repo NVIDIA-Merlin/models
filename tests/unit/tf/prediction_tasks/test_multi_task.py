@@ -25,10 +25,22 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks):
     model = ml.Model(inputs, ml.MLPBlock([64]), prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
 
-    step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
+    metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
-    assert step["loss"] >= 0
-    assert len(step) == 8
+    assert metrics["loss"] >= 0
+    assert set(list(metrics.keys())) == set(
+        [
+            "loss",
+            "regularization_loss",
+            "click/binary_classification_task_loss",
+            "play_percentage/regression_task_loss",
+            "play_percentage/regression_task_root_mean_squared_error",
+            "click/binary_classification_task_precision",
+            "click/binary_classification_task_recall",
+            "click/binary_classification_task_binary_accuracy",
+            "click/binary_classification_task_auc",
+        ]
+    )
     if task_blocks:
         assert model.prediction_tasks[0].task_block != model.prediction_tasks[1].task_block
 
@@ -40,10 +52,27 @@ def test_mmoe_head(music_streaming_data: Dataset):
     model = ml.Model(inputs, ml.MLPBlock([64]), mmoe, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
 
-    step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
+    metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
-    assert step["loss"] >= 0
-    assert len(step) == 13
+    assert metrics["loss"] >= 0
+    assert set(metrics.keys()) == set(
+        [
+            "loss",
+            "click/binary_classification_task_loss",
+            "like/binary_classification_task_loss",
+            "play_percentage/regression_task_loss",
+            "click/binary_classification_task_precision",
+            "click/binary_classification_task_recall",
+            "click/binary_classification_task_binary_accuracy",
+            "click/binary_classification_task_auc",
+            "like/binary_classification_task_precision_1",
+            "like/binary_classification_task_recall_1",
+            "like/binary_classification_task_binary_accuracy",
+            "like/binary_classification_task_auc_1",
+            "play_percentage/regression_task_root_mean_squared_error",
+            "regularization_loss",
+        ]
+    )
 
 
 def test_ple_head(music_streaming_data: Dataset):
@@ -55,7 +84,24 @@ def test_ple_head(music_streaming_data: Dataset):
     model = ml.Model(inputs, ml.MLPBlock([64]), cgc, prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=True)
 
-    step = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
+    metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
-    assert step["loss"] >= 0
-    assert len(step) == 13
+    assert metrics["loss"] >= 0
+    assert set(metrics.keys()) == set(
+        [
+            "loss",
+            "click/binary_classification_task_loss",
+            "like/binary_classification_task_loss",
+            "play_percentage/regression_task_loss",
+            "click/binary_classification_task_precision",
+            "click/binary_classification_task_recall",
+            "click/binary_classification_task_binary_accuracy",
+            "click/binary_classification_task_auc",
+            "like/binary_classification_task_precision_1",
+            "like/binary_classification_task_recall_1",
+            "like/binary_classification_task_binary_accuracy",
+            "like/binary_classification_task_auc_1",
+            "play_percentage/regression_task_root_mean_squared_error",
+            "regularization_loss",
+        ]
+    )

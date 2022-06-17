@@ -55,10 +55,13 @@ def test_example_02_nvt_integration(tb):
     tb.execute()
     assert tb.cell_output_text(15)[-19:] == "'TE_userId_rating']"
     metrics = tb.ref("metrics")
-    assert sorted(list(metrics.keys())) == [
-        "auc",
-        "binary_accuracy",
-        "loss",
-        "precision",
-        "recall",
-    ]
+    assert set(metrics.keys()) == set(
+        [
+            "auc",
+            "binary_accuracy",
+            "loss",
+            "regularization_loss",
+            "precision",
+            "recall",
+        ]
+    )
