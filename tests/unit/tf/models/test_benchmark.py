@@ -37,7 +37,7 @@ def test_ncf_model(ecommerce_data, run_eagerly):
 def test_wide_deep_model(music_streaming_data, run_eagerly):
 
     # prepare wide_schema
-    selector = ColumnSelector(["user_genres", "country"])
+    selector = ColumnSelector(["country"])
     wide_schema = music_streaming_data.schema.select(selector)
 
     model = ml.benchmark.WideAndDeepModel(
