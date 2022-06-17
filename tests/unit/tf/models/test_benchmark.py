@@ -39,11 +39,14 @@ def test_wide_deep_model(music_streaming_data, run_eagerly):
     # prepare wide_schema
     selector = ColumnSelector(["country"])
     wide_schema = music_streaming_data.schema.select(selector)
+    selector = ColumnSelector(["country", "user_age"])
+    deep_schema = music_streaming_data.schema.select(selector)
 
     model = ml.benchmark.WideAndDeepModel(
         music_streaming_data.schema,
         embedding_dim_default=64,
         wide_schema=wide_schema,
+        deep_schema=deep_schema,
         deep_block=ml.MLPBlock([32, 16]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
@@ -55,7 +58,7 @@ def test_wide_deep_model(music_streaming_data, run_eagerly):
 def test_wide_deep_embedding_dims_dict(music_streaming_data, run_eagerly):
 
     # prepare wide_schema
-    selector = ColumnSelector(["user_genres", "country"])
+    selector = ColumnSelector(["country"])
     wide_schema = music_streaming_data.schema.select(selector)
 
     model = ml.benchmark.WideAndDeepModel(
