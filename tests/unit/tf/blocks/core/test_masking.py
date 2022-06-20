@@ -64,7 +64,7 @@ def test_masking_only_last_item_for_eval(sequence_testing_data, mask_block):
         sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
     )
 
-    features = FeatureCollection(schema_list, model.as_dense(batch))
+    features = FeatureCollection(schema_list, ml.AsDenseFeatures()(batch))
     feature_context = FeatureContext(features)
     _ = model(batch, training=False, feature_context=feature_context)
 
@@ -97,7 +97,7 @@ def test_at_least_one_masked_item_mlm(sequence_testing_data):
 
     batch = ml.sample_batch(sequence_testing_data, batch_size=100, include_targets=False)
 
-    features = FeatureCollection(schema_list, model.as_dense(batch))
+    features = FeatureCollection(schema_list, ml.AsDenseFeatures()(batch))
     feature_context = FeatureContext(features)
     _ = model(batch, feature_context=feature_context, training=True)
 
@@ -116,7 +116,7 @@ def test_not_all_masked_lm(sequence_testing_data):
     batch = ml.sample_batch(
         sequence_testing_data, batch_size=100, include_targets=False, to_dense=True
     )
-    features = FeatureCollection(schema_list, model.as_dense(batch))
+    features = FeatureCollection(schema_list, ml.AsDenseFeatures()(batch))
     feature_context = FeatureContext(features)
     _ = model(batch, feature_context=feature_context, training=True)
 
