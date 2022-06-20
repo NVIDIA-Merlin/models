@@ -303,6 +303,17 @@ class BaseModel(tf.keras.Model):
             **kwargs,
         )
 
+    def build(self, input_shapes):
+        # Initializing model control flags controlled by MetricsComputeCallback()
+        self._should_compute_train_metrics_for_batch = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_train_metrics_for_batch",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: False,
+        )
+        super().build(input_shapes)
+
     @property
     def prediction_tasks(self) -> List[PredictionTask]:
         from merlin.models.tf.prediction_tasks.base import PredictionTask
