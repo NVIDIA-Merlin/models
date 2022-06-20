@@ -46,3 +46,22 @@ def test_parallel_block_serialization(music_streaming_data: Dataset):
     for key in outputs_1:
         np.testing.assert_array_equal(outputs_2[key].numpy(), outputs_1[key].numpy())
     assert len(outputs_1) == len(outputs_2) == 1
+
+
+@pytest.mark.parametrize("name_branches", [True, False])
+def test_parallel_block_schema_propagation(music_streaming_data, name_branches: bool):
+    continuous_block = mm.Filter(Tags.CONTINUOUS)
+    embedding_block = mm.EmbeddingFeatures.from_schema(
+        music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
+    )
+
+    if name_branches:
+        branches = {"continuous": continuous_block, "embedding": embedding_block}
+    else:
+        branches = [continuous_block, embedding_block]
+
+    input_block = mm.ParallelBlock(branches, schema=music_streaming_data.schema)
+    features = mm.sample_batch(music_streaming_data, batch_size=10, include_targets=False)
+    outputs = input_block(features)
+
+    assert len(outputs) == 10  # There are 7 categorical + 3 continuous features
