@@ -70,7 +70,6 @@
       ~TabularBlock.set_schema
       ~TabularBlock.set_weights
       ~TabularBlock.super
-      ~TabularBlock.to_model
       ~TabularBlock.with_name_scope
    
    

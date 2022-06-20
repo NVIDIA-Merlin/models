@@ -40,7 +40,7 @@
     "\n",
     "# Iterating over Deep Learning Models using Merlin Models\n",
     "\n",
-    "This notebook is created using the latest stable [merlin-tensorflow-training](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow-training/tags) container. \n",
+    "This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. \n",
     "\n",
     "In this example, we'll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.\n",
     "\n",
@@ -549,7 +549,7 @@
    "outputs": [],
    "source": [
     "# uses default embedding_dim = 64\n",
-    "model = mm.MLPBlock([64, 32]).to_model(\n",
+    "model = mm.Model.from_block(mm.MLPBlock([64, 32]),\n",
     "    schema, prediction_tasks=mm.BinaryClassificationTask(target_column)\n",
     ")"
    ],
@@ -969,7 +969,7 @@
   },
   "merlin": {
    "containers": [
-    "nvcr.io/nvidia/merlin/merlin-tensorflow-training:latest"
+    "nvcr.io/nvidia/merlin/merlin-tensorflow:latest"
    ]
   }
  },

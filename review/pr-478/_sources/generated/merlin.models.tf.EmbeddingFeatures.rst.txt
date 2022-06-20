@@ -76,7 +76,6 @@
       ~EmbeddingFeatures.set_weights
       ~EmbeddingFeatures.super
       ~EmbeddingFeatures.table_config
-      ~EmbeddingFeatures.to_model
       ~EmbeddingFeatures.with_name_scope
    
    
