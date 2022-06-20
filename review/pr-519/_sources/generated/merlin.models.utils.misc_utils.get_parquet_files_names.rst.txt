@@ -1,0 +1,6 @@
+﻿merlin.models.utils.misc\_utils.get\_parquet\_files\_names
+==========================================================
+
+.. currentmodule:: merlin.models.utils.misc_utils
+
+.. autofunction:: get_parquet_files_names
