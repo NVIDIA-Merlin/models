@@ -19,53 +19,85 @@ from merlin.io import Dataset
 from merlin.models.xgb import XGBoost
 
 
-def test_music_regression(music_streaming_data: Dataset):
-    model = XGBoost(objective="reg:logistic")
-    model.fit(music_streaming_data)
-    model.predict(music_streaming_data)
-    metrics = model.evaluate(music_streaming_data)
-
-    assert "rmse" in metrics
-
-
-def test_unsupported_objective(music_streaming_data: Dataset):
-    with pytest.raises(ValueError) as excinfo:
-        model = XGBoost(objective="reg:unknown")
+def test_without_dask_client(music_streaming_data: Dataset):
+    with pytest.raises(ValueError) as exc_info:
+        model = XGBoost(music_streaming_data.schema, objective="reg:logistic")
         model.fit(music_streaming_data)
-    assert "Objective not supported" in str(excinfo.value)
+    assert "No global client found" in str(exc_info.value)
 
 
-def test_ecommerce_click(ecommerce_data: Dataset):
-    model = XGBoost(objective="binary:logistic", eval_metric="auc")
-    model.fit(ecommerce_data, target_columns=["click"])
-    model.predict(ecommerce_data)
-    metrics = model.evaluate(ecommerce_data)
+@pytest.mark.usefixtures("dask_client")
+class TestXGBoost:
+    def test_unsupported_objective(self, music_streaming_data: Dataset):
+        with pytest.raises(ValueError) as excinfo:
+            model = XGBoost(music_streaming_data.schema, objective="reg:unknown")
+            model.fit(music_streaming_data)
+        assert "Objective not supported" in str(excinfo.value)
 
-    assert "auc" in metrics
+    def test_music_regression(self, music_streaming_data: Dataset):
+        schema = music_streaming_data.schema
+        model = XGBoost(schema, objective="reg:logistic")
+        model.fit(music_streaming_data)
+        model.predict(music_streaming_data)
+        metrics = model.evaluate(music_streaming_data)
 
+        assert "rmse" in metrics
 
-def test_social_click(social_data: Dataset):
-    model = XGBoost(objective="binary:logistic", eval_metric=["auc"])
-    model.fit(social_data, target_columns=["click"])
-    model.predict(social_data)
-    metrics = model.evaluate(social_data)
+    def test_ecommerce_click(self, ecommerce_data: Dataset):
+        schema = ecommerce_data.schema
+        model = XGBoost(
+            schema, target_columns=["click"], objective="binary:logistic", eval_metric="auc"
+        )
+        model.fit(ecommerce_data)
+        model.predict(ecommerce_data)
+        metrics = model.evaluate(ecommerce_data)
 
-    assert "auc" in metrics
+        assert "auc" in metrics
 
+    def test_social_click(self, social_data: Dataset):
+        schema = social_data.schema
+        model = XGBoost(
+            schema, target_columns=["click"], objective="binary:logistic", eval_metric=["auc"]
+        )
+        model.fit(social_data)
+        model.predict(social_data)
+        metrics = model.evaluate(social_data)
 
-def test_criteo(criteo_data: Dataset):
-    model = XGBoost(objective="binary:logistic", eval_metric=["auc"])
-    model.fit(criteo_data)
-    model.predict(criteo_data)
-    metrics = model.evaluate(criteo_data)
+        assert "auc" in metrics
 
-    assert "auc" in metrics
+    def test_logistic(self, criteo_data: Dataset):
+        schema = criteo_data.schema
+        model = XGBoost(schema, objective="binary:logistic", eval_metric=["auc"])
+        model.fit(criteo_data)
+        model.predict(criteo_data)
+        metrics = model.evaluate(criteo_data)
 
+        assert "auc" in metrics
 
-def test_social_ranking(social_data: Dataset):
-    model = XGBoost(objective="rank:ndcg", eval_metric=["auc", "ndcg", "map"])
-    model.fit(social_data, target_columns="click")
-    model.predict(social_data)
-    metrics = model.evaluate(social_data)
+    def test_ndcg(self, social_data: Dataset):
+        schema = social_data.schema
+        model = XGBoost(
+            schema,
+            target_columns="click",
+            qid_column="user_id",
+            objective="rank:ndcg",
+            eval_metric=["auc", "ndcg", "map"],
+        )
+        model.fit(social_data)
+        model.predict(social_data)
+        metrics = model.evaluate(social_data)
 
-    assert "map" in metrics
+        assert "map" in metrics
+
+    def test_pairwise(self, social_data: Dataset):
+        schema = social_data.schema
+        model = XGBoost(
+            schema,
+            target_columns=["click"],
+            qid_column="user_id",
+            objective="rank:pairwise",
+            eval_metric=["ndcg", "auc", "map"],
+        )
+        model.fit(social_data)
+        model.predict(social_data)
+        model.evaluate(social_data)

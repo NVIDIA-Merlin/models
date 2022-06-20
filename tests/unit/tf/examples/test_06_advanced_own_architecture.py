@@ -27,5 +27,5 @@ def test_example_06_defining_own_architecture(tb):
     )
     tb.execute()
     metrics = tb.ref("metrics")
-    assert sorted(list(metrics.keys())) == ["auc", "loss"]
+    assert set(metrics.keys()) == set(["auc", "loss", "regularization_loss"])
     assert os.path.isdir("custom_dlrm")

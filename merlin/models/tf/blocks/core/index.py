@@ -255,6 +255,7 @@ class TopKIndexBlock(IndexBlock):
         targets_sorted = tf.cast(
             tf.expand_dims(outputs.positive_item_ids, -1) == top_ids, tf.float32
         )
+        targets_sorted = tf.reshape(targets_sorted, tf.shape(pred_top_scores))
 
         label_relevant_counts = tf.ones([tf.shape(targets_sorted)[0]])
 
