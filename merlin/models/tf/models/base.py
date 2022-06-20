@@ -403,7 +403,7 @@ class Model(tf.keras.Model):
         ]
             Prediction tasks to use.
         """
-        if is_input_block(block.first):
+        if isinstance(block, SequentialBlock) and is_input_block(block.first):
             if input_block is not None:
                 raise ValueError("The block already includes an InputBlock")
             input_block = block.first
