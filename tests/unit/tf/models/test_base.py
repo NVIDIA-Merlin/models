@@ -19,7 +19,8 @@ import tensorflow as tf
 import merlin.models.tf as ml
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
-from merlin.models.tf.utils import testing_utils
+from merlin.models.tf.utils import testing_utils, tf_utils
+from merlin.schema import Schema
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -147,3 +148,40 @@ def test_model_pre_post(ecommerce_data: Dataset, run_eagerly):
 
     assert isinstance(loaded_model.pre, ml.StochasticSwapNoise)
     assert isinstance(loaded_model.post, ml.NoOp)
+
+
+def test_sub_class_model(ecommerce_data: Dataset):
+    blocks = ["input_block", "mlp", "prediction"]
+
+    @tf.keras.utils.register_keras_serializable(package="merlin.models")
+    class SubClassedModel(ml.BaseModel):
+        def __init__(self, schema: Schema, target: str, **kwargs):
+            super(SubClassedModel, self).__init__()
+            if "input_block" not in kwargs:
+                self.input_block = ml.InputBlock(schema)
+                self.mlp = ml.MLPBlock([64, 32])
+                self.prediction = ml.BinaryClassificationTask(target)
+            else:
+                self.input_block = kwargs["input_block"]
+                self.mlp = kwargs["mlp"]
+                self.prediction = kwargs["prediction"]
+
+        def call(self, inputs, **kwargs):
+            x = self.input_block(inputs)
+            x = self.mlp(x)
+
+            return self.prediction(x)
+
+        def get_config(self):
+            config = {}
+
+            return tf_utils.maybe_serialize_keras_objects(self, config, blocks)
+
+        @classmethod
+        def from_config(cls, config):
+            config = tf_utils.maybe_deserialize_keras_objects(config, blocks)
+
+            return cls(None, None, **config)
+
+    model = SubClassedModel(ecommerce_data.schema, "click")
+    testing_utils.model_test(model, ecommerce_data)
