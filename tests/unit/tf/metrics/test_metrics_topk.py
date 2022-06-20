@@ -159,7 +159,7 @@ def test_topk_metrics_aggregator(topk_metrics_test_data):
 
     metric_names, metrics, expected_results = zip(*metric_exp_result)
     labels, predictions, label_relevant_counts = topk_metrics_test_data
-    topk_metrics_aggregator = TopKMetricsAggregator(metrics)
+    topk_metrics_aggregator = TopKMetricsAggregator(*metrics)
     topk_metrics_aggregator.label_relevant_counts = label_relevant_counts
     topk_metrics_aggregator.update_state(labels, predictions, None)
 

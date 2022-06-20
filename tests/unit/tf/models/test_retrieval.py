@@ -215,7 +215,7 @@ def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
     ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
     metrics_agg = TopKMetricsAggregator(
-        [RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)]
+        RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)
     )
     model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([128, 64]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly, metrics=[metrics_agg])

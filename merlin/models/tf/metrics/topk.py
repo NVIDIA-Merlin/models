@@ -336,17 +336,17 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
     """Aggregator for top-k metrics (TopkMetric) that is optimized
     to sort top-k predictions only once for all metrics.
 
-    topk_metrics : Sequence[TopkMetric]
+    *topk_metrics : TopkMetric
         Multiple arguments with TopkMetric instances
     """
 
-    def __init__(self, topk_metrics: Sequence[TopkMetric]):
+    def __init__(self, *topk_metrics: TopkMetric):
         super(TopKMetricsAggregator, self).__init__()
         assert len(topk_metrics) > 0, "At least one topk_metrics should be provided"
         assert all(
             isinstance(m, TopkMetric) for m in topk_metrics
         ), "All provided metrics should inherit from TopkMetric"
-        self.topk_metrics = list(topk_metrics)
+        self.topk_metrics = topk_metrics
 
         # Setting the `pre_sorted` of topk metrics so that
         # prediction scores are not sorted again for each metric
@@ -386,15 +386,29 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
 
         return outputs
 
+    @classmethod
+    def default_metrics(cls, top_ks: Sequence[int], **kwargs) -> Sequence[TopkMetric]:
+        """Returns an TopKMetricsAggregator instance with the default top-k metrics
+        at the cut-offs defined in top_ks
 
-def topk_metrics_default(top_ks: Sequence[int], **kwargs) -> Sequence[TopkMetric]:
-    metrics: List[TopkMetric] = []
-    for k in top_ks:
-        metrics.extend([RecallAt(k), MRRAt(k), NDCGAt(k), AvgPrecisionAt(k), PrecisionAt(k)])
-    # Using Top-k metrics aggregator provides better performance than having top-k
-    # metrics computed separately, as prediction scores are sorted only once for all metrics
-    aggregator = TopKMetricsAggregator(metrics)
-    return [aggregator]
+        Parameters
+        ----------
+        top_ks : Sequence[int]
+            List with the cut-offs for top-k metrics (e.g. [5,10,50])
+
+        Returns
+        -------
+        Sequence[TopkMetric]
+            A TopKMetricsAggregator instance with the default top-k metrics at the predefined
+            cut-offs
+        """
+        metrics: List[TopkMetric] = []
+        for k in top_ks:
+            metrics.extend([RecallAt(k), MRRAt(k), NDCGAt(k), AvgPrecisionAt(k), PrecisionAt(k)])
+        # Using Top-k metrics aggregator provides better performance than having top-k
+        # metrics computed separately, as prediction scores are sorted only once for all metrics
+        aggregator = cls(*metrics)
+        return [aggregator]
 
 
 def filter_topk_metrics(
