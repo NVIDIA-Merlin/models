@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
@@ -65,3 +66,23 @@ def test_parallel_block_schema_propagation(music_streaming_data, name_branches: 
     outputs = input_block(features)
 
     assert len(outputs) == 10  # There are 7 categorical + 3 continuous features
+
+
+@pytest.mark.parametrize("name_branches", [True, False])
+def test_parallel_block_with_layers(music_streaming_data, name_branches: bool):
+    d, d_1 = tf.keras.layers.Dense(32), tf.keras.layers.Dense(32)
+    if name_branches:
+        branches = {"d": d, "d_1": d_1}
+    else:
+        branches = [d, d_1]
+
+    block = mm.ParallelBlock(branches, aggregation="concat")
+    model = mm.Model.from_block(block, music_streaming_data.schema)
+
+    outputs = block(tf.constant([[2.0]]))
+    assert outputs.shape == tf.TensorShape([1, 64])
+
+    features = mm.sample_batch(music_streaming_data, batch_size=10, include_targets=False)
+    outputs = model(features)
+
+    assert len(outputs) == 3  # number of prediction tasks in this schema
