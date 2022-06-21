@@ -23,7 +23,7 @@ from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
-from merlin.models.tf.metrics.ranking import ranking_metrics
+from merlin.models.tf.metrics.topk import TopKMetricsAggregator
 from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
@@ -62,7 +62,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
     """
 
     DEFAULT_LOSS = "categorical_crossentropy"
-    DEFAULT_METRICS = ranking_metrics(top_ks=[10])
+    DEFAULT_METRICS = TopKMetricsAggregator.default_metrics(top_ks=[10])
 
     def __init__(
         self,

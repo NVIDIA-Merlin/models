@@ -3,7 +3,14 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.metrics.ranking import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
+from merlin.models.tf.metrics.topk import (
+    AvgPrecisionAt,
+    MRRAt,
+    NDCGAt,
+    PrecisionAt,
+    RecallAt,
+    TopKMetricsAggregator,
+)
 from merlin.schema import Tags
 
 
@@ -194,6 +201,43 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     #         assert losses.history[metric_name][1] >= losses.history[metric_name][0]
     #     elif metric_name in expected_loss_metrics:
     #         assert losses.history[metric_name][1] <= losses.history[metric_name][0]
+
+    metrics = model.evaluate(
+        ecommerce_data, batch_size=10, item_corpus=ecommerce_data, return_dict=True
+    )
+    assert set(metrics.keys()) == set(expected_metrics_all)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
+    ecommerce_data: Dataset, run_eagerly
+):
+    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+
+    metrics_agg = TopKMetricsAggregator(
+        RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)
+    )
+    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([128, 64]))
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, metrics=[metrics_agg])
+
+    # Training
+    num_epochs = 2
+    losses = model.fit(
+        ecommerce_data,
+        batch_size=10,
+        epochs=num_epochs,
+        train_metrics_steps=3,
+        validation_data=ecommerce_data,
+        validation_steps=3,
+    )
+    assert len(losses.epoch) == num_epochs
+
+    # Checking train metrics
+    expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
+    expected_loss_metrics = ["loss", "regularization_loss"]
+    expected_metrics_all = expected_metrics + expected_loss_metrics
+    expected_metrics_valid = [f"val_{k}" for k in expected_metrics_all]
+    assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
 
     metrics = model.evaluate(
         ecommerce_data, batch_size=10, item_corpus=ecommerce_data, return_dict=True
