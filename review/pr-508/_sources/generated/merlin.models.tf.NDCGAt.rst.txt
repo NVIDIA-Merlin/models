@@ -62,6 +62,7 @@
       ~NDCGAt.input_mask
       ~NDCGAt.input_shape
       ~NDCGAt.input_spec
+      ~NDCGAt.label_relevant_counts
       ~NDCGAt.losses
       ~NDCGAt.metrics
       ~NDCGAt.name
@@ -72,6 +73,7 @@
       ~NDCGAt.output
       ~NDCGAt.output_mask
       ~NDCGAt.output_shape
+      ~NDCGAt.pre_sorted
       ~NDCGAt.stateful
       ~NDCGAt.submodules
       ~NDCGAt.supports_masking
