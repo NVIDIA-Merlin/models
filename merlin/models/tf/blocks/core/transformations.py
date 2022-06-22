@@ -17,6 +17,7 @@ from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
 from keras.utils import control_flow_util
+from keras.layers.preprocessing import preprocessing_utils
 from tensorflow.keras import backend
 from tensorflow.python.ops import array_ops
 
@@ -111,6 +112,121 @@ class AsDenseFeatures(TabularBlock):
         config.update({"max_seq_length": self.max_seq_length})
 
         return config
+
+
+@Block.registry.register("hashed_cross")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class HashedCross(TabularBlock):
+    """Convert sparse inputs to dense tensorsperforms crosses of categorical features using the
+    "hasing trick". Conceptually, the transformation can be thought of as: hash(concatenation of
+    features) % num_bins
+
+    Parameters
+    ----------
+    max_seq_length : int
+        The maximum length of multi-hot features.
+    """
+
+    def __init__(self, schema, num_bins, sparse=False, output_mode="int", **kwargs):
+        super().__init__(**kwargs)
+
+        if output_mode not in ("int" or "one_hot"):
+            raise ValueError("output_mode must be 'int' or 'one_hot', ")
+
+        self.schema = (schema,)
+        self.num_bins = num_bins
+        self.output_mode = output_mode
+        self.sparse = sparse
+
+    def call(self, inputs):
+
+        # Convert all inputs to tensors and check shape. This layer only supports
+        # sclars and batches of scalars for the initial version.
+        self._check_at_least_two_inputs(inputs)
+        self._check_input_shape_and_type(inputs)
+
+        # Uprank to rank 2 for the cross_hashed op.
+        _inputs = {}
+        output_name = "cross_"
+        for name, value in inputs.items():
+            output_name = output_name + name
+            rank = value.shape.rank
+            if rank < 2:
+                _inputs[name] = tf.expand_dims(value, -1)
+            if rank < 1:
+                _inputs[name] = tf.expand_dims(_inputs[name], -1)
+
+        # Perform the cross and convert to dense
+        output = tf.sparse.cross_hashed(list(_inputs.values()), self.num_bins)
+        output = tf.sparse.to_dense(output)
+
+        # Fix output shape and downrank to match input rank.
+        if rank == 2:
+            # tf.sparse.cross_hashed output shape will always be None on the last
+            # dimension. Given our input shape restrictions, we want to force shape 1
+            # instead.
+            output = tf.reshape(output, [-1, 1])
+        elif rank == 1:
+            output = tf.reshape(output, [-1])
+        elif rank == 0:
+            output = tf.reshape(output, [])
+
+        # Encode outputs.
+        outputs = {}
+        outputs[output_name] = preprocessing_utils.encode_categorical_inputs(
+            output,
+            output_mode=self.output_mode,
+            depth=self.num_bins,
+            sparse=self.sparse,
+        )
+        return outputs
+
+    def compute_output_shape(self, input_shapes):
+        self._check_at_least_two_inputs(input_shapes)
+        return preprocessing_utils.compute_shape_for_encode_categorical(input_shapes[0])
+
+    def get_config(self):
+        config = super().get_config()
+        config.update(
+            {
+                "num_bins": self.num_bins,
+                "output_mode": self.output_mode,
+                "sparse": self.sparse,
+            }
+        )
+        if self.schema:
+            config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
+        return config
+
+    def _check_at_least_two_inputs(self):
+        if len(self.schema) < 2:
+            raise ValueError(
+                "`HashedCrossing` should be called on at least two features. "
+                f"Received: {len(self.schema)} schemas"
+            )
+
+    def _check_input_shape_and_type(self, inputs: TabularData) -> TabularData:
+        inputs_tensors = list(inputs.values())
+        first_shape = inputs_tensors[0].shape.as_list()
+        rank = len(first_shape)
+        if rank > 2 or (rank == 2 and first_shape[-1] != 1):
+            raise ValueError(
+                "All `HashedCrossing` inputs should have shape `[]`, `[batch_size]` "
+                f"or `[batch_size, 1]`. Received: inputs shape={first_shape}"
+            )
+        if not all(x.shape.as_list() == first_shape for x in inputs.values()):
+            raise ValueError(
+                "All `HashedCrossing` inputs should have equal shape. "
+                f"Received: inputs={inputs_tensors}"
+            )
+        # TODO: Consider transfer tensors to dense tensors, do not require users do it by themself?
+        if any(isinstance(x, (tf.RaggedTensor, tf.SparseTensor)) for x in inputs.values()):
+            raise ValueError(
+                "All `HashedCrossing` inputs should be dense tensors. "
+                f"Received: inputs={inputs_tensors}"
+            )
+        if not all(x.dtype.is_integer or x.dtype == tf.string for x in inputs.values()):
+            raise ValueError("All `HashedCrossing` inputs should have an integer or string dtype.")
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
