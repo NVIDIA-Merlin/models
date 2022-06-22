@@ -108,7 +108,14 @@ class XGBoost:
             self.qid_column,
         )
 
-        dtrain = xgb.dask.DaskDMatrix(self.dask_client, X, label=y, qid=qid)
+        dmatrix_cls = xgb.dask.DaskDMatrix
+        if self.params.get("tree_method") == "gpu_hist":
+            # `DaskDeviceQuantileDMatrix` is a data type specialized
+            # for the `gpu_hist` tree method that reduces memory overhead.
+            # When training on GPU pipeline, it's preferred over `DaskDMatrix`.
+            dmatrix_cls = xgb.dask.DaskDeviceQuantileDMatrix
+
+        dtrain = dmatrix_cls(self.dask_client, X, label=y, qid=qid)
         watchlist = [(dtrain, "train")]
 
         booster: xgb.Booster = xgb.dask.train(
