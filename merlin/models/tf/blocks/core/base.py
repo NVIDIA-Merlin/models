@@ -89,13 +89,13 @@ class ModelContext(Layer):
     (This is created automatically in the model and doesn't need to be created manually.)
     """
 
-    def add_embedding_weight(self, name, **kwargs):
-        table = self.add_weight(name=f"{str(name)}/embedding", **kwargs)
-
-        return table
-
     def add_variable(self, variable):
         setattr(self, variable.name, variable)
+
+    def add_embedding_table(self, name, embedding_table):
+        embedding_tables = getattr(self, "embedding_tables", {})
+        embedding_tables[name] = embedding_table
+        setattr(self, "embedding_tables", embedding_tables)
 
     def set_dtypes(self, features):
         for feature_name in features:
@@ -124,7 +124,9 @@ class ModelContext(Layer):
             item = item.value
         else:
             item = str(item)
-        return self.named_variables[f"{item}/embedding"]
+
+        embedding_tables = getattr(self, "embedding_tables", {})
+        return embedding_tables[item].embeddings
 
     @property
     def named_variables(self) -> Dict[str, tf.Variable]:
