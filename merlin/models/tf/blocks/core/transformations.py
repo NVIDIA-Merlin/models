@@ -123,8 +123,21 @@ class HashedCross(TabularBlock):
 
     Parameters
     ----------
-    max_seq_length : int
-        The maximum length of multi-hot features.
+        schema : Schema
+            The `Schema` with the input features
+        num_bins : int
+            Number of hash bins.
+        output_mode: string
+            Specification for the output of the layer. Defaults to
+            `"int"`.  Values can be `"int"`, or `"one_hot"` configuring the layer as
+            follows:
+            - `"int"`: Return the integer bin indices directly.
+            - `"one_hot"`: Encodes each individual element in the input into an
+                array the same size as `num_bins`, containing a 1 at the input's bin
+                index.
+        sparse : bool
+            Boolean. Only applicable to `"one_hot"` mode. If True, returns a
+            `SparseTensor` instead of a dense `Tensor`. Defaults to False.
     """
 
     def __init__(self, schema, num_bins, sparse=False, output_mode="int", **kwargs):
