@@ -62,6 +62,7 @@
       ~RecallAt.input_mask
       ~RecallAt.input_shape
       ~RecallAt.input_spec
+      ~RecallAt.label_relevant_counts
       ~RecallAt.losses
       ~RecallAt.metrics
       ~RecallAt.name
@@ -72,6 +73,7 @@
       ~RecallAt.output
       ~RecallAt.output_mask
       ~RecallAt.output_shape
+      ~RecallAt.pre_sorted
       ~RecallAt.stateful
       ~RecallAt.submodules
       ~RecallAt.supports_masking

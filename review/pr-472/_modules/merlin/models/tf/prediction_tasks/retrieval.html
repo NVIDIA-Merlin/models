@@ -98,7 +98,7 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.base</span> <span class="kn">import</span> <span class="n">ItemRetrievalScorer</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.base</span> <span class="kn">import</span> <span class="n">ItemSampler</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.in_batch</span> <span class="kn">import</span> <span class="n">InBatchSampler</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.metrics.ranking</span> <span class="kn">import</span> <span class="n">ranking_metrics</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.metrics.topk</span> <span class="kn">import</span> <span class="n">TopKMetricsAggregator</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.classification</span> <span class="kn">import</span> <span class="n">MultiClassClassificationTask</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">schema_utils</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
@@ -137,7 +137,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">DEFAULT_LOSS</span> <span class="o">=</span> <span class="s2">&quot;categorical_crossentropy&quot;</span>
-    <span class="n">DEFAULT_METRICS</span> <span class="o">=</span> <span class="n">ranking_metrics</span><span class="p">(</span><span class="n">top_ks</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span>
+    <span class="n">DEFAULT_METRICS</span> <span class="o">=</span> <span class="n">TopKMetricsAggregator</span><span class="o">.</span><span class="n">default_metrics</span><span class="p">(</span><span class="n">top_ks</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">])</span>
 
 <div class="viewcode-block" id="ItemRetrievalTask.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ItemRetrievalTask.html#merlin.models.tf.ItemRetrievalTask.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
