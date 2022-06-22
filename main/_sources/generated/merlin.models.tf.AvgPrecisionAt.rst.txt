@@ -62,6 +62,7 @@
       ~AvgPrecisionAt.input_mask
       ~AvgPrecisionAt.input_shape
       ~AvgPrecisionAt.input_spec
+      ~AvgPrecisionAt.label_relevant_counts
       ~AvgPrecisionAt.losses
       ~AvgPrecisionAt.metrics
       ~AvgPrecisionAt.name
@@ -72,6 +73,7 @@
       ~AvgPrecisionAt.output
       ~AvgPrecisionAt.output_mask
       ~AvgPrecisionAt.output_shape
+      ~AvgPrecisionAt.pre_sorted
       ~AvgPrecisionAt.stateful
       ~AvgPrecisionAt.submodules
       ~AvgPrecisionAt.supports_masking
