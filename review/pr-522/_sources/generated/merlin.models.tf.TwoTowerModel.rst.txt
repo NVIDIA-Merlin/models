@@ -1,0 +1,6 @@
+﻿merlin.models.tf.TwoTowerModel
+==============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autofunction:: TwoTowerModel
