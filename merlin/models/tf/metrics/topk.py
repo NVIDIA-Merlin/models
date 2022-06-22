@@ -15,13 +15,13 @@
 #
 
 # Adapted from source code: https://github.com/karlhigley/ranking-metrics-torch
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Union
 
 import tensorflow as tf
 from keras.utils import losses_utils, metrics_utils
 from keras.utils.tf_utils import is_tensor_or_variable
 from tensorflow.keras import backend
-from tensorflow.keras.metrics import Mean
+from tensorflow.keras.metrics import Mean, Metric
 from tensorflow.keras.metrics import get as get_metric
 
 from merlin.models.tf.metrics import metrics_registry
@@ -184,30 +184,45 @@ def mrr_at(
     return results
 
 
+class TopkMetricWithLabelRelevantCountsMixin:
+    @property
+    def label_relevant_counts(self) -> tf.Tensor:
+        return self._label_relevant_counts
+
+    @label_relevant_counts.setter
+    def label_relevant_counts(self, new_value: tf.Tensor):
+        self._label_relevant_counts = new_value
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class RankingMetric(Mean):
+class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
     def __init__(self, fn, k=5, pre_sorted=True, name=None, dtype=None, **kwargs):
         if name is not None:
             name = f"{name}_{k}"
         super().__init__(name=name, dtype=dtype)
         self._fn = fn
         self.k = k
-        self.pre_sorted = pre_sorted
+        self._pre_sorted = pre_sorted
         self._fn_kwargs = kwargs
+        self.label_relevant_counts = None
+
+    @property
+    def pre_sorted(self):
+        return self._pre_sorted
+
+    @pre_sorted.setter
+    def pre_sorted(self, new_value):
+        self._pre_sorted = new_value
 
     def update_state(
         self,
         y_true: tf.Tensor,
         y_pred: tf.Tensor,
-        label_relevant_counts: Optional[tf.Tensor] = None,
         sample_weight: Optional[tf.Tensor] = None,
     ):
         y_true, y_pred = self.check_cast_inputs(y_true, y_pred)
         (
-            [
-                y_true,
-                y_pred,
-            ],
+            [y_true, y_pred],
             sample_weight,
         ) = metrics_utils.ragged_assert_compatible_and_get_flat_values(
             [y_true, y_pred], sample_weight
@@ -217,12 +232,12 @@ class RankingMetric(Mean):
         tf.debugging.assert_greater_equal(
             tf.shape(y_true)[1],
             self.k,
-            f"The ranking metric ({self.name}) cutoff ({self.k}) cannot be smaller than "
+            f"The TopkMetric {self.name} cutoff ({self.k}) cannot be smaller than "
             f"the number of predictions per example",
         )
 
         y_pred, y_true, label_relevant_counts = self._maybe_sort_top_k(
-            y_pred, y_true, label_relevant_counts
+            y_pred, y_true, self.label_relevant_counts
         )
 
         ag_fn = tf.__internal__.autograph.tf_convert(
@@ -264,7 +279,7 @@ class RankingMetric(Mean):
     def get_config(self):
         config = {}
 
-        if type(self) is RankingMetric:
+        if type(self) is TopkMetric:
             # Only include function argument when the object is of a subclass.
             config["fn"] = self._fn
             config["k"] = self.k
@@ -272,7 +287,7 @@ class RankingMetric(Mean):
 
             for k, v in self._fn_kwargs.items():
                 config[k] = backend.eval(v) if is_tensor_or_variable(v) else v
-            base_config = super(RankingMetric, self).get_config()
+            base_config = super(TopkMetric, self).get_config()
             return dict(list(base_config.items()) + list(config.items()))
 
         return {}
@@ -282,43 +297,140 @@ class RankingMetric(Mean):
         fn = config.pop("fn", None)
         k = config.pop("k", None)
         pre_sorted = config.pop("pre_sorted", None)
-        if cls is RankingMetric:
+        if cls is TopkMetric:
             return cls(get_metric(fn), k=k, pre_sorted=pre_sorted, **config)
-        return super(RankingMetric, cls).from_config(config)
+        return super(TopkMetric, cls).from_config(config)
 
 
 @metrics_registry.register_with_multiple_names("recall_at", "recall")
-class RecallAt(RankingMetric):
+class RecallAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="recall_at"):
         super().__init__(recall_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("precision_at", "precision")
-class PrecisionAt(RankingMetric):
+class PrecisionAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="precision_at"):
         super().__init__(precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("map_at", "map")
-class AvgPrecisionAt(RankingMetric):
+class AvgPrecisionAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="map_at"):
         super().__init__(average_precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("mrr_at", "mrr")
-class MRRAt(RankingMetric):
+class MRRAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="mrr_at"):
         super().__init__(mrr_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
-class NDCGAt(RankingMetric):
+class NDCGAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="ndcg_at"):
         super().__init__(ndcg_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
-def ranking_metrics(top_ks: Sequence[int], **kwargs) -> Sequence[RankingMetric]:
-    metrics: List[RankingMetric] = []
-    for k in top_ks:
-        metrics.extend([RecallAt(k), MRRAt(k), NDCGAt(k), AvgPrecisionAt(k), PrecisionAt(k)])
-    return metrics
+class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
+    """Aggregator for top-k metrics (TopkMetric) that is optimized
+    to sort top-k predictions only once for all metrics.
+
+    *topk_metrics : TopkMetric
+        Multiple arguments with TopkMetric instances
+    """
+
+    def __init__(self, *topk_metrics: TopkMetric):
+        super(TopKMetricsAggregator, self).__init__()
+        assert len(topk_metrics) > 0, "At least one topk_metrics should be provided"
+        assert all(
+            isinstance(m, TopkMetric) for m in topk_metrics
+        ), "All provided metrics should inherit from TopkMetric"
+        self.topk_metrics = topk_metrics
+
+        # Setting the `pre_sorted` of topk metrics so that
+        # prediction scores are not sorted again for each metric
+        for metric in self.topk_metrics:
+            metric.pre_sorted = True
+
+        self.k = max([m.k for m in self.topk_metrics])
+
+        self.label_relevant_counts = None
+
+    def update_state(
+        self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: Optional[tf.Tensor] = None
+    ):
+        # Extractubg sorted top-k prediction scores and labels only ONCE
+        # so that sorting does not need to happen for each individual metric
+        # (as the top-k metrics have been set with pre_sorted=True in this constructor
+        y_pred, y_true, label_relevant_counts_from_targets = extract_topk(self.k, y_pred, y_true)
+
+        # If label_relevant_counts is not set by a block (e.g. TopKIndexBlock) that
+        # has already extracted the top-k predictions, it is assumed that
+        # y_true contains all items
+        label_relevant_counts = self.label_relevant_counts
+        if label_relevant_counts is None:
+            label_relevant_counts = label_relevant_counts_from_targets
+
+        for metric in self.topk_metrics:
+            # Sets the label_relevant_counts using a property,
+            # as metric.update_state() should have standard signature
+            # for better compatibility with Keras
+            metric.label_relevant_counts = label_relevant_counts
+            metric.update_state(y_true, y_pred, sample_weight)
+
+    def result(self):
+        outputs = {}
+        for metric in self.topk_metrics:
+            outputs[metric.name] = metric.result()
+
+        return outputs
+
+    @classmethod
+    def default_metrics(cls, top_ks: Sequence[int], **kwargs) -> Sequence[TopkMetric]:
+        """Returns an TopKMetricsAggregator instance with the default top-k metrics
+        at the cut-offs defined in top_ks
+
+        Parameters
+        ----------
+        top_ks : Sequence[int]
+            List with the cut-offs for top-k metrics (e.g. [5,10,50])
+
+        Returns
+        -------
+        Sequence[TopkMetric]
+            A TopKMetricsAggregator instance with the default top-k metrics at the predefined
+            cut-offs
+        """
+        metrics: List[TopkMetric] = []
+        for k in top_ks:
+            metrics.extend([RecallAt(k), MRRAt(k), NDCGAt(k), AvgPrecisionAt(k), PrecisionAt(k)])
+        # Using Top-k metrics aggregator provides better performance than having top-k
+        # metrics computed separately, as prediction scores are sorted only once for all metrics
+        aggregator = cls(*metrics)
+        return [aggregator]
+
+
+def filter_topk_metrics(
+    metrics: Sequence[Metric],
+) -> List[Union[TopkMetric, TopKMetricsAggregator]]:
+    """Returns only top-k metrics from the list of metrics
+
+    Parameters
+    ----------
+    metrics : List[Metric]
+        List of metrics
+
+    Returns
+    -------
+    List[Union[TopkMetric, TopKMetricsAggregator]]
+        List with the top-k metrics in the list of input metrics
+    """
+    topk_metrics = list(
+        [
+            metric
+            for metric in metrics
+            if isinstance(metric, TopkMetric) or isinstance(metric, TopKMetricsAggregator)
+        ]
+    )
+    return topk_metrics

@@ -379,6 +379,11 @@ class ParallelBlock(TabularBlock):
                 f"dictionaries of layer. got: {inputs}"
             )
 
+        if schema:
+            for branch in self.parallel_values:
+                if not getattr(branch, "has_schema", True):
+                    branch.set_schema(schema)
+
         # Merge schemas if necessary.
         if not schema and all(getattr(m, "_schema", False) for m in self.parallel_values):
             if len(self.parallel_values) == 1:
