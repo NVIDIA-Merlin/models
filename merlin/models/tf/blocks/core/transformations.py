@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import warnings
 from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
@@ -143,10 +144,9 @@ class HashedCross(TabularBlock):
     def __init__(self, schema, num_bins, sparse=False, output_mode="int", **kwargs):
         super().__init__(**kwargs)
 
-        if output_mode not in ("int" or "one_hot"):
-            raise ValueError("output_mode must be 'int' or 'one_hot', ")
-
-        self.schema = (schema,)
+        if not (output_mode in ["int", "one_hot"]):
+            raise ValueError("output_mode must be 'int' or 'one_hot'")
+        self.schema = schema
         self.num_bins = num_bins
         self.output_mode = output_mode
         self.sparse = sparse
@@ -155,17 +155,18 @@ class HashedCross(TabularBlock):
 
         # Convert all inputs to tensors and check shape. This layer only supports
         # sclars and batches of scalars for the initial version.
-        self._check_at_least_two_inputs(inputs)
+        self._check_at_least_two_inputs()
         self._check_input_shape_and_type(inputs)
 
         # Uprank to rank 2 for the cross_hashed op.
         _inputs = {}
-        output_name = "cross_"
-        for name, value in inputs.items():
-            output_name = output_name + name
-            rank = value.shape.rank
+        output_name = "cross"
+        for name in self.schema.column_names:
+            output_name = output_name + "_" + name
+            rank = inputs[name].shape.rank
+            _inputs[name] = inputs[name]
             if rank < 2:
-                _inputs[name] = tf.expand_dims(value, -1)
+                _inputs[name] = tf.expand_dims(inputs[name], -1)
             if rank < 1:
                 _inputs[name] = tf.expand_dims(_inputs[name], -1)
 
@@ -217,9 +218,17 @@ class HashedCross(TabularBlock):
                 "`HashedCrossing` should be called on at least two features. "
                 f"Received: {len(self.schema)} schemas"
             )
+        for name, column_schema in self.schema.column_schemas.items():
+            if Tags.CATEGORICAL not in column_schema.tags:
+                warnings.warn(
+                    f"Please make sure input features to be categorical, detect {name} "
+                    "has no categorical tag"
+                )
 
     def _check_input_shape_and_type(self, inputs: TabularData) -> TabularData:
-        inputs_tensors = list(inputs.values())
+        inputs_tensors = []
+        for name in self.schema.column_names:
+            inputs_tensors.append(inputs[name])
         first_shape = inputs_tensors[0].shape.as_list()
         rank = len(first_shape)
         if rank > 2 or (rank == 2 and first_shape[-1] != 1):
@@ -227,18 +236,18 @@ class HashedCross(TabularBlock):
                 "All `HashedCrossing` inputs should have shape `[]`, `[batch_size]` "
                 f"or `[batch_size, 1]`. Received: inputs shape={first_shape}"
             )
-        if not all(x.shape.as_list() == first_shape for x in inputs.values()):
+        if not all(x.shape.as_list() == first_shape for x in inputs_tensors):
             raise ValueError(
                 "All `HashedCrossing` inputs should have equal shape. "
                 f"Received: inputs={inputs_tensors}"
             )
         # TODO: Consider transfer tensors to dense tensors, do not require users do it by themself?
-        if any(isinstance(x, (tf.RaggedTensor, tf.SparseTensor)) for x in inputs.values()):
+        if any(isinstance(x, (tf.RaggedTensor, tf.SparseTensor)) for x in inputs_tensors):
             raise ValueError(
                 "All `HashedCrossing` inputs should be dense tensors. "
                 f"Received: inputs={inputs_tensors}"
             )
-        if not all(x.dtype.is_integer or x.dtype == tf.string for x in inputs.values()):
+        if not all(x.dtype.is_integer or x.dtype == tf.string for x in inputs_tensors):
             raise ValueError("All `HashedCrossing` inputs should have an integer or string dtype.")
 
 

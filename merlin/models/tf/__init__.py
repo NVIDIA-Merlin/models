@@ -52,6 +52,7 @@ from merlin.models.tf.blocks.core.transformations import (
     AsSparseFeatures,
     CategoricalOneHot,
     ExpandDims,
+    HashedCross,
     LabelToOneHot,
     StochasticSwapNoise,
 )
@@ -157,6 +158,7 @@ __all__ = [
     "AsDenseFeatures",
     "AsSparseFeatures",
     "CategoricalOneHot",
+    "HashedCross",
     "ElementwiseSum",
     "ElementwiseSumItemMulti",
     "AsTabular",
