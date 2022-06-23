@@ -411,7 +411,4 @@ def test_hashedcross_from_config():
     _, original_output_value = original_outputs.popitem()
     _, cloned_output_value = cloned_outputs.popitem()
 
-    test_case.assertAllEqual(
-        tf.sparse.to_dense(cloned_output_value),
-        tf.sparse.to_dense(original_output_value),
-    )
+    test_case.assertAllEqual(cloned_output_value, original_output_value)
