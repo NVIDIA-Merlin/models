@@ -19,13 +19,9 @@ from typing import Dict, Optional, Tuple, Type, Union
 
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType
-from merlin.models.tf.blocks.core.combinators import (
-    ParallelBlock,
-    TabularAggregationType,
-    TabularBlock,
-)
+from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularAggregationType
 from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSparseFeatures
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
@@ -205,8 +201,6 @@ def InputBlock(
         branches["categorical"] = emb_cls.from_schema(  # type: ignore
             schema, tags=categorical_tags, embedding_options=embedding_options, **emb_kwargs
         )
-    elif add_embedding_branch is False and schema.excluding_by_tag(Tags.TARGET).column_schemas:
-        branches["without_embed"] = TabularBlock.from_schema(schema, pre=AsSparseFeatures())
     if continuous_projection:
         return ContinuousEmbedding(
             ParallelBlock(branches),
