@@ -94,13 +94,9 @@
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.aggregation</span> <span class="kn">import</span> <span class="n">SequenceAggregation</span><span class="p">,</span> <span class="n">SequenceAggregator</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">ParallelBlock</span><span class="p">,</span>
-    <span class="n">TabularAggregationType</span><span class="p">,</span>
-    <span class="n">TabularBlock</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">TabularAggregationType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.masking</span> <span class="kn">import</span> <span class="n">MaskingBlock</span><span class="p">,</span> <span class="n">masking_registry</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span><span class="p">,</span> <span class="n">AsSparseFeatures</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.continuous</span> <span class="kn">import</span> <span class="n">ContinuousFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ContinuousEmbedding</span><span class="p">,</span>
@@ -280,8 +276,6 @@
         <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;categorical&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emb_cls</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
             <span class="n">schema</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">categorical_tags</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span><span class="p">,</span> <span class="o">**</span><span class="n">emb_kwargs</span>
         <span class="p">)</span>
-    <span class="k">elif</span> <span class="n">add_embedding_branch</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">and</span> <span class="n">schema</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_schemas</span><span class="p">:</span>
-        <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;without_embed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TabularBlock</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">AsSparseFeatures</span><span class="p">())</span>
     <span class="k">if</span> <span class="n">continuous_projection</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">ContinuousEmbedding</span><span class="p">(</span>
             <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">),</span>
