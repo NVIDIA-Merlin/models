@@ -76,6 +76,8 @@ class XGBoost:
     def fit(
         self,
         train: Dataset,
+        *,
+        use_quantile=True,
         **train_kwargs,
     ) -> xgb.Booster:
         """Trains the XGBoost Model.
@@ -90,6 +92,11 @@ class XGBoost:
             The training dataset to use to fit the model.
             We will use the column(s) tagged with merlin.schema.Tags.TARGET that match the
             objective as the label(s).
+        use_quantile : bool
+            This param is only relevant when using GPU.  (with
+            tree_method="gpu_hist"). If set to False, will use a
+            `DaskDMatrix`, instead of the default
+            `DaskDeviceQuantileDMatrix`, which is preferred for GPU training.
         **train_kwargs
             Additional keyword arguments passed to the xgboost.train function
 
@@ -109,7 +116,7 @@ class XGBoost:
         )
 
         dmatrix_cls = xgb.dask.DaskDMatrix
-        if self.params.get("tree_method") == "gpu_hist":
+        if self.params.get("tree_method") == "gpu_hist" and use_quantile:
             # `DaskDeviceQuantileDMatrix` is a data type specialized
             # for the `gpu_hist` tree method that reduces memory overhead.
             # When training on GPU pipeline, it's preferred over `DaskDMatrix`.

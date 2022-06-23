@@ -108,11 +108,20 @@ class TestXGBoost:
 
 
 @pytest.mark.skipif(not HAS_GPU, reason="No GPU available")
+@pytest.mark.parametrize(
+    ["fit_kwargs", "expected_dtrain_cls"],
+    [
+        ({}, xgboost.dask.DaskDeviceQuantileDMatrix),
+        ({"use_quantile": False}, xgboost.dask.DaskDMatrix),
+    ],
+)
 @patch("xgboost.dask.train", side_effect=xgboost.dask.train)
-def test_gpu_hist(mock_train, dask_client, music_streaming_data: Dataset):
+def test_gpu_hist_dmatrix(
+    mock_train, fit_kwargs, expected_dtrain_cls, dask_client, music_streaming_data: Dataset
+):
     schema = music_streaming_data.schema
     model = XGBoost(schema, objective="reg:logistic", tree_method="gpu_hist")
-    model.fit(music_streaming_data)
+    model.fit(music_streaming_data, **fit_kwargs)
     model.predict(music_streaming_data)
     metrics = model.evaluate(music_streaming_data)
     assert "rmse" in metrics
@@ -125,4 +134,4 @@ def test_gpu_hist(mock_train, dask_client, music_streaming_data: Dataset):
     assert dask_client == client
     assert params["tree_method"] == "gpu_hist"
     assert params["objective"] == "reg:logistic"
-    assert isinstance(dtrain, xgboost.dask.DaskDeviceQuantileDMatrix)
+    assert isinstance(dtrain, expected_dtrain_cls)
