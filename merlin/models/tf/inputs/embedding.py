@@ -208,15 +208,18 @@ class EmbeddingFeatures(TabularBlock):
                 tables[table.name] = table
 
         for name, table in tables.items():
-            add_fn = (
-                self.context.add_embedding_weight if hasattr(self, "_context") else self.add_weight
-            )
-            self.embedding_tables[name] = add_fn(
+            self.embedding_tables[name] = tf.keras.layers.Embedding(
+                table.vocabulary_size,
+                table.dim,
                 name=name,
-                trainable=True,
-                initializer=table.initializer,
-                shape=(table.vocabulary_size, table.dim),
+                embeddings_initializer=table.initializer,
             )
+
+            self.embedding_tables[name].build(())
+
+            if hasattr(self, "_context"):
+                self._context.add_embedding_table(name, self.embedding_tables[name])
+
         if isinstance(input_shapes, dict):
             super().build(input_shapes)
         else:
@@ -246,7 +249,7 @@ class EmbeddingFeatures(TabularBlock):
             val = tf.cast(val, "int32")
 
         table: TableConfig = self.feature_config[name].table
-        table_var = self.embedding_tables[table.name]
+        table_var = self.embedding_tables[table.name].embeddings
         if isinstance(val, tf.SparseTensor):
             out = tf.nn.safe_embedding_lookup_sparse(table_var, val, None, combiner=table.combiner)
         else:
@@ -281,7 +284,7 @@ class EmbeddingFeatures(TabularBlock):
             else:
                 raise ValueError(f"Could not find a feature associated to the tag {table_name}")
 
-        embeddings = self.embedding_tables[table_name]
+        embeddings = self.embedding_tables[table_name].embeddings
         if l2_normalization:
             embeddings = tf.linalg.l2_normalize(embeddings, axis=-1)
 

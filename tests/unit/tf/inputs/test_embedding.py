@@ -48,7 +48,7 @@ def test_embedding_features_yoochoose(testing_data: Dataset):
     assert sorted(list(embeddings.keys())) == sorted(schema.column_names)
     assert all(emb.shape[-1] == 512 for emb in embeddings.values())
     max_value = list(schema.select_by_name("item_id"))[0].int_domain.max
-    assert emb_module.embedding_tables["item_id"].shape[0] == max_value + 1
+    assert emb_module.embedding_tables["item_id"].embeddings.shape[0] == max_value + 1
 
     # These embeddings have not a specific initializer, so they should
     # have default truncated normal initialization
@@ -101,8 +101,8 @@ def test_embedding_features_yoochoose_custom_dims(testing_data: Dataset):
 
     assert len(emb_module.losses) == 0, "There should be no regularization loss by default"
 
-    assert emb_module.embedding_tables["item_id"].shape[1] == 100
-    assert emb_module.embedding_tables["categories"].shape[1] == 64
+    assert emb_module.embedding_tables["item_id"].embeddings.shape[1] == 100
+    assert emb_module.embedding_tables["categories"].embeddings.shape[1] == 64
 
     assert embeddings["item_id"].shape[1] == 100
     assert embeddings["categories"].shape[1] == 64
@@ -142,15 +142,23 @@ def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Datase
 
     embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
-    assert emb_module.embedding_tables["user_id"].shape[1] == embeddings["user_id"].shape[1] == 20
     assert (
-        emb_module.embedding_tables["user_country"].shape[1]
+        emb_module.embedding_tables["user_id"].embeddings.shape[1]
+        == embeddings["user_id"].shape[1]
+        == 20
+    )
+    assert (
+        emb_module.embedding_tables["user_country"].embeddings.shape[1]
         == embeddings["user_country"].shape[1]
         == 9
     )
-    assert emb_module.embedding_tables["item_id"].shape[1] == embeddings["item_id"].shape[1] == 46
     assert (
-        emb_module.embedding_tables["categories"].shape[1]
+        emb_module.embedding_tables["item_id"].embeddings.shape[1]
+        == embeddings["item_id"].shape[1]
+        == 46
+    )
+    assert (
+        emb_module.embedding_tables["categories"].embeddings.shape[1]
         == embeddings["categories"].shape[1]
         == 13
     )
@@ -170,15 +178,23 @@ def test_embedding_features_yoochoose_infer_embedding_sizes_multiple_8(testing_d
 
     embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
-    assert emb_module.embedding_tables["user_id"].shape[1] == embeddings["user_id"].shape[1] == 24
     assert (
-        emb_module.embedding_tables["user_country"].shape[1]
+        emb_module.embedding_tables["user_id"].embeddings.shape[1]
+        == embeddings["user_id"].shape[1]
+        == 24
+    )
+    assert (
+        emb_module.embedding_tables["user_country"].embeddings.shape[1]
         == embeddings["user_country"].shape[1]
         == 16
     )
-    assert emb_module.embedding_tables["item_id"].shape[1] == embeddings["item_id"].shape[1] == 48
     assert (
-        emb_module.embedding_tables["categories"].shape[1]
+        emb_module.embedding_tables["item_id"].embeddings.shape[1]
+        == embeddings["item_id"].shape[1]
+        == 48
+    )
+    assert (
+        emb_module.embedding_tables["categories"].embeddings.shape[1]
         == embeddings["categories"].shape[1]
         == 16
     )
@@ -198,15 +214,23 @@ def test_embedding_features_yoochoose_partially_infer_embedding_sizes(testing_da
 
     embeddings = emb_module(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
-    assert emb_module.embedding_tables["user_id"].shape[1] == embeddings["user_id"].shape[1] == 50
     assert (
-        emb_module.embedding_tables["user_country"].shape[1]
+        emb_module.embedding_tables["user_id"].embeddings.shape[1]
+        == embeddings["user_id"].shape[1]
+        == 50
+    )
+    assert (
+        emb_module.embedding_tables["user_country"].embeddings.shape[1]
         == embeddings["user_country"].shape[1]
         == 100
     )
-    assert emb_module.embedding_tables["item_id"].shape[1] == embeddings["item_id"].shape[1] == 46
     assert (
-        emb_module.embedding_tables["categories"].shape[1]
+        emb_module.embedding_tables["item_id"].embeddings.shape[1]
+        == embeddings["item_id"].shape[1]
+        == 46
+    )
+    assert (
+        emb_module.embedding_tables["categories"].embeddings.shape[1]
         == embeddings["categories"].shape[1]
         == 13
     )
@@ -272,8 +296,12 @@ def test_embedding_features_yoochoose_pretrained_initializer(testing_data: Datas
     # Calling the first batch, so that embedding tables are build
     _ = emb_module(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
 
-    assert np.allclose(emb_module.embedding_tables["item_id"].numpy(), pretrained_emb_item_ids)
-    assert np.allclose(emb_module.embedding_tables["categories"].numpy(), pretrained_emb_categories)
+    assert np.allclose(
+        emb_module.embedding_tables["item_id"].embeddings.numpy(), pretrained_emb_item_ids
+    )
+    assert np.allclose(
+        emb_module.embedding_tables["categories"].embeddings.numpy(), pretrained_emb_categories
+    )
 
 
 def test_embedding_features_exporting_and_loading_pretrained_initializer(testing_data: Dataset):
@@ -282,7 +310,7 @@ def test_embedding_features_exporting_and_loading_pretrained_initializer(testing
 
     # Calling the first batch, so that embedding tables are build
     _ = emb_module(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
-    item_id_embeddings = emb_module.embedding_tables["item_id"]
+    item_id_embeddings = emb_module.embedding_tables["item_id"].embeddings
 
     items_embeddings_dataset = emb_module.embedding_table_dataset(Tags.ITEM_ID, gpu=False)
     assert np.allclose(
