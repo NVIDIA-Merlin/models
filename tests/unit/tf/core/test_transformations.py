@@ -17,6 +17,7 @@
 import tempfile
 
 import tensorflow as tf
+from tensorflow.test import TestCase
 
 import merlin.models.tf as ml
 from merlin.models.utils.schema_utils import create_categorical_column, create_continuous_column
@@ -191,3 +192,140 @@ def test_items_weight_tying_with_different_domain_name():
     _ = model(inputs)
     weight_tying_embeddings = model.blocks[2].context.get_embedding("joint_item_id")
     assert weight_tying_embeddings.shape == (101, 64)
+
+
+def test_hashedcross_scalars():
+    test_case = TestCase()
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=3),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=3),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant("A")
+    inputs["cat2"] = tf.constant(101)
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10)
+    outputs = hashed_cross_op(inputs)
+    output_name, output_value = outputs.popitem()
+
+    assert output_name == "cross_cat1_cat2"
+    assert output_value.shape.as_list() == []
+    test_case.assertAllClose(output_value, 1)
+
+
+def test_hashedcross_1d():
+    test_case = TestCase()
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant(["A", "B", "A", "B", "A"])
+    inputs["cat2"] = tf.constant([101, 101, 101, 102, 102])
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10)
+    outputs = hashed_cross_op(inputs)
+    _, output_value = outputs.popitem()
+
+    assert output_value.shape.as_list() == [5]
+    test_case.assertAllClose(output_value, [1, 4, 1, 6, 3])
+
+
+def test_hashedcross_2d():
+    test_case = TestCase()
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
+    inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10)
+    outputs = hashed_cross_op(inputs)
+    _, output_value = outputs.popitem()
+
+    assert output_value.shape.as_list() == [5, 1]
+    test_case.assertAllClose(output_value, [[1], [4], [1], [6], [3]])
+
+
+def test_hashedcross_less_bins():
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant([["A"], ["B"], ["C"], ["D"], ["A"], ["B"], ["A"]])
+    inputs["cat2"] = tf.constant([[101], [102], [101], [101], [101], [102], [103]])
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=4, output_mode="one_hot", sparse=True)
+    outputs = hashed_cross_op(inputs)
+    _, output_value = outputs.popitem()
+    output_value = tf.sparse.to_dense(output_value)
+
+    assert output_value.shape.as_list() == [7, 4]
+
+
+def test_hashedcross_onehot_output():
+    test_case = TestCase()
+
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
+    inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=5, output_mode="one_hot", sparse=True)
+    outputs = hashed_cross_op(inputs)
+    _, output_value = outputs.popitem()
+    output_value = tf.sparse.to_dense(output_value)
+
+    assert output_value.shape.as_list() == [5, 5]
+    test_case.assertAllClose(
+        output_value,
+        [
+            [0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1],
+            [0, 1, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 0, 0, 1, 0],
+        ],
+    )
+
+
+def test_hashed_cross_single_input_fails():
+    test_case = TestCase()
+    schema = Schema([create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20)])
+    with test_case.assertRaisesRegex(ValueError, "at least two features"):
+        ml.HashedCross(num_bins=10, schema=schema)([tf.constant(1)])
+
+
+def test_hashedcross_from_config():
+    test_case = TestCase()
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
+    inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=5, output_mode="one_hot", sparse=False)
+    cloned_hashed_cross_op = ml.HashedCross.from_config(hashed_cross_op.get_config())
+    original_outputs = hashed_cross_op(inputs)
+    cloned_outputs = cloned_hashed_cross_op(inputs)
+    _, original_output_value = original_outputs.popitem()
+    _, cloned_output_value = cloned_outputs.popitem()
+
+    test_case.assertAllEqual(
+        tf.sparse.to_dense(cloned_output_value),
+        tf.sparse.to_dense(original_output_value),
+    )

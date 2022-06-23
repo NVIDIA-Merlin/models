@@ -151,6 +151,7 @@ __all__ = [
     "AsRaggedFeatures",
     "AsSparseFeatures",
     "CategoricalOneHot",
+    "HashedCross",
     "ElementwiseSum",
     "ElementwiseSumItemMulti",
     "AsTabular",
