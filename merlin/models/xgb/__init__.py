@@ -62,6 +62,7 @@ class XGBoost:
 
         target_tag = get_target_tag(objective)
         self.target_columns = target_columns or get_targets(schema, target_tag)
+        self.feature_columns = get_features(schema)
 
         if objective.startswith("rank") and qid_column is None:
             qid_column = schema.select_by_tag(Tags.USER_ID).column_names[0]
@@ -111,6 +112,7 @@ class XGBoost:
         """
         X, y, qid = dataset_to_xy(
             train,
+            self.feature_columns,
             self.target_columns,
             self.qid_column,
         )
@@ -150,7 +152,9 @@ class XGBoost:
         if self.booster is None:
             raise ValueError("The fit method must be called before evaluate.")
 
-        X, _, qid = dataset_to_xy(dataset, self.target_columns, self.qid_column)
+        X, _, qid = dataset_to_xy(
+            dataset, self.feature_columns, self.target_columns, self.qid_column
+        )
         data = xgb.dask.DaskDMatrix(self.dask_client, X, qid=qid)
         preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs)
 
@@ -186,7 +190,9 @@ class XGBoost:
         if self.booster is None:
             raise ValueError("The fit method must be called before predict.")
 
-        X, _, qid = dataset_to_xy(dataset, self.target_columns, self.qid_column)
+        X, _, qid = dataset_to_xy(
+            dataset, self.feature_columns, self.target_columns, self.qid_column
+        )
         data = xgb.dask.DaskDMatrix(self.dask_client, X, qid=qid)
         preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs).compute()
 
@@ -223,8 +229,25 @@ def get_targets(schema: Schema, target_tag: Tags) -> List[str]:
     )
 
 
+def get_features(schema: Schema):
+    all_target_columns = schema.select_by_tag(Tags.TARGET).column_names
+
+    # Ignore list-like columns from schema
+    list_column_names = [
+        col_name for col_name, col_schema in schema.column_schemas.items() if col_schema.is_list
+    ]
+
+    if list_column_names:
+        warnings.warn(f"Ignoring list columns as inputs to XGBoost model: {list_column_names}.")
+
+    feature_columns = schema.excluding_by_name(list_column_names + all_target_columns).column_names
+
+    return feature_columns
+
+
 def dataset_to_xy(
     dataset: Dataset,
+    feature_columns: List[str],
     target_columns: Union[str, list],
     qid_column: Optional[str],
 ):
@@ -236,19 +259,7 @@ def dataset_to_xy(
         df = df.sort_values(qid_column)
         qid = df[qid_column]
 
-    all_target_columns = dataset.schema.select_by_tag(Tags.TARGET).column_names
-
-    # Ignore list-like columns from schema
-    list_column_names = [
-        col_name
-        for col_name, col_schema in dataset.schema.column_schemas.items()
-        if col_schema.is_list
-    ]
-
-    if list_column_names:
-        warnings.warn(f"Ignoring list columns as inputs to XGBoost model: {list_column_names}.")
-
-    X = df.drop(all_target_columns + list_column_names, axis=1)
+    X = df[feature_columns]
     y = df[target_columns]
 
     # Ensure columns are in a consistent order

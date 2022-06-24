@@ -135,3 +135,11 @@ def test_gpu_hist_dmatrix(
     assert params["tree_method"] == "gpu_hist"
     assert params["objective"] == "reg:logistic"
     assert isinstance(dtrain, expected_dtrain_cls)
+
+
+def test_sub_schema(dask_client, music_streaming_data: Dataset):
+    schema = music_streaming_data.schema
+    sub_schema = schema.select_by_name(["session_id", "country", "play_percentage"])
+    model = XGBoost(sub_schema, objective="reg:logistic")
+    model.fit(music_streaming_data)
+    assert model.booster.num_features() == 2
