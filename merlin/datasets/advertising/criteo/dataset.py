@@ -144,9 +144,7 @@ def maybe_download(destination: Union[str, Path], num_days: int):
             or os.path.exists(file.replace(".gz", ""))
         ):
             download_file(
-                "http://azuremlsampleexperiments.blob.core.windows.net/criteo/day_"
-                + str(i)
-                + ".gz",
+                "https://storage.googleapis.com/criteo-cail-datasets/day_" + str(i) + ".gz",
                 file,
             )
 

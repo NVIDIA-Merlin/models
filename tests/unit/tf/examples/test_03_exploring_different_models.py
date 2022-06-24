@@ -17,24 +17,36 @@ def test_example_03_exploring_different_models(tb):
     NUM_OF_CELLS = len(tb.cells)
     tb.execute_cell(list(range(0, NUM_OF_CELLS - 5)))
     metrics_ncf = tb.ref("metrics_ncf")
-    assert sorted(list(metrics_ncf.keys())) == [
-        "auc",
-        "loss",
-    ]
+    assert set(metrics_ncf.keys()) == set(
+        [
+            "auc",
+            "loss",
+            "regularization_loss",
+        ]
+    )
     metrics_mlp = tb.ref("metrics_mlp")
-    assert sorted(list(metrics_mlp.keys())) == [
-        "auc_1",
-        "loss",
-    ]
+    assert set(metrics_mlp.keys()) == set(
+        [
+            "auc_1",
+            "loss",
+            "regularization_loss",
+        ]
+    )
     metrics_dlrm = tb.ref("metrics_dlrm")
-    assert sorted(list(metrics_dlrm.keys())) == [
-        "auc_2",
-        "loss",
-    ]
+    assert set(metrics_dlrm.keys()) == set(
+        [
+            "auc_2",
+            "loss",
+            "regularization_loss",
+        ]
+    )
     metrics_dcn = tb.ref("metrics_dcn")
-    assert sorted(list(metrics_dcn.keys())) == [
-        "auc_3",
-        "loss",
-    ]
+    assert set(metrics_dcn.keys()) == set(
+        [
+            "auc_3",
+            "loss",
+            "regularization_loss",
+        ]
+    )
     assert os.path.isfile("results.txt")
     tb.execute_cell(NUM_OF_CELLS - 2)

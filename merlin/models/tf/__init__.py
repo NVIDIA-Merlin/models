@@ -86,13 +86,13 @@ from merlin.models.tf.inputs.embedding import (
     TableConfig,
 )
 from merlin.models.tf.losses import LossType
-from merlin.models.tf.metrics.ranking import (
+from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
     MRRAt,
     NDCGAt,
     PrecisionAt,
     RecallAt,
-    ranking_metrics,
+    TopKMetricsAggregator,
 )
 from merlin.models.tf.models import benchmark
 from merlin.models.tf.models.base import Model, RetrievalModel
@@ -178,7 +178,7 @@ __all__ = [
     "MRRAt",
     "AvgPrecisionAt",
     "RecallAt",
-    "ranking_metrics",
+    "TopKMetricsAggregator",
     "Model",
     "RetrievalModel",
     "InputBlock",

@@ -38,8 +38,7 @@ if TYPE_CHECKING:
         SequentialBlock,
         TabularAggregationType,
     )
-    from merlin.models.tf.models.base import Model, RetrievalModel
-    from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+    from merlin.models.tf.prediction_tasks.base import PredictionTask
 
 
 class PredictionOutput(NamedTuple):
@@ -90,13 +89,13 @@ class ModelContext(Layer):
     (This is created automatically in the model and doesn't need to be created manually.)
     """
 
-    def add_embedding_weight(self, name, **kwargs):
-        table = self.add_weight(name=f"{str(name)}/embedding", **kwargs)
-
-        return table
-
     def add_variable(self, variable):
         setattr(self, variable.name, variable)
+
+    def add_embedding_table(self, name, embedding_table):
+        embedding_tables = getattr(self, "embedding_tables", {})
+        embedding_tables[name] = embedding_table
+        setattr(self, "embedding_tables", embedding_tables)
 
     def set_dtypes(self, features):
         for feature_name in features:
@@ -125,7 +124,9 @@ class ModelContext(Layer):
             item = item.value
         else:
             item = str(item)
-        return self.named_variables[f"{item}/embedding"]
+
+        embedding_tables = getattr(self, "embedding_tables", {})
+        return embedding_tables[item].embeddings
 
     @property
     def named_variables(self) -> Dict[str, tf.Variable]:
@@ -427,7 +428,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         post: Optional[BlockType] = None,
         aggregation: Optional["TabularAggregationType"] = None,
         **kwargs,
-    ) -> Union["SequentialBlock", "Model", "RetrievalModel"]:
+    ) -> "SequentialBlock":
         """Connect the block to one or multiple branches.
 
         Parameters
@@ -465,45 +466,6 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return SequentialBlock(
             [self, ParallelBlock(*_branches, post=post, aggregation=aggregation, **kwargs)]
         )
-
-    def to_model(
-        self,
-        schema: Schema,
-        input_block: Optional[Block] = None,
-        prediction_tasks: Optional[
-            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
-        ] = None,
-        **kwargs,
-    ) -> "Model":
-        """Wrap the block between inputs & outputs to create a model.
-
-        Parameters
-        ----------
-        schema: Schema
-            Schema to use for the model.
-        input_block: Optional[Block]
-            Block to use as input.
-        prediction_tasks: Optional[
-            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
-        ]
-            Prediction tasks to use.
-
-        """
-        from merlin.models.tf.inputs.base import InputBlock
-        from merlin.models.tf.models.base import Model
-        from merlin.models.tf.models.utils import parse_prediction_tasks
-
-        if is_input_block(self.first):
-            if input_block is not None:
-                raise ValueError("The block already includes an InputBlock")
-            input_block = self.first
-
-        aggregation = kwargs.pop("aggregation", "concat")
-        _input_block: Block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
-
-        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-
-        return Model(_input_block, self, prediction_tasks)
 
     def select_by_name(self, name: str) -> Optional["Block"]:
         if name == self.name:
