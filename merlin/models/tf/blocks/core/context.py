@@ -16,11 +16,11 @@
 
 import tensorflow as tf
 
-from merlin.models.config.schema import FeatureCollection
+from merlin.features.collection import Features
 
 
 class FeatureContext:
-    def __init__(self, features: FeatureCollection, mask: tf.Tensor = None):
+    def __init__(self, features: Features, mask: tf.Tensor = None):
         self.features = features
         self._mask = mask
 

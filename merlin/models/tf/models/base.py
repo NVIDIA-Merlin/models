@@ -8,7 +8,7 @@ import tensorflow as tf
 from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
-from merlin.models.config.schema import FeatureCollection
+from merlin.features.collection import Features
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
@@ -196,7 +196,7 @@ class Model(tf.keras.Model):
 
     def call(self, inputs, **kwargs):
         if not kwargs.get("feature_context", None):
-            features = FeatureCollection(self.schema, self.as_dense(inputs))
+            features = Features.from_values_dict(self.schema, self.as_dense(inputs))
             kwargs["feature_context"] = FeatureContext(features)
 
         outputs = call_layer(self.block, inputs, **kwargs)
@@ -405,7 +405,7 @@ class Model(tf.keras.Model):
     def prediction_output(
         self, x, y=None, training=False, testing=False, **kwargs
     ) -> PredictionOutput:
-        features = FeatureCollection(self.schema, self.as_dense(x))
+        features = Features.from_values_dict(self.schema, self.as_dense(x))
         feature_context = FeatureContext(features)
 
         forward = self(
