@@ -17,7 +17,7 @@ from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
-from merlin.models.tf.metrics.ranking import RankingMetric
+from merlin.models.tf.metrics.topk import filter_topk_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
@@ -403,7 +403,7 @@ class Model(tf.keras.Model):
         ]
             Prediction tasks to use.
         """
-        if is_input_block(block.first):
+        if isinstance(block, SequentialBlock) and is_input_block(block.first):
             if input_block is not None:
                 raise ValueError("The block already includes an InputBlock")
             input_block = block.first
@@ -465,9 +465,7 @@ class Model(tf.keras.Model):
         # Run backwards pass.
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-        metrics = self.compute_metrics(
-            x, outputs.targets, outputs.predictions, sample_weight, training=True
-        )
+        metrics = self.compute_metrics(outputs, sample_weight, training=True)
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -485,9 +483,7 @@ class Model(tf.keras.Model):
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
         self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
-        metrics = self.compute_metrics(
-            x, outputs.targets, outputs.predictions, sample_weight, training=False
-        )
+        metrics = self.compute_metrics(outputs, sample_weight, training=False)
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -496,25 +492,18 @@ class Model(tf.keras.Model):
     @tf.function
     def compute_metrics(
         self,
-        x: tf.Tensor,
-        y: tf.Tensor,
-        y_pred: tf.Tensor,
+        prediction_outputs: PredictionOutput,
         sample_weight: tf.Tensor,
         training: bool,
     ) -> Dict[str, tf.Tensor]:
-        """Overrides default Keras Model.compute_metrics()
-           to compute metrics each N steps (and not for all steps)
-           during training
+        """Overrides Model.compute_metrics() for some custom behaviour
+           like compute metrics each N steps during training
+           and allowing to feed additional information required by specific metrics
 
         Parameters
         ----------
-        x : tf.Tensor
-            Input features. Not used, and kept only to align with the signature
-            of super Model.compute_metrics()
-        y : tf.Tensor
-            Target values
-        y_pred : tf.Tensor
-            Predictions values
+        prediction_outputs : PredictionOutput
+            Contains properties with targets and predictions
         sample_weight : tf.Tensor
             Sample weights for weighted metrics
         training : bool
@@ -526,10 +515,26 @@ class Model(tf.keras.Model):
         Dict[str, tf.Tensor]
             Dict with the metrics values
         """
-        del x
-        # During training updates metric states each N steps
-        if self._should_compute_train_metrics_for_batch or not training:
-            self.compiled_metrics.update_state(y, y_pred, sample_weight)
+
+        should_compute_metrics = self._should_compute_train_metrics_for_batch or not training
+        if should_compute_metrics:
+
+            # This ensures that compiled metrics are built
+            # to make self.compiled_metrics.metrics available
+            if not self.compiled_metrics.built:
+                self.compiled_metrics.build(
+                    prediction_outputs.predictions, prediction_outputs.targets
+                )
+
+            # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
+            # should have standard signature for better compatibility with Keras methods
+            # like self.compiled_metrics.update_state()
+            for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
+                topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
+
+            self.compiled_metrics.update_state(
+                prediction_outputs.targets, prediction_outputs.predictions, sample_weight
+            )
         # Returns the current value of metrics
         metrics = self.metrics_results()
         return metrics
@@ -733,7 +738,6 @@ class RetrievalModel(Model):
         return_dict=False,
         **kwargs,
     ):
-        self.has_ranking_metric = any(isinstance(m, RankingMetric) for m in self.metrics)
         self.has_item_corpus = False
 
         if item_corpus:
@@ -748,13 +752,18 @@ class RetrievalModel(Model):
                 item_block = self.retrieval_block.item_block()
 
                 if not getattr(self, "pre_eval_topk", None):
-                    ranking_metrics = list(
-                        [metric for metric in self.metrics if isinstance(metric, RankingMetric)]
-                    )
+                    topk_metrics = filter_topk_metrics(self.metrics)
+                    if len(topk_metrics) == 0:
+                        # TODO: Decouple the evaluation of RetrievalModel from the need of using
+                        # at least one TopkMetric (how to infer the k for TopKIndexBlock?)
+                        raise ValueError(
+                            "RetrievalModel evaluation requires at least "
+                            "one TopkMetric (e.g., RecallAt(5), NDCGAt(10))."
+                        )
                     self.pre_eval_topk = TopKIndexBlock.from_block(
                         item_block,
                         data=item_corpus,
-                        k=tf.reduce_max([metric.k for metric in ranking_metrics]),
+                        k=tf.reduce_max([metric.k for metric in topk_metrics]),
                         context=self.context,
                         **kwargs,
                     )
@@ -892,11 +901,9 @@ class RetrievalModel(Model):
 
         if isinstance(item_corpus, merlin.io.Dataset):
             if not k:
-                ranking_metrics = list(
-                    [metric for metric in self.metrics if isinstance(metric, RankingMetric)]
-                )
-                if ranking_metrics:
-                    k = tf.reduce_max([metric.k for metric in ranking_metrics])
+                topk_metrics = filter_topk_metrics(self.metrics)
+                if topk_metrics:
+                    k = tf.reduce_max([metric.k for metric in topk_metrics])
                 else:
                     raise ValueError("You must specify a k for the Top-k Recommender.")
 
