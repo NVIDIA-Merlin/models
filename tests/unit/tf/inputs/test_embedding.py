@@ -36,6 +36,20 @@ def test_embedding_features(tf_cat_features):
     assert all([emb.shape[-1] == dim for emb in embeddings.values()])
 
 
+def test_embedding_features_tables():
+    feature_config = {
+        "cat_a": mm.FeatureConfig(mm.TableConfig(100, 32, name="cat_a", initializer=None)),
+        "cat_b": mm.FeatureConfig(mm.TableConfig(64, 16, name="cat_b", initializer=None)),
+    }
+    embeddings = mm.EmbeddingFeatures(feature_config)
+
+    assert embeddings.embedding_tables["cat_a"].input_dim == 100
+    assert embeddings.embedding_tables["cat_a"].output_dim == 32
+
+    assert embeddings.embedding_tables["cat_b"].input_dim == 64
+    assert embeddings.embedding_tables["cat_b"].output_dim == 16
+
+
 def test_embedding_features_yoochoose(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
