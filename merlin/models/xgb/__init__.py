@@ -243,6 +243,8 @@ def get_features(schema: Schema):
         warnings.warn(f"Ignoring list columns as inputs to XGBoost model: {list_column_names}.")
 
     feature_columns = schema.excluding_by_name(list_column_names + all_target_columns).column_names
+    if len(feature_columns) == 0:
+        raise ValueError("No feature columns found in schema.")
 
     return feature_columns
 
