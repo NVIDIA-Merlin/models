@@ -230,6 +230,8 @@ def get_targets(schema: Schema, target_tag: Tags) -> List[str]:
 
 
 def get_features(schema: Schema):
+    """Find feature columns from schema. Returns all non-list column names from the schema
+    that are not tagged as targets."""
     all_target_columns = schema.select_by_tag(Tags.TARGET).column_names
 
     # Ignore list-like columns from schema
