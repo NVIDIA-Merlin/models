@@ -21,9 +21,12 @@ from typing import Any, Callable, Dict, Optional, Union
 import tensorflow as tf
 from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
+from tensorflow.python.keras.layers import Embedding
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 import merlin.io
+from merlin.core.dispatch import DataFrameType
+from merlin.io import Dataset
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.tabular import (
@@ -40,7 +43,11 @@ from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSpar
 from merlin.models.tf.typing import TabularData
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import Schema, Tags, TagsType
+from merlin.models.utils.schema_utils import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
+from merlin.schema import ColumnSchema, Schema, Tags, TagsType
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     feature_config: Dict[str, FeatureConfig]
@@ -49,6 +56,146 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     item_id: str, optional
         The name of the feature that's used for the item_id.
 """
+
+
+# table = EmbeddingTable(100, col)
+# table = EmbeddingTable.from_col_schema(100, col)
+
+# table = EmbeddingTable(100)
+# table.add_feature(col)
+# {"user-id": ..., "item-id": ...}
+
+
+class EmbeddingTableBase(Block):
+    def __init__(self, dim: int, col_schema: ColumnSchema, trainable=True, **kwargs):
+        super(EmbeddingTableBase, self).__init__(trainable=trainable, **kwargs)
+        self.dim = dim
+
+        # Do validation of col_schema
+        if not col_schema.int_domain:
+            raise ValueError("`col_schema` needs to have a int-domain")
+
+        self.col_schema = col_schema
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        data: Union[Dataset, DataFrameType],
+        col_schema: Optional[ColumnSchema] = None,
+        trainable=True,
+        **kwargs,
+    ):
+        raise NotImplementedError()
+
+    @property
+    def input_dim(self):
+        return self.col_schema.int_domain.max + 1
+
+    def get_config(self):
+        config = super().get_config()
+        config["dim"] = self.dim
+
+        schema = schema_to_tensorflow_metadata_json(Schema([self.col_schema]))
+        config["schema"] = schema
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
+        col_schema = schema.first
+
+        return cls(col_schema=col_schema, **config)
+
+
+class EmbeddingTable(EmbeddingTableBase):
+    def __init__(
+        self,
+        dim: int,
+        col_schema: ColumnSchema,
+        embeddings_initializer="uniform",
+        embeddings_regularizer=None,
+        activity_regularizer=None,
+        embeddings_constraint=None,
+        mask_zero=False,
+        input_length=None,
+        combiner: str = "mean",
+        **kwargs,
+    ):
+        if "table" in kwargs:
+            self.table = kwargs.pop("table")
+        else:
+            self.table_kwargs = dict(
+                embeddings_initializer=embeddings_initializer,
+                embeddings_regularizer=embeddings_regularizer,
+                activity_regularizer=activity_regularizer,
+                embeddings_constraint=embeddings_constraint,
+                mask_zero=mask_zero,
+                supports_masking=mask_zero,
+                input_length=input_length,
+            )
+
+        super(EmbeddingTable, self).__init__(dim, col_schema, **kwargs)
+        self.combiner = combiner
+
+    def build(self, input_shapes):
+        if not getattr(self, "table"):
+            self.table = Embedding(
+                input_dim=self.input_dim,
+                output_dim=self.dim,
+                name=self.col_schema.name,
+                **self.table_kwargs,
+            )
+
+        return super(EmbeddingTable, self).build(input_shapes)
+
+    def call(self, inputs):
+        dtype = backend.dtype(inputs)
+        if dtype != "int32" and dtype != "int64":
+            inputs = tf.cast(inputs, "int32")
+
+        if isinstance(inputs, tf.SparseTensor):
+            out = tf.nn.safe_embedding_lookup_sparse(
+                self.table, inputs, None, combiner=self.combiner
+            )
+        else:
+            if self.options.max_seq_length:
+                out = tf.gather(self.table, tf.cast(inputs, tf.int32))
+            else:
+                if len(inputs.shape) > 1:
+                    # TODO: Check if it is correct to retrieve only the 1st element
+                    # of second dim for non-sequential multi-hot categ features
+                    out = tf.gather(self.table, tf.cast(inputs, tf.int32)[:, 0])
+                else:
+                    out = tf.gather(self.table, tf.cast(inputs, tf.int32))
+        if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
+            # Instead of casting the variable as in most layers, cast the output, as
+            # this is mathematically equivalent but is faster.
+            out = tf.cast(out, self._dtype_policy.compute_dtype)
+
+        return out
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        data: Union[Dataset, DataFrameType],
+        col_schema: Optional[ColumnSchema] = None,
+        trainable=True,
+        **kwargs,
+    ):
+        pass
+
+    @classmethod
+    def from_config(cls, config):
+        config["table"] = tf.keras.utils.deserialize_keras_object(config["table"])
+
+        return super().from_config(config)
+
+    def get_config(self):
+        config = super().get_config()
+        config["table"] = tf.keras.utils.serialize_keras_object(self.table)
+
+        return config
 
 
 @dataclass
