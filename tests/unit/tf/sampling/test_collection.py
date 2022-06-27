@@ -1,17 +1,18 @@
 from tensorflow.keras.layers import Layer
 
-from merlin.io import Dataset
-from merlin.schema import Tags
 import merlin.models.tf as mm
-from merlin.models.tf.blocks.core.items import Items
+from merlin.io import Dataset
+from merlin.models.tf.sampling.collection import ItemCollection
+from merlin.schema import Tags
 
-class ToItems(Layer):
+
+class ToItemCollection(Layer):
     def __init__(self, schema, **kwargs):
-        super(ToItems, self).__init__(**kwargs)
+        super(ToItemCollection, self).__init__(**kwargs)
         self.schema = schema
 
-    def call(self, inputs):
-        return Items.from_schema(self.schema, inputs)
+    def call(self, inputs) -> ItemCollection:
+        return ItemCollection.from_features(self.schema, inputs)
 
 
 def test_simple_creation_of_items(music_streaming_data: Dataset):
@@ -20,17 +21,17 @@ def test_simple_creation_of_items(music_streaming_data: Dataset):
         music_streaming_data, batch_size=10, include_targets=False, to_dense=True
     )
 
-    items = Items.from_schema(schema, features)
+    items = ItemCollection.from_features(schema, features)
 
     id_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
     assert features[id_name].ref() == items.ids.ref()
 
     metadata_names = schema.select_by_tag(Tags.ITEM).remove_by_tag(Tags.ITEM_ID)
-    assert all(name in items.metadata for name in metadata_names.column_names)
+    assert all(name in items.features for name in metadata_names.column_names)
 
-    shape = items.shape
+    assert all(name in items.shape for name in metadata_names.column_names)
 
-    to_items = ToItems(schema)
+    to_items = ToItemCollection(schema)
     out = to_items(features)
 
-    a = 5
+    assert out is not None
