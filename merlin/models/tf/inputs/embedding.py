@@ -28,7 +28,7 @@ import merlin.io
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
 from merlin.models.tf.blocks.core.base import Block, BlockType
-from merlin.models.tf.blocks.core.combinators import SequentialBlock
+from merlin.models.tf.blocks.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.blocks.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Filter,
@@ -41,9 +41,11 @@ from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSpar
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils.tf_utils import TensorInitializer
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
+    create_categorical_column,
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
 )
@@ -59,7 +61,6 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
 
 
 # table = EmbeddingTable(100, col)
-# table = EmbeddingTable.from_col_schema(100, col)
 
 # table = EmbeddingTable(100)
 # table.add_feature(col)
@@ -109,6 +110,51 @@ class EmbeddingTableBase(Block):
 
 
 class EmbeddingTable(EmbeddingTableBase):
+    """Embedding table that is backed by a standard Keras Embedding Layer.
+
+     Parameters
+     ----------
+     dim: Dimension of the dense embedding.
+     col_schema: ColumnSchema
+         Schema of the column. This is used to infer the cardinality.
+     embeddings_initializer: Initializer for the `embeddings`
+       matrix (see `keras.initializers`).
+     embeddings_regularizer: Regularizer function applied to
+       the `embeddings` matrix (see `keras.regularizers`).
+     embeddings_constraint: Constraint function applied to
+       the `embeddings` matrix (see `keras.constraints`).
+     mask_zero: Boolean, whether or not the input value 0 is a special "padding"
+       value that should be masked out.
+       This is useful when using recurrent layers
+       which may take variable length input.
+       If this is `True`, then all subsequent layers
+       in the model need to support masking or an exception will be raised.
+       If mask_zero is set to True, as a consequence, index 0 cannot be
+       used in the vocabulary (input_dim should equal size of
+       vocabulary + 1).
+     input_length: Length of input sequences, when it is constant.
+       This argument is required if you are going to connect
+       `Flatten` then `Dense` layers upstream
+       (without it, the shape of the dense outputs cannot be computed).
+    combiner: A string specifying how to combine embedding results for each
+       entry. Currently "mean", "sqrtn" and "sum" are supported.
+       Default is None (no combiner used)
+    trainable: Boolean, whether the layer's variables should be trainable.
+    name: String name of the layer.
+    dtype: The dtype of the layer's computations and weights. Can also be a
+       `tf.keras.mixed_precision.Policy`, which allows the computation and weight
+       dtype to differ. Default of `None` means to use
+       `tf.keras.mixed_precision.global_policy()`, which is a float32 policy
+       unless set to different value.
+    dynamic: Set this to `True` if your layer should only be run eagerly, and
+       should not be used to generate a static computation graph.
+       This would be the case for a Tree-RNN or a recursive network,
+       for example, or generally for any layer that manipulates tensors
+       using Python control flow. If `False`, we assume that the layer can
+       safely be used to generate a static computation graph.
+    **kwargs: Forwarded Keras Layer parameters
+    """
+
     def __init__(
         self,
         dim: int,
@@ -119,7 +165,11 @@ class EmbeddingTable(EmbeddingTableBase):
         embeddings_constraint=None,
         mask_zero=False,
         input_length=None,
-        combiner: str = "mean",
+        combiner: Optional[str] = None,
+        trainable=True,
+        name=None,
+        dtype=None,
+        dynamic=False,
         **kwargs,
     ):
         if "table" in kwargs:
@@ -135,8 +185,29 @@ class EmbeddingTable(EmbeddingTableBase):
                 input_length=input_length,
             )
 
-        super(EmbeddingTable, self).__init__(dim, col_schema, **kwargs)
+        super(EmbeddingTable, self).__init__(
+            dim, col_schema, trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs
+        )
         self.combiner = combiner
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        data: Union[Dataset, DataFrameType],
+        trainable=True,
+        name=None,
+        **kwargs,
+    ):
+        initializer = TensorInitializer.from_dataset(data)
+        num_items, dim = tuple(initializer._weights.shape)
+
+        col_schema = kwargs.get("col_schema", None)
+        if not col_schema:
+            if not name:
+                raise ValueError("`name` is required when not using a ColumnSchema")
+            col_schema = create_categorical_column(name, num_items)
+
+        return cls(dim, col_schema, name=name, **kwargs)
 
     def build(self, input_shapes):
         if not getattr(self, "table"):
@@ -154,36 +225,22 @@ class EmbeddingTable(EmbeddingTableBase):
         if dtype != "int32" and dtype != "int64":
             inputs = tf.cast(inputs, "int32")
 
-        if isinstance(inputs, tf.SparseTensor):
+        if self.combiner and isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
+            if isinstance(inputs, tf.RaggedTensor):
+                inputs = inputs.to_sparse()
             out = tf.nn.safe_embedding_lookup_sparse(
                 self.table, inputs, None, combiner=self.combiner
             )
+            if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
+                # Instead of casting the variable as in most layers, cast the output, as
+                # this is mathematically equivalent but is faster.
+                out = tf.cast(out, self._dtype_policy.compute_dtype)
         else:
-            if self.options.max_seq_length:
-                out = tf.gather(self.table, tf.cast(inputs, tf.int32))
-            else:
-                if len(inputs.shape) > 1:
-                    # TODO: Check if it is correct to retrieve only the 1st element
-                    # of second dim for non-sequential multi-hot categ features
-                    out = tf.gather(self.table, tf.cast(inputs, tf.int32)[:, 0])
-                else:
-                    out = tf.gather(self.table, tf.cast(inputs, tf.int32))
-        if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
-            # Instead of casting the variable as in most layers, cast the output, as
-            # this is mathematically equivalent but is faster.
-            out = tf.cast(out, self._dtype_policy.compute_dtype)
+            if self.combiner:
+                raise ValueError("Combining is not possible when a dense-tensor is passed in.")
+            out = self.table(inputs)
 
         return out
-
-    @classmethod
-    def from_pretrained(
-        cls,
-        data: Union[Dataset, DataFrameType],
-        col_schema: Optional[ColumnSchema] = None,
-        trainable=True,
-        **kwargs,
-    ):
-        pass
 
     @classmethod
     def from_config(cls, config):
@@ -196,6 +253,29 @@ class EmbeddingTable(EmbeddingTableBase):
         config["table"] = tf.keras.utils.serialize_keras_object(self.table)
 
         return config
+
+
+def InferEmbeddings(
+    schema,
+    pre=None,
+    post=None,
+    aggregation=None,
+    block_name="embeddings",
+    default_combiner: str = "mean",
+):
+    cols = schema.select_by_tag(Tags.CATEGORICAL)
+    tables = []
+
+    for col in cols:
+        combiner = None
+        if Tags.SEQUENCE in col.tags:
+            combiner = default_combiner
+
+        tables.append(EmbeddingTable(32, col, combiner=combiner))
+
+    return ParallelBlock(
+        *tables, pre=pre, post=post, aggregation=aggregation, block_name=block_name
+    )
 
 
 @dataclass
