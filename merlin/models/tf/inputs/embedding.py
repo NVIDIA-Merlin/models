@@ -170,24 +170,30 @@ class EmbeddingTable(EmbeddingTableBase):
         name=None,
         dtype=None,
         dynamic=False,
+        table=None,
         **kwargs,
     ):
-        if "table" in kwargs:
-            self.table = kwargs.pop("table")
+        """Create an EmbeddingTable."""
+        super(EmbeddingTable, self).__init__(
+            dim, col_schema, trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs
+        )
+        if table is not None:
+            self.table = table
         else:
-            self.table_kwargs = dict(
+            table_kwargs = dict(
                 embeddings_initializer=embeddings_initializer,
                 embeddings_regularizer=embeddings_regularizer,
                 activity_regularizer=activity_regularizer,
                 embeddings_constraint=embeddings_constraint,
                 mask_zero=mask_zero,
-                supports_masking=mask_zero,
                 input_length=input_length,
             )
-
-        super(EmbeddingTable, self).__init__(
-            dim, col_schema, trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs
-        )
+            self.table = Embedding(
+                input_dim=self.input_dim,
+                output_dim=self.dim,
+                name=self.col_schema.name,
+                **table_kwargs,
+            )
         self.combiner = combiner
 
     @classmethod
@@ -198,6 +204,17 @@ class EmbeddingTable(EmbeddingTableBase):
         name=None,
         **kwargs,
     ):
+        """Create From pre-trained embeddings from a Dataset or DataFrame.
+
+        Parameters
+        ----------
+        data : Union[Dataset, DataFrameType]
+            A dataset containing the pre-trained embedding weights
+        trainable : bool
+            Whether the layer should be trained or not.
+        name : str
+            The name of the layer.
+        """
         initializer = TensorInitializer.from_dataset(data)
         num_items, dim = tuple(initializer._weights.shape)
 
@@ -210,47 +227,65 @@ class EmbeddingTable(EmbeddingTableBase):
         return cls(dim, col_schema, name=name, **kwargs)
 
     def build(self, input_shapes):
-        if not getattr(self, "table"):
-            self.table = Embedding(
-                input_dim=self.input_dim,
-                output_dim=self.dim,
-                name=self.col_schema.name,
-                **self.table_kwargs,
-            )
-
+        """Creates state between layer instantiation and layer call.
+        Invoked automatically before the first execution of `call()`.
+        """
+        self.table.build(())
         return super(EmbeddingTable, self).build(input_shapes)
 
     def call(self, inputs):
+        """
+        Parameters
+        ----------
+        inputs : Union[tf.Tensor, tf.RaggedTensor, tf.SparseTensor]
+            Tensors representing the input batch
+
+        Returns
+        -------
+        A tensor corresponding to the embeddings for inputs
+        """
         dtype = backend.dtype(inputs)
         if dtype != "int32" and dtype != "int64":
             inputs = tf.cast(inputs, "int32")
 
-        if self.combiner and isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
+        if self.combiner:
+            if not isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
+                raise ValueError(
+                    "Combiner only supported for RaggedTensor and SparseTensor. "
+                    f"Received: {type(inputs)}"
+                )
             if isinstance(inputs, tf.RaggedTensor):
                 inputs = inputs.to_sparse()
             out = tf.nn.safe_embedding_lookup_sparse(
-                self.table, inputs, None, combiner=self.combiner
+                self.table.embeddings, inputs, None, combiner=self.combiner
             )
             if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
                 # Instead of casting the variable as in most layers, cast the output, as
                 # this is mathematically equivalent but is faster.
                 out = tf.cast(out, self._dtype_policy.compute_dtype)
         else:
-            if self.combiner:
-                raise ValueError("Combining is not possible when a dense-tensor is passed in.")
+            if not isinstance(inputs, (tf.RaggedTensor, tf.Tensor)):
+                raise ValueError(
+                    "EmbeddingTable supports only RaggedTensor and Tensor input types. "
+                    f"Received: {type(inputs)}"
+                )
             out = self.table(inputs)
 
         return out
 
     @classmethod
     def from_config(cls, config):
-        config["table"] = tf.keras.utils.deserialize_keras_object(config["table"])
+        config["table"] = tf.keras.utils.deserialize_keras_object(
+            config["table"],
+            custom_objects={"Embedding": Embedding},
+        )
 
         return super().from_config(config)
 
     def get_config(self):
         config = super().get_config()
         config["table"] = tf.keras.utils.serialize_keras_object(self.table)
+        config["combiner"] = self.combiner
 
         return config
 
@@ -273,9 +308,7 @@ def InferEmbeddings(
 
         tables.append(EmbeddingTable(32, col, combiner=combiner))
 
-    return ParallelBlock(
-        *tables, pre=pre, post=post, aggregation=aggregation, block_name=block_name
-    )
+    return ParallelBlock(*tables, pre=pre, post=post, aggregation=aggregation, name=block_name)
 
 
 @dataclass
