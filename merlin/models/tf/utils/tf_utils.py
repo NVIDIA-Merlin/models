@@ -325,7 +325,7 @@ class TensorInitializer(tf.keras.initializers.Initializer):
         return weights
 
     @classmethod
-    def from_dataset(cls, data: Union[Dataset, DataFrameType], **kwargs) -> TensorInitializer:
+    def from_dataset(cls, data: Union[Dataset, DataFrameType], **kwargs) -> "TensorInitializer":
         if hasattr(data, "to_ddf"):
             data = data.to_ddf().compute()
         embeddings = tf_utils.df_to_tensor(data)
