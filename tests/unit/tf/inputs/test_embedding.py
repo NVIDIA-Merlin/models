@@ -16,12 +16,13 @@
 
 import numpy as np
 import pytest
+import tensorflow as tf
 from tensorflow.keras.initializers import RandomUniform
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
+from merlin.schema import ColumnSchema, Tags
 
 
 def test_embedding_features(tf_cat_features):
@@ -48,6 +49,67 @@ def test_embedding_features_tables():
 
     assert embeddings.embedding_tables["cat_b"].input_dim == 64
     assert embeddings.embedding_tables["cat_b"].output_dim == 16
+
+
+class TestEmbeddingTable:
+    sample_column_schema = ColumnSchema(
+        "item_id",
+        dtype=np.int32,
+        properties={"domain": {"min": 0, "max": 10, "name": "item_id"}},
+        tags=[Tags.CATEGORICAL],
+    )
+
+    def test_raises_with_invalid_schema(self):
+        column_schema = ColumnSchema(["item_id"])
+        with pytest.raises(ValueError) as exc_info:
+            mm.EmbeddingTable(16, column_schema)
+        assert "needs to have int-domain" in str(exc_info)
+
+    @pytest.mark.parametrize(
+        ["dim", "kwargs", "inputs", "expected_output_shape"],
+        [
+            (32, {}, tf.constant([1]), [1, 32]),
+            (16, {}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, None, 16]),
+            (16, {"combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
+            (16, {"combiner": "mean"}, tf.sparse.from_dense(tf.constant([[1, 2, 3]])), [1, 16]),
+        ],
+    )
+    def test_layer(self, dim, kwargs, inputs, expected_output_shape):
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(dim, column_schema, **kwargs)
+
+        output = layer(inputs)
+        assert output.shape == tf.TensorShape(expected_output_shape)
+
+        layer_config = layer.get_config()
+        layer = mm.EmbeddingTable.from_config(layer_config)
+
+        output = layer(inputs)
+        assert output.shape == tf.TensorShape(expected_output_shape)
+
+    def test_dense_with_combiner(self):
+        dim = 16
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(dim, column_schema, combiner="mean")
+
+        inputs = tf.constant([1])
+        with pytest.raises(ValueError) as exc_info:
+            layer(inputs)
+
+        assert "Combiner only supported for RaggedTensor and SparseTensor." in str(exc_info.value)
+
+    def test_sparse_without_combiner(self):
+        dim = 16
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(dim, column_schema)
+
+        inputs = tf.sparse.from_dense(tf.constant([[1, 2, 3]]))
+        with pytest.raises(ValueError) as exc_info:
+            layer(inputs)
+
+        assert "EmbeddingTable supports only RaggedTensor and Tensor input types." in str(
+            exc_info.value
+        )
 
 
 def test_embedding_features_yoochoose(testing_data: Dataset):
