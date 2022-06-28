@@ -135,3 +135,30 @@ def test_gpu_hist_dmatrix(
     assert params["tree_method"] == "gpu_hist"
     assert params["objective"] == "reg:logistic"
     assert isinstance(dtrain, expected_dtrain_cls)
+
+
+@pytest.mark.usefixtures("dask_client")
+class TestSchema:
+    def test_fit_with_sub_schema(self, music_streaming_data: Dataset):
+        schema = music_streaming_data.schema
+        sub_schema = schema.select_by_name(["session_id", "country", "play_percentage"])
+        model = XGBoost(sub_schema, objective="reg:logistic")
+        model.fit(music_streaming_data)
+        assert model.booster.num_features() == 2
+
+    def test_no_features(self, music_streaming_data: Dataset):
+        schema = music_streaming_data.schema
+        sub_schema = schema.select_by_name(["unknown_feature", "play_percentage"])
+        with pytest.raises(ValueError) as excinfo:
+            XGBoost(sub_schema, objective="reg:logistic")
+        assert "No feature columns found" in str(excinfo.value)
+
+    def test_fit_with_missing_features(self, music_streaming_data: Dataset):
+        schema = music_streaming_data.schema
+        sub_schema = schema.select_by_name(["session_id", "play_percentage"])
+        model = XGBoost(sub_schema, objective="reg:logistic")
+        df = music_streaming_data.to_ddf().compute()
+        new_dataset = Dataset(df[["click", "play_percentage"]])
+        with pytest.raises(KeyError) as excinfo:
+            model.fit(new_dataset)
+        assert "session_id" in str(excinfo)
