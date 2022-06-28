@@ -91,7 +91,7 @@ class AddRandomNegativesToBatch(Block):
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
 
-    def call(self, inputs: TabularData):
+    def call(self, inputs: TabularData) -> TabularData:
         # 1. Select item-features -> ItemCollection
         batch_size = list(inputs.values())[0].shape[0]
         items = ItemCollection.from_features(self.schema, inputs)
