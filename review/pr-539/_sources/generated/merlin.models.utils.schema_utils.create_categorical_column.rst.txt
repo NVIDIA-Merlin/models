@@ -1,0 +1,6 @@
+﻿merlin.models.utils.schema\_utils.create\_categorical\_column
+=============================================================
+
+.. currentmodule:: merlin.models.utils.schema_utils
+
+.. autofunction:: create_categorical_column
