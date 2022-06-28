@@ -98,6 +98,22 @@ class EmbeddingFeatures(TabularBlock):
             pre = [embedding_pre, pre] if pre else embedding_pre  # type: ignore
         self.feature_config = feature_config
         self.l2_reg = l2_reg
+
+        self.embedding_tables = {}
+        tables: Dict[str, TableConfig] = {}
+        for _, feature in self.feature_config.items():
+            table: TableConfig = feature.table
+            if table.name not in tables:
+                tables[table.name] = table
+
+        for table_name, table in tables.items():
+            self.embedding_tables[table_name] = tf.keras.layers.Embedding(
+                table.vocabulary_size,
+                table.dim,
+                name=table_name,
+                embeddings_initializer=table.initializer,
+            )
+
         super().__init__(
             pre=pre,
             post=post,
@@ -200,22 +216,8 @@ class EmbeddingFeatures(TabularBlock):
         return output
 
     def build(self, input_shapes):
-        self.embedding_tables = {}
-        tables: Dict[str, TableConfig] = {}
-        for name, feature in self.feature_config.items():
-            table: TableConfig = feature.table
-            if table.name not in tables:
-                tables[table.name] = table
-
-        for name, table in tables.items():
-            self.embedding_tables[name] = tf.keras.layers.Embedding(
-                table.vocabulary_size,
-                table.dim,
-                name=name,
-                embeddings_initializer=table.initializer,
-            )
-
-            self.embedding_tables[name].build(())
+        for name, embedding_table in self.embedding_tables.items():
+            embedding_table.build(())
 
             if hasattr(self, "_context"):
                 self._context.add_embedding_table(name, self.embedding_tables[name])
