@@ -162,3 +162,11 @@ class TestSchema:
         with pytest.raises(KeyError) as excinfo:
             model.fit(new_dataset)
         assert "session_id" in str(excinfo)
+
+
+@patch("xgboost.dask.train", side_effect=xgboost.dask.train)
+def test_custom_evals(mock_train, dask_client, music_streaming_data: Dataset):
+    schema = music_streaming_data.schema
+    model = XGBoost(schema, objective="reg:logistic")
+    model.fit(music_streaming_data, evals=[(music_streaming_data, "example")])
+    assert set(model.evals_result.keys()) == {"example"}

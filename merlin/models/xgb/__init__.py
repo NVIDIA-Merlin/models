@@ -67,7 +67,7 @@ class XGBoost:
         if objective.startswith("rank") and qid_column is None:
             qid_column = schema.select_by_tag(Tags.USER_ID).column_names[0]
         self.qid_column = qid_column
-
+        self.evals_result = {}
         self.booster = booster
 
     @property
@@ -78,6 +78,7 @@ class XGBoost:
         self,
         train: Dataset,
         *,
+        evals=None,
         use_quantile=True,
         **train_kwargs,
     ) -> xgb.Booster:
@@ -93,6 +94,8 @@ class XGBoost:
             The training dataset to use to fit the model.
             We will use the column(s) tagged with merlin.schema.Tags.TARGET that match the
             objective as the label(s).
+        evals : List[Tuple[Dataset, str]]
+            List of tuples of datasets to watch
         use_quantile : bool
             This param is only relevant when using GPU.  (with
             tree_method="gpu_hist"). If set to False, will use a
@@ -125,14 +128,33 @@ class XGBoost:
             dmatrix_cls = xgb.dask.DaskDeviceQuantileDMatrix
 
         dtrain = dmatrix_cls(self.dask_client, X, label=y, qid=qid)
-        watchlist = [(dtrain, "train")]
+        watchlist = []
 
-        booster: xgb.Booster = xgb.dask.train(
+        if evals is None:
+            evals = [(train, "train")]
+
+        for _eval in evals:
+            assert len(_eval) == 2
+            dataset, name = _eval
+            if dataset == train:
+                watchlist.append((dtrain, name))
+                continue
+            assert isinstance(dataset, Dataset)
+            X, y, qid = dataset_to_xy(
+                dataset,
+                self.target_columns,
+                self.qid_column,
+            )
+            d_eval = dmatrix_cls(self.dask_client, X, label=y, qid=qid)
+            watchlist.append((d_eval, name))
+
+        train_res = xgb.dask.train(
             self.dask_client, self.params, dtrain, evals=watchlist, **train_kwargs
-        )["booster"]
-        self.booster = booster
+        )
+        self.booster: xgb.Booster = train_res["booster"]
+        self.evals_result = train_res["history"]
 
-        return booster
+        return self.booster
 
     def evaluate(self, dataset: Dataset, **predict_kwargs) -> Dict[str, float]:
         """Evaluates the model on the dataset provided.
