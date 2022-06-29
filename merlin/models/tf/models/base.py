@@ -21,7 +21,7 @@ from merlin.models.tf.metrics.topk import filter_topk_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
-from merlin.models.tf.utils.tf_utils import call_layer
+from merlin.models.tf.utils.tf_utils import call_layer, maybe_deserialize_keras_objects
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
@@ -167,8 +167,10 @@ class ModelBlock(Block, tf.keras.Model):
 class Model(tf.keras.Model):
     def __init__(
         self,
-        *blocks: Block,
+        *blocks: tf.keras.layers.Layer,
         context: Optional[ModelContext] = None,
+        pre: Optional[tf.keras.layers.Layer] = None,
+        post: Optional[tf.keras.layers.Layer] = None,
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
@@ -181,6 +183,8 @@ class Model(tf.keras.Model):
             self.block._set_context(context)
         self.context = context
         self._is_fitting = False
+        self.pre = pre
+        self.post = post
 
         input_block_schemas = [
             block.schema for block in self.block.submodules if getattr(block, "is_input", False)
@@ -203,7 +207,14 @@ class Model(tf.keras.Model):
             features = FeatureCollection(self.schema, self.as_dense(inputs))
             kwargs["feature_context"] = FeatureContext(features)
 
+        if self.pre:
+            inputs = call_layer(self.pre, inputs, **kwargs)
+
         outputs = call_layer(self.block, inputs, **kwargs)
+
+        if self.post:
+            inputs = call_layer(self.post, inputs, **kwargs)
+
         return outputs
 
     def compile(
@@ -702,11 +713,15 @@ class Model(tf.keras.Model):
     @classmethod
     def from_config(cls, config, custom_objects=None):
         block = tf.keras.utils.deserialize_keras_object(config.pop("block"))
+        config = maybe_deserialize_keras_objects(config, ["pre", "post"])
 
         return cls(block, **config)
 
     def get_config(self):
-        return {"block": tf.keras.utils.serialize_keras_object(self.block)}
+        config = {"block": tf.keras.utils.serialize_keras_object(self.block)}
+        config = maybe_deserialize_keras_objects(config, ["pre", "post"])
+
+        return config
 
 
 @runtime_checkable
