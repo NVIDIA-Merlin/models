@@ -202,6 +202,7 @@ class EmbeddingTable(EmbeddingTableBase):
         data: Union[Dataset, DataFrameType],
         trainable=True,
         name=None,
+        col_schema=None,
         **kwargs,
     ):
         """Create From pre-trained embeddings from a Dataset or DataFrame.
@@ -218,7 +219,6 @@ class EmbeddingTable(EmbeddingTableBase):
         initializer = TensorInitializer.from_dataset(data)
         num_items, dim = tuple(initializer._weights.shape)
 
-        col_schema = kwargs.get("col_schema", None)
         if not col_schema:
             if not name:
                 raise ValueError("`name` is required when not using a ColumnSchema")
