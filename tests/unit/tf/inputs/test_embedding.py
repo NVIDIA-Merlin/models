@@ -15,6 +15,7 @@
 #
 
 import numpy as np
+import pandas as pd
 import pytest
 import tensorflow as tf
 from tensorflow.keras.initializers import RandomUniform
@@ -22,9 +23,8 @@ from tensorflow.keras.initializers import RandomUniform
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import ColumnSchema, Tags
-
 from merlin.models.tf.utils.testing_utils import model_test
+from merlin.schema import ColumnSchema, Tags
 
 
 def test_embedding_features(tf_cat_features):
@@ -135,7 +135,20 @@ class TestEmbeddingTable:
         pass
 
     def test_pretrained_embedding_table(self):
-        pass
+        vocab_size = 16
+        embedding_dim = 10
+        weights = np.random.rand(vocab_size, embedding_dim)
+        pre_trained_weights_df = pd.DataFrame(weights)
+
+        embedding_table = mm.EmbeddingTable.from_pretrained(pre_trained_weights_df, name="item_id")
+
+        assert embedding_table.input_dim == 16
+
+        inputs = tf.constant([1])
+        output = embedding_table(inputs)
+
+        assert list(output.shape) == [1, 10]
+        np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
 
 def test_embedding_features_yoochoose(testing_data: Dataset):
