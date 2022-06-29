@@ -21,7 +21,6 @@ from typing import Any, Callable, Dict, Optional, Union
 import tensorflow as tf
 from tensorflow.python import to_dlpack
 from tensorflow.python.keras import backend
-from tensorflow.python.keras.layers import Embedding
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 import merlin.io
@@ -109,6 +108,7 @@ class EmbeddingTableBase(Block):
         return cls(col_schema=col_schema, **config)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingTable(EmbeddingTableBase):
     """Embedding table that is backed by a standard Keras Embedding Layer.
 
@@ -188,7 +188,7 @@ class EmbeddingTable(EmbeddingTableBase):
                 mask_zero=mask_zero,
                 input_length=input_length,
             )
-            self.table = Embedding(
+            self.table = tf.keras.layers.Embedding(
                 input_dim=self.input_dim,
                 output_dim=self.dim,
                 name=self.col_schema.name,
@@ -275,10 +275,7 @@ class EmbeddingTable(EmbeddingTableBase):
 
     @classmethod
     def from_config(cls, config):
-        config["table"] = tf.keras.utils.deserialize_keras_object(
-            config["table"],
-            custom_objects={"Embedding": Embedding},
-        )
+        config["table"] = tf.keras.layers.deserialize(config["table"])
 
         return super().from_config(config)
 
@@ -288,27 +285,6 @@ class EmbeddingTable(EmbeddingTableBase):
         config["combiner"] = self.combiner
 
         return config
-
-
-def InferEmbeddings(
-    schema,
-    pre=None,
-    post=None,
-    aggregation=None,
-    block_name="embeddings",
-    default_combiner: str = "mean",
-):
-    cols = schema.select_by_tag(Tags.CATEGORICAL)
-    tables = []
-
-    for col in cols:
-        combiner = None
-        if Tags.SEQUENCE in col.tags:
-            combiner = default_combiner
-
-        tables.append(EmbeddingTable(32, col, combiner=combiner))
-
-    return ParallelBlock(*tables, pre=pre, post=post, aggregation=aggregation, name=block_name)
 
 
 @dataclass

@@ -24,6 +24,8 @@ from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import ColumnSchema, Tags
 
+from merlin.models.tf.utils.testing_utils import model_test
+
 
 def test_embedding_features(tf_cat_features):
     dim = 15
@@ -63,7 +65,7 @@ class TestEmbeddingTable:
         column_schema = ColumnSchema(["item_id"])
         with pytest.raises(ValueError) as exc_info:
             mm.EmbeddingTable(16, column_schema)
-        assert "needs to have int-domain" in str(exc_info)
+        assert "needs to have a int-domain" in str(exc_info.value)
 
     @pytest.mark.parametrize(
         ["dim", "kwargs", "inputs", "expected_output_shape"],
@@ -79,13 +81,20 @@ class TestEmbeddingTable:
         layer = mm.EmbeddingTable(dim, column_schema, **kwargs)
 
         output = layer(inputs)
-        assert output.shape == tf.TensorShape(expected_output_shape)
+        assert list(output.shape) == expected_output_shape
+
+        if "combiner" in kwargs:
+            assert isinstance(output, tf.Tensor)
+        else:
+            assert type(inputs) is type(output)
 
         layer_config = layer.get_config()
-        layer = mm.EmbeddingTable.from_config(layer_config)
+        copied_layer = mm.EmbeddingTable.from_config(layer_config)
+        assert copied_layer.dim == layer.dim
+        assert copied_layer.input_dim == layer.input_dim
 
-        output = layer(inputs)
-        assert output.shape == tf.TensorShape(expected_output_shape)
+        output = copied_layer(inputs)
+        assert list(output.shape) == expected_output_shape
 
     def test_dense_with_combiner(self):
         dim = 16
@@ -110,6 +119,23 @@ class TestEmbeddingTable:
         assert "EmbeddingTable supports only RaggedTensor and Tensor input types." in str(
             exc_info.value
         )
+
+    def test_embedding_in_model(self, music_streaming_data: Dataset):
+        dim = 16
+        item_id_col_schema = music_streaming_data.schema.select_by_name("item_id").first
+        embedding_layer = mm.EmbeddingTable(dim, item_id_col_schema)
+        model = mm.Model(
+            tf.keras.layers.Lambda(lambda features: features["item_id"]),
+            embedding_layer,
+            mm.BinaryClassificationTask("click")
+        )
+        model_test(model, music_streaming_data)
+
+    def test_non_trainable_embedding_table(self):
+        pass
+
+    def test_pretrained_embedding_table(self):
+        pass
 
 
 def test_embedding_features_yoochoose(testing_data: Dataset):
