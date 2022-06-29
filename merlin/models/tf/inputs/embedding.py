@@ -222,7 +222,7 @@ class EmbeddingTable(EmbeddingTableBase):
         if not col_schema:
             if not name:
                 raise ValueError("`name` is required when not using a ColumnSchema")
-            col_schema = create_categorical_column(name, num_items)
+            col_schema = create_categorical_column(name, num_items - 1)
 
         return cls(dim, col_schema, name=name, **kwargs)
 
