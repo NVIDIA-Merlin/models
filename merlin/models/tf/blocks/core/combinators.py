@@ -602,3 +602,20 @@ class ResidualBlock(WithShortcut):
             strict=strict,
             **kwargs,
         )
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class PerMode(Block):
+    def __init__(self, training, testing=None, **kwargs):
+        super(PerMode, self).__init__(**kwargs)
+        self.training = training
+        self.testing = testing
+
+    def call(self, inputs, training=False, testing: bool = False):
+        if training:
+            return self.training(inputs)
+        
+        if testing and self.testing:
+            return self.testing(inputs)
+
+        return inputs

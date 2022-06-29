@@ -18,7 +18,6 @@
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.loader.tf_utils import configure_tensorflow
-from merlin.models.tf.utils.tf_utils import TensorInitializer
 
 configure_tensorflow()
 
@@ -202,5 +201,4 @@ __all__ = [
     "losses",
     "LossType",
     "sample_batch",
-    "TensorInitializer",
 ]
