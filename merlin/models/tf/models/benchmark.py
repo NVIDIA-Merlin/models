@@ -16,11 +16,12 @@
 import warnings
 from typing import Dict, List, Optional, Union
 
+import tensorflow as tf
+
 from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.blocks.core.transformations import AsSparseFeatures
-from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
     QueryItemIdsEmbeddingsBlock,
@@ -194,25 +195,27 @@ def WideAndDeepModel(
     if not deep_schema:
         deep_schema = schema
 
-    if len(deep_schema) > 0:
-        if not deep_input_block:
+    if not deep_input_block:
+        if len(deep_schema) > 0:
             deep_input_block = InputBlock(
                 deep_schema,
                 embedding_options=embedding_options,
                 **kwargs,
             )
-        deep_body = deep_input_block.connect(
-            deep_block, MLPBlock(dimensions=[1], no_activation_last_layer=True)
-        )
+    deep_body = deep_input_block.connect(deep_block).connect(
+        tf.keras.layers.Dense(units=1, activation=None, use_bias=True)
+    )
 
-    if len(wide_schema) > 0:
-        if not wide_input_block:
+    if not wide_input_block:
+        if len(wide_schema) > 0:
             wide_input_block = ParallelBlock(
-                TabularBlock.from_schema(schema=wide_schema, pre=AsSparseFeatures()), is_input=True
+                TabularBlock.from_schema(schema=wide_schema, pre=AsSparseFeatures()),
+                is_input=True,
+                aggregation="concat",
             )
-        wide_body = wide_input_block.connect(
-            MLPBlock(dimensions=[1], no_activation_last_layer=True)
-        )
+    wide_body = wide_input_block.connect(
+        tf.keras.layers.Dense(units=1, activation=None, use_bias=True)
+    )
 
     branches = {"wide": wide_body, "deep": deep_body}
     wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
