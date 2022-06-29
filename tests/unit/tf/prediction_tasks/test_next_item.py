@@ -21,7 +21,7 @@ import merlin.models.tf as ml
 from merlin.io import Dataset
 from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf import FeatureContext
-from merlin.models.tf.blocks.core.base import PredictionOutput
+from merlin.models.tf.core.base import PredictionOutput
 from merlin.schema import Tags
 
 
@@ -297,7 +297,7 @@ def test_retrieval_task_inbatch_cached_samplers_fit(
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_retrieval_task_inbatch_cached_samplers_with_logits_correction(ecommerce_data, run_eagerly):
-    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+    from merlin.models.tf.core.transformations import PopularityLogitsCorrection
 
     batch_size = 100
     ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)

@@ -16,7 +16,7 @@
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.core.base import Block
 
 _INTERACTION_TYPES = (None, "field_all", "field_each", "field_interaction")
 

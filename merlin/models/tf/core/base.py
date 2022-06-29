@@ -32,7 +32,7 @@ BlockType = Union["Block", str, Sequence[str]]
 
 
 if TYPE_CHECKING:
-    from merlin.models.tf.blocks.core.combinators import (
+    from merlin.models.tf.core.combinators import (
         Filter,
         ParallelBlock,
         SequentialBlock,
@@ -209,8 +209,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
         return []
 
     def as_tabular(self, name=None) -> "Block":
-        from merlin.models.tf.blocks.core.combinators import SequentialBlock
-        from merlin.models.tf.blocks.core.tabular import AsTabular
+        from merlin.models.tf.core.combinators import SequentialBlock
+        from merlin.models.tf.core.tabular import AsTabular
 
         if not name:
             name = self.name
@@ -225,7 +225,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         num : int
             Number of times to repeat the block.
         """
-        from merlin.models.tf.blocks.core.combinators import SequentialBlock
+        from merlin.models.tf.core.combinators import SequentialBlock
 
         repeated = []
         for _ in range(num):
@@ -251,7 +251,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Aggregation to apply to the inputs.
 
         """
-        from merlin.models.tf.blocks.core.combinators import SequentialBlock, TabularBlock
+        from merlin.models.tf.core.combinators import SequentialBlock, TabularBlock
 
         block = TabularBlock(post=post, aggregation=aggregation) or block
 
@@ -288,8 +288,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Whether to use a residual connection or not.
 
         """
-        from merlin.models.tf.blocks.core.base import NoOp
-        from merlin.models.tf.blocks.core.combinators import ParallelBlock
+        from merlin.models.tf.core.base import NoOp
+        from merlin.models.tf.core.combinators import ParallelBlock
 
         repeated = {}
         iterator = names if names else range(num)
@@ -321,7 +321,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Context to use for the block.
 
         """
-        from merlin.models.tf.blocks.core.combinators import SequentialBlock
+        from merlin.models.tf.core.combinators import SequentialBlock
 
         blocks = [self.parse(b) for b in block]
 
@@ -351,7 +351,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Activation to use for the residual connection.
 
         """
-        from merlin.models.tf.blocks.core.combinators import ResidualBlock, SequentialBlock
+        from merlin.models.tf.core.combinators import ResidualBlock, SequentialBlock
 
         _block = self.parse(block)
         residual_block = ResidualBlock(_block, activation=activation)
@@ -386,7 +386,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
         block_outputs_name: str
             Name of the block outputs.
         """
-        from merlin.models.tf.blocks.core.combinators import SequentialBlock, WithShortcut
+        from merlin.models.tf.core.combinators import SequentialBlock, WithShortcut
 
         _block = self.parse(block) if not isinstance(block, Block) else block
         residual_block = WithShortcut(
@@ -413,8 +413,8 @@ class Block(SchemaMixin, ContextMixin, Layer):
         append: bool
             Whether to append the debug block to the block or to prepend it.
         """
-        from merlin.models.tf.blocks.core.base import Debug
-        from merlin.models.tf.blocks.core.combinators import SequentialBlock
+        from merlin.models.tf.core.base import Debug
+        from merlin.models.tf.core.combinators import SequentialBlock
 
         if not append:
             return SequentialBlock([Debug(), self])
@@ -443,7 +443,7 @@ class Block(SchemaMixin, ContextMixin, Layer):
             Aggregation to apply to the outputs.
 
         """
-        from merlin.models.tf.blocks.core.combinators import Filter, ParallelBlock, SequentialBlock
+        from merlin.models.tf.core.combinators import Filter, ParallelBlock, SequentialBlock
 
         _branches = [self.parse(b) for b in branches]
 
@@ -530,7 +530,7 @@ def is_input_block(block: Block) -> bool:
 
 
 def has_input_block(block: Block) -> bool:
-    from merlin.models.tf.blocks.core.combinators import SequentialBlock
+    from merlin.models.tf.core.combinators import SequentialBlock
 
     if isinstance(block, SequentialBlock):
         return block.inputs is not None and is_input_block(block.inputs)
@@ -545,7 +545,7 @@ def _output_metrics(metrics):
 
 
 def right_shift_layer(self, other):
-    from merlin.models.tf.blocks.core.combinators import Filter, SequentialBlock
+    from merlin.models.tf.core.combinators import Filter, SequentialBlock
 
     if isinstance(other, (list, Tags)):
         left_side = [Filter(other)]

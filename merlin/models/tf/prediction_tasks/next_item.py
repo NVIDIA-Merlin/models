@@ -19,9 +19,11 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.python.layers.base import Layer
 
-from merlin.models.tf.blocks.core.base import Block
-from merlin.models.tf.blocks.core.masking import MaskingHead
-from merlin.models.tf.blocks.core.transformations import (
+from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
+from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
+from merlin.models.tf.core.base import Block
+from merlin.models.tf.core.masking import MaskingHead
+from merlin.models.tf.core.transformations import (
     ItemsPredictionWeightTying,
     L2Norm,
     LabelToOneHot,
@@ -29,8 +31,6 @@ from merlin.models.tf.blocks.core.transformations import (
     PopularityLogitsCorrection,
     RemovePad3D,
 )
-from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
-from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 from merlin.models.tf.prediction_tasks.classification import (
     CategFeaturePrediction,
     MultiClassClassificationTask,

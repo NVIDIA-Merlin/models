@@ -185,8 +185,8 @@ def test_categorical_one_hot_encoding():
 
 
 def test_popularity_logits_correct():
-    from merlin.models.tf.blocks.core.base import PredictionOutput
-    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+    from merlin.models.tf.core.base import PredictionOutput
+    from merlin.models.tf.core.transformations import PopularityLogitsCorrection
 
     schema = Schema(
         [
@@ -225,7 +225,7 @@ def test_popularity_logits_correct_from_parquet():
     import numpy as np
     import pandas as pd
 
-    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+    from merlin.models.tf.core.transformations import PopularityLogitsCorrection
 
     schema = Schema(
         [
@@ -251,7 +251,7 @@ def test_popularity_logits_correct_from_parquet():
 
 
 def test_items_weight_tying_with_different_domain_name():
-    from merlin.models.tf.blocks.core.transformations import ItemsPredictionWeightTying
+    from merlin.models.tf.core.transformations import ItemsPredictionWeightTying
 
     NUM_ROWS = 16
     schema = Schema(

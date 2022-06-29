@@ -20,8 +20,8 @@ import tensorflow as tf
 import merlin.models.tf as ml
 from merlin.io import Dataset
 from merlin.models.config.schema import FeatureCollection
-from merlin.models.tf.blocks.core.context import FeatureContext
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.core.context import FeatureContext
+from merlin.models.tf.core.transformations import AsDenseFeatures
 from merlin.schema import Tags
 
 

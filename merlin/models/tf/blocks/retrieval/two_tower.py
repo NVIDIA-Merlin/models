@@ -19,8 +19,8 @@ from typing import Optional
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, RetrievalMixin
+from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.schema import Schema, Tags

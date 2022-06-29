@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Union
 import six
 import tensorflow as tf
 
-from merlin.models.tf.blocks.core.base import (
+from merlin.models.tf.core.base import (
     Block,
     BlockType,
     NoOp,
@@ -14,7 +14,7 @@ from merlin.models.tf.blocks.core.base import (
     is_input_block,
     right_shift_layer,
 )
-from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType, TabularBlock
+from merlin.models.tf.core.tabular import Filter, TabularAggregationType, TabularBlock
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer
 from merlin.models.utils import schema_utils
@@ -591,7 +591,7 @@ class ResidualBlock(WithShortcut):
         strict: bool = False,
         **kwargs,
     ):
-        from merlin.models.tf.blocks.core.aggregation import SumResidual
+        from merlin.models.tf.core.aggregation import SumResidual
 
         super().__init__(
             block,

@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
-from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.core.base import Block
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.utils.schema_utils import select_targets

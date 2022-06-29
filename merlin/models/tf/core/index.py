@@ -21,7 +21,7 @@ from tensorflow.python import to_dlpack
 
 import merlin.io
 from merlin.core.dispatch import DataFrameType
-from merlin.models.tf.blocks.core.base import Block, PredictionOutput
+from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.batch_utils import TFModelEncode
 from merlin.models.utils.constants import MIN_FLOAT

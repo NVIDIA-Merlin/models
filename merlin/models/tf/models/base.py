@@ -10,10 +10,10 @@ from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
 from merlin.models.config.schema import FeatureCollection
-from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
-from merlin.models.tf.blocks.core.combinators import SequentialBlock
-from merlin.models.tf.blocks.core.context import FeatureContext
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
+from merlin.models.tf.core.combinators import SequentialBlock
+from merlin.models.tf.core.context import FeatureContext
+from merlin.models.tf.core.transformations import AsDenseFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
@@ -26,7 +26,7 @@ from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
 if TYPE_CHECKING:
-    from merlin.models.tf.blocks.core.index import TopKIndexBlock
+    from merlin.models.tf.core.index import TopKIndexBlock
 
 
 class MetricsComputeCallback(tf.keras.callbacks.Callback):
@@ -741,7 +741,7 @@ class RetrievalModel(Model):
         self.has_item_corpus = False
 
         if item_corpus:
-            from merlin.models.tf.blocks.core.index import TopKIndexBlock
+            from merlin.models.tf.core.index import TopKIndexBlock
 
             self.has_item_corpus = True
 
