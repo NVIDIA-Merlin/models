@@ -173,6 +173,22 @@
             <span class="n">pre</span> <span class="o">=</span> <span class="p">[</span><span class="n">embedding_pre</span><span class="p">,</span> <span class="n">pre</span><span class="p">]</span> <span class="k">if</span> <span class="n">pre</span> <span class="k">else</span> <span class="n">embedding_pre</span>  <span class="c1"># type: ignore</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_config</span> <span class="o">=</span> <span class="n">feature_config</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">l2_reg</span> <span class="o">=</span> <span class="n">l2_reg</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_tables</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">tables</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">table</span><span class="p">:</span> <span class="n">TableConfig</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">table</span>
+            <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">:</span>
+                <span class="n">tables</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span>
+
+        <span class="k">for</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">vocabulary_size</span><span class="p">,</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span>
+                <span class="n">embeddings_initializer</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">initializer</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
             <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
@@ -275,22 +291,8 @@
         <span class="k">return</span> <span class="n">output</span></div>
 
 <div class="viewcode-block" id="EmbeddingFeatures.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.EmbeddingFeatures.html#merlin.models.tf.EmbeddingFeatures.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_tables</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">tables</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">TableConfig</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">table</span><span class="p">:</span> <span class="n">TableConfig</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">table</span>
-            <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">:</span>
-                <span class="n">tables</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span>
-
-        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_tables</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
-                <span class="n">table</span><span class="o">.</span><span class="n">vocabulary_size</span><span class="p">,</span>
-                <span class="n">table</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span>
-                <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-                <span class="n">embeddings_initializer</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">initializer</span><span class="p">,</span>
-            <span class="p">)</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">embedding_tables</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">build</span><span class="p">(())</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">embedding_table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_tables</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">embedding_table</span><span class="o">.</span><span class="n">build</span><span class="p">(())</span>
 
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_context&quot;</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_context</span><span class="o">.</span><span class="n">add_embedding_table</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_tables</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
