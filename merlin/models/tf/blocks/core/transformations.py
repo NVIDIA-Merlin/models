@@ -52,7 +52,9 @@ class AsSparseFeatures(TabularBlock):
                 if row_lengths.dtype.is_floating:
                     row_lengths = tf.cast(row_lengths, tf.int32)
 
-                outputs[name] = tf.RaggedTensor.from_row_lengths(values, row_lengths).to_sparse()
+                val = tf.RaggedTensor.from_row_lengths(values, row_lengths)
+            if isinstance(val, tf.RaggedTensor):
+                outputs[name] = val.to_sparse()
             else:
                 outputs[name] = val
 
@@ -83,11 +85,12 @@ class AsDenseFeatures(TabularBlock):
             if isinstance(val, tuple):
                 values = val[0][:, 0]
                 row_lengths = val[1][:, 0]
-                ragged = tf.RaggedTensor.from_row_lengths(values, row_lengths)
+                val = tf.RaggedTensor.from_row_lengths(values, row_lengths)
+            if isinstance(val, tf.RaggedTensor):
                 if self.max_seq_length:
-                    outputs[name] = ragged.to_tensor(shape=[None, self.max_seq_length])
+                    outputs[name] = val.to_tensor(shape=[None, self.max_seq_length])
                 else:
-                    outputs[name] = tf.squeeze(ragged.to_tensor())
+                    outputs[name] = tf.squeeze(val.to_tensor())
             else:
                 outputs[name] = tf.squeeze(val)
 

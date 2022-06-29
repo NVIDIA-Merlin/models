@@ -60,5 +60,6 @@ def test_negatives_to_batch_in_dataloader(music_streaming_data: Dataset):
         mm.MLPBlock([64]),
         mm.BinaryClassificationTask("click")
     )
+    assert model(features).shape[0] == expected_batch_size
 
     testing_utils.model_test(model, dataset)

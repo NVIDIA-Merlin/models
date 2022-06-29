@@ -321,7 +321,7 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         """
         return DataLoader.__next__(self)
 
-    def map(self, fn):
+    def map(self, fn) -> "BatchedDataset":
         """
         Applying a function to each batch.
 
@@ -330,6 +330,25 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         self._map_fns.append(fn)
 
         return self
+
+    def map_features(self, fn) -> "BatchedDataset":
+        def wrapped_fn(*inputs):
+            features = fn(inputs[0])
+
+            return features, *inputs[1:]
+
+        return self.map(wrapped_fn)
+
+    def map_targets(self, fn) -> "BatchedDataset":
+        def wrapped_fn(*inputs):
+            targets = fn(inputs[1])
+
+            if len(inputs) > 2:
+                return inputs[0], targets, *inputs[2:]
+
+            return inputs[0], targets
+
+        return self.map(wrapped_fn)
 
     @contextlib.contextmanager
     def _get_device_ctx(self, dev):

@@ -87,13 +87,19 @@ class NegativeSampling(Block):
 # grow_batch.InBatchNegativeSamplingPopularityBased
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AddRandomNegativesToBatch(Block):
-    def __init__(self, schema: Schema, n_per_positive: int, seed: Optional[int] = None, **kwargs):
+    def __init__(
+            self,
+            schema: Schema,
+            n_per_positive: int,
+            seed: Optional[int] = None,
+            **kwargs
+    ):
         super(AddRandomNegativesToBatch, self).__init__(**kwargs)
         self.n_per_positive = n_per_positive
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
 
-    def call(self, inputs: TabularData, *args) -> TabularData:
+    def call(self, inputs: TabularData, targets=None, training=False) -> TabularData:
         # 1. Select item-features -> ItemCollection
         fist_input = list(inputs.values())[0]
         batch_size = fist_input.shape[0] if not isinstance(fist_input, tuple) else fist_input[1].shape[0]
@@ -108,14 +114,18 @@ class AddRandomNegativesToBatch(Block):
         item_cols = self.schema.column_names
         outputs = {}
         for name, val in inputs.items():
+            if isinstance(val, tuple):
+                val = tf.RaggedTensor.from_row_lengths(val[0][:, 0], val[1][:, 0])
+
             if name in item_cols:
                 negatives = tf.gather(val, sampled_ids)
                 outputs[name] = tf.concat([val, negatives], axis=0)
             else:
-                outputs[name] = tf.repeat(val, self.n_per_positive + 1, axis=0)
-
-        if args:
-            return (outputs, *args)
+                n_repeats = self.n_per_positive + 1
+                if isinstance(val, (tf.RaggedTensor, tf.SparseTensor)):
+                    outputs[name] = tf.concat([val] * n_repeats, axis=0)
+                else:
+                    outputs[name] = tf.repeat(val, n_repeats, axis=0)
 
         return outputs
 
