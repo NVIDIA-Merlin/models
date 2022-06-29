@@ -27,7 +27,7 @@ import merlin.io
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
 from merlin.models.tf.blocks.core.base import Block, BlockType
-from merlin.models.tf.blocks.core.combinators import ParallelBlock, SequentialBlock
+from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Filter,
