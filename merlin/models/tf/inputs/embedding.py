@@ -59,19 +59,11 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
 """
 
 
-# table = EmbeddingTable(100, col)
-
-# table = EmbeddingTable(100)
-# table.add_feature(col)
-# {"user-id": ..., "item-id": ...}
-
-
 class EmbeddingTableBase(Block):
     def __init__(self, dim: int, col_schema: ColumnSchema, trainable=True, **kwargs):
         super(EmbeddingTableBase, self).__init__(trainable=trainable, **kwargs)
         self.dim = dim
 
-        # Do validation of col_schema
         if not col_schema.int_domain:
             raise ValueError("`col_schema` needs to have a int-domain")
 
