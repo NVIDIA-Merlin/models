@@ -83,7 +83,9 @@ class NegativeSampling(Block):
     def __init__(self, *samplers: ItemSampler, **kwargs):
         super(NegativeSampling, self).__init__(**kwargs)
 
-
+# grow_batch.InBatchNegativeSamplingUniform
+# grow_batch.InBatchNegativeSamplingPopularityBased
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AddRandomNegativesToBatch(Block):
     def __init__(self, schema: Schema, n_per_positive: int, seed: Optional[int] = None, **kwargs):
         super(AddRandomNegativesToBatch, self).__init__(**kwargs)
@@ -91,9 +93,10 @@ class AddRandomNegativesToBatch(Block):
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
 
-    def call(self, inputs: TabularData) -> TabularData:
+    def call(self, inputs: TabularData, *args) -> TabularData:
         # 1. Select item-features -> ItemCollection
-        batch_size = list(inputs.values())[0].shape[0]
+        fist_input = list(inputs.values())[0]
+        batch_size = fist_input.shape[0] if not isinstance(fist_input, tuple) else fist_input[1].shape[0]
         items = ItemCollection.from_features(self.schema, inputs)
 
         # 2. Sample `n_per_positive * batch_size` items at random
@@ -110,6 +113,9 @@ class AddRandomNegativesToBatch(Block):
                 outputs[name] = tf.concat([val, negatives], axis=0)
             else:
                 outputs[name] = tf.repeat(val, self.n_per_positive + 1, axis=0)
+
+        if args:
+            return (outputs, *args)
 
         return outputs
 
