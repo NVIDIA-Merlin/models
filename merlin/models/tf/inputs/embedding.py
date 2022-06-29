@@ -224,7 +224,14 @@ class EmbeddingTable(EmbeddingTableBase):
                 raise ValueError("`name` is required when not using a ColumnSchema")
             col_schema = create_categorical_column(name, num_items - 1)
 
-        return cls(dim, col_schema, name=name, embeddings_initializer=initializer, **kwargs)
+        return cls(
+            dim,
+            col_schema,
+            name=name,
+            embeddings_initializer=initializer,
+            trainable=trainable,
+            **kwargs,
+        )
 
     def build(self, input_shapes):
         """Creates state between layer instantiation and layer call.
