@@ -292,6 +292,7 @@ def get_candidate_probs(
     return candidate_probs
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TensorInitializer(tf.keras.initializers.Initializer):
     """Initializer that returns a tensor (e.g. pre-trained
     embeddings) set in the constructor
