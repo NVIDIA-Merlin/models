@@ -142,6 +142,7 @@ class XGBoost:
             assert isinstance(dataset, Dataset)
             X, y, qid = dataset_to_xy(
                 dataset,
+                self.feature_columns,
                 self.target_columns,
                 self.qid_column,
             )
