@@ -127,7 +127,7 @@ class TestEmbeddingTable:
         model = mm.Model(
             tf.keras.layers.Lambda(lambda features: features["item_id"]),
             embedding_layer,
-            mm.BinaryClassificationTask("click")
+            mm.BinaryClassificationTask("click"),
         )
         model_test(model, music_streaming_data)
 
