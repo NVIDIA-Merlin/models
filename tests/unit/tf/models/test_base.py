@@ -138,6 +138,7 @@ def test_model_pre_post(ecommerce_data: Dataset, run_eagerly):
         ml.InputBlock(ecommerce_data.schema),
         ml.MLPBlock([64]),
         ml.BinaryClassificationTask("click"),
+        post=ml.NoOp(),
     )
 
     model.pre = ml.StochasticSwapNoise(ecommerce_data.schema)
@@ -145,3 +146,4 @@ def test_model_pre_post(ecommerce_data: Dataset, run_eagerly):
     loaded_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
     assert isinstance(loaded_model.pre, ml.StochasticSwapNoise)
+    assert isinstance(loaded_model.post, ml.NoOp)
