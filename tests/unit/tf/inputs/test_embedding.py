@@ -131,16 +131,39 @@ class TestEmbeddingTable:
         )
         model_test(model, music_streaming_data)
 
-    def test_non_trainable_embedding_table(self):
-        pass
+    def test_non_trainable_embedding_table(self, music_streaming_data: Dataset):
+        dim = 16
+        item_id_col_schema = music_streaming_data.schema.select_by_name("item_id").first
+        embedding_layer = mm.EmbeddingTable(dim, item_id_col_schema, trainable=False)
+        inputs = tf.constant([1])
 
-    def test_pretrained_embedding_table(self):
+        model = mm.Model(
+            tf.keras.layers.Lambda(lambda features: features["item_id"]),
+            embedding_layer,
+            mm.BinaryClassificationTask("click"),
+        )
+        model_test(model, music_streaming_data)
+
+        output_before_fit = embedding_layer(inputs)
+        embeddings_before_fit = embedding_layer.table.embeddings.numpy()
+
+        model.fit(music_streaming_data, batch_size=50, epochs=1)
+
+        output_after_fit = embedding_layer(inputs)
+        embeddings_after_fit = embedding_layer.table.embeddings.numpy()
+
+        np.testing.assert_array_almost_equal(output_before_fit, output_after_fit)
+        np.testing.assert_array_almost_equal(embeddings_before_fit, embeddings_after_fit)
+
+    def test_pretrained_embedding_table(self, music_streaming_data: Dataset):
         vocab_size = 16
         embedding_dim = 10
         weights = np.random.rand(vocab_size, embedding_dim)
         pre_trained_weights_df = pd.DataFrame(weights)
 
-        embedding_table = mm.EmbeddingTable.from_pretrained(pre_trained_weights_df, name="item_id")
+        embedding_table = mm.EmbeddingTable.from_pretrained(
+            pre_trained_weights_df, name="item_id", trainable=False
+        )
 
         assert embedding_table.input_dim == 16
 
@@ -148,6 +171,15 @@ class TestEmbeddingTable:
         output = embedding_table(inputs)
 
         assert list(output.shape) == [1, 10]
+        np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
+
+        model = mm.Model(
+            tf.keras.layers.Lambda(lambda features: features["item_id"]),
+            embedding_table,
+            mm.BinaryClassificationTask("click"),
+        )
+        model_test(model, music_streaming_data)
+
         np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
 
