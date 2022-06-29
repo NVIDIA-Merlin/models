@@ -34,7 +34,7 @@ RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
 
 def MLPBlock(
     dimensions: List[int],
-    activation: str = "relu",
+    activation: Union[str, List[str]] = "relu",
     use_bias: bool = True,
     kernel_initializer: InitializerType = "glorot_uniform",
     bias_initializer: InitializerType = "zeros",
@@ -86,15 +86,19 @@ def MLPBlock(
         The name of the block.
     """
 
+    if isinstance(activation, list) and len(activation) != len(dimensions):
+        raise ValueError("Activation list should be of same length as Dimensions")
+
     block_layers = []
 
     for idx, dim in enumerate(dimensions):
         dropout_layer = None
+        activation_idx = activation if isinstance(activation, str) else activation[idx]
         if no_activation_last_layer and idx == len(dimensions) - 1:
-            activation = "linear"
+            activation_idx = "linear"
         else:
             if dropout:
-                if activation in ["selu", tf.keras.activations.selu]:
+                if activation_idx in ["selu", tf.keras.activations.selu]:
                     # Best practice for SeLU. It is also recommended
                     # kernel_initializer="lecun_normal"
                     dropout_layer = tf.keras.layers.AlphaDropout(dropout)
@@ -104,7 +108,7 @@ def MLPBlock(
         block_layers.append(
             _Dense(
                 dim,
-                activation=activation,
+                activation=activation_idx,
                 use_bias=use_bias,
                 kernel_initializer=kernel_initializer,
                 bias_initializer=bias_initializer,
