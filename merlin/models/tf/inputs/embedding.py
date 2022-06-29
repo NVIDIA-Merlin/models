@@ -288,7 +288,7 @@ class EmbeddingTable(EmbeddingTableBase):
 
     def get_config(self):
         config = super().get_config()
-        config["table"] = tf.keras.utils.serialize_keras_object(self.table)
+        config["table"] = tf.keras.layers.serialize(self.table)
         config["combiner"] = self.combiner
 
         return config
