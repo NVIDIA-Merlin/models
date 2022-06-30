@@ -156,8 +156,8 @@ class TestEmbeddingTable:
         np.testing.assert_array_almost_equal(embeddings_before_fit, embeddings_after_fit)
 
     def test_pretrained_embedding_table(self, music_streaming_data: Dataset):
-        vocab_size = 16
-        embedding_dim = 10
+        vocab_size = music_streaming_data.schema.column_schemas["item_id"].int_domain.max + 1
+        embedding_dim = 32
         weights = np.random.rand(vocab_size, embedding_dim)
         pre_trained_weights_df = pd.DataFrame(weights)
 
@@ -165,12 +165,12 @@ class TestEmbeddingTable:
             pre_trained_weights_df, name="item_id", trainable=False
         )
 
-        assert embedding_table.input_dim == 16
+        assert embedding_table.input_dim == vocab_size
 
         inputs = tf.constant([1])
         output = embedding_table(inputs)
 
-        assert list(output.shape) == [1, 10]
+        assert list(output.shape) == [1, embedding_dim]
         np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
         model = mm.Model(
