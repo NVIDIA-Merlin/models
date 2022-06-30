@@ -87,7 +87,9 @@ def MLPBlock(
     """
 
     if isinstance(activation, list) and len(activation) != len(dimensions):
-        raise ValueError("Activation list should be of same length as Dimensions")
+        raise ValueError(
+            f"Activation and Dimensions length mismatch. Activation length: {len(activation)}, Dimensions length: {len(dimensions)}"
+        )
 
     block_layers = []
 
