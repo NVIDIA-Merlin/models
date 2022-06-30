@@ -128,16 +128,16 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-06-29 10:50:40.307876: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-2022-06-29 10:50:40.308242: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-2022-06-29 10:50:40.308376: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-06-30 11:01:39.340989: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-06-30 11:01:39.341346: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-06-30 11:01:39.341477: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
 /usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
   warnings.warn(
 </pre></div>
 </div>
 </div>
 </div>
-<p>The <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function downloaded the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> data for us and returned it materialized as as an NVTabular dataset.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function downloaded the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> data for us and returned it materialized as a Merlin Dataset.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span>
@@ -145,8 +145,8 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&lt;merlin.io.dataset.Dataset at 0x7ff92007f0d0&gt;,
- &lt;merlin.io.dataset.Dataset at 0x7ff92007f070&gt;)
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&lt;merlin.io.dataset.Dataset at 0x7ff1dae87fd0&gt;,
+ &lt;merlin.io.dataset.Dataset at 0x7ff1dae8deb0&gt;)
 </pre></div>
 </div>
 </div>
@@ -156,32 +156,61 @@
 <p>During preprocessing, two columns in the dataset were assigned the <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> tag.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&#39;rating&#39;, &#39;rating_binary&#39;]
-</pre></div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>name</th>
+      <th>tags</th>
+      <th>dtype</th>
+      <th>is_list</th>
+      <th>is_ragged</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>rating</td>
+      <td>(Tags.REGRESSION, Tags.TARGET)</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>False</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>rating_binary</td>
+      <td>(Tags.BINARY_CLASSIFICATION, Tags.TARGET)</td>
+      <td>int32</td>
+      <td>False</td>
+      <td>False</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
 </div>
-</div>
-</div>
-<p>Let us use the <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> column as our target. Because there are two columns that can be used as targets for training (and we want to use only a single column as our objective for our <code class="docutils literal notranslate"><span class="pre">xgboost</span></code> model), let us pass this information directly to our model.</p>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">target_column</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="n">target_column</span>
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;rating_binary&#39;
-</pre></div>
-</div>
-</div>
-</div>
-<p>To summarize, we will train an xgboost model that will predict the rating of a movie.</p>
-<p><code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> of 1 indicates that the user has given the movie a high rating, and a target of 0 indicates that the user has given the movie a low rating.</p>
+<p>You can specify the target to train with by passing <code class="docutils literal notranslate"><span class="pre">target_columns</span></code> when constructing the model. We would like to train with <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> as our target, so we could do the following</p>
+<p><code class="docutils literal notranslate"><span class="pre">model</span> <span class="pre">=</span> <span class="pre">XGBoost(target_columns='rating_binary',</span> <span class="pre">...</span></code></p>
+<p>However, we can also do something else. Instead of providing this argument to the constructor of our model, we can instead specify the <code class="docutils literal notranslate"><span class="pre">objective</span></code> for our xgboost model and have the Merlin Models API do the rest of the work for us.</p>
+<p>Later in this example, we will be setting our booster’s objective to <code class="docutils literal notranslate"><span class="pre">'binary:logistic'</span></code>. Given this piece of information, the API will be able to infer we would like to train with a target that has the <code class="docutils literal notranslate"><span class="pre">Tags.BINARY_CLASSIFICATION</span></code> tag assigned to it and there will be nothing else we will need to do.</p>
 <p>Before we begin to train, let us remove the <code class="docutils literal notranslate"><span class="pre">title</span></code> column from our schema. In the dataset, the title is a string, and unless we preprocess it further, it would not be useful in training.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -190,6 +219,8 @@
 </div>
 </div>
 </div>
+<p>To summarize, we will train an xgboost model that will predict the rating of a movie.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> of 1 indicates that the user has given the movie a high rating, and a target of 0 indicates that the user has given the movie a low rating.</p>
 </div>
 <div class="section" id="training-the-model">
 <h2>Training the model<a class="headerlink" href="#training-the-model" title="Permalink to this headline"></a></h2>
@@ -230,24 +261,21 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/distributed/node.py:160: UserWarning: Port 8787 is already in use.
-Perhaps you already have a cluster running?
-Hosting the HTTP server on port 32973 instead
-  warnings.warn(
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>distributed.diskutils - INFO - Found stale lock file and directory &#39;/workspace/examples/dask-worker-space/worker-wnzk7dfa&#39;, purging
 distributed.preloading - INFO - Import preload module: dask_cuda.initialize
-[11:17:40] task [xgboost.dask]:tcp://127.0.0.1:45095 got new rank 0
 </pre></div>
 </div>
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[0]	validation_set-logloss:0.65881
-[20]	validation_set-logloss:0.61290
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[11:01:42] task [xgboost.dask]:tcp://127.0.0.1:32957 got new rank 0
+[11:01:42] WARNING: ../src/learner.cc:1115: Starting in XGBoost 1.3.0, the default evaluation metric used with the objective &#39;binary:logistic&#39; was changed from &#39;error&#39; to &#39;logloss&#39;. Explicitly set eval_metric if you&#39;d like to restore the old behavior.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[20]	validation_set-logloss:0.61290
 [40]	validation_set-logloss:0.60795
 [60]	validation_set-logloss:0.60568
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[11:17:40] WARNING: ../src/learner.cc:1115: Starting in XGBoost 1.3.0, the default evaluation metric used with the objective &#39;binary:logistic&#39; was changed from &#39;error&#39; to &#39;logloss&#39;. Explicitly set eval_metric if you&#39;d like to restore the old behavior.
-</pre></div>
-</div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[80]	validation_set-logloss:0.60320
+[80]	validation_set-logloss:0.60320
 [85]	validation_set-logloss:0.60294
 </pre></div>
 </div>

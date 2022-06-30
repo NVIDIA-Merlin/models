@@ -86,9 +86,9 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "2022-06-29 10:50:40.307876: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero\n",
-      "2022-06-29 10:50:40.308242: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero\n",
-      "2022-06-29 10:50:40.308376: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero\n",
+      "2022-06-30 11:01:39.340989: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero\n",
+      "2022-06-30 11:01:39.341346: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero\n",
+      "2022-06-30 11:01:39.341477: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero\n",
       "/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.\n",
       "  warnings.warn(\n"
      ]
@@ -103,7 +103,7 @@
    "id": "4e26cedb",
    "metadata": {},
    "source": [
-    "The `get_movielens` function downloaded the `movielens-100k` data for us and returned it materialized as as an NVTabular dataset."
+    "The `get_movielens` function downloaded the `movielens-100k` data for us and returned it materialized as a Merlin Dataset."
    ]
   },
   {
@@ -115,8 +115,8 @@
     {
      "data": {
       "text/plain": [
-       "(<merlin.io.dataset.Dataset at 0x7ff92007f0d0>,\n",
-       " <merlin.io.dataset.Dataset at 0x7ff92007f070>)"
+       "(<merlin.io.dataset.Dataset at 0x7ff1dae87fd0>,\n",
+       " <merlin.io.dataset.Dataset at 0x7ff1dae8deb0>)"
       ]
      },
      "execution_count": 4,
@@ -143,13 +143,60 @@
   {
    "cell_type": "code",
    "execution_count": 5,
-   "id": "e5228440",
+   "id": "69274522",
    "metadata": {},
    "outputs": [
     {
      "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>name</th>\n",
+       "      <th>tags</th>\n",
+       "      <th>dtype</th>\n",
+       "      <th>is_list</th>\n",
+       "      <th>is_ragged</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>rating</td>\n",
+       "      <td>(Tags.REGRESSION, Tags.TARGET)</td>\n",
+       "      <td>int64</td>\n",
+       "      <td>False</td>\n",
+       "      <td>False</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>rating_binary</td>\n",
+       "      <td>(Tags.BINARY_CLASSIFICATION, Tags.TARGET)</td>\n",
+       "      <td>int32</td>\n",
+       "      <td>False</td>\n",
+       "      <td>False</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
       "text/plain": [
-       "['rating', 'rating_binary']"
+       "[{'name': 'rating', 'tags': {<Tags.REGRESSION: 'regression'>, <Tags.TARGET: 'target'>}, 'properties': {}, 'dtype': dtype('int64'), 'is_list': False, 'is_ragged': False}, {'name': 'rating_binary', 'tags': {<Tags.BINARY_CLASSIFICATION: 'binary_classification'>, <Tags.TARGET: 'target'>}, 'properties': {}, 'dtype': dtype('int32'), 'is_list': False, 'is_ragged': False}]"
       ]
      },
      "execution_count": 5,
@@ -158,59 +205,43 @@
     }
    ],
    "source": [
-    "train.schema.select_by_tag(Tags.TARGET).column_names"
+    "train.schema.select_by_tag(Tags.TARGET)"
    ]
   },
   {
    "cell_type": "markdown",
-   "id": "cdaf8292",
+   "id": "c6e607b7",
    "metadata": {},
    "source": [
-    "Let us use the `rating_binary` column as our target. Because there are two columns that can be used as targets for training (and we want to use only a single column as our objective for our `xgboost` model), let us pass this information directly to our model."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": 6,
-   "id": "b018d192",
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/plain": [
-       "'rating_binary'"
-      ]
-     },
-     "execution_count": 6,
-     "metadata": {},
-     "output_type": "execute_result"
-    }
-   ],
-   "source": [
-    "target_column = train.schema.select_by_tag(Tags.TARGET).column_names[1]\n",
-    "target_column"
-   ]
-  },
-  {
-   "cell_type": "markdown",
-   "id": "45dec89b",
-   "metadata": {},
-   "source": [
-    "To summarize, we will train an xgboost model that will predict the rating of a movie.\n",
+    "You can specify the target to train with by passing `target_columns` when constructing the model. We would like to train with `rating_binary` as our target, so we could do the following\n",
     "\n",
-    "`rating_binary` of 1 indicates that the user has given the movie a high rating, and a target of 0 indicates that the user has given the movie a low rating.\n",
+    "`model = XGBoost(target_columns='rating_binary', ...`\n",
+    "\n",
+    "However, we can also do something else. Instead of providing this argument to the constructor of our model, we can instead specify the `objective` for our xgboost model and have the Merlin Models API do the rest of the work for us.\n",
+    "\n",
+    "Later in this example, we will be setting our booster's objective to `'binary:logistic'`. Given this piece of information, the API will be able to infer we would like to train with a target that has the `Tags.BINARY_CLASSIFICATION` tag assigned to it and there will be nothing else we will need to do.\n",
     "\n",
     "Before we begin to train, let us remove the `title` column from our schema. In the dataset, the title is a string, and unless we preprocess it further, it would not be useful in training."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 7,
+   "execution_count": 6,
    "id": "e8a28f88",
    "metadata": {},
    "outputs": [],
    "source": [
     "schema_without_title = train.schema.remove_col('title')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "aedb65d5",
+   "metadata": {},
+   "source": [
+    "To summarize, we will train an xgboost model that will predict the rating of a movie.\n",
+    "\n",
+    "`rating_binary` of 1 indicates that the user has given the movie a high rating, and a target of 0 indicates that the user has given the movie a low rating."
    ]
   },
   {
@@ -237,7 +268,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 20,
+   "execution_count": 7,
    "id": "b1804697",
    "metadata": {},
    "outputs": [],
@@ -268,7 +299,7 @@
   },
   {
    "cell_type": "code",
-   "execution_count": 21,
+   "execution_count": 8,
    "id": "8c511fc6",
    "metadata": {},
    "outputs": [
@@ -276,35 +307,32 @@
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "/usr/local/lib/python3.8/dist-packages/distributed/node.py:160: UserWarning: Port 8787 is already in use.\n",
-      "Perhaps you already have a cluster running?\n",
-      "Hosting the HTTP server on port 32973 instead\n",
-      "  warnings.warn(\n",
-      "distributed.preloading - INFO - Import preload module: dask_cuda.initialize\n",
-      "[11:17:40] task [xgboost.dask]:tcp://127.0.0.1:45095 got new rank 0\n"
+      "distributed.diskutils - INFO - Found stale lock file and directory '/workspace/examples/dask-worker-space/worker-wnzk7dfa', purging\n",
+      "distributed.preloading - INFO - Import preload module: dask_cuda.initialize\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "[0]\tvalidation_set-logloss:0.65881\n",
-      "[20]\tvalidation_set-logloss:0.61290\n",
-      "[40]\tvalidation_set-logloss:0.60795\n",
-      "[60]\tvalidation_set-logloss:0.60568\n"
+      "[0]\tvalidation_set-logloss:0.65881\n"
      ]
     },
     {
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "[11:17:40] WARNING: ../src/learner.cc:1115: Starting in XGBoost 1.3.0, the default evaluation metric used with the objective 'binary:logistic' was changed from 'error' to 'logloss'. Explicitly set eval_metric if you'd like to restore the old behavior.\n"
+      "[11:01:42] task [xgboost.dask]:tcp://127.0.0.1:32957 got new rank 0\n",
+      "[11:01:42] WARNING: ../src/learner.cc:1115: Starting in XGBoost 1.3.0, the default evaluation metric used with the objective 'binary:logistic' was changed from 'error' to 'logloss'. Explicitly set eval_metric if you'd like to restore the old behavior.\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
+      "[20]\tvalidation_set-logloss:0.61290\n",
+      "[40]\tvalidation_set-logloss:0.60795\n",
+      "[60]\tvalidation_set-logloss:0.60568\n",
       "[80]\tvalidation_set-logloss:0.60320\n",
       "[85]\tvalidation_set-logloss:0.60294\n"
      ]
