@@ -102,7 +102,7 @@ def test_mlp_model_save(ecommerce_data: Dataset, run_eagerly: bool, tmp_path):
 
 
 @pytest.mark.parametrize("dimensions", [[32], [64, 32], [32, 16]])
-@pytest.mark.parametrize("activation", ["relu", "relu" ["relu", "linear"]])
+@pytest.mark.parametrize("activation", ["relu", "relu", ["relu", "linear"]])
 def test_mlp_block_dense_layer_activation(dimensions, activation):
     mlp = ml.MLPBlock(dimensions=dimensions, activation=activation)
 
