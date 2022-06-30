@@ -96,13 +96,13 @@
 <h1>Train a third party model using the Merlin Models API<a class="headerlink" href="#train-a-third-party-model-using-the-merlin-models-api" title="Permalink to this headline"></a></h1>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
-<p>Merlin Models exposes a high level API that can be used with models from other libraries. Currently select <code class="docutils literal notranslate"><span class="pre">xgboost</span></code> and <code class="docutils literal notranslate"><span class="pre">implicit</span></code> models are supported.</p>
-<p>Relying on this high level API allows you to iterate more effectively. You do not have to switch between various APIs as you try out additional models on your data.</p>
+<p>Merlin Models exposes a high-level API that can be used with models from other libraries. For the Merlin Models v0.6.0 release, some <code class="docutils literal notranslate"><span class="pre">xgboost</span></code> and <code class="docutils literal notranslate"><span class="pre">implicit</span></code> models are supported.</p>
+<p>Relying on this high level API enables you to iterate more effectively. You do not have to switch between various APIs as you evaluate additional models on your data.</p>
 <p>Furthermore, you can use your data represented as a <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> across all your models.</p>
 <div class="section" id="learning-objectives">
 <h3>Learning objectives<a class="headerlink" href="#learning-objectives" title="Permalink to this headline"></a></h3>
 <ul class="simple">
-<li><p>Training with xgboost</p></li>
+<li><p>Training with <code class="docutils literal notranslate"><span class="pre">xgboost</span></code></p></li>
 <li><p>Using the Merlin Models high level API</p></li>
 </ul>
 </div>
@@ -120,7 +120,7 @@
 </div>
 </div>
 </div>
-<p>We will use the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> dataset. It consists of <code class="docutils literal notranslate"><span class="pre">userId</span></code> and <code class="docutils literal notranslate"><span class="pre">movieId</span></code> pairings where a user has rated a movie along with some additional information (such as genre of the movie, age of the user, etc).</p>
+<p>We will use the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> dataset. The dataset consists of <code class="docutils literal notranslate"><span class="pre">userId</span></code> and <code class="docutils literal notranslate"><span class="pre">movieId</span></code> pairings. For each record, a user rates a movie and the record includes additional information such as genre of the movie, age of the user, and so on.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s1">&#39;ml-100k&#39;</span><span class="p">)</span>
@@ -137,7 +137,7 @@
 </div>
 </div>
 </div>
-<p>The <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function downloaded the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> data for us and returned it materialized as a Merlin Dataset.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function downloads the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> data for us and returns it materialized as a Merlin <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span>
@@ -151,9 +151,9 @@
 </div>
 </div>
 </div>
-<p>One of the features that the Merlin Model API supports is tagging. You can tag your data once, during preprocessing, and this information can be picked up by downstream functionality (additional preprocessing steps, training your model or serving it).</p>
+<p>One of the features that the Merlin Models API supports is tagging. You can tag your data once, during preprocessing, and this information is picked up during later steps such as additional preprocessing steps, training your model, serving the model, and so on.</p>
 <p>Here, we will make use of the <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> to identify the objective for our <code class="docutils literal notranslate"><span class="pre">xgboost</span></code> model.</p>
-<p>During preprocessing, two columns in the dataset were assigned the <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> tag.</p>
+<p>During preprocessing that is performed by the <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function, two columns in the dataset are assigned the <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> tag:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
@@ -207,11 +207,11 @@
 </table>
 </div></div></div>
 </div>
-<p>You can specify the target to train with by passing <code class="docutils literal notranslate"><span class="pre">target_columns</span></code> when constructing the model. We would like to train with <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> as our target, so we could do the following</p>
+<p>You can specify the target to train by passing <code class="docutils literal notranslate"><span class="pre">target_columns</span></code> when you construct the model. We would like to use <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> as our target, so we could do the following:</p>
 <p><code class="docutils literal notranslate"><span class="pre">model</span> <span class="pre">=</span> <span class="pre">XGBoost(target_columns='rating_binary',</span> <span class="pre">...</span></code></p>
-<p>However, we can also do something else. Instead of providing this argument to the constructor of our model, we can instead specify the <code class="docutils literal notranslate"><span class="pre">objective</span></code> for our xgboost model and have the Merlin Models API do the rest of the work for us.</p>
-<p>Later in this example, we will be setting our booster’s objective to <code class="docutils literal notranslate"><span class="pre">'binary:logistic'</span></code>. Given this piece of information, the API will be able to infer we would like to train with a target that has the <code class="docutils literal notranslate"><span class="pre">Tags.BINARY_CLASSIFICATION</span></code> tag assigned to it and there will be nothing else we will need to do.</p>
-<p>Before we begin to train, let us remove the <code class="docutils literal notranslate"><span class="pre">title</span></code> column from our schema. In the dataset, the title is a string, and unless we preprocess it further, it would not be useful in training.</p>
+<p>However, we can also do something better. Instead of providing this argument to the constructor of our model, we can instead specify the <code class="docutils literal notranslate"><span class="pre">objective</span></code> for our <code class="docutils literal notranslate"><span class="pre">xgboost</span></code> model and have the Merlin Models API do the rest of the work for us.</p>
+<p>Later in this example, we will set our booster’s objective to <code class="docutils literal notranslate"><span class="pre">'binary:logistic'</span></code>. Given this piece of information, the Merlin Modelc code can infer that we want to train with a target that has the <code class="docutils literal notranslate"><span class="pre">Tags.BINARY_CLASSIFICATION</span></code> tag assigned to it and there will be nothing else we will need to do.</p>
+<p>Before we begin to train, let us remove the <code class="docutils literal notranslate"><span class="pre">title</span></code> column from our schema. In the dataset, the title is a string, and unless we preprocess it further, it is not useful in training.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema_without_title</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
@@ -219,15 +219,15 @@
 </div>
 </div>
 </div>
-<p>To summarize, we will train an xgboost model that will predict the rating of a movie.</p>
-<p><code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> of 1 indicates that the user has given the movie a high rating, and a target of 0 indicates that the user has given the movie a low rating.</p>
+<p>To summarize, we will train an <code class="docutils literal notranslate"><span class="pre">xgboost</span></code> model that predicts the rating of a movie.</p>
+<p>For the <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> column, a value of <code class="docutils literal notranslate"><span class="pre">1</span></code> indicates that the user has given the movie a high rating, and a target of <code class="docutils literal notranslate"><span class="pre">0</span></code> indicates that the user has given the movie a low rating.</p>
 </div>
 <div class="section" id="training-the-model">
 <h2>Training the model<a class="headerlink" href="#training-the-model" title="Permalink to this headline"></a></h2>
 <p>Before we begin training, let’s define a couple of custom parameters.</p>
-<p>Specifying <code class="docutils literal notranslate"><span class="pre">'gpu_hist'</span></code>as our <code class="docutils literal notranslate"><span class="pre">'tree_method'</span></code> will run the training on the GPU. Also, it will trigger representing our datasets as <code class="docutils literal notranslate"><span class="pre">DaskDeviceQuantileDMatrix</span></code> instead of the standard <code class="docutils literal notranslate"><span class="pre">DaskDMatrix</span></code>. This is a recently introduced format that can lead to a more efficient training with lower memory footprint. You can read more about it <a class="reference external" href="https://medium.com/rapids-ai/new-features-and-optimizations-for-gpus-in-xgboost-1-1-fc153dc029ce">here</a>.</p>
-<p>Additionally, we will train with early stopping and evaluate the stopping criteria on a validation set. If we were to train without early stopping, XGboost would continue to improve results on the train set until it would reach a perfect score. That would result in a low training loss but we would lose any ability to generalize to unseen data. Instead, by training with early stopping, the training will cease as soon as the model will start overfitting to the train set and the results on the validation set will start to deteriorate.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">verbose_eval</span></code> specifies how often metrics are reported during training.</p>
+<p>Specifying <code class="docutils literal notranslate"><span class="pre">gpu_hist</span></code> as our <code class="docutils literal notranslate"><span class="pre">tree_method</span></code> will run the training on the GPU. Also, it will trigger representing our datasets as <code class="docutils literal notranslate"><span class="pre">DaskDeviceQuantileDMatrix</span></code> instead of the standard <code class="docutils literal notranslate"><span class="pre">DaskDMatrix</span></code>. This class is introduced in the XGBoost 1.1 release and this data format provides more efficient training with lower memory footprint. You can read more about it in this <a class="reference external" href="https://medium.com/rapids-ai/new-features-and-optimizations-for-gpus-in-xgboost-1-1-fc153dc029ce">article</a> from the RAPIDS AI channel.</p>
+<p>Additionally, we will train with early stopping and evaluate the stopping criteria on a validation set. If we were to train without early stopping, <code class="docutils literal notranslate"><span class="pre">XGboost</span></code> would continue to improve results on the train set until it would reach a perfect score. That would result in a low training loss but we would lose any ability to generalize to unseen data. Instead, by training with early stopping, the training ceases as soon as the model starts overfitting to the train set and the results on the validation set will start to deteriorate.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">verbose_eval</span></code> parameter specifies how often metrics are reported during training.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xgb_booster_params</span> <span class="o">=</span> <span class="p">{</span>
@@ -245,7 +245,7 @@
 </div>
 </div>
 <p>We are now ready to train.</p>
-<p>In order to facilitate training on data larger than the available GPU RAM, the training will leverage Dask. All the complexity of starting a local dask cluster is hidden in the <code class="docutils literal notranslate"><span class="pre">Distributed</span></code> context manager.</p>
+<p>In order to facilitate training on data larger than the available GPU memory, the training will leverage Dask. All the complexity of starting a local dask cluster is hidden in the <code class="docutils literal notranslate"><span class="pre">Distributed</span></code> context manager.</p>
 <p>Without further ado, let’s train.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
