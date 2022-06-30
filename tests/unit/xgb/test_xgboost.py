@@ -19,6 +19,7 @@ import pytest
 import xgboost
 
 from merlin.core.dispatch import HAS_GPU
+from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
 from merlin.models.xgb import XGBoost
 
@@ -162,3 +163,31 @@ class TestSchema:
         with pytest.raises(KeyError) as excinfo:
             model.fit(new_dataset)
         assert "session_id" in str(excinfo)
+
+
+class TestEvals:
+    def test_multiple(self, dask_client):
+        train, valid_a, valid_b = generate_data(
+            "music-streaming", num_rows=100, set_sizes=(0.6, 0.2, 0.2)
+        )
+        model = XGBoost(train.schema, objective="reg:logistic")
+        model.fit(train, evals=[(valid_a, "a"), (valid_b, "b")])
+        assert set(model.evals_result.keys()) == {"a", "b"}
+
+    def test_default(self, dask_client):
+        train = generate_data("music-streaming", num_rows=100)
+        model = XGBoost(train.schema, objective="reg:logistic")
+        model.fit(train)
+        assert set(model.evals_result.keys()) == {"train"}
+
+    def test_train_and_valid(self, dask_client):
+        train, valid = generate_data("music-streaming", num_rows=100, set_sizes=(0.5, 0.5))
+        model = XGBoost(train.schema, objective="reg:logistic")
+        model.fit(train, evals=[(valid, "valid"), (train, "train")])
+        assert set(model.evals_result.keys()) == {"valid", "train"}
+
+    def test_invalid_data(self, dask_client):
+        train, _ = generate_data("music-streaming", num_rows=100, set_sizes=(0.5, 0.5))
+        model = XGBoost(train.schema, objective="reg:logistic")
+        with pytest.raises(AssertionError):
+            model.fit(train, evals=[([], "valid")])
