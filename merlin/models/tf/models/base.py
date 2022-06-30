@@ -264,6 +264,15 @@ class BaseModel(tf.keras.Model):
             **kwargs: Arguments supported for backwards compatibility only.
         """
 
+        # Initializing model control flags controlled by MetricsComputeCallback()
+        self._should_compute_train_metrics_for_batch = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_train_metrics_for_batch",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: False,
+        )
+
         self.output_names = [task.task_name for task in self.prediction_tasks]
 
         _metrics = {}
@@ -302,17 +311,6 @@ class BaseModel(tf.keras.Model):
             jit_compile=jit_compile,
             **kwargs,
         )
-
-    def build(self, input_shapes):
-        # Initializing model control flags controlled by MetricsComputeCallback()
-        self._should_compute_train_metrics_for_batch = tf.Variable(
-            dtype=tf.bool,
-            name="should_compute_train_metrics_for_batch",
-            trainable=False,
-            synchronization=tf.VariableSynchronization.NONE,
-            initial_value=lambda: False,
-        )
-        super().build(input_shapes)
 
     @property
     def prediction_tasks(self) -> List[PredictionTask]:
