@@ -107,7 +107,8 @@ def test_mlp_block_dense_layer_activation(dimensions, activation):
     mlp = ml.MLPBlock(dimensions=dimensions, activation=activation)
 
     for idx, layer in enumerate(mlp.layers):
-        assert layer[idx].dense.activation.__name__ == activation[idx]
+        activation_idx = activation if isinstance(activation, str) else activation[idx]
+        assert layer.dense.activation.__name__ == activation_idx
 
 
 def test_mlp_block_activation_dimensions_length_mismatch():
