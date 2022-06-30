@@ -96,8 +96,9 @@
 <h1>Train a third party model using the Merlin Models API<a class="headerlink" href="#train-a-third-party-model-using-the-merlin-models-api" title="Permalink to this headline"></a></h1>
 <div class="section" id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline"></a></h2>
-<p>Merlin Models exposes a high level API that can be used with models from other libraries. Currently select xgboost and implicit models are supported.</p>
-<p>Relying on this high level API allows you to iterate more effectively. You do not have to switch between various APIs as you try out additional models on your data. Furthermore, you can use your data represented as the <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> class across all your models.</p>
+<p>Merlin Models exposes a high level API that can be used with models from other libraries. Currently select <code class="docutils literal notranslate"><span class="pre">xgboost</span></code> and <code class="docutils literal notranslate"><span class="pre">implicit</span></code> models are supported.</p>
+<p>Relying on this high level API allows you to iterate more effectively. You do not have to switch between various APIs as you try out additional models on your data.</p>
+<p>Furthermore, you can use your data represented as a <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> across all your models.</p>
 <div class="section" id="learning-objectives">
 <h3>Learning objectives<a class="headerlink" href="#learning-objectives" title="Permalink to this headline"></a></h3>
 <ul class="simple">
@@ -108,26 +109,64 @@
 </div>
 <div class="section" id="preparing-the-dataset">
 <h2>Preparing the dataset<a class="headerlink" href="#preparing-the-dataset" title="Permalink to this headline"></a></h2>
-<p>We will use <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> synthetic data.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.core.utils</span> <span class="kn">import</span> <span class="n">Distributed</span>
 <span class="kn">from</span> <span class="nn">merlin.models.xgb</span> <span class="kn">import</span> <span class="n">XGBoost</span>
 
-<span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
+<span class="kn">from</span> <span class="nn">merlin.datasets.entertainment</span> <span class="kn">import</span> <span class="n">get_movielens</span>
 <span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
 </pre></div>
 </div>
 </div>
 </div>
+<p>We will use the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> dataset. It consists of <code class="docutils literal notranslate"><span class="pre">userId</span></code> and <code class="docutils literal notranslate"><span class="pre">movieId</span></code> pairings where a user has rated a movie along with some additional information (such as genre of the movie, age of the user, etc).</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s1">&#39;movielens-100k&#39;</span><span class="p">,</span> <span class="n">num_rows</span><span class="o">=</span><span class="mi">100_000</span><span class="p">)</span>
-<span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s1">&#39;movielens-100k&#39;</span><span class="p">,</span> <span class="n">num_rows</span><span class="o">=</span><span class="mi">40_000</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s1">&#39;ml-100k&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-06-29 10:50:40.307876: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-06-29 10:50:40.308242: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-06-29 10:50:40.308376: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+  warnings.warn(
 </pre></div>
 </div>
 </div>
 </div>
+<p>The <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function downloaded the <code class="docutils literal notranslate"><span class="pre">movielens-100k</span></code> data for us and returned it materialized as as an NVTabular dataset.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&lt;merlin.io.dataset.Dataset at 0x7ff92007f0d0&gt;,
+ &lt;merlin.io.dataset.Dataset at 0x7ff92007f070&gt;)
+</pre></div>
+</div>
+</div>
+</div>
+<p>One of the features that the Merlin Model API supports is tagging. You can tag your data once, during preprocessing, and this information can be picked up by downstream functionality (additional preprocessing steps, training your model or serving it).</p>
+<p>Here, we will make use of the <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> to identify the objective for our <code class="docutils literal notranslate"><span class="pre">xgboost</span></code> model.</p>
+<p>During preprocessing, two columns in the dataset were assigned the <code class="docutils literal notranslate"><span class="pre">Tags.TARGET</span></code> tag.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&#39;rating&#39;, &#39;rating_binary&#39;]
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let us use the <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> column as our target. Because there are two columns that can be used as targets for training (and we want to use only a single column as our objective for our <code class="docutils literal notranslate"><span class="pre">xgboost</span></code> model), let us pass this information directly to our model.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">target_column</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
@@ -141,140 +180,49 @@
 </div>
 </div>
 </div>
+<p>To summarize, we will train an xgboost model that will predict the rating of a movie.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> of 1 indicates that the user has given the movie a high rating, and a target of 0 indicates that the user has given the movie a low rating.</p>
+<p>Before we begin to train, let us remove the <code class="docutils literal notranslate"><span class="pre">title</span></code> column from our schema. In the dataset, the title is a string, and unless we preprocess it further, it would not be useful in training.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="o">.</span><span class="n">compute</span><span class="p">()[[</span><span class="s1">&#39;userId&#39;</span><span class="p">,</span> <span class="s1">&#39;movieId&#39;</span><span class="p">,</span> <span class="s1">&#39;rating_binary&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema_without_title</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">remove_col</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="cell_output docutils container">
-<div class="output text_html"><div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>userId</th>
-      <th>movieId</th>
-      <th>rating_binary</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>32</td>
-      <td>9</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>35</td>
-      <td>64</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>10</td>
-      <td>10</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>31</td>
-      <td>10</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>113</td>
-      <td>5</td>
-      <td>0</td>
-    </tr>
-  </tbody>
-</table>
-</div></div></div>
 </div>
-<p>We will train an xgboost model that will predict the rating of a movie.</p>
-<p><code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> of 1 indicates that the user has given the movie a high rating, and a target of 0 indicates that the user has given the movie a low rating.</p>
 </div>
 <div class="section" id="training-the-model">
 <h2>Training the model<a class="headerlink" href="#training-the-model" title="Permalink to this headline"></a></h2>
+<p>Before we begin training, let’s define a couple of custom parameters.</p>
+<p>Specifying <code class="docutils literal notranslate"><span class="pre">'gpu_hist'</span></code>as our <code class="docutils literal notranslate"><span class="pre">'tree_method'</span></code> will run the training on the GPU. Also, it will trigger representing our datasets as <code class="docutils literal notranslate"><span class="pre">DaskDeviceQuantileDMatrix</span></code> instead of the standard <code class="docutils literal notranslate"><span class="pre">DaskDMatrix</span></code>. This is a recently introduced format that can lead to a more efficient training with lower memory footprint. You can read more about it <a class="reference external" href="https://medium.com/rapids-ai/new-features-and-optimizations-for-gpus-in-xgboost-1-1-fc153dc029ce">here</a>.</p>
+<p>Additionally, we will train with early stopping and evaluate the stopping criteria on a validation set. If we were to train without early stopping, XGboost would continue to improve results on the train set until it would reach a perfect score. That would result in a low training loss but we would lose any ability to generalize to unseen data. Instead, by training with early stopping, the training will cease as soon as the model will start overfitting to the train set and the results on the validation set will start to deteriorate.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">verbose_eval</span></code> specifies how often metrics are reported during training.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">xgb_booster_params</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;max_depth&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> 
-    <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="mf">0.05</span><span class="p">,</span> 
-    <span class="s1">&#39;subsample&#39;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span>
-    <span class="s1">&#39;colsample_bytree&#39;</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span> 
-    <span class="s1">&#39;eval_metric&#39;</span><span class="p">:</span><span class="s1">&#39;logloss&#39;</span><span class="p">,</span>
     <span class="s1">&#39;objective&#39;</span><span class="p">:</span><span class="s1">&#39;binary:logistic&#39;</span><span class="p">,</span>
     <span class="s1">&#39;tree_method&#39;</span><span class="p">:</span><span class="s1">&#39;gpu_hist&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;predictor&#39;</span><span class="p">:</span><span class="s1">&#39;gpu_predictor&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;random_state&#39;</span><span class="p">:</span> <span class="mi">42</span>
 <span class="p">}</span>
 
 <span class="n">xgb_train_params</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;num_boost_round&#39;</span><span class="p">:</span> <span class="mi">40</span><span class="p">,</span>
-    <span class="s1">&#39;verbose_eval&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
-    <span class="s1">&#39;early_stopping_rounds&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s1">&#39;num_boost_round&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="s1">&#39;verbose_eval&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="s1">&#39;early_stopping_rounds&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </div>
 </div>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">xgboost</span> <span class="k">as</span> <span class="nn">xgb</span>
-
-<span class="n">dtrain</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">DMatrix</span><span class="p">(</span>
-    <span class="n">data</span><span class="o">=</span><span class="n">train</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">&#39;rating_binary&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
-    <span class="n">label</span><span class="o">=</span><span class="n">train</span><span class="o">.</span><span class="n">compute</span><span class="p">()[</span><span class="s1">&#39;rating_binary&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-<span class="p">)</span>
-
-<span class="n">dvalid</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">DMatrix</span><span class="p">(</span>
-    <span class="n">data</span><span class="o">=</span><span class="n">valid</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">&#39;rating_binary&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
-    <span class="n">label</span><span class="o">=</span><span class="n">valid</span><span class="o">.</span><span class="n">compute</span><span class="p">()[</span><span class="s1">&#39;rating_binary&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-<span class="p">)</span>
-
-<span class="n">model</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">train</span><span class="p">(</span>
-    <span class="n">xgb_booster_params</span><span class="p">,</span> 
-    <span class="n">dtrain</span><span class="o">=</span><span class="n">dtrain</span><span class="p">,</span>
-    <span class="n">evals</span><span class="o">=</span><span class="p">[(</span><span class="n">dvalid</span><span class="p">,</span><span class="s1">&#39;valid&#39;</span><span class="p">)],</span> <span class="c1"># you can optionally add (dtrain,&#39;train&#39;) if you want to get metrics on train</span>
-    <span class="n">feval</span><span class="o">=</span><span class="k">lambda</span> <span class="n">preds</span><span class="p">,</span> <span class="n">targs</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;custom_metric&#39;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="mi">2</span><span class="p">)),</span>
-    <span class="o">**</span><span class="n">xgb_train_params</span>
-<span class="p">)</span> 
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[0]	valid-logloss:0.69314	valid-custom_metric:2.00000
-[4]	valid-logloss:0.69315	valid-custom_metric:2.00000
-[8]	valid-logloss:0.69317	valid-custom_metric:2.00000
-[12]	valid-logloss:0.69319	valid-custom_metric:2.00000
-[16]	valid-logloss:0.69319	valid-custom_metric:2.00000
-[20]	valid-logloss:0.69321	valid-custom_metric:2.00000
-</pre></div>
-</div>
-</div>
-</div>
+<p>We are now ready to train.</p>
+<p>In order to facilitate training on data larger than the available GPU RAM, the training will leverage Dask. All the complexity of starting a local dask cluster is hidden in the <code class="docutils literal notranslate"><span class="pre">Distributed</span></code> context manager.</p>
+<p>Without further ado, let’s train.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">Distributed</span><span class="p">():</span>
-    <span class="n">model</span> <span class="o">=</span> <span class="n">XGBoost</span><span class="p">(</span><span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span> <span class="o">**</span><span class="n">xgb_booster_params</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">XGBoost</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="n">schema_without_title</span><span class="p">,</span> <span class="o">**</span><span class="n">xgb_booster_params</span><span class="p">)</span>
     <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
         <span class="n">train</span><span class="p">,</span>
+        <span class="n">evals</span><span class="o">=</span><span class="p">[(</span><span class="n">valid</span><span class="p">,</span> <span class="s1">&#39;validation_set&#39;</span><span class="p">),],</span>
         <span class="o">**</span><span class="n">xgb_train_params</span>
     <span class="p">)</span>
     <span class="n">metrics</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">)</span>
@@ -282,26 +230,25 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>distributed.diskutils - INFO - Found stale lock file and directory &#39;/workspace/examples/dask-worker-space/worker-kq5j0c9z&#39;, purging
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/distributed/node.py:160: UserWarning: Port 8787 is already in use.
+Perhaps you already have a cluster running?
+Hosting the HTTP server on port 32973 instead
+  warnings.warn(
 distributed.preloading - INFO - Import preload module: dask_cuda.initialize
+[11:17:40] task [xgboost.dask]:tcp://127.0.0.1:45095 got new rank 0
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[0]	train-logloss:0.69310
-[4]	train-logloss:0.69297
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[0]	validation_set-logloss:0.65881
+[20]	validation_set-logloss:0.61290
+[40]	validation_set-logloss:0.60795
+[60]	validation_set-logloss:0.60568
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[04:57:46] task [xgboost.dask]:tcp://127.0.0.1:35891 got new rank 0
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[11:17:40] WARNING: ../src/learner.cc:1115: Starting in XGBoost 1.3.0, the default evaluation metric used with the objective &#39;binary:logistic&#39; was changed from &#39;error&#39; to &#39;logloss&#39;. Explicitly set eval_metric if you&#39;d like to restore the old behavior.
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[8]	train-logloss:0.69285
-[12]	train-logloss:0.69271
-[16]	train-logloss:0.69260
-[20]	train-logloss:0.69247
-[24]	train-logloss:0.69235
-[28]	train-logloss:0.69223
-[32]	train-logloss:0.69212
-[36]	train-logloss:0.69200
-[39]	train-logloss:0.69191
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[80]	validation_set-logloss:0.60320
+[85]	validation_set-logloss:0.60294
 </pre></div>
 </div>
 </div>

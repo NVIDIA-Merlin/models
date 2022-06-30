@@ -34,9 +34,11 @@
     "\n",
     "## Overview\n",
     "\n",
-    "Merlin Models exposes a high level API that can be used with models from other libraries. Currently select xgboost and implicit models are supported.\n",
+    "Merlin Models exposes a high level API that can be used with models from other libraries. Currently select `xgboost` and `implicit` models are supported.\n",
     "\n",
-    "Relying on this high level API allows you to iterate more effectively. You do not have to switch between various APIs as you try out additional models on your data. Furthermore, you can use your data represented as the `Dataset` class across all your models.\n",
+    "Relying on this high level API allows you to iterate more effectively. You do not have to switch between various APIs as you try out additional models on your data.\n",
+    "\n",
+    "Furthermore, you can use your data represented as a `Dataset` across all your models.\n",
     "\n",
     "### Learning objectives\n",
     "\n",
@@ -53,42 +55,124 @@
    ]
   },
   {
-   "cell_type": "markdown",
-   "id": "cec216e2",
-   "metadata": {},
-   "source": [
-    "We will use `movielens-100k` synthetic data."
-   ]
-  },
-  {
    "cell_type": "code",
    "execution_count": 2,
-   "id": "e8c63b03",
+   "id": "55d93b8b",
    "metadata": {},
    "outputs": [],
    "source": [
     "from merlin.core.utils import Distributed\n",
     "from merlin.models.xgb import XGBoost\n",
     "\n",
-    "from merlin.datasets.synthetic import generate_data\n",
+    "from merlin.datasets.entertainment import get_movielens\n",
     "from merlin.schema.tags import Tags"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cec216e2",
+   "metadata": {},
+   "source": [
+    "We will use the `movielens-100k` dataset. It consists of `userId` and `movieId` pairings where a user has rated a movie along with some additional information (such as genre of the movie, age of the user, etc)."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": 3,
-   "id": "e16e1ec1",
+   "id": "24586409",
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-06-29 10:50:40.307876: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero\n",
+      "2022-06-29 10:50:40.308242: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero\n",
+      "2022-06-29 10:50:40.308376: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:952] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero\n",
+      "/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.\n",
+      "  warnings.warn(\n"
+     ]
+    }
+   ],
    "source": [
-    "train = generate_data('movielens-100k', num_rows=100_000)\n",
-    "valid = generate_data('movielens-100k', num_rows=40_000)"
+    "train, valid = get_movielens(variant='ml-100k')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4e26cedb",
+   "metadata": {},
+   "source": [
+    "The `get_movielens` function downloaded the `movielens-100k` data for us and returned it materialized as as an NVTabular dataset."
    ]
   },
   {
    "cell_type": "code",
    "execution_count": 4,
-   "id": "e5400a9a",
+   "id": "e2237f8b",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "(<merlin.io.dataset.Dataset at 0x7ff92007f0d0>,\n",
+       " <merlin.io.dataset.Dataset at 0x7ff92007f070>)"
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "train, valid"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8ed670fc",
+   "metadata": {},
+   "source": [
+    "One of the features that the Merlin Model API supports is tagging. You can tag your data once, during preprocessing, and this information can be picked up by downstream functionality (additional preprocessing steps, training your model or serving it).\n",
+    "\n",
+    "Here, we will make use of the `Tags.TARGET` to identify the objective for our `xgboost` model.\n",
+    "\n",
+    "During preprocessing, two columns in the dataset were assigned the `Tags.TARGET` tag."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "e5228440",
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['rating', 'rating_binary']"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "train.schema.select_by_tag(Tags.TARGET).column_names"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cdaf8292",
+   "metadata": {},
+   "source": [
+    "Let us use the `rating_binary` column as our target. Because there are two columns that can be used as targets for training (and we want to use only a single column as our objective for our `xgboost` model), let us pass this information directly to our model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "b018d192",
    "metadata": {},
    "outputs": [
     {
@@ -97,7 +181,7 @@
        "'rating_binary'"
       ]
      },
-     "execution_count": 4,
+     "execution_count": 6,
      "metadata": {},
      "output_type": "execute_result"
     }
@@ -108,98 +192,25 @@
    ]
   },
   {
-   "cell_type": "code",
-   "execution_count": 5,
-   "id": "b634e3ed",
-   "metadata": {},
-   "outputs": [
-    {
-     "data": {
-      "text/html": [
-       "<div>\n",
-       "<style scoped>\n",
-       "    .dataframe tbody tr th:only-of-type {\n",
-       "        vertical-align: middle;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe tbody tr th {\n",
-       "        vertical-align: top;\n",
-       "    }\n",
-       "\n",
-       "    .dataframe thead th {\n",
-       "        text-align: right;\n",
-       "    }\n",
-       "</style>\n",
-       "<table border=\"1\" class=\"dataframe\">\n",
-       "  <thead>\n",
-       "    <tr style=\"text-align: right;\">\n",
-       "      <th></th>\n",
-       "      <th>userId</th>\n",
-       "      <th>movieId</th>\n",
-       "      <th>rating_binary</th>\n",
-       "    </tr>\n",
-       "  </thead>\n",
-       "  <tbody>\n",
-       "    <tr>\n",
-       "      <th>0</th>\n",
-       "      <td>32</td>\n",
-       "      <td>9</td>\n",
-       "      <td>0</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>1</th>\n",
-       "      <td>35</td>\n",
-       "      <td>64</td>\n",
-       "      <td>0</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>2</th>\n",
-       "      <td>10</td>\n",
-       "      <td>10</td>\n",
-       "      <td>1</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>3</th>\n",
-       "      <td>31</td>\n",
-       "      <td>10</td>\n",
-       "      <td>0</td>\n",
-       "    </tr>\n",
-       "    <tr>\n",
-       "      <th>4</th>\n",
-       "      <td>113</td>\n",
-       "      <td>5</td>\n",
-       "      <td>0</td>\n",
-       "    </tr>\n",
-       "  </tbody>\n",
-       "</table>\n",
-       "</div>"
-      ],
-      "text/plain": [
-       "   userId  movieId  rating_binary\n",
-       "0      32        9              0\n",
-       "1      35       64              0\n",
-       "2      10       10              1\n",
-       "3      31       10              0\n",
-       "4     113        5              0"
-      ]
-     },
-     "execution_count": 5,
-     "metadata": {},
-     "output_type": "execute_result"
-    }
-   ],
-   "source": [
-    "train.compute()[['userId', 'movieId', 'rating_binary']].head()"
-   ]
-  },
-  {
    "cell_type": "markdown",
    "id": "45dec89b",
    "metadata": {},
    "source": [
-    "We will train an xgboost model that will predict the rating of a movie.\n",
+    "To summarize, we will train an xgboost model that will predict the rating of a movie.\n",
     "\n",
-    "`rating_binary` of 1 indicates that the user has given the movie a high rating, and a target of 0 indicates that the user has given the movie a low rating."
+    "`rating_binary` of 1 indicates that the user has given the movie a high rating, and a target of 0 indicates that the user has given the movie a low rating.\n",
+    "\n",
+    "Before we begin to train, let us remove the `title` column from our schema. In the dataset, the title is a string, and unless we preprocess it further, it would not be useful in training."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "e8a28f88",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "schema_without_title = train.schema.remove_col('title')"
    ]
   },
   {
@@ -211,122 +222,100 @@
    ]
   },
   {
+   "cell_type": "markdown",
+   "id": "59e1d262",
+   "metadata": {},
+   "source": [
+    "Before we begin training, let's define a couple of custom parameters.\n",
+    "\n",
+    "Specifying `'gpu_hist'`as our `'tree_method'` will run the training on the GPU. Also, it will trigger representing our datasets as `DaskDeviceQuantileDMatrix` instead of the standard `DaskDMatrix`. This is a recently introduced format that can lead to a more efficient training with lower memory footprint. You can read more about it [here](https://medium.com/rapids-ai/new-features-and-optimizations-for-gpus-in-xgboost-1-1-fc153dc029ce).\n",
+    "\n",
+    "Additionally, we will train with early stopping and evaluate the stopping criteria on a validation set. If we were to train without early stopping, XGboost would continue to improve results on the train set until it would reach a perfect score. That would result in a low training loss but we would lose any ability to generalize to unseen data. Instead, by training with early stopping, the training will cease as soon as the model will start overfitting to the train set and the results on the validation set will start to deteriorate.\n",
+    "\n",
+    "The `verbose_eval` specifies how often metrics are reported during training."
+   ]
+  },
+  {
    "cell_type": "code",
-   "execution_count": 6,
+   "execution_count": 20,
    "id": "b1804697",
    "metadata": {},
    "outputs": [],
    "source": [
     "xgb_booster_params = {\n",
-    "    'max_depth': 4, \n",
-    "    'learning_rate': 0.05, \n",
-    "    'subsample': 0.8,\n",
-    "    'colsample_bytree': 0.6, \n",
-    "    'eval_metric':'logloss',\n",
     "    'objective':'binary:logistic',\n",
     "    'tree_method':'gpu_hist',\n",
-    "    'predictor':'gpu_predictor',\n",
-    "    'random_state': 42\n",
     "}\n",
     "\n",
     "xgb_train_params = {\n",
-    "    'num_boost_round': 40,\n",
-    "    'verbose_eval': 4,\n",
-    "    'early_stopping_rounds': 20,\n",
+    "    'num_boost_round': 100,\n",
+    "    'verbose_eval': 20,\n",
+    "    'early_stopping_rounds': 10,\n",
     "}"
    ]
   },
   {
-   "cell_type": "code",
-   "execution_count": 7,
-   "id": "f7bc9ddb",
+   "cell_type": "markdown",
+   "id": "4b755e80",
    "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "[0]\tvalid-logloss:0.69314\tvalid-custom_metric:2.00000\n",
-      "[4]\tvalid-logloss:0.69315\tvalid-custom_metric:2.00000\n",
-      "[8]\tvalid-logloss:0.69317\tvalid-custom_metric:2.00000\n",
-      "[12]\tvalid-logloss:0.69319\tvalid-custom_metric:2.00000\n",
-      "[16]\tvalid-logloss:0.69319\tvalid-custom_metric:2.00000\n",
-      "[20]\tvalid-logloss:0.69321\tvalid-custom_metric:2.00000\n"
-     ]
-    }
-   ],
    "source": [
-    "import xgboost as xgb\n",
+    "We are now ready to train.\n",
     "\n",
-    "dtrain = xgb.DMatrix(\n",
-    "    data=train.compute().drop(columns='rating_binary').values,\n",
-    "    label=train.compute()['rating_binary'].values\n",
-    ")\n",
+    "In order to facilitate training on data larger than the available GPU RAM, the training will leverage Dask. All the complexity of starting a local dask cluster is hidden in the `Distributed` context manager.\n",
     "\n",
-    "dvalid = xgb.DMatrix(\n",
-    "    data=valid.compute().drop(columns='rating_binary').values,\n",
-    "    label=valid.compute()['rating_binary'].values\n",
-    ")\n",
-    "\n",
-    "model = xgb.train(\n",
-    "    xgb_booster_params, \n",
-    "    dtrain=dtrain,\n",
-    "    evals=[(dvalid,'valid')], # you can optionally add (dtrain,'train') if you want to get metrics on train\n",
-    "    feval=lambda preds, targs: ('custom_metric', float(2)),\n",
-    "    **xgb_train_params\n",
-    ") "
+    "Without further ado, let's train."
    ]
   },
   {
    "cell_type": "code",
-   "execution_count": 8,
-   "id": "657ca89f",
+   "execution_count": 21,
+   "id": "8c511fc6",
    "metadata": {},
    "outputs": [
     {
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "distributed.diskutils - INFO - Found stale lock file and directory '/workspace/examples/dask-worker-space/worker-kq5j0c9z', purging\n",
-      "distributed.preloading - INFO - Import preload module: dask_cuda.initialize\n"
+      "/usr/local/lib/python3.8/dist-packages/distributed/node.py:160: UserWarning: Port 8787 is already in use.\n",
+      "Perhaps you already have a cluster running?\n",
+      "Hosting the HTTP server on port 32973 instead\n",
+      "  warnings.warn(\n",
+      "distributed.preloading - INFO - Import preload module: dask_cuda.initialize\n",
+      "[11:17:40] task [xgboost.dask]:tcp://127.0.0.1:45095 got new rank 0\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "[0]\ttrain-logloss:0.69310\n",
-      "[4]\ttrain-logloss:0.69297\n"
+      "[0]\tvalidation_set-logloss:0.65881\n",
+      "[20]\tvalidation_set-logloss:0.61290\n",
+      "[40]\tvalidation_set-logloss:0.60795\n",
+      "[60]\tvalidation_set-logloss:0.60568\n"
      ]
     },
     {
      "name": "stderr",
      "output_type": "stream",
      "text": [
-      "[04:57:46] task [xgboost.dask]:tcp://127.0.0.1:35891 got new rank 0\n"
+      "[11:17:40] WARNING: ../src/learner.cc:1115: Starting in XGBoost 1.3.0, the default evaluation metric used with the objective 'binary:logistic' was changed from 'error' to 'logloss'. Explicitly set eval_metric if you'd like to restore the old behavior.\n"
      ]
     },
     {
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "[8]\ttrain-logloss:0.69285\n",
-      "[12]\ttrain-logloss:0.69271\n",
-      "[16]\ttrain-logloss:0.69260\n",
-      "[20]\ttrain-logloss:0.69247\n",
-      "[24]\ttrain-logloss:0.69235\n",
-      "[28]\ttrain-logloss:0.69223\n",
-      "[32]\ttrain-logloss:0.69212\n",
-      "[36]\ttrain-logloss:0.69200\n",
-      "[39]\ttrain-logloss:0.69191\n"
+      "[80]\tvalidation_set-logloss:0.60320\n",
+      "[85]\tvalidation_set-logloss:0.60294\n"
      ]
     }
    ],
    "source": [
     "with Distributed():\n",
-    "    model = XGBoost(train.schema, **xgb_booster_params)\n",
+    "    model = XGBoost(schema=schema_without_title, **xgb_booster_params)\n",
     "    model.fit(\n",
     "        train,\n",
+    "        evals=[(valid, 'validation_set'),],\n",
     "        **xgb_train_params\n",
     "    )\n",
     "    metrics = model.evaluate(valid)"
