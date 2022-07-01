@@ -296,19 +296,17 @@ def get_candidate_probs(
     return candidate_probs
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TensorInitializer(tf.keras.initializers.Initializer):
     """Initializer that returns a tensor (e.g. pre-trained
     embeddings) set in the constructor
     """
 
     def __init__(self, weights: Union[tf.Tensor, Any], **kwargs):
-        self._weights = tf.constant(weights)
+        self._weights = tf.convert_to_tensor(weights)
 
     def __call__(self, shape: tf.TensorShape, dtype: tf.DType = None, **kwargs) -> tf.Tensor:
         """Returns a tensor object initialized with the tensor
         set in the constructor.
-
         Parameters
         ----------
         shape : tf.TensorShape
@@ -316,7 +314,6 @@ class TensorInitializer(tf.keras.initializers.Initializer):
         dtype : tf.DType, optional
             Optional dtype of the tensor. Only numeric or boolean dtypes are
         supported, by default None
-
         Returns
         -------
         tf.Tensor
@@ -330,7 +327,7 @@ class TensorInitializer(tf.keras.initializers.Initializer):
         return weights
 
     @classmethod
-    def from_dataset(cls, data: Union[Dataset, DataFrameType], **kwargs) -> "TensorInitializer":
+    def from_dataset(cls, data: Union[Dataset, DataFrameType], **kwargs):
         if hasattr(data, "to_ddf"):
             data = data.to_ddf().compute()
         embeddings = tf_utils.df_to_tensor(data)
@@ -338,7 +335,7 @@ class TensorInitializer(tf.keras.initializers.Initializer):
         return cls(weights=embeddings, **kwargs)
 
     def get_config(self):  # To support serialization
-        return {"weights": self._weights.numpy()}
+        return {"weights": self._weights}
 
 
 def call_layer(layer: tf.keras.layers.Layer, inputs, *args, **kwargs):
