@@ -113,4 +113,4 @@ def test_mlp_block_dense_layer_activation(arguments):
 def test_mlp_block_activation_dimensions_length_mismatch():
     with pytest.raises(ValueError) as excinfo:
         mlp = ml.MLPBlock(dimensions=[32], activation=['relu', 'linear'])
-    assert "length of activation list and dimensions list are not equal" in str(excinfo.value)
+    assert "Activation and Dimensions length mismatch." in str(excinfo.value)
