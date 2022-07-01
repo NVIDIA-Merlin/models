@@ -130,3 +130,20 @@ def test_train_metrics_steps(
 
     # number of times metrics computed (every train_metrics_steps batches)
     assert len({metrics["auc"] for metrics in epoch0_logs}) == expected_metrics_steps
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_model_pre_post(ecommerce_data: Dataset, run_eagerly):
+    model = ml.Model(
+        ml.InputBlock(ecommerce_data.schema),
+        ml.MLPBlock([64]),
+        ml.BinaryClassificationTask("click"),
+        post=ml.NoOp(),
+    )
+
+    model.pre = ml.StochasticSwapNoise(ecommerce_data.schema)
+
+    loaded_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+    assert isinstance(loaded_model.pre, ml.StochasticSwapNoise)
+    assert isinstance(loaded_model.post, ml.NoOp)
