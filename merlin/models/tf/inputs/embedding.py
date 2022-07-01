@@ -40,7 +40,7 @@ from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSpar
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import TensorInitializer
+from merlin.models.tf.utils.tf_utils import df_to_tensor
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
@@ -163,6 +163,7 @@ class EmbeddingTable(EmbeddingTableBase):
         dtype=None,
         dynamic=False,
         table=None,
+        weights=None,
         **kwargs,
     ):
         """Create an EmbeddingTable."""
@@ -178,6 +179,7 @@ class EmbeddingTable(EmbeddingTableBase):
                 activity_regularizer=activity_regularizer,
                 embeddings_constraint=embeddings_constraint,
                 mask_zero=mask_zero,
+                weights=weights,
                 input_length=input_length,
             )
             self.table = tf.keras.layers.Embedding(
@@ -208,29 +210,33 @@ class EmbeddingTable(EmbeddingTableBase):
         name : str
             The name of the layer.
         """
-        initializer = TensorInitializer.from_dataset(data)
-        num_items, dim = tuple(initializer._weights.shape)
+        if hasattr(data, "to_ddf"):
+            data = data.to_ddf().compute()
+        embeddings = df_to_tensor(data, tf.float32)
+
+        num_items, dim = tuple(embeddings.shape)
 
         if not col_schema:
             if not name:
                 raise ValueError("`name` is required when not using a ColumnSchema")
             col_schema = create_categorical_column(name, num_items - 1)
 
+        var = tf.Variable(embeddings, trainable=trainable)
         return cls(
             dim,
             col_schema,
             name=name,
-            embeddings_initializer=initializer,
+            weights=[var],
             trainable=trainable,
             **kwargs,
         )
 
-    def build(self, input_shapes):
+    def _maybe_build(self, inputs):
         """Creates state between layer instantiation and layer call.
         Invoked automatically before the first execution of `call()`.
         """
-        self.table.build(())
-        return super(EmbeddingTable, self).build(input_shapes)
+        self.table._maybe_build(inputs)
+        return super(EmbeddingTable, self)._maybe_build(inputs)
 
     def call(self, inputs):
         """

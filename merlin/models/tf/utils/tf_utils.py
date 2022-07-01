@@ -231,6 +231,10 @@ def df_to_tensor(gdf, dtype=None):
         # matrix which means we had to transpose
         # for the bug above, so untranspose
         x = tf.transpose(x)
+
+    if dtype:
+        return tf.cast(x, dtype)
+
     return x
 
 
@@ -299,7 +303,7 @@ class TensorInitializer(tf.keras.initializers.Initializer):
     """
 
     def __init__(self, weights: Union[tf.Tensor, Any], **kwargs):
-        self._weights = tf.convert_to_tensor(weights)
+        self._weights = tf.constant(weights)
 
     def __call__(self, shape: tf.TensorShape, dtype: tf.DType = None, **kwargs) -> tf.Tensor:
         """Returns a tensor object initialized with the tensor
