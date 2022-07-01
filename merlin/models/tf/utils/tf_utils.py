@@ -307,6 +307,7 @@ class TensorInitializer(tf.keras.initializers.Initializer):
     def __call__(self, shape: tf.TensorShape, dtype: tf.DType = None, **kwargs) -> tf.Tensor:
         """Returns a tensor object initialized with the tensor
         set in the constructor.
+
         Parameters
         ----------
         shape : tf.TensorShape
@@ -314,6 +315,7 @@ class TensorInitializer(tf.keras.initializers.Initializer):
         dtype : tf.DType, optional
             Optional dtype of the tensor. Only numeric or boolean dtypes are
         supported, by default None
+
         Returns
         -------
         tf.Tensor
