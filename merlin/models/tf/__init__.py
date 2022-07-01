@@ -81,6 +81,7 @@ from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
+    EmbeddingTable,
     FeatureConfig,
     SequenceEmbeddingFeatures,
     TableConfig,
