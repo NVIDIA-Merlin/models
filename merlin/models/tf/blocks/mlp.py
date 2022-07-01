@@ -46,7 +46,7 @@ def MLPBlock(
     filter: Optional[Union[Schema, Tags, List[str], "Filter"]] = None,
     no_activation_last_layer: bool = False,
     block_name: str = "MLPBlock",
-    **kwargs
+    **kwargs,
 ) -> SequentialBlock:
     """
     A block that applies a multi-layer perceptron to the input.
@@ -88,7 +88,8 @@ def MLPBlock(
 
     if isinstance(activation, list) and len(activation) != len(dimensions):
         raise ValueError(
-            f"Activation and Dimensions length mismatch. Activation length: {len(activation)}, Dimensions length: {len(dimensions)}"
+            f"Activation and Dimensions length mismatch. \
+        Activation length: {len(activation)}, Dimensions length: {len(dimensions)}"
         )
 
     block_layers = []
@@ -197,7 +198,7 @@ class _Dense(tf.keras.layers.Layer):
         bias_constraint=None,
         pre_aggregation="concat",
         dense=None,
-        **kwargs
+        **kwargs,
     ):
         super(_Dense, self).__init__(**kwargs)
         self.dense = dense or tf.keras.layers.Dense(
@@ -211,7 +212,7 @@ class _Dense(tf.keras.layers.Layer):
             activity_regularizer,
             kernel_constraint,
             bias_constraint,
-            **kwargs
+            **kwargs,
         )
         self.pre_aggregation = pre_aggregation
         self.units = units
@@ -258,7 +259,7 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         pre_aggregation="concat",
         dense: Optional[tf.keras.layers.Dense] = None,
         dense_u: Optional[tf.keras.layers.Dense] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.low_rank_dim = low_rank_dim
