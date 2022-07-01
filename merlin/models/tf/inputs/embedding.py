@@ -221,12 +221,11 @@ class EmbeddingTable(EmbeddingTableBase):
                 raise ValueError("`name` is required when not using a ColumnSchema")
             col_schema = create_categorical_column(name, num_items - 1)
 
-        var = tf.Variable(embeddings, trainable=trainable)
         return cls(
             dim,
             col_schema,
             name=name,
-            weights=[var],
+            weights=[tf.Variable(embeddings, trainable=trainable)],
             trainable=trainable,
             **kwargs,
         )
