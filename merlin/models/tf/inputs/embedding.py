@@ -24,6 +24,8 @@ from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 import merlin.io
+from merlin.core.dispatch import DataFrameType
+from merlin.io import Dataset
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.tabular import (
@@ -38,9 +40,15 @@ from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSpar
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils.tf_utils import df_to_tensor
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
-from merlin.schema import Schema, Tags, TagsType
+from merlin.models.utils.schema_utils import (
+    create_categorical_column,
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
+from merlin.schema import ColumnSchema, Schema, Tags, TagsType
 
 EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     feature_config: Dict[str, FeatureConfig]
@@ -49,6 +57,238 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
     item_id: str, optional
         The name of the feature that's used for the item_id.
 """
+
+
+class EmbeddingTableBase(Block):
+    def __init__(self, dim: int, col_schema: ColumnSchema, trainable=True, **kwargs):
+        super(EmbeddingTableBase, self).__init__(trainable=trainable, **kwargs)
+        self.dim = dim
+
+        if not col_schema.int_domain:
+            raise ValueError("`col_schema` needs to have a int-domain")
+
+        self.col_schema = col_schema
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        data: Union[Dataset, DataFrameType],
+        col_schema: Optional[ColumnSchema] = None,
+        trainable=True,
+        **kwargs,
+    ):
+        raise NotImplementedError()
+
+    @property
+    def input_dim(self):
+        return self.col_schema.int_domain.max + 1
+
+    def get_config(self):
+        config = super().get_config()
+        config["dim"] = self.dim
+
+        schema = schema_to_tensorflow_metadata_json(Schema([self.col_schema]))
+        config["schema"] = schema
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
+        col_schema = schema.first
+
+        return cls(col_schema=col_schema, **config)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class EmbeddingTable(EmbeddingTableBase):
+    """Embedding table that is backed by a standard Keras Embedding Layer.
+
+     Parameters
+     ----------
+     dim: Dimension of the dense embedding.
+     col_schema: ColumnSchema
+         Schema of the column. This is used to infer the cardinality.
+     embeddings_initializer: Initializer for the `embeddings`
+       matrix (see `keras.initializers`).
+     embeddings_regularizer: Regularizer function applied to
+       the `embeddings` matrix (see `keras.regularizers`).
+     embeddings_constraint: Constraint function applied to
+       the `embeddings` matrix (see `keras.constraints`).
+     mask_zero: Boolean, whether or not the input value 0 is a special "padding"
+       value that should be masked out.
+       This is useful when using recurrent layers
+       which may take variable length input.
+       If this is `True`, then all subsequent layers
+       in the model need to support masking or an exception will be raised.
+       If mask_zero is set to True, as a consequence, index 0 cannot be
+       used in the vocabulary (input_dim should equal size of
+       vocabulary + 1).
+     input_length: Length of input sequences, when it is constant.
+       This argument is required if you are going to connect
+       `Flatten` then `Dense` layers upstream
+       (without it, the shape of the dense outputs cannot be computed).
+    combiner: A string specifying how to combine embedding results for each
+       entry. Currently "mean", "sqrtn" and "sum" are supported.
+       Default is None (no combiner used)
+    trainable: Boolean, whether the layer's variables should be trainable.
+    name: String name of the layer.
+    dtype: The dtype of the layer's computations and weights. Can also be a
+       `tf.keras.mixed_precision.Policy`, which allows the computation and weight
+       dtype to differ. Default of `None` means to use
+       `tf.keras.mixed_precision.global_policy()`, which is a float32 policy
+       unless set to different value.
+    dynamic: Set this to `True` if your layer should only be run eagerly, and
+       should not be used to generate a static computation graph.
+       This would be the case for a Tree-RNN or a recursive network,
+       for example, or generally for any layer that manipulates tensors
+       using Python control flow. If `False`, we assume that the layer can
+       safely be used to generate a static computation graph.
+    **kwargs: Forwarded Keras Layer parameters
+    """
+
+    def __init__(
+        self,
+        dim: int,
+        col_schema: ColumnSchema,
+        embeddings_initializer="uniform",
+        embeddings_regularizer=None,
+        activity_regularizer=None,
+        embeddings_constraint=None,
+        mask_zero=False,
+        input_length=None,
+        combiner: Optional[str] = None,
+        trainable=True,
+        name=None,
+        dtype=None,
+        dynamic=False,
+        table=None,
+        weights=None,
+        **kwargs,
+    ):
+        """Create an EmbeddingTable."""
+        super(EmbeddingTable, self).__init__(
+            dim, col_schema, trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs
+        )
+        if table is not None:
+            self.table = table
+        else:
+            table_kwargs = dict(
+                embeddings_initializer=embeddings_initializer,
+                embeddings_regularizer=embeddings_regularizer,
+                activity_regularizer=activity_regularizer,
+                embeddings_constraint=embeddings_constraint,
+                mask_zero=mask_zero,
+                weights=weights,
+                input_length=input_length,
+            )
+            self.table = tf.keras.layers.Embedding(
+                input_dim=self.input_dim,
+                output_dim=self.dim,
+                name=self.col_schema.name,
+                **table_kwargs,
+            )
+        self.combiner = combiner
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        data: Union[Dataset, DataFrameType],
+        trainable=True,
+        name=None,
+        col_schema=None,
+        **kwargs,
+    ):
+        """Create From pre-trained embeddings from a Dataset or DataFrame.
+
+        Parameters
+        ----------
+        data : Union[Dataset, DataFrameType]
+            A dataset containing the pre-trained embedding weights
+        trainable : bool
+            Whether the layer should be trained or not.
+        name : str
+            The name of the layer.
+        """
+        if hasattr(data, "to_ddf"):
+            data = data.to_ddf().compute()
+        embeddings = df_to_tensor(data, tf.float32)
+
+        num_items, dim = tuple(embeddings.shape)
+
+        if not col_schema:
+            if not name:
+                raise ValueError("`name` is required when not using a ColumnSchema")
+            col_schema = create_categorical_column(name, num_items - 1)
+
+        return cls(
+            dim,
+            col_schema,
+            name=name,
+            weights=[tf.Variable(embeddings, trainable=trainable)],
+            trainable=trainable,
+            **kwargs,
+        )
+
+    def _maybe_build(self, inputs):
+        """Creates state between layer instantiation and layer call.
+        Invoked automatically before the first execution of `call()`.
+        """
+        self.table._maybe_build(inputs)
+        return super(EmbeddingTable, self)._maybe_build(inputs)
+
+    def call(self, inputs):
+        """
+        Parameters
+        ----------
+        inputs : Union[tf.Tensor, tf.RaggedTensor, tf.SparseTensor]
+            Tensors representing the input batch
+
+        Returns
+        -------
+        A tensor corresponding to the embeddings for inputs
+        """
+        dtype = backend.dtype(inputs)
+        if dtype != "int32" and dtype != "int64":
+            inputs = tf.cast(inputs, "int32")
+
+        if self.combiner:
+            if not isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
+                raise ValueError(
+                    "Combiner only supported for RaggedTensor and SparseTensor. "
+                    f"Received: {type(inputs)}"
+                )
+            if isinstance(inputs, tf.RaggedTensor):
+                inputs = inputs.to_sparse()
+            out = tf.nn.safe_embedding_lookup_sparse(
+                self.table.embeddings, inputs, None, combiner=self.combiner
+            )
+            if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
+                # Instead of casting the variable as in most layers, cast the output, as
+                # this is mathematically equivalent but is faster.
+                out = tf.cast(out, self._dtype_policy.compute_dtype)
+        else:
+            if not isinstance(inputs, (tf.RaggedTensor, tf.Tensor)):
+                raise ValueError(
+                    "EmbeddingTable supports only RaggedTensor and Tensor input types. "
+                    f"Received: {type(inputs)}"
+                )
+            out = self.table(inputs)
+
+        return out
+
+    @classmethod
+    def from_config(cls, config):
+        config["table"] = tf.keras.layers.deserialize(config["table"])
+
+        return super().from_config(config)
+
+    def get_config(self):
+        config = super().get_config()
+        config["table"] = tf.keras.layers.serialize(self.table)
+        config["combiner"] = self.combiner
+
+        return config
 
 
 @dataclass
