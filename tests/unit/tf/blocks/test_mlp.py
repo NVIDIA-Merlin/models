@@ -101,13 +101,12 @@ def test_mlp_model_save(ecommerce_data: Dataset, run_eagerly: bool, tmp_path):
     assert isinstance(copy_model, tf.keras.Model)
 
 
-@pytest.mark.parametrize("dimensions", [[32], [64, 32], [32, 16]])
-@pytest.mark.parametrize("activation", ["relu", "relu", ["relu", "linear"]])
-def test_mlp_block_dense_layer_activation(dimensions, activation):
-    mlp = ml.MLPBlock(dimensions=dimensions, activation=activation)
+@pytest.mark.parametrize("arguments", [([32], "relu"), ([64, 32], "relu"), ([32, 16], ["relu", "linear"])])
+def test_mlp_block_dense_layer_activation(arguments):
+    mlp = ml.MLPBlock(dimensions=arguments[0], activation=arguments[1])
 
     for idx, layer in enumerate(mlp.layers):
-        activation_idx = activation if isinstance(activation, str) else activation[idx]
+        activation_idx = arguments[1] if isinstance(arguments[1], str) else arguments[1][idx]
         assert layer.dense.activation.__name__ == activation_idx
 
 
