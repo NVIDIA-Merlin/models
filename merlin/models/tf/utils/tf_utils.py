@@ -231,6 +231,10 @@ def df_to_tensor(gdf, dtype=None):
         # matrix which means we had to transpose
         # for the bug above, so untranspose
         x = tf.transpose(x)
+
+    if dtype:
+        return tf.cast(x, dtype)
+
     return x
 
 

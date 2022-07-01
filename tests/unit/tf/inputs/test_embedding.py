@@ -15,13 +15,16 @@
 #
 
 import numpy as np
+import pandas as pd
 import pytest
+import tensorflow as tf
 from tensorflow.keras.initializers import RandomUniform
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
+from merlin.models.tf.utils.testing_utils import model_test
+from merlin.schema import ColumnSchema, Tags
 
 
 def test_embedding_features(tf_cat_features):
@@ -48,6 +51,145 @@ def test_embedding_features_tables():
 
     assert embeddings.embedding_tables["cat_b"].input_dim == 64
     assert embeddings.embedding_tables["cat_b"].output_dim == 16
+
+
+class TestEmbeddingTable:
+    sample_column_schema = ColumnSchema(
+        "item_id",
+        dtype=np.int32,
+        properties={"domain": {"min": 0, "max": 10, "name": "item_id"}},
+        tags=[Tags.CATEGORICAL],
+    )
+
+    def test_raises_with_invalid_schema(self):
+        column_schema = ColumnSchema(["item_id"])
+        with pytest.raises(ValueError) as exc_info:
+            mm.EmbeddingTable(16, column_schema)
+        assert "needs to have a int-domain" in str(exc_info.value)
+
+    @pytest.mark.parametrize(
+        ["dim", "kwargs", "inputs", "expected_output_shape"],
+        [
+            (32, {}, tf.constant([1]), [1, 32]),
+            (16, {}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, None, 16]),
+            (16, {"combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
+            (16, {"combiner": "mean"}, tf.sparse.from_dense(tf.constant([[1, 2, 3]])), [1, 16]),
+        ],
+    )
+    def test_layer(self, dim, kwargs, inputs, expected_output_shape):
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(dim, column_schema, **kwargs)
+
+        output = layer(inputs)
+        assert list(output.shape) == expected_output_shape
+
+        if "combiner" in kwargs:
+            assert isinstance(output, tf.Tensor)
+        else:
+            assert type(inputs) is type(output)
+
+        layer_config = layer.get_config()
+        copied_layer = mm.EmbeddingTable.from_config(layer_config)
+        assert copied_layer.dim == layer.dim
+        assert copied_layer.input_dim == layer.input_dim
+
+        output = copied_layer(inputs)
+        assert list(output.shape) == expected_output_shape
+
+    def test_dense_with_combiner(self):
+        dim = 16
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(dim, column_schema, combiner="mean")
+
+        inputs = tf.constant([1])
+        with pytest.raises(ValueError) as exc_info:
+            layer(inputs)
+
+        assert "Combiner only supported for RaggedTensor and SparseTensor." in str(exc_info.value)
+
+    def test_sparse_without_combiner(self):
+        dim = 16
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(dim, column_schema)
+
+        inputs = tf.sparse.from_dense(tf.constant([[1, 2, 3]]))
+        with pytest.raises(ValueError) as exc_info:
+            layer(inputs)
+
+        assert "EmbeddingTable supports only RaggedTensor and Tensor input types." in str(
+            exc_info.value
+        )
+
+    def test_embedding_in_model(self, music_streaming_data: Dataset):
+        dim = 16
+        item_id_col_schema = music_streaming_data.schema.select_by_name("item_id").first
+        embedding_layer = mm.EmbeddingTable(dim, item_id_col_schema)
+        model = mm.Model(
+            tf.keras.layers.Lambda(lambda features: features["item_id"]),
+            embedding_layer,
+            mm.BinaryClassificationTask("click"),
+        )
+        model_test(model, music_streaming_data)
+
+    def test_non_trainable(self, music_streaming_data: Dataset):
+        dim = 16
+        item_id_col_schema = music_streaming_data.schema.select_by_name("item_id").first
+        embedding_layer = mm.EmbeddingTable(dim, item_id_col_schema, trainable=False)
+        inputs = tf.constant([1])
+
+        model = mm.Model(
+            tf.keras.layers.Lambda(lambda features: features["item_id"]),
+            embedding_layer,
+            mm.BinaryClassificationTask("click"),
+        )
+        model_test(model, music_streaming_data)
+
+        output_before_fit = embedding_layer(inputs)
+        embeddings_before_fit = embedding_layer.table.embeddings.numpy()
+
+        model.fit(music_streaming_data, batch_size=50, epochs=1)
+
+        output_after_fit = embedding_layer(inputs)
+        embeddings_after_fit = embedding_layer.table.embeddings.numpy()
+
+        np.testing.assert_array_almost_equal(output_before_fit, output_after_fit)
+        np.testing.assert_array_almost_equal(embeddings_before_fit, embeddings_after_fit)
+
+    @pytest.mark.parametrize("trainable", [True, False])
+    def test_from_pretrained(self, trainable, music_streaming_data: Dataset):
+        vocab_size = music_streaming_data.schema.column_schemas["item_id"].int_domain.max + 1
+        embedding_dim = 32
+        weights = np.random.rand(vocab_size, embedding_dim)
+        pre_trained_weights_df = pd.DataFrame(weights)
+
+        embedding_table = mm.EmbeddingTable.from_pretrained(
+            pre_trained_weights_df, name="item_id", trainable=trainable
+        )
+
+        assert embedding_table.input_dim == vocab_size
+
+        inputs = tf.constant([1])
+        output = embedding_table(inputs)
+
+        assert list(output.shape) == [1, embedding_dim]
+        np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
+
+        model = mm.Model(
+            tf.keras.layers.Lambda(lambda features: features["item_id"]),
+            embedding_table,
+            mm.BinaryClassificationTask("click"),
+        )
+        model_test(model, music_streaming_data)
+
+        if trainable:
+            np.testing.assert_raises(
+                AssertionError,
+                np.testing.assert_array_almost_equal,
+                weights,
+                embedding_table.table.embeddings,
+            )
+        else:
+            np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
 
 def test_embedding_features_yoochoose(testing_data: Dataset):
