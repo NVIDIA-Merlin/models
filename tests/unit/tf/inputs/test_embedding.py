@@ -131,7 +131,7 @@ class TestEmbeddingTable:
         )
         model_test(model, music_streaming_data)
 
-    def test_non_trainable_embedding_table(self, music_streaming_data: Dataset):
+    def test_non_trainable(self, music_streaming_data: Dataset):
         dim = 16
         item_id_col_schema = music_streaming_data.schema.select_by_name("item_id").first
         embedding_layer = mm.EmbeddingTable(dim, item_id_col_schema, trainable=False)
@@ -155,14 +155,15 @@ class TestEmbeddingTable:
         np.testing.assert_array_almost_equal(output_before_fit, output_after_fit)
         np.testing.assert_array_almost_equal(embeddings_before_fit, embeddings_after_fit)
 
-    def test_pretrained_embedding_table(self, music_streaming_data: Dataset):
+    @pytest.mark.parametrize("trainable", [True, False])
+    def test_from_pretrained(self, trainable, music_streaming_data: Dataset):
         vocab_size = music_streaming_data.schema.column_schemas["item_id"].int_domain.max + 1
         embedding_dim = 32
         weights = np.random.rand(vocab_size, embedding_dim)
         pre_trained_weights_df = pd.DataFrame(weights)
 
         embedding_table = mm.EmbeddingTable.from_pretrained(
-            pre_trained_weights_df, name="item_id", trainable=False
+            pre_trained_weights_df, name="item_id", trainable=trainable
         )
 
         assert embedding_table.input_dim == vocab_size
@@ -180,7 +181,15 @@ class TestEmbeddingTable:
         )
         model_test(model, music_streaming_data)
 
-        np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
+        if trainable:
+            np.testing.assert_raises(
+                AssertionError,
+                np.testing.assert_array_almost_equal,
+                weights,
+                embedding_table.table.embeddings,
+            )
+        else:
+            np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
 
 def test_embedding_features_yoochoose(testing_data: Dataset):
