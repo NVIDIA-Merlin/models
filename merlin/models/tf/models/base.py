@@ -12,7 +12,7 @@ import merlin.io
 from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
-from merlin.models.tf.blocks.core.context import FeatureContext
+from merlin.models.tf.blocks.core.context import FeatureContext, Context
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
@@ -203,12 +203,14 @@ class Model(tf.keras.Model):
         )
 
     def call(self, inputs, **kwargs):
-        if not kwargs.get("feature_context", None):
-            features = FeatureCollection(self.schema, self.as_dense(inputs))
-            kwargs["feature_context"] = FeatureContext(features)
+        if not kwargs.get("context", None):
+            kwargs["context"] = self.create_context(inputs)
 
         if self.pre:
             inputs = call_layer(self.pre, inputs, **kwargs)
+            if isinstance(inputs, tuple):
+                kwargs["targets"] = inputs[1]
+                inputs = inputs[0]
 
         outputs = call_layer(self.block, inputs, **kwargs)
 
@@ -425,18 +427,21 @@ class Model(tf.keras.Model):
 
         return cls(_input_block, block, prediction_tasks)
 
+    def create_context(self, x, y=None) -> Context:
+        return Context(self.schema, self.as_dense(x), y)
+
     def prediction_output(
         self, x, y=None, training=False, testing=False, **kwargs
     ) -> PredictionOutput:
-        features = FeatureCollection(self.schema, self.as_dense(x))
-        feature_context = FeatureContext(features)
+        # features = FeatureCollection(self.schema, self.as_dense(x))
+        # feature_context = FeatureContext(features)
 
         forward = self(
             x,
             targets=y,
             training=training,
             testing=testing,
-            feature_context=feature_context,
+            context=self.create_context(x, y),
             **kwargs,
         )
         predictions, targets, output = {}, {}, None

@@ -22,12 +22,16 @@ import sys
 import time
 from typing import Any, Dict
 
+from tensorflow.python.eager.def_function import Function
+
 logger = logging.getLogger(__name__)
 
 
 def filter_kwargs(kwargs, thing_with_kwargs, cascade_kwargs_if_possible=False):
-    # sig = inspect.signature(thing_with_kwargs)
-    arg_spec = inspect.getfullargspec(thing_with_kwargs)
+    if isinstance(thing_with_kwargs, Function):
+        arg_spec = thing_with_kwargs.function_spec.fullargspec
+    else:
+        arg_spec = inspect.getfullargspec(thing_with_kwargs)
     if cascade_kwargs_if_possible and arg_spec.varkw is not None:
         return kwargs
     else:

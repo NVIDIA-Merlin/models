@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import numpy as np
 import pytest
 import tensorflow as tf
 
@@ -147,3 +148,41 @@ def test_model_pre_post(ecommerce_data: Dataset, run_eagerly):
 
     assert isinstance(loaded_model.pre, ml.StochasticSwapNoise)
     assert isinstance(loaded_model.post, ml.NoOp)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_model_pre_transforming_targets(ecommerce_data: Dataset, run_eagerly):
+    class FlipTargets(tf.keras.layers.Layer):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+
+        def call(self, inputs, targets=None):
+            if targets:
+                if isinstance(targets, dict):
+                    for key in targets:
+                        targets[key] = self.flip_target(targets[key])
+                else:
+                    targets = self.flip_target(targets)
+
+
+            return inputs, targets
+
+        @staticmethod
+        def flip_target(target):
+            dtype = target.dtype
+
+            return tf.cast(tf.math.logical_not(tf.cast(target, tf.bool)), dtype)
+
+
+    model = ml.Model(
+        ml.InputBlock(ecommerce_data.schema),
+        ml.MLPBlock([64]),
+        ml.BinaryClassificationTask("click"),
+        pre=FlipTargets(),
+    )
+
+    features, targets = ml.sample_batch(ecommerce_data, batch_size=100)
+    outputs = model(features, targets=targets)
+
+    flipped = np.logical_not(targets["click"].numpy()).astype(np.int)
+    assert np.array_equal(outputs.targets, flipped)
