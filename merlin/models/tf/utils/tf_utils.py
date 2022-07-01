@@ -338,7 +338,7 @@ class TensorInitializer(tf.keras.initializers.Initializer):
         return cls(weights=embeddings, **kwargs)
 
     def get_config(self):  # To support serialization
-        return {"weights": self._weights}
+        return {"weights": self._weights.numpy()}
 
 
 def call_layer(layer: tf.keras.layers.Layer, inputs, *args, **kwargs):
