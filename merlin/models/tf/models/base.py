@@ -9,10 +9,9 @@ from keras.utils.losses_utils import cast_losses_to_common_dtype
 from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
-from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
-from merlin.models.tf.blocks.core.context import FeatureContext, Context
+from merlin.models.tf.blocks.core.context import Context, ContextTensor
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
@@ -203,19 +202,20 @@ class Model(tf.keras.Model):
         )
 
     def call(self, inputs, **kwargs):
-        if not kwargs.get("context", None):
-            kwargs["context"] = self.create_context(inputs)
+        targets = kwargs.get("targets", None)
+        inputs = self.create_context(inputs, targets=targets)
 
+        outputs = inputs
         if self.pre:
-            inputs = call_layer(self.pre, inputs, **kwargs)
-            if isinstance(inputs, tuple):
-                kwargs["targets"] = inputs[1]
-                inputs = inputs[0]
+            outputs = call_layer(self.pre, outputs, **kwargs)
 
-        outputs = call_layer(self.block, inputs, **kwargs)
+        outputs = call_layer(self.block, outputs, **kwargs)
 
         if self.post:
-            inputs = call_layer(self.post, inputs, **kwargs)
+            outputs = call_layer(self.post, outputs, **kwargs)
+
+        if isinstance(outputs, ContextTensor) and targets is None:
+            return outputs.value
 
         return outputs
 
@@ -427,26 +427,31 @@ class Model(tf.keras.Model):
 
         return cls(_input_block, block, prediction_tasks)
 
-    def create_context(self, x, y=None) -> Context:
-        return Context(self.schema, self.as_dense(x), y)
+    def create_context(self, inputs, targets=None) -> ContextTensor:
+        features = {}
+        for key, val in inputs.items():
+            if isinstance(val, tuple):
+                features[key] = tf.RaggedTensor.from_row_lengths(val[0][:, 0], val[1][:, 0])
+            else:
+                features[key] = val
+
+        return ContextTensor(features, Context(self.schema, features, targets))
 
     def prediction_output(
         self, x, y=None, training=False, testing=False, **kwargs
     ) -> PredictionOutput:
-        # features = FeatureCollection(self.schema, self.as_dense(x))
-        # feature_context = FeatureContext(features)
-
         forward = self(
             x,
             targets=y,
             training=training,
             testing=testing,
-            context=self.create_context(x, y),
             **kwargs,
         )
         predictions, targets, output = {}, {}, None
         for task in self.prediction_tasks:
             task_x = forward
+            if isinstance(task_x, ContextTensor):
+                task_x = task_x.value
             if isinstance(forward, dict) and task.task_name in forward:
                 task_x = forward[task.task_name]
             if isinstance(task_x, PredictionOutput):

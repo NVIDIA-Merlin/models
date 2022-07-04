@@ -304,8 +304,12 @@ class TabularBlock(Block):
         return output_shapes
 
     def build(self, input_shapes):
-        super().build(input_shapes)
+        # TODO: Fix this
+        input_shapes = getattr(input_shapes, "value", input_shapes)
         output_shapes = input_shapes
+
+        super().build(input_shapes)
+
         if self.pre:
             self.pre.build(input_shapes)
             output_shapes = self.pre.compute_output_shape(input_shapes)

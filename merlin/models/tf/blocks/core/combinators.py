@@ -36,6 +36,8 @@ class SequentialBlock(Block):
         output = c(inputs)    # Equivalent to: output = layer3(layer2(layer1(inputs)))
     """
 
+    _USES_CONTEXT = True
+
     def __init__(
         self,
         *layers,
@@ -127,6 +129,8 @@ class SequentialBlock(Block):
         self._maybe_propagate_context(input_shape)
         last_layer = None
         for layer in self.layers:
+            if not getattr(layer, "_USES_CONTEXT", False):
+                input_shape = getattr(input_shape, "value", input_shape)
             try:
                 layer.build(input_shape)
             except TypeError:

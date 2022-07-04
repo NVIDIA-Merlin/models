@@ -52,7 +52,9 @@ class AsSparseFeatures(TabularBlock):
                 if row_lengths.dtype.is_floating:
                     row_lengths = tf.cast(row_lengths, tf.int32)
 
-                outputs[name] = tf.RaggedTensor.from_row_lengths(values, row_lengths).to_sparse()
+                val = tf.RaggedTensor.from_row_lengths(values, row_lengths)
+            if isinstance(val, tf.RaggedTensor):
+                outputs[name] = val.to_sparse()
             else:
                 outputs[name] = val
 

@@ -348,4 +348,17 @@ def call_layer(layer: tf.keras.layers.Layer, inputs, *args, **kwargs):
             filtered_kwargs, layer.call, cascade_kwargs_if_possible=True
         )
 
+    from merlin.models.tf.blocks.core.context import ContextTensor
+
+    if isinstance(inputs, ContextTensor):
+        if getattr(layer, "_USES_CONTEXT", None):
+            outputs = layer(inputs, *args, **filtered_kwargs)
+        else:
+            outputs = layer(inputs.value, *args, **filtered_kwargs)
+
+        if not isinstance(outputs, ContextTensor):
+            outputs = ContextTensor(outputs, context=inputs.context)
+
+        return outputs
+
     return layer(inputs, *args, **filtered_kwargs)
