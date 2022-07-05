@@ -639,6 +639,8 @@ class Model(BaseModel):
         self,
         *blocks: Block,
         context: Optional[ModelContext] = None,
+        pre: Optional[tf.keras.layers.Layer] = None,
+        post: Optional[tf.keras.layers.Layer] = None,
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
@@ -649,6 +651,8 @@ class Model(BaseModel):
             self.block = SequentialBlock(blocks, context=context, block_name="blocks")
         if not getattr(self.block, "_context", None):
             self.block._set_context(context)
+        self.pre = pre
+        self.post = post
         self.context = context
         self._is_fitting = False
 
