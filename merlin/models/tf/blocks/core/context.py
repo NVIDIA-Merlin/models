@@ -24,6 +24,9 @@ from merlin.schema import ColumnSchema, Schema, Tags
 # from merlin.models.config.schema import FeatureCollection
 
 
+tf.RaggedTensorSpec
+
+
 # class TypeSpec(type_spec.TypeSpec):
 #     """A generic CompositeTensor TypeSpec, used for constructing tests."""
 #
@@ -181,17 +184,6 @@ class Context(CompositeTensor):
     def feature_collection(self) -> FeatureCollection:
         return FeatureCollection(self.schema.select_by_name(self._feature_names), self.features)
 
-    # @property
-    # def features(self) -> Dict[str, tf.Tensor]:
-    #     return {**self._features}
-
-    # @property
-    # def targets(self) -> Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]]:
-    #     if getattr(self, "_target_names", None) is None:
-    #         return None
-    #
-    #     return {name: self.values[name] for name in self._target_names}
-
     @property
     def target_collection(self) -> FeatureCollection:
         return FeatureCollection(self.schema.select_by_name(self._target_names), self.targets)
@@ -225,9 +217,8 @@ class ContextTensorShape(NamedTuple):
     context: ContextShape
 
 
-ValueT = TypeVar(
-    "ValueT", tf.Tensor, tf.SparseTensor, tf.RaggedTensor, Dict[str, tf.Tensor], Sequence[tf.Tensor]
-)
+TensorLike = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor, CompositeTensor]
+ValueT = TypeVar("ValueT", TensorLike, Dict[str, TensorLike], Sequence[TensorLike])
 
 
 class ContextTensor(CompositeTensor, Generic[ValueT]):

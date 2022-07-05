@@ -43,7 +43,7 @@ from merlin.models.tf.blocks.core.base import (
     right_shift_layer,
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, ResidualBlock, SequentialBlock
-from merlin.models.tf.blocks.core.context import FeatureContext
+from merlin.models.tf.blocks.core.context import FeatureContext, ContextTensor
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
 from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
@@ -122,6 +122,18 @@ Layer.__repr__ = repr_utils.layer_repr
 Loss.__repr__ = repr_utils.layer_repr_no_children
 Metric.__repr__ = repr_utils.layer_repr_no_children
 OptimizerV2.__repr__ = repr_utils.layer_repr_no_children
+
+
+def context_call(self, *args, **kwargs):
+    if not getattr(self, "_USES_CONTEXT", False):
+        if isinstance(args[0], ContextTensor):
+            args[0] = args[0].value
+
+    return super().__call__(*args, **kwargs)
+
+
+
+Layer.__call__= context_call
 
 __all__ = [
     "Block",

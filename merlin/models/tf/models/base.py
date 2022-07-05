@@ -201,7 +201,7 @@ class Model(tf.keras.Model):
             initial_value=lambda: False,
         )
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs, output_context=False, **kwargs):
         targets = kwargs.get("targets", None)
         inputs = self.create_context(inputs, targets=targets)
 
@@ -214,7 +214,7 @@ class Model(tf.keras.Model):
         if self.post:
             outputs = call_layer(self.post, outputs, **kwargs)
 
-        if isinstance(outputs, ContextTensor) and targets is None:
+        if (isinstance(outputs, ContextTensor) and targets is None) or not output_context:
             return outputs.value
 
         return outputs

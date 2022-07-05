@@ -31,7 +31,8 @@ def test_context_in_model(music_streaming_data: Dataset, run_eagerly):
     class Dummy(tf.keras.layers.Layer):
         _USES_CONTEXT = True
 
-        # @tf.function
+        @tf.function
+        # @uses_context
         def call(self, inputs: ContextTensor[Dict[str, tf.Tensor]]):
             outputs = {}
             for key, val in inputs.value.items():
