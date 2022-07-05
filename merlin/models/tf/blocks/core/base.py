@@ -152,8 +152,6 @@ class ContextMixin:
         return self._context
 
     def _set_context(self, context: ModelContext):
-        if hasattr(self, "_context"):
-            context._merge(self._context)
         self._context: ModelContext = context
 
 
