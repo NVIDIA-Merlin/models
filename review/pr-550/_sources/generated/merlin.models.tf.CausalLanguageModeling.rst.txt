@@ -1,0 +1,108 @@
+﻿merlin.models.tf.CausalLanguageModeling
+=======================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: CausalLanguageModeling
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CausalLanguageModeling.__init__
+      ~CausalLanguageModeling.add_features_to_context
+      ~CausalLanguageModeling.add_loss
+      ~CausalLanguageModeling.add_metric
+      ~CausalLanguageModeling.add_update
+      ~CausalLanguageModeling.add_variable
+      ~CausalLanguageModeling.add_weight
+      ~CausalLanguageModeling.apply_mask_to_inputs
+      ~CausalLanguageModeling.as_tabular
+      ~CausalLanguageModeling.build
+      ~CausalLanguageModeling.call
+      ~CausalLanguageModeling.call_outputs
+      ~CausalLanguageModeling.check_schema
+      ~CausalLanguageModeling.compute_feature_mask
+      ~CausalLanguageModeling.compute_mask
+      ~CausalLanguageModeling.compute_output_shape
+      ~CausalLanguageModeling.compute_output_signature
+      ~CausalLanguageModeling.connect
+      ~CausalLanguageModeling.connect_branch
+      ~CausalLanguageModeling.connect_debug_block
+      ~CausalLanguageModeling.connect_with_residual
+      ~CausalLanguageModeling.connect_with_shortcut
+      ~CausalLanguageModeling.copy
+      ~CausalLanguageModeling.count_params
+      ~CausalLanguageModeling.finalize_state
+      ~CausalLanguageModeling.from_config
+      ~CausalLanguageModeling.from_layer
+      ~CausalLanguageModeling.get_config
+      ~CausalLanguageModeling.get_input_at
+      ~CausalLanguageModeling.get_input_mask_at
+      ~CausalLanguageModeling.get_input_shape_at
+      ~CausalLanguageModeling.get_item_ids_from_inputs
+      ~CausalLanguageModeling.get_output_at
+      ~CausalLanguageModeling.get_output_mask_at
+      ~CausalLanguageModeling.get_output_shape_at
+      ~CausalLanguageModeling.get_padding_mask_from_item_id
+      ~CausalLanguageModeling.get_weights
+      ~CausalLanguageModeling.parse
+      ~CausalLanguageModeling.parse_block
+      ~CausalLanguageModeling.prepare
+      ~CausalLanguageModeling.register_features
+      ~CausalLanguageModeling.repeat
+      ~CausalLanguageModeling.repeat_in_parallel
+      ~CausalLanguageModeling.select_by_name
+      ~CausalLanguageModeling.set_schema
+      ~CausalLanguageModeling.set_weights
+      ~CausalLanguageModeling.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~CausalLanguageModeling.REQUIRES_SCHEMA
+      ~CausalLanguageModeling.activity_regularizer
+      ~CausalLanguageModeling.compute_dtype
+      ~CausalLanguageModeling.context
+      ~CausalLanguageModeling.dtype
+      ~CausalLanguageModeling.dtype_policy
+      ~CausalLanguageModeling.dynamic
+      ~CausalLanguageModeling.has_schema
+      ~CausalLanguageModeling.inbound_nodes
+      ~CausalLanguageModeling.input
+      ~CausalLanguageModeling.input_mask
+      ~CausalLanguageModeling.input_shape
+      ~CausalLanguageModeling.input_spec
+      ~CausalLanguageModeling.losses
+      ~CausalLanguageModeling.metrics
+      ~CausalLanguageModeling.name
+      ~CausalLanguageModeling.name_scope
+      ~CausalLanguageModeling.non_trainable_variables
+      ~CausalLanguageModeling.non_trainable_weights
+      ~CausalLanguageModeling.outbound_nodes
+      ~CausalLanguageModeling.output
+      ~CausalLanguageModeling.output_mask
+      ~CausalLanguageModeling.output_shape
+      ~CausalLanguageModeling.registry
+      ~CausalLanguageModeling.schema
+      ~CausalLanguageModeling.stateful
+      ~CausalLanguageModeling.submodules
+      ~CausalLanguageModeling.supports_masking
+      ~CausalLanguageModeling.trainable
+      ~CausalLanguageModeling.trainable_variables
+      ~CausalLanguageModeling.trainable_weights
+      ~CausalLanguageModeling.updates
+      ~CausalLanguageModeling.variable_dtype
+      ~CausalLanguageModeling.variables
+      ~CausalLanguageModeling.weights
+   
+   
