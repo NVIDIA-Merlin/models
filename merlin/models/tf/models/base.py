@@ -646,18 +646,20 @@ class Model(BaseModel):
         super(Model, self).__init__(**kwargs)
         context = context or ModelContext()
         if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
-            self.block = blocks[0]
-        else:
-            self.block = SequentialBlock(blocks, context=context, block_name="blocks")
-        if not getattr(self.block, "_context", None):
-            self.block._set_context(context)
+            blocks = blocks[0].layers
+
+        self.blocks = blocks
+        for block in self.submodules:
+            if hasattr(block, "_set_context"):
+                block._set_context(context)
+
         self.pre = pre
         self.post = post
         self.context = context
         self._is_fitting = False
 
         input_block_schemas = [
-            block.schema for block in self.block.submodules if getattr(block, "is_input", False)
+            block.schema for block in self.submodules if getattr(block, "is_input", False)
         ]
         self.schema = sum(input_block_schemas, Schema())
 
@@ -669,7 +671,8 @@ class Model(BaseModel):
         if self.pre:
             outputs = call_layer(self.pre, outputs, **kwargs)
 
-        outputs = call_layer(self.block, outputs, **kwargs)
+        for block in self.blocks:
+            outputs = call_layer(block, outputs, **kwargs)
 
         if self.post:
             inputs = call_layer(self.post, outputs, **kwargs)
@@ -678,11 +681,11 @@ class Model(BaseModel):
 
     @property
     def first(self):
-        return self.block.layers[0]
+        return self.blocks[0]
 
     @property
     def last(self):
-        return self.block.layers[-1]
+        return self.blocks[-1]
 
     @classmethod
     def from_block(
@@ -724,14 +727,29 @@ class Model(BaseModel):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        block = tf.keras.utils.deserialize_keras_object(config.pop("block"))
-        config = maybe_deserialize_keras_objects(config, ["pre", "post"])
+        pre = config.pop("pre", None)
+        post = config.pop("post", None)
+        context = config.pop("context", None)
+        layers = [
+            tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+            for conf in config.values()
+        ]
 
-        return cls(block, **config)
+        if pre is not None:
+            pre = tf.keras.layers.deserialize(pre, custom_objects=custom_objects)
+
+        if post is not None:
+            post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
+
+        if context is not None:
+            context = tf.keras.layers.deserialize(context, custom_objects=custom_objects)
+
+        return cls(*layers, context=context, pre=pre, post=post)
 
     def get_config(self):
-        config = {"block": tf.keras.utils.serialize_keras_object(self.block)}
-        config = maybe_deserialize_keras_objects(config, ["pre", "post"])
+        config = maybe_deserialize_keras_objects({}, ["pre", "post", "context"])
+        for i, layer in enumerate(self.blocks):
+            config[i] = tf.keras.utils.serialize_keras_object(layer)
 
         return config
 
@@ -825,7 +843,7 @@ class RetrievalModel(Model):
 
     @property
     def retrieval_block(self) -> RetrievalBlock:
-        return next(b for b in self.block if isinstance(b, RetrievalBlock))
+        return next(b for b in self.blocks if isinstance(b, RetrievalBlock))
 
     def query_embeddings(
         self,
