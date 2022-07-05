@@ -82,11 +82,11 @@ class TFModelEncode(ModelEncode):
         model_load_func = block_load_func if block_load_func else tf.keras.models.load_model
         if not output_names:
             try:
-                output_names = model.block.last.task_names
+                output_names = model.last.task_names
             except AttributeError:
                 pass
         if not output_concat_func:
-            if len(output_names) == 1:  # type: ignore
+            if output_names and len(output_names) == 1:  # type: ignore
                 output_concat_func = np.concatenate
             else:
                 output_concat_func = get_lib().concat  # type: ignore
