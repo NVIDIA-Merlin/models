@@ -504,6 +504,7 @@ class BaseModel(tf.keras.Model):
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
+        # Bind schema from dataset to model in case we can't infer it from the inputs
         if isinstance(x, BatchedDataset):
             self.schema = x.schema
 
