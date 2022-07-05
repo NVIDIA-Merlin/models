@@ -96,7 +96,7 @@ from merlin.models.tf.metrics.topk import (
     TopKMetricsAggregator,
 )
 from merlin.models.tf.models import benchmark
-from merlin.models.tf.models.base import Model, RetrievalModel
+from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel
 from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
@@ -179,6 +179,7 @@ __all__ = [
     "MRRAt",
     "AvgPrecisionAt",
     "RecallAt",
+    "BaseModel",
     "TopKMetricsAggregator",
     "Model",
     "RetrievalModel",
