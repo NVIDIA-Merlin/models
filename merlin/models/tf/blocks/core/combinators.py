@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Union
 
 import six
 import tensorflow as tf
+from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.blocks.core.base import (
     Block,
@@ -602,3 +603,33 @@ class ResidualBlock(WithShortcut):
             strict=strict,
             **kwargs,
         )
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class Cond(Layer):
+    def __init__(self, condition: Layer, true: Layer, false: Optional[Layer] = None, **kwargs):
+        super(Cond, self).__init__(**kwargs)
+        self.condition = condition
+        self.true = true
+        self.false = false
+
+    def call(self, inputs, **kwargs):
+        condition = call_layer(self.condition, inputs, **kwargs)
+
+        true_fn = lambda x: call_layer(self.true, x, **kwargs)
+        false_fn = lambda x: call_layer(self.false, x, **kwargs) if self.false else x
+
+        return tf.cond(tf.convert_to_tensor(condition), true_fn, false_fn)
+
+    # TODO
+    # def compute_output_shape(self, input_shape):
+    #     raise NotImplementedError()
+
+    # TODO
+    def get_config(self):
+        config = super(Cond, self).get_config()
+
+    # TODO
+    @classmethod
+    def from_config(cls, config, **kwargs):
+        pass
