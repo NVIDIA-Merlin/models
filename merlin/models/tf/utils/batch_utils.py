@@ -64,6 +64,8 @@ class ModelEncode:
 
 
 class TFModelEncode(ModelEncode):
+    """Batch-prediction for a model."""
+
     def __init__(
         self,
         model: tp.Union[Model, tf.keras.Model],
@@ -111,8 +113,10 @@ class TFModelEncode(ModelEncode):
 
 
 class ItemEmbeddings(TFModelEncode):
+    """Extract item-embeddings from model"""
+
     def __init__(self, model: Model, batch_size: int = 512, save_path: tp.Optional[str] = None):
-        item_block = model.block.first.item_block()
+        item_block = model.first.item_block()
         schema = item_block.schema
 
         super().__init__(
@@ -125,13 +129,15 @@ class ItemEmbeddings(TFModelEncode):
 
 
 class QueryEmbeddings(TFModelEncode):
+    """Extract query-embeddings from model"""
+
     def __init__(
         self,
         model: RetrievalModel,
         batch_size: int = 512,
         save_path: tp.Optional[str] = None,
     ):
-        query_block = model.block.first.query_block()
+        query_block = model.first.query_block()
         schema = query_block.schema
 
         super().__init__(
