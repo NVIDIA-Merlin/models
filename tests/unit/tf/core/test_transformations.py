@@ -252,6 +252,44 @@ def test_hashedcross_2d():
     test_case.assertAllClose(output_value, [[1], [4], [1], [6], [3]])
 
 
+def test_hashedcross_output_shape():
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+        ]
+    )
+    inputs_shape = {}
+    inputs_shape["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]]).shape
+    inputs_shape["cat2"] = tf.constant([[101], [101], [101], [102], [102]]).shape
+    hashed_cross = ml.HashedCross(schema=schema, num_bins=10)
+    outputs = hashed_cross.compute_output_shape(inputs_shape)
+    _, output_shape = outputs.popitem()
+
+    assert output_shape == [5, 1]
+
+
+def test_hashedcross_output_shape_one_hot():
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+        ]
+    )
+    inputs_shape = {}
+    inputs_shape["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]]).shape
+    inputs_shape["cat2"] = tf.constant([[101], [101], [101], [102], [102]]).shape
+    output_name = "cross_out"
+    hashed_cross = ml.HashedCross(
+        schema=schema, num_bins=10, output_mode="one_hot", output_name=output_name
+    )
+    outputs = hashed_cross.compute_output_shape(inputs_shape)
+    _output_name, output_shape = outputs.popitem()
+
+    assert output_shape == [5, 10]
+    assert _output_name == output_name
+
+
 def test_hashedcross_less_bins():
     schema = Schema(
         [
@@ -326,3 +364,60 @@ def test_hashedcross_from_config():
     _, cloned_output_value = cloned_outputs.popitem()
 
     test_case.assertAllEqual(cloned_output_value, original_output_value)
+
+
+def test_hashedcrosses():
+    test_case = TestCase()
+
+    schema_0 = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+        ]
+    )
+    schema_1 = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=2),
+            create_categorical_column("cat3", tags=[Tags.CATEGORICAL], num_items=3),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
+    inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
+    inputs["cat3"] = tf.constant([[1], [0], [1], [2], [2]])
+    hashed_cross_0 = ml.HashedCross(
+        schema=schema_0, num_bins=5, output_mode="one_hot", sparse=True, output_name="cross_0"
+    )
+    hashed_cross_1 = ml.HashedCross(
+        schema=schema_1, num_bins=10, output_mode="one_hot", sparse=True, output_name="cross_1"
+    )
+    hashed_crosses = ml.HashedCrosses([hashed_cross_0, hashed_cross_1])
+    outputs = hashed_crosses(inputs)
+    output_value_0 = outputs["cross_0"]
+    output_value_0 = tf.sparse.to_dense(output_value_0)
+
+    assert output_value_0.shape.as_list() == [5, 5]
+    test_case.assertAllClose(
+        output_value_0,
+        [
+            [0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1],
+            [0, 1, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 0, 0, 1, 0],
+        ],
+    )
+    output_value_1 = outputs["cross_1"]
+    output_value_1 = tf.sparse.to_dense(output_value_1)
+
+    assert output_value_1.shape.as_list() == [5, 10]
+    test_case.assertAllClose(
+        output_value_1,
+        [
+            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+        ],
+    )
