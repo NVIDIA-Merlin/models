@@ -38,7 +38,9 @@ class DummyFeaturesBlock(ml.Block):
         item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
         rank = tf.rank(item_embeddings)
         if isinstance(rank, tf.Tensor):
-            item_embeddings = tf.cond(tf.equal(rank, 3), lambda: tf.squeeze(item_embeddings), lambda: item_embeddings)
+            item_embeddings = tf.cond(
+                tf.equal(rank, 3), lambda: tf.squeeze(item_embeddings), lambda: item_embeddings
+            )
         else:
             if rank == 3:
                 item_embeddings = tf.squeeze(item_embeddings)
