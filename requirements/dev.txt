@@ -25,3 +25,4 @@ linkify-it-py==1.0.3
 sphinx-multiversion@git+https://github.com/mikemckiernan/sphinx-multiversion.git
 sphinxcontrib-copydirs@git+https://github.com/mikemckiernan/sphinxcontrib-copydirs.git
 fiddle
+wandb

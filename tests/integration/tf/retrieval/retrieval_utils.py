@@ -4,15 +4,13 @@ import time
 from dataclasses import dataclass
 from typing import Any, Optional
 
-import cupy
-import dllogger as DLLogger
 import numpy as np
 import tensorflow as tf
-import wandb
 from tensorflow.keras import regularizers
 from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
+import wandb
 from merlin.io.dataset import Dataset
 from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
 from merlin.models.utils import schema_utils
@@ -111,7 +109,7 @@ def get_item_frequencies(schema, train_ds):
     ).all(), f"The item id feature ({item_id_feature_name}) "
     f"should be contiguous from 0 to {item_id_cardinality-1}"
 
-    item_frequencies = tf.convert_to_tensor(cupy.asnumpy(item_frequencies_df["freq"].values))
+    item_frequencies = tf.convert_to_tensor(item_frequencies_df["freq"].values.tolist())
 
     return item_frequencies
 
@@ -156,7 +154,7 @@ def get_dual_encoder_model(
     schema,
     samplers,
     items_frequencies,
-    model_type="two_tower",
+    model_type,
     emb_init_distr="truncated_normal",
     emb_init_range=0.05,
     logq_correction_factor=0.0,
@@ -357,9 +355,9 @@ class ExamplesPerSecondCallback(tf.keras.callbacks.Callback):
     current_examples_per_sec during training.
     """
 
-    def __init__(self, batch_size, every_n_steps=1, log_as_print=True, log_to_wandb=False):
+    def __init__(self, batch_size, every_n_steps=1, log_as_print=True, wandb_logger=None):
         self.log_as_print = log_as_print
-        self.log_to_wandb = log_to_wandb
+        self.wandb_logger = wandb_logger
         self._batch_size = batch_size
         self._every_n_steps = every_n_steps
         super(ExamplesPerSecondCallback, self).__init__()
@@ -367,8 +365,26 @@ class ExamplesPerSecondCallback(tf.keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
         self._first_batch = True
         self._epoch_steps = 0
+        self._train_batches_average_examples_per_sec = []
         # self._train_start_time = time.time()
         # self._last_recorded_time = time.time()
+
+    def on_train_end(self, logs=None):
+        average_examples_per_sec = self.get_avg_examples_per_sec()
+        self._train_batches_average_examples_per_sec.append(average_examples_per_sec)
+
+    def get_train_batches_mean_of_avg_examples_per_sec(self):
+        if len(self._train_batches_average_examples_per_sec) > 0:
+            return np.mean(self._train_batches_average_examples_per_sec)
+        else:
+            return 0.0
+
+    def get_avg_examples_per_sec(self):
+        current_time = time.time()
+        average_examples_per_sec = self._batch_size * (
+            self._epoch_steps / (current_time - self._epoch_start_time)
+        )
+        return average_examples_per_sec
 
     def on_train_batch_end(self, batch, logs=None):
         # Discards the first batch, as it is used to compile the
@@ -385,9 +401,7 @@ class ExamplesPerSecondCallback(tf.keras.callbacks.Callback):
         current_time = time.time()
 
         if self._epoch_steps % self._every_n_steps == 0:
-            average_examples_per_sec = self._batch_size * (
-                self._epoch_steps / (current_time - self._epoch_start_time)
-            )
+            average_examples_per_sec = self.get_avg_examples_per_sec()
             current_examples_per_sec = self._batch_size * (
                 self._every_n_steps / (current_time - self._last_recorded_time)
             )
@@ -398,72 +412,63 @@ class ExamplesPerSecondCallback(tf.keras.callbacks.Callback):
                     f"current: {current_examples_per_sec:.2f}, avg: {average_examples_per_sec:.2f}"
                 )
 
-            if self.log_to_wandb:
-                wandb.log(
-                    {
-                        "current_examples_per_sec": current_examples_per_sec,
-                        "average_examples_per_sec": average_examples_per_sec,
-                    }
-                )
+            self.wandb_logger.log(
+                {
+                    "current_examples_per_sec": current_examples_per_sec,
+                    "average_examples_per_sec": average_examples_per_sec,
+                }
+            )
 
             self._last_recorded_time = current_time  # Update last_recorded_time
 
 
-def get_callbacks(train_batch_size=16, metrics_log_frequency=1, log_to_wandb=False):
-    callbacks = [ExamplesPerSecondCallback(train_batch_size, every_n_steps=metrics_log_frequency)]
-
-    if log_to_wandb:
-
-        wandb_callback = wandb.keras.WandbCallback(
-            log_batch_frequency=metrics_log_frequency,
-            save_model=False,
-            save_graph=False,
+def get_callbacks(train_batch_size=16, metrics_log_frequency=10, wandb_logger=None):
+    callbacks = [
+        ExamplesPerSecondCallback(
+            train_batch_size, every_n_steps=metrics_log_frequency, wandb_logger=wandb_logger
         )
-        callbacks.append(wandb_callback)
+    ]
+
+    if wandb_logger:
+
+        wandb_callback = wandb_logger.get_callback(metrics_log_frequency=metrics_log_frequency)
+        if wandb_callback:
+            callbacks.append(wandb_callback)
 
     return callbacks
 
 
-def config_wandb(wandb_project, args):
-    wandb.init(project=wandb_project, config=args)
+class WandbLogger:
+    def __init__(self, enabled, wandb_project="", config={}):
+        self.enabled = enabled
+        if self.enabled:
+            wandb.init(project=wandb_project, config=config)
 
+    def config(self, config={}):
+        if self.enabled:
+            wandb.config.update(config)
 
-def config_dllogger(output_path, args):
-    from dllogger import JSONStreamBackend, StdOutBackend, Verbosity
+    def log(self, metrics):
+        if self.enabled:
+            wandb.log(metrics)
 
-    DLLOGGER_FILENAME = os.path.join(output_path, "log.json")
-    DLLogger.init(
-        backends=[
-            StdOutBackend(verbosity=Verbosity.DEFAULT),
-            JSONStreamBackend(
-                Verbosity.VERBOSE,
-                DLLOGGER_FILENAME,
-            ),
-        ]
-    )
-    DLLogger.log(step="PARAMETER", data=args)
-    DLLogger.flush()
+    def get_callback(self, metrics_log_frequency, save_model=False, save_graph=False):
+        callback = None
+        if self.enabled:
+            callback = wandb.keras.WandbCallback(
+                log_batch_frequency=metrics_log_frequency,
+                save_model=save_model,
+                save_graph=save_graph,
+            )
+        return callback
 
-
-def config_loggers(output_path="./", log_to_wandb=False, wandb_project="", args={}):
-    if log_to_wandb:
-        config_wandb(wandb_project, args)
-    config_dllogger(output_path, args)
-
-
-def log_final_metrics(metrics_results, log_to_wandb=False):
-    metrics_results = {f"{k}-final": v for k, v in metrics_results.items()}
-
-    if log_to_wandb:
-        wandb.log(metrics_results)
+    def teardown(self):
         wandb.finish()
-
-    DLLogger.log(step=(), data=metrics_results)
-    DLLogger.flush()
 
 
 @dataclass
 class RetrievalTrainEvalRunner:
+    wandb_logger: Any = None
     model_type: str = None
     schema: Any = None
     train_ds: Any = None
@@ -481,14 +486,13 @@ class RetrievalTrainEvalRunner:
     train_metrics_steps: int = 100
     eval_steps: int = 100
     eval_batch_size: int = 128
-    log_to_wandb: bool = False
-    wandb_project: str = "merlin-ci"
 
-    def run(self):
+    def run(self, hparams):
+        start_time = time.time()
+
         set_random_seed(self.random_seed)
 
-        # TODO: Find a way to get a dictionary with all hparams to log to W&B
-        config_loggers(log_to_wandb=self.log_to_wandb, wandb_project=self.wandb_project, args={})
+        self.wandb_logger.config(hparams)
 
         self.model.compile(
             run_eagerly=False, optimizer=self.optimizer, loss=self.loss, metrics=self.metrics
@@ -532,6 +536,22 @@ class RetrievalTrainEvalRunner:
             **eval_kwargs,
         )
 
-        log_final_metrics(
-            metrics_results={**train_metrics, **eval_metrics}, log_to_wandb=self.log_to_wandb
+        final_metrics = {**train_metrics, **eval_metrics}
+
+        final_time = time.time()
+        final_metrics["runtime_sec"] = final_time - start_time
+
+        examples_per_sec_callback = list(
+            [x for x in self.callbacks if isinstance(x, ExamplesPerSecondCallback)]
+        )[0]
+        avg_examples_per_sec = (
+            examples_per_sec_callback.get_train_batches_mean_of_avg_examples_per_sec()
         )
+        final_metrics["avg_examples_per_sec"] = avg_examples_per_sec
+
+        final_metrics = {f"{k}-final": v for k, v in final_metrics.items()}
+        self.wandb_logger.log(final_metrics)
+
+        self.wandb_logger.teardown()
+
+        return final_metrics

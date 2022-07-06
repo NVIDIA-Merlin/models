@@ -2,6 +2,7 @@ import fiddle as fdl
 
 from tests.integration.tf.retrieval.retrieval_utils import (
     RetrievalTrainEvalRunner,
+    WandbLogger,
     get_callbacks,
     get_dataset,
     get_dual_encoder_model,
@@ -15,7 +16,7 @@ from tests.integration.tf.retrieval.retrieval_utils import (
 )
 
 
-def config_retrieval_train_eval_runner(model_type, data_path):
+def config_retrieval_train_eval_runner(model_type, data_path, log_to_wandb, wandb_project):
     def make_datasets(schema):
         get_dataset_partial = fdl.Partial(get_dataset, schema)
         train_ds = get_dataset_partial(dataset="train")
@@ -24,14 +25,18 @@ def config_retrieval_train_eval_runner(model_type, data_path):
         eval_ds.data_path = schema.data_path
         return train_ds, eval_ds
 
-    def make_model(schema, train_ds, model_type="two_tower"):
+    def make_model(schema, train_ds, model_type):
         if model_type == "youtubednn":
             model = fdl.Config(get_youtube_dnn_model, schema)
         else:
             samplers = fdl.Config(get_samplers, schema)
             items_frequencies = fdl.Config(get_item_frequencies, schema, train_ds)
-            model = fdl.Config(get_dual_encoder_model, schema, samplers, items_frequencies)
+            model = fdl.Config(
+                get_dual_encoder_model, schema, samplers, items_frequencies, model_type
+            )
         return model
+
+    wandb_logger_cfg = fdl.Config(WandbLogger, enabled=log_to_wandb, wandb_project=wandb_project)
 
     schema_cfg = fdl.Config(get_schema, data_path=data_path)
     train_ds_cfg, eval_ds_cfg = make_datasets(schema_cfg)
@@ -39,10 +44,12 @@ def config_retrieval_train_eval_runner(model_type, data_path):
     optimizer = fdl.Config(get_optimizer)
     metrics = fdl.Config(get_metrics)
     loss = fdl.Config(get_loss)
-    callbacks = fdl.Config(get_callbacks)
+    callbacks = fdl.Config(get_callbacks, wandb_logger=wandb_logger_cfg)
 
     runner_cfg = fdl.Config(
         RetrievalTrainEvalRunner,
+        wandb_logger=wandb_logger_cfg,
+        model_type=model_type,
         schema=schema_cfg,
         train_ds=train_ds_cfg,
         eval_ds=eval_ds_cfg,
@@ -52,4 +59,5 @@ def config_retrieval_train_eval_runner(model_type, data_path):
         loss=loss,
         callbacks=callbacks,
     )
+
     return runner_cfg
