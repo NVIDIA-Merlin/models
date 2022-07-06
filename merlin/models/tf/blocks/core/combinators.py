@@ -659,3 +659,11 @@ class Cond(Layer):
         if "false" in config:
             false = tf.keras.layers.deserialize(config.pop("false"))
         return cls(condition, true, false=false, **config)
+
+    def build(self, input_shape):
+        """Creates the variables of the layer."""
+        self.condition.build(input_shape)
+        self.true.build(input_shape)
+        if self.false:
+            self.false.build(input_shape)
+        return super(Cond, self).build(input_shape)
