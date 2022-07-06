@@ -24,7 +24,7 @@ from tensorflow.python.ops import array_ops
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block, PredictionOutput
-from merlin.models.tf.blocks.core.combinators import TabularBlock
+from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils.tf_utils import (
     df_to_tensor,
@@ -118,9 +118,9 @@ class AsDenseFeatures(TabularBlock):
 @Block.registry.register("hashed_cross")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class HashedCross(TabularBlock):
-    """Convert sparse inputs to dense tensorsperforms crosses of categorical features using the
-    "hasing trick". Conceptually, the transformation can be thought of as: hash(concatenation of
-    features) % num_bins
+    """A transformation block which crosses categorical features using the "hasing trick".
+    Conceptually, the transformation can be thought of as: hash(concatenation of features) %
+    num_bins
 
     Parameters
     ----------
@@ -139,9 +139,14 @@ class HashedCross(TabularBlock):
         sparse : bool
             Boolean. Only applicable to `"one_hot"` mode. If True, returns a
             `SparseTensor` instead of a dense `Tensor`. Defaults to False.
+        output_name : string
+            Name of output feature, if not specified, default would be
+            cross_<feature_name>_<feature_name>_<...>
     """
 
-    def __init__(self, schema, num_bins, sparse=False, output_mode="int", **kwargs):
+    def __init__(
+        self, schema, num_bins, sparse=False, output_mode="int", output_name=None, **kwargs
+    ):
         super().__init__(**kwargs)
 
         if not (output_mode in ["int", "one_hot"]):
@@ -150,23 +155,30 @@ class HashedCross(TabularBlock):
         self.num_bins = num_bins
         self.output_mode = output_mode
         self.sparse = sparse
+        if not output_name:
+            self.output_name = "cross"
+            for name in self.schema.column_names:
+                self.output_name = self.output_name + "_" + name
+        else:
+            self.output_name = output_name
 
     def call(self, inputs):
 
         # Convert all inputs to tensors and check shape. This layer only supports
         # sclars and batches of scalars for the initial version.
         self._check_at_least_two_inputs()
-        self._check_input_shape_and_type(inputs)
+
+        _inputs = {}
+        for name in self.schema.column_names:
+            _inputs[name] = inputs[name]
+        self._check_input_shape_and_type(_inputs)
 
         # Uprank to rank 2 for the cross_hashed op.
-        _inputs = {}
-        output_name = "cross"
+
         for name in self.schema.column_names:
-            output_name = output_name + "_" + name
-            rank = inputs[name].shape.rank
-            _inputs[name] = inputs[name]
+            rank = _inputs[name].shape.rank
             if rank < 2:
-                _inputs[name] = tf.expand_dims(inputs[name], -1)
+                _inputs[name] = tf.expand_dims(_inputs[name], -1)
             if rank < 1:
                 _inputs[name] = tf.expand_dims(_inputs[name], -1)
 
@@ -187,7 +199,7 @@ class HashedCross(TabularBlock):
 
         # Encode outputs.
         outputs = {}
-        outputs[output_name] = preprocessing_utils.encode_categorical_inputs(
+        outputs[self.output_name] = preprocessing_utils.encode_categorical_inputs(
             output,
             output_mode=self.output_mode,
             depth=self.num_bins,
@@ -196,8 +208,13 @@ class HashedCross(TabularBlock):
         return outputs
 
     def compute_output_shape(self, input_shapes):
-        self._check_at_least_two_inputs(input_shapes)
-        return preprocessing_utils.compute_shape_for_encode_categorical(input_shapes[0])
+        self._check_at_least_two_inputs()
+        output_shape = {}
+        one_input = list(input_shapes.values())[0]
+        output_shape[self.output_name] = preprocessing_utils.compute_shape_for_encode_categorical(
+            shape=one_input, output_mode=self.output_mode, depth=self.num_bins
+        )
+        return output_shape
 
     def get_config(self):
         config = super().get_config()
@@ -206,6 +223,7 @@ class HashedCross(TabularBlock):
                 "num_bins": self.num_bins,
                 "output_mode": self.output_mode,
                 "sparse": self.sparse,
+                "output_name": self.output_name,
             }
         )
         if self.schema:
@@ -249,6 +267,21 @@ class HashedCross(TabularBlock):
             )
         if not all(x.dtype.is_integer or x.dtype == tf.string for x in inputs_tensors):
             raise ValueError("All `HashedCrossing` inputs should have an integer or string dtype.")
+
+
+def HashedCrosses(*crosses) -> Block:
+    """Parallel block which contain multiple HashedCross, in order to operate cross on
+    different set of features.
+
+    Parameters
+    ----------
+        crosses : Union[Schema, HashedCross]
+            One or multiple tuples (sets) of schema and a HashedCross instance, which would make a
+            cross on the corresponding features included in the schema.
+    """
+
+    # TODO: need filter or not?
+    return ParallelBlock(*crosses)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
