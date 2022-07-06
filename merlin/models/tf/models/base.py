@@ -15,8 +15,8 @@ from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.blocks.core.tabular import TabularBlock
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
@@ -677,7 +677,8 @@ class Model(BaseModel):
         last_layer = None
 
         if self.pre is not None:
-            input_shape = self.pre.build(input_shape)
+            self.pre.build(input_shape)
+            input_shape = self.pre.compute_output_shape(input_shape)
 
         for layer in self.blocks:
             try:
@@ -694,7 +695,7 @@ class Model(BaseModel):
             last_layer = layer
 
         if self.post is not None:
-            input_shape = self.post.build(input_shape)
+            self.post.build(input_shape)
 
         self.built = True
 
