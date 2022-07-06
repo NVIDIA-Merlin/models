@@ -627,9 +627,19 @@ class Cond(Layer):
 
         return tf.cond(tf.convert_to_tensor(condition), true_fn, false_fn)
 
-    # TODO
-    # def compute_output_shape(self, input_shape):
-    #     raise NotImplementedError()
+    def compute_output_shape(self, input_shape):
+        """Computes the output shape of the layer."""
+        true_output_shape = self.true.compute_output_shape(input_shape)
+
+        if self.false:
+            false_output_shape = self.false.compute_output_shape(input_shape)
+        else:
+            false_output_shape = input_shape
+
+        if true_output_shape != false_output_shape:
+            raise ValueError("Both true and false branches must return the same output shape")
+
+        return true_output_shape
 
     # TODO
     def get_config(self):
