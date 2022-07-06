@@ -641,11 +641,21 @@ class Cond(Layer):
 
         return true_output_shape
 
-    # TODO
     def get_config(self):
+        """Returns the config of the layer as a Python dictionary."""
         config = super(Cond, self).get_config()
+        config["condition"] = tf.keras.layers.serialize(self.condition)
+        config["true"] = tf.keras.layers.serialize(self.true)
+        if self.false:
+            config["false"] = tf.keras.layers.serialize(self.false)
+        return config
 
-    # TODO
     @classmethod
-    def from_config(cls, config, **kwargs):
-        pass
+    def from_config(cls, config):
+        """Creates a Cond layer from its config. Returning the instance."""
+        condition = tf.keras.layers.deserialize(config.pop("condition"))
+        true = tf.keras.layers.deserialize(config.pop("true"))
+        false = None
+        if "false" in config:
+            false = tf.keras.layers.deserialize(config.pop("false"))
+        return cls(condition, true, false=false, **config)
