@@ -61,7 +61,7 @@ def test_train_eval_two_tower():
     runner_cfg.eval_batch_size = 1024
 
     # Changed to speed up execution
-    runner_cfg.train_epochs = 3
+    runner_cfg.train_epochs = 20
     runner_cfg.eval_steps = 5000
     # runner_cfg.train_steps_per_epoch = 10
 
@@ -104,7 +104,7 @@ def test_train_eval_mf():
     runner_cfg.eval_batch_size = 1024
 
     # Changed to speed up execution
-    runner_cfg.train_epochs = 3
+    runner_cfg.train_epochs = 20
     runner_cfg.eval_steps = 5000
     # runner_cfg.train_steps_per_epoch = 10
 
