@@ -349,8 +349,11 @@ def call_layer(layer: tf.keras.layers.Layer, inputs, *args, **kwargs):
     filtered_kwargs = filter_kwargs(kwargs, layer, cascade_kwargs_if_possible=True)
 
     if not has_custom_call:
-        filtered_kwargs = filter_kwargs(
-            filtered_kwargs, layer.call, cascade_kwargs_if_possible=True
-        )
+        if isinstance(layer, tf.keras.layers.Lambda):
+            filtered_kwargs = filter_kwargs(kwargs, layer.function, cascade_kwargs_if_possible=True)
+        else:
+            filtered_kwargs = filter_kwargs(
+                filtered_kwargs, layer.call, cascade_kwargs_if_possible=True
+            )
 
     return layer(inputs, *args, **filtered_kwargs)
