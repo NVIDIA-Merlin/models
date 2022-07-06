@@ -607,6 +607,8 @@ class ResidualBlock(WithShortcut):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Cond(Layer):
+    """Layer to enable conditionally apply layers."""
+
     def __init__(self, condition: Layer, true: Layer, false: Optional[Layer] = None, **kwargs):
         super(Cond, self).__init__(**kwargs)
         self.condition = condition
