@@ -53,6 +53,7 @@ from merlin.models.tf.blocks.core.transformations import (
     CategoricalOneHot,
     ExpandDims,
     HashedCross,
+    HashedCrosses,
     LabelToOneHot,
     StochasticSwapNoise,
 )
