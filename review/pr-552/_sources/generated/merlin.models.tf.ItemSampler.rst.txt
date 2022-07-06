@@ -1,0 +1,85 @@
+﻿merlin.models.tf.ItemSampler
+============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: ItemSampler
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ItemSampler.__init__
+      ~ItemSampler.add
+      ~ItemSampler.add_loss
+      ~ItemSampler.add_metric
+      ~ItemSampler.add_update
+      ~ItemSampler.add_variable
+      ~ItemSampler.add_weight
+      ~ItemSampler.build
+      ~ItemSampler.call
+      ~ItemSampler.compute_mask
+      ~ItemSampler.compute_output_shape
+      ~ItemSampler.compute_output_signature
+      ~ItemSampler.count_params
+      ~ItemSampler.finalize_state
+      ~ItemSampler.from_config
+      ~ItemSampler.get_config
+      ~ItemSampler.get_input_at
+      ~ItemSampler.get_input_mask_at
+      ~ItemSampler.get_input_shape_at
+      ~ItemSampler.get_output_at
+      ~ItemSampler.get_output_mask_at
+      ~ItemSampler.get_output_shape_at
+      ~ItemSampler.get_weights
+      ~ItemSampler.sample
+      ~ItemSampler.set_max_num_samples
+      ~ItemSampler.set_weights
+      ~ItemSampler.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ItemSampler.activity_regularizer
+      ~ItemSampler.compute_dtype
+      ~ItemSampler.dtype
+      ~ItemSampler.dtype_policy
+      ~ItemSampler.dynamic
+      ~ItemSampler.inbound_nodes
+      ~ItemSampler.input
+      ~ItemSampler.input_mask
+      ~ItemSampler.input_shape
+      ~ItemSampler.input_spec
+      ~ItemSampler.losses
+      ~ItemSampler.max_num_samples
+      ~ItemSampler.metrics
+      ~ItemSampler.name
+      ~ItemSampler.name_scope
+      ~ItemSampler.non_trainable_variables
+      ~ItemSampler.non_trainable_weights
+      ~ItemSampler.outbound_nodes
+      ~ItemSampler.output
+      ~ItemSampler.output_mask
+      ~ItemSampler.output_shape
+      ~ItemSampler.required_features
+      ~ItemSampler.stateful
+      ~ItemSampler.submodules
+      ~ItemSampler.supports_masking
+      ~ItemSampler.trainable
+      ~ItemSampler.trainable_variables
+      ~ItemSampler.trainable_weights
+      ~ItemSampler.updates
+      ~ItemSampler.variable_dtype
+      ~ItemSampler.variables
+      ~ItemSampler.weights
+   
+   
