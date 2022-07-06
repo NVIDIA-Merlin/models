@@ -614,10 +614,16 @@ class Cond(Layer):
         self.false = false
 
     def call(self, inputs, **kwargs):
+        """Call layers conditionally."""
         condition = call_layer(self.condition, inputs, **kwargs)
 
-        true_fn = lambda x: call_layer(self.true, x, **kwargs)
-        false_fn = lambda x: call_layer(self.false, x, **kwargs) if self.false else x
+        def true_fn():
+            return call_layer(self.true, inputs, **kwargs)
+
+        def false_fn():
+            if self.false is None:
+                return inputs
+            return call_layer(self.false, inputs, **kwargs)
 
         return tf.cond(tf.convert_to_tensor(condition), true_fn, false_fn)
 
