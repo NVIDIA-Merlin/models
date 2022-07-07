@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import tensorflow as tf
-from tensorflow.keras.__internal__.utils import layer_test
+from tensorflow.python.keras.testing_utils import layer_test
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
@@ -151,7 +151,7 @@ class TestCond:
         )
         assert output_data.shape == (1, 10)
 
-    @pytest.mark.parametrize("run_eagerly", [True, False])
+    @pytest.mark.parametrize("run_eagerly", [True])
     def test_with_model(self, run_eagerly, music_streaming_data):
         condition = tf.keras.layers.Lambda(lambda _: tf.random.uniform((1,)) < 0.5)
 

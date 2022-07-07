@@ -352,8 +352,12 @@ def call_layer(layer: tf.keras.layers.Layer, inputs, *args, **kwargs):
         if isinstance(layer, tf.keras.layers.Lambda):
             filtered_kwargs = filter_kwargs(kwargs, layer.function, cascade_kwargs_if_possible=True)
         else:
+            # We need to check the call method on the type since when the model gets saved
+            # we can't infer the kwargs from using `layer.call` directly
+            call_fn = type(layer).call
+
             filtered_kwargs = filter_kwargs(
-                filtered_kwargs, layer.call, cascade_kwargs_if_possible=True
+                filtered_kwargs, call_fn, cascade_kwargs_if_possible=True
             )
 
     return layer(inputs, *args, **filtered_kwargs)
