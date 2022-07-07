@@ -10,6 +10,16 @@ on:
     branches: [ main ]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        # Mixing tensorflow.python.keras with tensorflow.keras is unsupported
+      - name: "Check there are no tensorflow.python.keras imports"
+        run: |
+          grep -q -r "python\.keras" --include \*.py merlin/ tests/
+          test $? -eq 1
+
   tests:
     runs-on: ${{ matrix.os }}
     strategy:
