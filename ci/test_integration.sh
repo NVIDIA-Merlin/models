@@ -17,4 +17,8 @@
 #!/bin/bash
 set -e
 
-pytest -rxs tests/integration
+container=$1
+devices=$2
+if [ "$container" == "merlin-tensorflow" ]; then
+    CUDA_VISIBLE_DEVICES="$devices" TF_GPU_ALLOCATOR=cuda_malloc_async python -m pytest -rxs tests/integration/tf
+fi
