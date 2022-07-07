@@ -151,7 +151,7 @@ class TestCond:
         )
         assert output_data.shape == (1, 10)
 
-    @pytest.mark.parametrize("run_eagerly", [True])
+    @pytest.mark.parametrize("run_eagerly", [True, False])
     def test_with_model(self, run_eagerly, music_streaming_data):
         condition = tf.keras.layers.Lambda(lambda _: tf.random.uniform((1,)) < 0.5)
 
