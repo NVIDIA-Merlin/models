@@ -17,8 +17,7 @@ jobs:
         # Mixing tensorflow.python.keras with tensorflow.keras is unsupported
       - name: "Check there are no tensorflow.python.keras imports"
         run: |
-          grep -r "python\.keras" --include \*.py merlin/ tests/
-          test $? -eq 1
+          ci/lint_tensorflow.sh
 
   tests:
     runs-on: ${{ matrix.os }}
