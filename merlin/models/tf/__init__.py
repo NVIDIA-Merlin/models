@@ -48,7 +48,6 @@ from merlin.models.tf.blocks.core.combinators import (
     ResidualBlock,
     SequentialBlock,
 )
-from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
 from merlin.models.tf.blocks.core.transformations import (
@@ -141,7 +140,6 @@ __all__ = [
     "CGCBlock",
     "TopKIndexBlock",
     "IndexBlock",
-    "FeatureContext",
     "DenseResidualBlock",
     "TabularBlock",
     "ContinuousFeatures",
