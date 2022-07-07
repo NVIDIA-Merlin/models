@@ -43,7 +43,6 @@ from merlin.models.tf.blocks.core.base import (
     right_shift_layer,
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, ResidualBlock, SequentialBlock
-from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
 from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
@@ -141,7 +140,6 @@ __all__ = [
     "CGCBlock",
     "TopKIndexBlock",
     "IndexBlock",
-    "FeatureContext",
     "DenseResidualBlock",
     "TabularBlock",
     "ContinuousFeatures",
