@@ -295,7 +295,7 @@ class ItemRetrievalScorer(Block):
         if self.sampled_softmax_mode or isinstance(targets, tf.Tensor):
             positive_item_ids = targets
         else:
-            positive_item_ids = feature_context.features.values[self.item_id_feature_name]
+            positive_item_ids = feature_context[self.item_id_feature_name]
 
         neg_items_ids = None
         if training or testing:
@@ -311,8 +311,7 @@ class ItemRetrievalScorer(Block):
 
             batch_items_embeddings = predictions[self.item_name]
             batch_items_metadata = {
-                feat_name: feature_context.features.values[feat_name]
-                for feat_name in self._required_features
+                feat_name: feature_context[feat_name] for feat_name in self._required_features
             }
 
             positive_scores = tf.reduce_sum(
@@ -357,7 +356,7 @@ class ItemRetrievalScorer(Block):
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:
-                    positive_item_ids = feature_context.features.values[self.item_id_feature_name]
+                    positive_item_ids = feature_context[self.item_id_feature_name]
 
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]
