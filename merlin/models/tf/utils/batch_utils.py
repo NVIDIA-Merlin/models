@@ -64,6 +64,8 @@ class ModelEncode:
 
 
 class TFModelEncode(ModelEncode):
+    """Batch-prediction for a model."""
+
     def __init__(
         self,
         model: tp.Union[Model, tf.keras.Model],
@@ -80,11 +82,11 @@ class TFModelEncode(ModelEncode):
         model_load_func = block_load_func if block_load_func else tf.keras.models.load_model
         if not output_names:
             try:
-                output_names = model.block.last.task_names
+                output_names = model.last.task_names
             except AttributeError:
                 pass
         if not output_concat_func:
-            if len(output_names) == 1:  # type: ignore
+            if output_names and len(output_names) == 1:  # type: ignore
                 output_concat_func = np.concatenate
             else:
                 output_concat_func = get_lib().concat  # type: ignore
@@ -111,8 +113,10 @@ class TFModelEncode(ModelEncode):
 
 
 class ItemEmbeddings(TFModelEncode):
+    """Extract item-embeddings from model"""
+
     def __init__(self, model: Model, batch_size: int = 512, save_path: tp.Optional[str] = None):
-        item_block = model.block.first.item_block()
+        item_block = model.first.item_block()
         schema = item_block.schema
 
         super().__init__(
@@ -125,13 +129,15 @@ class ItemEmbeddings(TFModelEncode):
 
 
 class QueryEmbeddings(TFModelEncode):
+    """Extract query-embeddings from model"""
+
     def __init__(
         self,
         model: RetrievalModel,
         batch_size: int = 512,
         save_path: tp.Optional[str] = None,
     ):
-        query_block = model.block.first.query_block()
+        query_block = model.first.query_block()
         schema = query_block.schema
 
         super().__init__(
