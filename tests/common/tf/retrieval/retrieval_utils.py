@@ -22,11 +22,11 @@ from typing import Any, Optional
 
 import numpy as np
 import tensorflow as tf
+import wandb
 from tensorflow.keras import regularizers
 from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
-import wandb
 from merlin.io.dataset import Dataset
 from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
 from merlin.models.utils import schema_utils
