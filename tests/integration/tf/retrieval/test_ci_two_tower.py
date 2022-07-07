@@ -1,30 +1,13 @@
-import inspect
 import logging
 import os
 
 import fiddle as fdl
 
 from tests.integration.tf.retrieval.retrieval_config import config_retrieval_train_eval_runner
+from tests.integration.tf.utils import extract_hparams_from_config
 
 STANDARD_CI_LASTFM_PREPROC_DATA_PATH = "/raid/data/lastfm/preprocessed"
 STANDARD_CI_WANDB_PROJECT = "merlin-ci"
-
-
-def extract_hparams_from_config(config):
-    output_args = {}
-    config_args = config.__arguments__
-    for k, v in config_args.items():
-        if isinstance(v, fdl.Config):
-            output_args[k] = extract_hparams_from_config(v)
-
-        else:
-            output_args[k] = v
-
-    callable_params = inspect.signature(config.__fn_or_cls__).parameters
-    for k, v in callable_params.items():
-        if k not in output_args and callable_params[k].default is not callable_params[k].empty:
-            output_args[k] = callable_params[k].default
-    return output_args
 
 
 def test_train_eval_two_tower():
@@ -61,7 +44,7 @@ def test_train_eval_two_tower():
     runner_cfg.eval_batch_size = 1024
 
     # Changed to speed up execution
-    runner_cfg.train_epochs = 20
+    runner_cfg.train_epochs = 3
     runner_cfg.eval_steps = 5000
     # runner_cfg.train_steps_per_epoch = 10
 
@@ -104,7 +87,7 @@ def test_train_eval_mf():
     runner_cfg.eval_batch_size = 1024
 
     # Changed to speed up execution
-    runner_cfg.train_epochs = 20
+    runner_cfg.train_epochs = 3
     runner_cfg.eval_steps = 5000
     # runner_cfg.train_steps_per_epoch = 10
 
