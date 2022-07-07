@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime
 
 import six
 import tensorflow as tf
+from keras.engine import data_adapter
 from keras.utils.losses_utils import cast_losses_to_common_dtype
-from tensorflow.python.keras.engine import data_adapter
 
 import merlin.io
 from merlin.models.config.schema import FeatureCollection

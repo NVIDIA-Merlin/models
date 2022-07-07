@@ -1,8 +1,8 @@
 from typing import Dict, List, NamedTuple, Optional, Text, Union
 
 import tensorflow as tf
+from keras.utils import generic_utils
 from tensorflow.keras.layers import Layer
-from tensorflow.python.keras.utils import generic_utils
 
 from merlin.models.tf.blocks.core.base import (
     Block,

@@ -19,8 +19,7 @@ from enum import Enum
 from typing import Optional, Union
 
 import tensorflow as tf
-from tensorflow.python.keras import backend
-from tensorflow.python.ops import nn
+from keras import backend
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block
@@ -317,8 +316,8 @@ class CosineSimilarity(TupleAggregation):
         super().__init__(trainable, name, dtype, dynamic, **kwargs)
 
     def call(self, left: tf.Tensor, right: tf.Tensor, **kwargs) -> tf.Tensor:  # type: ignore
-        left = nn.l2_normalize(left, axis=1)
-        right = nn.l2_normalize(right, axis=1)
+        left = tf.nn.l2_normalize(left, axis=1)
+        right = tf.nn.l2_normalize(right, axis=1)
         output = backend.batch_dot(left, right, 1)
         return output
 

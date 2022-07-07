@@ -22,10 +22,10 @@ from merlin.models.tf.utils.tf_utils import TensorInitializer
 
 configure_tensorflow()
 
+from keras.optimizers.optimizer_v2.optimizer_v2 import OptimizerV2
 from tensorflow.keras.layers import Dense, Layer
-from tensorflow.python.keras.losses import Loss
-from tensorflow.python.keras.metrics import Metric
-from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
+from tensorflow.keras.losses import Loss
+from tensorflow.keras.metrics import Metric
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
 from merlin.models.loader.tf_utils import configure_tensorflow
