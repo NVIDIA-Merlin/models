@@ -42,7 +42,12 @@ from merlin.models.tf.blocks.core.base import (
     NoOp,
     right_shift_layer,
 )
-from merlin.models.tf.blocks.core.combinators import ParallelBlock, ResidualBlock, SequentialBlock, Cond
+from merlin.models.tf.blocks.core.combinators import (
+    Cond,
+    ParallelBlock,
+    ResidualBlock,
+    SequentialBlock,
+)
 from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
