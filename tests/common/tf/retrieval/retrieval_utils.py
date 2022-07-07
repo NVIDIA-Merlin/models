@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2021, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import logging
 import os
 import time
@@ -6,22 +22,18 @@ from typing import Any, Optional
 
 import numpy as np
 import tensorflow as tf
-import wandb
 from tensorflow.keras import regularizers
 from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
+import wandb
 from merlin.io.dataset import Dataset
 from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
 from merlin.models.utils import schema_utils
-from merlin.schema.io.tensorflow_metadata import TensorflowMetadata
 from merlin.schema.tags import Tags
 
 
-def get_schema(data_path="", filter_dataset_features=""):
-    schema = TensorflowMetadata.from_proto_text_file(
-        os.path.join(data_path, "train/")
-    ).to_merlin_schema()
+def filter_schema(schema, filter_dataset_features=""):
     schema = schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])
 
     if filter_dataset_features:
