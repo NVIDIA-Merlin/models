@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import inspect
+import sys
 from collections.abc import Sequence as SequenceCollection
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
 
+import six
 import tensorflow as tf
 from keras.utils.losses_utils import cast_losses_to_common_dtype
 from tensorflow.python.keras.engine import data_adapter
@@ -13,6 +15,7 @@ from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
+from merlin.models.tf.blocks.core.tabular import TabularBlock
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
@@ -646,20 +649,55 @@ class Model(BaseModel):
         super(Model, self).__init__(**kwargs)
         context = context or ModelContext()
         if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
-            self.block = blocks[0]
-        else:
-            self.block = SequentialBlock(blocks, context=context, block_name="blocks")
-        if not getattr(self.block, "_context", None):
-            self.block._set_context(context)
+            blocks = blocks[0].layers
+
+        self.blocks = blocks
+        for block in self.submodules:
+            if hasattr(block, "_set_context"):
+                block._set_context(context)
+
         self.pre = pre
         self.post = post
         self.context = context
         self._is_fitting = False
 
         input_block_schemas = [
-            block.schema for block in self.block.submodules if getattr(block, "is_input", False)
+            block.schema for block in self.submodules if getattr(block, "is_input", False)
         ]
         self.schema = sum(input_block_schemas, Schema())
+
+    def build(self, input_shape=None):
+        """Builds the model
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape, optional
+            The input shape, by default None
+        """
+        last_layer = None
+
+        if self.pre is not None:
+            self.pre.build(input_shape)
+            input_shape = self.pre.compute_output_shape(input_shape)
+
+        for layer in self.blocks:
+            try:
+                layer.build(input_shape)
+            except TypeError:
+                t, v, tb = sys.exc_info()
+                if isinstance(input_shape, dict) and isinstance(last_layer, TabularBlock):
+                    v = TypeError(
+                        f"Couldn't build {layer}, "
+                        f"did you forget to add aggregation to {last_layer}?"
+                    )
+                six.reraise(t, v, tb)
+            input_shape = layer.compute_output_shape(input_shape)
+            last_layer = layer
+
+        if self.post is not None:
+            self.post.build(input_shape)
+
+        self.built = True
 
     def call(self, inputs, **kwargs):
         if not kwargs.get("feature_context", None):
@@ -669,7 +707,8 @@ class Model(BaseModel):
         if self.pre:
             outputs = call_layer(self.pre, outputs, **kwargs)
 
-        outputs = call_layer(self.block, outputs, **kwargs)
+        for block in self.blocks:
+            outputs = call_layer(block, outputs, **kwargs)
 
         if self.post:
             inputs = call_layer(self.post, outputs, **kwargs)
@@ -678,11 +717,11 @@ class Model(BaseModel):
 
     @property
     def first(self):
-        return self.block.layers[0]
+        return self.blocks[0]
 
     @property
     def last(self):
-        return self.block.layers[-1]
+        return self.blocks[-1]
 
     @classmethod
     def from_block(
@@ -724,14 +763,25 @@ class Model(BaseModel):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        block = tf.keras.utils.deserialize_keras_object(config.pop("block"))
-        config = maybe_deserialize_keras_objects(config, ["pre", "post"])
+        pre = config.pop("pre", None)
+        post = config.pop("post", None)
+        layers = [
+            tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+            for conf in config.values()
+        ]
 
-        return cls(block, **config)
+        if pre is not None:
+            pre = tf.keras.layers.deserialize(pre, custom_objects=custom_objects)
+
+        if post is not None:
+            post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
+
+        return cls(*layers, pre=pre, post=post)
 
     def get_config(self):
-        config = {"block": tf.keras.utils.serialize_keras_object(self.block)}
-        config = maybe_deserialize_keras_objects(config, ["pre", "post"])
+        config = maybe_deserialize_keras_objects({}, ["pre", "post"])
+        for i, layer in enumerate(self.blocks):
+            config[i] = tf.keras.utils.serialize_keras_object(layer)
 
         return config
 
@@ -825,7 +875,7 @@ class RetrievalModel(Model):
 
     @property
     def retrieval_block(self) -> RetrievalBlock:
-        return next(b for b in self.block if isinstance(b, RetrievalBlock))
+        return next(b for b in self.blocks if isinstance(b, RetrievalBlock))
 
     def query_embeddings(
         self,

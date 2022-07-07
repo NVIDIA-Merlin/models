@@ -237,7 +237,7 @@ class EmbeddingTable(EmbeddingTableBase):
         self.table._maybe_build(inputs)
         return super(EmbeddingTable, self)._maybe_build(inputs)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         """
         Parameters
         ----------

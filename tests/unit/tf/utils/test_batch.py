@@ -17,7 +17,7 @@ def test_model_encode(ecommerce_data: Dataset, run_eagerly):
     ddf = data.compute(scheduler="synchronous")
 
     assert len(list(ddf.columns)) == 27
-    assert all([task in list(ddf.columns) for task in model.block.last.task_names])
+    assert all([task in list(ddf.columns) for task in model.last.task_names])
 
 
 def test_two_tower_embedding_extraction(ecommerce_data: Dataset):
