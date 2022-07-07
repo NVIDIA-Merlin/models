@@ -765,7 +765,6 @@ class Model(BaseModel):
     def from_config(cls, config, custom_objects=None):
         pre = config.pop("pre", None)
         post = config.pop("post", None)
-        # context = config.pop("context", None)
         layers = [
             tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
             for conf in config.values()
@@ -776,9 +775,6 @@ class Model(BaseModel):
 
         if post is not None:
             post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
-
-        # if context is not None:
-        #     context = tf.keras.layers.deserialize(context, custom_objects=custom_objects)
 
         return cls(*layers, pre=pre, post=post)
 
