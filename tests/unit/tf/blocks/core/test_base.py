@@ -36,8 +36,14 @@ class DummyFeaturesBlock(ml.Block):
         items = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
         emb_table = self.context.get_embedding(Tags.ITEM_ID)
         item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
-        if tf.rank(item_embeddings) == 3:
-            item_embeddings = tf.squeeze(item_embeddings)
+        rank = tf.rank(item_embeddings)
+        if isinstance(rank, tf.Tensor):
+            item_embeddings = tf.cond(
+                tf.equal(rank, 3), lambda: tf.squeeze(item_embeddings), lambda: item_embeddings
+            )
+        else:
+            if rank == 3:
+                item_embeddings = tf.squeeze(item_embeddings)
 
         return inputs * item_embeddings
 
@@ -60,4 +66,4 @@ def test_block_context_model(ecommerce_data: Dataset, run_eagerly: bool):
 
     copy_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
-    assert copy_model.context == copy_model.block.layers[0].context
+    assert copy_model.context == copy_model.blocks[0].context

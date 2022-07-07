@@ -45,7 +45,7 @@ def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
     )
 
     assert all(
-        [f.table.dim == 32 for f in list(model.block.inputs["categorical"].feature_config.values())]
+        [f.table.dim == 32 for f in list(model.blocks[0]["categorical"].feature_config.values())]
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
