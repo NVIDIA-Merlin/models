@@ -1,0 +1,6 @@
+﻿merlin.models.utils.registry.default\_object\_name
+==================================================
+
+.. currentmodule:: merlin.models.utils.registry
+
+.. autofunction:: default_object_name

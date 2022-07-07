@@ -1,0 +1,86 @@
+﻿merlin.models.tf.CachedCrossBatchSampler
+========================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: CachedCrossBatchSampler
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CachedCrossBatchSampler.__init__
+      ~CachedCrossBatchSampler.add
+      ~CachedCrossBatchSampler.add_loss
+      ~CachedCrossBatchSampler.add_metric
+      ~CachedCrossBatchSampler.add_update
+      ~CachedCrossBatchSampler.add_variable
+      ~CachedCrossBatchSampler.add_weight
+      ~CachedCrossBatchSampler.build
+      ~CachedCrossBatchSampler.call
+      ~CachedCrossBatchSampler.compute_mask
+      ~CachedCrossBatchSampler.compute_output_shape
+      ~CachedCrossBatchSampler.compute_output_signature
+      ~CachedCrossBatchSampler.count_params
+      ~CachedCrossBatchSampler.finalize_state
+      ~CachedCrossBatchSampler.from_config
+      ~CachedCrossBatchSampler.get_config
+      ~CachedCrossBatchSampler.get_input_at
+      ~CachedCrossBatchSampler.get_input_mask_at
+      ~CachedCrossBatchSampler.get_input_shape_at
+      ~CachedCrossBatchSampler.get_output_at
+      ~CachedCrossBatchSampler.get_output_mask_at
+      ~CachedCrossBatchSampler.get_output_shape_at
+      ~CachedCrossBatchSampler.get_weights
+      ~CachedCrossBatchSampler.sample
+      ~CachedCrossBatchSampler.set_max_num_samples
+      ~CachedCrossBatchSampler.set_weights
+      ~CachedCrossBatchSampler.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~CachedCrossBatchSampler.activity_regularizer
+      ~CachedCrossBatchSampler.compute_dtype
+      ~CachedCrossBatchSampler.dtype
+      ~CachedCrossBatchSampler.dtype_policy
+      ~CachedCrossBatchSampler.dynamic
+      ~CachedCrossBatchSampler.inbound_nodes
+      ~CachedCrossBatchSampler.input
+      ~CachedCrossBatchSampler.input_mask
+      ~CachedCrossBatchSampler.input_shape
+      ~CachedCrossBatchSampler.input_spec
+      ~CachedCrossBatchSampler.item_embeddings_queue
+      ~CachedCrossBatchSampler.losses
+      ~CachedCrossBatchSampler.max_num_samples
+      ~CachedCrossBatchSampler.metrics
+      ~CachedCrossBatchSampler.name
+      ~CachedCrossBatchSampler.name_scope
+      ~CachedCrossBatchSampler.non_trainable_variables
+      ~CachedCrossBatchSampler.non_trainable_weights
+      ~CachedCrossBatchSampler.outbound_nodes
+      ~CachedCrossBatchSampler.output
+      ~CachedCrossBatchSampler.output_mask
+      ~CachedCrossBatchSampler.output_shape
+      ~CachedCrossBatchSampler.required_features
+      ~CachedCrossBatchSampler.stateful
+      ~CachedCrossBatchSampler.submodules
+      ~CachedCrossBatchSampler.supports_masking
+      ~CachedCrossBatchSampler.trainable
+      ~CachedCrossBatchSampler.trainable_variables
+      ~CachedCrossBatchSampler.trainable_weights
+      ~CachedCrossBatchSampler.updates
+      ~CachedCrossBatchSampler.variable_dtype
+      ~CachedCrossBatchSampler.variables
+      ~CachedCrossBatchSampler.weights
+   
+   

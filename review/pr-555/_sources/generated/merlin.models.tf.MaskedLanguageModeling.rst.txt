@@ -1,0 +1,108 @@
+﻿merlin.models.tf.MaskedLanguageModeling
+=======================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: MaskedLanguageModeling
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~MaskedLanguageModeling.__init__
+      ~MaskedLanguageModeling.add_features_to_context
+      ~MaskedLanguageModeling.add_loss
+      ~MaskedLanguageModeling.add_metric
+      ~MaskedLanguageModeling.add_update
+      ~MaskedLanguageModeling.add_variable
+      ~MaskedLanguageModeling.add_weight
+      ~MaskedLanguageModeling.apply_mask_to_inputs
+      ~MaskedLanguageModeling.as_tabular
+      ~MaskedLanguageModeling.build
+      ~MaskedLanguageModeling.call
+      ~MaskedLanguageModeling.call_outputs
+      ~MaskedLanguageModeling.check_schema
+      ~MaskedLanguageModeling.compute_feature_mask
+      ~MaskedLanguageModeling.compute_mask
+      ~MaskedLanguageModeling.compute_output_shape
+      ~MaskedLanguageModeling.compute_output_signature
+      ~MaskedLanguageModeling.connect
+      ~MaskedLanguageModeling.connect_branch
+      ~MaskedLanguageModeling.connect_debug_block
+      ~MaskedLanguageModeling.connect_with_residual
+      ~MaskedLanguageModeling.connect_with_shortcut
+      ~MaskedLanguageModeling.copy
+      ~MaskedLanguageModeling.count_params
+      ~MaskedLanguageModeling.finalize_state
+      ~MaskedLanguageModeling.from_config
+      ~MaskedLanguageModeling.from_layer
+      ~MaskedLanguageModeling.get_config
+      ~MaskedLanguageModeling.get_input_at
+      ~MaskedLanguageModeling.get_input_mask_at
+      ~MaskedLanguageModeling.get_input_shape_at
+      ~MaskedLanguageModeling.get_item_ids_from_inputs
+      ~MaskedLanguageModeling.get_output_at
+      ~MaskedLanguageModeling.get_output_mask_at
+      ~MaskedLanguageModeling.get_output_shape_at
+      ~MaskedLanguageModeling.get_padding_mask_from_item_id
+      ~MaskedLanguageModeling.get_weights
+      ~MaskedLanguageModeling.parse
+      ~MaskedLanguageModeling.parse_block
+      ~MaskedLanguageModeling.prepare
+      ~MaskedLanguageModeling.register_features
+      ~MaskedLanguageModeling.repeat
+      ~MaskedLanguageModeling.repeat_in_parallel
+      ~MaskedLanguageModeling.select_by_name
+      ~MaskedLanguageModeling.set_schema
+      ~MaskedLanguageModeling.set_weights
+      ~MaskedLanguageModeling.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~MaskedLanguageModeling.REQUIRES_SCHEMA
+      ~MaskedLanguageModeling.activity_regularizer
+      ~MaskedLanguageModeling.compute_dtype
+      ~MaskedLanguageModeling.context
+      ~MaskedLanguageModeling.dtype
+      ~MaskedLanguageModeling.dtype_policy
+      ~MaskedLanguageModeling.dynamic
+      ~MaskedLanguageModeling.has_schema
+      ~MaskedLanguageModeling.inbound_nodes
+      ~MaskedLanguageModeling.input
+      ~MaskedLanguageModeling.input_mask
+      ~MaskedLanguageModeling.input_shape
+      ~MaskedLanguageModeling.input_spec
+      ~MaskedLanguageModeling.losses
+      ~MaskedLanguageModeling.metrics
+      ~MaskedLanguageModeling.name
+      ~MaskedLanguageModeling.name_scope
+      ~MaskedLanguageModeling.non_trainable_variables
+      ~MaskedLanguageModeling.non_trainable_weights
+      ~MaskedLanguageModeling.outbound_nodes
+      ~MaskedLanguageModeling.output
+      ~MaskedLanguageModeling.output_mask
+      ~MaskedLanguageModeling.output_shape
+      ~MaskedLanguageModeling.registry
+      ~MaskedLanguageModeling.schema
+      ~MaskedLanguageModeling.stateful
+      ~MaskedLanguageModeling.submodules
+      ~MaskedLanguageModeling.supports_masking
+      ~MaskedLanguageModeling.trainable
+      ~MaskedLanguageModeling.trainable_variables
+      ~MaskedLanguageModeling.trainable_weights
+      ~MaskedLanguageModeling.updates
+      ~MaskedLanguageModeling.variable_dtype
+      ~MaskedLanguageModeling.variables
+      ~MaskedLanguageModeling.weights
+   
+   
