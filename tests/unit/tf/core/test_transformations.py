@@ -20,6 +20,9 @@ import tensorflow as tf
 from tensorflow.test import TestCase
 
 import merlin.models.tf as ml
+from merlin.io import Dataset
+from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularBlock
+from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.schema_utils import create_categorical_column, create_continuous_column
 from merlin.schema import Schema, Tags
 
@@ -421,3 +424,32 @@ def test_hashedcrosses():
             [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
         ],
     )
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_hashedcross_as_pre(ecommerce_data: Dataset, run_eagerly):
+    cross_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
+    body = ParallelBlock(
+        TabularBlock.from_schema(
+            schema=cross_schema, pre=ml.HashedCross(cross_schema, num_bins=1000)
+        ),
+        is_input=True,
+    ).connect(ml.MLPBlock([64]))
+    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    testing_utils.model_test(model, ecommerce_data)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_hashedcross_in_model(ecommerce_data: Dataset, run_eagerly):
+    cross_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
+    branches = {
+        "cross_product": ml.HashedCross(cross_schema, num_bins=1000, is_input=True),
+        "features": ml.InputBlock(ecommerce_data.schema),
+    }
+    body = ParallelBlock(branches, is_input=True).connect(ml.MLPBlock([64]))
+    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    testing_utils.model_test(model, ecommerce_data)
