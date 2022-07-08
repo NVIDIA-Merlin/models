@@ -17,8 +17,8 @@ import warnings
 from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
-from keras.utils import control_flow_util
 from keras.layers.preprocessing import preprocessing_utils
+from keras.utils import control_flow_util
 from tensorflow.keras import backend
 from tensorflow.python.ops import array_ops
 
