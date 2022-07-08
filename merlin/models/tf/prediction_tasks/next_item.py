@@ -26,7 +26,6 @@ from merlin.models.tf.blocks.core.transformations import (
     LabelToOneHot,
     LogitsTemperatureScaler,
     PopularityLogitsCorrection,
-    RemovePad3D,
 )
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
@@ -182,8 +181,6 @@ def NextItemPredictionTask(
         PredictionTask
             The next item prediction task
     """
-    item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-
     if sampled_softmax:
         prediction_call = ItemsPredictionPopSampled(
             schema, num_sampled=num_sampled, min_id=min_sampled_id
@@ -203,7 +200,6 @@ def NextItemPredictionTask(
 
     if logits_temperature != 1:
         prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
-
 
     if l2_normalization:
         prediction_call = L2Norm().connect(prediction_call)
