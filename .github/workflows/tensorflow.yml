@@ -14,8 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-        # Mixing tensorflow.python.keras with tensorflow.keras is unsupported
-      - name: "Check there are no tensorflow.python.keras imports"
+      - name: "Check tensorflow code for errors"
         run: |
           ci/lint_tensorflow.sh
 

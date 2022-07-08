@@ -19,11 +19,19 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)"
 
+
+# Check for use of tensorflow.python.keras
+
 grep_output=$(grep -r "python.keras" --include "*.py" "${__root}/merlin/" "${__root}/tests/")
 
 if [[ -n $grep_output ]]
 then
-    printf "FAIL: Found files with python.keras imports\n%s\n" "$grep_output"
+    cat << EOF
+FAIL: Found files with python.keras imports.
+`tensorflow.keras.python` should not be used because it is incompatible with `tensorflow.keras`.
+Instead tensorflow.keras is recommended.
+EOF
+    printf "%s\n" "${grep_output}"
     exit 1
 else
     echo "OK: no files with python.keras found"
