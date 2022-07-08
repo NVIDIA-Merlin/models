@@ -3,6 +3,8 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+
+from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
     MRRAt,
@@ -273,7 +275,20 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     )
     model.compile(optimizer="adam", run_eagerly=False)
 
-    losses = model.fit(sequence_testing_data, batch_size=50, epochs=2)
+    dataloader = BatchedDataset(sequence_testing_data, batch_size=50)
+
+    def last_interaction_as_target(inputs, targets):
+        items = inputs["item_id_seq"]
+
+        items_ragged = tf.RaggedTensor.from_row_lengths(
+            items[0][:, 0], items[1][:, 0]
+        )
+        
+
+
+    dataloader = dataloader.map()
+
+    losses = model.fit(dataloader, epochs=2)
 
     assert len(losses.epoch) == 2
     for metric in losses.history.keys():

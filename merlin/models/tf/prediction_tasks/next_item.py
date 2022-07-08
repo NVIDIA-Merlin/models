@@ -20,7 +20,6 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.blocks.core.base import Block
-from merlin.models.tf.blocks.core.masking import MaskingHead
 from merlin.models.tf.blocks.core.transformations import (
     ItemsPredictionWeightTying,
     L2Norm,
@@ -125,7 +124,6 @@ def ItemsPredictionPopSampled(
 def NextItemPredictionTask(
     schema: Schema,
     weight_tying: bool = True,
-    masking: bool = True,
     extra_pre_call: Optional[Block] = None,
     target_name: Optional[str] = None,
     task_name: Optional[str] = None,
@@ -145,9 +143,6 @@ def NextItemPredictionTask(
             The schema object including features to use and their properties.
         weight_tying: bool
             The item_id embedding weights are shared with the prediction network layer.
-            Defaults to True
-        masking: bool
-            Whether masking is used to transform inputs and targets or not
             Defaults to True
         extra_pre_call: Optional[PredictionBlock]
             Optional extra pre-call block. Defaults to None.
@@ -209,10 +204,6 @@ def NextItemPredictionTask(
     if logits_temperature != 1:
         prediction_call = prediction_call.connect(LogitsTemperatureScaler(logits_temperature))
 
-    if masking:
-        prediction_call = MaskingHead(item_id_feature_name=item_id_feature_name).connect(
-            RemovePad3D(), prediction_call
-        )
 
     if l2_normalization:
         prediction_call = L2Norm().connect(prediction_call)
