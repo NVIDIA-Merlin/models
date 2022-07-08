@@ -24,7 +24,7 @@ from tensorflow.python.ops import array_ops
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block, PredictionOutput
-from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularBlock
+from merlin.models.tf.blocks.core.combinators import TabularBlock
 from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils.tf_utils import (
     df_to_tensor,
@@ -122,6 +122,14 @@ class HashedCross(TabularBlock):
     Conceptually, the transformation can be thought of as: hash(concatenation of features) %
     num_bins
 
+    Example usage::
+
+    model_body = ParallelBlock(
+                TabularBlock.from_schema(schema=cross_schema, pre=ml.HashedCross(cross_schema,
+                                        num_bins = 1000)),
+                is_input=True).connect(ml.MLPBlock([64, 32]))
+    model = ml.Model(model_body, ml.BinaryClassificationTask("click"))
+
     Parameters
     ----------
         schema : Schema
@@ -163,19 +171,10 @@ class HashedCross(TabularBlock):
             self.output_name = output_name
 
     def call(self, inputs):
-
-        # Convert all inputs to tensors and check shape. This layer only supports
-        # sclars and batches of scalars for the initial version.
         self._check_at_least_two_inputs()
-
         _inputs = {}
         for name in self.schema.column_names:
             _inputs[name] = inputs[name]
-        self._check_input_shape_and_type(_inputs)
-
-        # Uprank to rank 2 for the cross_hashed op.
-
-        for name in self.schema.column_names:
             rank = _inputs[name].shape.rank
             if rank < 2:
                 _inputs[name] = tf.expand_dims(_inputs[name], -1)
@@ -209,6 +208,7 @@ class HashedCross(TabularBlock):
 
     def compute_output_shape(self, input_shapes):
         self._check_at_least_two_inputs()
+        self._check_input_shape_and_type(input_shapes)
         output_shape = {}
         one_input = list(input_shapes.values())[0]
         output_shape[self.output_name] = preprocessing_utils.compute_shape_for_encode_categorical(
@@ -243,45 +243,22 @@ class HashedCross(TabularBlock):
                     "has no categorical tag"
                 )
 
-    def _check_input_shape_and_type(self, inputs: TabularData) -> TabularData:
-        inputs_tensors = []
+    def _check_input_shape_and_type(self, inputs_shapes) -> TabularData:
+        _inputs_shapes = []
         for name in self.schema.column_names:
-            inputs_tensors.append(inputs[name])
-        first_shape = inputs_tensors[0].shape.as_list()
+            _inputs_shapes.append(inputs_shapes[name])
+        first_shape = _inputs_shapes[0].as_list()
         rank = len(first_shape)
         if rank > 2 or (rank == 2 and first_shape[-1] != 1):
             raise ValueError(
                 "All `HashedCrossing` inputs should have shape `[]`, `[batch_size]` "
-                f"or `[batch_size, 1]`. Received: inputs shape={first_shape}"
+                f"or `[batch_size, 1]`. Received: input {name} with shape={first_shape}"
             )
-        if not all(x.shape.as_list() == first_shape for x in inputs_tensors):
+        if not all(x.as_list() == first_shape for x in _inputs_shapes):
             raise ValueError(
                 "All `HashedCrossing` inputs should have equal shape. "
-                f"Received: inputs={inputs_tensors}"
+                f"Received: inputs={_inputs_shapes}"
             )
-        # TODO: Consider transfer tensors to dense tensors, do not require users do it by themself?
-        if any(isinstance(x, (tf.RaggedTensor, tf.SparseTensor)) for x in inputs_tensors):
-            raise ValueError(
-                "All `HashedCrossing` inputs should be dense tensors. "
-                f"Received: inputs={inputs_tensors}"
-            )
-        if not all(x.dtype.is_integer or x.dtype == tf.string for x in inputs_tensors):
-            raise ValueError("All `HashedCrossing` inputs should have an integer or string dtype.")
-
-
-def HashedCrosses(*crosses) -> Block:
-    """Parallel block which contain multiple HashedCross, in order to operate cross on
-    different set of features.
-
-    Parameters
-    ----------
-        crosses : Union[Schema, HashedCross]
-            One or multiple tuples (sets) of schema and a HashedCross instance, which would make a
-            cross on the corresponding features included in the schema.
-    """
-
-    # TODO: need filter or not?
-    return ParallelBlock(*crosses)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
