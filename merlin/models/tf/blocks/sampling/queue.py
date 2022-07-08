@@ -86,9 +86,12 @@ class FIFOQueue(Layer):
         )
 
         if initialize_tensor is None:
-            initialize_tensor = tf.Variable(
-                lambda: tf.zeros([capacity] + self.dims, dtype=dtype) - 1
-            )
+            try:
+                initialize_tensor = tf.Variable(
+                    lambda: tf.zeros([capacity] + self.dims, dtype=dtype) - 1
+                )
+            except Exception:
+                a = 5
 
         self.storage = tf.Variable(
             initial_value=initialize_tensor,
@@ -143,7 +146,7 @@ class FIFOQueue(Layer):
             From the second dim, its shape should match the `dims`
             set in the queue constructor
         """
-        self._check_input_values(vals)
+        # self._check_input_values(vals)
 
         # if values are larger than the queue capacity N, enqueueing only the last N items
         vals = vals[-self.capacity :]

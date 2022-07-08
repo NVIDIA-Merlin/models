@@ -19,6 +19,7 @@ import tensorflow as tf
 from tensorflow.python.framework import type_spec
 from tensorflow.python.framework.composite_tensor import CompositeTensor
 
+from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.utils.composite_tensor_utils import AutoCompositeTensorTypeSpec
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema
@@ -64,25 +65,34 @@ class PredictionContext(CompositeTensor):
         schema: Schema,
         features: Dict[str, tf.Tensor],
         targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]] = None,
+        mask: tf.Tensor = None,
         training: bool = False,
         testing: bool = False,
     ):
         self.features = features
         self.schema = schema
         self.targets = targets
+        self.mask = mask
         self.training = training
         self.testing = testing
 
-    # @property
-    # def feature_collection(self) -> FeatureCollection:
-    #     return FeatureCollection(self.schema.select_by_name(self.feature_names), self.features)
-    #
-    # @property
-    # def target_collection(self) -> FeatureCollection:
-    #     return FeatureCollection(self.schema.select_by_name(self.targets_names), self.targets)
+    @property
+    def feature_collection(self) -> FeatureCollection:
+        return FeatureCollection(self.schema.select_by_name(self.feature_names), self.features)
+
+    @property
+    def target_collection(self) -> FeatureCollection:
+        return FeatureCollection(self.schema.select_by_name(self.targets_names), self.targets)
 
     def with_targets(self, targets) -> "PredictionContext":
-        return PredictionContext(self.schema, self.features, targets)
+        return PredictionContext(
+            self.schema, self.features, targets, self.mask, self.training, self.testing
+        )
+
+    def with_mask(self, mask) -> "PredictionContext":
+        return PredictionContext(
+            self.schema, self.features, self.targets, mask, self.training, self.testing
+        )
 
     @property
     def feature_names(self) -> List[str]:
@@ -111,6 +121,22 @@ class PredictionContext(CompositeTensor):
 
     def __repr__(self):
         return f"Context({self.features})"
+
+    def to_call_dict(self):
+        output = {
+            "features": self.features,
+            "training": self.training,
+            "testing": self.testing,
+        }
+
+        if self.training or self.testing:
+            output["mask"] = self.mask
+            output["targets"] = self.targets
+
+        # if self.targets is not None:
+        #     output["targets"] = self.targets
+
+        return output
 
 
 type_spec.register_type_spec_from_value_converter(
@@ -151,10 +177,17 @@ type_spec.register_type_spec_from_value_converter(
     PredictionTensor, PredictionTensorTypeSpec.from_instance
 )
 
-# def prediction_function(func):
-#     def wrapper(self, *args, **kwargs):
-#         outputs = call_layer(child, inputs, **call_kwargs)
+# class FeatureContext:
+#     def __init__(self, features: FeatureCollection, mask: tf.Tensor = None):
+#         self.features = features
+#         self._mask = mask
 #
-#         return func(self, *args, **kwargs)
+#     @property
+#     def mask(self):
+#         if self._mask is None:
+#             raise ValueError("The mask is not stored, " "please make sure that a mask was set")
+#         return self._mask
 #
-#     return wrapper
+#     @mask.setter
+#     def mask(self, mask: tf.Tensor):
+#         self._mask = mask

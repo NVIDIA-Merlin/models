@@ -20,7 +20,6 @@ import tensorflow as tf
 import merlin.models.tf as ml
 from merlin.io import Dataset
 from merlin.models.config.schema import FeatureCollection
-from merlin.models.tf import FeatureContext
 from merlin.models.tf.blocks.core.base import PredictionOutput
 from merlin.schema import Tags
 
@@ -110,8 +109,6 @@ def test_item_retrieval_scorer_downscore_false_negatives():
 
     # Adding item id to the context
     item_ids = tf.random.uniform(shape=(batch_size,), minval=1, maxval=10000000, dtype=tf.int32)
-    features = FeatureCollection(None, {"item_id": item_ids})
-    feature_context = FeatureContext(features)
 
     FALSE_NEGATIVE_SCORE = -100_000_000.0
     item_retrieval_scorer = ml.ItemRetrievalScorer(
@@ -126,7 +123,7 @@ def test_item_retrieval_scorer_downscore_false_negatives():
     outputs = item_retrieval_scorer.call_outputs(
         PredictionOutput({"query": users_embeddings, "item": items_embeddings}, {}),
         training=True,
-        feature_context=feature_context,
+        features={"item_id": item_ids},
     )
     output_scores = outputs.predictions
 
@@ -168,6 +165,200 @@ def test_item_retrieval_scorer_only_positive_when_not_training():
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
+def test_retrieval_task_inbatch_cached_samplers(
+    music_streaming_data: Dataset, run_eagerly, ignore_last_batch_on_sample
+):
+    batch_size = 100
+    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    two_tower = ml.TwoTowerBlock(music_streaming_data.schema, query_tower=ml.MLPBlock([512, 256]))
+
+    batch_inputs = ml.sample_batch(
+        music_streaming_data, batch_size=batch_size, include_targets=False
+    )
+
+    cached_batches_sampler = ml.CachedCrossBatchSampler(
+        capacity=batch_size * 2,
+        ignore_last_batch_on_sample=ignore_last_batch_on_sample,
+    )
+    inbatch_sampler = ml.InBatchSampler()
+
+    samplers = [inbatch_sampler, cached_batches_sampler]
+
+    model = ml.Model(
+        two_tower,
+        ml.ItemRetrievalTask(
+            music_streaming_data.schema,
+            logits_temperature=2,
+            samplers=samplers,
+        ),
+    )
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss="bpr")
+
+    for batch_step in range(1, 4):
+        output = model(batch_inputs, training=True)
+        # features = FeatureCollection(model.schema, model.as_dense(batch_inputs))
+        # feature_context = FeatureContext(features)
+        output = (
+            model.prediction_tasks[0]
+            .pre.call_outputs(
+                PredictionOutput(output, {}),
+                training=True,
+                features=ml.AsDenseFeatures()(batch_inputs),
+            )
+            .predictions
+        )
+        expected_num_samples_inbatch = batch_size
+        expected_num_samples_cached = min(
+            batch_size * (batch_step - 1 if ignore_last_batch_on_sample else batch_step),
+            cached_batches_sampler.max_num_samples,
+        )
+        tf.assert_equal(tf.shape(output)[0], batch_size)
+        # Number of negatives plus one positive
+        tf.assert_equal(
+            tf.shape(output)[1], expected_num_samples_inbatch + expected_num_samples_cached + 1
+        )
+
+
+@pytest.mark.parametrize("run_eagerly", [False])
+def test_retrieval_task_inbatch_cached_samplers_fit(
+    ecommerce_data: Dataset, run_eagerly, num_epochs=2
+):
+    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([512, 256]))
+
+    batch_size = 100
+
+    samplers = [
+        ml.InBatchSampler(),
+        ml.CachedCrossBatchSampler(
+            capacity=batch_size * 3,
+            ignore_last_batch_on_sample=True,
+        ),
+        ml.CachedUniformSampler(
+            capacity=batch_size * 3,
+            ignore_last_batch_on_sample=False,
+        ),
+    ]
+    task = ml.ItemRetrievalTask(
+        ecommerce_data.schema,
+        logits_temperature=2,
+        samplers=samplers,
+    )
+    model = ml.RetrievalModel(two_tower, task)
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    losses = model.fit(ecommerce_data, batch_size=50, epochs=num_epochs)
+    metrics = model.evaluate(
+        x=ecommerce_data, batch_size=50, item_corpus=ecommerce_data, return_dict=True
+    )
+
+    assert len(losses.epoch) == num_epochs
+    assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+    assert set(metrics.keys()) == set(
+        [
+            "loss",
+            "regularization_loss",
+            "map_at_10",
+            "mrr_at_10",
+            "ndcg_at_10",
+            "precision_at_10",
+            "recall_at_10",
+        ]
+    )
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_retrieval_task_inbatch_cached_samplers_with_logits_correction(ecommerce_data, run_eagerly):
+    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+
+    batch_size = 100
+    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+
+    two_tower = ml.TwoTowerBlock(ecommerce_data.schema, query_tower=ml.MLPBlock([512, 256]))
+    samplers = [
+        ml.InBatchSampler(),
+        ml.CachedCrossBatchSampler(
+            capacity=batch_size * 3,
+            ignore_last_batch_on_sample=True,
+        ),
+        ml.CachedUniformSampler(
+            capacity=batch_size * 3,
+            ignore_last_batch_on_sample=False,
+        ),
+    ]
+    NUM_ITEMS = 1001
+    item_frequency = tf.sort(
+        tf.random.uniform((NUM_ITEMS,), minval=0, maxval=NUM_ITEMS, dtype=tf.int32)
+    )
+    popularity_sampling_block = PopularityLogitsCorrection(
+        item_frequency, schema=ecommerce_data.schema
+    )
+
+    task = ml.ItemRetrievalTask(
+        ecommerce_data.schema,
+        logits_temperature=2,
+        samplers=samplers,
+        post_logits=popularity_sampling_block,
+        store_negative_ids=True,
+    )
+    model = ml.RetrievalModel(two_tower, task)
+
+    # Setting up evaluation
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    losses = model.fit(ecommerce_data, batch_size=50, epochs=1)
+
+    _ = model.evaluate(
+        x=ecommerce_data, batch_size=50, item_corpus=ecommerce_data, return_dict=True
+    )
+
+    assert len(losses.epoch) == 1
+
+
+@pytest.mark.parametrize("run_eagerly", [True])
+@pytest.mark.parametrize("weight_tying", [True, False])
+@pytest.mark.parametrize("sampled_softmax", [True, False])
+def test_last_item_prediction_task(
+    sequence_testing_data: Dataset,
+    run_eagerly: bool,
+    weight_tying: bool,
+    sampled_softmax: bool,
+):
+    inputs = ml.InputBlock(
+        sequence_testing_data.schema,
+        aggregation="concat",
+        seq=False,
+        max_seq_length=4,
+        masking="clm",
+        split_sparse=True,
+    )
+    loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+    task = ml.NextItemPredictionTask(
+        schema=sequence_testing_data.schema,
+        masking=True,
+        weight_tying=weight_tying,
+        sampled_softmax=sampled_softmax,
+        logits_temperature=0.5,
+    )
+
+    model = ml.Model(inputs, ml.MLPBlock([64]), task)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss=loss)
+    losses = model.fit(sequence_testing_data, batch_size=50, epochs=2)
+
+    assert len(losses.epoch) == 2
+    for metric in losses.history.keys():
+        assert type(losses.history[metric]) is list
+
+    batch = ml.sample_batch(
+        sequence_testing_data, batch_size=50, include_targets=False, to_dense=True
+    )
+    out = model({k: tf.cast(v, tf.int64) for k, v in batch.items()})
+    assert out.shape[-1] == 51997
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+@pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
 def test_retrieval_task_inbatch_default_sampler(
     music_streaming_data: Dataset, run_eagerly, ignore_last_batch_on_sample
 ):
@@ -188,12 +379,12 @@ def test_retrieval_task_inbatch_default_sampler(
 
     for _ in range(1, 4):
         output = model(batch_inputs, training=True)
-        features = FeatureCollection(model.schema, model.as_dense(batch_inputs))
-        feature_context = FeatureContext(features)
         output = (
             model.prediction_tasks[0]
             .pre.call_outputs(
-                PredictionOutput(output, {}), training=True, feature_context=feature_context
+                PredictionOutput(output, {}),
+                training=True,
+                features=ml.AsDenseFeatures()(batch_inputs),
             )
             .predictions
         )
