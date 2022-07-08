@@ -394,7 +394,7 @@ def test_hashedcrosses():
     hashed_cross_1 = ml.HashedCross(
         schema=schema_1, num_bins=10, output_mode="one_hot", sparse=True, output_name="cross_1"
     )
-    hashed_crosses = ml.HashedCrosses([hashed_cross_0, hashed_cross_1])
+    hashed_crosses = ParallelBlock([hashed_cross_0, hashed_cross_1])
     outputs = hashed_crosses(inputs)
     output_value_0 = outputs["cross_0"]
     output_value_0 = tf.sparse.to_dense(output_value_0)
