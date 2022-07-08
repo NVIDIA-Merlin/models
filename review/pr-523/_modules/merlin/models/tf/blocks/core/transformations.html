@@ -93,13 +93,13 @@
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">keras.layers.preprocessing</span> <span class="kn">import</span> <span class="n">preprocessing_utils</span>
+<span class="kn">from</span> <span class="nn">keras.utils</span> <span class="kn">import</span> <span class="n">control_flow_util</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras</span> <span class="kn">import</span> <span class="n">backend</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.keras.utils</span> <span class="kn">import</span> <span class="n">control_flow_util</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">array_ops</span>
 
 <span class="kn">from</span> <span class="nn">merlin.models.config.schema</span> <span class="kn">import</span> <span class="n">requires_schema</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">PredictionOutput</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">TabularBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">TabularBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span><span class="p">,</span> <span class="n">TensorOrTabularData</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">df_to_tensor</span><span class="p">,</span>
@@ -197,6 +197,14 @@
 <span class="sd">    Conceptually, the transformation can be thought of as: hash(concatenation of features) %</span>
 <span class="sd">    num_bins</span>
 
+<span class="sd">    Example usage::</span>
+
+<span class="sd">    model_body = ParallelBlock(</span>
+<span class="sd">                TabularBlock.from_schema(schema=cross_schema, pre=ml.HashedCross(cross_schema,</span>
+<span class="sd">                                        num_bins = 1000)),</span>
+<span class="sd">                is_input=True).connect(ml.MLPBlock([64, 32]))</span>
+<span class="sd">    model = ml.Model(model_body, ml.BinaryClassificationTask(&quot;click&quot;))</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">        schema : Schema</span>
@@ -238,19 +246,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">=</span> <span class="n">output_name</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-
-        <span class="c1"># Convert all inputs to tensors and check shape. This layer only supports</span>
-        <span class="c1"># sclars and batches of scalars for the initial version.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_at_least_two_inputs</span><span class="p">()</span>
-
         <span class="n">_inputs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
             <span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_check_input_shape_and_type</span><span class="p">(</span><span class="n">_inputs</span><span class="p">)</span>
-
-        <span class="c1"># Uprank to rank 2 for the cross_hashed op.</span>
-
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
             <span class="n">rank</span> <span class="o">=</span> <span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span>
             <span class="k">if</span> <span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
                 <span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
@@ -284,6 +283,7 @@
 
     <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_at_least_two_inputs</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_input_shape_and_type</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
         <span class="n">output_shape</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">one_input</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_shapes</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">output_shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">preprocessing_utils</span><span class="o">.</span><span class="n">compute_shape_for_encode_categorical</span><span class="p">(</span>
@@ -318,45 +318,22 @@
                     <span class="s2">&quot;has no categorical tag&quot;</span>
                 <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_check_input_shape_and_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
-        <span class="n">inputs_tensors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">def</span> <span class="nf">_check_input_shape_and_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs_shapes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
+        <span class="n">_inputs_shapes</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-            <span class="n">inputs_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
-        <span class="n">first_shape</span> <span class="o">=</span> <span class="n">inputs_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+            <span class="n">_inputs_shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputs_shapes</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+        <span class="n">first_shape</span> <span class="o">=</span> <span class="n">_inputs_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
         <span class="n">rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">first_shape</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="p">(</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">first_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;All `HashedCrossing` inputs should have shape `[]`, `[batch_size]` &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;or `[batch_size, 1]`. Received: inputs shape=</span><span class="si">{</span><span class="n">first_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;or `[batch_size, 1]`. Received: input </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> with shape=</span><span class="si">{</span><span class="n">first_shape</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span> <span class="o">==</span> <span class="n">first_shape</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs_tensors</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span> <span class="o">==</span> <span class="n">first_shape</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">_inputs_shapes</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;All `HashedCrossing` inputs should have equal shape. &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;Received: inputs=</span><span class="si">{</span><span class="n">inputs_tensors</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Received: inputs=</span><span class="si">{</span><span class="n">_inputs_shapes</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-        <span class="c1"># TODO: Consider transfer tensors to dense tensors, do not require users do it by themself?</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs_tensors</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;All `HashedCrossing` inputs should be dense tensors. &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;Received: inputs=</span><span class="si">{</span><span class="n">inputs_tensors</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_integer</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs_tensors</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;All `HashedCrossing` inputs should have an integer or string dtype.&quot;</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">HashedCrosses</span><span class="p">(</span><span class="o">*</span><span class="n">crosses</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Block</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Parallel block which contain multiple HashedCross, in order to operate cross on</span>
-<span class="sd">    different set of features.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">        crosses : Union[Schema, HashedCross]</span>
-<span class="sd">            One or multiple tuples (sets) of schema and a HashedCross instance, which would make a</span>
-<span class="sd">            cross on the corresponding features included in the schema.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="c1"># TODO: need filter or not?</span>
-    <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="o">*</span><span class="n">crosses</span><span class="p">)</span>
 
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
