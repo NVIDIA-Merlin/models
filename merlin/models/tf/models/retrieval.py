@@ -1,6 +1,5 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
-from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
@@ -200,14 +199,12 @@ def TwoTowerModel(
 
 def YoutubeDNNRetrievalModel(
     schema: Schema,
-    max_seq_length: int,
     aggregation: str = "concat",
     top_block: Block = MLPBlock([64]),
     l2_normalization: bool = True,
     extra_pre_call: Optional[Block] = None,
     task_block: Optional[Block] = None,
     logits_temperature: float = 1.0,
-    seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MASKED_MEAN),
     sampled_softmax: bool = True,
     num_sampled: int = 100,
     min_sampled_id: int = 0,
@@ -264,8 +261,6 @@ def YoutubeDNNRetrievalModel(
     logits_temperature: float
         Parameter used to reduce model overconfidence, so that logits / T.
         Defaults to 1.
-    seq_aggregator: Block
-        The `Block` to aggregate the sequence of features.
     sampled_softmax: bool
         Compute the logits scores over all items of the catalog or
         generate a subset of candidates
@@ -287,10 +282,6 @@ def YoutubeDNNRetrievalModel(
     inputs = InputBlock(
         schema,
         aggregation=aggregation,
-        seq=False,
-        max_seq_length=max_seq_length,
-        split_sparse=True,
-        seq_aggregator=seq_aggregator,
         embedding_options=embedding_options,
     )
 
