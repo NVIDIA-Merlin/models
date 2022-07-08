@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Copyright (c) 2022, NVIDIA CORPORATION.
 #
@@ -14,24 +15,27 @@
 # limitations under the License.
 #
 
-#!/bin/bash
-
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)"
 
 
 # Check for use of tensorflow.python.keras
 
-grep_output=$(grep -r "python.keras" --include "*.py" "${__root}/merlin/" "${__root}/tests/")
+grep_output=$(grep -n -r "python.keras" --include "*.py" "${__root}/merlin/" "${__root}/tests/")
 
 if [[ -n $grep_output ]]
 then
-    cat << EOF
+    msg=$(cat << EOF
 FAIL: Found files with python.keras imports.
-`tensorflow.keras.python` should not be used because it is incompatible with `tensorflow.keras`.
-Instead tensorflow.keras is recommended.
+tensorflow.keras should be used instead to avoid compatibility issues.
 EOF
-    printf "%s\n" "${grep_output}"
+       )
+    # display error message
+    echo -e "\e[01;31m${msg}\e[0m"
+    # strip out full path to root
+    output=$(echo $grep_output | sed -E "s@${__root}/@@g")
+    # print matching files
+    printf "\n%s\n" "${output}"
     exit 1
 else
     echo "OK: no files with python.keras found"
