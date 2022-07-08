@@ -22,9 +22,9 @@ from typing import Any, Optional
 
 import numpy as np
 import tensorflow as tf
-import wandb
 from tensorflow.keras import regularizers
 from tensorflow.keras.utils import set_random_seed
+from wandb import wdb
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
@@ -454,20 +454,20 @@ class WandbLogger:
     def __init__(self, enabled, wandb_project="", config={}):
         self.enabled = enabled
         if self.enabled:
-            wandb.init(project=wandb_project, config=config)
+            wdb.init(project=wandb_project, config=config)
 
     def config(self, config={}):
         if self.enabled:
-            wandb.config.update(config)
+            wdb.config.update(config)
 
     def log(self, metrics):
         if self.enabled:
-            wandb.log(metrics)
+            wdb.log(metrics)
 
     def get_callback(self, metrics_log_frequency, save_model=False, save_graph=False):
         callback = None
         if self.enabled:
-            callback = wandb.keras.WandbCallback(
+            callback = wdb.keras.WandbCallback(
                 log_batch_frequency=metrics_log_frequency,
                 save_model=save_model,
                 save_graph=save_graph,
@@ -475,7 +475,7 @@ class WandbLogger:
         return callback
 
     def teardown(self):
-        wandb.finish()
+        wdb.finish()
 
 
 @dataclass
