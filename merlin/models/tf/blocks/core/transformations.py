@@ -96,7 +96,7 @@ class AsDenseFeatures(TabularBlock):
         outputs = {}
         for name, val in inputs.items():
             if isinstance(val, tuple):
-                outputs[name] = list_col_to_ragged(val)
+                val = list_col_to_ragged(val)
             if isinstance(val, tf.RaggedTensor):
                 if self.max_seq_length:
                     outputs[name] = val.to_tensor(shape=[None, self.max_seq_length])
