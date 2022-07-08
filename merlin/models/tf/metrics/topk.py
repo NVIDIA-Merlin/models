@@ -19,7 +19,6 @@ from typing import List, Optional, Sequence, Union
 
 import tensorflow as tf
 from keras.utils import losses_utils, metrics_utils
-from keras.utils.tf_utils import is_tensor_or_variable
 from tensorflow.keras import backend
 from tensorflow.keras.metrics import Mean, Metric
 from tensorflow.keras.metrics import get as get_metric
@@ -286,7 +285,7 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
             config["pre_sorted"] = self.pre_sorted
 
             for k, v in self._fn_kwargs.items():
-                config[k] = backend.eval(v) if is_tensor_or_variable(v) else v
+                config[k] = backend.eval(v) if tf.is_tensor(v) or isinstance(v, tf.Variable) else v
             base_config = super(TopkMetric, self).get_config()
             return dict(list(base_config.items()) + list(config.items()))
 

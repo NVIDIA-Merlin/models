@@ -16,7 +16,7 @@
 from typing import List
 
 import tensorflow as tf
-from tensorflow.python.layers.base import Layer
+from tensorflow.keras.layers import Layer
 
 
 class FIFOQueue(Layer):
