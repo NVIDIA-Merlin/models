@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Union
 
 import tensorflow as tf
-from keras import backend
+from tensorflow.keras import backend
 from tensorflow.python import to_dlpack
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 

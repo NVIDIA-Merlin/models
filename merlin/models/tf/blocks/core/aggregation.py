@@ -19,7 +19,7 @@ from enum import Enum
 from typing import Optional, Union
 
 import tensorflow as tf
-from keras import backend
+from tensorflow.keras import backend
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.blocks.core.base import Block
