@@ -16,7 +16,7 @@
 from typing import Optional, Sequence
 
 import tensorflow as tf
-from tensorflow.python.keras.layers import Layer
+from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
