@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime
 
 import six
 import tensorflow as tf
-from keras.engine import data_adapter
 from keras.utils.losses_utils import cast_losses_to_common_dtype
+from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
 from merlin.models.config.schema import FeatureCollection
@@ -380,7 +380,7 @@ class BaseModel(tf.keras.Model):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:
-            x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+            x, y, sample_weight = unpack_x_y_sample_weight(data)
             outputs = self.prediction_output(x, y, training=True)
             loss = self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
 
@@ -398,7 +398,7 @@ class BaseModel(tf.keras.Model):
     def test_step(self, data):
         """Custom test step using the `compute_loss` method."""
 
-        x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+        x, y, sample_weight = unpack_x_y_sample_weight(data)
         outputs = self.prediction_output(x, y, testing=True)
 
         if getattr(self, "pre_eval_topk", None) is not None:
