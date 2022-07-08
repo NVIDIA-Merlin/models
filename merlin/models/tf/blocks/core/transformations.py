@@ -27,10 +27,32 @@ from merlin.models.tf.typing import TabularData, TensorOrTabularData
 from merlin.models.tf.utils.tf_utils import (
     df_to_tensor,
     get_candidate_probs,
+    list_col_to_ragged,
     transform_label_to_onehot,
 )
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
+
+
+@Block.registry.register("as-ragged")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class AsRaggedFeatures(TabularBlock):
+    """
+    Convert inputs to sparse tensors.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            if isinstance(val, tuple):
+                outputs[name] = list_col_to_ragged(val)
+            else:
+                outputs[name] = val
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 
 @Block.registry.register("as-sparse")
@@ -44,15 +66,9 @@ class AsSparseFeatures(TabularBlock):
         outputs = {}
         for name, val in inputs.items():
             if isinstance(val, tuple):
-                values = val[0][:, 0]
-                row_lengths = val[1][:, 0]
-
-                if values.dtype.is_floating:
-                    values = tf.cast(values, tf.int32)
-                if row_lengths.dtype.is_floating:
-                    row_lengths = tf.cast(row_lengths, tf.int32)
-
-                outputs[name] = tf.RaggedTensor.from_row_lengths(values, row_lengths).to_sparse()
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                outputs[name] = val.to_sparse()
             else:
                 outputs[name] = val
 
@@ -65,8 +81,7 @@ class AsSparseFeatures(TabularBlock):
 @Block.registry.register("as-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsDenseFeatures(TabularBlock):
-    """Convert sparse inputs to dense tensors
-
+    """Convert list inputs to dense tensors
     Parameters
     ----------
     max_seq_length : int
@@ -81,13 +96,12 @@ class AsDenseFeatures(TabularBlock):
         outputs = {}
         for name, val in inputs.items():
             if isinstance(val, tuple):
-                values = val[0][:, 0]
-                row_lengths = val[1][:, 0]
-                ragged = tf.RaggedTensor.from_row_lengths(values, row_lengths)
+                outputs[name] = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
                 if self.max_seq_length:
-                    outputs[name] = ragged.to_tensor(shape=[None, self.max_seq_length])
+                    outputs[name] = val.to_tensor(shape=[None, self.max_seq_length])
                 else:
-                    outputs[name] = tf.squeeze(ragged.to_tensor())
+                    outputs[name] = tf.squeeze(val.to_tensor())
             else:
                 outputs[name] = tf.squeeze(val)
 
