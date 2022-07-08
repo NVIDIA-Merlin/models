@@ -1,7 +1,7 @@
 from typing import Dict, List, NamedTuple, Optional, Text, Union
 
 import tensorflow as tf
-from keras.utils import generic_utils
+from keras.utils.generic_utils import to_snake_case
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.blocks.core.base import (
@@ -167,7 +167,7 @@ class PredictionTask(Layer, ContextMixin):
         if self._task_name:
             return self._task_name
 
-        base_name = generic_utils.to_snake_case(self.__class__.__name__)
+        base_name = to_snake_case(self.__class__.__name__)
 
         return name_fn(self.target_name, base_name) if self.target_name else base_name
 
