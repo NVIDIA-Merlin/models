@@ -17,4 +17,4 @@
 #!/bin/bash
 set -e
 
-pytest -rxs tests/unit
+TF_GPU_ALLOCATOR=cuda_malloc_async pytest -rxs tests/unit

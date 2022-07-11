@@ -31,6 +31,6 @@ cd /models/
 container=$1
 devices=$2
 if [ "$container" == "merlin-tensorflow" ]; then
-    CUDA_VISIBLE_DEVICES="$devices" TF_MEMORY_ALLOCATION=0.8 python -m pytest -rxs tests/integration/tf/retrieval
+    CUDA_VISIBLE_DEVICES="$devices" TF_GPU_ALLOCATOR=cuda_malloc_async python -m pytest -rxs tests/integration/tf/retrieval
     # TODO: When the example notebooks integration tests are fixed, change to python -m pytest -rxs tests/integration/tf/
 fi
