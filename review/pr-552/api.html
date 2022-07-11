@@ -155,7 +155,7 @@
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMBlock.html#merlin.models.tf.DLRMBlock" title="merlin.models.tf.DLRMBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMBlock</span></code></a>(schema, embedding_dim[, …])</p></td>
-<td><p>Builds the DLRM architecture, as proposed in the following <a href="#id13"><span class="problematic" id="id14">`paper https://arxiv.org/pdf/1906.00091.pdf`_</span></a> <a href="#id15"><span class="problematic" id="id1">[1]_</span></a>.</p></td>
+<td><p>Builds the DLRM architecture, as proposed in the following <a href="#id11"><span class="problematic" id="id12">`paper https://arxiv.org/pdf/1906.00091.pdf`_</span></a> <a href="#id13"><span class="problematic" id="id1">[1]_</span></a>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MLPBlock.html#merlin.models.tf.MLPBlock" title="merlin.models.tf.MLPBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MLPBlock</span></code></a>(dimensions[, activation, use_bias, …])</p></td>
 <td><p>A block that applies a multi-layer perceptron to the input.</p></td>
@@ -164,7 +164,7 @@
 <td><p>This block provides a way to create high-order feature interactions</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.TwoTowerBlock.html#merlin.models.tf.TwoTowerBlock" title="merlin.models.tf.TwoTowerBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TwoTowerBlock</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Builds the Two-tower architecture, as proposed in the following <a href="#id16"><span class="problematic" id="id17">`paper https://doi.org/10.1145/3298689.3346996`_</span></a> [Xinyang19].</p></td>
+<td><p>Builds the Two-tower architecture, as proposed in the following <a href="#id14"><span class="problematic" id="id15">`paper https://doi.org/10.1145/3298689.3346996`_</span></a> [Xinyang19].</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.MatrixFactorizationBlock.html#merlin.models.tf.MatrixFactorizationBlock" title="merlin.models.tf.MatrixFactorizationBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MatrixFactorizationBlock</span></code></a>(schema, dim[, …])</p></td>
 <td><p>Returns a block for Matrix Factorization, which created the user and item embeddings based on the <cite>schema</cite> and computes the dot product between user and item L2-norm embeddings</p></td>
@@ -348,13 +348,7 @@
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.InBatchSampler.html#merlin.models.tf.InBatchSampler" title="merlin.models.tf.InBatchSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InBatchSampler</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Provides in-batch sampling <a href="#id18"><span class="problematic" id="id2">[1]_</span></a> for two-tower item retrieval models.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.CachedCrossBatchSampler.html#merlin.models.tf.CachedCrossBatchSampler" title="merlin.models.tf.CachedCrossBatchSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CachedCrossBatchSampler</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Provides efficient cached cross-batch <a href="#id19"><span class="problematic" id="id3">[1]_</span></a> / inter-batch <a href="#id20"><span class="problematic" id="id4">[2]_</span></a> negative sampling for two-tower item retrieval model.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.CachedUniformSampler.html#merlin.models.tf.CachedUniformSampler" title="merlin.models.tf.CachedUniformSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CachedUniformSampler</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Provides a cached uniform negative sampling for two-tower item retrieval model.</p></td>
+<td><p>Provides in-batch sampling <a href="#id16"><span class="problematic" id="id2">[1]_</span></a> for two-tower item retrieval models.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.PopularityBasedSampler.html#merlin.models.tf.PopularityBasedSampler" title="merlin.models.tf.PopularityBasedSampler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PopularityBasedSampler</span></code></a>(*args, **kwargs)</p></td>
 <td><p>Provides a popularity-based negative sampling for the softmax layer to ensure training efficiency when the catalog of items is very large.</p></td>
@@ -377,25 +371,25 @@
 <td><p>Extends <cite>tf.keras.losses.SparseCategoricalCrossentropy</cite> by making <cite>from_logits=True</cite> by default (in this case an optimized <cite>softmax</cite> activation is applied within this loss, you should not include <cite>softmax</cite> activation manually in the output layer).</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.BPRLoss.html#merlin.models.tf.losses.BPRLoss" title="merlin.models.tf.losses.BPRLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BPRLoss</span></code></a>([reduction, name])</p></td>
-<td><p>The Bayesian Personalised Ranking (BPR) pairwise loss <a href="#id21"><span class="problematic" id="id5">[1]_</span></a></p></td>
+<td><p>The Bayesian Personalised Ranking (BPR) pairwise loss <a href="#id17"><span class="problematic" id="id3">[1]_</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.BPRmaxLoss.html#merlin.models.tf.losses.BPRmaxLoss" title="merlin.models.tf.losses.BPRmaxLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BPRmaxLoss</span></code></a>(reg_lambda, **kwargs)</p></td>
-<td><p>The BPR-max pairwise loss proposed in <a href="#id22"><span class="problematic" id="id6">[1]_</span></a></p></td>
+<td><p>The BPR-max pairwise loss proposed in <a href="#id18"><span class="problematic" id="id4">[1]_</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.HingeLoss.html#merlin.models.tf.losses.HingeLoss" title="merlin.models.tf.losses.HingeLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HingeLoss</span></code></a>([reduction, name])</p></td>
-<td><p>Pairwise hinge loss, as described in <a href="#id23"><span class="problematic" id="id7">[1]_</span></a>: <cite>max(0, 1 + r_uj - r_ui))</cite>, where r_ui is the score of the positive item and r_uj the score of negative items.</p></td>
+<td><p>Pairwise hinge loss, as described in <a href="#id19"><span class="problematic" id="id5">[1]_</span></a>: <cite>max(0, 1 + r_uj - r_ui))</cite>, where r_ui is the score of the positive item and r_uj the score of negative items.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.LogisticLoss.html#merlin.models.tf.losses.LogisticLoss" title="merlin.models.tf.losses.LogisticLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LogisticLoss</span></code></a>([reduction, name])</p></td>
-<td><p>Pairwise log loss, as described in <a href="#id24"><span class="problematic" id="id8">[1]_</span></a>: <cite>log(1 + exp(r_uj - r_ui))</cite>, where r_ui is the score of the positive item and r_uj the score of negative items.</p></td>
+<td><p>Pairwise log loss, as described in <a href="#id20"><span class="problematic" id="id6">[1]_</span></a>: <cite>log(1 + exp(r_uj - r_ui))</cite>, where r_ui is the score of the positive item and r_uj the score of negative items.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1Loss.html#merlin.models.tf.losses.TOP1Loss" title="merlin.models.tf.losses.TOP1Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1Loss</span></code></a>([reduction, name])</p></td>
-<td><p>The TOP pairwise loss proposed in <a href="#id25"><span class="problematic" id="id9">[1]_</span></a></p></td>
+<td><p>The TOP pairwise loss proposed in <a href="#id21"><span class="problematic" id="id7">[1]_</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1maxLoss.html#merlin.models.tf.losses.TOP1maxLoss" title="merlin.models.tf.losses.TOP1maxLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1maxLoss</span></code></a>([reduction, name])</p></td>
-<td><p>The TOP1-max pairwise loss proposed in <a href="#id26"><span class="problematic" id="id10">[1]_</span></a></p></td>
+<td><p>The TOP1-max pairwise loss proposed in <a href="#id22"><span class="problematic" id="id8">[1]_</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.losses.TOP1v2Loss.html#merlin.models.tf.losses.TOP1v2Loss" title="merlin.models.tf.losses.TOP1v2Loss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TOP1v2Loss</span></code></a>([reduction, name])</p></td>
-<td><p>An adapted version of the TOP pairwise loss proposed in <a href="#id27"><span class="problematic" id="id11">[1]_</span></a>, but following the current GRU4Rec implementation <a href="#id28"><span class="problematic" id="id12">[2]_</span></a>.</p></td>
+<td><p>An adapted version of the TOP pairwise loss proposed in <a href="#id23"><span class="problematic" id="id9">[1]_</span></a>, but following the current GRU4Rec implementation <a href="#id24"><span class="problematic" id="id10">[2]_</span></a>.</p></td>
 </tr>
 </tbody>
 </table>
