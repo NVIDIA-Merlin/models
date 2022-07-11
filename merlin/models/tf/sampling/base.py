@@ -133,6 +133,11 @@ class AddRandomNegativesToBatch(Block):
                 )
             outputs[name] = tf.boolean_mask(outputs[name], mask)
 
+        if targets is not None:
+            targets = tf.concat([targets, tf.zeros((len(sampled_ids), 1), dtype=tf.int64)], 0)
+            targets = tf.boolean_mask(targets, mask)
+            return outputs, targets
+
         return outputs
 
     def sample_ids(self, batch_size: int, items: ItemCollection):
