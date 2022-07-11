@@ -2,8 +2,13 @@ import numpy as np
 import pytest
 import tensorflow as tf
 
+# This layer_test is exposed currently in tensorflow.keras
+# the keras version must match the tensorflow.keras version for this to work properly
+from keras.testing_infra.test_utils import layer_test
+
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
@@ -86,3 +91,82 @@ def test_parallel_block_with_layers(music_streaming_data, name_branches: bool):
     outputs = model(features)
 
     assert len(outputs) == 3  # number of prediction tasks in this schema
+
+
+class TestCond:
+    def test_true(self):
+        condition = tf.keras.layers.Lambda(lambda _: True)
+        true = tf.keras.layers.Lambda(lambda _: tf.constant([4.0]))
+        false = tf.keras.layers.Lambda(lambda _: tf.constant([2.0]))
+        output_data = layer_test(
+            mm.Cond, kwargs=dict(condition=condition, true=true, false=false), input_shape=(1,)
+        )
+        np.testing.assert_array_equal(output_data, np.array([4.0]))
+
+    def test_false(self):
+        condition = tf.keras.layers.Lambda(lambda _: False)
+        true = tf.keras.layers.Lambda(lambda _: tf.constant([4.0]))
+        false = tf.keras.layers.Lambda(lambda _: tf.constant([2.0]))
+        output_data = layer_test(
+            mm.Cond, kwargs=dict(condition=condition, true=true, false=false), input_shape=(1,)
+        )
+        np.testing.assert_array_equal(output_data, np.array([2.0]))
+
+    def test_divide(self):
+        condition = tf.keras.layers.Lambda(lambda _: True)
+        true = tf.keras.layers.Lambda(lambda x: x / 2)
+        false = tf.keras.layers.Lambda(lambda x: x / 5)
+        output_data = layer_test(
+            mm.Cond,
+            kwargs=dict(condition=condition, true=true, false=false),
+            input_data=tf.convert_to_tensor([np.arange(5).astype(np.float32)]),
+        )
+        np.testing.assert_array_equal(output_data, np.array([[0.0, 0.5, 1.0, 1.5, 2.0]]))
+
+    def test_default_false(self):
+        condition = tf.keras.layers.Lambda(lambda _: False)
+        true = tf.keras.layers.Lambda(lambda _: tf.constant([4.0]))
+        output_data = layer_test(
+            mm.Cond, kwargs=dict(condition=condition, true=true), input_data=tf.constant([3.0])
+        )
+        np.testing.assert_array_equal(output_data, np.array([3.0]))
+
+    def test_different_output_shapes(self):
+        condition = tf.keras.layers.Lambda(lambda _: True)
+        true = tf.keras.layers.Dense(1)
+        false = tf.keras.layers.Dense(2)
+        with pytest.raises(ValueError) as exc_info:
+            layer_test(
+                mm.Cond,
+                kwargs=dict(condition=condition, true=true, false=false),
+                input_data=tf.constant([[1.0]]),
+            )
+        assert "true and false branches must return the same output shape" in str(exc_info.value)
+
+    def test_with_blocks(self):
+        condition = tf.keras.layers.Lambda(lambda _: True)
+        true = mm.MLPBlock([10])
+        false = mm.SequentialBlock([mm.MLPBlock([100]), mm.MLPBlock([10])])
+        output_data = layer_test(
+            mm.Cond,
+            kwargs=dict(condition=condition, true=true, false=false),
+            input_data=tf.constant([[3.0]]),
+        )
+        assert output_data.shape == (1, 10)
+
+    @pytest.mark.parametrize("run_eagerly", [True, False])
+    def test_with_model(self, run_eagerly, music_streaming_data):
+        condition = tf.keras.layers.Lambda(lambda _: tf.random.uniform((1,)) < 0.5)
+
+        true = tf.keras.layers.Lambda(lambda x: x * 2)
+
+        layer = mm.Cond(condition, true)
+
+        model = mm.Model(
+            tf.keras.layers.Lambda(lambda x: x["item_recency"]),
+            layer,
+            tf.keras.layers.Dense(1),
+            mm.BinaryClassificationTask("click"),
+        )
+
+        testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)

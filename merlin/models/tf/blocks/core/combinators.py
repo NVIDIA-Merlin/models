@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Union
 
 import six
 import tensorflow as tf
+from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.blocks.core.base import (
     Block,
@@ -602,3 +603,69 @@ class ResidualBlock(WithShortcut):
             strict=strict,
             **kwargs,
         )
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class Cond(Layer):
+    """Layer to enable conditionally apply layers."""
+
+    def __init__(self, condition: Layer, true: Layer, false: Optional[Layer] = None, **kwargs):
+        super(Cond, self).__init__(**kwargs)
+        self.condition = condition
+        self.true = true
+        self.false = false
+
+    def call(self, inputs, **kwargs):
+        """Call layers conditionally."""
+        condition = call_layer(self.condition, inputs, **kwargs)
+
+        def true_fn():
+            return call_layer(self.true, inputs, **kwargs)
+
+        def false_fn():
+            if self.false is None:
+                return inputs
+            return call_layer(self.false, inputs, **kwargs)
+
+        return tf.cond(tf.convert_to_tensor(condition), true_fn, false_fn)
+
+    def compute_output_shape(self, input_shape):
+        """Computes the output shape of the layer."""
+        true_output_shape = self.true.compute_output_shape(input_shape)
+
+        if self.false:
+            false_output_shape = self.false.compute_output_shape(input_shape)
+        else:
+            false_output_shape = input_shape
+
+        if true_output_shape != false_output_shape:
+            raise ValueError("Both true and false branches must return the same output shape")
+
+        return true_output_shape
+
+    def get_config(self):
+        """Returns the config of the layer as a Python dictionary."""
+        config = super(Cond, self).get_config()
+        config["condition"] = tf.keras.layers.serialize(self.condition)
+        config["true"] = tf.keras.layers.serialize(self.true)
+        if self.false:
+            config["false"] = tf.keras.layers.serialize(self.false)
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Creates a Cond layer from its config. Returning the instance."""
+        condition = tf.keras.layers.deserialize(config.pop("condition"))
+        true = tf.keras.layers.deserialize(config.pop("true"))
+        false = None
+        if "false" in config:
+            false = tf.keras.layers.deserialize(config.pop("false"))
+        return cls(condition, true, false=false, **config)
+
+    def build(self, input_shape):
+        """Creates the variables of the layer."""
+        self.condition.build(input_shape)
+        self.true.build(input_shape)
+        if self.false:
+            self.false.build(input_shape)
+        return super(Cond, self).build(input_shape)
