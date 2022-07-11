@@ -34,6 +34,14 @@ repos:
     rev: v2.1.0
     hooks:
       - id: codespell
+  - repo: local
+    hooks:
+      - id: lint-tensorflow
+        name: lint-tensorflow
+        entry: ci/lint_tensorflow.sh
+        language: script
+        types: [python]
+        pass_filenames: false
 #  - repo: https://github.com/s-weigand/flake8-nb
 #    rev: v0.3.0
 #    hooks:

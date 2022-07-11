@@ -23,9 +23,9 @@ from merlin.models.tf.utils.tf_utils import TensorInitializer
 configure_tensorflow()
 
 from tensorflow.keras.layers import Dense, Layer
-from tensorflow.python.keras.losses import Loss
-from tensorflow.python.keras.metrics import Metric
-from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
+from tensorflow.keras.losses import Loss
+from tensorflow.keras.metrics import Metric
+from tensorflow.keras.optimizers import Optimizer
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
 from merlin.models.loader.tf_utils import configure_tensorflow
@@ -127,7 +127,7 @@ Layer.__rrshift__ = right_shift_layer
 Layer.__repr__ = repr_utils.layer_repr
 Loss.__repr__ = repr_utils.layer_repr_no_children
 Metric.__repr__ = repr_utils.layer_repr_no_children
-OptimizerV2.__repr__ = repr_utils.layer_repr_no_children
+Optimizer.__repr__ = repr_utils.layer_repr_no_children
 
 __all__ = [
     "Block",

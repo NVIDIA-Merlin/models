@@ -16,8 +16,8 @@
 from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
+from keras.utils import control_flow_util
 from tensorflow.keras import backend
-from tensorflow.python.keras.utils import control_flow_util
 from tensorflow.python.ops import array_ops
 
 from merlin.models.config.schema import requires_schema
