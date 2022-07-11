@@ -3,7 +3,6 @@ import pytest
 import tensorflow as tf
 
 # This layer_test is exposed currently in tensorflow.keras
-# tensorflow.python.keras is incompatible with tensorflow.keras
 # the keras version must match the tensorflow.keras version for this to work properly
 from keras.testing_infra.test_utils import layer_test
 
