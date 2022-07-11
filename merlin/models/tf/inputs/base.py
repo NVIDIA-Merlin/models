@@ -20,7 +20,6 @@ from typing import Dict, Optional, Tuple, Type, Union
 from merlin.models.tf.blocks.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularAggregationType
-from merlin.models.tf.blocks.core.masking import MaskingBlock, masking_registry
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
@@ -49,7 +48,6 @@ def InputBlock(
     categorical_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.CATEGORICAL,),
     sequential_tags: Optional[Union[TagsType, Tuple[Tags]]] = (Tags.SEQUENCE,),
     split_sparse: bool = False,
-    masking: Optional[Union[str, MaskingBlock]] = None,
     seq_aggregator: Block = SequenceAggregator(SequenceAggregation.MEAN),
     **kwargs,
 ) -> Block:
@@ -110,9 +108,6 @@ def InputBlock(
     split_sparse: Optional[bool]
         When True, separate the processing of context (2-D) and sparse features (3-D).
         Defaults to False
-    masking: Optional[Union[str, MaskSequence]], optional
-        If set, Apply masking to the input embeddings and compute masked labels.
-        Defaults to None
     seq_aggregator: Block
         If non-sequential model (seq=False):
         aggregate the sparse features tensor along the sequence axis.
@@ -150,10 +145,6 @@ def InputBlock(
             categorical_tags=categorical_tags,
             split_sparse=False,
         )
-        if masking:
-            if isinstance(masking, str):
-                masking = masking_registry.parse(masking)()
-            sparse_interactions = sparse_interactions.connect(masking)
 
         if not seq:
             sparse_interactions = sparse_interactions.connect(seq_aggregator)
