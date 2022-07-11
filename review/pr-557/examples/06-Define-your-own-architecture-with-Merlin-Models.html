@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taking the Next Step with Merlin Models: Define Your Own Architecture &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API Documentation" href="../api.html" />
+    <link rel="prev" title="Two-Stage Recommender Systems" href="05-Retrieval-Model.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Example Notebooks</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#inventory">Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#running-the-example-notebooks">Running the Example Notebooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="01-Getting-started.html">Getting Started with Merlin Models: Develop a Model for MovieLens</a></li>
+<li class="toctree-l2"><a class="reference internal" href="02-Merlin-Models-and-NVTabular-integration.html">From ETL to Training RecSys models - NVTabular and Merlin Models integrated example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="04-Exporting-ranking-models.html">Exporting Ranking Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="05-Retrieval-Model.html">Two-Stage Recommender Systems</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Taking the Next Step with Merlin Models: Define Your Own Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Merlin Models Example Notebooks</a> &raquo;</li>
+      <li>Taking the Next Step with Merlin Models: Define Your Own Architecture</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2021 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ================================</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="tex2jax_ignore mathjax_ignore section" id="taking-the-next-step-with-merlin-models-define-your-own-architecture">
+<h1>Taking the Next Step with Merlin Models: Define Your Own Architecture<a class="headerlink" href="#taking-the-next-step-with-merlin-models-define-your-own-architecture" title="Permalink to this headline"></a></h1>
+<p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags">merlin-tensorflow</a> container.</p>
+<p>In <a class="reference external" href="https://nvidia-merlin.github.io/models/main/examples/03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a>, we conducted a benchmark of standard and deep learning-based ranking models provided by the high-level Merlin Models API. The library also includes the standard components of deep learning that let recsys practitioners and researchers to define custom models, train and export them for inference.</p>
+<p>In this example, we combine pre-existing blocks and demonstrate how to create the <a class="reference external" href="https://arxiv.org/abs/1906.00091">DLRM</a> architecture.</p>
+<div class="section" id="learning-objectives">
+<h2>Learning objectives<a class="headerlink" href="#learning-objectives" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>Understand the building blocks of Merlin Models</p></li>
+<li><p>Define a model architecture from scratch</p></li>
+</ul>
+</div>
+<div class="section" id="introduction-to-merlin-models-core-building-blocks">
+<h2>Introduction to Merlin-models core building blocks<a class="headerlink" href="#introduction-to-merlin-models-core-building-blocks" title="Permalink to this headline"></a></h2>
+<p>The <a class="reference external" href="https://nvidia-merlin.github.io/models/review/pr-294/generated/merlin.models.tf.Block.html#merlin.models.tf.Block">Block</a> is the core abstraction in Merlin Models and is the class from which all blocks inherit.
+The class extends the <a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/layers/Layer">tf.keras.layers.Layer</a> base class and implements a number of properties that simplify the creation of custom blocks and models. These properties include the <code class="docutils literal notranslate"><span class="pre">Schema</span></code> object for determining the embedding dimensions, input shapes, and output shapes. Additionally, the <code class="docutils literal notranslate"><span class="pre">Block</span></code> has a <code class="docutils literal notranslate"><span class="pre">ModelContext</span></code> instance to store and retrieve public variables and share them with other blocks in the same model as additional meta-data.</p>
+<p>Before deep-diving into the definition of the DLRM architecture, let’s start by listing the core components you need to know to define a model from scratch:</p>
+<div class="section" id="features-blocks">
+<h3>Features Blocks<a class="headerlink" href="#features-blocks" title="Permalink to this headline"></a></h3>
+<p>They include input blocks to process various inputs based on their types and shapes. Merlin Models supports three main blocks:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">EmbeddingFeatures</span></code>: Input block for embedding-lookups for categorical features.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SequenceEmbeddingFeatures</span></code>: Input block for embedding-lookups for sequential categorical features (3D tensors).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ContinuousFeatures</span></code>: Input block for continuous features.</p></li>
+</ul>
+</div>
+<div class="section" id="transformations-blocks">
+<h3>Transformations Blocks<a class="headerlink" href="#transformations-blocks" title="Permalink to this headline"></a></h3>
+<p>They include various operators commonly used to transform tensors in various parts of the model, such as:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AsDenseFeatures</span></code>: It takes a dictionary of raw input tensors and transforms the sparse tensors into dense tensors.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">L2Norm</span></code>: It takes a single or a dictionary of hidden tensors and applies an L2-normalization along a given axis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LogitsTemperatureScaler</span></code>: It scales the output tensor of predicted logits to lower the model’s confidence.</p></li>
+</ul>
+</div>
+<div class="section" id="aggregations-blocks">
+<h3>Aggregations Blocks<a class="headerlink" href="#aggregations-blocks" title="Permalink to this headline"></a></h3>
+<p>They include common aggregation operations to combine multiple tensors, such as:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ConcatFeatures</span></code>: Concatenate dictionary of tensors along a given dimension.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">StackFeatures</span></code>: Stack dictionary of tensors along a given dimension.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CosineSimilarity</span></code>: Calculate the cosine similarity between two tensors.</p></li>
+</ul>
+</div>
+<div class="section" id="connects-methods">
+<h3>Connects Methods<a class="headerlink" href="#connects-methods" title="Permalink to this headline"></a></h3>
+<p>The base class <code class="docutils literal notranslate"><span class="pre">Block</span></code> implements different connects methods that control how to link a given block to other blocks:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">connect</span></code>: Connect the block to other blocks sequentially. The output is a tensor returned by the last block.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">connect_branch</span></code>: Link the block to other blocks in parallel. The output is a dictionary containing the output tensor of each block.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">connect_with_shortcut</span></code>: Connect the block to other blocks sequentially and apply a skip connection with the block’s output.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">connect_with_residual</span></code>: Connect the block to other blocks sequentially and apply a residual sum with the block’s output.</p></li>
+</ul>
+</div>
+<div class="section" id="prediction-tasks">
+<h3>Prediction Tasks<a class="headerlink" href="#prediction-tasks" title="Permalink to this headline"></a></h3>
+<p>Merlin Models introduces the <code class="docutils literal notranslate"><span class="pre">PredictionTask</span></code> layer that defines the necessary blocks and transformation operations to compute the final prediction scores. It also provides the default loss and metrics related to the given prediction task.<br />
+Merlin Models supports the core tasks:  <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask</span></code>, <code class="docutils literal notranslate"><span class="pre">MultiClassClassificationTask</span></code>, and<code class="docutils literal notranslate"><span class="pre">RegressionTask</span></code>. In addition to the preceding tasks, Merlin Models provides tasks that are specific to recommender systems: <code class="docutils literal notranslate"><span class="pre">NextItemPredictionTask</span></code>, and <code class="docutils literal notranslate"><span class="pre">ItemRetrievalTask</span></code>.</p>
+</div>
+</div>
+<div class="section" id="implement-the-dlrm-model-with-movielens-1m-data">
+<h2>Implement the DLRM model with MovieLens-1M data<a class="headerlink" href="#implement-the-dlrm-model-with-movielens-1m-data" title="Permalink to this headline"></a></h2>
+<p>Now that we have introduced the core blocks of Merlin Models, let’s take a look at how we can combine them to define the DLRM architecture:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">mm</span>
+
+<span class="kn">from</span> <span class="nn">merlin.datasets.entertainment</span> <span class="kn">import</span> <span class="n">get_movielens</span>
+<span class="kn">from</span> <span class="nn">merlin.schema.tags</span> <span class="kn">import</span> <span class="n">Tags</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-12 17:57:26.504390: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 24570 MB memory:  -&gt; device: 0, name: NVIDIA RTX A6000, pci bus id: 0000:65:00.0, compute capability: 8.6
+</pre></div>
+</div>
+</div>
+</div>
+<p>We use the <code class="docutils literal notranslate"><span class="pre">get_movielens</span></code> function to download, extract, and preprocess the MovieLens 1M  dataset:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">get_movielens</span><span class="p">(</span><span class="n">variant</span><span class="o">=</span><span class="s2">&quot;ml-1m&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
+2022-04-12 17:57:27.081082: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:0 with 24570 MB memory:  -&gt; device: 0, name: NVIDIA RTX A6000, pci bus id: 0000:65:00.0, compute capability: 8.6
+/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+  warnings.warn(
+</pre></div>
+</div>
+</div>
+</div>
+<p>We display the first five rows of the validation data and use them to check the outputs of each building block:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">valid</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>userId</th>
+      <th>movieId</th>
+      <th>title</th>
+      <th>genres</th>
+      <th>gender</th>
+      <th>age</th>
+      <th>occupation</th>
+      <th>zipcode</th>
+      <th>TE_age_rating</th>
+      <th>TE_gender_rating</th>
+      <th>TE_occupation_rating</th>
+      <th>TE_zipcode_rating</th>
+      <th>TE_movieId_rating</th>
+      <th>TE_userId_rating</th>
+      <th>rating_binary</th>
+      <th>rating</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>178</td>
+      <td>60</td>
+      <td>60</td>
+      <td>[3, 7, 14]</td>
+      <td>2</td>
+      <td>1</td>
+      <td>8</td>
+      <td>178</td>
+      <td>-0.520464</td>
+      <td>1.792874</td>
+      <td>-0.076353</td>
+      <td>-0.251986</td>
+      <td>-0.320740</td>
+      <td>-0.461858</td>
+      <td>1</td>
+      <td>4.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>81</td>
+      <td>1408</td>
+      <td>1409</td>
+      <td>[1]</td>
+      <td>1</td>
+      <td>5</td>
+      <td>11</td>
+      <td>240</td>
+      <td>1.955704</td>
+      <td>-0.537666</td>
+      <td>1.541820</td>
+      <td>1.849453</td>
+      <td>0.161224</td>
+      <td>1.619103</td>
+      <td>1</td>
+      <td>4.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>183</td>
+      <td>349</td>
+      <td>352</td>
+      <td>[1, 9]</td>
+      <td>1</td>
+      <td>1</td>
+      <td>4</td>
+      <td>58</td>
+      <td>-0.561167</td>
+      <td>-0.602045</td>
+      <td>-0.140828</td>
+      <td>0.369887</td>
+      <td>-0.701068</td>
+      <td>-0.095035</td>
+      <td>0</td>
+      <td>3.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>153</td>
+      <td>1310</td>
+      <td>1311</td>
+      <td>[2, 6]</td>
+      <td>1</td>
+      <td>1</td>
+      <td>10</td>
+      <td>338</td>
+      <td>-0.535551</td>
+      <td>-0.506479</td>
+      <td>0.173980</td>
+      <td>0.671975</td>
+      <td>-0.082473</td>
+      <td>0.599116</td>
+      <td>1</td>
+      <td>4.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>297</td>
+      <td>1491</td>
+      <td>1496</td>
+      <td>[5, 4]</td>
+      <td>2</td>
+      <td>1</td>
+      <td>11</td>
+      <td>408</td>
+      <td>-0.523482</td>
+      <td>1.630173</td>
+      <td>1.541820</td>
+      <td>-0.721210</td>
+      <td>-3.000164</td>
+      <td>-0.781899</td>
+      <td>0</td>
+      <td>1.0</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>We convert the first five rows of the <code class="docutils literal notranslate"><span class="pre">valid</span></code> dataset to a batch of input tensors:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">batch</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">sample_batch</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">include_targets</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">batch</span><span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;tf.Tensor: shape=(5, 1), dtype=int32, numpy=
+array([[178],
+       [ 81],
+       [183],
+       [153],
+       [297]], dtype=int32)&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="define-the-inputs-block">
+<h3>Define the inputs block<a class="headerlink" href="#define-the-inputs-block" title="Permalink to this headline"></a></h3>
+<p>For the sake of simplicity, let’s create a schema with a subset of the following continuous and categorical features:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sub_schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="s2">&quot;userId&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;movieId&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;title&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gender&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;TE_zipcode_rating&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;TE_movieId_rating&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;rating_binary&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We define the continuous layer based on the schema:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">continuous_block</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">ContinuousFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">sub_schema</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We display the output tensor of the continuous block by using the data from the first batch. We can see the raw tensors of the continuous features:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">continuous_block</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;TE_zipcode_rating&#39;: &lt;tf.Tensor: shape=(5, 1), dtype=float32, numpy=
+ array([[-0.25198567],
+        [ 1.8494534 ],
+        [ 0.36988667],
+        [ 0.67197526],
+        [-0.7212096 ]], dtype=float32)&gt;,
+ &#39;TE_movieId_rating&#39;: &lt;tf.Tensor: shape=(5, 1), dtype=float32, numpy=
+ array([[-0.3207402 ],
+        [ 0.16122401],
+        [-0.70106816],
+        [-0.08247337],
+        [-3.0001638 ]], dtype=float32)&gt;}
+</pre></div>
+</div>
+</div>
+</div>
+<p>We connect the continuous block to a <code class="docutils literal notranslate"><span class="pre">MLPBlock</span></code> instance to project them into the same dimensionality as the embedding width of categorical features:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">deep_continuous_block</span> <span class="o">=</span> <span class="n">continuous_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]))</span>
+<span class="n">deep_continuous_block</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-12 17:57:48.227735: I tensorflow/stream_executor/cuda/cuda_blas.cc:1792] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>TensorShape([5, 64])
+</pre></div>
+</div>
+</div>
+</div>
+<p>We define the categorical embedding block based on the schema:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">embedding_block</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">EmbeddingFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">sub_schema</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We display the output tensor of the categorical embedding block using the data from the first batch. We can see the embeddings tensors of categorical features with a default dimension of 64:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">embeddings</span> <span class="o">=</span> <span class="n">embedding_block</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+<span class="n">embeddings</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">embeddings</span><span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(dict_keys([&#39;userId&#39;, &#39;movieId&#39;, &#39;title&#39;, &#39;gender&#39;]), TensorShape([5, 64]))
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let’s store the continuous and categorical representations in a single dictionary using a <code class="docutils literal notranslate"><span class="pre">ParallelBlock</span></code> instance:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dlrm_input_block</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">ParallelBlock</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">&quot;embeddings&quot;</span><span class="p">:</span> <span class="n">embedding_block</span><span class="p">,</span> <span class="s2">&quot;deep_continuous&quot;</span><span class="p">:</span> <span class="n">deep_continuous_block</span><span class="p">}</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Output shapes of DLRM input block:&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">dlrm_input_block</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">%s</span><span class="s2"> : </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Output shapes of DLRM input block:
+	userId : (5, 64)
+	movieId : (5, 64)
+	title : (5, 64)
+	gender : (5, 64)
+	deep_continuous : (5, 64)
+</pre></div>
+</div>
+</div>
+</div>
+<p>By looking at the output, we can see that the <code class="docutils literal notranslate"><span class="pre">ParallelBlock</span></code> class applies embedding and continuous blocks, in parallel, to the same input batch.  Additionally, it merges the resulting tensors into one dictionary.</p>
+</div>
+<div class="section" id="define-the-interaction-block">
+<h3>Define the interaction block<a class="headerlink" href="#define-the-interaction-block" title="Permalink to this headline"></a></h3>
+<p>Now that we have a vector representation of each input feature, we will create the DLRM interaction block. It consists of three operations:</p>
+<ul class="simple">
+<li><p>Apply a dot product between all continuous and categorical features to learn pairwise interactions.</p></li>
+<li><p>Concat the resulting pairwise interaction with the deep representation of conitnuous features (skip-connection).</p></li>
+<li><p>Apply an <code class="docutils literal notranslate"><span class="pre">MLPBlock</span></code> with a series of dense layers to the concatenated tensor.</p></li>
+</ul>
+<p>First, we use the <code class="docutils literal notranslate"><span class="pre">connect_with_shortcut</span></code> method to create first two operations of the DLRM interaction block:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.dlrm</span> <span class="kn">import</span> <span class="n">DotProductInteractionBlock</span>
+
+<span class="n">dlrm_interaction</span> <span class="o">=</span> <span class="n">dlrm_input_block</span><span class="o">.</span><span class="n">connect_with_shortcut</span><span class="p">(</span>
+    <span class="n">DotProductInteractionBlock</span><span class="p">(),</span> <span class="n">shortcut_filter</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="s2">&quot;deep_continuous&quot;</span><span class="p">),</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">Filter</span></code> operation allows us to select the <code class="docutils literal notranslate"><span class="pre">deep_continuous</span></code> tensor from the <code class="docutils literal notranslate"><span class="pre">dlrm_input_block</span></code> outputs.</p>
+<p>The following diagram provides a visualization of the operations that we constructed in the <code class="docutils literal notranslate"><span class="pre">dlrm_interaction</span></code> object.</p>
+<a class="reference internal image-reference" href="../_images/residual_interaction.png"><img alt="../_images/residual_interaction.png" src="../_images/residual_interaction.png" style="width: 30%;" /></a>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dlrm_interaction</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;tf.Tensor: shape=(5, 2080), dtype=float32, numpy=
+array([[ 0.03531839,  0.        ,  0.02178912, ...,  0.00348584,
+         0.01123738,  0.05082896],
+       [ 0.        ,  0.06999855,  0.38183114, ...,  0.02661334,
+         0.00329179, -0.0324194 ],
+       [ 0.03445464,  0.        ,  0.25753298, ..., -0.0443273 ,
+         0.08484615, -0.04135836],
+       [ 0.        ,  0.        ,  0.17358088, ..., -0.0163713 ,
+         0.02033711, -0.03035038],
+       [ 0.25441766,  0.        ,  0.5767709 , ...,  0.01078878,
+        -0.02322949,  0.04039076]], dtype=float32)&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<p>Then, we project the learned interaction using a series of dense layers:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">deep_dlrm_interaction</span> <span class="o">=</span> <span class="n">dlrm_interaction</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">512</span><span class="p">]))</span>
+<span class="n">deep_dlrm_interaction</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;tf.Tensor: shape=(5, 512), dtype=float32, numpy=
+array([[0.00196931, 0.        , 0.01411253, ..., 0.00167978, 0.00330653,
+        0.        ],
+       [0.00134648, 0.02019053, 0.04212135, ..., 0.00931738, 0.        ,
+        0.        ],
+       [0.00061063, 0.00702857, 0.        , ..., 0.        , 0.        ,
+        0.        ],
+       [0.00954365, 0.        , 0.00239623, ..., 0.        , 0.        ,
+        0.        ],
+       [0.01073698, 0.04097259, 0.        , ..., 0.00655706, 0.01244057,
+        0.        ]], dtype=float32)&gt;
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="define-the-prediction-block">
+<h3>Define the Prediction block<a class="headerlink" href="#define-the-prediction-block" title="Permalink to this headline"></a></h3>
+<p>At this stage, we have created the DLRM block that accepts a dictionary of categorical and continuous tensors as input. The output of this block is the interaction representation vector of shape <code class="docutils literal notranslate"><span class="pre">512</span></code>. The next step is to use this hidden representation to conduct a given prediction task. In our case, we use the label <code class="docutils literal notranslate"><span class="pre">rating_binary</span></code> and the objective is: to predict if a user <code class="docutils literal notranslate"><span class="pre">A</span></code> will give a high rating to a movie <code class="docutils literal notranslate"><span class="pre">B</span></code> or not.</p>
+<p>We use the <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask</span></code> class and evaluate the performances using the <code class="docutils literal notranslate"><span class="pre">AUC</span></code> metric. We also use the <code class="docutils literal notranslate"><span class="pre">LogitsTemperatureScaler</span></code> block as a pre-transformation operation that scales the logits returned by the task before computing the loss and metrics:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">LogitsTemperatureScaler</span>
+
+<span class="n">binary_task</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span>
+    <span class="n">sub_schema</span><span class="p">,</span>
+    <span class="n">pre</span><span class="o">=</span><span class="n">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">temperature</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="define-train-and-evaluate-the-final-dlrm-model">
+<h3>Define, train, and evaluate the final DLRM Model<a class="headerlink" href="#define-train-and-evaluate-the-final-dlrm-model" title="Permalink to this headline"></a></h3>
+<p>We connect the deep DLRM interaction to the binary task and the method automatically generates the <code class="docutils literal notranslate"><span class="pre">Model</span></code> class for us.
+We note that the <code class="docutils literal notranslate"><span class="pre">Model</span></code> class inherits from <a class="reference external" href="https://keras.io/api/models/model/">tf.keras.Model</a> class:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">deep_dlrm_interaction</span><span class="p">,</span> <span class="n">binary_task</span><span class="p">)</span>
+<span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We train the model using the built-in tf.keras <code class="docutils literal notranslate"><span class="pre">fit</span></code> method:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Let’s check out the model evaluation scores:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-12 17:58:03.691971: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_128
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>196/196 [==============================] - 3s 8ms/step - rating_binary/binary_classification_task/auc: 0.7464 - loss: 2.2079 - regularization_loss: 0.0000e+00 - total_loss: 2.2079
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;rating_binary/binary_classification_task/auc&#39;: 0.746394157409668,
+ &#39;loss&#39;: 2.0516271591186523,
+ &#39;regularization_loss&#39;: 0.0,
+ &#39;total_loss&#39;: 2.0516271591186523}
+</pre></div>
+</div>
+</div>
+</div>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">evaluate()</span></code> progress bar shows the loss score for every batch, whereas the final loss stored in the dictionary represents the total loss across all batches.</p>
+<p>Save the model so we can use it for serving predictions in production or for resuming training with new observations:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;custom_dlrm&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:absl:Function `_wrapped_model` contains input name(s) TE_age_rating, TE_gender_rating, TE_movieId_rating, TE_occupation_rating, TE_userId_rating, TE_zipcode_rating, movieId, userId with unsupported characters which will be renamed to te_age_rating, te_gender_rating, te_movieid_rating, te_occupation_rating, te_userid_rating, te_zipcode_rating, movieid, userid in the SavedModel.
+WARNING:absl:Found untraced functions such as sequential_block_9_layer_call_fn, sequential_block_9_layer_call_and_return_conditional_losses, binary_classification_task_layer_call_fn, binary_classification_task_layer_call_and_return_conditional_losses, sequential_block_9_layer_call_fn while saving (showing 5 of 155). These functions will not be directly callable after loading.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>INFO:tensorflow:Assets written to: custom_dlrm/assets
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>INFO:tensorflow:Assets written to: custom_dlrm/assets
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="conclusion">
+<h2>Conclusion<a class="headerlink" href="#conclusion" title="Permalink to this headline"></a></h2>
+<p>Merlin Models provides common and state-of-the-art RecSys architectures in a high-level API as well as all the required low-level building blocks for you to create your own architecture (input blocks, MLP layers, prediction tasks, loss functions, etc.). In this example, we explored a subset of these pre-existing blocks to create the DLRM model, but you can view our <a class="reference external" href="https://nvidia-merlin.github.io/models/main/">documentation</a> to discover more. You can also <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/CONTRIBUTING.md">contribute</a> to the library by submitting new RecSys architectures and custom building Blocks.</p>
+</div>
+<div class="section" id="next-steps">
+<h2>Next steps<a class="headerlink" href="#next-steps" title="Permalink to this headline"></a></h2>
+<p>To learn more about how to deploy the trained DLRM model, please visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/systems">Merlin Systems</a> library and execute the <code class="docutils literal notranslate"><span class="pre">Serving-Ranking-Models-With-Merlin-Systems.ipynb</span></code> notebook that deploys an ensemble of a <a class="reference external" href="https://github.com/NVIDIA-Merlin/NVTabular">NVTabular</a> Workflow and a trained model from Merlin Models to <a class="reference external" href="https://github.com/triton-inference-server/server">Triton Inference Server</a>.</p>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="05-Retrieval-Model.html" class="btn btn-neutral float-left" title="Two-Stage Recommender Systems" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../api.html" class="btn btn-neutral float-right" title="API Documentation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
