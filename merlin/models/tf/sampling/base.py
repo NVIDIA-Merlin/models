@@ -91,6 +91,7 @@ class AddRandomNegativesToBatch(Block):
     def __init__(self, schema: Schema, n_per_positive: int, seed: Optional[int] = None, **kwargs):
         super(AddRandomNegativesToBatch, self).__init__(**kwargs)
         self.n_per_positive = n_per_positive
+        self.item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
 
@@ -104,6 +105,15 @@ class AddRandomNegativesToBatch(Block):
 
         # 2. Sample `n_per_positive * batch_size` items at random
         sampled_ids = self.sample_ids(batch_size, items)
+
+        # conflicting negatives we should not add to the batch
+        mask = tf.logical_not(
+            tf.equal(
+                tf.repeat(inputs[self.item_id_col], self.n_per_positive, axis=0),
+                tf.gather(inputs[self.item_id_col], sampled_ids),
+            )
+        )
+        mask = tf.concat([tf.expand_dims(tf.repeat(True, batch_size), 1), mask], 0)
 
         # 3. Loop through all features:
         #   - For item-feature: append from item-collection
@@ -121,6 +131,7 @@ class AddRandomNegativesToBatch(Block):
                 outputs[name] = tf.concat(
                     [val, tf.repeat(val, self.n_per_positive, axis=0)], axis=0
                 )
+            outputs[name] = tf.boolean_mask(outputs[name], mask)
 
         return outputs
 
