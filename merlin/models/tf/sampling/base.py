@@ -19,70 +19,9 @@ from typing import List, Optional, Sequence, Union
 import tensorflow as tf
 
 from merlin.models.tf.blocks.core.base import Block
-from merlin.models.tf.sampling.collection import ItemCollection
 from merlin.models.tf.typing import TabularData
 from merlin.models.utils.registry import Registry, RegistryMixin
 from merlin.schema import Schema, Tags
-
-negative_sampling_registry: Registry = Registry.class_registry("tf.negative_sampling")
-
-
-class ItemSampler(Block, RegistryMixin["ItemSampler"], abc.ABC):
-    ITEM_EMBEDDING_KEY = "__item_embedding__"
-    registry = negative_sampling_registry
-
-    def __init__(
-        self,
-        max_num_samples: Optional[int] = None,
-        **kwargs,
-    ):
-        super(ItemSampler, self).__init__(**kwargs)
-        self.set_max_num_samples(max_num_samples)
-
-    def call(self, items: ItemCollection, training=False) -> ItemCollection:
-        if training:
-            self.add(items)
-        items = self.sample()
-
-        return items
-
-    @abc.abstractmethod
-    def add(self, items: ItemCollection):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def sample(self) -> ItemCollection:
-        raise NotImplementedError()
-
-    def _check_inputs_batch_sizes(self, items: ItemCollection):
-        embeddings_batch_size = tf.shape(items.ids)[0]
-        for feat_name in items.metadata:
-            metadata_feat_batch_size = tf.shape(items.metadata[feat_name])[0]
-
-            tf.assert_equal(
-                embeddings_batch_size,
-                metadata_feat_batch_size,
-                "The batch size (first dim) of embeddings "
-                f"({int(embeddings_batch_size)}) and metadata "
-                f"features ({int(metadata_feat_batch_size)}) must match.",
-            )
-
-    @property
-    def required_features(self) -> List[str]:
-        return []
-
-    @property
-    def max_num_samples(self) -> int:
-        return self._max_num_samples
-
-    def set_max_num_samples(self, value) -> None:
-        self._max_num_samples = value
-
-
-class NegativeSampling(Block):
-    def __init__(self, *samplers: ItemSampler, **kwargs):
-        super(NegativeSampling, self).__init__(**kwargs)
-
 
 # grow_batch.InBatchNegativeSamplingUniform
 # grow_batch.InBatchNegativeSamplingPopularityBased
@@ -101,10 +40,14 @@ class AddRandomNegativesToBatch(Block):
         batch_size = (
             fist_input.shape[0] if not isinstance(fist_input, tuple) else fist_input[1].shape[0]
         )
-        items = ItemCollection.from_features(self.schema, inputs)
 
         # 2. Sample `n_per_positive * batch_size` items at random
-        sampled_ids = self.sample_ids(batch_size, items)
+        sampled_ids = sampled_ids = tf.random.uniform(
+            (self.n_per_positive * batch_size,),
+            maxval=batch_size,
+            dtype=tf.int32,
+            seed=self.seed,
+        )
 
         # conflicting negatives we should not add to the batch
         mask = tf.logical_not(
@@ -139,17 +82,6 @@ class AddRandomNegativesToBatch(Block):
             return outputs, targets
 
         return outputs
-
-    def sample_ids(self, batch_size: int, items: ItemCollection):
-        del items
-        sampled_ids = tf.random.uniform(
-            (self.n_per_positive * batch_size,),
-            maxval=batch_size,
-            dtype=tf.int32,
-            seed=self.seed,
-        )
-
-        return sampled_ids
 
 
 def _list_to_tensor(input_list: List[tf.Tensor]) -> tf.Tensor:
