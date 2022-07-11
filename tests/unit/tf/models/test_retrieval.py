@@ -3,6 +3,7 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
     MRRAt,
@@ -261,9 +262,16 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     ran individually. But when both tests are run by pytest
     the last one fails. So somehow pytest is sharing some
     graph state between tests. I keep now only the graph mode test"""
+
+    to_remove = (
+        sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+        .select_by_tag(Tags.CONTINUOUS)
+        .column_names
+    )
+    sequence_testing_data.schema = sequence_testing_data.schema.excluding_by_name(to_remove)
+
     model = mm.YoutubeDNNRetrievalModel(
         schema=sequence_testing_data.schema,
-        max_seq_length=4,
         l2_normalization=True,
         sampled_softmax=True,
         num_sampled=100,
@@ -273,14 +281,21 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     )
     model.compile(optimizer="adam", run_eagerly=False)
 
-    losses = model.fit(sequence_testing_data, batch_size=50, epochs=2)
+    as_ragged = mm.AsRaggedFeatures()
 
-    assert len(losses.epoch) == 2
-    for metric in losses.history.keys():
-        assert type(losses.history[metric]) is list
-    batch = mm.sample_batch(
-        sequence_testing_data, batch_size=10, include_targets=False, to_dense=True
-    )
-    out = model({k: tf.cast(v, tf.int64) for k, v in batch.items()})
+    def last_interaction_as_target(inputs, targets):
+        inputs = as_ragged(inputs)
+        items = inputs["item_id_seq"]
+        _items = items[:, :-1]
+        targets = items[:, -1:].flat_values
 
-    assert out.shape[-1] == 51997
+        inputs["item_id_seq"] = _items
+
+        return inputs, targets
+
+    dataloader = BatchedDataset(sequence_testing_data, batch_size=50)
+    dataloader = dataloader.map(last_interaction_as_target)
+
+    losses = model.fit(dataloader, epochs=2)
+
+    assert losses is not None
