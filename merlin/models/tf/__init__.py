@@ -72,11 +72,7 @@ from merlin.models.tf.blocks.retrieval.matrix_factorization import (
 )
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
-from merlin.models.tf.blocks.sampling.cross_batch import (
-    CachedCrossBatchSampler,
-    CachedUniformSampler,
-    PopularityBasedSampler,
-)
+from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.blocks.sampling.queue import FIFOQueue
 from merlin.models.tf.dataset import sample_batch
@@ -197,8 +193,6 @@ __all__ = [
     "ItemSampler",
     "EmbeddingWithMetadata",
     "InBatchSampler",
-    "CachedCrossBatchSampler",
-    "CachedUniformSampler",
     "PopularityBasedSampler",
     "FIFOQueue",
     "YoutubeDNNRetrievalModel",
