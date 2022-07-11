@@ -321,7 +321,7 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         """
         return DataLoader.__next__(self)
 
-    def map(self, fn):
+    def map(self, fn) -> "BatchedDataset":
         """
         Applying a function to each batch.
 

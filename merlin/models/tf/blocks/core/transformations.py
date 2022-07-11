@@ -612,7 +612,7 @@ class PopularityLogitsCorrection(Block):
 
     def __init__(
         self,
-        item_freq_probs: Union[tf.Tensor, Sequence],
+        item_freq_probs: Union[tf.Tensor, Sequence] = None,
         is_prob_distribution: bool = False,
         reg_factor: float = 1.0,
         schema: Schema = None,
@@ -624,17 +624,18 @@ class PopularityLogitsCorrection(Block):
 
         self.reg_factor = reg_factor
 
-        self._check_items_cardinality(item_freq_probs)
-        candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
+        if item_freq_probs is not None:
+            self._check_items_cardinality(item_freq_probs)
+            candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
 
-        self.candidate_probs = tf.Variable(
-            candidate_probs,
-            name="candidate_probs",
-            trainable=False,
-            dtype=tf.float32,
-            validate_shape=False,
-            shape=tf.shape(candidate_probs),
-        )
+            self.candidate_probs = tf.Variable(
+                candidate_probs,
+                name="candidate_probs",
+                trainable=False,
+                dtype=tf.float32,
+                validate_shape=False,
+                shape=tf.shape(candidate_probs),
+            )
 
     @classmethod
     def from_parquet(
