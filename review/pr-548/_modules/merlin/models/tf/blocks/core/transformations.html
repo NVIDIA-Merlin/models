@@ -687,7 +687,7 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">item_freq_probs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">],</span>
+        <span class="n">item_freq_probs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">is_prob_distribution</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">reg_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -699,17 +699,18 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reg_factor</span> <span class="o">=</span> <span class="n">reg_factor</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_check_items_cardinality</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">)</span>
-        <span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">get_candidate_probs</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">is_prob_distribution</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">item_freq_probs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_check_items_cardinality</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">)</span>
+            <span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">get_candidate_probs</span><span class="p">(</span><span class="n">item_freq_probs</span><span class="p">,</span> <span class="n">is_prob_distribution</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
-            <span class="n">candidate_probs</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;candidate_probs&quot;</span><span class="p">,</span>
-            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-            <span class="n">validate_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">candidate_probs</span><span class="p">),</span>
-        <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">candidate_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="n">candidate_probs</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;candidate_probs&quot;</span><span class="p">,</span>
+                <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                <span class="n">validate_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">candidate_probs</span><span class="p">),</span>
+            <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_parquet</span><span class="p">(</span>

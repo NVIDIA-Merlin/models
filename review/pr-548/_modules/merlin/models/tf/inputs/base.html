@@ -95,7 +95,6 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.aggregation</span> <span class="kn">import</span> <span class="n">SequenceAggregation</span><span class="p">,</span> <span class="n">SequenceAggregator</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">TabularAggregationType</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.masking</span> <span class="kn">import</span> <span class="n">MaskingBlock</span><span class="p">,</span> <span class="n">masking_registry</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.continuous</span> <span class="kn">import</span> <span class="n">ContinuousFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="p">(</span>
@@ -124,7 +123,6 @@
     <span class="n">categorical_tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">TagsType</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tags</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">,),</span>
     <span class="n">sequential_tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">TagsType</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tags</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span><span class="p">,),</span>
     <span class="n">split_sparse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">masking</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MaskingBlock</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">seq_aggregator</span><span class="p">:</span> <span class="n">Block</span> <span class="o">=</span> <span class="n">SequenceAggregator</span><span class="p">(</span><span class="n">SequenceAggregation</span><span class="o">.</span><span class="n">MEAN</span><span class="p">),</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Block</span><span class="p">:</span>
@@ -185,9 +183,6 @@
 <span class="sd">    split_sparse: Optional[bool]</span>
 <span class="sd">        When True, separate the processing of context (2-D) and sparse features (3-D).</span>
 <span class="sd">        Defaults to False</span>
-<span class="sd">    masking: Optional[Union[str, MaskSequence]], optional</span>
-<span class="sd">        If set, Apply masking to the input embeddings and compute masked labels.</span>
-<span class="sd">        Defaults to None</span>
 <span class="sd">    seq_aggregator: Block</span>
 <span class="sd">        If non-sequential model (seq=False):</span>
 <span class="sd">        aggregate the sparse features tensor along the sequence axis.</span>
@@ -225,10 +220,6 @@
             <span class="n">categorical_tags</span><span class="o">=</span><span class="n">categorical_tags</span><span class="p">,</span>
             <span class="n">split_sparse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">masking</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">masking</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                <span class="n">masking</span> <span class="o">=</span> <span class="n">masking_registry</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">masking</span><span class="p">)()</span>
-            <span class="n">sparse_interactions</span> <span class="o">=</span> <span class="n">sparse_interactions</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">masking</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">seq</span><span class="p">:</span>
             <span class="n">sparse_interactions</span> <span class="o">=</span> <span class="n">sparse_interactions</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">seq_aggregator</span><span class="p">)</span>
