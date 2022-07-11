@@ -37,8 +37,10 @@ from merlin.schema import Schema, Tags
 @Block.registry.register("as-ragged")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsRaggedFeatures(TabularBlock):
-    """
-    Convert inputs to sparse tensors.
+    """Convert all list-inputs to ragged-tensors.
+
+    By default, the dataloader will represent list-columns as a tuple of values & row-lengths.
+
     """
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
@@ -58,8 +60,10 @@ class AsRaggedFeatures(TabularBlock):
 @Block.registry.register("as-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsSparseFeatures(TabularBlock):
-    """
-    Convert inputs to sparse tensors.
+    """Convert all list-inputs to sparse-tensors.
+
+    By default, the dataloader will represent list-columns as a tuple of values & row-lengths.
+
     """
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
@@ -81,7 +85,11 @@ class AsSparseFeatures(TabularBlock):
 @Block.registry.register("as-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsDenseFeatures(TabularBlock):
-    """Convert list inputs to dense tensors
+    """Convert all list-inputs to dense-tensors.
+
+    By default, the dataloader will represent list-columns as a tuple of values & row-lengths.
+
+
     Parameters
     ----------
     max_seq_length : int
