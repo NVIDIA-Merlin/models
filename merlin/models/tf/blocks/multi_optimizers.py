@@ -1,3 +1,19 @@
+#
+# Copyright (c) 2021, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import collections
 from typing import List, Optional, Sequence, Tuple, Union
 
@@ -26,17 +42,28 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
       item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM), ml.MLPBlock([512, 256]))
       two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower})
       model = ml.Model(two_tower, ml.ItemRetrievalTask())
-      optimizer = CompositeOptimizer([
+      optimizer = MultiOptimizer(default_optimizer="adam",
+        optimizers_and_blocks=[
           (tf.keras.optimizers.SGD(), user_tower),
           (tf.keras.optimizers.Adam(), item_tower),
-      ])
+        ])
+
+      # The string identification of optimizer is also acceptable:
+      optimizer = MultiOptimizer(default_optimizer="adam",
+        optimizers_and_blocks=[
+          ("sgd", user_tower),
+          ("adam", item_tower),
+        ])
     ```
+
     """
 
     def __init__(
         self,
         default_optimizer: tf.keras.optimizers.Optimizer,
-        optimizers_and_blocks: Sequence[Tuple[tf.keras.optimizers.Optimizer, Sequence[Block]]],
+        optimizers_and_blocks: Sequence[
+            Tuple[Union[str, tf.keras.optimizers.Optimizer], Sequence[Block]]
+        ],
         name: str = "MultiOptimizer",
     ) -> None:
         """Initializes an CompositeOptimizer instance.
@@ -52,11 +79,12 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
             raise ValueError("`default` can't be empty")
         if not optimizers_and_blocks:
             raise ValueError("`optimizers_and_blocks` can't be empty")
-        self.optimizers_and_blocks = optimizers_and_blocks
-        self.default_optimizer = default_optimizer
+        self.default_optimizer = tf.keras.optimizers.get(default_optimizer)
+        self.optimizers_and_blocks = []
         for i, optimizer_and_blocks in enumerate(optimizers_and_blocks):
-            optimizer = optimizer_and_blocks[0]
+            optimizer = tf.keras.optimizers.get(optimizer_and_blocks[0])
             self._track_trackable(optimizer, name=f"Optimizer{i}")
+            self.optimizers_and_blocks.append((optimizer, optimizer_and_blocks[1]))
 
     def apply_gradients(
         self,
@@ -68,8 +96,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         var_optimizer_dict = {}
 
         for optimizer, block in self.optimizers_and_blocks:
-            # TODO: iterate child block
-            for v in block.trainable_variables():
+            for v in block.trainable_variables:
                 if v.ref() in var_optimizer_dict:
                     raise ValueError(
                         f"The set of variables handled by each optimizer should be "
