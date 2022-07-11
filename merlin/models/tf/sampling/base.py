@@ -13,21 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import abc
-from typing import List, Optional, Sequence, Union
+from typing import Optional
 
 import tensorflow as tf
 
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.typing import TabularData
-from merlin.models.utils.registry import Registry, RegistryMixin
 from merlin.schema import Schema, Tags
+
 
 # grow_batch.InBatchNegativeSamplingUniform
 # grow_batch.InBatchNegativeSamplingPopularityBased
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AddRandomNegativesToBatch(Block):
+    """Random negative sampling.
+
+    Only works with postive-only binary-target batches.
+    """
+
     def __init__(self, schema: Schema, n_per_positive: int, seed: Optional[int] = None, **kwargs):
+        """Instantiate a sampling block."""
         super(AddRandomNegativesToBatch, self).__init__(**kwargs)
         self.n_per_positive = n_per_positive
         self.item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
@@ -35,6 +40,7 @@ class AddRandomNegativesToBatch(Block):
         self.seed = seed
 
     def call(self, inputs: TabularData, targets=None, training=False) -> TabularData:
+        """Extend batch of inputs and targets with negatives."""
         # 1. Select item-features -> ItemCollection
         fist_input = list(inputs.values())[0]
         batch_size = (
@@ -82,17 +88,3 @@ class AddRandomNegativesToBatch(Block):
             return outputs, targets
 
         return outputs
-
-
-def _list_to_tensor(input_list: List[tf.Tensor]) -> tf.Tensor:
-    output: tf.Tensor
-
-    if len(input_list) == 1:
-        output = input_list[0]
-    else:
-        output = tf.concat(input_list, axis=0)
-
-    return output
-
-
-ItemSamplersType = Union[ItemSampler, Sequence[Union[ItemSampler, str]], str]
