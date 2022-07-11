@@ -166,47 +166,6 @@ def test_item_retrieval_scorer_only_positive_when_not_training():
     )
 
 
-@pytest.mark.parametrize("run_eagerly", [True])
-@pytest.mark.parametrize("weight_tying", [True, False])
-@pytest.mark.parametrize("sampled_softmax", [True, False])
-def test_last_item_prediction_task(
-    sequence_testing_data: Dataset,
-    run_eagerly: bool,
-    weight_tying: bool,
-    sampled_softmax: bool,
-):
-    inputs = ml.InputBlock(
-        sequence_testing_data.schema,
-        aggregation="concat",
-        seq=False,
-        max_seq_length=4,
-        masking="clm",
-        split_sparse=True,
-    )
-    loss = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
-    task = ml.NextItemPredictionTask(
-        schema=sequence_testing_data.schema,
-        masking=True,
-        weight_tying=weight_tying,
-        sampled_softmax=sampled_softmax,
-        logits_temperature=0.5,
-    )
-
-    model = ml.Model(inputs, ml.MLPBlock([64]), task)
-    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss=loss)
-    losses = model.fit(sequence_testing_data, batch_size=50, epochs=2)
-
-    assert len(losses.epoch) == 2
-    for metric in losses.history.keys():
-        assert type(losses.history[metric]) is list
-
-    batch = ml.sample_batch(
-        sequence_testing_data, batch_size=50, include_targets=False, to_dense=True
-    )
-    out = model({k: tf.cast(v, tf.int64) for k, v in batch.items()})
-    assert out.shape[-1] == 51997
-
-
 @pytest.mark.parametrize("run_eagerly", [True, False])
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])
 def test_retrieval_task_inbatch_default_sampler(
