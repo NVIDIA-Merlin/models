@@ -2,7 +2,6 @@ import pandas as pd
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.blocks.core.combinators import PerMode
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.sampling.base import AddRandomNegativesToBatch
 from merlin.models.tf.utils import testing_utils
@@ -76,10 +75,9 @@ def test_negatives_to_batch(music_streaming_data: Dataset):
 
 def test_negatives_to_batch_in_input_block(music_streaming_data: Dataset):
     add_negatives = AddRandomNegativesToBatch(music_streaming_data.schema, 5)
-    negative_sampling = PerMode(training=add_negatives)
 
     model = mm.Model(
-        mm.InputBlock(music_streaming_data.schema, post=negative_sampling),
+        mm.InputBlock(music_streaming_data.schema, post=add_negatives),
         mm.MLPBlock([64]),
         mm.BinaryClassificationTask("click"),
     )
