@@ -49,6 +49,7 @@ from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedL
 from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
 from merlin.models.tf.blocks.core.transformations import (
     AsDenseFeatures,
+    AsRaggedFeatures,
     AsSparseFeatures,
     CategoricalOneHot,
     ExpandDims,
@@ -151,6 +152,7 @@ __all__ = [
     "MatrixFactorizationBlock",
     "QueryItemIdsEmbeddingsBlock",
     "AsDenseFeatures",
+    "AsRaggedFeatures",
     "AsSparseFeatures",
     "CategoricalOneHot",
     "ElementwiseSum",
