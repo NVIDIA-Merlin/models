@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Any, Sequence, Union
+from typing import Any, Sequence, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
@@ -361,3 +361,15 @@ def call_layer(layer: tf.keras.layers.Layer, inputs, *args, **kwargs):
             )
 
     return layer(inputs, *args, **filtered_kwargs)
+
+
+def list_col_to_ragged(col: Tuple[tf.Tensor, tf.Tensor]):
+    values = col[0][:, 0]
+    row_lengths = col[1][:, 0]
+
+    if values.dtype.is_floating:
+        values = tf.cast(values, tf.int32)
+    if row_lengths.dtype.is_floating:
+        row_lengths = tf.cast(row_lengths, tf.int32)
+
+    return tf.RaggedTensor.from_row_lengths(values, row_lengths)
