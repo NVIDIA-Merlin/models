@@ -47,7 +47,7 @@ class TestAddRandomNegativesToBatch:
         # first part of outputs frame should match inputs
         pd.testing.assert_frame_equal(input_df, output_df[: len(input_df)])
 
-        # negatives added to batch should be
+        # negatives added to batch should not overlap with positive user-items
 
         def user_item_pairs(df):
             return {tuple(x) for x in df[["user_id", "item_id"]].values.tolist()}
