@@ -17,8 +17,7 @@
 from typing import Optional, Union
 
 import tensorflow as tf
-from tensorflow.keras.layers import Layer
-from tensorflow.python.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Layer
 
 from merlin.models.tf.blocks.core.base import Block, MetricOrMetrics
 from merlin.models.tf.prediction_tasks.base import PredictionTask

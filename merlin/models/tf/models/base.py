@@ -1,18 +1,21 @@
 from __future__ import annotations
 
 import inspect
+import sys
 from collections.abc import Sequence as SequenceCollection
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
 
+import six
 import tensorflow as tf
 from keras.utils.losses_utils import cast_losses_to_common_dtype
-from tensorflow.python.keras.engine import data_adapter
+from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
 from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.context import FeatureContext
+from merlin.models.tf.blocks.core.tabular import TabularBlock
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
@@ -163,60 +166,7 @@ class ModelBlock(Block, tf.keras.Model):
         return {"block": tf.keras.utils.serialize_keras_object(self.block)}
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class Model(tf.keras.Model):
-    def __init__(
-        self,
-        *blocks: tf.keras.layers.Layer,
-        context: Optional[ModelContext] = None,
-        pre: Optional[tf.keras.layers.Layer] = None,
-        post: Optional[tf.keras.layers.Layer] = None,
-        **kwargs,
-    ):
-        super(Model, self).__init__(**kwargs)
-        context = context or ModelContext()
-        if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
-            self.block = blocks[0]
-        else:
-            self.block = SequentialBlock(blocks, context=context, block_name="blocks")
-        if not getattr(self.block, "_context", None):
-            self.block._set_context(context)
-        self.context = context
-        self._is_fitting = False
-        self.pre = pre
-        self.post = post
-
-        input_block_schemas = [
-            block.schema for block in self.block.submodules if getattr(block, "is_input", False)
-        ]
-        self.schema = sum(input_block_schemas, Schema())
-
-        self.as_dense = AsDenseFeatures()
-
-        # Initializing model control flags controlled by MetricsComputeCallback()
-        self._should_compute_train_metrics_for_batch = tf.Variable(
-            dtype=tf.bool,
-            name="should_compute_train_metrics_for_batch",
-            trainable=False,
-            synchronization=tf.VariableSynchronization.NONE,
-            initial_value=lambda: False,
-        )
-
-    def call(self, inputs, **kwargs):
-        if not kwargs.get("feature_context", None):
-            features = FeatureCollection(self.schema, self.as_dense(inputs))
-            kwargs["feature_context"] = FeatureContext(features)
-
-        if self.pre:
-            inputs = call_layer(self.pre, inputs, **kwargs)
-
-        outputs = call_layer(self.block, inputs, **kwargs)
-
-        if self.post:
-            inputs = call_layer(self.post, inputs, **kwargs)
-
-        return outputs
-
+class BaseModel(tf.keras.Model):
     def compile(
         self,
         optimizer="rmsprop",
@@ -317,6 +267,15 @@ class Model(tf.keras.Model):
             **kwargs: Arguments supported for backwards compatibility only.
         """
 
+        # Initializing model control flags controlled by MetricsComputeCallback()
+        self._should_compute_train_metrics_for_batch = tf.Variable(
+            dtype=tf.bool,
+            name="should_compute_train_metrics_for_batch",
+            trainable=False,
+            synchronization=tf.VariableSynchronization.NONE,
+            initial_value=lambda: False,
+        )
+
         self.output_names = [task.task_name for task in self.prediction_tasks]
 
         _metrics = {}
@@ -344,7 +303,7 @@ class Model(tf.keras.Model):
             if isinstance(_loss[key], str) and _loss[key] in loss_registry:
                 _loss[key] = loss_registry.parse(_loss[key])
 
-        super(Model, self).compile(
+        super(BaseModel, self).compile(
             optimizer=optimizer,
             loss=_loss,
             metrics=_metrics,
@@ -357,18 +316,10 @@ class Model(tf.keras.Model):
         )
 
     @property
-    def first(self):
-        return self.block.layers[0]
-
-    @property
-    def last(self):
-        return self.block.layers[-1]
-
-    @property
     def prediction_tasks(self) -> List[PredictionTask]:
         from merlin.models.tf.prediction_tasks.base import PredictionTask
 
-        results = find_all_instances_in_layers(self.block, PredictionTask)
+        results = find_all_instances_in_layers(self, PredictionTask)
 
         return results
 
@@ -387,58 +338,20 @@ class Model(tf.keras.Model):
 
         return outputs
 
-    @classmethod
-    def from_block(
-        cls,
-        block: Block,
-        schema: Schema,
-        input_block: Optional[Block] = None,
-        prediction_tasks: Optional[
-            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
-        ] = None,
-        aggregation="concat",
-        **kwargs,
-    ) -> "Model":
-        """Create a model from a `block`
-
-        Parameters
-        ----------
-        block: Block
-            The block to wrap in-between an InputBlock and prediction task(s)
-        schema: Schema
-            Schema to use for the model.
-        input_block: Optional[Block]
-            Block to use as input.
-        prediction_tasks: Optional[
-            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
-        ]
-            Prediction tasks to use.
-        """
-        if isinstance(block, SequentialBlock) and is_input_block(block.first):
-            if input_block is not None:
-                raise ValueError("The block already includes an InputBlock")
-            input_block = block.first
-
-        _input_block: Block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
-
-        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-
-        return cls(_input_block, block, prediction_tasks)
-
     def prediction_output(
         self, x, y=None, training=False, testing=False, **kwargs
     ) -> PredictionOutput:
-        features = FeatureCollection(self.schema, self.as_dense(x))
-        feature_context = FeatureContext(features)
-
         forward = self(
             x,
             targets=y,
             training=training,
             testing=testing,
-            feature_context=feature_context,
+            feature_context=self._create_feature_context(x),
             **kwargs,
         )
+        if not self.prediction_tasks:
+            return PredictionOutput(forward, y)
+
         predictions, targets, output = {}, {}, None
         for task in self.prediction_tasks:
             task_x = forward
@@ -467,7 +380,7 @@ class Model(tf.keras.Model):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:
-            x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+            x, y, sample_weight = unpack_x_y_sample_weight(data)
             outputs = self.prediction_output(x, y, training=True)
             loss = self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
 
@@ -485,7 +398,7 @@ class Model(tf.keras.Model):
     def test_step(self, data):
         """Custom test step using the `compute_loss` method."""
 
-        x, y, sample_weight = data_adapter.unpack_x_y_sample_weight(data)
+        x, y, sample_weight = unpack_x_y_sample_weight(data)
         outputs = self.prediction_output(x, y, testing=True)
 
         if getattr(self, "pre_eval_topk", None) is not None:
@@ -593,6 +506,11 @@ class Model(tf.keras.Model):
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
+
+        # Bind schema from dataset to model in case we can't infer it from the inputs
+        if isinstance(x, BatchedDataset):
+            self.schema = x.schema
+
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
@@ -621,6 +539,13 @@ class Model(tf.keras.Model):
             callbacks.append(MetricsComputeCallback(train_metrics_steps))
 
         return callbacks
+
+    def _create_feature_context(self, inputs) -> FeatureContext:
+        if not getattr(self, "as_dense", False):
+            self.as_dense = AsDenseFeatures()
+        features = FeatureCollection(self.schema, self.as_dense(inputs))
+
+        return FeatureContext(features)
 
     def evaluate(
         self,
@@ -668,7 +593,7 @@ class Model(tf.keras.Model):
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
-        return super(Model, self).predict(
+        return super(BaseModel, self).predict(
             x,
             batch_size=batch_size,
             verbose=verbose,
@@ -710,16 +635,153 @@ class Model(tf.keras.Model):
 
         return merlin.io.Dataset(predictions)
 
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class Model(BaseModel):
+    def __init__(
+        self,
+        *blocks: Block,
+        context: Optional[ModelContext] = None,
+        pre: Optional[tf.keras.layers.Layer] = None,
+        post: Optional[tf.keras.layers.Layer] = None,
+        **kwargs,
+    ):
+        super(Model, self).__init__(**kwargs)
+        context = context or ModelContext()
+        if len(blocks) == 1 and isinstance(blocks[0], SequentialBlock):
+            blocks = blocks[0].layers
+
+        self.blocks = blocks
+        for block in self.submodules:
+            if hasattr(block, "_set_context"):
+                block._set_context(context)
+
+        self.pre = pre
+        self.post = post
+        self.context = context
+        self._is_fitting = False
+
+        input_block_schemas = [
+            block.schema for block in self.submodules if getattr(block, "is_input", False)
+        ]
+        self.schema = sum(input_block_schemas, Schema())
+
+    def build(self, input_shape=None):
+        """Builds the model
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape, optional
+            The input shape, by default None
+        """
+        last_layer = None
+
+        if self.pre is not None:
+            self.pre.build(input_shape)
+            input_shape = self.pre.compute_output_shape(input_shape)
+
+        for layer in self.blocks:
+            try:
+                layer.build(input_shape)
+            except TypeError:
+                t, v, tb = sys.exc_info()
+                if isinstance(input_shape, dict) and isinstance(last_layer, TabularBlock):
+                    v = TypeError(
+                        f"Couldn't build {layer}, "
+                        f"did you forget to add aggregation to {last_layer}?"
+                    )
+                six.reraise(t, v, tb)
+            input_shape = layer.compute_output_shape(input_shape)
+            last_layer = layer
+
+        if self.post is not None:
+            self.post.build(input_shape)
+
+        self.built = True
+
+    def call(self, inputs, **kwargs):
+        if not kwargs.get("feature_context", None):
+            kwargs["feature_context"] = self._create_feature_context(inputs)
+
+        outputs = inputs
+        if self.pre:
+            outputs = call_layer(self.pre, outputs, **kwargs)
+
+        for block in self.blocks:
+            outputs = call_layer(block, outputs, **kwargs)
+
+        if self.post:
+            inputs = call_layer(self.post, outputs, **kwargs)
+
+        return outputs
+
+    @property
+    def first(self):
+        return self.blocks[0]
+
+    @property
+    def last(self):
+        return self.blocks[-1]
+
+    @classmethod
+    def from_block(
+        cls,
+        block: Block,
+        schema: Schema,
+        input_block: Optional[Block] = None,
+        prediction_tasks: Optional[
+            Union["PredictionTask", List["PredictionTask"], "ParallelPredictionBlock"]
+        ] = None,
+        aggregation="concat",
+        **kwargs,
+    ) -> "Model":
+        """Create a model from a `block`
+
+        Parameters
+        ----------
+        block: Block
+            The block to wrap in-between an InputBlock and prediction task(s)
+        schema: Schema
+            Schema to use for the model.
+        input_block: Optional[Block]
+            Block to use as input.
+        prediction_tasks: Optional[
+            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        ]
+            Prediction tasks to use.
+        """
+        if isinstance(block, SequentialBlock) and is_input_block(block.first):
+            if input_block is not None:
+                raise ValueError("The block already includes an InputBlock")
+            input_block = block.first
+
+        _input_block: Block = input_block or InputBlock(schema, aggregation=aggregation, **kwargs)
+
+        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+
+        return cls(_input_block, block, prediction_tasks)
+
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        block = tf.keras.utils.deserialize_keras_object(config.pop("block"))
-        config = maybe_deserialize_keras_objects(config, ["pre", "post"])
+        pre = config.pop("pre", None)
+        post = config.pop("post", None)
+        layers = [
+            tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+            for conf in config.values()
+        ]
 
-        return cls(block, **config)
+        if pre is not None:
+            pre = tf.keras.layers.deserialize(pre, custom_objects=custom_objects)
+
+        if post is not None:
+            post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
+
+        return cls(*layers, pre=pre, post=post)
 
     def get_config(self):
-        config = {"block": tf.keras.utils.serialize_keras_object(self.block)}
-        config = maybe_deserialize_keras_objects(config, ["pre", "post"])
+        config = maybe_deserialize_keras_objects({}, ["pre", "post"])
+        for i, layer in enumerate(self.blocks):
+            config[i] = tf.keras.utils.serialize_keras_object(layer)
 
         return config
 
@@ -813,7 +875,7 @@ class RetrievalModel(Model):
 
     @property
     def retrieval_block(self) -> RetrievalBlock:
-        return next(b for b in self.block if isinstance(b, RetrievalBlock))
+        return next(b for b in self.blocks if isinstance(b, RetrievalBlock))
 
     def query_embeddings(
         self,

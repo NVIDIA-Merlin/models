@@ -23,9 +23,9 @@ from merlin.models.tf.utils.tf_utils import TensorInitializer
 configure_tensorflow()
 
 from tensorflow.keras.layers import Dense, Layer
-from tensorflow.python.keras.losses import Loss
-from tensorflow.python.keras.metrics import Metric
-from tensorflow.python.keras.optimizer_v2.optimizer_v2 import OptimizerV2
+from tensorflow.keras.losses import Loss
+from tensorflow.keras.metrics import Metric
+from tensorflow.keras.optimizers import Optimizer
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
 from merlin.models.loader.tf_utils import configure_tensorflow
@@ -42,13 +42,19 @@ from merlin.models.tf.blocks.core.base import (
     NoOp,
     right_shift_layer,
 )
-from merlin.models.tf.blocks.core.combinators import ParallelBlock, ResidualBlock, SequentialBlock
+from merlin.models.tf.blocks.core.combinators import (
+    Cond,
+    ParallelBlock,
+    ResidualBlock,
+    SequentialBlock,
+)
 from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.blocks.core.masking import CausalLanguageModeling, MaskedLanguageModeling
 from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
 from merlin.models.tf.blocks.core.transformations import (
     AsDenseFeatures,
+    AsRaggedFeatures,
     AsSparseFeatures,
     CategoricalOneHot,
     ExpandDims,
@@ -67,11 +73,7 @@ from merlin.models.tf.blocks.retrieval.matrix_factorization import (
 )
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
-from merlin.models.tf.blocks.sampling.cross_batch import (
-    CachedCrossBatchSampler,
-    CachedUniformSampler,
-    PopularityBasedSampler,
-)
+from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.blocks.sampling.queue import FIFOQueue
 from merlin.models.tf.dataset import sample_batch
@@ -96,7 +98,7 @@ from merlin.models.tf.metrics.topk import (
     TopKMetricsAggregator,
 )
 from merlin.models.tf.models import benchmark
-from merlin.models.tf.models.base import Model, RetrievalModel
+from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel
 from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
@@ -122,10 +124,11 @@ Layer.__rrshift__ = right_shift_layer
 Layer.__repr__ = repr_utils.layer_repr
 Loss.__repr__ = repr_utils.layer_repr_no_children
 Metric.__repr__ = repr_utils.layer_repr_no_children
-OptimizerV2.__repr__ = repr_utils.layer_repr_no_children
+Optimizer.__repr__ = repr_utils.layer_repr_no_children
 
 __all__ = [
     "Block",
+    "Cond",
     "ModelContext",
     "SequentialBlock",
     "ResidualBlock",
@@ -155,6 +158,7 @@ __all__ = [
     "MatrixFactorizationBlock",
     "QueryItemIdsEmbeddingsBlock",
     "AsDenseFeatures",
+    "AsRaggedFeatures",
     "AsSparseFeatures",
     "CategoricalOneHot",
     "ElementwiseSum",
@@ -179,6 +183,7 @@ __all__ = [
     "MRRAt",
     "AvgPrecisionAt",
     "RecallAt",
+    "BaseModel",
     "TopKMetricsAggregator",
     "Model",
     "RetrievalModel",
@@ -190,8 +195,6 @@ __all__ = [
     "ItemSampler",
     "EmbeddingWithMetadata",
     "InBatchSampler",
-    "CachedCrossBatchSampler",
-    "CachedUniformSampler",
     "PopularityBasedSampler",
     "FIFOQueue",
     "YoutubeDNNRetrievalModel",

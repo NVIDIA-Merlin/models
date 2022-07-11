@@ -19,8 +19,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Union
 
 import tensorflow as tf
+from tensorflow.keras import backend
 from tensorflow.python import to_dlpack
-from tensorflow.python.keras import backend
 from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableConfig
 
 import merlin.io
@@ -237,7 +237,7 @@ class EmbeddingTable(EmbeddingTableBase):
         self.table._maybe_build(inputs)
         return super(EmbeddingTable, self)._maybe_build(inputs)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         """
         Parameters
         ----------

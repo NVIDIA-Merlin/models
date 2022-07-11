@@ -17,7 +17,7 @@ import logging
 from typing import Optional
 
 import tensorflow as tf
-from tensorflow.python.layers.base import Layer
+from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.blocks.core.masking import MaskingHead
