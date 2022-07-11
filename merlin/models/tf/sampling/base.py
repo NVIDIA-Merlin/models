@@ -47,15 +47,16 @@ class AddRandomNegativesToBatch(Block):
             fist_input.shape[0] if not isinstance(fist_input, tuple) else fist_input[1].shape[0]
         )
 
+        sampled_num_negatives = self.n_per_positive * batch_size
         # 2. Sample `n_per_positive * batch_size` items at random
         sampled_ids = sampled_ids = tf.random.uniform(
-            (self.n_per_positive * batch_size,),
+            (sampled_num_negatives,),
             maxval=batch_size,
             dtype=tf.int32,
             seed=self.seed,
         )
 
-        # conflicting negatives we should not add to the batch
+        # mask to remove negatives that conflict with positives
         mask = tf.logical_not(
             tf.equal(
                 tf.repeat(inputs[self.item_id_col], self.n_per_positive, axis=0),
@@ -83,7 +84,7 @@ class AddRandomNegativesToBatch(Block):
             outputs[name] = tf.boolean_mask(outputs[name], mask)
 
         if targets is not None:
-            targets = tf.concat([targets, tf.zeros((len(sampled_ids), 1), dtype=tf.int64)], 0)
+            targets = tf.concat([targets, tf.zeros((sampled_num_negatives, 1), dtype=tf.int64)], 0)
             targets = tf.boolean_mask(targets, mask)
             return outputs, targets
 
