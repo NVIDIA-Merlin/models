@@ -118,11 +118,9 @@ class AddRandomNegativesToBatch(Block):
                 negatives = tf.gather(val, sampled_ids)
                 outputs[name] = tf.concat([val, negatives], axis=0)
             else:
-                n_repeats = self.n_per_positive + 1
-                if isinstance(val, (tf.RaggedTensor, tf.SparseTensor)):
-                    outputs[name] = tf.concat([val] * n_repeats, axis=0)
-                else:
-                    outputs[name] = tf.repeat(val, n_repeats, axis=0)
+                outputs[name] = tf.concat(
+                    [val, tf.repeat(val, self.n_per_positive, axis=0)], axis=0
+                )
 
         return outputs
 
