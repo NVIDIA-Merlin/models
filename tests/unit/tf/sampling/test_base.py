@@ -1,6 +1,5 @@
 import merlin.models.tf as mm
 from merlin.io import Dataset
-
 from merlin.models.tf.blocks.core.combinators import PerMode
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.sampling.base import AddRandomNegativesToBatch
@@ -28,7 +27,7 @@ def test_negatives_to_batch_in_input_block(music_streaming_data: Dataset):
     model = mm.Model(
         mm.InputBlock(music_streaming_data.schema, post=negative_sampling),
         mm.MLPBlock([64]),
-        mm.BinaryClassificationTask("click")
+        mm.BinaryClassificationTask("click"),
     )
 
     batch_size, n_per_positive = 10, 5
@@ -51,14 +50,14 @@ def test_negatives_to_batch_in_dataloader(music_streaming_data: Dataset):
     dataset = BatchedDataset(music_streaming_data, batch_size=batch_size)
     dataset = dataset.map(add_negatives)
 
-    features = next(iter(dataset))[0]
+    features = next(iter(dataset))
     expected_batch_size = batch_size + batch_size * n_per_positive
     assert all(f.shape[0] == expected_batch_size for f in features.values())
 
     model = mm.Model(
         mm.InputBlock(music_streaming_data.schema),
         mm.MLPBlock([64]),
-        mm.BinaryClassificationTask("click")
+        mm.BinaryClassificationTask("click"),
     )
     assert model(features).shape[0] == expected_batch_size
 
