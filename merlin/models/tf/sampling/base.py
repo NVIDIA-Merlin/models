@@ -19,6 +19,7 @@ import tensorflow as tf
 
 from merlin.models.tf.blocks.core.base import Block
 from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.schema import Schema, Tags
 
 
@@ -72,7 +73,7 @@ class AddRandomNegativesToBatch(Block):
         outputs = {}
         for name, val in inputs.items():
             if isinstance(val, tuple):
-                val = tf.RaggedTensor.from_row_lengths(val[0][:, 0], val[1][:, 0])
+                val = list_col_to_ragged(val)
 
             if name in item_cols:
                 negatives = tf.gather(val, sampled_ids)
