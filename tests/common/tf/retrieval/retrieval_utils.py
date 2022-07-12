@@ -22,11 +22,11 @@ from typing import Any, Optional
 
 import numpy as np
 import tensorflow as tf
-import wandb
 from tensorflow.keras import regularizers
 from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
+import wandb
 from merlin.io.dataset import Dataset
 from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
 from merlin.models.utils import schema_utils
@@ -474,8 +474,8 @@ class WandbLogger:
             )
         return callback
 
-    def teardown(self):
-        wandb.finish()
+    def teardown(self, exit_code=0):
+        wandb.finish(exit_code=exit_code)
 
 
 @dataclass
@@ -506,64 +506,70 @@ class RetrievalTrainEvalRunner:
 
         self.wandb_logger.config(hparams)
 
-        self.model.compile(
-            run_eagerly=False, optimizer=self.optimizer, loss=self.loss, metrics=self.metrics
-        )
+        # Marks W&B execution as failed by default
+        exit_code = 1
+        try:
+            self.model.compile(
+                run_eagerly=False, optimizer=self.optimizer, loss=self.loss, metrics=self.metrics
+            )
 
-        self.model.fit(
-            self.train_ds,
-            epochs=self.train_epochs,
-            steps_per_epoch=self.train_steps_per_epoch,
-            batch_size=self.train_batch_size,
-            shuffle=True,
-            drop_last=True,
-            # validation_data=eval_ds,
-            # validation_steps=args.validation_steps,
-            callbacks=self.callbacks,
-            train_metrics_steps=self.train_metrics_steps,
-        )
+            self.model.fit(
+                self.train_ds,
+                epochs=self.train_epochs,
+                steps_per_epoch=self.train_steps_per_epoch,
+                batch_size=self.train_batch_size,
+                shuffle=True,
+                drop_last=True,
+                # validation_data=eval_ds,
+                # validation_steps=args.validation_steps,
+                callbacks=self.callbacks,
+                train_metrics_steps=self.train_metrics_steps,
+            )
 
-        eval_kwargs = {}
-        if self.model_type != "youtubednn":
-            eval_kwargs["item_corpus"] = self.train_ds
+            eval_kwargs = {}
+            if self.model_type != "youtubednn":
+                eval_kwargs["item_corpus"] = self.train_ds
 
-        # Evaluate on train set
-        train_metrics = self.model.evaluate(
-            self.train_ds,
-            steps=self.eval_steps,
-            batch_size=self.eval_batch_size,
-            return_dict=True,
-            callbacks=self.callbacks,
-            **eval_kwargs,
-        )
-        train_metrics = {f"train_{k}": v for k, v in train_metrics.items()}
+            # Evaluate on train set
+            train_metrics = self.model.evaluate(
+                self.train_ds,
+                steps=self.eval_steps,
+                batch_size=self.eval_batch_size,
+                return_dict=True,
+                callbacks=self.callbacks,
+                **eval_kwargs,
+            )
+            train_metrics = {f"train_{k}": v for k, v in train_metrics.items()}
 
-        # Evaluate on valid set
-        eval_metrics = self.model.evaluate(
-            self.eval_ds,
-            steps=self.eval_steps,
-            batch_size=self.eval_batch_size,
-            return_dict=True,
-            callbacks=self.callbacks,
-            **eval_kwargs,
-        )
+            # Evaluate on valid set
+            eval_metrics = self.model.evaluate(
+                self.eval_ds,
+                steps=self.eval_steps,
+                batch_size=self.eval_batch_size,
+                return_dict=True,
+                callbacks=self.callbacks,
+                **eval_kwargs,
+            )
 
-        final_metrics = {**train_metrics, **eval_metrics}
+            final_metrics = {**train_metrics, **eval_metrics}
 
-        final_time = time.time()
-        final_metrics["runtime_sec"] = final_time - start_time
+            final_time = time.time()
+            final_metrics["runtime_sec"] = final_time - start_time
 
-        examples_per_sec_callback = list(
-            [x for x in self.callbacks if isinstance(x, ExamplesPerSecondCallback)]
-        )[0]
-        avg_examples_per_sec = (
-            examples_per_sec_callback.get_train_batches_mean_of_avg_examples_per_sec()
-        )
-        final_metrics["avg_examples_per_sec"] = avg_examples_per_sec
+            examples_per_sec_callback = list(
+                [x for x in self.callbacks if isinstance(x, ExamplesPerSecondCallback)]
+            )[0]
+            avg_examples_per_sec = (
+                examples_per_sec_callback.get_train_batches_mean_of_avg_examples_per_sec()
+            )
+            final_metrics["avg_examples_per_sec"] = avg_examples_per_sec
 
-        final_metrics = {f"{k}-final": v for k, v in final_metrics.items()}
-        self.wandb_logger.log(final_metrics)
+            final_metrics = {f"{k}-final": v for k, v in final_metrics.items()}
+            self.wandb_logger.log(final_metrics)
 
-        self.wandb_logger.teardown()
+            # Marks W&B execution as successfully finished
+            exit_code = 0
+        finally:
+            self.wandb_logger.teardown(exit_code=exit_code)
 
         return final_metrics
