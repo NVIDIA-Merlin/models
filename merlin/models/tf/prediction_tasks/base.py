@@ -127,16 +127,22 @@ class PredictionTask(Layer, ContextMixin):
 
         return out
 
+    def build(self, input_shape, features_shape=None):
+        if self.pre:
+            self.pre.build(input_shape)
+
+        return super().build(input_shape)
+
     def __call__(self, *args, **kwargs):
         inputs = self.pre_call(*args, **kwargs)
 
         # This will call the `call` method implemented by the super class.
         outputs = super().__call__(inputs, **kwargs)  # noqa
 
-        if "targets" in kwargs:
+        if kwargs.get("training", False) or kwargs.get("testing", False):
             targets = kwargs.get("targets", {})
             if isinstance(targets, dict) and self.target_name:
-                targets = targets[self.target_name]
+                targets = targets.get(self.target_name, targets)
 
             if isinstance(outputs, dict) and self.target_name and self.task_name in outputs:
                 outputs = outputs[self.task_name]

@@ -11,12 +11,11 @@ from keras.utils.losses_utils import cast_losses_to_common_dtype
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
-from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
-from merlin.models.tf.blocks.core.context import FeatureContext
+from merlin.models.tf.blocks.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.blocks.core.tabular import TabularBlock
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsRaggedFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
@@ -338,7 +337,7 @@ class BaseModel(tf.keras.Model):
 
         return outputs
 
-    def prediction_output(
+    def call_train_test(
         self, x, y=None, training=False, testing=False, **kwargs
     ) -> PredictionOutput:
         forward = self(
@@ -346,7 +345,6 @@ class BaseModel(tf.keras.Model):
             targets=y,
             training=training,
             testing=testing,
-            feature_context=self._create_feature_context(x),
             **kwargs,
         )
         if not self.prediction_tasks:
@@ -381,7 +379,7 @@ class BaseModel(tf.keras.Model):
 
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
-            outputs = self.prediction_output(x, y, training=True)
+            outputs = self.call_train_test(x, y, training=True)
             loss = self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
 
         self._validate_target_and_loss(outputs.targets, loss)
@@ -399,7 +397,7 @@ class BaseModel(tf.keras.Model):
         """Custom test step using the `compute_loss` method."""
 
         x, y, sample_weight = unpack_x_y_sample_weight(data)
-        outputs = self.prediction_output(x, y, testing=True)
+        outputs = self.call_train_test(x, y, testing=True)
 
         if getattr(self, "pre_eval_topk", None) is not None:
             # During eval, the retrieval-task only returns positive scores
@@ -540,13 +538,6 @@ class BaseModel(tf.keras.Model):
 
         return callbacks
 
-    def _create_feature_context(self, inputs) -> FeatureContext:
-        if not getattr(self, "as_dense", False):
-            self.as_dense = AsDenseFeatures()
-        features = FeatureCollection(self.schema, self.as_dense(inputs))
-
-        return FeatureContext(features)
-
     def evaluate(
         self,
         x=None,
@@ -666,6 +657,20 @@ class Model(BaseModel):
         ]
         self.schema = sum(input_block_schemas, Schema())
 
+    def _maybe_build(self, inputs):
+        if isinstance(inputs, dict):
+            _ragged_inputs = AsRaggedFeatures()(inputs)
+            feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
+            feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
+
+            for block in self.blocks:
+                block._feature_shapes = feature_shapes
+                block._feature_dtypes = feature_dtypes
+                for child in block.submodules:
+                    child._feature_shapes = feature_shapes
+                    child._feature_dtypes = feature_dtypes
+        super()._maybe_build(inputs)
+
     def build(self, input_shape=None):
         """Builds the model
 
@@ -699,21 +704,52 @@ class Model(BaseModel):
 
         self.built = True
 
-    def call(self, inputs, **kwargs):
-        if not kwargs.get("feature_context", None):
-            kwargs["feature_context"] = self._create_feature_context(inputs)
+    def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
+        context = self._create_context(
+            AsDenseFeatures()(inputs),  # TODO: Change this to ragged
+            targets=targets,
+            training=training,
+            testing=testing,
+        )
 
         outputs = inputs
         if self.pre:
-            outputs = call_layer(self.pre, outputs, **kwargs)
+            outputs, context = self._call_child(self.pre, outputs, context)
 
         for block in self.blocks:
-            outputs = call_layer(block, outputs, **kwargs)
+            outputs, context = self._call_child(block, outputs, context)
 
         if self.post:
-            inputs = call_layer(self.post, outputs, **kwargs)
+            outputs, context = self._call_child(self.post, outputs, context)
+
+        if output_context:
+            return outputs, context
 
         return outputs
+
+    def _create_context(
+        self, inputs, targets=None, training=False, testing=False
+    ) -> PredictionContext:
+        context = PredictionContext(inputs, targets=targets, training=training, testing=testing)
+
+        return context
+
+    def _call_child(
+        self,
+        child: tf.keras.layers.Layer,
+        inputs,
+        context: PredictionContext,
+    ):
+        call_kwargs = context.to_call_dict()
+
+        outputs = call_layer(child, inputs, **call_kwargs)
+        if isinstance(outputs, Prediction):
+            targets = outputs.targets or context.targets
+            features = outputs.features or context.features
+            outputs = outputs[0]
+            context = context.with_updates(targets=targets, features=features)
+
+        return outputs, context
 
     @property
     def first(self):

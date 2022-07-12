@@ -229,7 +229,7 @@ class _Dense(tf.keras.layers.Layer):
             agg = tabular_aggregation_registry.parse(self.pre_aggregation)
             input_shape = agg.compute_output_shape(input_shape)
 
-        return super(_Dense, self).compute_output_shape(input_shape)
+        return self.dense.compute_output_shape(input_shape)
 
     def get_config(self):
         config = super(_Dense, self).get_config()

@@ -18,7 +18,6 @@
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.loader.tf_utils import configure_tensorflow
-from merlin.models.tf.utils.tf_utils import TensorInitializer
 
 configure_tensorflow()
 
@@ -48,8 +47,8 @@ from merlin.models.tf.blocks.core.combinators import (
     ResidualBlock,
     SequentialBlock,
 )
-from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
+from merlin.models.tf.blocks.core.prediction import PredictionContext
 from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
 from merlin.models.tf.blocks.core.transformations import (
     AsDenseFeatures,
@@ -114,6 +113,7 @@ from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.tf.utils import repr_utils
+from merlin.models.tf.utils.tf_utils import TensorInitializer
 
 ListWrapper.__repr__ = repr_utils.list_wrapper_repr
 _DictWrapper.__repr__ = repr_utils.dict_wrapper_repr
@@ -141,7 +141,6 @@ __all__ = [
     "CGCBlock",
     "TopKIndexBlock",
     "IndexBlock",
-    "FeatureContext",
     "DenseResidualBlock",
     "TabularBlock",
     "ContinuousFeatures",
@@ -181,6 +180,7 @@ __all__ = [
     "AvgPrecisionAt",
     "RecallAt",
     "BaseModel",
+    "PredictionContext",
     "TopKMetricsAggregator",
     "Model",
     "RetrievalModel",
