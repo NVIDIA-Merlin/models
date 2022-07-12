@@ -60,7 +60,10 @@ def test_two_tower_model_l2_reg(testing_data: Dataset):
     model = mm.TwoTowerModel(
         testing_data.schema,
         query_tower=mm.MLPBlock([512, 256]),
-        embedding_options=mm.EmbeddingOptions(embedding_dim_default=64, embeddings_l2_reg=0.1,),
+        embedding_options=mm.EmbeddingOptions(
+            embedding_dim_default=64,
+            embeddings_l2_reg=0.1,
+        ),
     )
 
     _ = model(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
@@ -79,7 +82,11 @@ def test_two_tower_model_l2_reg(testing_data: Dataset):
 @pytest.mark.parametrize("logits_pop_logq_correction", [True, False])
 @pytest.mark.parametrize("loss", ["categorical_crossentropy", "bpr-max", "binary_crossentropy"])
 def test_two_tower_model_with_custom_options(
-    ecommerce_data: Dataset, run_eagerly, logits_pop_logq_correction, loss, num_epochs=2,
+    ecommerce_data: Dataset,
+    run_eagerly,
+    logits_pop_logq_correction,
+    loss,
+    num_epochs=2,
 ):
 
     from tensorflow.keras import regularizers
@@ -107,7 +114,10 @@ def test_two_tower_model_with_custom_options(
         items_frequencies = tf.sort(
             tf.random.uniform((item_id_cardinalities,), minval=0, maxval=1000, dtype=tf.int32)
         )
-        post_logits = PopularityLogitsCorrection(items_frequencies, schema=data.schema,)
+        post_logits = PopularityLogitsCorrection(
+            items_frequencies,
+            schema=data.schema,
+        )
 
     retrieval_task = mm.ItemRetrievalTask(
         samplers=[mm.InBatchSampler()],
@@ -302,7 +312,9 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
         l2_normalization=True,
         sampled_softmax=True,
         num_sampled=100,
-        embedding_options=mm.EmbeddingOptions(embedding_dim_default=64,),
+        embedding_options=mm.EmbeddingOptions(
+            embedding_dim_default=64,
+        ),
     )
     model.compile(optimizer="adam", run_eagerly=False)
 
@@ -324,55 +336,3 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     losses = model.fit(dataloader, epochs=2)
 
     assert losses is not None
-
-
-STANDARD_CI_LASTFM_PREPROC_DATA_PATH = "/raid/data/lastfm/preprocessed"
-
-
-@pytest.fixture
-def train_eval_datasets_last_fm():
-    data_path = os.getenv("CI_LASTFM_PREPROC_DATA_PATH", STANDARD_CI_LASTFM_PREPROC_DATA_PATH)
-    train_ds = Dataset(os.path.join(data_path, "train/*.parquet"), part_size="500MB")
-    eval_ds = Dataset(os.path.join(data_path, "valid/*.parquet"), part_size="500MB")
-    return train_ds, eval_ds
-
-
-def test_two_tower_advanced_options(train_eval_datasets_last_fm):
-    train_ds, eval_ds = train_eval_datasets_last_fm
-    metrics = retrieval_tests_common.train_eval_two_tower_for_lastfm(
-        train_ds,
-        eval_ds,
-        # train_epochs=1,
-        # train_steps_per_epoch=500,
-        # eval_steps=100,
-        train_epochs=1,
-        train_steps_per_epoch=None,
-        eval_steps=2000,
-        log_to_wandb=True,
-        wandb_project="merlin-ci",
-    )
-    assert metrics["loss-final"] > 0.0
-    assert metrics["recall_at_100-final"] > 0.0
-    assert metrics["runtime_sec-final"] > 0.0
-    assert metrics["avg_examples_per_sec-final"] > 0.0
-
-
-def test_mf_advanced_options(train_eval_datasets_last_fm):
-    train_ds, eval_ds = train_eval_datasets_last_fm
-    metrics = retrieval_tests_common.train_eval_mf_for_lastfm(
-        train_ds,
-        eval_ds,
-        # train_epochs=1,
-        # train_steps_per_epoch=500,
-        # eval_steps=100,
-        train_epochs=1,
-        train_steps_per_epoch=None,
-        eval_steps=2000,
-        log_to_wandb=True,
-        wandb_project="merlin-ci",
-    )
-    assert metrics["loss-final"] > 0.0
-    assert metrics["recall_at_100-final"] > 0.0
-    assert metrics["runtime_sec-final"] > 0.0
-    assert metrics["avg_examples_per_sec-final"] > 0.0
-
