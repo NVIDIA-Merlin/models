@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import logging
-from typing import Optional, Sequence, Union
+from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
@@ -26,7 +26,6 @@ from merlin.models.tf.blocks.core.base import (
     PredictionOutput,
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
-from merlin.models.tf.blocks.core.context import FeatureContext
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
 from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.sampling.base import ItemSampler
@@ -76,7 +75,6 @@ class DualEncoderBlock(ParallelBlock):
         **kwargs,
     ):
         """Prepare the Query and Item towers of a Retrieval block
-
         Parameters
         ----------
         query_block : Block
@@ -268,7 +266,7 @@ class ItemRetrievalScorer(Block):
     def call_outputs(
         self,
         outputs: PredictionOutput,
-        feature_context: FeatureContext = None,
+        features: Dict[str, tf.Tensor] = None,
         training=True,
         testing=False,
         **kwargs,
@@ -295,7 +293,7 @@ class ItemRetrievalScorer(Block):
         if self.sampled_softmax_mode or isinstance(targets, tf.Tensor):
             positive_item_ids = targets
         else:
-            positive_item_ids = feature_context.features.values[self.item_id_feature_name]
+            positive_item_ids = features[self.item_id_feature_name]
 
         neg_items_ids = None
         if training or testing:
@@ -311,8 +309,7 @@ class ItemRetrievalScorer(Block):
 
             batch_items_embeddings = predictions[self.item_name]
             batch_items_metadata = {
-                feat_name: feature_context.features.values[feat_name]
-                for feat_name in self._required_features
+                feat_name: features[feat_name] for feat_name in self._required_features
             }
 
             positive_scores = tf.reduce_sum(
@@ -357,7 +354,7 @@ class ItemRetrievalScorer(Block):
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:
-                    positive_item_ids = feature_context.features.values[self.item_id_feature_name]
+                    positive_item_ids = features[self.item_id_feature_name]
 
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]

@@ -19,7 +19,6 @@ import tensorflow as tf
 import merlin.models.tf as ml
 from merlin.io.dataset import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
 
 
 def test_sequential_block_yoochoose(testing_data: Dataset):
@@ -32,27 +31,21 @@ def test_sequential_block_yoochoose(testing_data: Dataset):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class DummyFeaturesBlock(ml.Block):
-    def call(self, inputs, feature_context: ml.FeatureContext, **kwargs):
-        items = list(feature_context.features.select_by_tag(Tags.ITEM_ID).values.values())[0]
-        emb_table = self.context.get_embedding(Tags.ITEM_ID)
-        item_embeddings = tf.gather(emb_table, tf.cast(items, tf.int32))
-        rank = tf.rank(item_embeddings)
-        if isinstance(rank, tf.Tensor):
-            item_embeddings = tf.cond(
-                tf.equal(rank, 3), lambda: tf.squeeze(item_embeddings), lambda: item_embeddings
-            )
-        else:
-            if rank == 3:
-                item_embeddings = tf.squeeze(item_embeddings)
+    def call(self, inputs, features, **kwargs):
+        item_name = "item_id"
+        items = features[item_name]
 
-        return inputs * item_embeddings
+        if inputs.shape[0] is not None:
+            result = tf.reshape(
+                tf.repeat(tf.cast(items, tf.float32), inputs.shape[-1]), inputs.shape
+            )
+
+            return inputs * result
+
+        return inputs
 
     def compute_output_shape(self, input_shapes):
         return input_shapes
-
-    @property
-    def item_embedding_table(self):
-        return self.context.get_embedding(Tags.ITEM_ID)
 
 
 @pytest.mark.parametrize("run_eagerly", [True])
