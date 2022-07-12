@@ -16,13 +16,14 @@
 
 import platform
 import tempfile
-from typing import Any, Tuple
+from typing import Any, Tuple, Union
 
 import numpy as np
 import pytest
 import tensorflow as tf
 
 import merlin.io
+from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.models.base import Model
 
 
@@ -72,7 +73,7 @@ def assert_model_is_retrainable(
 
 def model_test(
     model: Model,
-    dataset: merlin.io.Dataset,
+    dataset: Union[merlin.io.Dataset, BatchedDataset],
     run_eagerly: bool = True,
     optimizer="adam",
     epochs: int = 1,
