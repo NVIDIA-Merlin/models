@@ -213,27 +213,6 @@ class ItemRetrievalScorer(Block):
                 )
             )
 
-        embedding_shape = input_shapes
-        if isinstance(input_shapes, dict):
-            embedding_shape = input_shapes[self.item_name]
-        self.context.add_variable(
-            tf.Variable(
-                initial_value=tf.zeros([1, embedding_shape[-1]], dtype=tf.float32),
-                name="item",
-                trainable=False,
-                validate_shape=False,
-                dtype=tf.float32,
-                shape=tf.TensorShape([None, embedding_shape[-1]]),
-            )
-        )
-        batch_items_metadata = {
-            feat_name: self._feature_shapes[feat_name] for feat_name in self._required_features
-        }
-        sampler_shapes = EmbeddingWithMetadata(embedding_shape, batch_items_metadata)
-
-        for sampler in self.samplers:
-            sampler.build(sampler_shapes.__dict__)
-
         super().build(input_shapes)
 
     def _check_input_from_two_tower(self, inputs):
@@ -283,7 +262,7 @@ class ItemRetrievalScorer(Block):
         )
         return positive_scores
 
-    @tf.function
+    # @tf.function
     def call_outputs(
         self,
         outputs: PredictionOutput,
@@ -315,6 +294,9 @@ class ItemRetrievalScorer(Block):
             positive_item_ids = targets
         else:
             positive_item_ids = features[self.item_id_feature_name]
+
+        if isinstance(positive_item_ids, tf.RaggedTensor):
+            positive_item_ids = positive_item_ids.to_tensor()
 
         neg_items_ids = None
         if training or testing:
@@ -376,6 +358,9 @@ class ItemRetrievalScorer(Block):
                     positive_item_ids = targets
                 else:
                     positive_item_ids = features[self.item_id_feature_name]
+
+                if isinstance(positive_item_ids, tf.RaggedTensor):
+                    positive_item_ids = positive_item_ids.to_tensor()
 
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]

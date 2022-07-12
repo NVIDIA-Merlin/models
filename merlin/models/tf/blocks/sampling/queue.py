@@ -143,7 +143,7 @@ class FIFOQueue(Layer):
             From the second dim, its shape should match the `dims`
             set in the queue constructor
         """
-        # self._check_input_values(vals)
+        self._check_input_values(vals)
 
         # if values are larger than the queue capacity N, enqueueing only the last N items
         vals = vals[-self.capacity :]

@@ -15,7 +15,7 @@ from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOut
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.blocks.core.tabular import TabularBlock
-from merlin.models.tf.blocks.core.transformations import AsRaggedFeatures
+from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsRaggedFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
@@ -703,8 +703,12 @@ class Model(BaseModel):
         self.built = True
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
-        inputs = AsRaggedFeatures()(inputs)
-        context = self._create_context(inputs, targets=targets, training=training, testing=testing)
+        context = self._create_context(
+            AsDenseFeatures()(inputs),  # TODO: Change this to ragged
+            targets=targets,
+            training=training,
+            testing=testing,
+        )
 
         outputs = inputs
         if self.pre:
