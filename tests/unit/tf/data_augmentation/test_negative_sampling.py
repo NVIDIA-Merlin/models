@@ -38,12 +38,15 @@ class TestAddRandomNegativesToBatch:
         dataset = Dataset(input_df, schema=schema)
         batched_dataset = BatchedDataset(dataset, batch_size=10)
         batched_dataset = batched_dataset.map(sampler)
+        first_batch_outputs = next(iter(batched_dataset))
 
-        feature_output, target_output = next(iter(batched_dataset))
+        outputs = first_batch_outputs.outputs
+        targets = first_batch_outputs.targets
+
         output_dict = {
-            key: output_tensor.numpy().reshape(-1) for key, output_tensor in feature_output.items()
+            key: output_tensor.numpy().reshape(-1) for key, output_tensor in outputs.items()
         }
-        output_df = pd.DataFrame({**output_dict, "label": target_output.numpy().reshape(-1)})
+        output_df = pd.DataFrame({**output_dict, "label": targets.numpy().reshape(-1)})
         output_df = output_df[sorted(output_df.columns)]
 
         # first part of outputs frame should match inputs
@@ -77,7 +80,7 @@ class TestAddRandomNegativesToBatch:
             for f in with_negatives.values()
         )
 
-    def test_negatives_to_batch_in_model(self, music_streaming_data: Dataset, tf_random_seed: int):
+    def test_in_model(self, music_streaming_data: Dataset, tf_random_seed: int):
         class Training(tf.keras.layers.Layer):
             def call(self, inputs, training=False):
                 return training
@@ -110,21 +113,27 @@ class TestAddRandomNegativesToBatch:
         dataset = BatchedDataset(music_streaming_data, batch_size=batch_size)
         dataset = dataset.map(add_negatives)
 
-        features, targets = next(iter(dataset))
+        batch_output = next(iter(dataset))
+        features = batch_output.outputs
+        targets = batch_output.targets
 
         expected_batch_size = batch_size + batch_size * n_per_positive
-        # We need to subtract the number of accidental hits
-        expected_batch_size -= 4
 
-        assert features["item_genres"].shape[0] == expected_batch_size
-        assert all(f.shape[0] == expected_batch_size for f in features.values())
-        assert all(f.shape[0] == expected_batch_size for f in targets.values())
+        assert features["item_genres"].shape[0] > batch_size
+        assert features["item_genres"].shape[0] <= expected_batch_size
+        assert all(
+            f.shape[0] > batch_size and f.shape[0] <= expected_batch_size for f in features.values()
+        )
+        assert all(
+            f.shape[0] > batch_size and f.shape[0] <= expected_batch_size for f in targets.values()
+        )
 
         model = mm.Model(
             mm.InputBlock(music_streaming_data.schema),
             mm.MLPBlock([64]),
             mm.BinaryClassificationTask("click"),
         )
-        assert model(features).shape[0] == expected_batch_size
+        assert model(features).shape[0] > batch_size
+        assert model(features).shape[0] <= expected_batch_size
 
         testing_utils.model_test(model, dataset)
