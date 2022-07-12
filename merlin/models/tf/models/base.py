@@ -13,9 +13,9 @@ from tensorflow.keras.utils import unpack_x_y_sample_weight
 import merlin.io
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
+from merlin.models.tf.blocks.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.blocks.core.tabular import TabularBlock
-from merlin.models.tf.blocks.core.tensor import PredictionContext
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+from merlin.models.tf.blocks.core.transformations import AsRaggedFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
@@ -659,9 +659,10 @@ class Model(BaseModel):
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
-            _dense_inputs = AsDenseFeatures()(inputs)
-            feature_shapes = {k: v.shape for k, v in _dense_inputs.items()}
-            feature_dtypes = {k: v.dtype for k, v in _dense_inputs.items()}
+            _ragged_inputs = AsRaggedFeatures()(inputs)
+            feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
+            feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
+
             for block in self.blocks:
                 for child in block.submodules:
                     child._feature_shapes = feature_shapes
@@ -701,11 +702,9 @@ class Model(BaseModel):
 
         self.built = True
 
-    def call(self, inputs, targets=None, training=False, testing=False, context=None):
-        if not context:
-            context = self._create_context(
-                inputs, targets=targets, training=training, testing=testing
-            )
+    def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
+        inputs = AsRaggedFeatures()(inputs)
+        context = self._create_context(inputs, targets=targets, training=training, testing=testing)
 
         outputs = inputs
         if self.pre:
@@ -717,15 +716,15 @@ class Model(BaseModel):
         if self.post:
             outputs, context = self._call_child(self.post, outputs, context)
 
+        if output_context:
+            return outputs, context
+
         return outputs
 
     def _create_context(
         self, inputs, targets=None, training=False, testing=False
     ) -> PredictionContext:
-        _dense_inputs = AsDenseFeatures()(inputs)
-        context = PredictionContext(
-            self.schema, _dense_inputs, targets=targets, training=training, testing=testing
-        )
+        context = PredictionContext(inputs, targets=targets, training=training, testing=testing)
 
         return context
 
@@ -737,42 +736,14 @@ class Model(BaseModel):
     ):
         call_kwargs = context.to_call_dict()
 
-        if getattr(child, "uses_context", False):
-            call_kwargs["context"] = context
-
         outputs = call_layer(child, inputs, **call_kwargs)
-
-        if isinstance(outputs, (list, tuple)) and not isinstance(outputs, PredictionOutput):
-            _outputs = []
-            for output in outputs:
-                if isinstance(output, PredictionContext):
-                    context = output
-                else:
-                    _outputs.append(output)
-                if len(_outputs) == 1:
-                    outputs = _outputs[0]
+        if isinstance(outputs, Prediction):
+            targets = outputs.targets or context.targets
+            features = outputs.features or context.features
+            outputs = outputs[0]
+            context = context.with_updates(targets=targets, features=features)
 
         return outputs, context
-
-        # if getattr(inputs, "context", None):
-        #     # context = inputs.context
-        #     # if not getattr(child, "_uses_context", False):
-        #     #     inputs = inputs.value
-        #
-        #     # For backwards compatibility
-        #     if context.targets is not None or (training or testing):
-        #         call_kwargs["targets"] = context.targets
-        #     call_kwargs["feature_context"] = context.features
-        #
-        #     outputs = call_layer(child, inputs, **call_kwargs)
-        #
-        #     if not isinstance(outputs, PredictionOutput):
-        #         if not isinstance(outputs, PredictionTensor):
-        #             outputs = PredictionTensor(outputs, context)
-        # else:
-        #     outputs = call_layer(child, inputs, **call_kwargs)
-        #
-        # return outputs
 
     @property
     def first(self):

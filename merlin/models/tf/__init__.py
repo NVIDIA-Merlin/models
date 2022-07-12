@@ -48,8 +48,8 @@ from merlin.models.tf.blocks.core.combinators import (
     SequentialBlock,
 )
 from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
+from merlin.models.tf.blocks.core.prediction import PredictionContext
 from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
-from merlin.models.tf.blocks.core.tensor import PredictionContext
 from merlin.models.tf.blocks.core.transformations import (
     AsDenseFeatures,
     AsRaggedFeatures,

@@ -13,18 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
+from typing import Optional, Union
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.blocks.core.prediction import Prediction
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class UniformNegativeSampling(Block):
+class UniformNegativeSampling(tf.keras.layers.Layer):
     """Random in-batch negative sampling.
 
     Only works with positive-only binary-target batches.
@@ -38,7 +38,7 @@ class UniformNegativeSampling(Block):
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
 
-    def call(self, inputs: TabularData, targets=None, training=False) -> TabularData:
+    def call(self, inputs: TabularData, targets=None) -> Union[Prediction, TabularData]:
         """Extend batch of inputs and targets with negatives."""
         # 1. Select item-features
         fist_input = list(inputs.values())[0]
@@ -62,7 +62,7 @@ class UniformNegativeSampling(Block):
                 tf.gather(inputs[self.item_id_col], sampled_positive_idx),
             )
         )
-        mask = tf.squeeze(mask)
+        mask = tf.reduce_all(mask, 1)  # get the batch dimension
         # keep all the positive inputs
         mask = tf.concat([tf.repeat(True, batch_size), mask], 0)
 
@@ -112,6 +112,6 @@ class UniformNegativeSampling(Block):
             else:
                 raise ValueError("Unsupported target type: {}".format(type(targets)))
 
-            return outputs, targets
+            return Prediction(outputs, targets)
 
         return outputs
