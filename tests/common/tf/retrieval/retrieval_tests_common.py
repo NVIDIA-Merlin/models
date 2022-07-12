@@ -47,7 +47,7 @@ def set_lastfm_two_tower_hparams_config(runner_cfg: fdl.Config):
     runner_cfg.metrics.topk_metrics_cutoffs = "10,50,100"
 
     runner_cfg.train_batch_size = 4096
-    runner_cfg.eval_batch_size = 1024
+    runner_cfg.eval_batch_size = 512
 
     runner_cfg.train_epochs = 20
     runner_cfg.train_steps_per_epoch = None
