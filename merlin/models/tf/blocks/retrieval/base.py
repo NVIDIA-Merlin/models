@@ -262,7 +262,7 @@ class ItemRetrievalScorer(Block):
         )
         return positive_scores
 
-    # @tf.function
+    @tf.function
     def call_outputs(
         self,
         outputs: PredictionOutput,
