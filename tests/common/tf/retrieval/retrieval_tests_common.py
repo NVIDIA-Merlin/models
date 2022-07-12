@@ -24,7 +24,6 @@ from tests.common.tf.tests_utils import extract_hparams_from_config
 
 
 def set_lastfm_two_tower_hparams_config(runner_cfg: fdl.Config):
-    # Hparams based on https://wandb.ai/nvidia-merlin/retrieval_models/runs/3a9ja3ms/overview
     runner_cfg.model.two_tower_activation = "selu"
     runner_cfg.model.two_tower_mlp_layers = "64"
     runner_cfg.model.two_tower_dropout = 0.2
@@ -57,7 +56,6 @@ def set_lastfm_two_tower_hparams_config(runner_cfg: fdl.Config):
 
 
 def set_lastfm_mf_hparams_config(runner_cfg: fdl.Config):
-    # Hparams based on https://wandb.ai/nvidia-merlin/retrieval_models/runs/2q6d7r7j
     runner_cfg.model.mf_dim = 64
     runner_cfg.model.logits_temperature = 1.4
     runner_cfg.model.embeddings_l2_reg = 3e-07
@@ -86,9 +84,11 @@ def set_lastfm_mf_hparams_config(runner_cfg: fdl.Config):
 def train_eval_two_tower(
     train_ds: Dataset,
     eval_ds: Dataset,
-    train_epochs: int = 3,
+    train_epochs: int = 1,
     train_steps_per_epoch: Optional[int] = None,
-    eval_steps: Optional[int] = 5000,
+    eval_steps: Optional[int] = 2000,
+    train_batch_size: int = 512,
+    eval_batch_size: int = 512,
     log_to_wandb: bool = False,
     wandb_project: str = None,
     config_callback: Callable = None,
@@ -107,6 +107,8 @@ def train_eval_two_tower(
     runner_cfg.train_epochs = train_epochs
     runner_cfg.train_steps_per_epoch = train_steps_per_epoch
     runner_cfg.eval_steps = eval_steps
+    runner_cfg.train_batch_size = train_batch_size
+    runner_cfg.eval_batch_size = eval_batch_size
 
     hparams = extract_hparams_from_config(runner_cfg)
 
@@ -118,9 +120,11 @@ def train_eval_two_tower(
 def train_eval_mf(
     train_ds: Dataset,
     eval_ds: Dataset,
-    train_epochs: int = 3,
+    train_epochs: int = 1,
     train_steps_per_epoch: Optional[int] = None,
-    eval_steps: Optional[int] = 5000,
+    eval_steps: Optional[int] = 2000,
+    train_batch_size: int = 512,
+    eval_batch_size: int = 512,
     log_to_wandb: bool = False,
     wandb_project: str = None,
     config_callback: Callable = None,
@@ -139,6 +143,8 @@ def train_eval_mf(
     runner_cfg.train_epochs = train_epochs
     runner_cfg.train_steps_per_epoch = train_steps_per_epoch
     runner_cfg.eval_steps = eval_steps
+    runner_cfg.train_batch_size = train_batch_size
+    runner_cfg.eval_batch_size = eval_batch_size
 
     runner_cfg.callbacks.train_batch_size = runner_cfg.train_batch_size
 
@@ -152,9 +158,11 @@ def train_eval_mf(
 def train_eval_two_tower_for_lastfm(
     train_ds: Dataset,
     eval_ds: Dataset,
-    train_epochs: int = 3,
+    train_epochs: int = 1,
     train_steps_per_epoch: Optional[int] = None,
-    eval_steps: Optional[int] = 5000,
+    eval_steps: Optional[int] = 2000,
+    train_batch_size: int = 512,
+    eval_batch_size: int = 512,
     log_to_wandb: bool = False,
     wandb_project: str = None,
 ):
@@ -164,6 +172,8 @@ def train_eval_two_tower_for_lastfm(
         train_epochs,
         train_steps_per_epoch,
         eval_steps,
+        train_batch_size,
+        eval_batch_size,
         log_to_wandb,
         wandb_project,
         config_callback=set_lastfm_two_tower_hparams_config,
@@ -173,9 +183,11 @@ def train_eval_two_tower_for_lastfm(
 def train_eval_mf_for_lastfm(
     train_ds: Dataset,
     eval_ds: Dataset,
-    train_epochs: int = 3,
+    train_epochs: int = 1,
     train_steps_per_epoch: Optional[int] = None,
-    eval_steps: Optional[int] = 5000,
+    eval_steps: Optional[int] = 2000,
+    train_batch_size: int = 512,
+    eval_batch_size: int = 512,
     log_to_wandb: bool = False,
     wandb_project: str = None,
 ):
@@ -185,6 +197,8 @@ def train_eval_mf_for_lastfm(
         train_epochs,
         train_steps_per_epoch,
         eval_steps,
+        train_batch_size,
+        eval_batch_size,
         log_to_wandb,
         wandb_project,
         config_callback=set_lastfm_mf_hparams_config,

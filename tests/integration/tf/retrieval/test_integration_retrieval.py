@@ -35,25 +35,37 @@ def train_eval_datasets_last_fm():
 
 def test_integration_train_eval_two_tower(train_eval_datasets_last_fm):
     train_ds, eval_ds = train_eval_datasets_last_fm
-    retrieval_tests_common.train_eval_two_tower_for_lastfm(
+    metrics = retrieval_tests_common.train_eval_two_tower_for_lastfm(
         train_ds,
         eval_ds,
-        train_epochs=3,
+        train_epochs=1,
         train_steps_per_epoch=None,
-        eval_steps=5000,
+        eval_steps=2000,
+        train_batch_size=4096,
+        eval_batch_size=512,
         log_to_wandb=True,
         wandb_project=os.getenv("CI_WANDB_PROJECT", STANDARD_CI_WANDB_PROJECT),
     )
+    assert metrics["loss-final"] > 0.0
+    assert metrics["recall_at_100-final"] > 0.0
+    assert metrics["runtime_sec-final"] > 0.0
+    assert metrics["avg_examples_per_sec-final"] > 0.0
 
 
 def test_integration_train_eval_mf(train_eval_datasets_last_fm):
     train_ds, eval_ds = train_eval_datasets_last_fm
-    retrieval_tests_common.train_eval_mf_for_lastfm(
+    metrics = retrieval_tests_common.train_eval_mf_for_lastfm(
         train_ds,
         eval_ds,
-        train_epochs=3,
+        train_epochs=1,
         train_steps_per_epoch=None,
-        eval_steps=5000,
+        eval_steps=2000,
+        train_batch_size=4096,
+        eval_batch_size=512,
         log_to_wandb=True,
         wandb_project=os.getenv("CI_WANDB_PROJECT", STANDARD_CI_WANDB_PROJECT),
     )
+    assert metrics["loss-final"] > 0.0
+    assert metrics["recall_at_100-final"] > 0.0
+    assert metrics["runtime_sec-final"] > 0.0
+    assert metrics["avg_examples_per_sec-final"] > 0.0
