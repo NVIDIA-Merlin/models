@@ -23,7 +23,6 @@ import pytest
 import tensorflow as tf
 
 import merlin.io
-
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.models.base import Model
 
