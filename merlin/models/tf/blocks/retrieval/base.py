@@ -295,9 +295,6 @@ class ItemRetrievalScorer(Block):
         else:
             positive_item_ids = features[self.item_id_feature_name]
 
-        if isinstance(positive_item_ids, tf.RaggedTensor):
-            positive_item_ids = positive_item_ids.to_tensor()
-
         neg_items_ids = None
         if training or testing:
 
@@ -358,9 +355,6 @@ class ItemRetrievalScorer(Block):
                     positive_item_ids = targets
                 else:
                     positive_item_ids = features[self.item_id_feature_name]
-
-                if isinstance(positive_item_ids, tf.RaggedTensor):
-                    positive_item_ids = positive_item_ids.to_tensor()
 
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]
