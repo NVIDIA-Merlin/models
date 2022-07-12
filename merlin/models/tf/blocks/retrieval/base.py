@@ -443,8 +443,8 @@ class ItemRetrievalScorer(Block):
     def get_config(self):
         config = super().get_config()
         config = maybe_serialize_keras_objects(self, config, ["samplers"])
-        config["downscore_false_negatives"] = self.downscore_false_negatives
-        config["false_negatives_score"] = self.false_negatives_score
+        config["sampling_downscore_false_negatives"] = self.downscore_false_negatives
+        config["sampling_downscore_false_negatives_value"] = self.false_negatives_score
         config["item_id_feature_name"] = self.item_id_feature_name
 
         return config

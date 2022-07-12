@@ -34,7 +34,7 @@ RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
 
 def MLPBlock(
     dimensions: List[int],
-    activation: str = "relu",
+    activation: Union[str, List[str]] = "relu",
     use_bias: bool = True,
     kernel_initializer: InitializerType = "glorot_uniform",
     bias_initializer: InitializerType = "zeros",
@@ -46,7 +46,7 @@ def MLPBlock(
     filter: Optional[Union[Schema, Tags, List[str], "Filter"]] = None,
     no_activation_last_layer: bool = False,
     block_name: str = "MLPBlock",
-    **kwargs
+    **kwargs,
 ) -> SequentialBlock:
     """
     A block that applies a multi-layer perceptron to the input.
@@ -86,15 +86,22 @@ def MLPBlock(
         The name of the block.
     """
 
+    if isinstance(activation, list) and len(activation) != len(dimensions):
+        raise ValueError(
+            f"Activation and Dimensions length mismatch. \
+        Activation length: {len(activation)}, Dimensions length: {len(dimensions)}"
+        )
+
     block_layers = []
 
     for idx, dim in enumerate(dimensions):
         dropout_layer = None
+        activation_idx = activation if isinstance(activation, str) else activation[idx]
         if no_activation_last_layer and idx == len(dimensions) - 1:
-            activation = "linear"
+            activation_idx = "linear"
         else:
             if dropout:
-                if activation in ["selu", tf.keras.activations.selu]:
+                if activation_idx in ["selu", tf.keras.activations.selu]:
                     # Best practice for SeLU. It is also recommended
                     # kernel_initializer="lecun_normal"
                     dropout_layer = tf.keras.layers.AlphaDropout(dropout)
@@ -104,7 +111,7 @@ def MLPBlock(
         block_layers.append(
             _Dense(
                 dim,
-                activation=activation,
+                activation=activation_idx,
                 use_bias=use_bias,
                 kernel_initializer=kernel_initializer,
                 bias_initializer=bias_initializer,
@@ -191,7 +198,7 @@ class _Dense(tf.keras.layers.Layer):
         bias_constraint=None,
         pre_aggregation="concat",
         dense=None,
-        **kwargs
+        **kwargs,
     ):
         super(_Dense, self).__init__(**kwargs)
         self.dense = dense or tf.keras.layers.Dense(
@@ -205,7 +212,7 @@ class _Dense(tf.keras.layers.Layer):
             activity_regularizer,
             kernel_constraint,
             bias_constraint,
-            **kwargs
+            **kwargs,
         )
         self.pre_aggregation = pre_aggregation
         self.units = units
@@ -252,7 +259,7 @@ class DenseMaybeLowRank(tf.keras.layers.Layer):
         pre_aggregation="concat",
         dense: Optional[tf.keras.layers.Dense] = None,
         dense_u: Optional[tf.keras.layers.Dense] = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
         self.low_rank_dim = low_rank_dim

@@ -99,3 +99,20 @@ def test_mlp_model_save(ecommerce_data: Dataset, run_eagerly: bool, tmp_path):
     copy_model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     assert isinstance(copy_model, tf.keras.Model)
+
+
+@pytest.mark.parametrize(
+    "arguments", [([32], "relu"), ([64, 32], "relu"), ([32, 16], ["relu", "linear"])]
+)
+def test_mlp_block_dense_layer_activation(arguments):
+    mlp = ml.MLPBlock(dimensions=arguments[0], activation=arguments[1])
+
+    for idx, layer in enumerate(mlp.layers):
+        activation_idx = arguments[1] if isinstance(arguments[1], str) else arguments[1][idx]
+        assert layer.dense.activation.__name__ == activation_idx
+
+
+def test_mlp_block_activation_dimensions_length_mismatch():
+    with pytest.raises(ValueError) as excinfo:
+        _ = ml.MLPBlock(dimensions=[32], activation=["relu", "linear"])
+    assert "Activation and Dimensions length mismatch." in str(excinfo.value)
