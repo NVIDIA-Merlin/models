@@ -42,6 +42,14 @@ def tf_con_features():
 
 
 @pytest.fixture
+def tf_random_seed():
+    tf.keras.utils.set_random_seed(1)
+    tf.config.experimental.enable_op_determinism()
+
+    return 1
+
+
+@pytest.fixture
 def tf_cat_features():
     features = {}
     keys = [f"cat_{f}" for f in "abcdef"]

@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
@@ -62,25 +61,20 @@ class TestAddRandomNegativesToBatch:
 
 
 @pytest.mark.parametrize("to_dense", [True, False])
-def test_negatives_to_batch(music_streaming_data: Dataset, to_dense: bool):
-    tf.keras.utils.set_random_seed(1)
-    tf.config.experimental.enable_op_determinism()
-
+def test_negatives_to_batch(music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int):
     schema = music_streaming_data.schema
     batch_size, n_per_positive = 10, 5
     features = mm.sample_batch(
         music_streaming_data, batch_size=batch_size, include_targets=False, to_dense=to_dense
     )
 
-    sampler = AddRandomNegativesToBatch(schema, 5, seed=1)
+    sampler = AddRandomNegativesToBatch(schema, 5, seed=tf_random_seed)
     with_negatives = sampler(features)
 
-    expected_batch_size = batch_size + batch_size * n_per_positive
-    # We need to subtract the number of accidental hits
-    expected_batch_size -= 4
-
-    assert with_negatives["item_genres"].shape[0] == expected_batch_size
-    assert all(f.shape[0] == expected_batch_size for f in with_negatives.values())
+    max_batch_size = batch_size + batch_size * n_per_positive
+    assert all(
+        f.shape[0] <= max_batch_size and f.shape[0] > batch_size for f in with_negatives.values()
+    )
 
 
 # TODO: Fix this later
@@ -105,11 +99,8 @@ def test_negatives_to_batch(music_streaming_data: Dataset, to_dense: bool):
 #     assert without_negatives.shape[0] == batch_size
 
 
-def test_negatives_to_batch_in_dataloader(music_streaming_data: Dataset):
-    tf.keras.utils.set_random_seed(1)
-    tf.config.experimental.enable_op_determinism()
-
-    add_negatives = AddRandomNegativesToBatch(music_streaming_data.schema, 5, seed=1)
+def test_negatives_to_batch_in_dataloader(music_streaming_data: Dataset, tf_random_seed: int):
+    add_negatives = AddRandomNegativesToBatch(music_streaming_data.schema, 5, seed=tf_random_seed)
 
     batch_size, n_per_positive = 10, 5
     dataset = BatchedDataset(music_streaming_data, batch_size=batch_size)
