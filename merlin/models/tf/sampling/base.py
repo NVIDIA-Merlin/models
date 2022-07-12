@@ -29,7 +29,7 @@ from merlin.schema import Schema, Tags
 class AddRandomNegativesToBatch(Block):
     """Random in-batch negative sampling.
 
-    Only works with postive-only binary-target batches.
+    Only works with positive-only binary-target batches.
     """
 
     def __init__(self, schema: Schema, n_per_positive: int, seed: Optional[int] = None, **kwargs):
@@ -50,7 +50,7 @@ class AddRandomNegativesToBatch(Block):
 
         sampled_num_negatives = self.n_per_positive * batch_size
         # 2. Sample `n_per_positive * batch_size` items at random
-        sampled_ids = sampled_ids = tf.random.uniform(
+        sampled_ids = tf.random.uniform(
             (sampled_num_negatives,),
             maxval=batch_size,
             dtype=tf.int32,
@@ -64,8 +64,9 @@ class AddRandomNegativesToBatch(Block):
                 tf.gather(inputs[self.item_id_col], sampled_ids),
             )
         )
+        mask = tf.squeeze(mask)
         # keep all the positive inputs
-        mask = tf.concat([tf.expand_dims(tf.repeat(True, batch_size), 1), mask], 0)
+        mask = tf.concat([tf.repeat(True, batch_size), mask], 0)
 
         # 3. Loop through all features:
         #   - For item-feature: append from item-collection
@@ -80,15 +81,39 @@ class AddRandomNegativesToBatch(Block):
                 negatives = tf.gather(val, sampled_ids)
                 outputs[name] = tf.concat([val, negatives], axis=0)
             else:
-                outputs[name] = tf.concat(
-                    [val, tf.repeat(val, self.n_per_positive, axis=0)], axis=0
-                )
-            outputs[name] = tf.boolean_mask(outputs[name], mask)
+                if isinstance(val, tf.RaggedTensor):
+                    negatives = tf.concat([val] * self.n_per_positive, axis=0)
+                else:
+                    negatives = tf.repeat(val, self.n_per_positive, axis=0)
+                outputs[name] = tf.concat([val, negatives], axis=0)
+            outputs[name] = tf.ragged.boolean_mask(outputs[name], mask)
 
         # update targets if present
         if targets is not None:
-            targets = tf.concat([targets, tf.zeros((sampled_num_negatives, 1), dtype=tf.int64)], 0)
-            targets = tf.boolean_mask(targets, mask)
+
+            def mask_targets(target_tensor):
+                out = tf.concat(
+                    [
+                        target_tensor,
+                        tf.zeros((sampled_num_negatives, 1), dtype=target_tensor.dtype),
+                    ],
+                    0,
+                )
+                out = tf.boolean_mask(out, mask)
+
+                return out
+
+            if isinstance(targets, dict):
+                targets = {k: mask_targets(v) for k, v in targets.items()}
+            elif isinstance(targets, list):
+                targets = [mask_targets(v) for v in targets]
+            elif isinstance(targets, tuple):
+                targets = tuple([mask_targets(v) for v in targets])
+            elif isinstance(targets, tf.Tensor):
+                targets = mask_targets(targets)
+            else:
+                raise ValueError("Unsupported target type: {}".format(type(targets)))
+
             return outputs, targets
 
         return outputs
