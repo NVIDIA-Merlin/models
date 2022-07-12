@@ -19,7 +19,6 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
-from merlin.models.config.schema import FeatureCollection
 from merlin.models.tf.blocks.core.base import PredictionOutput
 from merlin.schema import Tags
 

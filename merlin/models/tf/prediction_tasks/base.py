@@ -142,7 +142,7 @@ class PredictionTask(Layer, ContextMixin):
         if kwargs.get("training", False) or kwargs.get("testing", False):
             targets = kwargs.get("targets", {})
             if isinstance(targets, dict) and self.target_name:
-                targets = targets[self.target_name]
+                targets = targets.get(self.target_name, targets)
 
             if isinstance(outputs, dict) and self.target_name and self.task_name in outputs:
                 outputs = outputs[self.task_name]

@@ -14,7 +14,7 @@ import merlin.io
 from merlin.models.tf.blocks.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.blocks.core.combinators import SequentialBlock
 from merlin.models.tf.blocks.core.tabular import TabularBlock
-from merlin.models.tf.blocks.core.tensor import PredictionContext, PredictionTensor
+from merlin.models.tf.blocks.core.tensor import PredictionContext
 from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
@@ -25,7 +25,6 @@ from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, Pred
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import call_layer, maybe_deserialize_keras_objects
 from merlin.models.utils.dataset import unique_rows_by_features
-from merlin.models.utils.misc_utils import filter_kwargs
 from merlin.schema import Schema, Tags
 
 if TYPE_CHECKING:
@@ -678,7 +677,6 @@ class Model(BaseModel):
             The input shape, by default None
         """
         last_layer = None
-        features_shape = input_shape
 
         if self.pre is not None:
             self.pre.build(input_shape)
@@ -743,9 +741,6 @@ class Model(BaseModel):
             call_kwargs["context"] = context
 
         outputs = call_layer(child, inputs, **call_kwargs)
-
-        if isinstance(outputs, PredictionOutput):
-            a = 5
 
         if isinstance(outputs, (list, tuple)) and not isinstance(outputs, PredictionOutput):
             _outputs = []

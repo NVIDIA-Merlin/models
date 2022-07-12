@@ -27,7 +27,6 @@ from merlin.models.tf.blocks.core.base import (
 )
 from merlin.models.tf.blocks.core.combinators import ParallelBlock
 from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
-from merlin.models.tf.blocks.core.tensor import PredictionContext
 from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.models.base import ModelBlock

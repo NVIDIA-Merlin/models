@@ -86,12 +86,9 @@ class FIFOQueue(Layer):
         )
 
         if initialize_tensor is None:
-            try:
-                initialize_tensor = tf.Variable(
-                    lambda: tf.zeros([capacity] + self.dims, dtype=dtype) - 1
-                )
-            except Exception:
-                a = 5
+            initialize_tensor = tf.Variable(
+                lambda: tf.zeros([capacity] + self.dims, dtype=dtype) - 1
+            )
 
         self.storage = tf.Variable(
             initial_value=initialize_tensor,
