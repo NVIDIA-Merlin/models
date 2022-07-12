@@ -27,7 +27,7 @@ from merlin.schema import Schema, Tags
 # grow_batch.InBatchNegativeSamplingPopularityBased
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AddRandomNegativesToBatch(Block):
-    """Random negative sampling.
+    """Random in-batch negative sampling.
 
     Only works with postive-only binary-target batches.
     """
@@ -64,6 +64,7 @@ class AddRandomNegativesToBatch(Block):
                 tf.gather(inputs[self.item_id_col], sampled_ids),
             )
         )
+        # keep all the positive inputs
         mask = tf.concat([tf.expand_dims(tf.repeat(True, batch_size), 1), mask], 0)
 
         # 3. Loop through all features:
@@ -84,6 +85,7 @@ class AddRandomNegativesToBatch(Block):
                 )
             outputs[name] = tf.boolean_mask(outputs[name], mask)
 
+        # update targets if present
         if targets is not None:
             targets = tf.concat([targets, tf.zeros((sampled_num_negatives, 1), dtype=tf.int64)], 0)
             targets = tf.boolean_mask(targets, mask)
