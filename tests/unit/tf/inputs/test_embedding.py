@@ -125,7 +125,7 @@ class TestEmbeddingTable:
         item_id_col_schema = music_streaming_data.schema.select_by_name("item_id").first
         embedding_layer = mm.EmbeddingTable(dim, item_id_col_schema)
         model = mm.Model(
-            tf.keras.layers.Lambda(lambda features: features["item_id"]),
+            tf.keras.layers.Lambda(lambda inputs: inputs["item_id"]),
             embedding_layer,
             mm.BinaryClassificationTask("click"),
         )
@@ -138,7 +138,7 @@ class TestEmbeddingTable:
         inputs = tf.constant([1])
 
         model = mm.Model(
-            tf.keras.layers.Lambda(lambda features: features["item_id"]),
+            tf.keras.layers.Lambda(lambda inputs: inputs["item_id"]),
             embedding_layer,
             mm.BinaryClassificationTask("click"),
         )
@@ -175,7 +175,7 @@ class TestEmbeddingTable:
         np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
         model = mm.Model(
-            tf.keras.layers.Lambda(lambda features: features["item_id"]),
+            tf.keras.layers.Lambda(lambda inputs: inputs["item_id"]),
             embedding_table,
             mm.BinaryClassificationTask("click"),
         )
