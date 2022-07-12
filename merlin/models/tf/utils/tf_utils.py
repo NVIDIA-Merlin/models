@@ -17,12 +17,12 @@ from typing import Any, Sequence, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
+from keras.utils.tf_inspect import getfullargspec
 from packaging import version
 
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils import tf_utils
 from merlin.models.utils.misc_utils import filter_kwargs
 
 if version.parse(tf.__version__) < version.parse("2.3.0"):
@@ -333,7 +333,7 @@ class TensorInitializer(tf.keras.initializers.Initializer):
     def from_dataset(cls, data: Union[Dataset, DataFrameType], **kwargs) -> "TensorInitializer":
         if hasattr(data, "to_ddf"):
             data = data.to_ddf().compute()
-        embeddings = tf_utils.df_to_tensor(data)
+        embeddings = df_to_tensor(data)
 
         return cls(weights=embeddings, **kwargs)
 
@@ -345,20 +345,19 @@ def call_layer(layer: tf.keras.layers.Layer, inputs, *args, **kwargs):
     """Calls a layer with the given inputs and filters kwargs. Returns the output"""
 
     has_custom_call = getattr(layer, "_has_custom__call__", False)
+    _k = dict(cascade_kwargs_if_possible=True, argspec_fn=getfullargspec)
 
-    filtered_kwargs = filter_kwargs(kwargs, layer, cascade_kwargs_if_possible=True)
+    filtered_kwargs = filter_kwargs(kwargs, layer, **_k)
 
     if not has_custom_call:
         if isinstance(layer, tf.keras.layers.Lambda):
-            filtered_kwargs = filter_kwargs(kwargs, layer.function, cascade_kwargs_if_possible=True)
+            filtered_kwargs = filter_kwargs(kwargs, layer.function, **_k)
         else:
             # We need to check the call method on the type since when the model gets saved
             # we can't infer the kwargs from using `layer.call` directly
             call_fn = type(layer).call
 
-            filtered_kwargs = filter_kwargs(
-                filtered_kwargs, call_fn, cascade_kwargs_if_possible=True
-            )
+            filtered_kwargs = filter_kwargs(filtered_kwargs, call_fn, **_k)
 
     return layer(inputs, *args, **filtered_kwargs)
 

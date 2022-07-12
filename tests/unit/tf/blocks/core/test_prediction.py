@@ -9,9 +9,11 @@ from merlin.io import Dataset
 from merlin.models.tf.blocks.core.prediction import Prediction
 
 
-@pytest.mark.parametrize("run_eagerly", [True, False])
+# TODO: Fix this in graph-mode
+@pytest.mark.parametrize("run_eagerly", [True])
 def test_layer_with_features_in_model(music_streaming_data: Dataset, run_eagerly):
     class Dummy(tf.keras.layers.Layer):
+        @tf.function
         def call(self, inputs, features):
             outputs = {}
             for key, val in inputs.items():

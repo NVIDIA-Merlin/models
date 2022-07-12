@@ -664,6 +664,8 @@ class Model(BaseModel):
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
             for block in self.blocks:
+                block._feature_shapes = feature_shapes
+                block._feature_dtypes = feature_dtypes
                 for child in block.submodules:
                     child._feature_shapes = feature_shapes
                     child._feature_dtypes = feature_dtypes
