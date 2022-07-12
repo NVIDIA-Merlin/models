@@ -62,7 +62,8 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
                 tf.gather(inputs[self.item_id_col], sampled_positive_idx),
             )
         )
-        mask = tf.reduce_all(mask, 1)  # get the batch dimension
+        if mask.shape.ndims > 1:
+            mask = tf.reduce_all(mask, 1)  # get the batch dimension
         # keep all the positive inputs
         mask = tf.concat([tf.repeat(True, batch_size), mask], 0)
 
