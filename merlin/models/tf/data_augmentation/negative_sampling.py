@@ -23,10 +23,8 @@ from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.schema import Schema, Tags
 
 
-# grow_batch.InBatchNegativeSamplingUniform
-# grow_batch.InBatchNegativeSamplingPopularityBased
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class AddRandomNegativesToBatch(Block):
+class UniformNegativeSampling(Block):
     """Random in-batch negative sampling.
 
     Only works with positive-only binary-target batches.
@@ -34,7 +32,7 @@ class AddRandomNegativesToBatch(Block):
 
     def __init__(self, schema: Schema, n_per_positive: int, seed: Optional[int] = None, **kwargs):
         """Instantiate a sampling block."""
-        super(AddRandomNegativesToBatch, self).__init__(**kwargs)
+        super(UniformNegativeSampling, self).__init__(**kwargs)
         self.n_per_positive = n_per_positive
         self.item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.schema = schema.select_by_tag(Tags.ITEM)
@@ -42,7 +40,7 @@ class AddRandomNegativesToBatch(Block):
 
     def call(self, inputs: TabularData, targets=None, training=False) -> TabularData:
         """Extend batch of inputs and targets with negatives."""
-        # 1. Select item-features -> ItemCollection
+        # 1. Select item-features
         fist_input = list(inputs.values())[0]
         batch_size = (
             fist_input.shape[0] if not isinstance(fist_input, tuple) else fist_input[1].shape[0]
@@ -50,7 +48,7 @@ class AddRandomNegativesToBatch(Block):
 
         sampled_num_negatives = self.n_per_positive * batch_size
         # 2. Sample `n_per_positive * batch_size` items at random
-        sampled_ids = tf.random.uniform(
+        sampled_positive_idx = tf.random.uniform(
             (sampled_num_negatives,),
             maxval=batch_size,
             dtype=tf.int32,
@@ -61,7 +59,7 @@ class AddRandomNegativesToBatch(Block):
         mask = tf.logical_not(
             tf.equal(
                 tf.repeat(inputs[self.item_id_col], self.n_per_positive, axis=0),
-                tf.gather(inputs[self.item_id_col], sampled_ids),
+                tf.gather(inputs[self.item_id_col], sampled_positive_idx),
             )
         )
         mask = tf.squeeze(mask)
@@ -78,14 +76,14 @@ class AddRandomNegativesToBatch(Block):
                 val = list_col_to_ragged(val)
 
             if name in item_cols:
-                negatives = tf.gather(val, sampled_ids)
-                outputs[name] = tf.concat([val, negatives], axis=0)
+                negatives = tf.gather(val, sampled_positive_idx)
             else:
                 if isinstance(val, tf.RaggedTensor):
                     negatives = tf.concat([val] * self.n_per_positive, axis=0)
                 else:
                     negatives = tf.repeat(val, self.n_per_positive, axis=0)
-                outputs[name] = tf.concat([val, negatives], axis=0)
+
+            outputs[name] = tf.concat([val, negatives], axis=0)
             outputs[name] = tf.ragged.boolean_mask(outputs[name], mask)
 
         # update targets if present
