@@ -17,4 +17,4 @@
 #!/bin/bash
 set -e
 
-TF_GPU_ALLOCATOR=cuda_malloc_async pytest -rxs tests/unit
+CUDA_VISIBLE_DEVICES=0 TF_GPU_ALLOCATOR=cuda_malloc_async python -m pytest -rxs tests/unit

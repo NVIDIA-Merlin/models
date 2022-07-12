@@ -333,7 +333,7 @@ def test_mf_advanced_options(train_eval_datasets_last_fm):
         # eval_steps=100,
         train_epochs=1,
         train_steps_per_epoch=None,
-        eval_steps=5000,
+        eval_steps=2000,
         log_to_wandb=True,
         wandb_project="merlin-ci",
     )
