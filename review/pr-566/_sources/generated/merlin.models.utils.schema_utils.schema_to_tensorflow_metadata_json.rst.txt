@@ -1,0 +1,6 @@
+﻿merlin.models.utils.schema\_utils.schema\_to\_tensorflow\_metadata\_json
+========================================================================
+
+.. currentmodule:: merlin.models.utils.schema_utils
+
+.. autofunction:: schema_to_tensorflow_metadata_json
