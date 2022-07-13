@@ -21,6 +21,7 @@ from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.schema import Schema, Tags
+from merlin.models.utils import schema_utils
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -116,3 +117,26 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
             return Prediction(outputs, targets)
 
         return outputs
+
+    def get_config(self):
+        """Returns the config of the layer as a Python dictionary."""
+        config = super().get_config()
+        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
+        config["n_per_positive"] = self.n_per_positive
+        config["seed"] = self.seed
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Creates layer from its config. Returning the instance."""
+        schema = schema_utils.tensorflow_metadata_json_to_schema(config.pop("schema"))
+        n_per_positive = config.pop("n_per_positive")
+        seed = None
+        if "seed" in config:
+            seed = config.pop("seed")
+        kwargs = config
+        return cls(schema, n_per_positive, seed=seed, **kwargs)
+
+    def compute_output_shape(self, input_shape):
+        """Computes the output shape of the layer."""
+        return input_shape
