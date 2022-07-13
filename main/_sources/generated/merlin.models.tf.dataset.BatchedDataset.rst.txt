@@ -17,6 +17,8 @@
       ~BatchedDataset.epochs
       ~BatchedDataset.make_tensors
       ~BatchedDataset.map
+      ~BatchedDataset.map_features
+      ~BatchedDataset.map_targets
       ~BatchedDataset.on_epoch_end
       ~BatchedDataset.stop
    

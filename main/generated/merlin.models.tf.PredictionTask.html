@@ -136,8 +136,8 @@ by default None</p></li>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_weight</span></code>([name, shape, dtype, …])</p></td>
 <td><p>Adds a new variable to the layer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code>(input_shape)</p></td>
-<td><p>Creates the variables of the layer (optional, for subclass implementers).</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.PredictionTask.build" title="merlin.models.tf.PredictionTask.build"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code></a>(input_shape[, features_shape])</p></td>
+<td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.PredictionTask.build_task" title="merlin.models.tf.PredictionTask.build_task"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build_task</span></code></a>(input_shape, schema, body, **kwargs)</p></td>
 <td><p></p></td>
@@ -351,6 +351,11 @@ before computing loss and metrics.</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.PredictionTask.build">
+<code class="sig-name descname"><span class="pre">build</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features_shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/merlin/models/tf/prediction_tasks/base.html#PredictionTask.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.PredictionTask.build" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="merlin.models.tf.PredictionTask.build_task">

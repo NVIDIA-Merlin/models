@@ -713,8 +713,16 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">false_output_shape</span> <span class="o">=</span> <span class="n">input_shape</span>
 
-        <span class="k">if</span> <span class="n">true_output_shape</span> <span class="o">!=</span> <span class="n">false_output_shape</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Both true and false branches must return the same output shape&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">true_output_shape</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">true_output_shape</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">true_output_shape</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">assert_is_compatible_with</span><span class="p">(</span><span class="n">false_output_shape</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">true_output_shape</span><span class="o">.</span><span class="n">assert_is_compatible_with</span><span class="p">(</span><span class="n">false_output_shape</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Both true and false branches must return the same output shape&quot;</span>
+            <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
 
         <span class="k">return</span> <span class="n">true_output_shape</span>
 
