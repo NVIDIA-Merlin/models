@@ -253,10 +253,11 @@ def test_two_tower_advanced_options(ecommerce_data):
         train_ds,
         eval_ds,
         train_epochs=1,
-        train_steps_per_epoch=20,
-        eval_steps=10,
-        train_batch_size=128,
-        eval_batch_size=128,
+        train_steps_per_epoch=None,
+        eval_steps=None,
+        train_batch_size=16,
+        eval_batch_size=16,
+        topk_metrics_cutoffs="10",
         log_to_wandb=False,
     )
     assert metrics["loss-final"] > 0.0
@@ -271,10 +272,11 @@ def test_mf_advanced_options(ecommerce_data):
         train_ds,
         eval_ds,
         train_epochs=1,
-        train_steps_per_epoch=20,
-        eval_steps=10,
-        train_batch_size=128,
-        eval_batch_size=128,
+        train_steps_per_epoch=None,
+        eval_steps=None,
+        train_batch_size=16,
+        eval_batch_size=16,
+        topk_metrics_cutoffs="10",
         log_to_wandb=False,
     )
     assert metrics["loss-final"] > 0.0

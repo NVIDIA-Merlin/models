@@ -89,6 +89,7 @@ def train_eval_two_tower(
     eval_steps: Optional[int] = 2000,
     train_batch_size: int = 512,
     eval_batch_size: int = 512,
+    topk_metrics_cutoffs: str = "10,50,100",
     log_to_wandb: bool = False,
     wandb_project: str = None,
     config_callback: Callable = None,
@@ -109,6 +110,7 @@ def train_eval_two_tower(
     runner_cfg.eval_steps = eval_steps
     runner_cfg.train_batch_size = train_batch_size
     runner_cfg.eval_batch_size = eval_batch_size
+    runner_cfg.metrics.topk_metrics_cutoffs = topk_metrics_cutoffs
 
     hparams = extract_hparams_from_config(runner_cfg)
 
@@ -125,6 +127,7 @@ def train_eval_mf(
     eval_steps: Optional[int] = 2000,
     train_batch_size: int = 512,
     eval_batch_size: int = 512,
+    topk_metrics_cutoffs: str = "10,50,100",
     log_to_wandb: bool = False,
     wandb_project: str = None,
     config_callback: Callable = None,
@@ -145,6 +148,7 @@ def train_eval_mf(
     runner_cfg.eval_steps = eval_steps
     runner_cfg.train_batch_size = train_batch_size
     runner_cfg.eval_batch_size = eval_batch_size
+    runner_cfg.metrics.topk_metrics_cutoffs = topk_metrics_cutoffs
 
     runner_cfg.callbacks.train_batch_size = runner_cfg.train_batch_size
 
@@ -163,6 +167,7 @@ def train_eval_two_tower_for_lastfm(
     eval_steps: Optional[int] = 2000,
     train_batch_size: int = 512,
     eval_batch_size: int = 512,
+    topk_metrics_cutoffs: str = "10,50,100",
     log_to_wandb: bool = False,
     wandb_project: str = None,
 ):
@@ -174,6 +179,7 @@ def train_eval_two_tower_for_lastfm(
         eval_steps,
         train_batch_size,
         eval_batch_size,
+        topk_metrics_cutoffs,
         log_to_wandb,
         wandb_project,
         config_callback=set_lastfm_two_tower_hparams_config,
@@ -188,6 +194,7 @@ def train_eval_mf_for_lastfm(
     eval_steps: Optional[int] = 2000,
     train_batch_size: int = 512,
     eval_batch_size: int = 512,
+    topk_metrics_cutoffs: str = "10,50,100",
     log_to_wandb: bool = False,
     wandb_project: str = None,
 ):
@@ -199,6 +206,7 @@ def train_eval_mf_for_lastfm(
         eval_steps,
         train_batch_size,
         eval_batch_size,
+        topk_metrics_cutoffs,
         log_to_wandb,
         wandb_project,
         config_callback=set_lastfm_mf_hparams_config,
