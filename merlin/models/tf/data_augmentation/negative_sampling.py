@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional, Union
+from typing import Optional
 
 import tensorflow as tf
 
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
+from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
 
@@ -38,13 +39,16 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
 
-    def call(self, inputs: TabularData, targets=None) -> Union[Prediction, TabularData]:
+    def call(self, inputs: TabularData, targets=None) -> Prediction:
         """Extend batch of inputs and targets with negatives."""
         # 1. Select item-features
         fist_input = list(inputs.values())[0]
         batch_size = (
             fist_input.shape[0] if not isinstance(fist_input, tuple) else fist_input[1].shape[0]
         )
+
+        if batch_size is None:
+            return Prediction(inputs, targets)
 
         sampled_num_negatives = self.n_per_positive * batch_size
         # 2. Sample `n_per_positive * batch_size` items at random
@@ -113,6 +117,27 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
             else:
                 raise ValueError("Unsupported target type: {}".format(type(targets)))
 
-            return Prediction(outputs, targets)
+        return Prediction(outputs, targets)
 
-        return outputs
+    def get_config(self):
+        """Returns the config of the layer as a Python dictionary."""
+        config = super().get_config()
+        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
+        config["n_per_positive"] = self.n_per_positive
+        config["seed"] = self.seed
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Creates layer from its config. Returning the instance."""
+        schema = schema_utils.tensorflow_metadata_json_to_schema(config.pop("schema"))
+        n_per_positive = config.pop("n_per_positive")
+        seed = None
+        if "seed" in config:
+            seed = config.pop("seed")
+        kwargs = config
+        return cls(schema, n_per_positive, seed=seed, **kwargs)
+
+    def compute_output_shape(self, input_shape):
+        """Computes the output shape of the layer."""
+        return input_shape
