@@ -81,6 +81,7 @@ class TestAddRandomNegativesToBatch:
         )
 
     def test_in_model(self, music_streaming_data: Dataset, tf_random_seed: int):
+        dataset = music_streaming_data
         class Training(tf.keras.layers.Layer):
             def call(self, inputs, training=False):
                 return training
@@ -105,6 +106,8 @@ class TestAddRandomNegativesToBatch:
 
         without_negatives = model(features)
         assert without_negatives.shape[0] == batch_size
+
+        testing_utils.model_test(model, dataset)
 
     def test_model_with_dataloader(self, music_streaming_data: Dataset, tf_random_seed: int):
         add_negatives = UniformNegativeSampling(music_streaming_data.schema, 5, seed=tf_random_seed)
