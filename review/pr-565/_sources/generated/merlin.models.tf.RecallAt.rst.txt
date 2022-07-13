@@ -1,0 +1,88 @@
+﻿merlin.models.tf.RecallAt
+=========================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: RecallAt
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~RecallAt.__init__
+      ~RecallAt.add_loss
+      ~RecallAt.add_metric
+      ~RecallAt.add_update
+      ~RecallAt.add_variable
+      ~RecallAt.add_weight
+      ~RecallAt.build
+      ~RecallAt.call
+      ~RecallAt.check_cast_inputs
+      ~RecallAt.compute_mask
+      ~RecallAt.compute_output_shape
+      ~RecallAt.compute_output_signature
+      ~RecallAt.count_params
+      ~RecallAt.finalize_state
+      ~RecallAt.from_config
+      ~RecallAt.get_config
+      ~RecallAt.get_input_at
+      ~RecallAt.get_input_mask_at
+      ~RecallAt.get_input_shape_at
+      ~RecallAt.get_output_at
+      ~RecallAt.get_output_mask_at
+      ~RecallAt.get_output_shape_at
+      ~RecallAt.get_weights
+      ~RecallAt.merge_state
+      ~RecallAt.reset_state
+      ~RecallAt.reset_states
+      ~RecallAt.result
+      ~RecallAt.set_weights
+      ~RecallAt.update_state
+      ~RecallAt.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~RecallAt.activity_regularizer
+      ~RecallAt.compute_dtype
+      ~RecallAt.dtype
+      ~RecallAt.dtype_policy
+      ~RecallAt.dynamic
+      ~RecallAt.inbound_nodes
+      ~RecallAt.input
+      ~RecallAt.input_mask
+      ~RecallAt.input_shape
+      ~RecallAt.input_spec
+      ~RecallAt.label_relevant_counts
+      ~RecallAt.losses
+      ~RecallAt.metrics
+      ~RecallAt.name
+      ~RecallAt.name_scope
+      ~RecallAt.non_trainable_variables
+      ~RecallAt.non_trainable_weights
+      ~RecallAt.outbound_nodes
+      ~RecallAt.output
+      ~RecallAt.output_mask
+      ~RecallAt.output_shape
+      ~RecallAt.pre_sorted
+      ~RecallAt.stateful
+      ~RecallAt.submodules
+      ~RecallAt.supports_masking
+      ~RecallAt.trainable
+      ~RecallAt.trainable_variables
+      ~RecallAt.trainable_weights
+      ~RecallAt.updates
+      ~RecallAt.variable_dtype
+      ~RecallAt.variables
+      ~RecallAt.weights
+   
+   
