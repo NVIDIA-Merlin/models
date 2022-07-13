@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional, Union
+from typing import Optional
 
 import tensorflow as tf
 
@@ -39,7 +39,7 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
 
-    def call(self, inputs: TabularData, targets=None) -> Union[Prediction, TabularData]:
+    def call(self, inputs: TabularData, targets=None) -> Prediction:
         """Extend batch of inputs and targets with negatives."""
         # 1. Select item-features
         fist_input = list(inputs.values())[0]
@@ -48,8 +48,6 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         )
 
         if batch_size is None:
-            if targets is None:
-                return inputs
             return Prediction(inputs, targets)
 
         sampled_num_negatives = self.n_per_positive * batch_size
@@ -119,9 +117,7 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
             else:
                 raise ValueError("Unsupported target type: {}".format(type(targets)))
 
-            return Prediction(outputs, targets)
-
-        return outputs
+        return Prediction(outputs, targets)
 
     def get_config(self):
         """Returns the config of the layer as a Python dictionary."""

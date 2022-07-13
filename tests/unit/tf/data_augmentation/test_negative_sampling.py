@@ -73,7 +73,7 @@ class TestAddRandomNegativesToBatch:
         )
 
         sampler = UniformNegativeSampling(schema, 5, seed=tf_random_seed)
-        with_negatives = sampler(features)
+        with_negatives = sampler(features).outputs
 
         max_batch_size = batch_size + batch_size * n_per_positive
         assert all(
@@ -95,7 +95,10 @@ class TestAddRandomNegativesToBatch:
             def call(self, inputs, targets=None):
                 if targets is not None:
                     return Prediction(inputs, targets)
-                return inputs
+                return Prediction(inputs)
+
+            def compute_output_shape(self, input_shape):
+                return input_shape
 
         sampling = mm.Cond(
             Training(),
