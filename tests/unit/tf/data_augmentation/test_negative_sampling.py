@@ -91,11 +91,9 @@ class TestAddRandomNegativesToBatch:
                 return training
 
         @tf.keras.utils.register_keras_serializable(package="merlin.models")
-        class Identity(tf.keras.layers.Layer):
+        class PredictionIdentity(tf.keras.layers.Layer):
             def call(self, inputs, targets=None):
-                if targets is not None:
-                    return Prediction(inputs, targets)
-                return Prediction(inputs)
+                return Prediction(inputs, targets)
 
             def compute_output_shape(self, input_shape):
                 return input_shape
@@ -103,7 +101,7 @@ class TestAddRandomNegativesToBatch:
         sampling = mm.Cond(
             Training(),
             UniformNegativeSampling(schema, 5, seed=tf_random_seed),
-            Identity(),
+            PredictionIdentity(),
         )
         model = mm.Model(
             mm.InputBlock(schema),
