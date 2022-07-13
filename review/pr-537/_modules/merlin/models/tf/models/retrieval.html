@@ -75,12 +75,11 @@
   <h1>Source code for merlin.models.tf.models.retrieval</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.aggregation</span> <span class="kn">import</span> <span class="n">SequenceAggregation</span><span class="p">,</span> <span class="n">SequenceAggregator</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.mlp</span> <span class="kn">import</span> <span class="n">MLPBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.matrix_factorization</span> <span class="kn">import</span> <span class="n">QueryItemIdsEmbeddingsBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.two_tower</span> <span class="kn">import</span> <span class="n">TwoTowerBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.base</span> <span class="kn">import</span> <span class="n">ItemSampler</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.base</span> <span class="kn">import</span> <span class="n">InputBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingOptions</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.base</span> <span class="kn">import</span> <span class="n">Model</span><span class="p">,</span> <span class="n">RetrievalModel</span>
@@ -275,14 +274,12 @@
 
 <div class="viewcode-block" id="YoutubeDNNRetrievalModel"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.YoutubeDNNRetrievalModel.html#merlin.models.tf.YoutubeDNNRetrievalModel">[docs]</a><span class="k">def</span> <span class="nf">YoutubeDNNRetrievalModel</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
-    <span class="n">max_seq_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">aggregation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;concat&quot;</span><span class="p">,</span>
     <span class="n">top_block</span><span class="p">:</span> <span class="n">Block</span> <span class="o">=</span> <span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">]),</span>
     <span class="n">l2_normalization</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">extra_pre_call</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">task_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">logits_temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">seq_aggregator</span><span class="p">:</span> <span class="n">Block</span> <span class="o">=</span> <span class="n">SequenceAggregator</span><span class="p">(</span><span class="n">SequenceAggregation</span><span class="o">.</span><span class="n">MASKED_MEAN</span><span class="p">),</span>
     <span class="n">sampled_softmax</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">num_sampled</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">min_sampled_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
@@ -339,8 +336,6 @@
 <span class="sd">    logits_temperature: float</span>
 <span class="sd">        Parameter used to reduce model overconfidence, so that logits / T.</span>
 <span class="sd">        Defaults to 1.</span>
-<span class="sd">    seq_aggregator: Block</span>
-<span class="sd">        The `Block` to aggregate the sequence of features.</span>
 <span class="sd">    sampled_softmax: bool</span>
 <span class="sd">        Compute the logits scores over all items of the catalog or</span>
 <span class="sd">        generate a subset of candidates</span>
@@ -362,17 +357,11 @@
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">InputBlock</span><span class="p">(</span>
         <span class="n">schema</span><span class="p">,</span>
         <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span>
-        <span class="n">seq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">max_seq_length</span><span class="o">=</span><span class="n">max_seq_length</span><span class="p">,</span>
-        <span class="n">masking</span><span class="o">=</span><span class="s2">&quot;clm&quot;</span><span class="p">,</span>
-        <span class="n">split_sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">seq_aggregator</span><span class="o">=</span><span class="n">seq_aggregator</span><span class="p">,</span>
         <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">task</span> <span class="o">=</span> <span class="n">NextItemPredictionTask</span><span class="p">(</span>
         <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
-        <span class="n">masking</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">weight_tying</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">extra_pre_call</span><span class="o">=</span><span class="n">extra_pre_call</span><span class="p">,</span>
         <span class="n">task_block</span><span class="o">=</span><span class="n">task_block</span><span class="p">,</span>

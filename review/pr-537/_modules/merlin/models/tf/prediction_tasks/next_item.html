@@ -92,20 +92,18 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.layers.base</span> <span class="kn">import</span> <span class="n">Layer</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Layer</span>
 
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.masking</span> <span class="kn">import</span> <span class="n">MaskingHead</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.base</span> <span class="kn">import</span> <span class="n">ItemRetrievalScorer</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.cross_batch</span> <span class="kn">import</span> <span class="n">PopularityBasedSampler</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ItemsPredictionWeightTying</span><span class="p">,</span>
     <span class="n">L2Norm</span><span class="p">,</span>
     <span class="n">LabelToOneHot</span><span class="p">,</span>
     <span class="n">LogitsTemperatureScaler</span><span class="p">,</span>
     <span class="n">PopularityLogitsCorrection</span><span class="p">,</span>
-    <span class="n">RemovePad3D</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.base</span> <span class="kn">import</span> <span class="n">ItemRetrievalScorer</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.cross_batch</span> <span class="kn">import</span> <span class="n">PopularityBasedSampler</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.classification</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CategFeaturePrediction</span><span class="p">,</span>
     <span class="n">MultiClassClassificationTask</span><span class="p">,</span>
@@ -200,7 +198,6 @@
 <div class="viewcode-block" id="NextItemPredictionTask"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.NextItemPredictionTask.html#merlin.models.tf.NextItemPredictionTask">[docs]</a><span class="k">def</span> <span class="nf">NextItemPredictionTask</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
     <span class="n">weight_tying</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">extra_pre_call</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">target_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">task_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -220,9 +217,6 @@
 <span class="sd">            The schema object including features to use and their properties.</span>
 <span class="sd">        weight_tying: bool</span>
 <span class="sd">            The item_id embedding weights are shared with the prediction network layer.</span>
-<span class="sd">            Defaults to True</span>
-<span class="sd">        masking: bool</span>
-<span class="sd">            Whether masking is used to transform inputs and targets or not</span>
 <span class="sd">            Defaults to True</span>
 <span class="sd">        extra_pre_call: Optional[PredictionBlock]</span>
 <span class="sd">            Optional extra pre-call block. Defaults to None.</span>
@@ -262,8 +256,6 @@
 <span class="sd">        PredictionTask</span>
 <span class="sd">            The next item prediction task</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">item_id_feature_name</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
     <span class="k">if</span> <span class="n">sampled_softmax</span><span class="p">:</span>
         <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">ItemsPredictionPopSampled</span><span class="p">(</span>
             <span class="n">schema</span><span class="p">,</span> <span class="n">num_sampled</span><span class="o">=</span><span class="n">num_sampled</span><span class="p">,</span> <span class="n">min_id</span><span class="o">=</span><span class="n">min_sampled_id</span>
@@ -283,11 +275,6 @@
 
     <span class="k">if</span> <span class="n">logits_temperature</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">prediction_call</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">LogitsTemperatureScaler</span><span class="p">(</span><span class="n">logits_temperature</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="n">masking</span><span class="p">:</span>
-        <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">MaskingHead</span><span class="p">(</span><span class="n">item_id_feature_name</span><span class="o">=</span><span class="n">item_id_feature_name</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
-            <span class="n">RemovePad3D</span><span class="p">(),</span> <span class="n">prediction_call</span>
-        <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">l2_normalization</span><span class="p">:</span>
         <span class="n">prediction_call</span> <span class="o">=</span> <span class="n">L2Norm</span><span class="p">()</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">prediction_call</span><span class="p">)</span>
