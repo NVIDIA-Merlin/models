@@ -19,16 +19,11 @@ from typing import Dict, Optional, Sequence, Union
 import tensorflow as tf
 from tensorflow.python.ops import embedding_ops
 
-from merlin.models.tf.blocks.core.base import (
-    Block,
-    BlockType,
-    EmbeddingWithMetadata,
-    PredictionOutput,
-)
-from merlin.models.tf.blocks.core.combinators import ParallelBlock
-from merlin.models.tf.blocks.core.tabular import Filter, TabularAggregationType
-from merlin.models.tf.blocks.core.transformations import L2Norm
 from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.core.base import Block, BlockType, EmbeddingWithMetadata, PredictionOutput
+from merlin.models.tf.core.combinators import ParallelBlock
+from merlin.models.tf.core.tabular import Filter, TabularAggregationType
+from merlin.models.tf.core.transformations import L2Norm
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (

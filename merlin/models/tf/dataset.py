@@ -544,7 +544,7 @@ def sample_batch(
     batch: Dict[tf.tensor]
         dictionary of input tensors.
     """
-    from merlin.models.tf.blocks.core.transformations import AsDenseFeatures
+    from merlin.models.tf.core.transformations import AsDenseFeatures
 
     inputs, targets = next(iter(BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)))
     if to_dense:

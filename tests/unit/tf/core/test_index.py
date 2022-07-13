@@ -78,7 +78,7 @@ def test_topk_recommender_outputs(ecommerce_data: Dataset, batch_size=100):
     import tensorflow as tf
 
     import merlin.models.tf.dataset as tf_dataloader
-    from merlin.models.tf.blocks.core.index import IndexBlock
+    from merlin.models.tf.core.index import IndexBlock
     from merlin.models.utils.dataset import unique_rows_by_features
 
     def numpy_recall(labels, top_item_ids, k):

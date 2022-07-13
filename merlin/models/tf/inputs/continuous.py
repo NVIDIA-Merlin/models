@@ -18,8 +18,8 @@ from typing import List, Optional
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.core.base import BlockType
-from merlin.models.tf.blocks.core.tabular import (
+from merlin.models.tf.core.base import BlockType
+from merlin.models.tf.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Filter,
     TabularAggregationType,
