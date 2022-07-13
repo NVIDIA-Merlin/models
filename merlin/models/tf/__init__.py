@@ -27,7 +27,6 @@ from merlin.models.tf.core.transformations import (
     CategoricalOneHot,
     ExpandDims,
     LabelToOneHot,
-    StochasticSwapNoise,
 )
 
 configure_tensorflow()
@@ -69,6 +68,7 @@ from merlin.models.tf.core.base import (
     right_shift_layer,
 )
 from merlin.models.tf.core.combinators import Cond, ParallelBlock, ResidualBlock, SequentialBlock
+from merlin.models.tf.data_augmentation.noise import StochasticSwapNoise
 from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
