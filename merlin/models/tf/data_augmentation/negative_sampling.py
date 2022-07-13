@@ -20,8 +20,8 @@ import tensorflow as tf
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
-from merlin.schema import Schema, Tags
 from merlin.models.utils import schema_utils
+from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
