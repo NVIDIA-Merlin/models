@@ -47,6 +47,11 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
             fist_input.shape[0] if not isinstance(fist_input, tuple) else fist_input[1].shape[0]
         )
 
+        if batch_size is None:
+            if targets is None:
+                return inputs
+            return Prediction(inputs, targets)
+
         sampled_num_negatives = self.n_per_positive * batch_size
         # 2. Sample `n_per_positive * batch_size` items at random
         sampled_positive_idx = tf.random.uniform(
