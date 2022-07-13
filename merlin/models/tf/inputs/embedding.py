@@ -26,15 +26,15 @@ from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableCon
 import merlin.io
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
-from merlin.models.tf.blocks.core.base import Block, BlockType
-from merlin.models.tf.blocks.core.combinators import SequentialBlock
-from merlin.models.tf.blocks.core.tabular import (
+from merlin.models.tf.core.base import Block, BlockType
+from merlin.models.tf.core.combinators import SequentialBlock
+from merlin.models.tf.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Filter,
     TabularAggregationType,
     TabularBlock,
 )
-from merlin.models.tf.blocks.core.transformations import AsDenseFeatures, AsSparseFeatures
+from merlin.models.tf.core.transformations import AsDenseFeatures, AsSparseFeatures
 
 # pylint has issues with TF array ops, so disable checks until fixed:
 # https://github.com/PyCQA/pylint/issues/3613

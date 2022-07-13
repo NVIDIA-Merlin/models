@@ -1,10 +1,10 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
-from merlin.models.tf.blocks.core.base import Block, BlockType
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
+from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model, RetrievalModel

@@ -17,7 +17,7 @@ from typing import Optional, Union
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.core.prediction import Prediction
+from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.schema import Schema, Tags

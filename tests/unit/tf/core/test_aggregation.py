@@ -20,7 +20,7 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
-from merlin.models.tf.blocks.core.aggregation import ElementWiseMultiply
+from merlin.models.tf.core.aggregation import ElementWiseMultiply
 from merlin.schema import Tags
 
 

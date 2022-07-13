@@ -18,6 +18,17 @@
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.loader.tf_utils import configure_tensorflow
+from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
+from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
+from merlin.models.tf.core.transformations import (
+    AsDenseFeatures,
+    AsRaggedFeatures,
+    AsSparseFeatures,
+    CategoricalOneHot,
+    ExpandDims,
+    LabelToOneHot,
+    StochasticSwapNoise,
+)
 
 configure_tensorflow()
 
@@ -28,37 +39,6 @@ from tensorflow.keras.optimizers import Optimizer
 from tensorflow.python.training.tracking.data_structures import ListWrapper, _DictWrapper
 
 from merlin.models.loader.tf_utils import configure_tensorflow
-from merlin.models.tf.blocks.core.aggregation import (
-    ConcatFeatures,
-    ElementwiseSum,
-    ElementwiseSumItemMulti,
-    StackFeatures,
-)
-from merlin.models.tf.blocks.core.base import (
-    Block,
-    EmbeddingWithMetadata,
-    ModelContext,
-    NoOp,
-    right_shift_layer,
-)
-from merlin.models.tf.blocks.core.combinators import (
-    Cond,
-    ParallelBlock,
-    ResidualBlock,
-    SequentialBlock,
-)
-from merlin.models.tf.blocks.core.index import IndexBlock, TopKIndexBlock
-from merlin.models.tf.blocks.core.prediction import PredictionContext
-from merlin.models.tf.blocks.core.tabular import AsTabular, Filter, TabularBlock
-from merlin.models.tf.blocks.core.transformations import (
-    AsDenseFeatures,
-    AsRaggedFeatures,
-    AsSparseFeatures,
-    CategoricalOneHot,
-    ExpandDims,
-    LabelToOneHot,
-    StochasticSwapNoise,
-)
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
@@ -75,6 +55,20 @@ from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.blocks.sampling.queue import FIFOQueue
+from merlin.models.tf.core.aggregation import (
+    ConcatFeatures,
+    ElementwiseSum,
+    ElementwiseSumItemMulti,
+    StackFeatures,
+)
+from merlin.models.tf.core.base import (
+    Block,
+    EmbeddingWithMetadata,
+    ModelContext,
+    NoOp,
+    right_shift_layer,
+)
+from merlin.models.tf.core.combinators import Cond, ParallelBlock, ResidualBlock, SequentialBlock
 from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
@@ -181,7 +175,6 @@ __all__ = [
     "AvgPrecisionAt",
     "RecallAt",
     "BaseModel",
-    "PredictionContext",
     "TopKMetricsAggregator",
     "Model",
     "RetrievalModel",
