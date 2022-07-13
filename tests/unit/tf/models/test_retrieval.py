@@ -90,7 +90,7 @@ def test_two_tower_model_with_custom_options(
 
     from tensorflow.keras import regularizers
 
-    from merlin.models.tf.blocks.core.transformations import PopularityLogitsCorrection
+    from merlin.models.tf.core.transformations import PopularityLogitsCorrection
     from merlin.models.utils import schema_utils
 
     data = ecommerce_data

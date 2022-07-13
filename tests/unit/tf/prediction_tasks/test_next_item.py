@@ -18,7 +18,7 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
-from merlin.models.tf.blocks.core.base import PredictionOutput
+from merlin.models.tf.core.base import PredictionOutput
 
 
 @pytest.mark.parametrize("ignore_last_batch_on_sample", [True, False])

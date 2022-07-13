@@ -19,7 +19,7 @@ from typing import List, Optional
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from merlin.models.tf.blocks.core.base import EmbeddingWithMetadata
+from merlin.models.tf.core.base import EmbeddingWithMetadata
 from merlin.models.tf.typing import TabularData
 
 

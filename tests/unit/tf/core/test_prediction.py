@@ -6,7 +6,7 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.blocks.core.prediction import Prediction
+from merlin.models.tf.core.prediction import Prediction
 
 
 # TODO: Fix this in graph-mode

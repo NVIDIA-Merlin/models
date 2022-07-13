@@ -35,7 +35,7 @@ def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tm
     import numpy as np
     import pandas as pd
 
-    from merlin.models.tf.blocks.core.aggregation import CosineSimilarity
+    from merlin.models.tf.core.aggregation import CosineSimilarity
 
     mf = ml.MatrixFactorizationBlock(
         music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
