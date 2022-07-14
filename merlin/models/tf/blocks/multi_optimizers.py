@@ -21,10 +21,12 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.utils import tf_utils
 
 Tensor = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class MultiOptimizer(tf.keras.optimizers.Optimizer):
     """An optimizer that composes multiple individual optimizers.
 
@@ -98,7 +100,11 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
 
         attribute = "_trainable_weights"
         for optimizer, block in self.optimizers_and_blocks:
-            # BFS iterate all submodule except ModelContext
+            # Iterate all submodule (BFS) except ModelContext
+            # Note: block.trainable_variables is not used because modelcontext contain all
+            # variables, you may iterate the same variable twice in different block, causing
+            # disjoint error. Consider replace this iteration method to simply call
+            # block.trainable_variables in the future when ModelContext is deleted
             deque = collections.deque()
             deque.append(block)
             while deque:
@@ -116,6 +122,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
                 for sub_module in current_module._flatten_modules(
                     include_self=False, recursive=False
                 ):
+                    # filter out modelcontext to avoiding assign two optimizers to one variable
                     if type(sub_module) != ml.ModelContext:
                         deque.append(sub_module)
 
@@ -124,8 +131,10 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
             if v.ref() in var_optimizer_dict:
                 optimizer = var_optimizer_dict[v.ref()]
                 optimizer_grads_and_vars[optimizer].append((g, v))
+            # for variables not in optimizers_and_blocks, assign default optimizer
             else:
                 optimizer_grads_and_vars[self.default_optimizer].append((g, v))
+
         for optimizer, opt_grads_and_vars in optimizer_grads_and_vars.items():
             optimizer.apply_gradients(
                 opt_grads_and_vars,
@@ -134,11 +143,29 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
             )
 
     def get_config(self):
-        raise NotImplementedError()
+        config = dict()
+        config = tf_utils.maybe_serialize_keras_objects(self, config, ["default_optimizer"])
+        config["name"] = self.name
+        config["optimizers_and_blocks"] = []
+        for optimizer, block in self.optimizers_and_blocks:
+            config["optimizers_and_blocks"].append(
+                (
+                    tf.keras.utils.serialize_keras_object(optimizer),
+                    tf.keras.utils.serialize_keras_object(block),
+                )
+            )
+        return config
 
     @classmethod
     def from_config(cls, config):
-        raise NotImplementedError()
+        config["default_optimizer"] = tf.keras.optimizers.deserialize(config["default_optimizer"])
+        optimizers_and_blocks = []
+        for optimizer, block in config["optimizers_and_blocks"]:
+            optimizers_and_blocks.append(
+                (tf.keras.optimizers.deserialize(optimizer), tf.keras.layers.deserialize(block))
+            )
+        config.update({"optimizers_and_blocks": optimizers_and_blocks})
+        return cls(**config)
 
     @property
     def iterations(self):
@@ -168,4 +195,4 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
     @property
     def optimizers(self) -> List[tf.keras.optimizers.Optimizer]:
         """Returns the optimizers in composite optimizer (in the original order)."""
-        return [optimizer for optimizer, _ in self._optimizers_and_blocks]
+        return [optimizer for optimizer, _ in self.optimizers_and_blocks]

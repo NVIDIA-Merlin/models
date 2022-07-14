@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-
 import numpy as np
 import pytest
 import tensorflow as tf
@@ -23,6 +22,7 @@ from tensorflow.test import TestCase
 import merlin.models.tf as ml
 from merlin.datasets.synthetic import generate_data
 from merlin.models.tf.blocks.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
+from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
@@ -56,7 +56,9 @@ def test_optimizers(optimizers):
     train_schema = testing_data.schema.select_by_name(
         names=["user_categories", "user_brands", "user_shops", "user_intensions"]
     )
-
+    # "first_opt" means set optimizer of the model with the first optimizers (optimizers[0])
+    # "multi_opt" means set optimizer with multi_optimizers, first layer with the first optimizer
+    # and the second layer with the second optimizer
     test_cases = ["first_opt", "second_opt", "multi_opt"]
     models, layers = {}, {}
     for t in test_cases:
@@ -108,13 +110,10 @@ def test_optimizers(optimizers):
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_model_with_multi_optimizers(ecommerce_data, run_eagerly):
     schema = ecommerce_data.schema
-    user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER))
-    item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM))
-    # user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
-    # item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect( ml.MLPBlock([256, 128]))
+    user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
+    item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([256, 128]))
     two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower}, aggregation="concat")
     model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
-    print(model)
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
@@ -122,13 +121,13 @@ def test_model_with_multi_optimizers(ecommerce_data, run_eagerly):
             (tf.keras.optimizers.Adam(), item_tower),
         ],
     )
-
-    model.compile(run_eagerly=run_eagerly, optimizer=multi_optimizers)
-    model.fit(ecommerce_data, batch_size=50, epochs=2)
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
+    )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_model_with_multi_optimizers_2(ecommerce_data, run_eagerly):
+def test_model_with_multi_optimizers_without_inputblock(ecommerce_data, run_eagerly):
     schema = ecommerce_data.schema
     item_category_col_schema = schema.select_by_name("item_category").first
     embedding_layer_item = ml.EmbeddingTable(dim=64, col_schema=item_category_col_schema)
@@ -142,7 +141,6 @@ def test_model_with_multi_optimizers_2(ecommerce_data, run_eagerly):
     )
     two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower}, aggregation="concat")
     model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
-    print(model)
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
@@ -150,6 +148,39 @@ def test_model_with_multi_optimizers_2(ecommerce_data, run_eagerly):
             (tf.keras.optimizers.Adam(), item_tower),
         ],
     )
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
+    )
 
-    model.compile(run_eagerly=run_eagerly, optimizer=multi_optimizers)
-    model.fit(ecommerce_data, batch_size=50, epochs=2)
+
+@pytest.mark.parametrize(
+    "optimizers",
+    [
+        ("sgd", "adam"),
+        ("rmsprop", "sgd"),
+        ("adam", "adagrad"),
+        ("adagrad", "rmsprop"),
+        (tf.keras.optimizers.SGD(), tf.keras.optimizers.Adagrad()),
+    ],
+)
+def test_multi_optimizers_from_config(ecommerce_data, optimizers):
+    test_case = TestCase()
+    schema = ecommerce_data.schema
+    user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
+    item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([256, 128]))
+    multi_optimizers = ml.MultiOptimizer(
+        default_optimizer="adam",
+        optimizers_and_blocks=[
+            (optimizers[0], user_tower),
+            (optimizers[1], item_tower),
+        ],
+    )
+    cloned_multi_optimizers = ml.MultiOptimizer.from_config(multi_optimizers.get_config())
+    for i in range(len(multi_optimizers.optimizers_and_blocks)):
+        optimizer, block = multi_optimizers.optimizers_and_blocks[i]
+        cloned_optimizer, cloned_block = cloned_multi_optimizers.optimizers_and_blocks[i]
+        test_case.assertDictEqual(cloned_optimizer.get_config(), optimizer.get_config())
+    test_case.assertDictEqual(
+        cloned_multi_optimizers.default_optimizer.get_config(),
+        multi_optimizers.default_optimizer.get_config(),
+    )
