@@ -744,8 +744,8 @@ class Model(BaseModel):
 
         outputs = call_layer(child, inputs, **call_kwargs)
         if isinstance(outputs, Prediction):
-            targets = outputs.targets or context.targets
-            features = outputs.features or context.features
+            targets = outputs.targets if outputs.targets is not None else context.targets
+            features = outputs.features if outputs.features is not None else context.features
             outputs = outputs[0]
             context = context.with_updates(targets=targets, features=features)
 

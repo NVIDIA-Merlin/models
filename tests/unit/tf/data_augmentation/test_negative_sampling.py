@@ -27,6 +27,21 @@ from merlin.models.tf.utils import testing_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ExampleIsTraining(tf.keras.layers.Layer):
+    def call(self, inputs, training=False):
+        return training
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ExamplePredictionIdentity(tf.keras.layers.Layer):
+    def call(self, inputs, targets=None):
+        return Prediction(inputs, targets)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
 class TestAddRandomNegativesToBatch:
     def test_dataloader(self):
         schema = Schema(
@@ -97,27 +112,15 @@ class TestAddRandomNegativesToBatch:
             for f in with_negatives.values()
         )
 
-    def test_in_model(self, music_streaming_data: Dataset, tf_random_seed: int):
+    @pytest.mark.parametrize("run_eagerly", [True, False])
+    def test_in_model(self, run_eagerly, music_streaming_data: Dataset, tf_random_seed: int):
         dataset = music_streaming_data
         schema = dataset.schema
 
-        @tf.keras.utils.register_keras_serializable(package="merlin.models")
-        class Training(tf.keras.layers.Layer):
-            def call(self, inputs, training=False):
-                return training
-
-        @tf.keras.utils.register_keras_serializable(package="merlin.models")
-        class PredictionIdentity(tf.keras.layers.Layer):
-            def call(self, inputs, targets=None):
-                return Prediction(inputs, targets)
-
-            def compute_output_shape(self, input_shape):
-                return input_shape
-
         sampling = mm.Cond(
-            Training(),
+            ExampleIsTraining(),
             UniformNegativeSampling(schema, 5, seed=tf_random_seed),
-            PredictionIdentity(),
+            ExamplePredictionIdentity(),
         )
         model = mm.Model(
             mm.InputBlock(schema),
@@ -137,7 +140,7 @@ class TestAddRandomNegativesToBatch:
         without_negatives = model(features)
         assert without_negatives.shape[0] == batch_size
 
-        testing_utils.model_test(model, dataset)
+        testing_utils.model_test(model, dataset, run_eagerly=run_eagerly)
 
     def test_model_with_dataloader(self, music_streaming_data: Dataset, tf_random_seed: int):
         add_negatives = UniformNegativeSampling(music_streaming_data.schema, 5, seed=tf_random_seed)
