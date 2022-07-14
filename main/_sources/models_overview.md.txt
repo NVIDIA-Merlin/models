@@ -2,6 +2,11 @@
 
 ## Matrix Factorization
 
+Kumar, Saurav. (2021, July).
+_Fundamentals of Matrix Factorization For Recommender System_ [Post].
+LinkedIn.
+<https://www.linkedin.com/pulse/fundamental-matrix-factorization-recommender-system-saurav-kumar>
+
 ![User-item matrix broken down into a user matrix and an item matrix.](../img/mf.png)
 
 ```python

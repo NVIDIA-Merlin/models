@@ -1042,88 +1042,88 @@
   {
    "cell_type": "code",
    "execution_count": null,
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
    "outputs": [],
    "source": [
-    "from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler\n",
+    "from merlin.models.tf.core.transformations import LogitsTemperatureScaler\n",
     "\n",
     "binary_task = mm.BinaryClassificationTask(\n",
     "    sub_schema,\n",
     "    pre=LogitsTemperatureScaler(temperature=2),\n",
     ")"
-   ],
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "#### Define, train, and evaluate the final DLRM Model"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "We connect the deep DLRM interaction to the binary task and the method automatically generates the `Model` class for us.\n",
+    "We note that the `Model` class inherits from [tf.keras.Model](https://keras.io/api/models/model/) class:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
    "metadata": {
     "collapsed": false,
     "pycharm": {
      "name": "#%%\n"
     }
-   }
-  },
-  {
-   "cell_type": "markdown",
-   "source": [
-    "#### Define, train, and evaluate the final DLRM Model"
-   ],
-   "metadata": {
-    "collapsed": false,
-    "pycharm": {
-     "name": "#%% md\n"
-    }
-   }
-  },
-  {
-   "cell_type": "markdown",
-   "source": [
-    "We connect the deep DLRM interaction to the binary task and the method automatically generates the `Model` class for us.\n",
-    "We note that the `Model` class inherits from [tf.keras.Model](https://keras.io/api/models/model/) class:"
-   ],
-   "metadata": {
-    "collapsed": false,
-    "pycharm": {
-     "name": "#%% md\n"
-    }
-   }
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
+   },
    "outputs": [],
    "source": [
     "model = mm.Model(deep_dlrm_interaction, binary_task)\n",
     "type(model)"
-   ],
-   "metadata": {
-    "collapsed": false,
-    "pycharm": {
-     "name": "#%%\n"
-    }
-   }
+   ]
   },
   {
    "cell_type": "markdown",
-   "source": [
-    "We train the model using the built-in tf.keras `fit` method: "
-   ],
    "metadata": {
     "collapsed": false,
     "pycharm": {
      "name": "#%% md\n"
     }
-   }
+   },
+   "source": [
+    "We train the model using the built-in tf.keras `fit` method: "
+   ]
   },
   {
    "cell_type": "code",
    "execution_count": null,
-   "outputs": [],
-   "source": [
-    "model.compile(optimizer=\"adam\", metrics=[tf.keras.metrics.AUC()])\n",
-    "model.fit(train, batch_size=1024, epochs=1)"
-   ],
    "metadata": {
     "collapsed": false,
     "pycharm": {
      "name": "#%%\n"
     }
-   }
+   },
+   "outputs": [],
+   "source": [
+    "model.compile(optimizer=\"adam\", metrics=[tf.keras.metrics.AUC()])\n",
+    "model.fit(train, batch_size=1024, epochs=1)"
+   ]
   },
   {
    "cell_type": "markdown",

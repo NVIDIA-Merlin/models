@@ -94,16 +94,16 @@
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Layer</span>
 
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.base</span> <span class="kn">import</span> <span class="n">Block</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.base</span> <span class="kn">import</span> <span class="n">ItemRetrievalScorer</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.cross_batch</span> <span class="kn">import</span> <span class="n">PopularityBasedSampler</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ItemsPredictionWeightTying</span><span class="p">,</span>
     <span class="n">L2Norm</span><span class="p">,</span>
     <span class="n">LabelToOneHot</span><span class="p">,</span>
     <span class="n">LogitsTemperatureScaler</span><span class="p">,</span>
     <span class="n">PopularityLogitsCorrection</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.retrieval.base</span> <span class="kn">import</span> <span class="n">ItemRetrievalScorer</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.cross_batch</span> <span class="kn">import</span> <span class="n">PopularityBasedSampler</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.classification</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CategFeaturePrediction</span><span class="p">,</span>
     <span class="n">MultiClassClassificationTask</span><span class="p">,</span>
