@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022, NVIDIA CORPORATION.
+# Copyright (c) 2021, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-#!/bin/bash
-set -e
+import pytest
 
-TF_GPU_ALLOCATOR=cuda_malloc_async python -m pytest -rxs tests/unit
+pytest.importorskip("wandb")
+pytest.importorskip("fiddle")
