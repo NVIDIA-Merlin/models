@@ -31,9 +31,9 @@ class PredictionContext(NamedTuple):
         self, targets=None, features=None, mask=None, training=None, testing=None
     ) -> "PredictionContext":
         return PredictionContext(
-            features or self.features,
-            targets or self.targets,
-            mask or self.mask,
+            features if features is not None else self.features,
+            targets if targets is not None else self.targets,
+            mask if mask is not None else self.mask,
             training or self.training,
             testing or self.testing,
         )
