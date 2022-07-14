@@ -27,6 +27,21 @@ from merlin.models.tf.utils import testing_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ExampleIsTraining(tf.keras.layers.Layer):
+    def call(self, inputs, training=False):
+        return training
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ExamplePredictionIdentity(tf.keras.layers.Layer):
+    def call(self, inputs, targets=None):
+        return Prediction(inputs, targets)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
 class TestAddRandomNegativesToBatch:
     def test_dataloader(self):
         schema = Schema(
@@ -102,23 +117,10 @@ class TestAddRandomNegativesToBatch:
         dataset = music_streaming_data
         schema = dataset.schema
 
-        @tf.keras.utils.register_keras_serializable(package="merlin.models")
-        class Training(tf.keras.layers.Layer):
-            def call(self, inputs, training=False):
-                return training
-
-        @tf.keras.utils.register_keras_serializable(package="merlin.models")
-        class PredictionIdentity(tf.keras.layers.Layer):
-            def call(self, inputs, targets=None):
-                return Prediction(inputs, targets)
-
-            def compute_output_shape(self, input_shape):
-                return input_shape
-
         sampling = mm.Cond(
-            Training(),
+            ExampleIsTraining(),
             UniformNegativeSampling(schema, 5, seed=tf_random_seed),
-            PredictionIdentity(),
+            ExamplePredictionIdentity(),
         )
         model = mm.Model(
             mm.InputBlock(schema),
