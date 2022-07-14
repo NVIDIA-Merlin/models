@@ -17,4 +17,20 @@
 #!/bin/bash
 set -e
 
-pytest -rxs tests/integration
+# Call this script with:
+# 1. Name of container as first parameter
+#    [merlin-hugectr,  merlin-tensorflow,  merlin-pytorch]
+#
+# 2. Devices to use:
+#    [0; 0,1; 0,1,..,n-1]
+
+# Get last Models version
+cd /models/
+#git pull origin main
+
+container=$1
+devices=$2
+if [ "$container" == "merlin-tensorflow" ]; then
+    CUDA_VISIBLE_DEVICES="$devices" TF_GPU_ALLOCATOR=cuda_malloc_async python -m pytest -rxs tests/integration/tf/retrieval
+    # TODO: When the example notebooks integration tests are fixed, change to python -m pytest -rxs tests/integration/tf/
+fi
