@@ -19,8 +19,8 @@ from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
 
+import merlin.models.tf as ml
 from merlin.models.tf.blocks.core.base import Block
-from merlin.models.tf.utils import tf_utils
 
 Tensor = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
 
@@ -75,6 +75,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
           name: The optimizer name.
         """
         super().__init__(name=name)
+        self.name = name
         if not default_optimizer:
             raise ValueError("`default` can't be empty")
         if not optimizers_and_blocks:
@@ -95,15 +96,28 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         """See base class."""
         var_optimizer_dict = {}
 
+        attribute = "_trainable_weights"
         for optimizer, block in self.optimizers_and_blocks:
-            for v in block.trainable_variables:
-                if v.ref() in var_optimizer_dict:
-                    raise ValueError(
-                        f"The set of variables handled by each optimizer should be "
-                        f"disjoint, but variable {v} of block {block} is handled both "
-                        f"by {var_optimizer_dict[v.ref()]} and {optimizer}."
-                    )
-                var_optimizer_dict[v.ref()] = optimizer
+            # BFS iterate all submodule except ModelContext
+            deque = collections.deque()
+            deque.append(block)
+            while deque:
+                current_module = deque.popleft()
+                if hasattr(current_module, attribute):
+                    for v in current_module._trainable_weights:
+                        if v.ref() in var_optimizer_dict:
+                            raise ValueError(
+                                f"The set of variables handled by each optimizer should be "
+                                f"disjoint, but variable {v} of {current_module} in block {block} "
+                                f"is handled both by {var_optimizer_dict[v.ref()]} and {optimizer}."
+                            )
+                        var_optimizer_dict[v.ref()] = optimizer
+
+                for sub_module in current_module._flatten_modules(
+                    include_self=False, recursive=False
+                ):
+                    if type(sub_module) != ml.ModelContext:
+                        deque.append(sub_module)
 
         optimizer_grads_and_vars = collections.defaultdict(list)
         for g, v in grads_and_vars:
@@ -120,21 +134,11 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
             )
 
     def get_config(self):
-        config = dict()
-        config = tf_utils.maybe_serialize_keras_objects(
-            self,
-            config,
-            ["default_optimizer", "optimizers_and_blocks"],
-        )
-        config["name"] = self.name
-        return config
+        raise NotImplementedError()
 
     @classmethod
     def from_config(cls, config):
-        config = tf_utils.maybe_deserialize_keras_objects(
-            config, ["default_optimizer", "optimizers_and_blocks"]
-        )
-        return cls(**config)
+        raise NotImplementedError()
 
     @property
     def iterations(self):
