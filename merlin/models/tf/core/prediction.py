@@ -20,8 +20,16 @@ import tensorflow as tf
 TensorLike = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
 
 
+class Features:
+    def __init__(self, values: Dict[str, TensorLike]):
+        self.values = values
+
+    def __getitem__(self, key: str) -> TensorLike:
+        return self.values[key]
+
+
 class PredictionContext(NamedTuple):
-    features: Dict[str, TensorLike]
+    features: Features
     targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]] = None
     mask: tf.Tensor = (None,)
     training: bool = False

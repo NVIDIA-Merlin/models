@@ -13,7 +13,7 @@ from tensorflow.keras.utils import unpack_x_y_sample_weight
 import merlin.io
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.core.combinators import SequentialBlock
-from merlin.models.tf.core.prediction import Prediction, PredictionContext
+from merlin.models.tf.core.prediction import Features, Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
 from merlin.models.tf.core.transformations import AsDenseFeatures, AsRaggedFeatures
 from merlin.models.tf.dataset import BatchedDataset
@@ -730,7 +730,9 @@ class Model(BaseModel):
     def _create_context(
         self, inputs, targets=None, training=False, testing=False
     ) -> PredictionContext:
-        context = PredictionContext(inputs, targets=targets, training=training, testing=testing)
+        context = PredictionContext(
+            Features(inputs), targets=targets, training=training, testing=testing
+        )
 
         return context
 
