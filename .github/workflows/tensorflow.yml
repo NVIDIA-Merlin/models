@@ -16,7 +16,7 @@ jobs:
       matrix:
         python-version: [3.9.7]
         os: [ubuntu-latest]
-        tf-max: [2.8, 2.9, 2.10]
+        tf-max: ["2.8", "2.9", "2.10"]
 
     steps:
       - uses: actions/checkout@v2
@@ -81,7 +81,7 @@ jobs:
       matrix:
         python-version: [ 3.9.7 ]
         os: [ ubuntu-latest ]
-        tf-max: [2.8, 2.9, 2.10]
+        tf-max: ["2.8", "2.9", "2.10"]
 
     steps:
       - uses: actions/checkout@v2
