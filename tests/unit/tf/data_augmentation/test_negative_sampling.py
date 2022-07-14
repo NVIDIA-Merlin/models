@@ -97,7 +97,8 @@ class TestAddRandomNegativesToBatch:
             for f in with_negatives.values()
         )
 
-    def test_in_model(self, music_streaming_data: Dataset, tf_random_seed: int):
+    @pytest.mark.parametrize("run_eagerly", [True, False])
+    def test_in_model(self, run_eagerly, music_streaming_data: Dataset, tf_random_seed: int):
         dataset = music_streaming_data
         schema = dataset.schema
 
@@ -137,7 +138,7 @@ class TestAddRandomNegativesToBatch:
         without_negatives = model(features)
         assert without_negatives.shape[0] == batch_size
 
-        testing_utils.model_test(model, dataset)
+        testing_utils.model_test(model, dataset, run_eagerly=run_eagerly)
 
     def test_model_with_dataloader(self, music_streaming_data: Dataset, tf_random_seed: int):
         add_negatives = UniformNegativeSampling(music_streaming_data.schema, 5, seed=tf_random_seed)
