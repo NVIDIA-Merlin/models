@@ -89,15 +89,8 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
             self._track_trackable(optimizer, name=f"Optimizer{i}")
             self.optimizers_and_blocks.append((optimizer, optimizer_and_blocks[1]))
 
-    def apply_gradients(
-        self,
-        grads_and_vars: Sequence[Tuple[Tensor, Tensor]],
-        name: Optional[str] = None,
-        experimental_aggregate_gradients: bool = True,
-    ) -> None:
-        """See base class."""
+    def get_trainable_variables(self):
         var_optimizer_dict = {}
-
         attribute = "_trainable_weights"
         for optimizer, block in self.optimizers_and_blocks:
             # Iterate all submodule (BFS) except ModelContext
@@ -125,8 +118,18 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
                     # filter out modelcontext to avoiding assign two optimizers to one variable
                     if type(sub_module) != ml.ModelContext:
                         deque.append(sub_module)
+        return var_optimizer_dict
 
+    def apply_gradients(
+        self,
+        grads_and_vars: Sequence[Tuple[Tensor, Tensor]],
+        name: Optional[str] = None,
+        experimental_aggregate_gradients: bool = True,
+    ) -> None:
+        # Can be replaced by block.trainable_variables if ModelContext is removed
+        var_optimizer_dict = self.get_trainable_variables()
         optimizer_grads_and_vars = collections.defaultdict(list)
+        # Category variables by the optimizer
         for g, v in grads_and_vars:
             if v.ref() in var_optimizer_dict:
                 optimizer = var_optimizer_dict[v.ref()]
@@ -134,13 +137,26 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
             # for variables not in optimizers_and_blocks, assign default optimizer
             else:
                 optimizer_grads_and_vars[self.default_optimizer].append((g, v))
-
+        # Apply gradient for each optimizer
         for optimizer, opt_grads_and_vars in optimizer_grads_and_vars.items():
             optimizer.apply_gradients(
                 opt_grads_and_vars,
                 name=name,
                 experimental_aggregate_gradients=experimental_aggregate_gradients,
             )
+
+    def add(
+        self,
+        optimizers_and_blocks: Sequence[
+            Tuple[Union[str, tf.keras.optimizers.Optimizer], Sequence[Block]]
+        ],
+    ):
+        len_exist_optimizers = len(self.optimizers_and_blocks)
+        for i, optimizer_and_blocks in enumerate(optimizers_and_blocks):
+            optimizer = tf.keras.optimizers.get(optimizer_and_blocks[0])
+            self._track_trackable(optimizer, name=f"Optimizer{i+len_exist_optimizers}")
+            self.optimizers_and_blocks.append((optimizer, optimizer_and_blocks[1]))
+        return
 
     def get_config(self):
         config = dict()

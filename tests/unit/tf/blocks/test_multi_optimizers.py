@@ -126,6 +126,29 @@ def test_model_with_multi_optimizers(ecommerce_data, run_eagerly):
     )
 
 
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_multi_optimizer_add(ecommerce_data, run_eagerly):
+    schema = ecommerce_data.schema
+    user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
+    item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([256, 128]))
+    third_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([128, 64]))
+    two_tower = ml.ParallelBlock(
+        {"user": user_tower, "item": item_tower, "third": third_tower}, aggregation="concat"
+    )
+    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
+    multi_optimizers = ml.MultiOptimizer(
+        default_optimizer="adam",
+        optimizers_and_blocks=[
+            (tf.keras.optimizers.SGD(), user_tower),
+            (tf.keras.optimizers.Adam(), item_tower),
+        ],
+    )
+    multi_optimizers.add([("adagrad", third_tower)])
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
+    )
+
+
 @pytest.mark.parametrize(
     "optimizers",
     [
