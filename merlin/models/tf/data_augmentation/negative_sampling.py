@@ -41,6 +41,9 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
 
     def call(self, inputs: TabularData, targets=None) -> Prediction:
         """Extend batch of inputs and targets with negatives."""
+        if targets is None:
+            return Prediction(inputs)
+
         # 1. Select item-features
         fist_input = list(inputs.values())[0]
         batch_size = (
@@ -91,31 +94,28 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
             outputs[name] = tf.concat([val, negatives], axis=0)
             outputs[name] = tf.ragged.boolean_mask(outputs[name], mask)
 
-        # update targets if present
-        if targets is not None:
+        def mask_targets(target_tensor):
+            out = tf.concat(
+                [
+                    target_tensor,
+                    tf.zeros((sampled_num_negatives, 1), dtype=target_tensor.dtype),
+                ],
+                0,
+            )
+            out = tf.boolean_mask(out, mask)
 
-            def mask_targets(target_tensor):
-                out = tf.concat(
-                    [
-                        target_tensor,
-                        tf.zeros((sampled_num_negatives, 1), dtype=target_tensor.dtype),
-                    ],
-                    0,
-                )
-                out = tf.boolean_mask(out, mask)
+            return out
 
-                return out
-
-            if isinstance(targets, dict):
-                targets = {k: mask_targets(v) for k, v in targets.items()}
-            elif isinstance(targets, list):
-                targets = [mask_targets(v) for v in targets]
-            elif isinstance(targets, tuple):
-                targets = tuple([mask_targets(v) for v in targets])
-            elif isinstance(targets, tf.Tensor):
-                targets = mask_targets(targets)
-            else:
-                raise ValueError("Unsupported target type: {}".format(type(targets)))
+        if isinstance(targets, dict):
+            targets = {k: mask_targets(v) for k, v in targets.items()}
+        elif isinstance(targets, list):
+            targets = [mask_targets(v) for v in targets]
+        elif isinstance(targets, tuple):
+            targets = tuple([mask_targets(v) for v in targets])
+        elif isinstance(targets, tf.Tensor):
+            targets = mask_targets(targets)
+        else:
+            raise ValueError("Unsupported target type: {}".format(type(targets)))
 
         return Prediction(outputs, targets)
 
