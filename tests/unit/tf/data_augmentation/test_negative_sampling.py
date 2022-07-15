@@ -27,6 +27,21 @@ from merlin.models.tf.utils import testing_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ExampleIsTraining(tf.keras.layers.Layer):
+    def call(self, inputs, training=False):
+        return training
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ExamplePredictionIdentity(tf.keras.layers.Layer):
+    def call(self, inputs, targets=None):
+        return Prediction(inputs, targets)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
 class TestAddRandomNegativesToBatch:
     def test_dataloader(self):
         schema = Schema(
@@ -80,44 +95,95 @@ class TestAddRandomNegativesToBatch:
 
         assert input_user_item_pairs.intersection(negatives_user_item_pairs) == set()
 
+    def assert_outputs_batch_size(self, assert_fn, *outputs):
+        for values in zip(*outputs):
+            for value in values:
+                if isinstance(value, tuple):
+                    assert_fn(value[1].shape[0])
+                else:
+                    assert_fn(value.shape[0])
+
     @pytest.mark.parametrize("to_dense", [True, False])
-    def test_calling(self, music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int):
+    def test_calling_without_targets(
+        self, music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int
+    ):
         schema = music_streaming_data.schema
         batch_size, n_per_positive = 10, 5
         features = mm.sample_batch(
             music_streaming_data, batch_size=batch_size, include_targets=False, to_dense=to_dense
         )
 
-        sampler = UniformNegativeSampling(schema, 5, seed=tf_random_seed)
-        with_negatives = sampler(features).outputs
+        sampler = UniformNegativeSampling(schema, n_per_positive, seed=tf_random_seed)
 
-        max_batch_size = batch_size + batch_size * n_per_positive
-        assert all(
-            f.shape[0] <= max_batch_size and f.shape[0] > batch_size
-            for f in with_negatives.values()
+        with_negatives = sampler(features)
+        outputs = with_negatives.outputs
+
+        def assert_fn(output_batch_size):
+            assert output_batch_size == batch_size
+
+        self.assert_outputs_batch_size(assert_fn, outputs.values())
+
+    @pytest.mark.parametrize("to_dense", [True, False])
+    def test_calling(self, music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int):
+        schema = music_streaming_data.schema
+        batch_size, n_per_positive = 10, 5
+        inputs, targets = mm.sample_batch(
+            music_streaming_data, batch_size=batch_size, include_targets=True, to_dense=to_dense
         )
 
-    def test_in_model(self, music_streaming_data: Dataset, tf_random_seed: int):
+        sampler = UniformNegativeSampling(schema, 5, seed=tf_random_seed)
+
+        with_negatives = sampler(inputs, targets=targets)
+        outputs = with_negatives.outputs
+        targets = with_negatives.targets
+
+        max_batch_size = batch_size + batch_size * n_per_positive
+
+        def assert_fn(output_batch_size):
+            assert batch_size < output_batch_size <= max_batch_size
+
+        self.assert_outputs_batch_size(
+            assert_fn,
+            outputs.values(),
+            targets.values(),
+        )
+
+    @pytest.mark.parametrize("to_dense", [True, False])
+    def test_run_when_testing(
+        self, music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int
+    ):
+        schema = music_streaming_data.schema
+        batch_size, n_per_positive = 10, 5
+        inputs, targets = mm.sample_batch(
+            music_streaming_data, batch_size=batch_size, include_targets=True, to_dense=to_dense
+        )
+
+        sampler = UniformNegativeSampling(
+            schema, n_per_positive, seed=tf_random_seed, run_when_testing=False
+        )
+
+        with_negatives = sampler(inputs, targets=targets, testing=True)
+        outputs = with_negatives.outputs
+        targets = with_negatives.targets
+
+        def assert_fn(output_batch_size):
+            assert output_batch_size == batch_size
+
+        self.assert_outputs_batch_size(
+            assert_fn,
+            outputs.values(),
+            targets.values(),
+        )
+
+    @pytest.mark.parametrize("run_eagerly", [True, False])
+    def test_in_model(self, run_eagerly, music_streaming_data: Dataset, tf_random_seed: int):
         dataset = music_streaming_data
         schema = dataset.schema
 
-        @tf.keras.utils.register_keras_serializable(package="merlin.models")
-        class Training(tf.keras.layers.Layer):
-            def call(self, inputs, training=False):
-                return training
-
-        @tf.keras.utils.register_keras_serializable(package="merlin.models")
-        class PredictionIdentity(tf.keras.layers.Layer):
-            def call(self, inputs, targets=None):
-                return Prediction(inputs, targets)
-
-            def compute_output_shape(self, input_shape):
-                return input_shape
-
         sampling = mm.Cond(
-            Training(),
+            ExampleIsTraining(),
             UniformNegativeSampling(schema, 5, seed=tf_random_seed),
-            PredictionIdentity(),
+            ExamplePredictionIdentity(),
         )
         model = mm.Model(
             mm.InputBlock(schema),
@@ -137,7 +203,7 @@ class TestAddRandomNegativesToBatch:
         without_negatives = model(features)
         assert without_negatives.shape[0] == batch_size
 
-        testing_utils.model_test(model, dataset)
+        testing_utils.model_test(model, dataset, run_eagerly=run_eagerly)
 
     def test_model_with_dataloader(self, music_streaming_data: Dataset, tf_random_seed: int):
         add_negatives = UniformNegativeSampling(music_streaming_data.schema, 5, seed=tf_random_seed)
