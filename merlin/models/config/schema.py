@@ -52,10 +52,10 @@ class SchemaMixin:
         if self.REQUIRES_SCHEMA and not getattr(self, "_schema", None) and not schema:
             raise ValueError(f"{self.__class__.__name__} requires a schema.")
 
-    # def __call__(self, *args, **kwargs):
-    #     self.check_schema()
-    #
-    #     return super().__call__(*args, **kwargs)
+    def __call__(self, *args, **kwargs):
+        self.check_schema()
+
+        return super().__call__(*args, **kwargs)
 
     def _maybe_set_schema(self, input, schema):
         if input and getattr(input, "set_schema", None):
