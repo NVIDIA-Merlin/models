@@ -20,7 +20,7 @@ from typing import List, Optional, Sequence, Tuple, Union
 import tensorflow as tf
 
 import merlin.models.tf as ml
-from merlin.models.tf.blocks.core.base import Block
+from merlin.models.tf.core.base import Block
 from merlin.models.tf.utils import tf_utils
 
 Tensor = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]

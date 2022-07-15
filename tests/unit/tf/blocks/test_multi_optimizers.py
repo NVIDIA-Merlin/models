@@ -21,7 +21,7 @@ from tensorflow.test import TestCase
 
 import merlin.models.tf as ml
 from merlin.datasets.synthetic import generate_data
-from merlin.models.tf.blocks.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
+from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -112,33 +112,6 @@ def test_model_with_multi_optimizers(ecommerce_data, run_eagerly):
     schema = ecommerce_data.schema
     user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
     item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([256, 128]))
-    two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower}, aggregation="concat")
-    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
-    multi_optimizers = ml.MultiOptimizer(
-        default_optimizer="adam",
-        optimizers_and_blocks=[
-            (tf.keras.optimizers.SGD(), user_tower),
-            (tf.keras.optimizers.Adam(), item_tower),
-        ],
-    )
-    testing_utils.model_test(
-        model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
-    )
-
-
-@pytest.mark.parametrize("run_eagerly", [True, False])
-def test_model_with_multi_optimizers_without_inputblock(ecommerce_data, run_eagerly):
-    schema = ecommerce_data.schema
-    item_category_col_schema = schema.select_by_name("item_category").first
-    embedding_layer_item = ml.EmbeddingTable(dim=64, col_schema=item_category_col_schema)
-    user_genres_col_schema = schema.select_by_name("user_categories").first
-    embedding_layer_user = ml.EmbeddingTable(dim=64, col_schema=user_genres_col_schema)
-    item_tower = SequentialBlock(
-        tf.keras.layers.Lambda(lambda features: features["item_category"]), embedding_layer_item
-    )
-    user_tower = SequentialBlock(
-        tf.keras.layers.Lambda(lambda features: features["user_categories"]), embedding_layer_user
-    )
     two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower}, aggregation="concat")
     model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
     multi_optimizers = ml.MultiOptimizer(
