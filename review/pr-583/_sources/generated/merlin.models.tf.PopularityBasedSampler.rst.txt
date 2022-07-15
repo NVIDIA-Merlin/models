@@ -1,0 +1,86 @@
+﻿merlin.models.tf.PopularityBasedSampler
+=======================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: PopularityBasedSampler
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~PopularityBasedSampler.__init__
+      ~PopularityBasedSampler.add
+      ~PopularityBasedSampler.add_loss
+      ~PopularityBasedSampler.add_metric
+      ~PopularityBasedSampler.add_update
+      ~PopularityBasedSampler.add_variable
+      ~PopularityBasedSampler.add_weight
+      ~PopularityBasedSampler.build
+      ~PopularityBasedSampler.call
+      ~PopularityBasedSampler.compute_mask
+      ~PopularityBasedSampler.compute_output_shape
+      ~PopularityBasedSampler.compute_output_signature
+      ~PopularityBasedSampler.count_params
+      ~PopularityBasedSampler.finalize_state
+      ~PopularityBasedSampler.from_config
+      ~PopularityBasedSampler.get_config
+      ~PopularityBasedSampler.get_distribution_probs
+      ~PopularityBasedSampler.get_input_at
+      ~PopularityBasedSampler.get_input_mask_at
+      ~PopularityBasedSampler.get_input_shape_at
+      ~PopularityBasedSampler.get_output_at
+      ~PopularityBasedSampler.get_output_mask_at
+      ~PopularityBasedSampler.get_output_shape_at
+      ~PopularityBasedSampler.get_weights
+      ~PopularityBasedSampler.sample
+      ~PopularityBasedSampler.set_max_num_samples
+      ~PopularityBasedSampler.set_weights
+      ~PopularityBasedSampler.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~PopularityBasedSampler.activity_regularizer
+      ~PopularityBasedSampler.compute_dtype
+      ~PopularityBasedSampler.dtype
+      ~PopularityBasedSampler.dtype_policy
+      ~PopularityBasedSampler.dynamic
+      ~PopularityBasedSampler.inbound_nodes
+      ~PopularityBasedSampler.input
+      ~PopularityBasedSampler.input_mask
+      ~PopularityBasedSampler.input_shape
+      ~PopularityBasedSampler.input_spec
+      ~PopularityBasedSampler.losses
+      ~PopularityBasedSampler.max_num_samples
+      ~PopularityBasedSampler.metrics
+      ~PopularityBasedSampler.name
+      ~PopularityBasedSampler.name_scope
+      ~PopularityBasedSampler.non_trainable_variables
+      ~PopularityBasedSampler.non_trainable_weights
+      ~PopularityBasedSampler.outbound_nodes
+      ~PopularityBasedSampler.output
+      ~PopularityBasedSampler.output_mask
+      ~PopularityBasedSampler.output_shape
+      ~PopularityBasedSampler.required_features
+      ~PopularityBasedSampler.stateful
+      ~PopularityBasedSampler.submodules
+      ~PopularityBasedSampler.supports_masking
+      ~PopularityBasedSampler.trainable
+      ~PopularityBasedSampler.trainable_variables
+      ~PopularityBasedSampler.trainable_weights
+      ~PopularityBasedSampler.updates
+      ~PopularityBasedSampler.variable_dtype
+      ~PopularityBasedSampler.variables
+      ~PopularityBasedSampler.weights
+   
+   
