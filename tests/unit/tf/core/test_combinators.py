@@ -2,10 +2,6 @@ import numpy as np
 import pytest
 import tensorflow as tf
 
-# This layer_test is exposed currently in tensorflow.keras
-# the keras version must match the tensorflow.keras version for this to work properly
-from keras.testing_infra.test_utils import layer_test
-
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
@@ -98,7 +94,7 @@ class TestCond:
         condition = tf.keras.layers.Lambda(lambda _: True)
         true = tf.keras.layers.Lambda(lambda _: tf.constant([4.0]))
         false = tf.keras.layers.Lambda(lambda _: tf.constant([2.0]))
-        output_data = layer_test(
+        output_data = testing_utils.layer_test(
             mm.Cond, kwargs=dict(condition=condition, true=true, false=false), input_shape=(1,)
         )
         np.testing.assert_array_equal(output_data, np.array([4.0]))
@@ -107,7 +103,7 @@ class TestCond:
         condition = tf.keras.layers.Lambda(lambda _: False)
         true = tf.keras.layers.Lambda(lambda _: tf.constant([4.0]))
         false = tf.keras.layers.Lambda(lambda _: tf.constant([2.0]))
-        output_data = layer_test(
+        output_data = testing_utils.layer_test(
             mm.Cond, kwargs=dict(condition=condition, true=true, false=false), input_shape=(1,)
         )
         np.testing.assert_array_equal(output_data, np.array([2.0]))
@@ -116,7 +112,7 @@ class TestCond:
         condition = tf.keras.layers.Lambda(lambda _: True)
         true = tf.keras.layers.Lambda(lambda x: x / 2)
         false = tf.keras.layers.Lambda(lambda x: x / 5)
-        output_data = layer_test(
+        output_data = testing_utils.layer_test(
             mm.Cond,
             kwargs=dict(condition=condition, true=true, false=false),
             input_data=tf.convert_to_tensor([np.arange(5).astype(np.float32)]),
@@ -126,7 +122,7 @@ class TestCond:
     def test_default_false(self):
         condition = tf.keras.layers.Lambda(lambda _: False)
         true = tf.keras.layers.Lambda(lambda _: tf.constant([4.0]))
-        output_data = layer_test(
+        output_data = testing_utils.layer_test(
             mm.Cond, kwargs=dict(condition=condition, true=true), input_data=tf.constant([3.0])
         )
         np.testing.assert_array_equal(output_data, np.array([3.0]))
@@ -136,7 +132,7 @@ class TestCond:
         true = tf.keras.layers.Dense(1)
         false = tf.keras.layers.Dense(2)
         with pytest.raises(ValueError) as exc_info:
-            layer_test(
+            testing_utils.layer_test(
                 mm.Cond,
                 kwargs=dict(condition=condition, true=true, false=false),
                 input_data=tf.constant([[1.0]]),
@@ -147,7 +143,7 @@ class TestCond:
         condition = tf.keras.layers.Lambda(lambda _: True)
         true = mm.MLPBlock([10])
         false = mm.SequentialBlock([mm.MLPBlock([100]), mm.MLPBlock([10])])
-        output_data = layer_test(
+        output_data = testing_utils.layer_test(
             mm.Cond,
             kwargs=dict(condition=condition, true=true, false=false),
             input_data=tf.constant([[3.0]]),
