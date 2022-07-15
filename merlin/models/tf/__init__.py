@@ -26,6 +26,7 @@ from merlin.models.tf.core.transformations import (
     AsSparseFeatures,
     CategoricalOneHot,
     ExpandDims,
+    HashedCross,
     LabelToOneHot,
 )
 

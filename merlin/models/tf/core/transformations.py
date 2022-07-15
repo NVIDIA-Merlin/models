@@ -18,6 +18,7 @@ from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
 from keras.layers.preprocessing import preprocessing_utils
+
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.core.combinators import TabularBlock

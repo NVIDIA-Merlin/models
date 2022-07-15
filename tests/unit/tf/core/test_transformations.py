@@ -16,12 +16,13 @@
 
 import tempfile
 
+import pytest
 import tensorflow as tf
 from tensorflow.test import TestCase
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
-from merlin.models.tf.blocks.core.combinators import ParallelBlock, TabularBlock
+from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.schema_utils import create_categorical_column, create_continuous_column
 from merlin.schema import Schema, Tags
