@@ -115,6 +115,9 @@ def numeric_test(actual, expected):
     np.testing.assert_allclose(actual, expected, rtol=1e-3, atol=1e-6)
 
 
+# This function is copied from keras/testing_infra/test_utils.py
+# We need it here because this was not publicly exposed prior to 2.9.0
+# and our CI tests muliple versions of tensorflow/keras
 @disable_cudnn_autotune
 def layer_test(
     layer_cls,
