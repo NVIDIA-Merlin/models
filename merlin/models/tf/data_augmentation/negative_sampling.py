@@ -31,18 +31,26 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
     Only works with positive-only binary-target batches.
     """
 
-    def __init__(self, schema: Schema, n_per_positive: int, seed: Optional[int] = None, **kwargs):
+    def __init__(
+        self,
+        schema: Schema,
+        n_per_positive: int,
+        seed: Optional[int] = None,
+        run_when_testing: bool = True,
+        **kwargs
+    ):
         """Instantiate a sampling block."""
         super(UniformNegativeSampling, self).__init__(**kwargs)
         self.n_per_positive = n_per_positive
         self.item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
+        self.run_when_testing = run_when_testing
 
-    def call(self, inputs: TabularData, targets=None) -> Prediction:
+    def call(self, inputs: TabularData, targets=None, testing=False, **kwargs) -> Prediction:
         """Extend batch of inputs and targets with negatives."""
-        if targets is None:
-            return Prediction(inputs)
+        if targets is None or (testing and not self.run_when_testing):
+            return Prediction(inputs, targets)
 
         # 1. Select item-features
         fist_input = list(inputs.values())[0]
@@ -125,6 +133,7 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         config["n_per_positive"] = self.n_per_positive
         config["seed"] = self.seed
+        config["run_when_testing"] = self.run_when_testing
         return config
 
     @classmethod

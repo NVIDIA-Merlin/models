@@ -148,6 +148,33 @@ class TestAddRandomNegativesToBatch:
             targets.values(),
         )
 
+    @pytest.mark.parametrize("to_dense", [True, False])
+    def test_run_when_testing(
+        self, music_streaming_data: Dataset, to_dense: bool, tf_random_seed: int
+    ):
+        schema = music_streaming_data.schema
+        batch_size, n_per_positive = 10, 5
+        inputs, targets = mm.sample_batch(
+            music_streaming_data, batch_size=batch_size, include_targets=True, to_dense=to_dense
+        )
+
+        sampler = UniformNegativeSampling(
+            schema, n_per_positive, seed=tf_random_seed, run_when_testing=False
+        )
+
+        with_negatives = sampler(inputs, targets=targets, testing=True)
+        outputs = with_negatives.outputs
+        targets = with_negatives.targets
+
+        def assert_fn(output_batch_size):
+            assert output_batch_size == batch_size
+
+        self.assert_outputs_batch_size(
+            assert_fn,
+            outputs.values(),
+            targets.values(),
+        )
+
     @pytest.mark.parametrize("run_eagerly", [True, False])
     def test_in_model(self, run_eagerly, music_streaming_data: Dataset, tf_random_seed: int):
         dataset = music_streaming_data
