@@ -561,7 +561,7 @@ array([[0.00196931, 0.        , 0.01411253, ..., 0.00167978, 0.00330653,
 <p>We use the <code class="docutils literal notranslate"><span class="pre">BinaryClassificationTask</span></code> class and evaluate the performances using the <code class="docutils literal notranslate"><span class="pre">AUC</span></code> metric. We also use the <code class="docutils literal notranslate"><span class="pre">LogitsTemperatureScaler</span></code> block as a pre-transformation operation that scales the logits returned by the task before computing the loss and metrics:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">LogitsTemperatureScaler</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="n">LogitsTemperatureScaler</span>
 
 <span class="n">binary_task</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span>
     <span class="n">sub_schema</span><span class="p">,</span>

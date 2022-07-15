@@ -202,6 +202,12 @@ better epoch-level randomness but can negatively impact throughput</p></li>
 <tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.dataset.BatchedDataset.map" title="merlin.models.tf.dataset.BatchedDataset.map"><code class="xref py py-obj docutils literal notranslate"><span class="pre">map</span></code></a>(fn)</p></td>
 <td><p>Applying a function to each batch.</p></td>
 </tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.dataset.BatchedDataset.map_features" title="merlin.models.tf.dataset.BatchedDataset.map_features"><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_features</span></code></a>(fn)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.dataset.BatchedDataset.map_targets" title="merlin.models.tf.dataset.BatchedDataset.map_targets"><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_targets</span></code></a>(fn)</p></td>
+<td><p></p></td>
+</tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">on_epoch_end</span></code>()</p></td>
 <td><p>Method called at the end of every epoch.</p></td>
 </tr>
@@ -216,6 +222,16 @@ better epoch-level randomness but can negatively impact throughput</p></li>
 <dd><p>Applying a function to each batch.</p>
 <p>This can for instance be used to add <cite>sample_weight</cite> to the model.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.dataset.BatchedDataset.map_features">
+<code class="sig-name descname"><span class="pre">map_features</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#merlin.models.tf.dataset.BatchedDataset" title="merlin.models.tf.dataset.BatchedDataset"><span class="pre">merlin.models.tf.dataset.BatchedDataset</span></a><a class="reference internal" href="../_modules/merlin/models/tf/dataset.html#BatchedDataset.map_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.dataset.BatchedDataset.map_features" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.dataset.BatchedDataset.map_targets">
+<code class="sig-name descname"><span class="pre">map_targets</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#merlin.models.tf.dataset.BatchedDataset" title="merlin.models.tf.dataset.BatchedDataset"><span class="pre">merlin.models.tf.dataset.BatchedDataset</span></a><a class="reference internal" href="../_modules/merlin/models/tf/dataset.html#BatchedDataset.map_targets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.dataset.BatchedDataset.map_targets" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 

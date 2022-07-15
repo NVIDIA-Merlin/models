@@ -406,6 +406,25 @@
 
         <span class="k">return</span> <span class="bp">self</span></div>
 
+<div class="viewcode-block" id="BatchedDataset.map_features"><a class="viewcode-back" href="../../../../generated/merlin.models.tf.dataset.BatchedDataset.html#merlin.models.tf.dataset.BatchedDataset.map_features">[docs]</a>    <span class="k">def</span> <span class="nf">map_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;BatchedDataset&quot;</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">wrapped_fn</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">):</span>
+            <span class="n">features</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="k">return</span> <span class="n">features</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">wrapped_fn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BatchedDataset.map_targets"><a class="viewcode-back" href="../../../../generated/merlin.models.tf.dataset.BatchedDataset.html#merlin.models.tf.dataset.BatchedDataset.map_targets">[docs]</a>    <span class="k">def</span> <span class="nf">map_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;BatchedDataset&quot;</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">wrapped_fn</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">):</span>
+            <span class="n">targets</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">targets</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+
+            <span class="k">return</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">targets</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">wrapped_fn</span><span class="p">)</span></div>
+
     <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
     <span class="k">def</span> <span class="nf">_get_device_ctx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dev</span><span class="p">):</span>
         <span class="c1"># with tf.device(&quot;/device:GPU:{}&quot;.format(dev)) as tf_device:</span>
@@ -600,7 +619,7 @@
 <span class="sd">    batch: Dict[tf.tensor]</span>
 <span class="sd">        dictionary of input tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span>
+    <span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span>
 
     <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">BatchedDataset</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">)))</span>
     <span class="k">if</span> <span class="n">to_dense</span><span class="p">:</span>
