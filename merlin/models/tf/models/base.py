@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime
 import six
 import tensorflow as tf
 from keras.utils.losses_utils import cast_losses_to_common_dtype
+from packaging import version
 from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
@@ -69,7 +70,9 @@ class ModelBlock(Block, tf.keras.Model):
         self.block = block
 
     def call(self, inputs, **kwargs):
-        outputs = self.block(inputs, **kwargs)
+        if "features" not in kwargs:
+            kwargs["features"] = inputs
+        outputs = call_layer(self.block, inputs, **kwargs)
         return outputs
 
     def build(self, input_shapes):
@@ -164,6 +167,16 @@ class ModelBlock(Block, tf.keras.Model):
 
     def get_config(self):
         return {"block": tf.keras.utils.serialize_keras_object(self.block)}
+
+    def _set_save_spec(self, inputs, args=None, kwargs=None):
+        # We need to overwrite this in order to fix a Keras-bug in TF<2.9
+        super()._set_save_spec(inputs, args, kwargs)
+
+        if version.parse(tf.__version__) < version.parse("2.9.0"):
+            # Keras will interpret kwargs like `features` & `targets` as
+            # required args, which is wrong. This is a workaround.
+            _arg_spec = self._saved_model_arg_spec
+            self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
 
 
 class BaseModel(tf.keras.Model):
@@ -816,6 +829,10 @@ class Model(BaseModel):
     ):
         call_kwargs = context.to_call_dict()
 
+        # Prevent features to be part of signature of model-blocks
+        if any(isinstance(sub, ModelBlock) for sub in child.submodules):
+            del call_kwargs["features"]
+
         outputs = call_layer(child, inputs, **call_kwargs)
         if isinstance(outputs, Prediction):
             targets = outputs.targets if outputs.targets is not None else context.targets
@@ -894,6 +911,16 @@ class Model(BaseModel):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
 
         return config
+
+    def _set_save_spec(self, inputs, args=None, kwargs=None):
+        # We need to overwrite this in order to fix a Keras-bug in TF<2.9
+        super()._set_save_spec(inputs, args, kwargs)
+
+        if version.parse(tf.__version__) < version.parse("2.9.0"):
+            # Keras will interpret kwargs like `features` & `targets` as
+            # required args, which is wrong. This is a workaround.
+            _arg_spec = self._saved_model_arg_spec
+            self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
 
 
 @runtime_checkable
