@@ -1,0 +1,124 @@
+﻿merlin.models.tf.AsSparseFeatures
+=================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: AsSparseFeatures
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~AsSparseFeatures.__init__
+      ~AsSparseFeatures.add_loss
+      ~AsSparseFeatures.add_metric
+      ~AsSparseFeatures.add_update
+      ~AsSparseFeatures.add_variable
+      ~AsSparseFeatures.add_weight
+      ~AsSparseFeatures.apply_to_all
+      ~AsSparseFeatures.as_tabular
+      ~AsSparseFeatures.build
+      ~AsSparseFeatures.calculate_batch_size_from_input_shapes
+      ~AsSparseFeatures.call
+      ~AsSparseFeatures.call_outputs
+      ~AsSparseFeatures.check_schema
+      ~AsSparseFeatures.compute_call_output_shape
+      ~AsSparseFeatures.compute_mask
+      ~AsSparseFeatures.compute_output_shape
+      ~AsSparseFeatures.compute_output_signature
+      ~AsSparseFeatures.connect
+      ~AsSparseFeatures.connect_branch
+      ~AsSparseFeatures.connect_debug_block
+      ~AsSparseFeatures.connect_with_residual
+      ~AsSparseFeatures.connect_with_shortcut
+      ~AsSparseFeatures.copy
+      ~AsSparseFeatures.count_params
+      ~AsSparseFeatures.finalize_state
+      ~AsSparseFeatures.from_config
+      ~AsSparseFeatures.from_features
+      ~AsSparseFeatures.from_layer
+      ~AsSparseFeatures.from_schema
+      ~AsSparseFeatures.get_config
+      ~AsSparseFeatures.get_input_at
+      ~AsSparseFeatures.get_input_mask_at
+      ~AsSparseFeatures.get_input_shape_at
+      ~AsSparseFeatures.get_item_ids_from_inputs
+      ~AsSparseFeatures.get_output_at
+      ~AsSparseFeatures.get_output_mask_at
+      ~AsSparseFeatures.get_output_shape_at
+      ~AsSparseFeatures.get_padding_mask_from_item_id
+      ~AsSparseFeatures.get_weights
+      ~AsSparseFeatures.parse
+      ~AsSparseFeatures.parse_block
+      ~AsSparseFeatures.post_call
+      ~AsSparseFeatures.pre_call
+      ~AsSparseFeatures.prepare
+      ~AsSparseFeatures.register_features
+      ~AsSparseFeatures.repeat
+      ~AsSparseFeatures.repeat_in_parallel
+      ~AsSparseFeatures.repr_add
+      ~AsSparseFeatures.repr_extra
+      ~AsSparseFeatures.repr_ignore
+      ~AsSparseFeatures.select_by_name
+      ~AsSparseFeatures.set_aggregation
+      ~AsSparseFeatures.set_post
+      ~AsSparseFeatures.set_pre
+      ~AsSparseFeatures.set_schema
+      ~AsSparseFeatures.set_weights
+      ~AsSparseFeatures.super
+      ~AsSparseFeatures.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~AsSparseFeatures.REQUIRES_SCHEMA
+      ~AsSparseFeatures.activity_regularizer
+      ~AsSparseFeatures.aggregation
+      ~AsSparseFeatures.compute_dtype
+      ~AsSparseFeatures.context
+      ~AsSparseFeatures.dtype
+      ~AsSparseFeatures.dtype_policy
+      ~AsSparseFeatures.dynamic
+      ~AsSparseFeatures.has_schema
+      ~AsSparseFeatures.inbound_nodes
+      ~AsSparseFeatures.input
+      ~AsSparseFeatures.input_mask
+      ~AsSparseFeatures.input_shape
+      ~AsSparseFeatures.input_spec
+      ~AsSparseFeatures.is_input
+      ~AsSparseFeatures.is_tabular
+      ~AsSparseFeatures.losses
+      ~AsSparseFeatures.metrics
+      ~AsSparseFeatures.name
+      ~AsSparseFeatures.name_scope
+      ~AsSparseFeatures.non_trainable_variables
+      ~AsSparseFeatures.non_trainable_weights
+      ~AsSparseFeatures.outbound_nodes
+      ~AsSparseFeatures.output
+      ~AsSparseFeatures.output_mask
+      ~AsSparseFeatures.output_shape
+      ~AsSparseFeatures.post
+      ~AsSparseFeatures.pre
+      ~AsSparseFeatures.registry
+      ~AsSparseFeatures.schema
+      ~AsSparseFeatures.stateful
+      ~AsSparseFeatures.submodules
+      ~AsSparseFeatures.supports_masking
+      ~AsSparseFeatures.trainable
+      ~AsSparseFeatures.trainable_variables
+      ~AsSparseFeatures.trainable_weights
+      ~AsSparseFeatures.updates
+      ~AsSparseFeatures.variable_dtype
+      ~AsSparseFeatures.variables
+      ~AsSparseFeatures.weights
+   
+   

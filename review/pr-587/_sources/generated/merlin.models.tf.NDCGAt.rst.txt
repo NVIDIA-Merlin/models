@@ -1,0 +1,88 @@
+﻿merlin.models.tf.NDCGAt
+=======================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: NDCGAt
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~NDCGAt.__init__
+      ~NDCGAt.add_loss
+      ~NDCGAt.add_metric
+      ~NDCGAt.add_update
+      ~NDCGAt.add_variable
+      ~NDCGAt.add_weight
+      ~NDCGAt.build
+      ~NDCGAt.call
+      ~NDCGAt.check_cast_inputs
+      ~NDCGAt.compute_mask
+      ~NDCGAt.compute_output_shape
+      ~NDCGAt.compute_output_signature
+      ~NDCGAt.count_params
+      ~NDCGAt.finalize_state
+      ~NDCGAt.from_config
+      ~NDCGAt.get_config
+      ~NDCGAt.get_input_at
+      ~NDCGAt.get_input_mask_at
+      ~NDCGAt.get_input_shape_at
+      ~NDCGAt.get_output_at
+      ~NDCGAt.get_output_mask_at
+      ~NDCGAt.get_output_shape_at
+      ~NDCGAt.get_weights
+      ~NDCGAt.merge_state
+      ~NDCGAt.reset_state
+      ~NDCGAt.reset_states
+      ~NDCGAt.result
+      ~NDCGAt.set_weights
+      ~NDCGAt.update_state
+      ~NDCGAt.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~NDCGAt.activity_regularizer
+      ~NDCGAt.compute_dtype
+      ~NDCGAt.dtype
+      ~NDCGAt.dtype_policy
+      ~NDCGAt.dynamic
+      ~NDCGAt.inbound_nodes
+      ~NDCGAt.input
+      ~NDCGAt.input_mask
+      ~NDCGAt.input_shape
+      ~NDCGAt.input_spec
+      ~NDCGAt.label_relevant_counts
+      ~NDCGAt.losses
+      ~NDCGAt.metrics
+      ~NDCGAt.name
+      ~NDCGAt.name_scope
+      ~NDCGAt.non_trainable_variables
+      ~NDCGAt.non_trainable_weights
+      ~NDCGAt.outbound_nodes
+      ~NDCGAt.output
+      ~NDCGAt.output_mask
+      ~NDCGAt.output_shape
+      ~NDCGAt.pre_sorted
+      ~NDCGAt.stateful
+      ~NDCGAt.submodules
+      ~NDCGAt.supports_masking
+      ~NDCGAt.trainable
+      ~NDCGAt.trainable_variables
+      ~NDCGAt.trainable_weights
+      ~NDCGAt.updates
+      ~NDCGAt.variable_dtype
+      ~NDCGAt.variables
+      ~NDCGAt.weights
+   
+   
