@@ -31,7 +31,16 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
         ml.BinaryClassificationTask("click"),
     )
 
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+    loaded_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+    signatures = getattr(loaded_model, "signatures", {}) or {}
+    default_signature = signatures.get("serving_default")
+
+    model_inputs = set(default_signature.structured_input_signature[1].keys())
+    assert set(ecommerce_data.schema.column_names) == model_inputs
+
+    model_output = list(default_signature.structured_outputs.keys())[0]
+    assert model_output == "click/binary_classification_task"
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
