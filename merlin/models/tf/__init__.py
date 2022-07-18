@@ -106,6 +106,7 @@ from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.predictions.base import PredictionBlock
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
 
@@ -161,6 +162,7 @@ __all__ = [
     "DotProductInteraction",
     "FMPairwiseInteraction",
     "LabelToOneHot",
+    "PredictionBlock",
     "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
