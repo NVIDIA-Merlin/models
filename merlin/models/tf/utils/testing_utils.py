@@ -13,9 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pathlib
 import platform
 import tempfile
-from typing import Any, Tuple, Union
+from typing import Any, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pytest
@@ -26,6 +27,7 @@ from tensorflow.python.framework.test_util import disable_cudnn_autotune
 import merlin.io
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.models.base import Model
+from merlin.schema import Schema
 
 
 def mark_run_eagerly_modes(*args, **kwargs):
@@ -105,6 +107,39 @@ def model_test(
     assert len(losses.epoch) == epochs
 
     return loaded_model, losses
+
+
+def get_model_inputs(schema: Schema, list_cols: Optional[Sequence[str]] = None):
+    list_cols = list_cols or []
+    features = schema.column_names
+
+    # Right now the model expects a tuple for each list-column
+    for list_col in list_cols:
+        features.pop(features.index(list_col))
+        for i in ["1", "2"]:
+            features.append(f"{list_col}_{i}")
+
+    return features
+
+
+def test_model_signature(model, input_names, output_names):
+    signatures = getattr(model, "signatures", {}) or {}
+    default_signature = signatures.get("serving_default")
+
+    if not default_signature:
+        # roundtrip saved self.model to disk to generate signature if it doesn't exist
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tf_model_path = pathlib.Path(tmp_dir) / "model.savedmodel"
+            model.save(tf_model_path, include_optimizer=False)
+            reloaded = tf.keras.models.load_model(tf_model_path)
+            default_signature = reloaded.signatures["serving_default"]
+
+    model_inputs = set(default_signature.structured_input_signature[1].keys())
+    assert set(input_names) == model_inputs
+
+    model_outputs = set(default_signature.structured_outputs.keys())
+    assert set(output_names) == model_outputs
 
 
 def string_test(actual, expected):

@@ -755,6 +755,10 @@ class Model(BaseModel):
     ):
         call_kwargs = context.to_call_dict()
 
+        # Prevent features to be part of signature of model-blocks
+        if any(isinstance(sub, ModelBlock) for sub in child.submodules):
+            del call_kwargs["features"]
+
         outputs = call_layer(child, inputs, **call_kwargs)
         if isinstance(outputs, Prediction):
             targets = outputs.targets if outputs.targets is not None else context.targets
