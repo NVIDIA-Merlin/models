@@ -19,6 +19,7 @@
       ~SequenceEmbeddingFeatures.add_update
       ~SequenceEmbeddingFeatures.add_variable
       ~SequenceEmbeddingFeatures.add_weight
+      ~SequenceEmbeddingFeatures.apply
       ~SequenceEmbeddingFeatures.apply_to_all
       ~SequenceEmbeddingFeatures.as_tabular
       ~SequenceEmbeddingFeatures.build
@@ -51,10 +52,12 @@
       ~SequenceEmbeddingFeatures.get_input_mask_at
       ~SequenceEmbeddingFeatures.get_input_shape_at
       ~SequenceEmbeddingFeatures.get_item_ids_from_inputs
+      ~SequenceEmbeddingFeatures.get_losses_for
       ~SequenceEmbeddingFeatures.get_output_at
       ~SequenceEmbeddingFeatures.get_output_mask_at
       ~SequenceEmbeddingFeatures.get_output_shape_at
       ~SequenceEmbeddingFeatures.get_padding_mask_from_item_id
+      ~SequenceEmbeddingFeatures.get_updates_for
       ~SequenceEmbeddingFeatures.get_weights
       ~SequenceEmbeddingFeatures.lookup_feature
       ~SequenceEmbeddingFeatures.parse
