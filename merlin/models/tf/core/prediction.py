@@ -56,3 +56,7 @@ class Prediction(NamedTuple):
     outputs: Dict[str, TensorLike]
     targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]] = None
     features: Optional[Dict[str, TensorLike]] = None
+
+    @property
+    def predictions(self):
+        return self.outputs

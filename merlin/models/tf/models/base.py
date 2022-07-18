@@ -23,8 +23,9 @@ from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import filter_topk_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.predictions.base import PredictionBlock
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
-from merlin.models.tf.utils.tf_utils import call_layer, maybe_deserialize_keras_objects
+from merlin.models.tf.utils.tf_utils import call_layer, maybe_serialize_keras_objects
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
@@ -288,37 +289,24 @@ class BaseModel(tf.keras.Model):
             initial_value=lambda: False,
         )
 
-        self.output_names = [task.task_name for task in self.prediction_tasks]
+        num_v1_blocks = len(self.prediction_tasks)
+        num_v2_blocks = len(self.prediction_blocks)
 
-        _metrics = {}
-        if isinstance(metrics, (list, tuple)) and len(self.prediction_tasks) == 1:
-            _metrics = {task.task_name: metrics for task in self.prediction_tasks}
+        if num_v1_blocks > 1 and num_v2_blocks > 1:
+            raise ValueError(
+                "You cannot use both `prediction_tasks` and `prediction_blocks` at the same time.",
+                "`prediction_tasks` is deprecated and will be removed in a future version.",
+            )
 
-        # If metrics are not provided, use the defaults from the prediction-tasks.
-        # TODO: Do the same for weight_metrics.
-        if not metrics:
-            for task_name, task in self.prediction_tasks_by_name().items():
-                _metrics[task_name] = [
-                    m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS
-                ]
-
-        _loss = {}
-        if isinstance(loss, (tf.keras.losses.Loss, str)) and len(self.prediction_tasks) == 1:
-            _loss = {task.task_name: loss for task in self.prediction_tasks}
-
-        # If loss is not provided, use the defaults from the prediction-tasks.
-        if not loss:
-            for task_name, task in self.prediction_tasks_by_name().items():
-                _loss[task_name] = task.DEFAULT_LOSS
-
-        for key in _loss:
-            if isinstance(_loss[key], str) and _loss[key] in loss_registry:
-                _loss[key] = loss_registry.parse(_loss[key])
+        if num_v1_blocks > 0:
+            self.output_names = [task.task_name for task in self.prediction_tasks]
+        else:
+            self.output_names = [block.full_name for block in self.prediction_blocks]
 
         super(BaseModel, self).compile(
             optimizer=optimizer,
-            loss=_loss,
-            metrics=_metrics,
+            loss=self._create_loss(loss),
+            metrics=self._create_metrics(metrics),
             weighted_metrics=weighted_metrics,
             run_eagerly=run_eagerly,
             loss_weights=loss_weights,
@@ -326,6 +314,50 @@ class BaseModel(tf.keras.Model):
             jit_compile=jit_compile,
             **kwargs,
         )
+
+    def _create_metrics(self, metrics=None):
+        out = {}
+
+        num_v1_blocks = len(self.prediction_tasks)
+        num_v2_blocks = len(self.prediction_blocks)
+
+        if isinstance(metrics, (list, tuple)):
+            if num_v1_blocks == 1:
+                out = {task.task_name: metrics for task in self.prediction_tasks}
+            elif num_v2_blocks == 1:
+                out = {task.task_name: metrics for task in self.prediction_blocks}
+
+        if not metrics:
+            for task_name, task in self.prediction_tasks_by_name().items():
+                out[task_name] = [m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS]
+
+            for task_name, task in self.predictions_by_name().items():
+                out[task_name] = [m() if inspect.isclass(m) else m for m in task.default_metrics]
+
+        return out
+
+    def _create_loss(self, loss=None):
+        out = {}
+
+        if isinstance(loss, (tf.keras.losses.Loss, str)):
+            if len(self.prediction_tasks) == 1:
+                out = {task.task_name: loss for task in self.prediction_tasks}
+            elif len(self.prediction_blocks) == 1:
+                out = {task.name: loss for task in self.prediction_blocks}
+
+        # If loss is not provided, use the defaults from the prediction-tasks.
+        if not loss:
+            for task_name, task in self.prediction_tasks_by_name().items():
+                out[task_name] = task.DEFAULT_LOSS
+
+            for task_name, task in self.predictions_by_name().items():
+                out[task_name] = task.default_loss
+
+        for key in out:
+            if isinstance(out[key], str) and out[key] in loss_registry:
+                out[key] = loss_registry.parse(out[key])
+
+        return out
 
     @property
     def prediction_tasks(self) -> List[PredictionTask]:
@@ -350,9 +382,30 @@ class BaseModel(tf.keras.Model):
 
         return outputs
 
+    @property
+    def prediction_blocks(self) -> List[PredictionBlock]:
+        results = find_all_instances_in_layers(self, PredictionBlock)
+
+        return results
+
+    def predictions_by_name(self) -> Dict[str, PredictionBlock]:
+        return {task.full_name: task for task in self.prediction_blocks}
+
+    def predictions_by_target(self) -> Dict[str, List[PredictionBlock]]:
+        outputs: Dict[str, List[PredictionBlock]] = {}
+        for task in self.prediction_blocks:
+            if task.target in outputs:
+                if isinstance(outputs[task.target], list):
+                    outputs[task.target].append(task)
+                else:
+                    outputs[task.target] = [outputs[task.target], task]
+            outputs[task.target] = task
+
+        return outputs
+
     def call_train_test(
         self, x, y=None, training=False, testing=False, **kwargs
-    ) -> PredictionOutput:
+    ) -> Union[Prediction, PredictionOutput]:
         forward = self(
             x,
             targets=y,
@@ -360,10 +413,11 @@ class BaseModel(tf.keras.Model):
             testing=testing,
             **kwargs,
         )
-        if not self.prediction_tasks:
+        if not (self.prediction_tasks or self.prediction_blocks):
             return PredictionOutput(forward, y)
 
         predictions, targets, output = {}, {}, None
+        # V1
         for task in self.prediction_tasks:
             task_x = forward
             if isinstance(forward, dict) and task.task_name in forward:
@@ -378,14 +432,34 @@ class BaseModel(tf.keras.Model):
             targets[task.task_name] = task_y
             predictions[task.task_name] = task_x
 
+            if len(predictions) == 1 and len(targets) == 1:
+                predictions = predictions[list(predictions.keys())[0]]
+                targets = targets[list(targets.keys())[0]]
+
+            if output:
+                return output.copy_with_updates(predictions, targets)
+
+            return PredictionOutput(predictions, targets)
+
+        # V2
+        for task in self.prediction_blocks:
+            task_x = forward
+            if isinstance(forward, dict) and task.full_name in forward:
+                task_x = forward[task.full_name]
+            if isinstance(task_x, Prediction):
+                task_y = task_x.targets
+                task_x = task_x.outputs
+            else:
+                task_y = y[task.target] if isinstance(y, dict) and y else y
+
+            targets[task.full_name] = task_y
+            predictions[task.full_name] = task_x
+
         if len(predictions) == 1 and len(targets) == 1:
             predictions = predictions[list(predictions.keys())[0]]
             targets = targets[list(targets.keys())[0]]
 
-        if output:
-            return output.copy_with_updates(predictions, targets)
-
-        return PredictionOutput(predictions, targets)
+        return Prediction(predictions, targets)
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
@@ -832,7 +906,7 @@ class Model(BaseModel):
         return cls(*layers, pre=pre, post=post)
 
     def get_config(self):
-        config = maybe_deserialize_keras_objects({}, ["pre", "post"])
+        config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
         for i, layer in enumerate(self.blocks):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
 
