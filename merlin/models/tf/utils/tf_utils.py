@@ -366,8 +366,6 @@ def list_col_to_ragged(col: Tuple[tf.Tensor, tf.Tensor]):
     values = col[0][:, 0]
     row_lengths = col[1][:, 0]
 
-    if values.dtype.is_floating:
-        values = tf.cast(values, tf.int32)
     if row_lengths.dtype.is_floating:
         row_lengths = tf.cast(row_lengths, tf.int32)
 
