@@ -248,15 +248,20 @@ class EmbeddingTable(EmbeddingTableBase):
         -------
         A tensor corresponding to the embeddings for inputs
         """
+        if isinstance(inputs, dict):
+            inputs = inputs[self.col_schema.name]
+
+        """
         dtype = backend.dtype(inputs)
         if dtype != "int32" and dtype != "int64":
             inputs = tf.cast(inputs, "int32")
+        """
 
         if self.combiner:
             if not isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
                 raise ValueError(
-                    "Combiner only supported for RaggedTensor and SparseTensor. "
-                    f"Received: {type(inputs)}"
+                    f"Combiner ({self.combiner}) only supported for RaggedTensor and SparseTensor. "
+                    f"Received: {type(inputs)}. Column name: {self.col_schema.name}"
                 )
             if isinstance(inputs, tf.RaggedTensor):
                 inputs = inputs.to_sparse()

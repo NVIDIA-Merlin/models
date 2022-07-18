@@ -14,12 +14,15 @@
 # limitations under the License.
 #
 
+from typing import Optional
+
+import nvtabular as nvt
 import pytest
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
+from merlin.schema import Schema, Tags
 
 
 def test_tabular_features(testing_data: Dataset):
@@ -69,3 +72,67 @@ def test_tabular_features_yoochoose_model(
     model = ml.Model(body, ml.BinaryClassificationTask("click"))
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+def InputBlockv2(
+    schema: Schema,
+    embeddings: Optional[ml.Block] = None,
+    continuous_projection: Optional[ml.Block] = None,
+    continuous_column_selector=nvt.ColumnSelector(tags=[Tags.CONTINUOUS]),
+    pre=None,
+    post=None,
+    aggregation=None,
+):
+    embeddings = embeddings or InferEmbeddings(schema)
+
+    # if continuous_projection:
+    #     continuous = ml.TabularBlock(
+    #         column_selector=continuous_column_selector, aggregation="concat"
+    #     )
+    #     continuous = continuous.connect(continuous_projection)
+    # else:
+    #     continuous = ml.TabularBlock(column_selector=continuous_column_selector)
+
+    return ml.ParallelBlock(
+        # dict(continuous=continuous, embeddings=embeddings),
+        dict(embeddings=embeddings),
+        pre=pre,
+        post=post,
+        aggregation=aggregation,
+    )
+
+
+def InferEmbeddings(
+    schema,
+    pre=None,
+    post=None,
+    aggregation=None,
+    block_name="embeddings",
+    default_combiner: str = "mean",
+):
+    cols = schema.select_by_tag(Tags.CATEGORICAL)
+    tables = []
+
+    for col in cols:
+        combiner = None
+        if Tags.SEQUENCE in col.tags:
+            combiner = default_combiner
+
+        tables.append(ml.EmbeddingTable(32, col, combiner=combiner))
+
+    return ml.ParallelBlock(*tables, pre=pre, post=post, aggregation=aggregation, name=block_name)
+
+
+def test_tabular_features_ragged_embeddings(sequence_testing_data: Dataset):
+    tab_module = InputBlockv2(sequence_testing_data.schema)
+
+    batch = ml.sample_batch(
+        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+    )
+
+    outputs = tab_module(batch)
+
+    con = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS).column_names
+    cat = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL).column_names
+
+    assert set(outputs.keys()) == set(con + cat)
