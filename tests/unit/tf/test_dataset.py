@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 import os
+import time
+import timeit
 
 import numpy as np
 import pandas as pd
@@ -26,6 +28,27 @@ import merlin.models.tf.dataset as tf_dataloader
 from merlin.core.dispatch import make_df
 from merlin.io.dataset import Dataset
 from merlin.models.utils.schema_utils import create_categorical_column
+from merlin.schema import ColumnSchema, Schema, Tags
+
+
+def test_lazy_dataset_map():
+    dataset_size = 100
+    data_df = pd.DataFrame({"feature": np.random.randint(100, size=dataset_size)})
+    schema = Schema([ColumnSchema("feature", tags=[Tags.CATEGORICAL])])
+    dataset = Dataset(data_df, schema=schema)
+    batched_dataset = tf_dataloader.BatchedDataset(dataset, batch_size=10)
+
+    sleep_time_seconds = 0.5
+
+    def identity(x, y):
+        time.sleep(sleep_time_seconds)
+        return (x, y)
+
+    batched_dataset = batched_dataset.map(identity)
+
+    elapsed_time_seconds = timeit.timeit(lambda: next(batched_dataset), number=1)
+
+    assert elapsed_time_seconds < 1
 
 
 def test_nested_list():
