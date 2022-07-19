@@ -27,6 +27,7 @@ from merlin.schema import Schema, Tags
 def DLRMBlock(
     schema: Schema,
     embedding_dim: int,
+    embedding_options: EmbeddingOptions = None,
     bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
 ) -> SequentialBlock:
@@ -49,6 +50,13 @@ def DLRMBlock(
         the factorization machine layer, by default None
     embedding_dim : Optional[int], optional
         Dimension of the embeddings, by default None
+    embedding_options : EmbeddingOptions
+        Options for the input embeddings.
+        - embedding_dim_default: int - Default dimension of the embedding
+        table, when the feature is not found in ``embedding_dims``, by default 64
+        - infer_embedding_sizes : bool, Automatically defines the embedding
+        dimension from the feature cardinality in the schema, by default False,
+        which needs to be kept False for the DLRM architecture.
 
     Returns
     -------
@@ -70,6 +78,12 @@ def DLRMBlock(
     if embedding_dim is None:
         raise ValueError("The embedding_dim is required")
 
+    if embedding_options is not None:
+        embedding_options.embedding_dim_default = embedding_dim
+        embedding_options.infer_embedding_sizes = False
+    else:
+        embedding_options = EmbeddingOptions(embedding_dim_default=embedding_dim)
+
     con_schema = schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET)
     cat_schema = schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET)
 
@@ -86,9 +100,7 @@ def DLRMBlock(
             "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
         )
 
-    embeddings = EmbeddingFeatures.from_schema(
-        cat_schema, embedding_options=EmbeddingOptions(embedding_dim_default=embedding_dim)
-    )
+    embeddings = EmbeddingFeatures.from_schema(cat_schema, embedding_options=embedding_options)
 
     if len(con_schema) > 0:
         if bottom_block is None:
