@@ -1,4 +1,4 @@
-from typing import Union, Sequence, Optional
+from typing import Optional, Sequence, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -6,20 +6,21 @@ from tensorflow.keras.layers import Layer
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock
 
 
+# Or: RetrievalCategoricalPrediction
 class DotProductCategoricalPrediction(ContrastivePredictionBlock):
     def __init__(
-            self,
-            negative_sampling=None,
-            downscore_false_negatives=False,
-            target=None,
-            pre=None,
-            post=None,
-            logits_temperature=1.0,
-            name=None,
-            default_loss="categorical-cross-entropy",
-            default_metrics=(),
-            default_contrastive_metrics=(),
-            **kwargs,
+        self,
+        negative_sampling="in-batch",
+        downscore_false_negatives=False,
+        target=None,
+        pre=None,
+        post=None,
+        logits_temperature=1.0,
+        name=None,
+        default_loss="categorical-cross-entropy",
+        default_metrics=(),
+        default_contrastive_metrics=(),
+        **kwargs,
     ):
         super().__init__(
             prediction=DotProduct(),
@@ -34,7 +35,7 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
             logits_temperature=logits_temperature,
             negative_sampling=negative_sampling,
             downscore_false_negatives=downscore_false_negatives,
-            **kwargs
+            **kwargs,
         )
 
 
