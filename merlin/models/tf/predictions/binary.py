@@ -8,6 +8,10 @@ class BinaryPrediction(PredictionBlock):
 
     def __init__(
         self,
+        target=None,
+        pre=None,
+        post=None,
+        logits_temperature=1.0,
         default_loss="binary_crossentropy",
         default_metrics=(
             tf.keras.metrics.Precision,
@@ -15,10 +19,6 @@ class BinaryPrediction(PredictionBlock):
             tf.keras.metrics.BinaryAccuracy,
             tf.keras.metrics.AUC,
         ),
-        target=None,
-        pre=None,
-        post=None,
-        logits_temperature=1.0,
     ):
         super().__init__(
             prediction=tf.keras.layers.Dense(1, activation="sigmoid"),
