@@ -20,7 +20,7 @@ import merlin.models.tf as ml
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
 from merlin.models.tf.utils import testing_utils, tf_utils
-from merlin.schema import Schema
+from merlin.schema import Schema, Tags
 
 
 @pytest.mark.parametrize("run_eagerly", [True])
@@ -31,7 +31,10 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
         ml.BinaryClassificationTask("click"),
     )
 
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+    loaded_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+    features = ecommerce_data.schema.remove_by_tag(Tags.TARGET).column_names
+    testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

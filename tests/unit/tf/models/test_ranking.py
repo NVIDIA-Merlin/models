@@ -19,6 +19,7 @@ import pytest
 import merlin.models.tf as ml
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
+from merlin.schema import Tags
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -52,7 +53,13 @@ def test_dlrm_model(music_streaming_data, run_eagerly):
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 
-    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+    loaded_model, _ = testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+    features = testing_utils.get_model_inputs(
+        music_streaming_data.schema.remove_by_tag(Tags.TARGET), ["user_genres", "item_genres"]
+    )
+
+    testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
