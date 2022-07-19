@@ -154,3 +154,63 @@ class PredictionBlock(Layer):
         )
 
         return super().from_config(config)
+
+
+class ContrastivePredictionBlock(PredictionBlock):
+    def __init__(
+            self,
+            prediction: Layer,
+            prediction_with_negatives: Layer,
+            default_loss: Union[str, tf.keras.losses.Loss],
+            default_metrics: Sequence[tf.keras.metrics.Metric],
+            default_contrastive_metrics: Sequence[tf.keras.metrics.Metric],
+            name: Optional[str] = None,
+            target: Optional[str] = None,
+            pre: Optional[Layer] = None,
+            post: Optional[Layer] = None,
+            logits_temperature=1.0,
+            negative_sampling=None,
+            downscore_false_negatives=False,
+            **kwargs,
+    ):
+        super(ContrastivePredictionBlock, self).__init__(
+            prediction,
+            default_loss=default_loss,
+            default_metrics=default_metrics,
+            target=target,
+            pre=pre,
+            post=post,
+            logits_temperature=logits_temperature,
+            name=name,
+            **kwargs,
+        )
+        self.prediction_with_negatives = prediction_with_negatives
+        self.negative_sampling = negative_sampling
+        self.downscore_false_negatives = downscore_false_negatives
+        self._default_contrastive_metrics = [
+            tf.keras.metrics.serialize(metric)
+            if isinstance(metric, tf.keras.metrics.Metric)
+            else metric
+            for metric in default_contrastive_metrics
+        ]
+
+    @property
+    def has_negative_samplers(self) -> bool:
+        return self.negative_sampling is not None and len(self.negative_sampling) > 0
+
+    def compile(
+            self,
+            negative_sampling=None,
+            downscore_false_negatives=False
+    ):
+        self.negative_sampling = negative_sampling
+        self.downscore_false_negatives = downscore_false_negatives
+
+    def call(self, inputs, training=False, testing=False, **kwargs):
+        to_call = self.prediction
+
+        if self.has_negative_samplers and (training or testing):
+            to_call = self.prediction_with_negatives
+
+        return to_call(inputs, training=training, testing=testing, **kwargs)
+
