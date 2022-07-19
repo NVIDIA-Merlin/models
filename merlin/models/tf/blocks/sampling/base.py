@@ -23,6 +23,7 @@ from merlin.models.tf.core.base import EmbeddingWithMetadata
 from merlin.models.tf.typing import TabularData
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ItemSampler(abc.ABC, Layer):
     def __init__(
         self,

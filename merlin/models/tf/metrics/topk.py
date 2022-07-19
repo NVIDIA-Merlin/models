@@ -292,7 +292,7 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         return {}
 
     @classmethod
-    def from_config(cls, config):
+    def from_config(cls, config, custom_objects=None):
         fn = config.pop("fn", None)
         k = config.pop("k", None)
         pre_sorted = config.pop("pre_sorted", None)
@@ -302,35 +302,41 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
 
 
 @metrics_registry.register_with_multiple_names("recall_at", "recall")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class RecallAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="recall_at"):
         super().__init__(recall_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("precision_at", "precision")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PrecisionAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="precision_at"):
         super().__init__(precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("map_at", "map")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AvgPrecisionAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="map_at"):
         super().__init__(average_precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("mrr_at", "mrr")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class MRRAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="mrr_at"):
         super().__init__(mrr_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class NDCGAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="ndcg_at"):
         super().__init__(ndcg_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
     """Aggregator for top-k metrics (TopkMetric) that is optimized
     to sort top-k predictions only once for all metrics.
@@ -408,6 +414,20 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
         # metrics computed separately, as prediction scores are sorted only once for all metrics
         aggregator = cls(*metrics)
         return [aggregator]
+
+    def get_config(self):
+        config = {}
+        for i, metric in enumerate(self.topk_metrics):
+            config[i] = tf.keras.utils.serialize_keras_object(metric)
+        return config
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        metrics = [
+            tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+            for conf in config.values()
+        ]
+        return TopKMetricsAggregator(*metrics)
 
 
 def filter_topk_metrics(

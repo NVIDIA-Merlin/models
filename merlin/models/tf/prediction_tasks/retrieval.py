@@ -26,6 +26,10 @@ from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator
 from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
 from merlin.models.utils import schema_utils
+from merlin.models.utils.schema_utils import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
 from merlin.schema import Schema, Tags
 
 
@@ -77,8 +81,9 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         store_negative_ids: bool = False,
         **kwargs,
     ):
-        self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        self.item_domain = schema_utils.categorical_domains(schema)[self.item_id_feature_name]
+        self.schema = schema
+        self.item_id_feature_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+        self.item_domain = schema_utils.categorical_domains(self.schema)[self.item_id_feature_name]
         self.cache_query = cache_query
         pre = self._build_prediction_call(
             samplers,
@@ -148,3 +153,14 @@ class ItemRetrievalTask(MultiClassClassificationTask):
 
     def set_retrieval_cache_query(self, value: bool):
         self.retrieval_scorer.cache_query = value
+
+    def get_config(self):
+        config = super().get_config()
+        config["cache_query"] = self.cache_query
+        config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        schema = tensorflow_metadata_json_to_schema(config["schema"])
+        return ItemRetrievalTask(schema, cache_query=config["cache_query"])

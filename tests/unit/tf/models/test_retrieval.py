@@ -349,3 +349,15 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     losses = model.fit(dataloader, epochs=2)
 
     assert losses is not None
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_save_load_two_tower_model(music_streaming_data: Dataset, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([512, 256]))
+    metrics_agg = TopKMetricsAggregator(
+        RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)
+    )
+    testing_utils.model_test(
+        model, music_streaming_data, run_eagerly=run_eagerly, metrics=[metrics_agg]
+    )
