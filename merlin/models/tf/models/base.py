@@ -326,11 +326,17 @@ class BaseModel(tf.keras.Model):
 
         if isinstance(metrics, (list, tuple)):
             if num_v1_blocks > 0:
-                for i, task in enumerate(self.prediction_tasks):
-                    out[task.task_name] = metrics[i]
+                if num_v1_blocks == 1:
+                    out[self.prediction_tasks[0].task_name] = metrics
+                else:
+                    for i, task in enumerate(self.prediction_tasks):
+                        out[task.task_name] = metrics[i]
             else:
-                for i, block in enumerate(self.prediction_blocks):
-                    out[block.full_name] = metrics[i]
+                if len(self.prediction_blocks) == 1:
+                    out[self.prediction_blocks[0].full_name] = metrics
+                else:
+                    for i, block in enumerate(self.prediction_blocks):
+                        out[block.full_name] = metrics[i]
 
         if not metrics:
             for task_name, task in self.prediction_tasks_by_name().items():
