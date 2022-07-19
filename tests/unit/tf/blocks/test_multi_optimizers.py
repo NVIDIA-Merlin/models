@@ -127,6 +127,27 @@ def test_model_with_multi_optimizers(ecommerce_data, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
+def test_multi_optimizer_list_input(ecommerce_data, run_eagerly):
+    schema = ecommerce_data.schema
+    user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
+    item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([256, 128]))
+    third_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([128, 64]))
+    two_tower = ml.ParallelBlock(
+        {"user": user_tower, "item": item_tower, "third": third_tower}, aggregation="concat"
+    )
+    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
+    multi_optimizers = ml.MultiOptimizer(
+        optimizers_and_blocks=[
+            (tf.keras.optimizers.SGD(), user_tower),
+            (tf.keras.optimizers.Adam(), [item_tower, third_tower]),
+        ],
+    )
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
+    )
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_multi_optimizer_add(ecommerce_data, run_eagerly):
     schema = ecommerce_data.schema
     user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
@@ -143,7 +164,7 @@ def test_multi_optimizer_add(ecommerce_data, run_eagerly):
             (tf.keras.optimizers.Adam(), item_tower),
         ],
     )
-    multi_optimizers.add([("adagrad", third_tower)])
+    multi_optimizers.add("adagrad", third_tower)
     testing_utils.model_test(
         model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
     )
@@ -175,6 +196,37 @@ def test_multi_optimizers_from_config(ecommerce_data, optimizers):
     for i in range(len(multi_optimizers.optimizers_and_blocks)):
         optimizer, block = multi_optimizers.optimizers_and_blocks[i]
         cloned_optimizer, cloned_block = cloned_multi_optimizers.optimizers_and_blocks[i]
+        test_case.assertDictEqual(cloned_optimizer.get_config(), optimizer.get_config())
+    test_case.assertDictEqual(
+        cloned_multi_optimizers.default_optimizer.get_config(),
+        multi_optimizers.default_optimizer.get_config(),
+    )
+
+
+@pytest.mark.parametrize(
+    "optimizers",
+    [
+        ("sgd", "adam"),
+        (tf.keras.optimizers.SGD(), tf.keras.optimizers.Adagrad()),
+    ],
+)
+def test_multi_optimizers_from_config_list_input(ecommerce_data, optimizers):
+    test_case = TestCase()
+    schema = ecommerce_data.schema
+    user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
+    item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([256, 128]))
+    third_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([128, 64]))
+    multi_optimizers = ml.MultiOptimizer(
+        default_optimizer="adam",
+        optimizers_and_blocks=[
+            (optimizers[0], [user_tower, third_tower]),
+            (optimizers[1], item_tower),
+        ],
+    )
+    cloned_multi_optimizers = ml.MultiOptimizer.from_config(multi_optimizers.get_config())
+    for i in range(len(multi_optimizers.optimizers_and_blocks)):
+        optimizer, blocks = multi_optimizers.optimizers_and_blocks[i]
+        cloned_optimizer, cloned_blocks = cloned_multi_optimizers.optimizers_and_blocks[i]
         test_case.assertDictEqual(cloned_optimizer.get_config(), optimizer.get_config())
     test_case.assertDictEqual(
         cloned_multi_optimizers.default_optimizer.get_config(),
