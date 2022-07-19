@@ -1,4 +1,7 @@
+from typing import Optional
+
 import tensorflow as tf
+from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.predictions.base import PredictionBlock
 
@@ -8,10 +11,11 @@ class BinaryPrediction(PredictionBlock):
 
     def __init__(
         self,
-        target=None,
-        pre=None,
-        post=None,
-        logits_temperature=1.0,
+        target: Optional[str] = None,
+        pre: Optional[Layer] = None,
+        post: Optional[Layer] = None,
+        logits_temperature: float = 1.0,
+        name: Optional[str] = None,
         default_loss="binary_crossentropy",
         default_metrics=(
             tf.keras.metrics.Precision,
@@ -19,6 +23,7 @@ class BinaryPrediction(PredictionBlock):
             tf.keras.metrics.BinaryAccuracy,
             tf.keras.metrics.AUC,
         ),
+        **kwargs,
     ):
         super().__init__(
             prediction=tf.keras.layers.Dense(1, activation="sigmoid"),
@@ -28,4 +33,6 @@ class BinaryPrediction(PredictionBlock):
             pre=pre,
             post=post,
             logits_temperature=logits_temperature,
+            name=name,
+            **kwargs,
         )

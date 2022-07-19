@@ -31,7 +31,11 @@ def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
-    assert set(history.history.keys()) == {"loss", "precision", "regularization_loss"}
+    assert set(history.history.keys()) == {
+        "loss",
+        "click/prediction_block/precision",
+        "regularization_loss",
+    }
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
