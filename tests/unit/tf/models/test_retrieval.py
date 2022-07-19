@@ -12,6 +12,7 @@ from merlin.models.tf.metrics.topk import (
     RecallAt,
     TopKMetricsAggregator,
 )
+from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 from tests.common.tf.retrieval import retrieval_tests_common
 
@@ -53,6 +54,16 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
     losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
+
+    query_features = testing_utils.get_model_inputs(
+        music_streaming_data.schema.select_by_tag(Tags.USER), ["user_genres"]
+    )
+    testing_utils.test_model_signature(model.first.query_block(), query_features, ["output_1"])
+
+    item_features = testing_utils.get_model_inputs(
+        music_streaming_data.schema.select_by_tag(Tags.ITEM), ["item_genres"]
+    )
+    testing_utils.test_model_signature(model.first.item_block(), item_features, ["output_1"])
 
 
 def test_two_tower_model_l2_reg(testing_data: Dataset):
