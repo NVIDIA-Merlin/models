@@ -1,0 +1,39 @@
+﻿merlin.models.utils.registry.Registry
+=====================================
+
+.. currentmodule:: merlin.models.utils.registry
+
+.. autoclass:: Registry
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Registry.__init__
+      ~Registry.class_registry
+      ~Registry.default_key
+      ~Registry.get
+      ~Registry.items
+      ~Registry.keys
+      ~Registry.on_set
+      ~Registry.parse
+      ~Registry.register
+      ~Registry.register_with_multiple_names
+      ~Registry.validate
+      ~Registry.values
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Registry.name
+   
+   
