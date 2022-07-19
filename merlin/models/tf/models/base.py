@@ -304,7 +304,7 @@ class BaseModel(tf.keras.Model):
             self.output_names = [block.full_name for block in self.prediction_blocks]
 
         # This flag will make Keras change the metric-names which is not needed in v2
-        # from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
+        from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
 
         super(BaseModel, self).compile(
             optimizer=optimizer,
@@ -315,7 +315,7 @@ class BaseModel(tf.keras.Model):
             loss_weights=loss_weights,
             steps_per_execution=steps_per_execution,
             jit_compile=jit_compile,
-            # from_serialized=from_serialized,
+            from_serialized=from_serialized,
             **kwargs,
         )
 
