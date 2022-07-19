@@ -8,12 +8,12 @@ class RegressionPrediction(PredictionBlock):
 
     def __init__(
         self,
-        default_loss="mse",
-        default_metrics=(tf.keras.metrics.RootMeanSquaredError,),
         target=None,
         pre=None,
         post=None,
         logits_temperature=1.0,
+        default_loss="mse",
+        default_metrics=(tf.keras.metrics.RootMeanSquaredError,),
     ):
         super().__init__(
             prediction=tf.keras.layers.Dense(1, activation="linear"),
