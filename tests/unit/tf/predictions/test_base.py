@@ -36,15 +36,13 @@ def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
 @pytest.mark.parametrize("run_eagerly", [True])
 def test_parallel_prediction_blocks(ecommerce_data: Dataset, run_eagerly):
-    predictions = mm.ParallelBlock(
-        _BinaryPrediction("click"),
-        _BinaryPrediction("conversion"),
-    )
-
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
         mm.MLPBlock([64]),
-        predictions,
+        mm.ParallelBlock(
+            _BinaryPrediction("click", pre=mm.MLPBlock([16])),
+            _BinaryPrediction("conversion", pre=mm.MLPBlock([16])),
+        ),
     )
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -52,10 +50,11 @@ def test_parallel_prediction_blocks(ecommerce_data: Dataset, run_eagerly):
     assert len(history.history.keys()) == 6
 
 
-def _BinaryPrediction(name):
+def _BinaryPrediction(name, **kwargs):
     return mm.PredictionBlock(
         tf.keras.layers.Dense(1, activation="sigmoid"),
         default_loss="binary_crossentropy",
         default_metrics=(tf.keras.metrics.Precision(),),
         target=name,
+        **kwargs
     )

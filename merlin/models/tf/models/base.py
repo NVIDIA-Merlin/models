@@ -329,7 +329,7 @@ class BaseModel(tf.keras.Model):
 
         if not metrics:
             for task_name, task in self.prediction_tasks_by_name().items():
-                out[task_name] = [m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS]
+                out[task_name] = task.create_default_metrics()
 
             for task_name, task in self.predictions_by_name().items():
                 out[task_name] = [m() if inspect.isclass(m) else m for m in task.default_metrics]
@@ -373,11 +373,11 @@ class BaseModel(tf.keras.Model):
     def prediction_tasks_by_target(self) -> Dict[str, List[PredictionTask]]:
         outputs: Dict[str, Union[PredictionTask, List[PredictionTask]]] = {}
         for task in self.prediction_tasks:
-            if task.target in outputs:
-                if isinstance(outputs[task.target], list):
+            if task.target_name in outputs:
+                if isinstance(outputs[task.target_name], list):
                     outputs[task.target].append(task)
                 else:
-                    outputs[task.target] = [outputs[task.target], task]
+                    outputs[task.target_name] = [outputs[task.target_name], task]
             outputs[task.target] = task
 
         return outputs
@@ -418,19 +418,20 @@ class BaseModel(tf.keras.Model):
 
         predictions, targets, output = {}, {}, None
         # V1
-        for task in self.prediction_tasks:
-            task_x = forward
-            if isinstance(forward, dict) and task.task_name in forward:
-                task_x = forward[task.task_name]
-            if isinstance(task_x, PredictionOutput):
-                output = task_x
-                task_y = task_x.targets
-                task_x = task_x.predictions
-            else:
-                task_y = y[task.target_name] if isinstance(y, dict) and y else y
+        if self.prediction_tasks:
+            for task in self.prediction_tasks:
+                task_x = forward
+                if isinstance(forward, dict) and task.task_name in forward:
+                    task_x = forward[task.task_name]
+                if isinstance(task_x, PredictionOutput):
+                    output = task_x
+                    task_y = task_x.targets
+                    task_x = task_x.predictions
+                else:
+                    task_y = y[task.target_name] if isinstance(y, dict) and y else y
 
-            targets[task.task_name] = task_y
-            predictions[task.task_name] = task_x
+                targets[task.task_name] = task_y
+                predictions[task.task_name] = task_x
 
             if len(predictions) == 1 and len(targets) == 1:
                 predictions = predictions[list(predictions.keys())[0]]
