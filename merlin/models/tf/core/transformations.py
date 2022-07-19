@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import warnings
+from itertools import combinations
 from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
@@ -21,7 +22,7 @@ from keras.layers.preprocessing import preprocessing_utils
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.core.base import Block, PredictionOutput
-from merlin.models.tf.core.combinators import TabularBlock
+from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
     df_to_tensor,
@@ -669,29 +670,43 @@ class HashedCross(TabularBlock):
             - `"one_hot"`: Encodes each individual element in the input into an
                 array the same size as `num_bins`, containing a 1 at the input's bin
                 index.
-        sparse : bool
+        sparse: bool
             Boolean. Only applicable to `"one_hot"` mode. If True, returns a
             `SparseTensor` instead of a dense `Tensor`. Defaults to False.
-        output_name : string
+        output_name: string
             Name of output feature, if not specified, default would be
             cross_<feature_name>_<feature_name>_<...>
+        inffer_num_bins: bool
+            If True, num_bins would be set as the multiplier of feature cadinalities, if the
+            multiplier is bigger than max_num_bins, then it would be cliped by max_num_bins
+        max_num_bins: int
+            Upper bound of num_bins, by default 100000.
     """
 
     def __init__(
         self,
         schema: Schema,
-        num_bins: int,
+        num_bins: int = None,
         sparse: bool = False,
         output_mode: str = "int",
         output_name: str = None,
+        inffer_num_bins: bool = False,
+        max_num_bins: int = 100000,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
+        if (not inffer_num_bins) and (num_bins is None):
+            raise ValueError(
+                "num_bins is not given, and inffer_num_bins is False, either of them "
+                "is required, if you want to set fixed num_bins, then set inffer_num_bins to False,"
+                " and set num_bins to an integer value, if you want to inffer num_bins from the "
+                "mulplier of feature cardinalities, at the same time you can set the max_num_bins."
+            )
+
         if not (output_mode in ["int", "one_hot"]):
             raise ValueError("output_mode must be 'int' or 'one_hot'")
         self.schema = schema
-        self.num_bins = num_bins
         self.output_mode = output_mode
         self.sparse = sparse
         if not output_name:
@@ -700,6 +715,16 @@ class HashedCross(TabularBlock):
                 self.output_name = self.output_name + "_" + name
         else:
             self.output_name = output_name
+
+        # Set num_bins
+        if num_bins:
+            self.num_bins = num_bins
+        else:
+            cardinalities = schema_utils.categorical_cardinalities(schema)
+            multiplier = 1
+            for cardinality in cardinalities.values():
+                multiplier = multiplier * cardinality
+            self.num_bins = max(max_num_bins, multiplier)
 
     def call(self, inputs):
         self._check_at_least_two_inputs()
@@ -794,7 +819,9 @@ class HashedCross(TabularBlock):
 
 def HashedCrossAll(
     schema: Schema,
-    num_bins: int,
+    num_bins: int = None,
+    inffer_num_bins: bool = False,
+    max_num_bins: int = 100000,
     max_level: int = 2,
     sparse: bool = False,
     output_mode: str = "int",
@@ -820,7 +847,9 @@ def HashedCrossAll(
             3) feature_2 and feature_3
             4) feature_1, feature_2 and feature_3
     num_bins : int
-        Number of hash bins, note that num_bins is for .
+        Number of hash bins, note that num_bins is for all hashed cross transformation block, no
+        matter what level it is, if you want to set different num_bins for different hashed cross,
+        please use HashedCross to define each one with different num_bins.
     output_mode: string
         Specification for the output of the layer. Defaults to
         `"int"`.  Values can be `"int"`, or `"one_hot"` configuring the layer as
@@ -832,16 +861,22 @@ def HashedCrossAll(
     sparse : bool
         Boolean. Only applicable to `"one_hot"` mode. If True, returns a
         `SparseTensor` instead of a dense `Tensor`. Defaults to False.
+    inffer_num_bins: bool
+        If True, all num_bins would be set as the multiplier of corresponding feature cadinalities,
+        if the multiplier is bigger than max_num_bins, then it would be cliped by max_num_bins
+    max_num_bins: int
+        Upper bound of num_bins for all hashed cross transformation blocks, by default 100000.
 
     Example usage::
 
-        level_3_cross = HashedCrossAll(schema = schemas, max_level = 3)
+        level_3_cross = HashedCrossAll(schema = schemas, max_level = 3, inffer_num_bins = True)
     """
 
-    if max_level < 2:
+    if max_level < 2 or max_level > 3:
         raise ValueError(
-            "Please make sure max_level > 1, because the cross transformation requires at least 2 "
-            "features. Received: max_level = {max_level}"
+            "Please make sure 1 < max_level < 4, because the cross transformation requires at "
+            "least 2 features, and HashedCrossAll only support at most 3 level, if you want to "
+            "cross more than 3 features, please use HashedCross. Received: max_level = {max_level}"
         )
 
     if len(schema) < 2:
@@ -849,3 +884,25 @@ def HashedCrossAll(
             "`HashedCrossing` should be called on at least two features. "
             f"Received: {len(schema)} schemas"
         )
+
+    all_combinations = []
+    for combination_tuple in combinations(schema.column_names, 2):
+        all_combinations.append(list(combination_tuple))
+    if max_level == 3:
+        for combination_tuple in combinations(schema.column_names, 3):
+            all_combinations.append(list(combination_tuple))
+
+    hashed_crosses = []
+    for schema in all_combinations:
+        hashed_crosses.append(
+            HashedCross(
+                schema=schema,
+                num_bins=num_bins,
+                sparse=sparse,
+                output_mode=output_mode,
+                inffer_num_bins=inffer_num_bins,
+                max_num_bins=max_num_bins,
+            )
+        )
+
+    return ParallelBlock(hashed_crosses)
