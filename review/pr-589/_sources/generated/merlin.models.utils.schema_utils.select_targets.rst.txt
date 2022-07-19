@@ -1,0 +1,6 @@
+﻿merlin.models.utils.schema\_utils.select\_targets
+=================================================
+
+.. currentmodule:: merlin.models.utils.schema_utils
+
+.. autofunction:: select_targets
