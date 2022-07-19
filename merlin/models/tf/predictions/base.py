@@ -21,7 +21,7 @@ class PredictionBlock(Layer):
         target: Optional[str] = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
-        logits_temperature=1.0,
+        logits_temperature: float = 1.0,
         **kwargs,
     ):
         logits_scaler = kwargs.pop("logits_scaler", None)
