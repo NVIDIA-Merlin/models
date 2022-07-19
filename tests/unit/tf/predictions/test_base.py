@@ -25,7 +25,7 @@ from merlin.models.tf.utils import testing_utils
 def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
-        mm.MLPBlock([64]),
+        mm.MLPBlock([8]),
         _BinaryPrediction("click"),
     )
 
@@ -34,20 +34,27 @@ def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
     assert set(history.history.keys()) == {"loss", "precision", "regularization_loss"}
 
 
-@pytest.mark.parametrize("run_eagerly", [True])
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_parallel_prediction_blocks(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
-        mm.MLPBlock([64]),
+        mm.MLPBlock([8]),
         mm.ParallelBlock(
-            _BinaryPrediction("click", pre=mm.MLPBlock([16])),
-            _BinaryPrediction("conversion", pre=mm.MLPBlock([16])),
+            _BinaryPrediction("click", pre=mm.MLPBlock([4])),
+            _BinaryPrediction("conversion", pre=mm.MLPBlock([4])),
         ),
     )
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
-    assert len(history.history.keys()) == 6
+    assert list(history.history.keys()) == [
+        "loss",
+        "click/prediction_block_loss",
+        "conversion/prediction_block_loss",
+        "click/prediction_block/precision",
+        "conversion/prediction_block/precision",
+        "regularization_loss",
+    ]
 
 
 def _BinaryPrediction(name, **kwargs):

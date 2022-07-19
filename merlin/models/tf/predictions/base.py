@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import List, Optional, Sequence, Union
 
 import tensorflow as tf
 from keras.utils.generic_utils import to_snake_case
@@ -32,7 +32,12 @@ class PredictionBlock(Layer):
         super().__init__(name=name or self.full_name, **kwargs)
         self.prediction = prediction
         self.default_loss = default_loss
-        self.default_metrics = default_metrics
+        self._default_metrics = [
+            tf.keras.metrics.serialize(metric)
+            if isinstance(metric, tf.keras.metrics.Metric)
+            else metric
+            for metric in default_metrics
+        ]
         self.pre = pre
         self.post = post
         if logits_scaler is not None:
@@ -100,16 +105,25 @@ class PredictionBlock(Layer):
 
         return outputs
 
+    def create_default_metrics(self) -> List[tf.keras.metrics.Metric]:
+        metrics = []
+        for metric in self._default_metrics:
+            name = self.full_name + "/" + to_snake_case(metric["class_name"])
+            metric["config"]["name"] = name
+            metrics.append(tf.keras.metrics.deserialize(metric))
+
+        return metrics
+
     def get_config(self):
         config = super(PredictionBlock, self).get_config()
         config.update(
             {
                 "target": self.target,
+                "default_metrics": self._default_metrics,
             }
         )
 
         objects = [
-            "default_metrics",
             "prediction",
             "pre",
             "post",

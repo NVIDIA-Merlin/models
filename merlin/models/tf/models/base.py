@@ -303,6 +303,8 @@ class BaseModel(tf.keras.Model):
         else:
             self.output_names = [block.full_name for block in self.prediction_blocks]
 
+        from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
+
         super(BaseModel, self).compile(
             optimizer=optimizer,
             loss=self._create_loss(loss),
@@ -312,6 +314,7 @@ class BaseModel(tf.keras.Model):
             loss_weights=loss_weights,
             steps_per_execution=steps_per_execution,
             jit_compile=jit_compile,
+            from_serialized=from_serialized,
             **kwargs,
         )
 
@@ -319,20 +322,20 @@ class BaseModel(tf.keras.Model):
         out = {}
 
         num_v1_blocks = len(self.prediction_tasks)
-        num_v2_blocks = len(self.prediction_blocks)
 
         if isinstance(metrics, (list, tuple)):
-            if num_v1_blocks == 1:
+            if num_v1_blocks > 0:
                 out = {task.task_name: metrics for task in self.prediction_tasks}
-            elif num_v2_blocks == 1:
-                out = {task.task_name: metrics for task in self.prediction_blocks}
+            else:
+                for i, block in enumerate(self.prediction_blocks):
+                    out[block.full_name] = metrics[i]
 
         if not metrics:
             for task_name, task in self.prediction_tasks_by_name().items():
-                out[task_name] = task.create_default_metrics()
+                out[task_name] = [m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS]
 
             for task_name, task in self.predictions_by_name().items():
-                out[task_name] = [m() if inspect.isclass(m) else m for m in task.default_metrics]
+                out[task_name] = task.create_default_metrics()
 
         return out
 
