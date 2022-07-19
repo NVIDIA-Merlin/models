@@ -158,20 +158,19 @@ class PredictionBlock(Layer):
 
 class ContrastivePredictionBlock(PredictionBlock):
     def __init__(
-            self,
-            prediction: Layer,
-            prediction_with_negatives: Layer,
-            default_loss: Union[str, tf.keras.losses.Loss],
-            default_metrics: Sequence[tf.keras.metrics.Metric],
-            default_contrastive_metrics: Sequence[tf.keras.metrics.Metric],
-            name: Optional[str] = None,
-            target: Optional[str] = None,
-            pre: Optional[Layer] = None,
-            post: Optional[Layer] = None,
-            logits_temperature=1.0,
-            negative_sampling=None,
-            downscore_false_negatives=False,
-            **kwargs,
+        self,
+        prediction: Layer,
+        prediction_with_negatives: Layer,
+        default_loss: Union[str, tf.keras.losses.Loss],
+        default_metrics: Sequence[tf.keras.metrics.Metric],
+        name: Optional[str] = None,
+        target: Optional[str] = None,
+        pre: Optional[Layer] = None,
+        post: Optional[Layer] = None,
+        logits_temperature: float = 1.0,
+        negative_sampling=None,
+        downscore_false_negatives=False,
+        **kwargs,
     ):
         super(ContrastivePredictionBlock, self).__init__(
             prediction,
@@ -185,26 +184,6 @@ class ContrastivePredictionBlock(PredictionBlock):
             **kwargs,
         )
         self.prediction_with_negatives = prediction_with_negatives
-        self.negative_sampling = negative_sampling
-        self.downscore_false_negatives = downscore_false_negatives
-        self._default_contrastive_metrics = [
-            tf.keras.metrics.serialize(metric)
-            if isinstance(metric, tf.keras.metrics.Metric)
-            else metric
-            for metric in default_contrastive_metrics
-        ]
-
-    @property
-    def has_negative_samplers(self) -> bool:
-        return self.negative_sampling is not None and len(self.negative_sampling) > 0
-
-    def compile(
-            self,
-            negative_sampling=None,
-            downscore_false_negatives=False
-    ):
-        self.negative_sampling = negative_sampling
-        self.downscore_false_negatives = downscore_false_negatives
 
     def call(self, inputs, training=False, testing=False, **kwargs):
         to_call = self.prediction
@@ -214,3 +193,26 @@ class ContrastivePredictionBlock(PredictionBlock):
 
         return to_call(inputs, training=training, testing=testing, **kwargs)
 
+    @property
+    def has_negative_samplers(self) -> bool:
+        return self.negative_sampling is not None and len(self.negative_sampling) > 0
+
+    def compile(self, negative_sampling=None, downscore_false_negatives=False):
+        self.prediction_with_negatives.negative_sampling = negative_sampling
+        self.prediction_with_negatives.downscore_false_negatives = downscore_false_negatives
+
+    @property
+    def negative_sampling(self):
+        return self.prediction_with_negatives.negative_sampling
+
+    @negative_sampling.setter
+    def negative_sampling(self, value):
+        self.prediction_with_negatives.negative_sampling = value
+
+    @property
+    def downscore_false_negatives(self):
+        return self.prediction_with_negatives.downscore_false_negatives
+
+    @downscore_false_negatives.setter
+    def downscore_false_negatives(self, value):
+        self.prediction_with_negatives.downscore_false_negatives = value
