@@ -14,10 +14,10 @@
 # limitations under the License.
 #
 
-from typing import Optional
+from typing import Optional, Union
 
-import nvtabular as nvt
 import pytest
+import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
@@ -78,24 +78,28 @@ def InputBlockv2(
     schema: Schema,
     embeddings: Optional[ml.Block] = None,
     continuous_projection: Optional[ml.Block] = None,
-    continuous_column_selector=nvt.ColumnSelector(tags=[Tags.CONTINUOUS]),
+    continuous_column_selector: Union[Tags, Schema] = Tags.CONTINUOUS,
     pre=None,
     post=None,
     aggregation=None,
 ):
     embeddings = embeddings or InferEmbeddings(schema)
 
-    # if continuous_projection:
-    #     continuous = ml.TabularBlock(
-    #         column_selector=continuous_column_selector, aggregation="concat"
-    #     )
-    #     continuous = continuous.connect(continuous_projection)
-    # else:
-    #     continuous = ml.TabularBlock(column_selector=continuous_column_selector)
+    if isinstance(continuous_column_selector, Schema):
+        con_schema = continuous_column_selector
+    else:
+        con_schema = schema.select_by_tag(continuous_column_selector)
+    # TODO: Should we automatically add a Filter in TabularBlock
+    #  to filter out just the schema columns?
+    con_filter = ml.Filter(con_schema)
+    if continuous_projection:
+        continuous = ml.TabularBlock(schema=con_schema, aggregation="concat", pre=con_filter)
+        continuous = continuous.connect(continuous_projection)
+    else:
+        continuous = ml.TabularBlock(schema=con_schema, pre=con_filter)
 
     return ml.ParallelBlock(
-        # dict(continuous=continuous, embeddings=embeddings),
-        dict(embeddings=embeddings),
+        dict(continuous=continuous, embeddings=embeddings),
         pre=pre,
         post=post,
         aggregation=aggregation,
@@ -108,19 +112,21 @@ def InferEmbeddings(
     post=None,
     aggregation=None,
     block_name="embeddings",
-    default_combiner: str = "mean",
+    sequence_combiner: Optional[Union[str, tf.keras.layers.Layer]] = None,
 ):
     cols = schema.select_by_tag(Tags.CATEGORICAL)
-    tables = []
+    tables = {}
 
     for col in cols:
         combiner = None
         if Tags.SEQUENCE in col.tags:
-            combiner = default_combiner
+            combiner = sequence_combiner
 
-        tables.append(ml.EmbeddingTable(32, col, combiner=combiner))
+        tables[col.name] = ml.EmbeddingTable(32, col, combiner=combiner)
 
-    return ml.ParallelBlock(*tables, pre=pre, post=post, aggregation=aggregation, name=block_name)
+    return ml.ParallelBlock(
+        tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=cols
+    )
 
 
 def test_tabular_features_ragged_embeddings(sequence_testing_data: Dataset):
@@ -134,5 +140,27 @@ def test_tabular_features_ragged_embeddings(sequence_testing_data: Dataset):
 
     con = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS).column_names
     cat = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL).column_names
+    seq = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).column_names
 
     assert set(outputs.keys()) == set(con + cat)
+    assert all(isinstance(val, tf.RaggedTensor) for name, val in outputs.items() if name in seq)
+
+
+def test_tabular_features_ragged_combiner(sequence_testing_data: Dataset):
+    con2d = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS).remove_by_tag(Tags.SEQUENCE)
+    input_block = InputBlockv2(
+        sequence_testing_data.schema,
+        embeddings=InferEmbeddings(
+            sequence_testing_data.schema,
+            sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
+        ),
+        continuous_column_selector=con2d,
+    )
+
+    batch = ml.sample_batch(
+        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+    )
+
+    outputs = input_block(batch)
+
+    assert all(isinstance(val, tf.Tensor) for name, val in outputs.items())

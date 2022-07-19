@@ -157,7 +157,7 @@ class EmbeddingTable(EmbeddingTableBase):
         embeddings_constraint=None,
         mask_zero=False,
         input_length=None,
-        combiner: Optional[str] = None,
+        combiner: Optional[Union[str, tf.keras.layers.Layer]] = None,
         trainable=True,
         name=None,
         dtype=None,
@@ -167,6 +167,7 @@ class EmbeddingTable(EmbeddingTableBase):
         **kwargs,
     ):
         """Create an EmbeddingTable."""
+        name = name or col_schema.name
         super(EmbeddingTable, self).__init__(
             dim, col_schema, trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs
         )
@@ -235,7 +236,14 @@ class EmbeddingTable(EmbeddingTableBase):
         Invoked automatically before the first execution of `call()`.
         """
         self.table._maybe_build(inputs)
+
         return super(EmbeddingTable, self)._maybe_build(inputs)
+
+    # def build(self, input_shapes):
+    #     super(EmbeddingTable, self).build(input_shapes)
+    #
+    #     if isinstance(self.combiner, tf.keras.layers.Layer):
+    #         self.combiner.build(self.table.compute_output_shape(input_shapes))
 
     def call(self, inputs, **kwargs):
         """
@@ -257,7 +265,7 @@ class EmbeddingTable(EmbeddingTableBase):
             inputs = tf.cast(inputs, "int32")
         """
 
-        if self.combiner:
+        if self.combiner and isinstance(self.combiner, str):
             if not isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
                 raise ValueError(
                     f"Combiner ({self.combiner}) only supported for RaggedTensor and SparseTensor. "
@@ -279,19 +287,26 @@ class EmbeddingTable(EmbeddingTableBase):
                     f"Received: {type(inputs)}"
                 )
             out = self.table(inputs)
+            if isinstance(self.combiner, tf.keras.layers.Layer):
+                out = self.combiner(out)
 
         return out
 
     @classmethod
     def from_config(cls, config):
         config["table"] = tf.keras.layers.deserialize(config["table"])
+        if "combiner-layer" in config:
+            config["combiner"] = tf.keras.layers.deserialize(config.pop("combiner-layer"))
 
         return super().from_config(config)
 
     def get_config(self):
         config = super().get_config()
         config["table"] = tf.keras.layers.serialize(self.table)
-        config["combiner"] = self.combiner
+        if isinstance(self.combiner, tf.keras.layers.Layer):
+            config["combiner-layer"] = tf.keras.layers.serialize(self.combiner)
+        else:
+            config["combiner"] = self.combiner
 
         return config
 
