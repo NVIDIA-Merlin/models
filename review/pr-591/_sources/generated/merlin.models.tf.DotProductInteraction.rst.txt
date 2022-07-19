@@ -1,0 +1,80 @@
+﻿merlin.models.tf.DotProductInteraction
+======================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: DotProductInteraction
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~DotProductInteraction.__init__
+      ~DotProductInteraction.add_loss
+      ~DotProductInteraction.add_metric
+      ~DotProductInteraction.add_update
+      ~DotProductInteraction.add_variable
+      ~DotProductInteraction.add_weight
+      ~DotProductInteraction.build
+      ~DotProductInteraction.call
+      ~DotProductInteraction.compute_mask
+      ~DotProductInteraction.compute_output_shape
+      ~DotProductInteraction.compute_output_signature
+      ~DotProductInteraction.count_params
+      ~DotProductInteraction.finalize_state
+      ~DotProductInteraction.from_config
+      ~DotProductInteraction.get_config
+      ~DotProductInteraction.get_input_at
+      ~DotProductInteraction.get_input_mask_at
+      ~DotProductInteraction.get_input_shape_at
+      ~DotProductInteraction.get_output_at
+      ~DotProductInteraction.get_output_mask_at
+      ~DotProductInteraction.get_output_shape_at
+      ~DotProductInteraction.get_weights
+      ~DotProductInteraction.set_weights
+      ~DotProductInteraction.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~DotProductInteraction.activity_regularizer
+      ~DotProductInteraction.compute_dtype
+      ~DotProductInteraction.dtype
+      ~DotProductInteraction.dtype_policy
+      ~DotProductInteraction.dynamic
+      ~DotProductInteraction.inbound_nodes
+      ~DotProductInteraction.input
+      ~DotProductInteraction.input_mask
+      ~DotProductInteraction.input_shape
+      ~DotProductInteraction.input_spec
+      ~DotProductInteraction.losses
+      ~DotProductInteraction.metrics
+      ~DotProductInteraction.name
+      ~DotProductInteraction.name_scope
+      ~DotProductInteraction.non_trainable_variables
+      ~DotProductInteraction.non_trainable_weights
+      ~DotProductInteraction.outbound_nodes
+      ~DotProductInteraction.output
+      ~DotProductInteraction.output_mask
+      ~DotProductInteraction.output_shape
+      ~DotProductInteraction.stateful
+      ~DotProductInteraction.submodules
+      ~DotProductInteraction.supports_masking
+      ~DotProductInteraction.trainable
+      ~DotProductInteraction.trainable_variables
+      ~DotProductInteraction.trainable_weights
+      ~DotProductInteraction.updates
+      ~DotProductInteraction.variable_dtype
+      ~DotProductInteraction.variables
+      ~DotProductInteraction.weights
+   
+   
