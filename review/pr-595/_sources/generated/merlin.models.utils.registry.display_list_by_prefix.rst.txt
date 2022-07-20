@@ -1,0 +1,6 @@
+﻿merlin.models.utils.registry.display\_list\_by\_prefix
+======================================================
+
+.. currentmodule:: merlin.models.utils.registry
+
+.. autofunction:: display_list_by_prefix
