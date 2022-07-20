@@ -738,16 +738,14 @@
 <span class="sd">        num_bins : int</span>
 <span class="sd">            Number of hash bins.</span>
 <span class="sd">        output_mode: string</span>
-<span class="sd">            Specification for the output of the layer. Defaults to</span>
-<span class="sd">            `&quot;int&quot;`.  Values can be `&quot;int&quot;`, or `&quot;one_hot&quot;` configuring the layer as</span>
-<span class="sd">            follows:</span>
+<span class="sd">            Specification for the output of the layer. Defaults to &quot;int&quot;.  Values can be &quot;int&quot;, or</span>
+<span class="sd">            &quot;one_hot&quot;, configuring the layer as follows:</span>
 <span class="sd">            - `&quot;int&quot;`: Return the integer bin indices directly.</span>
-<span class="sd">            - `&quot;one_hot&quot;`: Encodes each individual element in the input into an</span>
-<span class="sd">                array the same size as `num_bins`, containing a 1 at the input&#39;s bin</span>
-<span class="sd">                index.</span>
+<span class="sd">            - `&quot;one_hot&quot;`: Encodes each individual element in the input into an array with the same</span>
+<span class="sd">                size as `num_bins`, containing a 1 at the input&#39;s bin index.</span>
 <span class="sd">        sparse: bool</span>
-<span class="sd">            Boolean. Only applicable to `&quot;one_hot&quot;` mode. If True, returns a</span>
-<span class="sd">            `SparseTensor` instead of a dense `Tensor`. Defaults to False.</span>
+<span class="sd">            Boolean. Only applicable to `&quot;one_hot&quot;` mode. If True, returns a `SparseTensor` instead</span>
+<span class="sd">            of a dense `Tensor`. Defaults to False.</span>
 <span class="sd">        output_name: string</span>
 <span class="sd">            Name of output feature, if not specified, default would be</span>
 <span class="sd">            cross_&lt;feature_name&gt;_&lt;feature_name&gt;_&lt;...&gt;</span>
@@ -786,7 +784,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sparse</span> <span class="o">=</span> <span class="n">sparse</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">output_name</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">=</span> <span class="s2">&quot;cross&quot;</span>
-            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">name</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">=</span> <span class="n">output_name</span>
@@ -799,7 +797,7 @@
             <span class="n">multiplier</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="k">for</span> <span class="n">cardinality</span> <span class="ow">in</span> <span class="n">cardinalities</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
                 <span class="n">multiplier</span> <span class="o">=</span> <span class="n">multiplier</span> <span class="o">*</span> <span class="n">cardinality</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">max_num_bins</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_num_bins</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_at_least_two_inputs</span><span class="p">()</span>
@@ -968,10 +966,10 @@
             <span class="n">all_combinations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">combination_tuple</span><span class="p">))</span>
 
     <span class="n">hashed_crosses</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">schema</span> <span class="ow">in</span> <span class="n">all_combinations</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">schema_names</span> <span class="ow">in</span> <span class="n">all_combinations</span><span class="p">:</span>
         <span class="n">hashed_crosses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">HashedCross</span><span class="p">(</span>
-                <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+                <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span><span class="n">schema_names</span><span class="p">),</span>
                 <span class="n">num_bins</span><span class="o">=</span><span class="n">num_bins</span><span class="p">,</span>
                 <span class="n">sparse</span><span class="o">=</span><span class="n">sparse</span><span class="p">,</span>
                 <span class="n">output_mode</span><span class="o">=</span><span class="n">output_mode</span><span class="p">,</span>
