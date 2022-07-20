@@ -85,11 +85,9 @@ def model_test(
     """Generic model test. It will compile & fit the model and make sure it can be re-trained."""
 
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
-    losses = model.fit(dataset, batch_size=50, epochs=epochs)
+    losses = model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1)
 
     assert len(losses.epoch) == epochs
-
-    assert isinstance(model.from_config(model.get_config()), type(model))
 
     with tempfile.TemporaryDirectory() as tmpdir:
         model.save(tmpdir)
@@ -98,11 +96,12 @@ def model_test(
     assert isinstance(loaded_model, type(model))
 
     np.array_equal(
-        model.predict(dataset, batch_size=50), loaded_model.predict(dataset, batch_size=50)
+        model.predict(dataset, batch_size=50, steps=1),
+        loaded_model.predict(dataset, batch_size=50, steps=1),
     )
 
     loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
-    losses = loaded_model.fit(dataset, batch_size=50, epochs=epochs)
+    losses = loaded_model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1)
 
     assert len(losses.epoch) == epochs
 
@@ -123,6 +122,8 @@ def get_model_inputs(schema: Schema, list_cols: Optional[Sequence[str]] = None):
 
 
 def test_model_signature(model, input_names, output_names):
+    """Test that the model signature is correct."""
+
     signatures = getattr(model, "signatures", {}) or {}
     default_signature = signatures.get("serving_default")
 

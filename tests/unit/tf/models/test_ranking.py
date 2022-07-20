@@ -24,7 +24,7 @@ from merlin.schema import Tags
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_simple_model(ecommerce_data: Dataset, run_eagerly):
-    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([4]))
     model = ml.Model(body, ml.BinaryClassificationTask("click"))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
@@ -35,7 +35,7 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
 def test_mf_model_single_binary_task(ecommerce_data, run_eagerly):
     model = ml.MatrixFactorizationModel(
         ecommerce_data.schema,
-        dim=64,
+        dim=4,
         aggregation="cosine",
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
@@ -47,9 +47,9 @@ def test_mf_model_single_binary_task(ecommerce_data, run_eagerly):
 def test_dlrm_model(music_streaming_data, run_eagerly):
     model = ml.DLRMModel(
         music_streaming_data.schema,
-        embedding_dim=64,
-        bottom_block=ml.MLPBlock([64]),
-        top_block=ml.MLPBlock([32]),
+        embedding_dim=4,
+        bottom_block=ml.MLPBlock([4]),
+        top_block=ml.MLPBlock([4]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 
@@ -66,8 +66,8 @@ def test_dlrm_model(music_streaming_data, run_eagerly):
 def test_dlrm_model_without_continuous_features(ecommerce_data, run_eagerly):
     model = ml.DLRMModel(
         ecommerce_data.schema,
-        embedding_dim=64,
-        top_block=ml.MLPBlock([32]),
+        embedding_dim=4,
+        top_block=ml.MLPBlock([4]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 
@@ -80,11 +80,11 @@ def test_dcn_model(ecommerce_data, stacked, run_eagerly):
     model = ml.DCNModel(
         ecommerce_data.schema,
         depth=3,
-        deep_block=ml.MLPBlock([64]),
+        deep_block=ml.MLPBlock([4]),
         stacked=stacked,
         embedding_options=ml.EmbeddingOptions(
             embedding_dims=None,
-            embedding_dim_default=64,
+            embedding_dim_default=4,
             infer_embedding_sizes=True,
             infer_embedding_sizes_multiplier=2.0,
         ),
@@ -98,23 +98,23 @@ def test_dcn_model(ecommerce_data, stacked, run_eagerly):
 def test_dlrm_model_multi_task(music_streaming_data, run_eagerly):
     dlrm_body = ml.DLRMBlock(
         music_streaming_data.schema,
-        embedding_dim=64,
-        bottom_block=ml.MLPBlock([64]),
-        top_block=ml.MLPBlock([32]),
+        embedding_dim=2,
+        bottom_block=ml.MLPBlock([2]),
+        top_block=ml.MLPBlock([2]),
     )
 
-    tasks_blocks = dict(click=ml.MLPBlock([16]), play_percentage=ml.MLPBlock([20]))
+    tasks_blocks = dict(click=ml.MLPBlock([2]), play_percentage=ml.MLPBlock([2]))
 
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema, task_blocks=tasks_blocks)
 
-    model = ml.Model(dlrm_body, ml.MLPBlock([64]), prediction_tasks)
+    model = ml.Model(dlrm_body, ml.MLPBlock([2]), prediction_tasks)
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
 
 
 @pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
 def test_serialization_model(ecommerce_data: Dataset, prediction_task):
-    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
+    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([4]))
     model = ml.Model(body, prediction_task("click"))
 
     testing_utils.model_test(model, ecommerce_data)

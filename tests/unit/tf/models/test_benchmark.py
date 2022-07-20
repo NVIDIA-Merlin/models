@@ -24,8 +24,8 @@ from merlin.models.tf.utils import testing_utils
 def test_ncf_model(ecommerce_data, run_eagerly):
     model = ml.benchmark.NCFModel(
         ecommerce_data.schema,
-        embedding_dim=64,
-        mlp_block=ml.MLPBlock([64]),
+        embedding_dim=2,
+        mlp_block=ml.MLPBlock([2]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 

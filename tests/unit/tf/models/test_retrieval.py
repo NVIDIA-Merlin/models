@@ -21,7 +21,7 @@ from tests.common.tf.retrieval import retrieval_tests_common
 def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
     music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
-    model = mm.MatrixFactorizationModel(music_streaming_data.schema, dim=64)
+    model = mm.MatrixFactorizationModel(music_streaming_data.schema, dim=4)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs)
@@ -30,7 +30,7 @@ def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly, 
 
 
 def test_matrix_factorization_model_l2_reg(testing_data: Dataset):
-    model = mm.MatrixFactorizationModel(testing_data.schema, dim=64, embeddings_l2_reg=0.1)
+    model = mm.MatrixFactorizationModel(testing_data.schema, dim=4, embeddings_l2_reg=0.1)
 
     _ = model(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
@@ -48,7 +48,7 @@ def test_matrix_factorization_model_l2_reg(testing_data: Dataset):
 def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
     music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
 
-    model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([512, 256]))
+    model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([4]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs)
@@ -70,9 +70,9 @@ def test_two_tower_model_l2_reg(testing_data: Dataset):
 
     model = mm.TwoTowerModel(
         testing_data.schema,
-        query_tower=mm.MLPBlock([512, 256]),
+        query_tower=mm.MLPBlock([4]),
         embedding_options=mm.EmbeddingOptions(
-            embedding_dim_default=64,
+            embedding_dim_default=2,
             embeddings_l2_reg=0.1,
         ),
     )
@@ -141,7 +141,7 @@ def test_two_tower_model_with_custom_options(
     model = mm.TwoTowerModel(
         data.schema,
         query_tower=mm.MLPBlock(
-            [512, 256],
+            [2],
             activation="relu",
             no_activation_last_layer=True,
             dropout=0.1,
@@ -185,7 +185,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
     metrics = [RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)]
-    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([128, 64]))
+    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([4]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly, metrics=metrics, loss=loss)
 
     # Training
@@ -230,7 +230,7 @@ def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
     metrics_agg = TopKMetricsAggregator(
         RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)
     )
-    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([128, 64]))
+    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([4]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly, metrics=[metrics_agg])
 
     # Training
@@ -322,11 +322,12 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 
     model = mm.YoutubeDNNRetrievalModel(
         schema=sequence_testing_data.schema,
+        top_block=mm.MLPBlock([2]),
         l2_normalization=True,
         sampled_softmax=True,
         num_sampled=100,
         embedding_options=mm.EmbeddingOptions(
-            embedding_dim_default=64,
+            embedding_dim_default=2,
         ),
     )
     model.compile(optimizer="adam", run_eagerly=False)
@@ -346,6 +347,6 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     dataloader = BatchedDataset(sequence_testing_data, batch_size=50)
     dataloader = dataloader.map(last_interaction_as_target)
 
-    losses = model.fit(dataloader, epochs=2)
+    losses = model.fit(dataloader, epochs=1)
 
     assert losses is not None
