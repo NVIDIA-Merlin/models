@@ -129,14 +129,14 @@ def torch_seq_prediction_head_link_to_block():
     return features
 
 
-@pytest.fixture
-def torch_tabular_features(tabular_schema):
-    return ml.TabularFeatures.from_schema(
-        tabular_schema,
-        max_sequence_length=20,
-        continuous_projection=64,
-        aggregation="concat",
-    )
+# @pytest.fixture
+# def torch_tabular_features(tabular_schema):
+#     return ml.TabularFeatures.from_schema(
+#         tabular_schema,
+#         max_sequence_length=20,
+#         continuous_projection=64,
+#         aggregation="concat",
+#     )
 
 
 @pytest.fixture

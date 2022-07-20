@@ -15,16 +15,13 @@
 #
 
 import merlin.models.torch as ml
+from merlin.models.torch.blocks.mlp import MLPBlock
+from merlin.models.torch.core.aggregation import ConcatFeatures
 
 
-def test_mlp_block(tabular_schema, torch_tabular_data):
-    tab_module = ml.TabularFeatures.from_schema(
-        tabular_schema, max_sequence_length=20, aggregation="concat"
-    )
+def test_mlp(torch_con_features):
+    block = MLPBlock([64, 32])
 
-    block = tab_module >> ml.MLPBlock([64, 32])
+    outputs = block(ConcatFeatures()(torch_con_features))
 
-    outputs = block(torch_tabular_data)
-
-    assert outputs.ndim == 2
-    assert outputs.shape[-1] == 32
+    assert outputs.shape == (1000, 32)

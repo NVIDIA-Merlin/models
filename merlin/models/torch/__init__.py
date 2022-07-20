@@ -14,14 +14,6 @@
 # limitations under the License.
 #
 # Block related imports
-from merlin.models.torch.block.base import (
-    Block,
-    BlockBase,
-    SequentialBlock,
-    build_blocks,
-    right_shift_block,
-)
-from merlin.models.torch.block.mlp import MLPBlock
 
 # Features related imports
 from merlin.models.torch.features.continuous import ContinuousFeatures
@@ -39,12 +31,6 @@ from merlin.models.torch.model.base import Head, Model, PredictionTask
 from merlin.models.torch.model.prediction_task import BinaryClassificationTask, RegressionTask
 
 # Tabular related imports
-from merlin.models.torch.tabular.aggregation import (
-    ConcatFeatures,
-    ElementwiseSum,
-    ElementwiseSumItemMulti,
-    StackFeatures,
-)
 from merlin.models.torch.tabular.base import (
     AsTabular,
     FilterFeatures,
@@ -55,7 +41,7 @@ from merlin.models.torch.tabular.base import (
     TabularModule,
     TabularTransformation,
 )
-from merlin.models.torch.tabular.transformations import StochasticSwapNoise, TabularLayerNorm
+from merlin.models.torch.core.transformations import StochasticSwapNoise, TabularLayerNorm
 from merlin.schema import Schema
 
 __all__ = [
