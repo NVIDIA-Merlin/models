@@ -23,7 +23,7 @@ from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.schema import Schema, Tags
 
 
-@pytest.mark.parametrize("run_eagerly", [True])
+@pytest.mark.parametrize("run_eagerly", [False])
 def test_simple_model(ecommerce_data: Dataset, run_eagerly):
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),
