@@ -120,7 +120,7 @@ name the module should have.</p></li>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_metric</span></code>(value[, name])</p></td>
 <td><p>Adds metric tensor to the layer.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_update</span></code>(updates[, inputs])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_update</span></code>(updates)</p></td>
 <td><p>Add update op(s), potentially dependent on layer inputs.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_variable</span></code>(*args, **kwargs)</p></td>
@@ -129,98 +129,92 @@ name the module should have.</p></li>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_weight</span></code>([name, shape, dtype, …])</p></td>
 <td><p>Adds a new variable to the layer.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply</span></code>(inputs, *args, **kwargs)</p></td>
-<td><p>Deprecated, do NOT use!</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_to_all</span></code>(inputs[, columns_to_filter])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_to_all</span></code>(inputs[, columns_to_filter])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.apply_to_branch" title="merlin.models.tf.ParallelBlock.apply_to_branch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_to_branch</span></code></a>(branch_name, *block)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.apply_to_branch" title="merlin.models.tf.ParallelBlock.apply_to_branch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_to_branch</span></code></a>(branch_name, *block)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">as_tabular</span></code>([name])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">as_tabular</span></code>([name])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.build" title="merlin.models.tf.ParallelBlock.build"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code></a>(input_shape)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.build" title="merlin.models.tf.ParallelBlock.build"><code class="xref py py-obj docutils literal notranslate"><span class="pre">build</span></code></a>(input_shape)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_batch_size_from_input_shapes</span></code>(…)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">calculate_batch_size_from_input_shapes</span></code>(…)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.call" title="merlin.models.tf.ParallelBlock.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs, **kwargs)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.call" title="merlin.models.tf.ParallelBlock.call"><code class="xref py py-obj docutils literal notranslate"><span class="pre">call</span></code></a>(inputs, **kwargs)</p></td>
 <td><p>The call method for ParallelBlock</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_outputs</span></code>(outputs[, training])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">call_outputs</span></code>(outputs[, training])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_schema</span></code>([schema])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">check_schema</span></code>([schema])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.compute_call_output_shape" title="merlin.models.tf.ParallelBlock.compute_call_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_call_output_shape</span></code></a>(input_shape)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.compute_call_output_shape" title="merlin.models.tf.ParallelBlock.compute_call_output_shape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_call_output_shape</span></code></a>(input_shape)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_mask</span></code>(inputs[, mask])</p></td>
 <td><p>Computes an output mask tensor.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code>(input_shapes)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_shape</span></code>(input_shapes)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_output_signature</span></code>(input_signature)</p></td>
 <td><p>Compute the output tensor signature of the layer based on the inputs.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect</span></code>(*block[, block_name, context])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect</span></code>(*block[, block_name, context])</p></td>
 <td><p>Connect the block to other blocks sequentially.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_branch</span></code>(*branches[, add_rest, post, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_branch</span></code>(*branches[, add_rest, post, …])</p></td>
 <td><p>Connect the block to one or multiple branches.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_debug_block</span></code>([append])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_debug_block</span></code>([append])</p></td>
 <td><p>Connect the block to a debug block.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_with_residual</span></code>(block[, activation])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_with_residual</span></code>(block[, activation])</p></td>
 <td><p>Connect the block to other blocks sequentially with a residual connection.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_with_shortcut</span></code>(block[, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">connect_with_shortcut</span></code>(block[, …])</p></td>
 <td><p>Connect the block to other blocks sequentially with a shortcut connection.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_params</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">count_params</span></code>()</p></td>
 <td><p>Count the total number of scalars composing the weights.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">finalize_state</span></code>()</p></td>
 <td><p>Finalizes the layers state after updating layer weights.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.from_config" title="merlin.models.tf.ParallelBlock.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config[, custom_objects])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.from_config" title="merlin.models.tf.ParallelBlock.from_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_config</span></code></a>(config[, custom_objects])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_features</span></code>(features[, pre, post, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_features</span></code>(features[, pre, post, …])</p></td>
 <td><p>Initializes a TabularLayer instance where the contents of features will be filtered out</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_layer</span></code>(layer)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_layer</span></code>(layer)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code>(schema[, tags, allow_none])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_schema</span></code>(schema[, tags, allow_none])</p></td>
 <td><p>Instantiate a TabularLayer instance from a DatasetSchema.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.get_config" title="merlin.models.tf.ParallelBlock.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.get_config" title="merlin.models.tf.ParallelBlock.get_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_config</span></code></a>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input tensor(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_mask_at</span></code>(node_index)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_mask_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input mask tensor(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_shape_at</span></code>(node_index)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_input_shape_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the input shape(s) of a layer at a given node.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_item_ids_from_inputs</span></code>(inputs)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_item_ids_from_inputs</span></code>(inputs)</p></td>
 <td><p></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_losses_for</span></code>(inputs)</p></td>
-<td><p>Deprecated, do NOT use!</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_output_at</span></code>(node_index)</p></td>
 <td><p>Retrieves the output tensor(s) of a layer at a given node.</p></td>
@@ -234,74 +228,71 @@ name the module should have.</p></li>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_padding_mask_from_item_id</span></code>(inputs[, …])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_updates_for</span></code>(inputs)</p></td>
-<td><p>Deprecated, do NOT use!</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_weights</span></code>()</p></td>
 <td><p>Returns the current weights of the layer, as NumPy arrays.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse</span></code>(*block)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse</span></code>(*block)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_block</span></code>(input)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_block</span></code>(input)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.parse_config" title="merlin.models.tf.ParallelBlock.parse_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_config</span></code></a>(config[, custom_objects])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.parse_config" title="merlin.models.tf.ParallelBlock.parse_config"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_config</span></code></a>(config[, custom_objects])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">post_call</span></code>(inputs[, transformations, …])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">post_call</span></code>(inputs[, transformations, …])</p></td>
 <td><p>Method that’s typically called after the forward method for post-processing.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pre_call</span></code>(inputs[, transformations])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pre_call</span></code>(inputs[, transformations])</p></td>
 <td><p>Method that’s typically called before the forward method for pre-processing.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare</span></code>([block, post, aggregation])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepare</span></code>([block, post, aggregation])</p></td>
 <td><p>Transform the inputs of this block.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_features</span></code>(feature_shapes)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">register_features</span></code>(feature_shapes)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat</span></code>([num])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat</span></code>([num])</p></td>
 <td><p>Repeat the block num times.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat_in_parallel</span></code>([num, prefix, names, …])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repeat_in_parallel</span></code>([num, prefix, names, …])</p></td>
 <td><p>Repeat the block num times in parallel.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_add</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_add</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_extra</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_extra</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_ignore</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repr_ignore</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.select_by_name" title="merlin.models.tf.ParallelBlock.select_by_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_name</span></code></a>(name)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.select_by_name" title="merlin.models.tf.ParallelBlock.select_by_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_name</span></code></a>(name)</p></td>
 <td><p>Select a parallel block by name</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_aggregation</span></code>(value)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_aggregation</span></code>(value)</p></td>
 <td><p><dl class="field-list simple">
 <dt class="field-odd">param value</dt>
 <dd class="field-odd"><p></p></dd>
 </dl>
 </p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_post</span></code>(value)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_post</span></code>(value)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_pre</span></code>(value)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_pre</span></code>(value)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_schema</span></code>([schema])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_schema</span></code>([schema])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
 <td><p>Sets the weights of the layer, from NumPy arrays.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">super</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">super</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
 <td><p>Decorator to automatically enter the module name scope.</p></td>
 </tr>
 </tbody>
@@ -341,7 +332,7 @@ name the module should have.</p></li>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">inbound_nodes</span></code></p></td>
-<td><p>Deprecated, do NOT use! Only for compatibility with external Keras.</p></td>
+<td><p>Return Functional API nodes upstream of this layer.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">input</span></code></p></td>
 <td><p>Retrieves the input tensor(s) of a layer.</p></td>
@@ -383,7 +374,7 @@ name the module should have.</p></li>
 <td><p>List of all non-trainable weights tracked by this layer.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">outbound_nodes</span></code></p></td>
-<td><p>Deprecated, do NOT use! Only for compatibility with external Keras.</p></td>
+<td><p>Return Functional API nodes downstream of this layer.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">output</span></code></p></td>
 <td><p>Retrieves the output tensor(s) of a layer.</p></td>

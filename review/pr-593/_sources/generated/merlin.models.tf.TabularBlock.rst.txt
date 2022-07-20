@@ -19,7 +19,6 @@
       ~TabularBlock.add_update
       ~TabularBlock.add_variable
       ~TabularBlock.add_weight
-      ~TabularBlock.apply
       ~TabularBlock.apply_to_all
       ~TabularBlock.as_tabular
       ~TabularBlock.build
@@ -48,12 +47,10 @@
       ~TabularBlock.get_input_mask_at
       ~TabularBlock.get_input_shape_at
       ~TabularBlock.get_item_ids_from_inputs
-      ~TabularBlock.get_losses_for
       ~TabularBlock.get_output_at
       ~TabularBlock.get_output_mask_at
       ~TabularBlock.get_output_shape_at
       ~TabularBlock.get_padding_mask_from_item_id
-      ~TabularBlock.get_updates_for
       ~TabularBlock.get_weights
       ~TabularBlock.parse
       ~TabularBlock.parse_block
