@@ -554,8 +554,13 @@ def sample_batch(
 
     from merlin.models.tf.core.transformations import AsDenseFeatures, AsRaggedFeatures
 
-    batched_dataset = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)
-    inputs, targets = next(iter(batched_dataset))
+    if not isinstance(data, BatchedDataset):
+        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)
+
+    batch = next(iter(data))
+    # batch could be of type Prediction, so we can't unpack directly
+    inputs, targets = batch[0], batch[1]
+
     if to_ragged:
         inputs = AsRaggedFeatures()(inputs)
     elif to_dense:
