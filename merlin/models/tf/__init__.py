@@ -27,6 +27,7 @@ from merlin.models.tf.core.transformations import (
     CategoricalOneHot,
     ExpandDims,
     HashedCross,
+    HashedCrossAll,
     LabelToOneHot,
 )
 
@@ -153,6 +154,7 @@ __all__ = [
     "AsSparseFeatures",
     "CategoricalOneHot",
     "HashedCross",
+    "HashedCrossAll",
     "ElementwiseSum",
     "ElementwiseSumItemMulti",
     "AsTabular",

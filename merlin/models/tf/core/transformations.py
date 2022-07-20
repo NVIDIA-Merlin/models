@@ -663,16 +663,14 @@ class HashedCross(TabularBlock):
         num_bins : int
             Number of hash bins.
         output_mode: string
-            Specification for the output of the layer. Defaults to
-            `"int"`.  Values can be `"int"`, or `"one_hot"` configuring the layer as
-            follows:
+            Specification for the output of the layer. Defaults to "int".  Values can be "int", or
+            "one_hot", configuring the layer as follows:
             - `"int"`: Return the integer bin indices directly.
-            - `"one_hot"`: Encodes each individual element in the input into an
-                array the same size as `num_bins`, containing a 1 at the input's bin
-                index.
+            - `"one_hot"`: Encodes each individual element in the input into an array with the same
+                size as `num_bins`, containing a 1 at the input's bin index.
         sparse: bool
-            Boolean. Only applicable to `"one_hot"` mode. If True, returns a
-            `SparseTensor` instead of a dense `Tensor`. Defaults to False.
+            Boolean. Only applicable to `"one_hot"` mode. If True, returns a `SparseTensor` instead
+            of a dense `Tensor`. Defaults to False.
         output_name: string
             Name of output feature, if not specified, default would be
             cross_<feature_name>_<feature_name>_<...>
@@ -711,7 +709,7 @@ class HashedCross(TabularBlock):
         self.sparse = sparse
         if not output_name:
             self.output_name = "cross"
-            for name in self.schema.column_names:
+            for name in schema.column_names:
                 self.output_name = self.output_name + "_" + name
         else:
             self.output_name = output_name
@@ -724,7 +722,7 @@ class HashedCross(TabularBlock):
             multiplier = 1
             for cardinality in cardinalities.values():
                 multiplier = multiplier * cardinality
-            self.num_bins = max(max_num_bins, multiplier)
+            self.num_bins = min(max_num_bins, multiplier)
 
     def call(self, inputs):
         self._check_at_least_two_inputs()
@@ -893,10 +891,10 @@ def HashedCrossAll(
             all_combinations.append(list(combination_tuple))
 
     hashed_crosses = []
-    for schema in all_combinations:
+    for schema_names in all_combinations:
         hashed_crosses.append(
             HashedCross(
-                schema=schema,
+                schema=schema.select_by_name(schema_names),
                 num_bins=num_bins,
                 sparse=sparse,
                 output_mode=output_mode,

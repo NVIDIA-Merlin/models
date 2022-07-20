@@ -312,6 +312,30 @@ def test_hashedcross_less_bins():
     assert output_value.shape.as_list() == [7, 4]
 
 
+def test_hashedcross_output_mode():
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant([["A"], ["B"], ["C"], ["D"], ["A"], ["B"], ["A"]])
+    inputs["cat2"] = tf.constant([[101], [102], [101], [101], [101], [102], [103]])
+
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=4, output_mode="one_hot", sparse=True)
+    outputs = hashed_cross_op(inputs)
+    _, output_value = outputs.popitem()
+    assert isinstance(output_value, tf.SparseTensor) is True
+    assert output_value.shape.as_list() == [7, 4]
+
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=4, output_mode="one_hot", sparse=False)
+    outputs = hashed_cross_op(inputs)
+    _, output_value = outputs.popitem()
+    assert isinstance(output_value, tf.Tensor) is True
+    assert output_value.shape.as_list() == [7, 4]
+
+
 def test_hashedcross_onehot_output():
     test_case = TestCase()
 
@@ -342,7 +366,7 @@ def test_hashedcross_onehot_output():
     )
 
 
-def test_hashed_cross_single_input_fails():
+def test_hashedcross_single_input_fails():
     test_case = TestCase()
     schema = Schema([create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20)])
     with test_case.assertRaisesRegex(ValueError, "at least two features"):
@@ -370,7 +394,7 @@ def test_hashedcross_from_config():
     test_case.assertAllEqual(cloned_output_value, original_output_value)
 
 
-def test_hashedcrosses():
+def test_hashedcrosses_in_parallelblock():
     test_case = TestCase()
 
     schema_0 = Schema(
@@ -447,6 +471,55 @@ def test_hashedcross_in_model(ecommerce_data: Dataset, run_eagerly):
     cross_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
     branches = {
         "cross_product": ml.HashedCross(cross_schema, num_bins=1000, is_input=True),
+        "features": ml.InputBlock(ecommerce_data.schema),
+    }
+    body = ParallelBlock(branches, is_input=True).connect(ml.MLPBlock([64]))
+    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    testing_utils.model_test(model, ecommerce_data)
+
+
+def test_hashedcrossall():
+    schema = Schema(
+        [
+            # num_items: 0, 1, 2 thus cardinality = 3
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=2),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=2),
+            create_categorical_column("cat3", tags=[Tags.CATEGORICAL], num_items=2),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
+    inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
+    inputs["cat3"] = tf.constant([[1], [0], [1], [2], [2]])
+
+    hashed_cross_all = ml.HashedCrossAll(
+        schema=schema,
+        inffer_num_bins=True,
+        output_mode="one_hot",
+        sparse=True,
+        max_num_bins=25,
+        max_level=3,
+    )
+
+    outputs = hashed_cross_all(inputs)
+    assert len(outputs) == 4
+
+    output_value_0 = outputs["cross_cat1_cat2"]
+    assert output_value_0.shape.as_list() == [5, 9]
+
+    output_value_1 = outputs["cross_cat1_cat2_cat3"]
+    assert output_value_1.shape.as_list() == [5, 25]
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
+    cross_schema = ecommerce_data.schema.select_by_name(
+        names=["user_categories", "item_category", "item_brand"]
+    )
+    branches = {
+        "cross_product": ml.HashedCrossAll(cross_schema, max_num_bins=1000, inffer_num_bins=True),
         "features": ml.InputBlock(ecommerce_data.schema),
     }
     body = ParallelBlock(branches, is_input=True).connect(ml.MLPBlock([64]))
