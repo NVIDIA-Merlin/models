@@ -4,6 +4,8 @@ import torch
 
 
 class Block(torch.nn.Module):
+    """Base Block class."""
+
     def __init__(
         self, pre: Optional[torch.nn.Module] = None, post: Optional[torch.nn.Module] = None
     ) -> None:
