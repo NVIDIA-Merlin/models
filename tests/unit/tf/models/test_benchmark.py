@@ -22,6 +22,7 @@ from merlin.models.tf.utils import testing_utils
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_ncf_model(ecommerce_data, run_eagerly):
+    ecommerce_data.schema = ecommerce_data.schema.select_by_name(["user_id", "item_id", "click"])
     model = ml.benchmark.NCFModel(
         ecommerce_data.schema,
         embedding_dim=2,
