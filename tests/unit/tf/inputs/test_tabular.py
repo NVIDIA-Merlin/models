@@ -130,7 +130,7 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
     )
     batch["item_id_seq_weights"] = tf.ragged.constant(
         [[1.0, 2.0, 3.0, 4.0] for _ in range(batch["item_id_seq"].shape[0])],
-        row_splits_dtype=tf.dtypes.int32,
+        row_splits_dtype=batch["item_id_seq"].row_splits.dtype,
     )
 
     input_block_weighed_avg = ml.InputBlockv2(

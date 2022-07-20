@@ -286,10 +286,14 @@ class EmbeddingTable(EmbeddingTableBase):
             out = call_layer(self.table, inputs, **kwargs)
             if isinstance(self.combiner, tf.keras.layers.Layer):
                 out = call_layer(self.combiner, out, **kwargs)
-            elif tf.rank(out) == 3 and out.shape[1] == 1:
+            else:
                 # If non-sequential columns is 3D tensor (batch size, 1, emb size)
                 # we get rid of the 2nd dim (1)
-                out = tf.squeeze(out, axis=1)
+                out = tf.cond(
+                    tf.logical_and(tf.rank(out) == 3, out.shape[1] == 1),
+                    lambda: tf.squeeze(out, axis=1),
+                    lambda: out,
+                )
 
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
