@@ -8,10 +8,13 @@ from merlin.models.tf.core.base import name_fn
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import call_layer
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PredictionBlock(Layer):
+    """Block responsible for making predictions, contains default loss + metrics"""
+
     def __init__(
         self,
         prediction: Layer,
@@ -156,7 +159,10 @@ class PredictionBlock(Layer):
         return super().from_config(config)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ContrastivePredictionBlock(PredictionBlock):
+    """A prediction block that uses contrastive loss."""
+
     def __init__(
         self,
         prediction: Layer,
@@ -168,8 +174,6 @@ class ContrastivePredictionBlock(PredictionBlock):
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
         logits_temperature: float = 1.0,
-        negative_sampling=None,
-        downscore_false_negatives=False,
         **kwargs,
     ):
         super(ContrastivePredictionBlock, self).__init__(
@@ -188,31 +192,30 @@ class ContrastivePredictionBlock(PredictionBlock):
     def call(self, inputs, training=False, testing=False, **kwargs):
         to_call = self.prediction
 
-        if self.has_negative_samplers and (training or testing):
+        if self.prediction_with_negatives.has_negative_samplers and (training or testing):
             to_call = self.prediction_with_negatives
 
-        return to_call(inputs, training=training, testing=testing, **kwargs)
+        return call_layer(to_call, inputs, training=training, testing=testing, **kwargs)
 
-    @property
-    def has_negative_samplers(self) -> bool:
-        return self.negative_sampling is not None and len(self.negative_sampling) > 0
+    def get_config(self):
+        config = super(ContrastivePredictionBlock, self).get_config()
+        config.update(
+            {
+                "prediction_with_negatives": tf.keras.utils.serialize_keras_object(
+                    self.prediction_with_negatives
+                ),
+            }
+        )
 
-    def compile(self, negative_sampling=None, downscore_false_negatives=False):
-        self.prediction_with_negatives.negative_sampling = negative_sampling
-        self.prediction_with_negatives.downscore_false_negatives = downscore_false_negatives
+        return config
 
-    @property
-    def negative_sampling(self):
-        return self.prediction_with_negatives.negative_sampling
+    @classmethod
+    def from_config(cls, config):
+        config = tf_utils.maybe_deserialize_keras_objects(
+            config,
+            {
+                "prediction_with_negatives": tf.keras.layers.deserialize,
+            },
+        )
 
-    @negative_sampling.setter
-    def negative_sampling(self, value):
-        self.prediction_with_negatives.negative_sampling = value
-
-    @property
-    def downscore_false_negatives(self):
-        return self.prediction_with_negatives.downscore_false_negatives
-
-    @downscore_false_negatives.setter
-    def downscore_false_negatives(self, value):
-        self.prediction_with_negatives.downscore_false_negatives = value
+        return super().from_config(config)

@@ -550,8 +550,9 @@ class BaseModel(tf.keras.Model):
             # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
             # should have standard signature for better compatibility with Keras methods
             # like self.compiled_metrics.update_state()
-            for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
-                topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
+            if hasattr(prediction_outputs, "label_relevant_counts"):
+                for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
+                    topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
 
             self.compiled_metrics.update_state(
                 prediction_outputs.targets, prediction_outputs.predictions, sample_weight
