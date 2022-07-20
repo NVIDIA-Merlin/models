@@ -247,7 +247,7 @@ deep_dlrm_interaction(batch)
 # In[ ]:
 
 
-from merlin.models.tf.blocks.core.transformations import LogitsTemperatureScaler
+from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 
 binary_task = mm.BinaryClassificationTask(
     sub_schema,
