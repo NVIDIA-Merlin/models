@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-          cache-dependency-path: '**/**.txt'
+          cache-dependency-path: 'requirements/dev.txt'
       - name: Install Ubuntu packages
         run: |
           sudo apt-get update -y
