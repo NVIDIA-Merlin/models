@@ -21,7 +21,6 @@
       ~ParallelPredictionBlock.add_update
       ~ParallelPredictionBlock.add_variable
       ~ParallelPredictionBlock.add_weight
-      ~ParallelPredictionBlock.apply
       ~ParallelPredictionBlock.apply_to_all
       ~ParallelPredictionBlock.apply_to_branch
       ~ParallelPredictionBlock.as_tabular
@@ -51,13 +50,11 @@
       ~ParallelPredictionBlock.get_input_mask_at
       ~ParallelPredictionBlock.get_input_shape_at
       ~ParallelPredictionBlock.get_item_ids_from_inputs
-      ~ParallelPredictionBlock.get_losses_for
       ~ParallelPredictionBlock.get_output_at
       ~ParallelPredictionBlock.get_output_mask_at
       ~ParallelPredictionBlock.get_output_shape_at
       ~ParallelPredictionBlock.get_padding_mask_from_item_id
       ~ParallelPredictionBlock.get_tasks_from_schema
-      ~ParallelPredictionBlock.get_updates_for
       ~ParallelPredictionBlock.get_weights
       ~ParallelPredictionBlock.parse
       ~ParallelPredictionBlock.parse_block
