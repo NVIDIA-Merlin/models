@@ -74,7 +74,7 @@ def test_tabular_features_yoochoose_model(
 
 
 def test_tabular_seq_features_ragged_embeddings(sequence_testing_data: Dataset):
-    tab_module = ml.InputBlockv2(sequence_testing_data.schema)
+    tab_module = ml.InputBlockV2(sequence_testing_data.schema)
 
     batch = ml.sample_batch(
         sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
@@ -99,9 +99,9 @@ def test_tabular_seq_features_ragged_embeddings(sequence_testing_data: Dataset):
 )
 def test_tabular_seq_features_ragged_emb_combiner(sequence_testing_data: Dataset, seq_combiner):
     con2d = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS).remove_by_tag(Tags.SEQUENCE)
-    input_block = ml.InputBlockv2(
+    input_block = ml.InputBlockV2(
         sequence_testing_data.schema,
-        embeddings=ml.EmbeddingsFromSchema(
+        embeddings=ml.Embeddings(
             sequence_testing_data.schema, sequence_combiner=seq_combiner
         ),
         continuous_column_selector=con2d,
@@ -133,9 +133,9 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
         row_splits_dtype=batch["item_id_seq"].row_splits.dtype,
     )
 
-    input_block_weighed_avg = ml.InputBlockv2(
+    input_block_weighed_avg = ml.InputBlockV2(
         schema,
-        embeddings=ml.EmbeddingsFromSchema(
+        embeddings=ml.Embeddings(
             schema,
             sequence_combiner=ml.AverageEmbeddingsByWeightFeature.from_schema_convention(
                 schema, "_weights"
@@ -145,9 +145,9 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
 
     outputs_weighted_avg = input_block_weighed_avg(batch, features=batch)
 
-    input_block_simple_avg = ml.InputBlockv2(
+    input_block_simple_avg = ml.InputBlockV2(
         schema,
-        embeddings=ml.EmbeddingsFromSchema(
+        embeddings=ml.Embeddings(
             schema, sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1))
         ),
     )
@@ -168,14 +168,14 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
 
 def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset):
     cat_schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
-    embeddings_block = ml.EmbeddingsFromSchema(
+    embeddings_block = ml.Embeddings(
         cat_schema,
         embedding_dims={"item_id_seq": 15, "test_user_id": 21},
         infer_embedding_sizes=True,
         infer_embedding_sizes_multiplier=2.0,
         infer_embeddings_ensure_dim_multiple_of_8=True,
     )
-    input_block = ml.InputBlockv2(cat_schema, embeddings=embeddings_block)
+    input_block = ml.InputBlockV2(cat_schema, embeddings=embeddings_block)
 
     batch = ml.sample_batch(
         sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True

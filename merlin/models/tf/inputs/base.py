@@ -211,7 +211,7 @@ def InputBlock(
     return ParallelBlock(branches, aggregation=aggregation, post=post, is_input=True, **kwargs)
 
 
-def InputBlockv2(
+def InputBlockV2(
     schema: Schema,
     embeddings: Optional[Block] = None,
     continuous_projection: Optional[Block] = None,

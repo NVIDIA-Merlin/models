@@ -324,7 +324,7 @@ class EmbeddingTable(EmbeddingTableBase):
         return config
 
 
-def EmbeddingsFromSchema(
+def Embeddings(
     schema: Schema,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
