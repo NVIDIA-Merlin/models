@@ -25,7 +25,7 @@ from keras.utils import tf_inspect
 from tensorflow.python.framework.test_util import disable_cudnn_autotune
 
 import merlin.io
-from merlin.models.tf.dataset import BatchedDataset
+from merlin.models.tf.dataset import BatchedDataset, sample_batch
 from merlin.models.tf.models.base import Model
 from merlin.schema import Schema
 
@@ -80,33 +80,36 @@ def model_test(
     run_eagerly: bool = True,
     optimizer="adam",
     epochs: int = 1,
+    reload_model: bool = False,
     **kwargs,
 ) -> Tuple[Model, Any]:
     """Generic model test. It will compile & fit the model and make sure it can be re-trained."""
 
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
-    losses = model.fit(dataset, batch_size=50, epochs=epochs)
+    losses = model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1)
 
-    assert len(losses.epoch) == epochs
+    batch = sample_batch(dataset, batch_size=50)
+
+    if reload_model:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model.save(tmpdir)
+            loaded_model = tf.keras.models.load_model(tmpdir)
+
+        assert isinstance(loaded_model, type(model))
+
+        np.array_equal(
+            model.predict(batch[0]),
+            loaded_model.predict(batch[0]),
+        )
+
+        loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
+        loaded_model.train_step(batch)
+
+        return loaded_model, losses
 
     assert isinstance(model.from_config(model.get_config()), type(model))
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        model.save(tmpdir)
-        loaded_model = tf.keras.models.load_model(tmpdir)
-
-    assert isinstance(loaded_model, type(model))
-
-    np.array_equal(
-        model.predict(dataset, batch_size=50), loaded_model.predict(dataset, batch_size=50)
-    )
-
-    loaded_model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
-    losses = loaded_model.fit(dataset, batch_size=50, epochs=epochs)
-
-    assert len(losses.epoch) == epochs
-
-    return loaded_model, losses
+    return model, losses
 
 
 def get_model_inputs(schema: Schema, list_cols: Optional[Sequence[str]] = None):
@@ -123,6 +126,8 @@ def get_model_inputs(schema: Schema, list_cols: Optional[Sequence[str]] = None):
 
 
 def test_model_signature(model, input_names, output_names):
+    """Test that the model signature is correct."""
+
     signatures = getattr(model, "signatures", {}) or {}
     default_signature = signatures.get("serving_default")
 
