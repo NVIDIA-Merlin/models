@@ -301,30 +301,35 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         return super(TopkMetric, cls).from_config(config)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("recall_at", "recall")
 class RecallAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="recall_at"):
         super().__init__(recall_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("precision_at", "precision")
 class PrecisionAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="precision_at"):
         super().__init__(precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("map_at", "map")
 class AvgPrecisionAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="map_at"):
         super().__init__(average_precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("mrr_at", "mrr")
 class MRRAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="mrr_at"):
         super().__init__(mrr_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 class NDCGAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="ndcg_at"):
