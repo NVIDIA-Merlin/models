@@ -11,6 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
+        with:
+          cache: 'pip'
+          cache-dependency-path: '**/**.txt'
       - name: Install black Jupyter
         run : |
           pip install black[jupyter]==22.3.0
