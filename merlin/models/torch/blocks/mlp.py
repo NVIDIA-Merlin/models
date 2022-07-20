@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional
+from typing import List
 
 import torch
 
 
 class MLPBlock(torch.nn.Sequential):
+    """MLPBlock"""
+
     def __init__(
         self,
         dimensions: List[int],
@@ -38,12 +40,9 @@ class MLPBlock(torch.nn.Sequential):
             _activation = activation
             if no_activation_last_layer:
                 _activation = activation if idx < len(dimensions) - 1 else None
-            args.append(Dense(
-                dim,
-                activation=_activation,
-                use_bias=use_bias,
-                normalization=normalization
-            ))
+            args.append(
+                Dense(dim, activation=_activation, use_bias=use_bias, normalization=normalization)
+            )
             if dropout is not None:
                 args.append(torch.nn.Dropout(dropout))
 
@@ -51,6 +50,8 @@ class MLPBlock(torch.nn.Sequential):
 
 
 class Dense(torch.nn.Sequential):
+    """Dense implementation, inspired by the one in Keras."""
+
     def __init__(
         self,
         dim: int,

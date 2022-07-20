@@ -5,10 +5,8 @@ import torch
 
 class Block(torch.nn.Module):
     def __init__(
-            self,
-            pre: Optional[torch.nn.Module]=None,
-            post: Optional[torch.nn.Module] = None
-    )-> None:
+        self, pre: Optional[torch.nn.Module] = None, post: Optional[torch.nn.Module] = None
+    ) -> None:
         super().__init__()
         self.pre = pre
         self.post = post
