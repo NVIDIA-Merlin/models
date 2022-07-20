@@ -70,14 +70,14 @@ from merlin.models.tf.core.base import (
 from merlin.models.tf.core.combinators import Cond, ParallelBlock, ResidualBlock, SequentialBlock
 from merlin.models.tf.data_augmentation.noise import StochasticSwapNoise
 from merlin.models.tf.dataset import sample_batch
-from merlin.models.tf.inputs.base import InputBlock, InputBlockv2
+from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
     AverageEmbeddingsByWeightFeature,
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
-    EmbeddingsFromSchema,
+    Embeddings,
     EmbeddingTable,
     FeatureConfig,
     SequenceEmbeddingFeatures,
@@ -146,7 +146,7 @@ __all__ = [
     "EmbeddingOptions",
     "EmbeddingTable",
     "AverageEmbeddingsByWeightFeature",
-    "EmbeddingsFromSchema",
+    "Embeddings",
     "FeatureConfig",
     "TableConfig",
     "ParallelPredictionBlock",
@@ -185,7 +185,7 @@ __all__ = [
     "Model",
     "RetrievalModel",
     "InputBlock",
-    "InputBlockv2",
+    "InputBlockV2",
     "PredictionTasks",
     "StochasticSwapNoise",
     "ExpandDims",

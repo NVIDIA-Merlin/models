@@ -31,7 +31,7 @@ from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
-    EmbeddingsFromSchema,
+    Embeddings,
     SequenceEmbeddingFeatures,
 )
 from merlin.schema import Schema, Tags, TagsType
@@ -252,7 +252,7 @@ def InputBlockV2(
         Returns a ParallelBlock with a Dict with two branches:
         continuous and embeddings
     """
-    embeddings = embeddings or EmbeddingsFromSchema(schema)
+    embeddings = embeddings or Embeddings(schema)
 
     if isinstance(continuous_column_selector, Schema):
         con_schema = continuous_column_selector

@@ -338,6 +338,7 @@ def Embeddings(
     infer_embedding_sizes: bool = True,
     infer_embedding_sizes_multiplier: float = 2.0,
     infer_embeddings_ensure_dim_multiple_of_8: bool = True,
+    **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
     from the schema.
@@ -404,7 +405,7 @@ def Embeddings(
                 combiner = sequence_combiner
 
         embedding_size = embedding_dims.get(col.name, embedding_dim_default)
-        tables[col.name] = EmbeddingTable(embedding_size, col, combiner=combiner)
+        tables[col.name] = EmbeddingTable(embedding_size, col, combiner=combiner, **kwargs)
 
     return ParallelBlock(
         tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=cols

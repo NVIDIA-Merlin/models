@@ -101,9 +101,7 @@ def test_tabular_seq_features_ragged_emb_combiner(sequence_testing_data: Dataset
     con2d = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS).remove_by_tag(Tags.SEQUENCE)
     input_block = ml.InputBlockV2(
         sequence_testing_data.schema,
-        embeddings=ml.Embeddings(
-            sequence_testing_data.schema, sequence_combiner=seq_combiner
-        ),
+        embeddings=ml.Embeddings(sequence_testing_data.schema, sequence_combiner=seq_combiner),
         continuous_column_selector=con2d,
     )
 
@@ -174,6 +172,7 @@ def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset)
         infer_embedding_sizes=True,
         infer_embedding_sizes_multiplier=2.0,
         infer_embeddings_ensure_dim_multiple_of_8=True,
+        embeddings_initializer="truncated_normal",
     )
     input_block = ml.InputBlockV2(cat_schema, embeddings=embeddings_block)
 
