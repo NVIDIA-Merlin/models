@@ -99,8 +99,8 @@ class MetricsLogger(tf.keras.callbacks.Callback):
     ["num_rows", "batch_size", "train_metrics_steps", "expected_steps", "expected_metrics_steps"],
     [
         (1, 1, 1, 1, 1),
-        # (60, 10, 2, 6, 3),
-        # (60, 10, 3, 6, 2),
+        (60, 10, 2, 6, 3),
+        (60, 10, 3, 6, 2),
         (120, 10, 4, 12, 3),
     ],
 )
@@ -108,10 +108,9 @@ def test_train_metrics_steps(
     num_rows, batch_size, train_metrics_steps, expected_steps, expected_metrics_steps
 ):
     dataset = generate_data("e-commerce", num_rows=num_rows)
-    dataset.schema = dataset.schema.select_by_name(["user_id", "click"])
     model = ml.Model(
         ml.InputBlock(dataset.schema),
-        ml.MLPBlock([2]),
+        ml.MLPBlock([64]),
         ml.BinaryClassificationTask("click"),
     )
     model.compile(
