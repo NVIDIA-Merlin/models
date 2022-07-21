@@ -50,7 +50,14 @@ def test_mmoe_head(music_streaming_data: Dataset):
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
     mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
     model = ml.Model(inputs, ml.MLPBlock([64]), mmoe, prediction_tasks)
-    model.compile(optimizer="adam", run_eagerly=True)
+
+    loss_weights = {
+        "click/binary_classification_task": 1.0,
+        "like/binary_classification_task": 2.0,
+        "play_percentage/regression_task": 3.0,
+    }
+
+    model.compile(optimizer="adam", run_eagerly=True, loss_weights=loss_weights)
 
     metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
