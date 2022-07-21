@@ -17,7 +17,7 @@ class RegressionPrediction(PredictionBlock):
         logits_temperature: float = 1.0,
         name: Optional[str] = None,
         default_loss="mse",
-        default_metrics=(tf.keras.metrics.RootMeanSquaredError,),
+        default_metrics=(tf.keras.metrics.RootMeanSquaredError(),),
         **kwargs,
     ):
         super().__init__(
