@@ -523,6 +523,7 @@ def sample_batch(
     batch_size: int,
     shuffle: bool = False,
     include_targets: bool = True,
+    to_ragged: bool = False,
     to_dense: bool = False,
 ):
     """Util function to generate a batch of input tensors from a merlin.io.Dataset instance
@@ -537,6 +538,8 @@ def sample_batch(
         Whether to sample a random batch or not, by default False.
     include_targets: bool
         Whether to include the targets in the returned batch, by default True.
+    to_ragged: bool
+        Whether to convert the tuple of sparse tensors into ragged tensors, by default False.
     to_dense: bool
         Whether to convert the tuple of sparse tensors into dense tensors, by default False.
     Returns:
@@ -544,10 +547,23 @@ def sample_batch(
     batch: Dict[tf.tensor]
         dictionary of input tensors.
     """
-    from merlin.models.tf.core.transformations import AsDenseFeatures
+    if to_ragged and to_dense:
+        raise ValueError(
+            "Sparse values cannot be converted to both ragged tensors and dense tensors"
+        )
 
-    inputs, targets = next(iter(BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)))
-    if to_dense:
+    from merlin.models.tf.core.transformations import AsDenseFeatures, AsRaggedFeatures
+
+    if not isinstance(data, BatchedDataset):
+        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)
+
+    batch = next(iter(data))
+    # batch could be of type Prediction, so we can't unpack directly
+    inputs, targets = batch[0], batch[1]
+
+    if to_ragged:
+        inputs = AsRaggedFeatures()(inputs)
+    elif to_dense:
         inputs = AsDenseFeatures()(inputs)
     if not include_targets:
         return inputs

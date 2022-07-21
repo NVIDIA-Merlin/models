@@ -23,11 +23,11 @@ from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.schema import Schema, Tags
 
 
-@pytest.mark.parametrize("run_eagerly", [True])
+@pytest.mark.parametrize("run_eagerly", [False])
 def test_simple_model(ecommerce_data: Dataset, run_eagerly):
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),
-        ml.MLPBlock([64]),
+        ml.MLPBlock([4]),
         ml.BinaryClassificationTask("click"),
     )
 
@@ -39,16 +39,16 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
-    embedding_options = ml.EmbeddingOptions(embedding_dim_default=32)
+    embedding_options = ml.EmbeddingOptions(embedding_dim_default=2)
     model = ml.Model.from_block(
-        ml.MLPBlock([64]),
+        ml.MLPBlock([4]),
         ecommerce_data.schema,
         prediction_tasks=ml.BinaryClassificationTask("click"),
         embedding_options=embedding_options,
     )
 
     assert all(
-        [f.table.dim == 32 for f in list(model.blocks[0]["categorical"].feature_config.values())]
+        [f.table.dim == 2 for f in list(model.blocks[0]["categorical"].feature_config.values())]
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -56,7 +56,7 @@ def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
 
 def test_block_from_model_with_input(ecommerce_data: Dataset):
     inputs = ml.InputBlock(ecommerce_data.schema)
-    block = inputs.connect(ml.MLPBlock([64]))
+    block = inputs.connect(ml.MLPBlock([2]))
 
     with pytest.raises(ValueError) as excinfo:
         ml.Model.from_block(
@@ -140,7 +140,7 @@ def test_train_metrics_steps(
 def test_model_pre_post(ecommerce_data: Dataset, run_eagerly):
     model = ml.Model(
         ml.InputBlock(ecommerce_data.schema),
-        ml.MLPBlock([64]),
+        ml.MLPBlock([4]),
         ml.BinaryClassificationTask("click"),
         post=ml.NoOp(),
     )
@@ -162,7 +162,7 @@ def test_sub_class_model(ecommerce_data: Dataset):
             super(SubClassedModel, self).__init__()
             if "input_block" not in kwargs:
                 self.input_block = ml.InputBlock(schema)
-                self.mlp = ml.MLPBlock([64, 32])
+                self.mlp = ml.MLPBlock([4])
                 self.prediction = ml.BinaryClassificationTask(target)
             else:
                 self.input_block = kwargs["input_block"]
