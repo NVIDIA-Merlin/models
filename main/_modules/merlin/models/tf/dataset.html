@@ -598,6 +598,7 @@
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">include_targets</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">to_ragged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">to_dense</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Util function to generate a batch of input tensors from a merlin.io.Dataset instance</span>
@@ -612,6 +613,8 @@
 <span class="sd">        Whether to sample a random batch or not, by default False.</span>
 <span class="sd">    include_targets: bool</span>
 <span class="sd">        Whether to include the targets in the returned batch, by default True.</span>
+<span class="sd">    to_ragged: bool</span>
+<span class="sd">        Whether to convert the tuple of sparse tensors into ragged tensors, by default False.</span>
 <span class="sd">    to_dense: bool</span>
 <span class="sd">        Whether to convert the tuple of sparse tensors into dense tensors, by default False.</span>
 <span class="sd">    Returns:</span>
@@ -619,10 +622,23 @@
 <span class="sd">    batch: Dict[tf.tensor]</span>
 <span class="sd">        dictionary of input tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span>
+    <span class="k">if</span> <span class="n">to_ragged</span> <span class="ow">and</span> <span class="n">to_dense</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Sparse values cannot be converted to both ragged tensors and dense tensors&quot;</span>
+        <span class="p">)</span>
 
-    <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">BatchedDataset</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">)))</span>
-    <span class="k">if</span> <span class="n">to_dense</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span><span class="p">,</span> <span class="n">AsRaggedFeatures</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">BatchedDataset</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">BatchedDataset</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">)</span>
+
+    <span class="n">batch</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+    <span class="c1"># batch could be of type Prediction, so we can&#39;t unpack directly</span>
+    <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">to_ragged</span><span class="p">:</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">AsRaggedFeatures</span><span class="p">()(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">to_dense</span><span class="p">:</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="n">AsDenseFeatures</span><span class="p">()(</span><span class="n">inputs</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">include_targets</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">inputs</span>

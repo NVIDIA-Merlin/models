@@ -102,6 +102,7 @@
 <div class="viewcode-block" id="DLRMBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.DLRMBlock.html#merlin.models.tf.DLRMBlock">[docs]</a><span class="k">def</span> <span class="nf">DLRMBlock</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
     <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">embedding_options</span><span class="p">:</span> <span class="n">EmbeddingOptions</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">bottom_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">top_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SequentialBlock</span><span class="p">:</span>
@@ -124,6 +125,13 @@
 <span class="sd">        the factorization machine layer, by default None</span>
 <span class="sd">    embedding_dim : Optional[int], optional</span>
 <span class="sd">        Dimension of the embeddings, by default None</span>
+<span class="sd">    embedding_options : EmbeddingOptions</span>
+<span class="sd">        Options for the input embeddings.</span>
+<span class="sd">        - embedding_dim_default: int - Default dimension of the embedding</span>
+<span class="sd">        table, when the feature is not found in ``embedding_dims``, by default 64</span>
+<span class="sd">        - infer_embedding_sizes : bool, Automatically defines the embedding</span>
+<span class="sd">        dimension from the feature cardinality in the schema, by default False,</span>
+<span class="sd">        which needs to be kept False for the DLRM architecture.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -145,6 +153,12 @@
     <span class="k">if</span> <span class="n">embedding_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The embedding_dim is required&quot;</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">embedding_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dim_default</span> <span class="o">=</span> <span class="n">embedding_dim</span>
+        <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">embedding_options</span> <span class="o">=</span> <span class="n">EmbeddingOptions</span><span class="p">(</span><span class="n">embedding_dim_default</span><span class="o">=</span><span class="n">embedding_dim</span><span class="p">)</span>
+
     <span class="n">con_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">)</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
     <span class="n">cat_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">)</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
 
@@ -161,9 +175,7 @@
             <span class="s2">&quot;last layer of bottom MLP (</span><span class="si">{bottom_block.layers[-1].units}</span><span class="s2">) &quot;</span>
         <span class="p">)</span>
 
-    <span class="n">embeddings</span> <span class="o">=</span> <span class="n">EmbeddingFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span>
-        <span class="n">cat_schema</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">=</span><span class="n">EmbeddingOptions</span><span class="p">(</span><span class="n">embedding_dim_default</span><span class="o">=</span><span class="n">embedding_dim</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">embeddings</span> <span class="o">=</span> <span class="n">EmbeddingFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">cat_schema</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">con_schema</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">bottom_block</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
