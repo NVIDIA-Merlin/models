@@ -164,6 +164,33 @@ def test_categorical_one_hot_from_config():
     test_case.assertAllClose(cloned_outputs, outputs)
 
 
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_categorical_one_hot_as_pre(ecommerce_data: Dataset, run_eagerly):
+    schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
+    body = ParallelBlock(
+        TabularBlock.from_schema(schema=schema, pre=ml.CategoricalOneHot(schema)),
+        is_input=True,
+    ).connect(ml.MLPBlock([32]))
+    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    testing_utils.model_test(model, ecommerce_data)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_categorical_one_hot_in_model(ecommerce_data: Dataset, run_eagerly):
+    schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
+    branches = {
+        "one_hot": ml.CategoricalOneHot(schema, is_input=True),
+        "features": ml.InputBlock(ecommerce_data.schema),
+    }
+    body = ParallelBlock(branches, is_input=True).connect(ml.MLPBlock([32]))
+    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    testing_utils.model_test(model, ecommerce_data)
+
+
 def test_popularity_logits_correct():
     from merlin.models.tf.core.base import PredictionOutput
     from merlin.models.tf.core.transformations import PopularityLogitsCorrection
