@@ -1,7 +1,11 @@
+from typing import Dict
+
 import pytest
+import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
+from merlin.models.tf.core.base import Block, PredictionOutput
 
 
 @pytest.mark.parametrize(
@@ -48,6 +52,59 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks):
 def test_mmoe_head(music_streaming_data: Dataset):
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
+    mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
+    model = ml.Model(inputs, ml.MLPBlock([64]), mmoe, prediction_tasks)
+
+    loss_weights = {
+        "click/binary_classification_task": 1.0,
+        "like/binary_classification_task": 2.0,
+        "play_percentage/regression_task": 3.0,
+    }
+
+    model.compile(optimizer="adam", run_eagerly=True, loss_weights=loss_weights)
+
+    metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
+
+    assert metrics["loss"] >= 0
+    assert set(metrics.keys()) == set(
+        [
+            "loss",
+            "click/binary_classification_task_loss",
+            "like/binary_classification_task_loss",
+            "play_percentage/regression_task_loss",
+            "click/binary_classification_task_precision",
+            "click/binary_classification_task_recall",
+            "click/binary_classification_task_binary_accuracy",
+            "click/binary_classification_task_auc",
+            "like/binary_classification_task_precision_1",
+            "like/binary_classification_task_recall_1",
+            "like/binary_classification_task_binary_accuracy",
+            "like/binary_classification_task_auc_1",
+            "play_percentage/regression_task_root_mean_squared_error",
+            "regularization_loss",
+        ]
+    )
+
+
+def test_mmoe_head_task_specific_sample_weight(music_streaming_data: Dataset):
+    class CustomSampleWeight(Block):
+        def call_outputs(
+            self,
+            outputs: PredictionOutput,
+            features: Dict[str, tf.Tensor] = None,
+            targets: Dict[str, tf.Tensor] = None,
+            training=True,
+            testing=False,
+            **kwargs,
+        ) -> PredictionOutput:
+            # Computes loss for the like loss only for clicked items
+            outputs = outputs.copy_with_updates(sample_weight=targets["click"])
+            return outputs
+
+    inputs = ml.InputBlock(music_streaming_data.schema)
+    prediction_tasks = ml.PredictionTasks(
+        music_streaming_data.schema, task_pre_dict={"like": CustomSampleWeight()}
+    )
     mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
     model = ml.Model(inputs, ml.MLPBlock([64]), mmoe, prediction_tasks)
 
