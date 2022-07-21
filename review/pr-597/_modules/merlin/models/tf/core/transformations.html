@@ -492,7 +492,6 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">schema</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_schema</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">))</span>
-            <span class="c1"># self.schema = schema.select_by_tag(Tags.CATEGORICAL)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cardinalities</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">categorical_cardinalities</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>

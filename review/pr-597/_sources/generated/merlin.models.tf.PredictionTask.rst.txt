@@ -19,7 +19,6 @@
       ~PredictionTask.add_update
       ~PredictionTask.add_variable
       ~PredictionTask.add_weight
-      ~PredictionTask.apply
       ~PredictionTask.build
       ~PredictionTask.build_task
       ~PredictionTask.call
@@ -34,11 +33,9 @@
       ~PredictionTask.get_input_at
       ~PredictionTask.get_input_mask_at
       ~PredictionTask.get_input_shape_at
-      ~PredictionTask.get_losses_for
       ~PredictionTask.get_output_at
       ~PredictionTask.get_output_mask_at
       ~PredictionTask.get_output_shape_at
-      ~PredictionTask.get_updates_for
       ~PredictionTask.get_weights
       ~PredictionTask.pre_call
       ~PredictionTask.pre_loss
