@@ -417,7 +417,6 @@ class CategoricalOneHot(TabularBlock):
         super().__init__(**kwargs)
         if schema:
             self.set_schema(schema.select_by_tag(Tags.CATEGORICAL))
-            # self.schema = schema.select_by_tag(Tags.CATEGORICAL)
         self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
 
     def build(self, input_shapes):
