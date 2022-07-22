@@ -1266,7 +1266,7 @@ class ItemRecommenderModel(Model):
     def predict(
         self,
         x,
-        top_k=None,
+        top_k=1,
         batch_size=None,
         verbose=0,
         steps=None,
@@ -1279,7 +1279,7 @@ class ItemRecommenderModel(Model):
         pass
 
     def batch_predict(
-        self, dataset: merlin.io.Dataset, batch_size: int, top_k=None, **kwargs
+        self, dataset: merlin.io.Dataset, batch_size: int, top_k=1, **kwargs
     ) -> merlin.io.Dataset:
         pass
 
