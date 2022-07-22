@@ -1,17 +1,23 @@
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
+import tensorflow as tf
+
+import merlin.io
 from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.blocks.retrieval.base import TowerBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.core.base import Block, BlockType
-from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
-from merlin.models.tf.models.base import Model, RetrievalModel
+from merlin.models.tf.models.base import ItemRecommenderModel, Model, RetrievalModel
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.utils.tf_utils import df_to_tensor
+from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
 
@@ -97,26 +103,7 @@ def MatrixFactorizationModel(
     return model
 
 
-def TwoTowerModel(
-    schema: Schema,
-    query_tower: Block,
-    item_tower: Optional[Block] = None,
-    query_tower_tag=Tags.USER,
-    item_tower_tag=Tags.ITEM,
-    embedding_options: EmbeddingOptions = EmbeddingOptions(
-        embedding_dims=None,
-        embedding_dim_default=64,
-        infer_embedding_sizes=False,
-        infer_embedding_sizes_multiplier=2.0,
-    ),
-    post: Optional[BlockType] = None,
-    prediction_tasks: Optional[
-        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
-    ] = None,
-    logits_temperature: float = 1.0,
-    samplers: Sequence[ItemSampler] = (),
-    **kwargs,
-) -> RetrievalModel:
+class TwoTowerModel(Model):
     """Builds the Two-tower architecture, as proposed in [1].
 
     Example Usage::
@@ -166,55 +153,157 @@ def TwoTowerModel(
         Defaults to `categorical_crossentropy`.
     samplers: List[ItemSampler]
         List of samplers for negative sampling, by default `[InBatchSampler()]`
-
-    Returns
-    -------
-    RetrievalModel
     """
 
-    if not prediction_tasks:
-        prediction_tasks = ItemRetrievalTask(
-            schema,
-            logits_temperature=logits_temperature,
-            samplers=list(samplers),
+    def __init__(
+        self,
+        schema: Schema,
+        query_tower: Block,
+        item_tower: Optional[Block] = None,
+        query_tower_tag=Tags.USER,
+        item_tower_tag=Tags.ITEM,
+        embedding_options: EmbeddingOptions = EmbeddingOptions(
+            embedding_dims=None,
+            embedding_dim_default=64,
+            infer_embedding_sizes=False,
+            infer_embedding_sizes_multiplier=2.0,
+        ),
+        post: Optional[BlockType] = None,
+        prediction_tasks: Optional[
+            Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+        ] = None,
+        logits_temperature: float = 1.0,
+        samplers: Sequence[ItemSampler] = (),
+        **kwargs,
+    ):
+        if not prediction_tasks:
+            prediction_tasks = ItemRetrievalTask(
+                schema,
+                logits_temperature=logits_temperature,
+                samplers=list(samplers),
+                **kwargs,
+            )
+
+        prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+        two_tower = TwoTowerBlock(
+            schema=schema,
+            query_tower=query_tower,
+            item_tower=item_tower,
+            query_tower_tag=query_tower_tag,
+            item_tower_tag=item_tower_tag,
+            embedding_options=embedding_options,
+            post=post,
             **kwargs,
         )
 
-    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-    two_tower = TwoTowerBlock(
-        schema=schema,
-        query_tower=query_tower,
-        item_tower=item_tower,
-        query_tower_tag=query_tower_tag,
-        item_tower_tag=item_tower_tag,
-        embedding_options=embedding_options,
-        post=post,
-        **kwargs,
-    )
+        super().__init__(two_tower, prediction_tasks, **kwargs)
 
-    model = RetrievalModel(two_tower, prediction_tasks)
+    def query_block(self) -> TowerBlock:
+        return self.first._query_block
 
-    return model
+    def item_block(self) -> TowerBlock:
+        return self.first._item_block
+
+    def query_embeddings(
+        self,
+        dataset: merlin.io.Dataset,
+        batch_size: int,
+        query_tag: Union[str, Tags] = Tags.USER,
+        query_id_tag: Union[str, Tags] = Tags.USER_ID,
+    ) -> merlin.io.Dataset:
+        """Export query embeddings from the model.
+
+        Parameters
+        ----------
+        dataset : merlin.io.Dataset
+            Dataset to export embeddings from.
+        batch_size : int
+            Batch size to use for embedding extraction.
+        query_tag: Union[str, Tags], optional
+            Tag to use for the query.
+        query_id_tag: Union[str, Tags], optional
+            Tag to use for the query id.
+
+        Returns
+        -------
+        merlin.io.Dataset
+            Dataset with the user/query features and the embeddings
+            (one dim per column in the data frame)
+        """
+        from merlin.models.tf.utils.batch_utils import QueryEmbeddings
+
+        get_user_emb = QueryEmbeddings(self, batch_size=batch_size)
+
+        dataset = unique_rows_by_features(dataset, query_tag, query_id_tag).to_ddf()
+        embeddings = dataset.map_partitions(get_user_emb)
+
+        return merlin.io.Dataset(embeddings)
+
+    def item_embeddings(
+        self,
+        dataset: merlin.io.Dataset,
+        batch_size: int,
+        item_tag: Union[str, Tags] = Tags.ITEM,
+        item_id_tag: Union[str, Tags] = Tags.ITEM_ID,
+    ) -> merlin.io.Dataset:
+        """Export item embeddings from the model.
+
+        Parameters
+        ----------
+        dataset : merlin.io.Dataset
+            Dataset to export embeddings from.
+        batch_size : int
+            Batch size to use for embedding extraction.
+        item_tag : Union[str, Tags], optional
+            Tag to use for the item.
+        item_id_tag : Union[str, Tags], optional
+            Tag to use for the item id, by default Tags.ITEM_ID
+
+        Returns
+        -------
+        merlin.io.Dataset
+            Dataset with the item features and the embeddings
+            (one dim per column in the data frame)
+        """
+        from merlin.models.tf.utils.batch_utils import ItemEmbeddings
+
+        get_item_emb = ItemEmbeddings(self, batch_size=batch_size)
+
+        dataset = unique_rows_by_features(dataset, item_tag, item_id_tag).to_ddf()
+        embeddings = dataset.map_partitions(get_item_emb)
+
+        return merlin.io.Dataset(embeddings)
+
+    def to_item_recommender(
+        self,
+        dataset: merlin.io.Dataset,
+        batch_size: int,
+        item_tag: Union[str, Tags] = Tags.ITEM,
+        item_id_tag: Union[str, Tags] = Tags.ITEM_ID,
+        items_trainable: bool = True,
+    ) -> ItemRecommenderModel:
+        item_embeddings = (
+            self.item_embeddings(
+                dataset, batch_size=batch_size, item_tag=item_tag, item_id_tag=item_id_tag
+            )
+            .to_ddf()
+            .compute()
+        )
+        prediction = CategoricalPrediction(
+            CategoricalTarget(
+                self.schema.select_by_tag(item_id_tag),
+                weights=[
+                    tf.Variable(
+                        df_to_tensor(item_embeddings, tf.float32), trainable=items_trainable
+                    )
+                ],
+            )
+        )
+
+        return ItemRecommenderModel(self.query_block(), prediction)
 
 
-def YoutubeDNNRetrievalModel(
-    schema: Schema,
-    aggregation: str = "concat",
-    top_block: Block = MLPBlock([64]),
-    l2_normalization: bool = True,
-    extra_pre_call: Optional[Block] = None,
-    task_block: Optional[Block] = None,
-    logits_temperature: float = 1.0,
-    sampled_softmax: bool = True,
-    num_sampled: int = 100,
-    min_sampled_id: int = 0,
-    embedding_options: EmbeddingOptions = EmbeddingOptions(
-        embedding_dims=None,
-        embedding_dim_default=64,
-        infer_embedding_sizes=False,
-        infer_embedding_sizes_multiplier=2.0,
-    ),
-) -> Model:
+class YoutubeDNNRetrievalModel(ItemRecommenderModel):
     """Build the Youtube-DNN retrieval model.
     More details of the architecture can be found in [1]_.
     The sampled_softmax is enabled by default [2]_ [3]_ [4]_.
@@ -279,24 +368,27 @@ def YoutubeDNNRetrievalModel(
         options for the embedding table, by default EmbeddingOptions()
     """
 
-    inputs = InputBlock(
-        schema,
-        aggregation=aggregation,
-        embedding_options=embedding_options,
-    )
+    def __init__(
+        self,
+        schema: Schema,
+        input_block: tf.keras.layer.Layer = None,
+        top_block: Block = MLPBlock([64]),
+        aggregation: str = "concat",
+        l2_normalization: bool = True,
+        extra_pre_call: Optional[Block] = None,
+        task_block: Optional[Block] = None,
+        logits_temperature: float = 1.0,
+        sampled_softmax: bool = True,
+        num_sampled: int = 100,
+        min_sampled_id: int = 0,
+    ):
+        input_block = input_block or InputBlockV2(
+            schema,
+            aggregation=aggregation,
+        )
 
-    task = NextItemPredictionTask(
-        schema=schema,
-        weight_tying=False,
-        extra_pre_call=extra_pre_call,
-        task_block=task_block,
-        logits_temperature=logits_temperature,
-        l2_normalization=l2_normalization,
-        sampled_softmax=sampled_softmax,
-        num_sampled=num_sampled,
-        min_sampled_id=min_sampled_id,
-    )
-
-    # TODO: Figure out how to make this fit as
-    # a RetrievalModel (which must have a RetrievalBlock)
-    return Model(inputs, top_block, task)
+        prediction = CategoricalPrediction(
+            schema.select_by_tag(Tags.ITEM_ID),
+            logits_temperature=logits_temperature,
+        )
+        super().__init__(input_block, top_block, prediction)

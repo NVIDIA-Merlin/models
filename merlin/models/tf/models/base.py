@@ -1241,6 +1241,61 @@ class RetrievalModel(Model):
         return recommender
 
 
+class ItemRecommenderModel(Model):
+    def __init__(
+        self,
+        *block: tf.keras.layers.Layer,
+    ):
+        if not isinstance(block[-1], CategoricalPrediction):
+            raise ValueError("The last layer of the model must be a CategoricalPrediction.")
+
+        super().__init__(self, *block)
+
+    @classmethod
+    def from_item_encoder(
+        cls,
+        item_encoder: tf.keras.layers.Layer,
+        query_encoder: tf.keras.layers.Layer,
+        negative_samplers=None,
+    ) -> "ItemRecommenderModel":
+        # Conver item_encoder to PredictionBlock
+        prediction = ...
+
+        return cls(query_encoder, prediction)
+
+    def predict(
+        self,
+        x,
+        top_k=None,
+        batch_size=None,
+        verbose=0,
+        steps=None,
+        callbacks=None,
+        max_queue_size=10,
+        workers=1,
+        use_multiprocessing=False,
+        **kwargs,
+    ):
+        pass
+
+    def batch_predict(
+        self, dataset: merlin.io.Dataset, batch_size: int, top_k=None, **kwargs
+    ) -> merlin.io.Dataset:
+        pass
+
+    def query_embeddings(
+        self,
+        dataset: merlin.io.Dataset,
+        batch_size: int,
+        query_tag: Union[str, Tags] = Tags.USER,
+        query_id_tag: Union[str, Tags] = Tags.USER_ID,
+    ) -> merlin.io.Dataset:
+        pass
+
+    def item_embeddings(self) -> merlin.io.Dataset:
+        pass
+
+
 def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
     # Check if merlin-dataset is passed
     if hasattr(data, "to_ddf"):
