@@ -345,6 +345,8 @@ class BaseModel(tf.keras.Model):
             for task_name, task in self.predictions_by_name().items():
                 out[task_name] = task.create_default_metrics()
 
+        # TODO: Check for top-k metrics & wrap them in TopKMetricsAggregator
+
         return out
 
     def _create_loss(self, loss=None):
