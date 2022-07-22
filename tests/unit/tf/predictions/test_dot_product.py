@@ -6,7 +6,7 @@ from merlin.models.tf.utils import testing_utils
 
 
 def test_dot_product_prediction(ecommerce_data: Dataset):
-    model = mm.Model(
+    model = mm.RetrievalModel(
         mm.TwoTowerBlock(ecommerce_data.schema, query_tower=mm.MLPBlock([8])),
         DotProductCategoricalPrediction(ecommerce_data.schema, negative_samplers=InBatchSampler()),
     )
