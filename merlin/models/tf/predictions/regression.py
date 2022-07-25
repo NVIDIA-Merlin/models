@@ -36,7 +36,7 @@ class RegressionPrediction(PredictionBlock):
         post: Optional[Layer] = None,
         name: Optional[str] = None,
         default_loss="mse",
-        default_metrics=(tf.keras.metrics.RootMeanSquaredError(),),
+        default_metrics=(tf.keras.metrics.RootMeanSquaredError(name="rmse"),),
         **kwargs,
     ):
         prediction = kwargs.pop("prediction", None)

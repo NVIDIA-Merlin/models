@@ -41,11 +41,11 @@ def test_example_01_getting_started(tb):
     metrics = tb.ref("metrics")
     assert set(metrics.keys()) == set(
         [
-            "auc_1",
+            "auc",
             "binary_accuracy",
             "loss",
             "regularization_loss",
-            "precision_1",
-            "recall_1",
+            "precision",
+            "recall",
         ]
     )

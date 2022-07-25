@@ -44,10 +44,10 @@ class BinaryPrediction(PredictionBlock):
         name: Optional[str] = None,
         default_loss="binary_crossentropy",
         default_metrics=(
-            tf.keras.metrics.Precision(),
-            tf.keras.metrics.Recall(),
-            tf.keras.metrics.BinaryAccuracy(),
-            tf.keras.metrics.AUC(),
+            tf.keras.metrics.Precision(name="precision"),
+            tf.keras.metrics.Recall(name="recall"),
+            tf.keras.metrics.BinaryAccuracy(name="binary_accuracy"),
+            tf.keras.metrics.AUC(name="auc"),
         ),
         **kwargs,
     ):
