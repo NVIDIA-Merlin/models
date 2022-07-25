@@ -18,19 +18,19 @@ from tests.common.tf.retrieval import retrieval_tests_common
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
-    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+def test_matrix_factorization_model(music_streaming_data: Dataset, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(["user_id", "item_id"])
 
-    model = mm.MatrixFactorizationModel(music_streaming_data.schema, dim=64)
+    model = mm.MatrixFactorizationModel(music_streaming_data.schema, dim=4)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs)
-    assert len(losses.epoch) == num_epochs
+    losses = model.fit(music_streaming_data, batch_size=50, epochs=1, steps_per_epoch=1)
+    assert len(losses.epoch) == 1
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
 
 def test_matrix_factorization_model_l2_reg(testing_data: Dataset):
-    model = mm.MatrixFactorizationModel(testing_data.schema, dim=64, embeddings_l2_reg=0.1)
+    model = mm.MatrixFactorizationModel(testing_data.schema, dim=4, embeddings_l2_reg=0.1)
 
     _ = model(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
@@ -46,12 +46,14 @@ def test_matrix_factorization_model_l2_reg(testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=2):
-    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "user_genres"]
+    )
 
-    model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([512, 256]))
+    model = mm.TwoTowerModel(music_streaming_data.schema, query_tower=mm.MLPBlock([2]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
-    losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs)
+    losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs, steps_per_epoch=1)
     assert len(losses.epoch) == num_epochs
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
@@ -61,23 +63,22 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
     testing_utils.test_model_signature(model.first.query_block(), query_features, ["output_1"])
 
     item_features = testing_utils.get_model_inputs(
-        music_streaming_data.schema.select_by_tag(Tags.ITEM), ["item_genres"]
+        music_streaming_data.schema.select_by_tag(Tags.ITEM),
     )
     testing_utils.test_model_signature(model.first.item_block(), item_features, ["output_1"])
 
 
 def test_two_tower_model_l2_reg(testing_data: Dataset):
-
     model = mm.TwoTowerModel(
         testing_data.schema,
-        query_tower=mm.MLPBlock([512, 256]),
+        query_tower=mm.MLPBlock([2]),
         embedding_options=mm.EmbeddingOptions(
-            embedding_dim_default=64,
+            embedding_dim_default=2,
             embeddings_l2_reg=0.1,
         ),
     )
 
-    _ = model(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
+    _ = model(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
 
     l2_emb_losses = model.losses
 
@@ -97,17 +98,15 @@ def test_two_tower_model_with_custom_options(
     run_eagerly,
     logits_pop_logq_correction,
     loss,
-    num_epochs=2,
 ):
-
     from tensorflow.keras import regularizers
 
     from merlin.models.tf.core.transformations import PopularityLogitsCorrection
     from merlin.models.utils import schema_utils
 
     data = ecommerce_data
+    data.schema = data.schema.select_by_name(["user_categories", "item_id"])
 
-    data.schema = data.schema.remove_by_tag(Tags.TARGET)
     metrics = [
         tf.keras.metrics.AUC(from_logits=True, name="auc"),
         mm.RecallAt(5),
@@ -141,7 +140,7 @@ def test_two_tower_model_with_custom_options(
     model = mm.TwoTowerModel(
         data.schema,
         query_tower=mm.MLPBlock(
-            [512, 256],
+            [2],
             activation="relu",
             no_activation_last_layer=True,
             dropout=0.1,
@@ -159,11 +158,11 @@ def test_two_tower_model_with_custom_options(
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly, loss=loss, metrics=metrics)
 
-    losses = model.fit(data, batch_size=50, epochs=num_epochs)
-    assert len(losses.epoch) == num_epochs
+    losses = model.fit(data, batch_size=50, epochs=1, steps_per_epoch=1)
+    assert len(losses.epoch) == 1
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
-    metrics = model.evaluate(data, batch_size=10, item_corpus=data, return_dict=True)
+    metrics = model.evaluate(data, batch_size=10, item_corpus=data, return_dict=True, steps=1)
     assert set(metrics.keys()) == set(
         [
             "loss",
@@ -182,23 +181,23 @@ def test_two_tower_model_with_custom_options(
     "loss", ["categorical_crossentropy", "bpr", "bpr-max", "binary_crossentropy"]
 )
 def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eagerly, loss):
-    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    ecommerce_data.schema = ecommerce_data.schema.select_by_name(["user_categories", "item_id"])
 
     metrics = [RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)]
-    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([128, 64]))
+    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([4]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly, metrics=metrics, loss=loss)
 
     # Training
-    num_epochs = 2
     losses = model.fit(
         ecommerce_data,
         batch_size=10,
-        epochs=num_epochs,
+        epochs=1,
+        steps_per_epoch=1,
         train_metrics_steps=3,
         validation_data=ecommerce_data,
         validation_steps=3,
     )
-    assert len(losses.epoch) == num_epochs
+    assert len(losses.epoch) == 1
 
     # Checking train metrics
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
@@ -216,7 +215,7 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
     #         assert losses.history[metric_name][1] <= losses.history[metric_name][0]
 
     metrics = model.evaluate(
-        ecommerce_data, batch_size=10, item_corpus=ecommerce_data, return_dict=True
+        ecommerce_data, batch_size=10, item_corpus=ecommerce_data, return_dict=True, steps=1
     )
     assert set(metrics.keys()) == set(expected_metrics_all)
 
@@ -225,25 +224,25 @@ def test_two_tower_retrieval_model_with_metrics(ecommerce_data: Dataset, run_eag
 def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
     ecommerce_data: Dataset, run_eagerly
 ):
-    ecommerce_data.schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
+    ecommerce_data.schema = ecommerce_data.schema.select_by_name(["user_categories", "item_id"])
 
     metrics_agg = TopKMetricsAggregator(
         RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)
     )
-    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([128, 64]))
+    model = mm.TwoTowerModel(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([4]))
     model.compile(optimizer="adam", run_eagerly=run_eagerly, metrics=[metrics_agg])
 
     # Training
-    num_epochs = 2
     losses = model.fit(
         ecommerce_data,
         batch_size=10,
-        epochs=num_epochs,
+        epochs=1,
+        steps_per_epoch=1,
         train_metrics_steps=3,
         validation_data=ecommerce_data,
         validation_steps=3,
     )
-    assert len(losses.epoch) == num_epochs
+    assert len(losses.epoch) == 1
 
     # Checking train metrics
     expected_metrics = ["recall_at_5", "mrr_at_5", "ndcg_at_5", "map_at_5", "precision_at_5"]
@@ -253,7 +252,7 @@ def test_two_tower_retrieval_model_with_topk_metrics_aggregator(
     assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
 
     metrics = model.evaluate(
-        ecommerce_data, batch_size=10, item_corpus=ecommerce_data, return_dict=True
+        ecommerce_data, batch_size=10, item_corpus=ecommerce_data, return_dict=True, steps=1
     )
     assert set(metrics.keys()) == set(expected_metrics_all)
 
@@ -322,11 +321,12 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 
     model = mm.YoutubeDNNRetrievalModel(
         schema=sequence_testing_data.schema,
+        top_block=mm.MLPBlock([2]),
         l2_normalization=True,
         sampled_softmax=True,
         num_sampled=100,
         embedding_options=mm.EmbeddingOptions(
-            embedding_dim_default=64,
+            embedding_dim_default=2,
         ),
     )
     model.compile(optimizer="adam", run_eagerly=False)
@@ -346,6 +346,6 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     dataloader = BatchedDataset(sequence_testing_data, batch_size=50)
     dataloader = dataloader.map(last_interaction_as_target)
 
-    losses = model.fit(dataloader, epochs=2)
+    losses = model.fit(dataloader, epochs=1)
 
     assert losses is not None

@@ -401,9 +401,11 @@ class ItemsPredictionWeightTying(Block):
 @Block.registry.register_with_multiple_names("categorical_to_onehot")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 @requires_schema
-class CategoricalOneHot(Block):
+class CategoricalOneHot(TabularBlock):
     """
-    Transform categorical features (2-D and 3-D tensors) to a one-hot representation.
+    Transform categorical features (2-D and 3-D tensors) to a one-hot representation, only
+    categorical features with "CATEGORICAL" as Tag can be transformed, and other features without
+    this Tag would be discarded
 
     Parameters:
     ----------
@@ -414,22 +416,39 @@ class CategoricalOneHot(Block):
     def __init__(self, schema: Schema = None, **kwargs):
         super().__init__(**kwargs)
         if schema:
-            self.set_schema(schema)
+            self.set_schema(schema.select_by_tag(Tags.CATEGORICAL))
         self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
 
     def build(self, input_shapes):
         super(CategoricalOneHot, self).build(input_shapes)
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        self._check_inputs_type(inputs)
         outputs = {}
         for name, val in self.cardinalities.items():
             outputs[name] = tf.squeeze(tf.one_hot(inputs[name], val))
         return outputs
 
+    def _check_inputs_type(self, inputs):
+        for name, val in self.cardinalities.items():
+            if not isinstance(inputs[name], tf.Tensor):
+                raise ValueError(
+                    f"All `CategoricalOneHot` inputs should be a Tensor. Received {name} with type "
+                    f"of {type(inputs[name])}"
+                )
+
     def compute_output_shape(self, input_shape):
         outputs = {}
-        for key, val in input_shape.items():
-            if len(val) == 3:
+        for key in self.schema.column_names:
+            val = input_shape[key].as_list()
+            rank = len(val)
+            if rank > 2:
+                raise ValueError(
+                    "All `CategoricalOneHot` inputs should have shape `[batch_size]` "
+                    f"or `[batch_size, 1]` or `[batch_size, n]`. Received: input {key} with "
+                    f"shape={val}"
+                )
+            elif rank > 1 and val[-1] != 1:
                 outputs[key] = tf.TensorShape((val[0], val[1], self.cardinalities[key]))
             else:
                 outputs[key] = tf.TensorShape((val[0], self.cardinalities[key]))
@@ -690,7 +709,7 @@ class HashedCross(TabularBlock):
 
         if not (output_mode in ["int", "one_hot"]):
             raise ValueError("output_mode must be 'int' or 'one_hot'")
-        self.schema = schema
+        self.set_schema(schema)
         self.num_bins = num_bins
         self.output_mode = output_mode
         self.sparse = sparse

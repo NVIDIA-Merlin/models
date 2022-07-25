@@ -22,6 +22,7 @@ from merlin.schema import Schema
 def DLRMModel(
     schema: Schema,
     embedding_dim: int,
+    embedding_options: EmbeddingOptions = None,
     bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
     prediction_tasks: Optional[
@@ -65,6 +66,7 @@ def DLRMModel(
     dlrm_body = DLRMBlock(
         schema,
         embedding_dim=embedding_dim,
+        embedding_options=embedding_options,
         bottom_block=bottom_block,
         top_block=top_block,
     )
