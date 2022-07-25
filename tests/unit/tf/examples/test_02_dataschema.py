@@ -57,11 +57,11 @@ def test_example_02_nvt_integration(tb):
     metrics = tb.ref("metrics")
     assert set(metrics.keys()) == set(
         [
-            "auc",
+            "auc_1",
             "binary_accuracy",
             "loss",
             "regularization_loss",
-            "precision",
-            "recall",
+            "precision_1",
+            "recall_1",
         ]
     )
