@@ -15,7 +15,7 @@
 #
 from unittest.mock import patch
 
-import cudf
+import pandas as pd
 import pytest
 import xgboost
 
@@ -195,7 +195,7 @@ class TestEvals:
 
 
 def test_dataset_to_xy_does_not_modify_column_order():
-    df = cudf.DataFrame(data={"z": [0], "target": [-1], "a": [1], "Z": [2]})
+    df = pd.DataFrame(data={"z": [0], "target": [-1], "a": [1], "Z": [2]})
     feature_columns = ["z", "Z", "a"]
     X, y, _ = dataset_to_xy(
         dataset=Dataset(df),
