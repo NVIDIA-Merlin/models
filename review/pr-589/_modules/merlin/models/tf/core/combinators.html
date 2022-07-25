@@ -410,9 +410,11 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    blocks_to_merge: Union[TabularModule, Dict[str, TabularBlock]]</span>
-<span class="sd">        TabularBlocks to merge into, this can also be one or multiple dictionaries keyed by the</span>
+<span class="sd">    inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]]</span>
+<span class="sd">        keras layers to merge into, this can also be one or multiple layers keyed by the</span>
 <span class="sd">        name the module should have.</span>
+<span class="sd">    use_layer_name: use the original name of layers provided in inputs as key-index of the</span>
+<span class="sd">        parallel branches.</span>
 <span class="sd">    {tabular_module_parameters}</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
