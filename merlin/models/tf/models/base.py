@@ -329,7 +329,10 @@ class BaseModel(tf.keras.Model):
 
         num_v1_blocks = len(self.prediction_tasks)
 
-        if isinstance(metrics, (list, tuple)):
+        if isinstance(metrics, dict):
+            out = metrics
+
+        elif isinstance(metrics, (list, tuple)):
             if num_v1_blocks > 0:
                 if num_v1_blocks == 1:
                     out[self.prediction_tasks[0].task_name] = metrics
@@ -343,7 +346,7 @@ class BaseModel(tf.keras.Model):
                     for i, block in enumerate(self.prediction_blocks):
                         out[block.full_name] = metrics[i]
 
-        if not metrics:
+        elif metrics is None:
             for task_name, task in self.prediction_tasks_by_name().items():
                 out[task_name] = [m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS]
 
@@ -357,7 +360,10 @@ class BaseModel(tf.keras.Model):
 
         num_v1_blocks = len(self.prediction_tasks)
 
-        if isinstance(weighted_metrics, (list, tuple)):
+        if isinstance(weighted_metrics, dict):
+            out = weighted_metrics
+
+        elif isinstance(weighted_metrics, (list, tuple)):
             if num_v1_blocks > 0:
                 if num_v1_blocks == 1:
                     out[self.prediction_tasks[0].task_name] = weighted_metrics
