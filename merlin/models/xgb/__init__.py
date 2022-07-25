@@ -289,7 +289,4 @@ def dataset_to_xy(
     X = df[feature_columns]
     y = df[target_columns]
 
-    # Ensure columns are in a consistent order
-    X = X[sorted(X.columns)]
-
     return X, y, qid
