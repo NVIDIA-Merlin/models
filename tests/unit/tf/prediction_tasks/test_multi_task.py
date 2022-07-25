@@ -86,7 +86,7 @@ def test_mmoe_head(music_streaming_data: Dataset):
     )
 
 
-def test_mmoe_head_task_specific_sample_weight(music_streaming_data: Dataset):
+def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(music_streaming_data: Dataset):
     class CustomSampleWeight(Block):
         def call_outputs(
             self,
@@ -114,7 +114,30 @@ def test_mmoe_head_task_specific_sample_weight(music_streaming_data: Dataset):
         "play_percentage/regression_task": 3.0,
     }
 
-    model.compile(optimizer="adam", run_eagerly=True, loss_weights=loss_weights)
+    weighted_metrics = {
+        "click/binary_classification_task": (
+            tf.keras.metrics.Precision(name="weighted_precision"),
+            tf.keras.metrics.Recall(name="weighted_recall"),
+            tf.keras.metrics.BinaryAccuracy(name="weighted_binary_accuracy"),
+            tf.keras.metrics.AUC(name="weighted_auc"),
+        ),
+        "like/binary_classification_task": (
+            tf.keras.metrics.Precision(name="weighted_precision"),
+            tf.keras.metrics.Recall(name="weighted_recall"),
+            tf.keras.metrics.BinaryAccuracy(name="weighted_binary_accuracy"),
+            tf.keras.metrics.AUC(name="weighted_auc"),
+        ),
+        "play_percentage/regression_task": (
+            tf.keras.metrics.RootMeanSquaredError(name="weighted_root_mean_squared_error"),
+        ),
+    }
+
+    model.compile(
+        optimizer="adam",
+        run_eagerly=True,
+        loss_weights=loss_weights,
+        weighted_metrics=weighted_metrics,
+    )
 
     metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
@@ -122,19 +145,28 @@ def test_mmoe_head_task_specific_sample_weight(music_streaming_data: Dataset):
     assert set(metrics.keys()) == set(
         [
             "loss",
+            "regularization_loss",
+            "click/binary_classification_task_auc",
+            "click/binary_classification_task_binary_accuracy",
             "click/binary_classification_task_loss",
-            "like/binary_classification_task_loss",
-            "play_percentage/regression_task_loss",
             "click/binary_classification_task_precision",
             "click/binary_classification_task_recall",
-            "click/binary_classification_task_binary_accuracy",
-            "click/binary_classification_task_auc",
+            "click/binary_classification_task_weighted_auc",
+            "click/binary_classification_task_weighted_binary_accuracy",
+            "click/binary_classification_task_weighted_precision",
+            "click/binary_classification_task_weighted_recall",
+            "like/binary_classification_task_auc_1",
+            "like/binary_classification_task_binary_accuracy",
+            "like/binary_classification_task_loss",
             "like/binary_classification_task_precision_1",
             "like/binary_classification_task_recall_1",
-            "like/binary_classification_task_binary_accuracy",
-            "like/binary_classification_task_auc_1",
+            "like/binary_classification_task_weighted_auc",
+            "like/binary_classification_task_weighted_binary_accuracy",
+            "like/binary_classification_task_weighted_precision",
+            "like/binary_classification_task_weighted_recall",
+            "play_percentage/regression_task_loss",
             "play_percentage/regression_task_root_mean_squared_error",
-            "regularization_loss",
+            "play_percentage/regression_task_weighted_root_mean_squared_error",
         ]
     )
 

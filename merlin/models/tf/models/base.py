@@ -299,6 +299,10 @@ class BaseModel(tf.keras.Model):
                 "`prediction_tasks` is deprecated and will be removed in a future version.",
             )
 
+        _loss = {}
+        if isinstance(loss, (tf.keras.losses.Loss, str)) and len(self.prediction_tasks) == 1:
+            _loss = {task.task_name: loss for task in self.prediction_tasks}
+
         if num_v1_blocks > 0:
             self.output_names = [task.task_name for task in self.prediction_tasks]
         else:
@@ -311,7 +315,7 @@ class BaseModel(tf.keras.Model):
             optimizer=optimizer,
             loss=self._create_loss(loss),
             metrics=self._create_metrics(metrics),
-            weighted_metrics=weighted_metrics,
+            weighted_metrics=self._create_weighted_metrics(weighted_metrics),
             run_eagerly=run_eagerly,
             loss_weights=loss_weights,
             steps_per_execution=steps_per_execution,
@@ -345,6 +349,27 @@ class BaseModel(tf.keras.Model):
 
             for task_name, task in self.predictions_by_name().items():
                 out[task_name] = task.create_default_metrics()
+
+        return out
+
+    def _create_weighted_metrics(self, weighted_metrics=None):
+        out = {}
+
+        num_v1_blocks = len(self.prediction_tasks)
+
+        if isinstance(weighted_metrics, (list, tuple)):
+            if num_v1_blocks > 0:
+                if num_v1_blocks == 1:
+                    out[self.prediction_tasks[0].task_name] = weighted_metrics
+                else:
+                    for i, task in enumerate(self.prediction_tasks):
+                        out[task.task_name] = weighted_metrics[i]
+            else:
+                if len(self.prediction_blocks) == 1:
+                    out[self.prediction_blocks[0].full_name] = weighted_metrics
+                else:
+                    for i, block in enumerate(self.prediction_blocks):
+                        out[block.full_name] = weighted_metrics[i]
 
         return out
 
