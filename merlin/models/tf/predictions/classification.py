@@ -7,7 +7,32 @@ from merlin.models.tf.predictions.base import PredictionBlock
 
 
 class BinaryPrediction(PredictionBlock):
-    """Binary-classification prediction block"""
+    """
+    Binary-classification prediction block.
+
+    Parameters
+    ----------
+    target: Union[str, Schema], optional
+        The name of the target. If a Schema is provided, the target is inferred from the schema.
+    pre: Optional[Block], optional
+        Optional block to transform predictions before computing the binary logits,
+        by default None
+    post: Optional[Block], optional
+        Optional block to transform the binary logits,
+        by default None
+    name: str, optional
+        The name of the task.
+    task_block: Block, optional
+        The block to use for the task.
+    logits_temperature: float, optional
+        Parameter used to reduce model overconfidence, so that logits / T.
+        by default 1.
+    default_loss: Union[str, tf.keras.losses.Loss], optional
+        Default loss to use for binary-classification
+        by 'binary_crossentropy'
+    default_metrics: Sequence[tf.keras.metrics.Metric], optional
+        Default metrics to use for binary-classification
+    """
 
     def __init__(
         self,

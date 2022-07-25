@@ -3,7 +3,16 @@ from __future__ import annotations
 import inspect
 import sys
 from collections.abc import Sequence as SequenceCollection
-from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    TabularData,
+    Union,
+    runtime_checkable,
+)
 
 import six
 import tensorflow as tf
@@ -382,6 +391,13 @@ class BaseModel(tf.keras.Model):
         return {task.task_name: task for task in self.prediction_tasks}
 
     def prediction_tasks_by_target(self) -> Dict[str, List[PredictionTask]]:
+        """Method to index the model's prediction tasks by target names.
+
+        Returns
+        -------
+        Dict[str, List[PredictionTask]]
+            List of prediction tasks.
+        """
         outputs: Dict[str, Union[PredictionTask, List[PredictionTask]]] = {}
         for task in self.prediction_tasks:
             if task.target_name in outputs:
@@ -403,6 +419,13 @@ class BaseModel(tf.keras.Model):
         return {task.full_name: task for task in self.prediction_blocks}
 
     def predictions_by_target(self) -> Dict[str, List[PredictionBlock]]:
+        """Method to index the model's prediction blocks by target names.
+
+        Returns
+        -------
+        Dict[str, List[PredictionBlock]]
+            List of prediction blocks.
+        """
         outputs: Dict[str, List[PredictionBlock]] = {}
         for task in self.prediction_blocks:
             if task.target in outputs:
@@ -415,8 +438,26 @@ class BaseModel(tf.keras.Model):
         return outputs
 
     def call_train_test(
-        self, x, y=None, training=False, testing=False, **kwargs
+        self, x: TabularData, y=None, training=False, testing=False, **kwargs
     ) -> Union[Prediction, PredictionOutput]:
+        """Apply the model's call method during Train or Test modes and prepare
+        Prediction (v2) or PredictionOutput (v1 - depreciated) objects
+
+        Parameters
+        ----------
+        x : TabularData
+            Dictionary of raw input features.
+        y : Union[tf.tensor, TabularData], optional
+            Target tensors, by default None
+        training : bool, optional
+            Flag for train mode, by default False
+        testing : bool, optional
+            Flag for test mode, by default False
+
+        Returns
+        -------
+        Union[Prediction, PredictionOutput]
+        """
         forward = self(
             x,
             targets=y,

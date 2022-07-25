@@ -335,9 +335,11 @@ class ParallelBlock(TabularBlock):
 
     Parameters
     ----------
-    blocks_to_merge: Union[TabularModule, Dict[str, TabularBlock]]
-        TabularBlocks to merge into, this can also be one or multiple dictionaries keyed by the
+    inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]]
+        keras layers to merge into, this can also be one or multiple dictionaries keyed by the
         name the module should have.
+    use_layer_name: use the original name of layers provided in inputs as key-index of the
+        parallel branches.
     {tabular_module_parameters}
     """
 

@@ -12,6 +12,31 @@ from merlin.models.tf.utils import tf_utils
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PredictionBlock(Layer):
+    """Base-class for prediction blocks.
+
+    Parameters
+    ----------
+    prediction : Layer
+        The prediction layer
+    default_loss: Union[str, tf.keras.losses.Loss]
+        Default loss to set if the user does not specify one
+    default_metrics: Sequence[tf.keras.metrics.Metric]
+        Default metrics to set if the user does not specify any
+    name: Optional[Text], optional
+        Task name, by default None
+    target: Optional[str], optional
+        Label name, by default None
+    pre: Optional[Block], optional
+        Optional block to transform predictions before applying the prediction layer,
+        by default None
+    post: Optional[Block], optional
+        Optional block to transform predictions after applying the prediction layer,
+        by default None
+    logits_temperature: float, optional
+        Parameter used to reduce model overconfidence, so that logits / T.
+        by default 1.
+    """
+
     def __init__(
         self,
         prediction: Layer,
@@ -91,7 +116,7 @@ class PredictionBlock(Layer):
         outputs = super(PredictionBlock, self).__call__(inputs, *args, **kwargs)
 
         if self.post:
-            outputs = tf_utils.call_layer(self.post, inputs, **kwargs)
+            outputs = tf_utils.call_layer(self.post, outputs, **kwargs)
 
         if getattr(self, "logits_scaler", None):
             outputs = self.logits_scaler(outputs)
