@@ -6,6 +6,7 @@ from tensorflow.keras.layers import Layer
 from merlin.models.tf.predictions.base import PredictionBlock
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BinaryPrediction(PredictionBlock):
     """
     Binary-classification prediction block.
@@ -50,8 +51,9 @@ class BinaryPrediction(PredictionBlock):
         ),
         **kwargs,
     ):
+        prediction = kwargs.pop("prediction", None)
         super().__init__(
-            prediction=tf.keras.layers.Dense(1, activation="sigmoid"),
+            prediction=prediction or tf.keras.layers.Dense(1, activation="sigmoid"),
             default_loss=default_loss,
             default_metrics=default_metrics,
             target=target,

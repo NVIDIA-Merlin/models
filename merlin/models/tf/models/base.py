@@ -3,16 +3,7 @@ from __future__ import annotations
 import inspect
 import sys
 from collections.abc import Sequence as SequenceCollection
-from typing import (
-    TYPE_CHECKING,
-    Dict,
-    List,
-    Optional,
-    Protocol,
-    TabularData,
-    Union,
-    runtime_checkable,
-)
+from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
 
 import six
 import tensorflow as tf
@@ -33,6 +24,7 @@ from merlin.models.tf.metrics.topk import filter_topk_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.predictions.base import PredictionBlock
+from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import call_layer, maybe_serialize_keras_objects
 from merlin.models.utils.dataset import unique_rows_by_features

@@ -21,7 +21,7 @@ from merlin.models.tf.utils import testing_utils
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_binary_prediction_block(ecommerce_data: Dataset, run_eagerly):
+def test_regression_block(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
         mm.MLPBlock([8]),
@@ -32,6 +32,6 @@ def test_binary_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
-        "click/binary_prediction/mse",
+        "click/regression_prediction/root_mean_squared_error",
         "regularization_loss",
     }
