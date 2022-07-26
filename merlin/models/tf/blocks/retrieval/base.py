@@ -288,7 +288,7 @@ class ItemRetrievalScorer(Block):
         if self.sampled_softmax_mode or isinstance(targets, tf.Tensor):
             positive_item_ids = targets
         else:
-            positive_item_ids = features[self.item_id_feature_name]
+            positive_item_ids = tf.squeeze(features[self.item_id_feature_name])
 
         neg_items_ids = None
         if training or testing:
@@ -349,7 +349,7 @@ class ItemRetrievalScorer(Block):
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:
-                    positive_item_ids = features[self.item_id_feature_name]
+                    positive_item_ids = tf.squeeze(features[self.item_id_feature_name])
 
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]

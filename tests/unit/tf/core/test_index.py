@@ -90,7 +90,7 @@ def test_topk_recommender_outputs(ecommerce_data: Dataset, batch_size=100):
         samplers=[mm.InBatchSampler()],
     )
 
-    model.compile("adam", metrics=[mm.RecallAt(10)])
+    model.compile("adam", metrics=[mm.RecallAt(10)], run_eagerly=False)
     model.fit(ecommerce_data, batch_size=batch_size, epochs=3)
     eval_metrics = model.evaluate(
         ecommerce_data, item_corpus=ecommerce_data, batch_size=batch_size, return_dict=True
