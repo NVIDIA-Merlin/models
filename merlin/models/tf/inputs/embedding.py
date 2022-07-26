@@ -303,7 +303,9 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def compute_output_shape(self, input_shape):
-        return input_shape
+        first_dims = input_shape[:-1]
+        output_shapes = tf.TensorShape(first_dims + [self.dim])
+        return output_shapes
 
     @classmethod
     def from_config(cls, config):
@@ -432,7 +434,16 @@ class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
         self.weight_feature_name = weight_feature_name
 
     def call(self, inputs, features):
-        weights = tf.expand_dims(tf.cast(features[self.weight_feature_name], tf.float32), -1)
+        weight_feature = features[self.weight_feature_name]
+        if isinstance(inputs, tf.RaggedTensor) and not isinstance(weight_feature, tf.RaggedTensor):
+            raise ValueError(
+                f"If inputs is a tf.RaggedTensor, the weight feature ({self.weight_feature_name}) "
+                f"should also be a tf.RaggedTensor (and not a {type(weight_feature)}), "
+                "so that the list length can vary per example for both input embedding "
+                "and weight features."
+            )
+
+        weights = tf.expand_dims(tf.cast(weight_feature, tf.float32), -1)
         output = tf.divide(
             tf.reduce_sum(tf.multiply(inputs, weights), axis=self.axis),
             tf.reduce_sum(weights, axis=self.axis),
