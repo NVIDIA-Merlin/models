@@ -15,6 +15,7 @@
 #
 
 import collections
+import warnings
 from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -22,6 +23,7 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.models.tf.core.base import Block
+from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.utils import tf_utils
 
 Tensor = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
@@ -90,11 +92,12 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
             optimizer = tf.keras.optimizers.get(optimizer_and_blocks[0])
             self._track_trackable(optimizer, name=f"Optimizer{i}")
             self.optimizers_and_blocks.append((optimizer, optimizer_and_blocks[1]))
+        self.update_optimzier_and_block = []
 
-    def get_trainable_variables_optimizer_dict(self):
-        var_optimizer_dict = {}
+    def _get_trainable_variables_optimizer_dict(self, optimizers_and_blocks, require_disjoint=True):
+
         attribute = "_trainable_weights"
-        for optimizer, blocks in self.optimizers_and_blocks:
+        for optimizer, blocks in optimizers_and_blocks:
             for block in blocks:
                 # Iterate all submodule (BFS) except ModelContext
                 # Note: block.trainable_variables is not used because modelcontext contain all
@@ -107,14 +110,14 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
                     current_module = deque.popleft()
                     if hasattr(current_module, attribute):
                         for v in current_module._trainable_weights:
-                            if v.ref() in var_optimizer_dict:
+                            if require_disjoint and v.ref() in self.var_optimizer_dict:
                                 raise ValueError(
                                     f"The set of variables handled by each optimizer should be "
                                     f"disjoint, but variable {v} of {current_module} in block "
-                                    f"{block} is handled both by {var_optimizer_dict[v.ref()]} and "
-                                    f"{optimizer}."
+                                    f"{block} is handled both by {self.var_optimizer_dict[v.ref()]}"
+                                    f" and {optimizer}."
                                 )
-                            var_optimizer_dict[v.ref()] = optimizer
+                            self.var_optimizer_dict[v.ref()] = optimizer
 
                     for sub_module in current_module._flatten_modules(
                         include_self=False, recursive=False
@@ -122,7 +125,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
                         # filter out modelcontext to avoiding assign two optimizers to one variable
                         if type(sub_module) != ml.ModelContext:
                             deque.append(sub_module)
-        return var_optimizer_dict
+        return
 
     def apply_gradients(
         self,
@@ -131,12 +134,19 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         experimental_aggregate_gradients: bool = True,
     ) -> None:
         # Can be replaced by block.trainable_variables if ModelContext is removed
-        var_optimizer_dict = self.get_trainable_variables_optimizer_dict()
+        self.var_optimizer_dict = {}
+        self._get_trainable_variables_optimizer_dict(
+            self.optimizers_and_blocks, require_disjoint=True
+        )
+        if len(self.update_optimzier_and_block) > 0:
+            self._get_trainable_variables_optimizer_dict(
+                self.update_optimizer_and_blocks, require_disjoint=False
+            )
         optimizer_grads_and_vars = collections.defaultdict(list)
         # Category variables by the optimizer
         for g, v in grads_and_vars:
-            if v.ref() in var_optimizer_dict:
-                optimizer = var_optimizer_dict[v.ref()]
+            if v.ref() in self.var_optimizer_dict:
+                optimizer = self.var_optimizer_dict[v.ref()]
                 optimizer_grads_and_vars[optimizer].append((g, v))
             # for variables not in optimizers_and_blocks, assign default optimizer
             else:
@@ -148,13 +158,16 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
                 name=name,
                 experimental_aggregate_gradients=experimental_aggregate_gradients,
             )
+        return
 
     def add(
         self,
         optimizer: Union[str, tf.keras.optimizers.Optimizer],
-        block: Block,
+        blocks: Sequence[Block],
     ):
-        """add another optimzier and specify which block to apply this optimizer to"""
+        """add another optimzier and specify which block to apply this optimizer to. If the block is
+        specified with an optimizer before, it may raise conflict error, please consider calling
+        self.update() method"""
         len_exist_optimizers = len(self.optimizers_and_blocks)
         optimizer = tf.keras.optimizers.get(optimizer)
         # Check if already track the optimizer
@@ -165,7 +178,30 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         if optimizer_not_exists:
             self._track_trackable(optimizer, name=f"Optimizer{1+len_exist_optimizers}")
 
-        self.optimizers_and_blocks.append((optimizer, block))
+        self.optimizers_and_blocks.append((optimizer, blocks))
+        return
+
+    def update(
+        self,
+        optimizer: Union[str, tf.keras.optimizers.Optimizer],
+        blocks: Sequence[Block],
+    ):
+        """update the optimzier of a block, which would update the block's optimizer no matter
+        what optimizer it used to utilize. If the block is not specified with an optimizer before,
+        this functions would have the same functionality as self.add()"""
+        len_exist_optimizers = len(self.optimizers_and_blocks)
+        optimizer = tf.keras.optimizers.get(optimizer)
+        # Check if already track the optimizer
+        optimizer_not_exists = True
+        for opt, pre_blocks in enumerate(self.optimizers_and_blocks):
+            if optimizer == opt:
+                optimizer_not_exists = False
+            for pre_block in pre_blocks:
+                if pre_block in blocks:
+                    pre_blocks.remove(pre_block)
+        if optimizer_not_exists:
+            self._track_trackable(optimizer, name=f"Optimizer{1+len_exist_optimizers}")
+        self.update_optimzier_and_blocks.append((optimizer, blocks))
         return
 
     def get_config(self):
@@ -336,3 +372,22 @@ class LazyAdam(tf.keras.optimizers.Adam):
             "updates": update,
         }
         return resource_scatter_op(**resource_update_kwargs)
+
+
+def split_embeddings_on_size(
+    embeddings: ParallelBlock, threshold: int
+) -> Tuple[List[Block], List[Block]]:
+    """split embedding tables in ParallelBlock based on size threshold (first dimension of embedding
+    tables), return a tuple of two lists, which contain large embeddings and small embeddings"""
+    large_embeddings, small_embeddings = [], []
+    for key, block in embeddings.parallel_dict.items():
+        if block.input_dim >= threshold:
+            large_embeddings.append(block)
+        else:
+            small_embeddings.append(block)
+    if len(large_embeddings) < 1:
+        warnings.warn(
+            f"All embedding tables in given ParallelBlock {embeddings.name} have smaller "
+            f"input dim than threshold {threshold}, thus return empty list."
+        )
+    return (large_embeddings, small_embeddings)

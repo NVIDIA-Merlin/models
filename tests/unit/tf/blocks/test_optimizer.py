@@ -24,7 +24,8 @@ from merlin.core.dispatch import HAS_GPU
 from merlin.datasets.synthetic import generate_data
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
+from merlin.models.utils.schema_utils import create_categorical_column
+from merlin.schema import Schema, Tags
 
 
 def generate_two_layers():
@@ -495,6 +496,46 @@ def test_lazy_adam_in_model_with_multi_optimizers(ecommerce_data, run_eagerly):
         optimizers_and_blocks=[
             (tf.keras.optimizers.SGD(), user_tower),
             (ml.LazyAdam(), item_tower),
+        ],
+    )
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
+    )
+
+
+def test_split_embeddins_on_size():
+    schema = Schema(
+        [
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=200),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=20),
+            create_categorical_column("cat3", tags=[Tags.CATEGORICAL], num_items=90),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant([[1], [2], [4], [6], [6]])
+    inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
+    inputs["cat3"] = tf.constant([[101], [101], [101], [102], [102]])
+    embeddings = ml.Embeddings(schema)
+    large_tables, small_tables = ml.split_embeddings_on_size(embeddings, threshold=100)
+    assert len(large_tables) == 1
+    assert large_tables[0].name == "cat1"
+    assert len(small_tables) == 2
+    tf.assert_equal([small_tables[0].name, small_tables[1].name], ["cat2", "cat3"])
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_lazy_adam_for_large_embeddings(ecommerce_data, run_eagerly):
+    schema = ecommerce_data.schema
+    embeddings = ml.Embeddings(schema)
+    large_embeddings, small_embeddings = ml.split_embeddings_on_size(embeddings, threshold=1000)
+    input = ml.InputBlockV2(schema, embeddings=embeddings)
+    mlp = ml.MLPBlock([64])
+    model = ml.Model(input.connect(mlp), ml.BinaryClassificationTask("click"))
+    multi_optimizers = ml.MultiOptimizer(
+        default_optimizer="adam",
+        optimizers_and_blocks=[
+            ("adam", [mlp, small_embeddings]),
+            (ml.LazyAdam(), large_embeddings),
         ],
     )
     testing_utils.model_test(
