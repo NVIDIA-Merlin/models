@@ -16,7 +16,7 @@ from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is
 from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
-from merlin.models.tf.core.transformations import AsDenseFeatures, AsRaggedFeatures
+from merlin.models.tf.core.transformations import AsRaggedFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
@@ -877,7 +877,7 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            AsDenseFeatures()(inputs),  # TODO: Change this to ragged
+            AsRaggedFeatures()(inputs),
             targets=targets,
             training=training,
             testing=testing,
