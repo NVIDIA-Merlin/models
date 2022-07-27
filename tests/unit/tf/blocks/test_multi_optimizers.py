@@ -98,10 +98,10 @@ def test_optimizers(optimizers):
     )
 
     # Trainable variables updated by different optimizer are not equal
-    test_case.assertNotEqual(
+    test_case.assertNotAllEqual(
         layers["first_opt"][0].trainable_variables[0], layers["multi_opt"][1].trainable_variables[0]
     )
-    test_case.assertNotEqual(
+    test_case.assertNotAllEqual(
         layers["second_opt"][1].trainable_variables[0],
         layers["multi_opt"][0].trainable_variables[0],
     )
