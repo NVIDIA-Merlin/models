@@ -351,6 +351,7 @@ class ParallelBlock(TabularBlock):
         name: Optional[str] = None,
         strict: bool = False,
         automatic_pruning: bool = True,
+        use_layer_name: bool = True,
         **kwargs,
     ):
         super().__init__(
@@ -370,10 +371,13 @@ class ParallelBlock(TabularBlock):
                 parsed_to_merge[key] = val
             self.parallel_layers = parsed_to_merge
         elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
-            parsed: List[TabularBlock] = []
-            for i, inp in enumerate(inputs):
-                parsed.append(inp)  # type: ignore
-            self.parallel_layers = parsed
+            if use_layer_name:
+                self.parallel_layers = {layer.name: layer for layer in inputs}
+            else:
+                parsed: List[TabularBlock] = []
+                for i, inp in enumerate(inputs):
+                    parsed.append(inp)  # type: ignore
+                self.parallel_layers = parsed
         else:
             raise ValueError(
                 "Please provide one or multiple layer's to merge or "
