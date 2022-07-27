@@ -68,7 +68,13 @@ from merlin.models.tf.core.base import (
     NoOp,
     right_shift_layer,
 )
-from merlin.models.tf.core.combinators import Cond, ParallelBlock, ResidualBlock, SequentialBlock
+from merlin.models.tf.core.combinators import (
+    Cond,
+    MapValues,
+    ParallelBlock,
+    ResidualBlock,
+    SequentialBlock,
+)
 from merlin.models.tf.data_augmentation.noise import StochasticSwapNoise
 from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
@@ -126,6 +132,7 @@ Optimizer.__repr__ = repr_utils.layer_repr_no_children
 __all__ = [
     "Block",
     "Cond",
+    "MapValues",
     "ModelContext",
     "SequentialBlock",
     "ResidualBlock",

@@ -166,3 +166,30 @@ class TestCond:
         )
 
         testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+class TestMapValues:
+    def test_map_values_tensor(self):
+        map_layer = tf.keras.layers.Lambda(lambda _: tf.constant([4.0]))
+        output_data = testing_utils.layer_test(
+            mm.MapValues, kwargs=dict(layer=map_layer), input_shape=(1,)
+        )
+        np.testing.assert_array_equal(output_data, np.array([4.0]))
+
+    def test_map_values_dict(self):
+        map_layer = mm.MapValues(tf.keras.layers.Lambda(lambda _: tf.constant([4.0])))
+
+        out = map_layer({"a": tf.constant([1.0]), "b": tf.constant([2.0])})
+        np.testing.assert_array_equal(out, {k: np.array([4.0]) for k in ["a", "b"]})
+
+    def test_map_values_in_model(self, music_streaming_data):
+        map_layer = mm.MapValues(tf.keras.layers.Lambda(lambda x: x + 1))
+
+        model = mm.Model(
+            mm.InputBlock(music_streaming_data.schema),
+            map_layer,
+            mm.MLPBlock([10]),
+            mm.BinaryClassificationTask("click"),
+        )
+
+        testing_utils.model_test(model, music_streaming_data)
