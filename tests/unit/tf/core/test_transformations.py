@@ -584,7 +584,7 @@ def test_hashedcrossall():
 
     hashed_cross_all = ml.HashedCrossAll(
         schema=schema,
-        inffer_num_bins=True,
+        infer_num_bins=True,
         output_mode="one_hot",
         sparse=True,
         max_num_bins=25,
@@ -607,7 +607,7 @@ def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
         names=["user_categories", "item_category", "item_brand"]
     )
     branches = {
-        "cross_product": ml.HashedCrossAll(cross_schema, max_num_bins=1000, inffer_num_bins=True),
+        "cross_product": ml.HashedCrossAll(cross_schema, max_num_bins=1000, infer_num_bins=True),
         "features": ml.InputBlock(ecommerce_data.schema),
     }
     body = ParallelBlock(branches, is_input=True).connect(ml.MLPBlock([64]))

@@ -693,7 +693,7 @@ class HashedCross(TabularBlock):
         output_name: string
             Name of output feature, if not specified, default would be
             cross_<feature_name>_<feature_name>_<...>
-        inffer_num_bins: bool
+        infer_num_bins: bool
             If True, num_bins would be set as the multiplier of feature cadinalities, if the
             multiplier is bigger than max_num_bins, then it would be cliped by max_num_bins
         max_num_bins: int
@@ -707,17 +707,17 @@ class HashedCross(TabularBlock):
         sparse: bool = False,
         output_mode: str = "int",
         output_name: str = None,
-        inffer_num_bins: bool = False,
+        infer_num_bins: bool = False,
         max_num_bins: int = 100000,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
-        if (not inffer_num_bins) and (num_bins is None):
+        if (not infer_num_bins) and (num_bins is None):
             raise ValueError(
-                "num_bins is not given, and inffer_num_bins is False, either of them "
-                "is required, if you want to set fixed num_bins, then set inffer_num_bins to False,"
-                " and set num_bins to an integer value, if you want to inffer num_bins from the "
+                "num_bins is not given, and infer_num_bins is False, either of them "
+                "is required, if you want to set fixed num_bins, then set infer_num_bins to False,"
+                " and set num_bins to an integer value, if you want to infer num_bins from the "
                 "mulplier of feature cardinalities, at the same time you can set the max_num_bins."
             )
 
@@ -738,10 +738,12 @@ class HashedCross(TabularBlock):
             self.num_bins = num_bins
         else:
             cardinalities = schema_utils.categorical_cardinalities(schema)
-            multiplier = 1
+            inferred_num_bins_from_cardinalities_multiplier = 1
             for cardinality in cardinalities.values():
-                multiplier = multiplier * cardinality
-            self.num_bins = min(max_num_bins, multiplier)
+                inferred_num_bins_from_cardinalities_multiplier = (
+                    inferred_num_bins_from_cardinalities_multiplier * cardinality
+                )
+            self.num_bins = min(max_num_bins, inferred_num_bins_from_cardinalities_multiplier)
 
     def call(self, inputs):
         self._check_at_least_two_inputs()
@@ -837,7 +839,7 @@ class HashedCross(TabularBlock):
 def HashedCrossAll(
     schema: Schema,
     num_bins: int = None,
-    inffer_num_bins: bool = False,
+    infer_num_bins: bool = False,
     max_num_bins: int = 100000,
     max_level: int = 2,
     sparse: bool = False,
@@ -878,7 +880,7 @@ def HashedCrossAll(
     sparse : bool
         Boolean. Only applicable to `"one_hot"` mode. If True, returns a
         `SparseTensor` instead of a dense `Tensor`. Defaults to False.
-    inffer_num_bins: bool
+    infer_num_bins: bool
         If True, all num_bins would be set as the multiplier of corresponding feature cadinalities,
         if the multiplier is bigger than max_num_bins, then it would be cliped by max_num_bins
     max_num_bins: int
@@ -886,7 +888,7 @@ def HashedCrossAll(
 
     Example usage::
 
-        level_3_cross = HashedCrossAll(schema = schemas, max_level = 3, inffer_num_bins = True)
+        level_3_cross = HashedCrossAll(schema = schemas, max_level = 3, infer_num_bins = True)
     """
 
     if max_level < 2 or max_level > 3:
@@ -917,7 +919,7 @@ def HashedCrossAll(
                 num_bins=num_bins,
                 sparse=sparse,
                 output_mode=output_mode,
-                inffer_num_bins=inffer_num_bins,
+                infer_num_bins=infer_num_bins,
                 max_num_bins=max_num_bins,
             )
         )
