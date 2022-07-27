@@ -15,13 +15,14 @@
 #
 from unittest.mock import patch
 
+import pandas as pd
 import pytest
 import xgboost
 
 from merlin.core.dispatch import HAS_GPU
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
-from merlin.models.xgb import XGBoost
+from merlin.models.xgb import XGBoost, dataset_to_xy
 
 
 def test_without_dask_client(music_streaming_data: Dataset):
@@ -191,3 +192,15 @@ class TestEvals:
         model = XGBoost(train.schema, objective="reg:logistic")
         with pytest.raises(AssertionError):
             model.fit(train, evals=[([], "valid")])
+
+
+def test_dataset_to_xy_does_not_modify_column_order():
+    df = pd.DataFrame(data={"z": [0], "target": [-1], "a": [1], "Z": [2]})
+    feature_columns = ["z", "Z", "a"]
+    X, y, _ = dataset_to_xy(
+        dataset=Dataset(df),
+        feature_columns=feature_columns,
+        target_columns="target",
+        qid_column=None,
+    )
+    assert X.columns.tolist() == feature_columns
