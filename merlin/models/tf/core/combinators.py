@@ -683,3 +683,36 @@ class Cond(Layer):
         if self.false:
             self.false.build(input_shape)
         return super(Cond, self).build(input_shape)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class MapValues(Layer):
+    """Layer to map values of a dictionary of tensors."""
+
+    def __init__(self, layer: Layer, **kwargs):
+        super(MapValues, self).__init__(**kwargs)
+        self.layer = layer
+
+    def call(self, inputs, **kwargs):
+        if isinstance(inputs, dict):
+            return {key: call_layer(self.layer, value, **kwargs) for key, value in inputs.items()}
+
+        return call_layer(self.layer, inputs, **kwargs)
+
+    def compute_output_shape(self, input_shape):
+        if isinstance(input_shape, dict):
+            return {
+                key: self.layer.compute_output_shape(value) for key, value in input_shape.items()
+            }
+
+        return self.layer.compute_output_shape(input_shape)
+
+    def get_config(self):
+        config = super(MapValues, self).get_config()
+        config["layer"] = tf.keras.layers.serialize(self.layer)
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        layer = tf.keras.layers.deserialize(config.pop("layer"))
+        return cls(layer, **config)

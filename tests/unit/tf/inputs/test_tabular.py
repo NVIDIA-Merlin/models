@@ -164,6 +164,34 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
     assert all(tf.rank(val) == 2 for name, val in outputs_weighted_avg.items() if name in cat)
 
 
+def test_tabular_seq_features_avg_embeddings_with_mapvalues(sequence_testing_data: Dataset):
+    cat_schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
+
+    batch = ml.sample_batch(
+        sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
+    )
+
+    input_block = ml.InputBlockV2(
+        cat_schema,
+        embeddings=ml.Embeddings(
+            cat_schema,
+        ),
+        post=ml.MapValues(
+            tf.keras.layers.Lambda(
+                lambda x: tf.math.reduce_mean(x, axis=1) if isinstance(x, tf.RaggedTensor) else x
+            )
+        ),
+    )
+
+    output = input_block(batch)
+    assert all(
+        isinstance(val, tf.Tensor)
+        for name, val in output.items()
+        if name in cat_schema.column_names
+    )
+    assert all(tf.rank(val) == 2 for name, val in output.items() if name in cat_schema.column_names)
+
+
 def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset):
     cat_schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     embeddings_block = ml.Embeddings(
