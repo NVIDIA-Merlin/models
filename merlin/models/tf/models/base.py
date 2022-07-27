@@ -299,10 +299,6 @@ class BaseModel(tf.keras.Model):
                 "`prediction_tasks` is deprecated and will be removed in a future version.",
             )
 
-        _loss = {}
-        if isinstance(loss, (tf.keras.losses.Loss, str)) and len(self.prediction_tasks) == 1:
-            _loss = {task.task_name: loss for task in self.prediction_tasks}
-
         if num_v1_blocks > 0:
             self.output_names = [task.task_name for task in self.prediction_tasks]
         else:
@@ -877,10 +873,7 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            AsRaggedFeatures()(inputs),
-            targets=targets,
-            training=training,
-            testing=testing,
+            AsRaggedFeatures()(inputs), targets=targets, training=training, testing=testing,
         )
 
         outputs = inputs
