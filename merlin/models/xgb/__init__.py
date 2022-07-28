@@ -175,17 +175,15 @@ class XGBoost:
         if self.booster is None:
             raise ValueError("The fit method must be called before evaluate.")
 
-        X, _, qid = dataset_to_xy(
+        X, y, qid = dataset_to_xy(
             dataset, self.feature_columns, self.target_columns, self.qid_column
         )
-        data = xgb.dask.DaskDMatrix(self.dask_client, X, qid=qid)
-        preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs)
 
         # convert to DMatrix
         # (eval doesn't have dask support currently)
         if qid is not None:
             qid = qid.compute()
-        eval_data = xgb.DMatrix(X.compute(), label=preds.compute(), qid=qid)
+        eval_data = xgb.DMatrix(X.compute(), label=y.compute(), qid=qid)
 
         metrics_str = self.booster.eval(eval_data)
         metrics = {}
