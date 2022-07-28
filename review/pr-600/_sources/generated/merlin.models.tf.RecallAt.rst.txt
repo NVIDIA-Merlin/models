@@ -19,7 +19,6 @@
       ~RecallAt.add_update
       ~RecallAt.add_variable
       ~RecallAt.add_weight
-      ~RecallAt.apply
       ~RecallAt.build
       ~RecallAt.call
       ~RecallAt.check_cast_inputs
@@ -33,11 +32,9 @@
       ~RecallAt.get_input_at
       ~RecallAt.get_input_mask_at
       ~RecallAt.get_input_shape_at
-      ~RecallAt.get_losses_for
       ~RecallAt.get_output_at
       ~RecallAt.get_output_mask_at
       ~RecallAt.get_output_shape_at
-      ~RecallAt.get_updates_for
       ~RecallAt.get_weights
       ~RecallAt.merge_state
       ~RecallAt.reset_state
