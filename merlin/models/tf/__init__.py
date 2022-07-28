@@ -68,7 +68,13 @@ from merlin.models.tf.core.base import (
     NoOp,
     right_shift_layer,
 )
-from merlin.models.tf.core.combinators import Cond, ParallelBlock, ResidualBlock, SequentialBlock
+from merlin.models.tf.core.combinators import (
+    Cond,
+    MapValues,
+    ParallelBlock,
+    ResidualBlock,
+    SequentialBlock,
+)
 from merlin.models.tf.data_augmentation.noise import StochasticSwapNoise
 from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
@@ -110,6 +116,9 @@ from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.predictions.base import PredictionBlock
+from merlin.models.tf.predictions.classification import BinaryPrediction
+from merlin.models.tf.predictions.regression import RegressionPrediction
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
 
@@ -126,6 +135,7 @@ Optimizer.__repr__ = repr_utils.layer_repr_no_children
 __all__ = [
     "Block",
     "Cond",
+    "MapValues",
     "ModelContext",
     "SequentialBlock",
     "ResidualBlock",
@@ -169,6 +179,9 @@ __all__ = [
     "DotProductInteraction",
     "FMPairwiseInteraction",
     "LabelToOneHot",
+    "PredictionBlock",
+    "BinaryPrediction",
+    "RegressionPrediction",
     "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
@@ -176,6 +189,7 @@ __all__ = [
     "MultiOptimizer",
     "LazyAdam",
     "split_embeddings_on_size",
+    "OptimizerBlocks",
     "ItemRetrievalTask",
     "ItemRetrievalScorer",
     "NextItemPredictionTask",
