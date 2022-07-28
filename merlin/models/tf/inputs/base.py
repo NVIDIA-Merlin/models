@@ -219,7 +219,7 @@ def InputBlockV2(
     continuous_column_selector: Union[Tags, Schema] = Tags.CONTINUOUS,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
-    aggregation: Optional[TabularAggregationType] = None,
+    aggregation: Optional[TabularAggregationType] = "concat",
 ) -> ParallelBlock:
     """The entry block of the model to process input features from a schema.
     This is the 2nd version of InputBlock, which is more flexible for accepting
@@ -245,7 +245,7 @@ def InputBlockV2(
     post : Optional[BlockType], optional
         Transformation block to apply after the embeddings lookup, by default None
     aggregation : Optional[TabularAggregationType], optional
-        Transformation block to apply for aggregating the inputs, by default None
+        Transformation block to apply for aggregating the inputs, by default "concat"
 
     Returns
     -------

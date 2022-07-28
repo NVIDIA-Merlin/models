@@ -96,6 +96,7 @@ def test_tabular_seq_features_ragged_embeddings(sequence_testing_data: Dataset):
     tab_module = ml.InputBlockV2(
         sequence_testing_data.schema,
         embeddings=ml.Embeddings(sequence_testing_data.schema, sequence_combiner=None),
+        aggregation=None,
     )
 
     batch = ml.sample_batch(
@@ -122,6 +123,7 @@ def test_tabular_seq_features_ragged_emb_combiner(sequence_testing_data: Dataset
         sequence_testing_data.schema,
         embeddings=ml.Embeddings(sequence_testing_data.schema, sequence_combiner=seq_combiner),
         continuous_column_selector=con2d,
+        aggregation=None,
     )
 
     batch = ml.sample_batch(
@@ -158,6 +160,7 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
                 schema, "_weights"
             ),
         ),
+        aggregation=None,
     )
 
     outputs_weighted_avg = input_block_weighed_avg(batch, features=batch)
@@ -167,6 +170,7 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
         embeddings=ml.Embeddings(
             schema, sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1))
         ),
+        aggregation=None,
     )
 
     outputs_simple_avg = input_block_simple_avg(batch, features=batch)
@@ -200,6 +204,7 @@ def test_tabular_seq_features_avg_embeddings_with_mapvalues(sequence_testing_dat
                 lambda x: tf.math.reduce_mean(x, axis=1) if isinstance(x, tf.RaggedTensor) else x
             )
         ),
+        aggregation=None,
     )
 
     output = input_block(batch)
@@ -211,7 +216,8 @@ def test_tabular_seq_features_avg_embeddings_with_mapvalues(sequence_testing_dat
     assert all(tf.rank(val) == 2 for name, val in output.items() if name in cat_schema.column_names)
 
 
-def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset):
+@pytest.mark.parametrize("aggregation", [None, "concat"])
+def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset, aggregation: str):
     cat_schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     embeddings_block = ml.Embeddings(
         cat_schema,
@@ -221,7 +227,7 @@ def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset)
         infer_embeddings_ensure_dim_multiple_of_8=True,
         embeddings_initializer="truncated_normal",
     )
-    input_block = ml.InputBlockV2(cat_schema, embeddings=embeddings_block)
+    input_block = ml.InputBlockV2(cat_schema, embeddings=embeddings_block, aggregation=aggregation)
 
     batch = ml.sample_batch(
         sequence_testing_data, batch_size=100, include_targets=False, to_ragged=True
@@ -229,10 +235,13 @@ def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset)
 
     outputs = input_block(batch)
 
-    assert {k: v.shape[-1] for k, v in outputs.items()} == {
-        "test_user_id": 21,
-        "item_id_seq": 15,
-        # Inferred dims from cardinality
-        "categories": 16,
-        "user_country": 8,
-    }
+    if aggregation == "concat":
+        assert outputs.shape[-1] == 60
+    elif aggregation is None:
+        assert {k: v.shape[-1] for k, v in outputs.items()} == {
+            "test_user_id": 21,
+            "item_id_seq": 15,
+            # Inferred dims from cardinality
+            "categories": 16,
+            "user_country": 8,
+        }
