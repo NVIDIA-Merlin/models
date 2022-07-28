@@ -738,12 +738,12 @@ class HashedCross(TabularBlock):
             self.num_bins = num_bins
         else:
             cardinalities = schema_utils.categorical_cardinalities(schema)
-            inferred_num_bins_from_cardinalities_multiplier = 1
+            inferred_num_bins_from_cardinalities_multiplier = 1.0
             for cardinality in cardinalities.values():
                 inferred_num_bins_from_cardinalities_multiplier = (
                     inferred_num_bins_from_cardinalities_multiplier * cardinality
                 )
-            self.num_bins = min(max_num_bins, inferred_num_bins_from_cardinalities_multiplier)
+            self.num_bins = int(min(max_num_bins, inferred_num_bins_from_cardinalities_multiplier))
 
     def call(self, inputs):
         self._check_at_least_two_inputs()
