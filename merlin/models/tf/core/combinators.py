@@ -335,9 +335,11 @@ class ParallelBlock(TabularBlock):
 
     Parameters
     ----------
-    blocks_to_merge: Union[TabularModule, Dict[str, TabularBlock]]
-        TabularBlocks to merge into, this can also be one or multiple dictionaries keyed by the
+    inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]]
+        keras layers to merge into, this can also be one or multiple layers keyed by the
         name the module should have.
+    use_layer_name: use the original name of layers provided in inputs as key-index of the
+        parallel branches.
     {tabular_module_parameters}
     """
 
@@ -351,6 +353,7 @@ class ParallelBlock(TabularBlock):
         name: Optional[str] = None,
         strict: bool = False,
         automatic_pruning: bool = True,
+        use_layer_name: bool = True,
         **kwargs,
     ):
         super().__init__(
@@ -370,10 +373,13 @@ class ParallelBlock(TabularBlock):
                 parsed_to_merge[key] = val
             self.parallel_layers = parsed_to_merge
         elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
-            parsed: List[TabularBlock] = []
-            for i, inp in enumerate(inputs):
-                parsed.append(inp)  # type: ignore
-            self.parallel_layers = parsed
+            if use_layer_name:
+                self.parallel_layers = {layer.name: layer for layer in inputs}
+            else:
+                parsed: List[TabularBlock] = []
+                for i, inp in enumerate(inputs):
+                    parsed.append(inp)  # type: ignore
+                self.parallel_layers = parsed
         else:
             raise ValueError(
                 "Please provide one or multiple layer's to merge or "

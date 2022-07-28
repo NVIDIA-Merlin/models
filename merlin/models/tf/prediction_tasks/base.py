@@ -65,10 +65,11 @@ class PredictionTask(Layer, ContextMixin):
         name: Optional[Text] = None,
         **kwargs,
     ) -> None:
-        super().__init__(name=name, **kwargs)
         self.target_name = target_name
-        self.task_block = task_block
         self._task_name = task_name
+        name = name or self.task_name
+        super().__init__(name=name, **kwargs)
+        self.task_block = task_block
         self.pre = pre
         self._pre_eval_topk = pre_eval_topk
 
@@ -208,6 +209,13 @@ class PredictionTask(Layer, ContextMixin):
 
         return config
 
+    def create_default_metrics(self):
+        metrics = []
+        for metric in self.DEFAULT_METRICS:
+            metrics.append(metric(name=self.child_name(to_snake_case(metric.__name__))))
+
+        return metrics
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ParallelPredictionBlock(ParallelBlock):
@@ -230,20 +238,24 @@ class ParallelPredictionBlock(ParallelBlock):
         *prediction_tasks: PredictionTask,
         task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
         bias_block: Optional[Layer] = None,
+        task_weights=None,
         pre: Optional[BlockType] = None,
         post: Optional[BlockType] = None,
         **kwargs,
     ):
         self.prediction_tasks = prediction_tasks
         self.bias_block = bias_block
-        self.bias_logit = tf.keras.layers.Dense(1)
+        if bias_block:
+            self.bias_logit = tf.keras.layers.Dense(1)
 
         self.prediction_task_dict = {}
         if prediction_tasks:
             for task in prediction_tasks:
                 self.prediction_task_dict[task.task_name] = task
 
-        super(ParallelPredictionBlock, self).__init__(self.prediction_task_dict, pre=pre, post=post)
+        super(ParallelPredictionBlock, self).__init__(
+            self.prediction_task_dict, pre=pre, post=post, use_layer_name=False, **kwargs
+        )
 
         if task_blocks:
             self._set_task_blocks(task_blocks)
@@ -418,6 +430,7 @@ class ParallelPredictionBlock(ParallelBlock):
             config["schema"] = tensorflow_metadata_json_to_schema(config["schema"])
 
         prediction_tasks = config.pop("prediction_tasks", [])
+        config.pop("parallel_layers", None)
 
         return cls(*prediction_tasks, **config)
 
