@@ -22,10 +22,11 @@ from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import (
     Filter,
     ParallelBlock,
+    SequentialBlock,
     TabularAggregationType,
     TabularBlock,
 )
-from merlin.models.tf.core.transformations import AsDenseFeatures
+from merlin.models.tf.core.transformations import AsDenseFeatures, AsRaggedFeatures
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
@@ -267,9 +268,12 @@ def InputBlockV2(
     else:
         continuous = TabularBlock(schema=con_schema, pre=con_filter)
 
-    return ParallelBlock(
-        dict(continuous=continuous, embeddings=embeddings),
-        pre=pre,
-        post=post,
-        aggregation=aggregation,
+    return SequentialBlock(
+        AsRaggedFeatures(),
+        ParallelBlock(
+            dict(continuous=continuous, embeddings=embeddings),
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+        ),
     )
