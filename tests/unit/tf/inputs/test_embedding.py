@@ -70,7 +70,7 @@ class TestEmbeddingTable:
     @pytest.mark.parametrize(
         ["dim", "kwargs", "inputs", "expected_output_shape"],
         [
-            (32, {}, tf.constant([1]), [1, 32]),
+            (32, {}, tf.constant([[1]]), [1, 32]),
             (16, {}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, None, 16]),
             (16, {"combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
             (16, {"combiner": "mean"}, tf.sparse.from_dense(tf.constant([[1, 2, 3]])), [1, 16]),
@@ -168,7 +168,7 @@ class TestEmbeddingTable:
 
         assert embedding_table.input_dim == vocab_size
 
-        inputs = tf.constant([1])
+        inputs = tf.constant([[1]])
         output = embedding_table(inputs)
 
         assert list(output.shape) == [1, embedding_dim]

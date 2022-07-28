@@ -240,7 +240,8 @@ class EmbeddingTable(EmbeddingTableBase):
         return super(EmbeddingTable, self)._maybe_build(inputs)
 
     def build(self, input_shapes):
-        self.table.build(input_shapes)
+        if not self.table.built:
+            self.table.build(input_shapes)
         # if isinstance(self.combiner, tf.keras.layers.Layer):
         #    self.combiner.build(self.table.compute_output_shape(input_shapes))
         return super(EmbeddingTable, self).build(input_shapes)
@@ -276,9 +277,9 @@ class EmbeddingTable(EmbeddingTableBase):
                     f"Received: {type(inputs)}. Column name: {self.col_schema.name}"
                 )
             if isinstance(inputs, tf.RaggedTensor):
-                sparse_inputs = inputs.to_sparse()
+                inputs = inputs.to_sparse()
             out = tf.nn.safe_embedding_lookup_sparse(
-                self.table.embeddings, sparse_inputs, None, combiner=self.combiner
+                self.table.embeddings, inputs, None, combiner=self.combiner
             )
         else:
             if not isinstance(inputs, (tf.RaggedTensor, tf.Tensor)):
