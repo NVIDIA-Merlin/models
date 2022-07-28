@@ -813,12 +813,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">=</span> <span class="n">num_bins</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">cardinalities</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">categorical_cardinalities</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
-            <span class="n">inferred_num_bins_from_cardinalities_multiplier</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">inferred_num_bins_from_cardinalities_multiplier</span> <span class="o">=</span> <span class="mf">1.0</span>
             <span class="k">for</span> <span class="n">cardinality</span> <span class="ow">in</span> <span class="n">cardinalities</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
                 <span class="n">inferred_num_bins_from_cardinalities_multiplier</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">inferred_num_bins_from_cardinalities_multiplier</span> <span class="o">*</span> <span class="n">cardinality</span>
                 <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_num_bins</span><span class="p">,</span> <span class="n">inferred_num_bins_from_cardinalities_multiplier</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">max_num_bins</span><span class="p">,</span> <span class="n">inferred_num_bins_from_cardinalities_multiplier</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_at_least_two_inputs</span><span class="p">()</span>
