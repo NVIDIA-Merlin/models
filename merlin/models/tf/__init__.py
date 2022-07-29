@@ -44,7 +44,12 @@ from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
 from merlin.models.tf.blocks.interaction import DotProductInteraction, FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
-from merlin.models.tf.blocks.optimizer import LazyAdam, MultiOptimizer, split_embeddings_on_size
+from merlin.models.tf.blocks.optimizer import (
+    LazyAdam,
+    MultiOptimizer,
+    OptimizerBlocks,
+    split_embeddings_on_size,
+)
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, ItemRetrievalScorer
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
@@ -188,6 +193,7 @@ __all__ = [
     "RegressionTask",
     "MultiOptimizer",
     "LazyAdam",
+    "OptimizerBlocks",
     "split_embeddings_on_size",
     "OptimizerBlocks",
     "ItemRetrievalTask",
