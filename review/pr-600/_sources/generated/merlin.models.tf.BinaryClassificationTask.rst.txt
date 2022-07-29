@@ -19,6 +19,7 @@
       ~BinaryClassificationTask.add_update
       ~BinaryClassificationTask.add_variable
       ~BinaryClassificationTask.add_weight
+      ~BinaryClassificationTask.apply
       ~BinaryClassificationTask.build
       ~BinaryClassificationTask.build_task
       ~BinaryClassificationTask.call
@@ -27,15 +28,18 @@
       ~BinaryClassificationTask.compute_output_shape
       ~BinaryClassificationTask.compute_output_signature
       ~BinaryClassificationTask.count_params
+      ~BinaryClassificationTask.create_default_metrics
       ~BinaryClassificationTask.finalize_state
       ~BinaryClassificationTask.from_config
       ~BinaryClassificationTask.get_config
       ~BinaryClassificationTask.get_input_at
       ~BinaryClassificationTask.get_input_mask_at
       ~BinaryClassificationTask.get_input_shape_at
+      ~BinaryClassificationTask.get_losses_for
       ~BinaryClassificationTask.get_output_at
       ~BinaryClassificationTask.get_output_mask_at
       ~BinaryClassificationTask.get_output_shape_at
+      ~BinaryClassificationTask.get_updates_for
       ~BinaryClassificationTask.get_weights
       ~BinaryClassificationTask.pre_call
       ~BinaryClassificationTask.pre_loss
