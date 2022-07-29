@@ -486,7 +486,13 @@ class BaseModel(tf.keras.Model):
         Union[Prediction, PredictionOutput]
         """
 
-        forward = self(x, targets=y, training=training, testing=testing, **kwargs,)
+        forward = self(
+            x,
+            targets=y,
+            training=training,
+            testing=testing,
+            **kwargs,
+        )
         if not (self.prediction_tasks or self.prediction_blocks):
             return PredictionOutput(forward, y)
 
@@ -529,8 +535,9 @@ class BaseModel(tf.keras.Model):
             if isinstance(forward, dict) and task.full_name in forward:
                 task_x = forward[task.full_name]
             if isinstance(task_x, Prediction):
-                task_y = task_x.targets
-                task_x = task_x.outputs
+                output = task_x
+                task_y = output.targets
+                task_x = output.outputs
                 task_sample_weight = (
                     sample_weight if output.sample_weight is None else output.sample_weight
                 )
@@ -542,7 +549,7 @@ class BaseModel(tf.keras.Model):
             predictions[task.full_name] = task_x
             sample_weights[task.full_name] = task_sample_weight
 
-        return Prediction(predictions, targets, sample_weight=sample_weights)
+        return Prediction(predictions, targets, sample_weights)
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
@@ -583,7 +590,9 @@ class BaseModel(tf.keras.Model):
 
     @tf.function
     def compute_metrics(
-        self, prediction_outputs: PredictionOutput, training: bool,
+        self,
+        prediction_outputs: PredictionOutput,
+        training: bool,
     ) -> Dict[str, tf.Tensor]:
         """Overrides Model.compute_metrics() for some custom behaviour
            like compute metrics each N steps during training
@@ -873,7 +882,10 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            AsRaggedFeatures()(inputs), targets=targets, training=training, testing=testing,
+            AsRaggedFeatures()(inputs),
+            targets=targets,
+            training=training,
+            testing=testing,
         )
 
         outputs = inputs
@@ -899,7 +911,10 @@ class Model(BaseModel):
         return context
 
     def _call_child(
-        self, child: tf.keras.layers.Layer, inputs, context: PredictionContext,
+        self,
+        child: tf.keras.layers.Layer,
+        inputs,
+        context: PredictionContext,
     ):
         call_kwargs = context.to_call_dict()
 

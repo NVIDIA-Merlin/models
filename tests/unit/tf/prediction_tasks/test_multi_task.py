@@ -6,8 +6,10 @@ import tensorflow as tf
 import merlin.models.tf as ml
 from merlin.io import Dataset
 from merlin.models.tf.core.base import Block, PredictionOutput
+from merlin.models.tf.utils import testing_utils
 
 
+@testing_utils.mark_run_eagerly_modes
 @pytest.mark.parametrize(
     "task_blocks",
     [
@@ -21,13 +23,13 @@ from merlin.models.tf.core.base import Block, PredictionOutput
         },
     ],
 )
-def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks):
+def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks, run_eagerly: bool):
     music_streaming_data.schema = music_streaming_data.schema.without("like")
 
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema, task_blocks=task_blocks)
     model = ml.Model(inputs, ml.MLPBlock([64]), prediction_tasks)
-    model.compile(optimizer="adam", run_eagerly=True)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
@@ -49,7 +51,8 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks):
         assert model.prediction_tasks[0].task_block != model.prediction_tasks[1].task_block
 
 
-def test_mmoe_head(music_streaming_data: Dataset):
+@testing_utils.mark_run_eagerly_modes
+def test_mmoe_head(music_streaming_data: Dataset, run_eagerly: bool):
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
     mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
@@ -61,7 +64,7 @@ def test_mmoe_head(music_streaming_data: Dataset):
         "play_percentage/regression_task": 3.0,
     }
 
-    model.compile(optimizer="adam", run_eagerly=True, loss_weights=loss_weights)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, loss_weights=loss_weights)
 
     metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
@@ -86,7 +89,10 @@ def test_mmoe_head(music_streaming_data: Dataset):
     )
 
 
-def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(music_streaming_data: Dataset):
+@testing_utils.mark_run_eagerly_modes
+def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(
+    music_streaming_data: Dataset, run_eagerly: bool
+):
     class CustomSampleWeight(Block):
         def call_outputs(
             self,
@@ -134,7 +140,7 @@ def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(music_stream
 
     model.compile(
         optimizer="adam",
-        run_eagerly=True,
+        run_eagerly=run_eagerly,
         loss_weights=loss_weights,
         weighted_metrics=weighted_metrics,
     )
@@ -171,14 +177,15 @@ def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(music_stream
     )
 
 
-def test_ple_head(music_streaming_data: Dataset):
+@testing_utils.mark_run_eagerly_modes
+def test_ple_head(music_streaming_data: Dataset, run_eagerly: bool):
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
     cgc = ml.CGCBlock(
         prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=2
     )
     model = ml.Model(inputs, ml.MLPBlock([64]), cgc, prediction_tasks)
-    model.compile(optimizer="adam", run_eagerly=True)
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     metrics = model.train_step(ml.sample_batch(music_streaming_data, batch_size=50))
 
