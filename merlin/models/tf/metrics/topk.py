@@ -414,6 +414,20 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
         aggregator = cls(*metrics)
         return [aggregator]
 
+    def get_config(self):
+        config = {}
+        for i, metric in enumerate(self.topk_metrics):
+            config[i] = tf.keras.utils.serialize_keras_object(metric)
+        return config
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        metrics = [
+            tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+            for conf in config.values()
+        ]
+        return TopKMetricsAggregator(*metrics)
+
 
 def filter_topk_metrics(
     metrics: Sequence[Metric],
@@ -438,3 +452,30 @@ def filter_topk_metrics(
         ]
     )
     return topk_metrics
+
+
+def split_metrics(
+    metrics: Sequence[Metric],
+    return_other_metrics: bool = False,
+) -> List[TopkMetric, TopKMetricsAggregator, Metric]:
+    """Split the list of metrics into top-k metrics, top-k aggregators and others
+
+    Parameters
+    ----------
+    metrics : List[Metric]
+        List of metrics
+
+    Returns
+    -------
+    List[TopkMetric, TopKMetricsAggregator, Metric]
+        List with the top-k metrics in the list of input metrics
+    """
+    topk_metrics, topk_aggregators, other_metrics = [], [], []
+    for metric in metrics:
+        if isinstance(metric, TopkMetric):
+            topk_metrics.append(metric)
+        elif isinstance(metric, TopKMetricsAggregator):
+            topk_aggregators.append(metric)
+        else:
+            other_metrics.append(metric)
+    return topk_metrics, topk_aggregators, other_metrics

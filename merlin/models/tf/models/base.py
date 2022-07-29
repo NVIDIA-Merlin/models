@@ -20,7 +20,7 @@ from merlin.models.tf.core.transformations import AsDenseFeatures, AsRaggedFeatu
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
-from merlin.models.tf.metrics.topk import filter_topk_metrics
+from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.predictions.base import PredictionBlock
@@ -325,6 +325,12 @@ class BaseModel(tf.keras.Model):
         num_v1_blocks = len(self.prediction_tasks)
 
         if isinstance(metrics, (list, tuple)):
+            # Retrieve top-k metrics & wrap them in TopKMetricsAggregator
+            topk_metrics, topk_aggregators, other_metrics = split_metrics(metrics)
+            if len(topk_metrics) > 0:
+                topk_aggregators.append(TopKMetricsAggregator(*topk_metrics))
+            metrics = other_metrics + topk_aggregators
+
             if num_v1_blocks > 0:
                 if num_v1_blocks == 1:
                     out[self.prediction_tasks[0].task_name] = metrics
@@ -344,8 +350,6 @@ class BaseModel(tf.keras.Model):
 
             for task_name, task in self.predictions_by_name().items():
                 out[task_name] = task.create_default_metrics()
-
-        # TODO: Check for top-k metrics & wrap them in TopKMetricsAggregator
 
         return out
 
