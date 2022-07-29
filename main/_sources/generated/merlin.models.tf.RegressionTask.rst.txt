@@ -27,6 +27,7 @@
       ~RegressionTask.compute_output_shape
       ~RegressionTask.compute_output_signature
       ~RegressionTask.count_params
+      ~RegressionTask.create_default_metrics
       ~RegressionTask.finalize_state
       ~RegressionTask.from_config
       ~RegressionTask.get_config

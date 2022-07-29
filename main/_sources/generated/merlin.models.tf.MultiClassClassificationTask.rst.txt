@@ -27,6 +27,7 @@
       ~MultiClassClassificationTask.compute_output_shape
       ~MultiClassClassificationTask.compute_output_signature
       ~MultiClassClassificationTask.count_params
+      ~MultiClassClassificationTask.create_default_metrics
       ~MultiClassClassificationTask.finalize_state
       ~MultiClassClassificationTask.from_config
       ~MultiClassClassificationTask.from_schema

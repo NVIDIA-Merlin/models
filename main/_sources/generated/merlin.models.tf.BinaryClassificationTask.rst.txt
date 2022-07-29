@@ -27,6 +27,7 @@
       ~BinaryClassificationTask.compute_output_shape
       ~BinaryClassificationTask.compute_output_signature
       ~BinaryClassificationTask.count_params
+      ~BinaryClassificationTask.create_default_metrics
       ~BinaryClassificationTask.finalize_state
       ~BinaryClassificationTask.from_config
       ~BinaryClassificationTask.get_config

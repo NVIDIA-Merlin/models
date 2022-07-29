@@ -27,6 +27,7 @@
       ~ItemRetrievalTask.compute_output_shape
       ~ItemRetrievalTask.compute_output_signature
       ~ItemRetrievalTask.count_params
+      ~ItemRetrievalTask.create_default_metrics
       ~ItemRetrievalTask.finalize_state
       ~ItemRetrievalTask.from_config
       ~ItemRetrievalTask.from_schema
