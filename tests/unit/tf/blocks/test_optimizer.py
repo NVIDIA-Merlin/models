@@ -24,6 +24,7 @@ from merlin.core.dispatch import HAS_GPU
 from merlin.datasets.synthetic import generate_data
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
 from merlin.models.tf.utils import testing_utils
+from merlin.models.utils import schema_utils
 from merlin.models.utils.schema_utils import create_categorical_column
 from merlin.schema import Schema, Tags
 
@@ -273,6 +274,30 @@ def test_examples_in_code_comments(ecommerce_data, use_default):
     optimizer.weights
     optimizer.variables
     assert len(optimizer.optimizers) == 3
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_update_optimizer(ecommerce_data, run_eagerly):
+    schema = ecommerce_data.schema
+    user_tower_0 = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
+    user_tower_1 = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
+    two_tower = ml.ParallelBlock({"user": user_tower_0, "item": user_tower_1}, aggregation="concat")
+    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
+    sgd = tf.keras.optimizers.SGD()
+    adam = tf.keras.optimizers.Adam()
+    multi_optimizers = ml.MultiOptimizer(
+        optimizers_and_blocks=[
+            ml.OptimizerBlocks(adam, user_tower_0),
+            ml.OptimizerBlocks(sgd, user_tower_1),
+        ],
+    )
+
+    lazy_adam = ml.LazyAdam()
+    multi_optimizers.update(ml.OptimizerBlocks(lazy_adam, user_tower_1))
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
+    )
+    assert len(lazy_adam.get_weights()) == len(adam.get_weights())
 
 
 def adam_update_numpy(param, g_t, t, m, v, lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-7):
@@ -577,7 +602,35 @@ def test_lazy_adam_for_large_embeddings(ecommerce_data, run_eagerly):
             ml.OptimizerBlocks(ml.LazyAdam(), large_embeddings),
         ],
     )
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
+    )
 
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_lazy_adam_in_EmbeddingTable(ecommerce_data, run_eagerly):
+    schema = ecommerce_data.schema
+    dims = schema_utils.get_embedding_sizes_from_schema(schema)
+
+    table_0 = ml.EmbeddingTable(
+        dims["user_categories"], schema.select_by_name("user_categories").first
+    )
+    table_1 = ml.EmbeddingTable(dims["user_shops"], schema.select_by_name("user_shops").first)
+    table_2 = ml.EmbeddingTable(dims["user_brands"], schema.select_by_name("user_brands").first)
+    embedding_layer = ml.ParallelBlock(
+        {"0": table_0, "1": table_1, "2": table_2}, aggregation="concat"
+    )
+
+    model = ml.Model(
+        embedding_layer.connect(ml.MLPBlock([128])), ml.BinaryClassificationTask("click")
+    )
+    multi_optimizers = ml.MultiOptimizer(
+        default_optimizer="adam",
+        optimizers_and_blocks=[
+            ml.OptimizerBlocks("adam", table_0),
+            ml.OptimizerBlocks(ml.LazyAdam(), [table_1, table_2]),
+        ],
+    )
     testing_utils.model_test(
         model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizers
     )

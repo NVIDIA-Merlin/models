@@ -125,6 +125,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         for i, pair in enumerate(optimizers_and_blocks):
             pair.optimizer = tf.keras.optimizers.get(pair.optimizer)
             self._track_trackable(pair.optimizer, name=f"Optimizer{i}")
+            pair.blocks = [pair.blocks] if isinstance(pair.blocks, Block) else pair.blocks
             self.optimizers_and_blocks.append(pair)
         if "update_optimzier_and_block" in kwargs:
             # only for from_config, where there is already self.update_optimzier_and_block
@@ -179,7 +180,7 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         )
         if len(self.update_optimzier_and_block) > 0:
             self._get_trainable_variables_optimizer_dict(
-                self.update_optimizer_and_blocks, require_disjoint=False
+                self.update_optimzier_and_block, require_disjoint=False
             )
         optimizer_grads_and_vars = collections.defaultdict(list)
         # Category variables by the optimizer
@@ -228,19 +229,16 @@ class MultiOptimizer(tf.keras.optimizers.Optimizer):
         Note: the optimizer_blocks would be kept in self.update_optimzier_and_blocks, instead of
         self.optimizers_and_blocks"""
         len_exist_optimizers = len(self.optimizers_and_blocks)
-        optimizer, blocks = optimizer_blocks.optimizer, optimizer_blocks.blocks
+        optimizer = optimizer_blocks.optimizer
         optimizer = tf.keras.optimizers.get(optimizer)
         # Check if already track the optimizer
         optimizer_not_exists = True
         for pair in self.optimizers_and_blocks:
             if optimizer == pair.optimizer:
                 optimizer_not_exists = False
-            for pre_block in pair.blocks:
-                if pre_block in blocks:
-                    pair.blocks.remove(pre_block)
         if optimizer_not_exists:
             self._track_trackable(optimizer, name=f"Optimizer{1+len_exist_optimizers}")
-        self.update_optimzier_and_blocks.append((optimizer, blocks))
+        self.update_optimzier_and_block.append(optimizer_blocks)
         return
 
     def get_config(self):
