@@ -37,11 +37,7 @@ from merlin.schema import Schema, Tags
 @Block.registry.register("as-ragged")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class AsRaggedFeatures(TabularBlock):
-    """Convert all list-inputs to ragged-tensors.
-
-    By default, the dataloader will represent list-columns as a tuple of values & row-lengths.
-
-    """
+    """Convert all list (multi-hot/sequential) features to tf.RaggedTensor"""
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
@@ -53,8 +49,19 @@ class AsRaggedFeatures(TabularBlock):
 
         return outputs
 
-    def compute_output_shape(self, input_shape):
-        return input_shape
+    def compute_output_shape(self, input_shapes):
+        output_shapes = {}
+        for k, v in input_shapes.items():
+            # If it is a list/sparse feature (in tuple representation), uses the offset as shape
+            if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
+                output_shapes[k] = tf.TensorShape([v[1][0], None])
+            else:
+                output_shapes[k] = v
+
+        return output_shapes
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
 
 
 @Block.registry.register("as-sparse")
