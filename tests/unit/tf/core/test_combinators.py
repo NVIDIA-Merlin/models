@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 import tensorflow as tf
+from tensorflow.test import TestCase
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
@@ -87,6 +88,19 @@ def test_parallel_block_with_layers(music_streaming_data, name_branches: bool):
     outputs = model(features)
 
     assert len(outputs) == 3  # number of prediction tasks in this schema
+
+
+def test_parallel_block_select_from_names():
+    test_case = TestCase()
+    branches = {
+        "1": tf.keras.layers.Dense(32),
+        "2": tf.keras.layers.Dense(32),
+        "3": tf.keras.layers.Dense(32),
+    }
+    blocks = mm.ParallelBlock(branches, aggregation="concat")
+    assert 2 == len(blocks.select_by_names(["1", "2"]))
+    with test_case.assertRaisesRegex(ValueError, "is not in ParallelBlock"):
+        blocks.select_by_names(["0", "2"])
 
 
 class TestCond:
