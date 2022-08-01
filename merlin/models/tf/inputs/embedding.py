@@ -239,11 +239,12 @@ class EmbeddingTable(EmbeddingTableBase):
 
         return super(EmbeddingTable, self)._maybe_build(inputs)
 
-    # def build(self, input_shapes):
-    #     super(EmbeddingTable, self).build(input_shapes)
-    #
-    #     if isinstance(self.combiner, tf.keras.layers.Layer):
-    #         self.combiner.build(self.table.compute_output_shape(input_shapes))
+    def build(self, input_shapes):
+        if not self.table.built:
+            self.table.build(input_shapes)
+        # if isinstance(self.combiner, tf.keras.layers.Layer):
+        #    self.combiner.build(self.table.compute_output_shape(input_shapes))
+        return super(EmbeddingTable, self).build(input_shapes)
 
     def call(self, inputs, **kwargs):
         """
@@ -258,6 +259,10 @@ class EmbeddingTable(EmbeddingTableBase):
         """
         if isinstance(inputs, dict):
             inputs = inputs[self.col_schema.name]
+
+        # Eliminating the last dim==1 of dense tensors before embedding lookup
+        if isinstance(inputs, tf.Tensor):
+            inputs = tf.squeeze(inputs, axis=-1)
 
         """
         dtype = backend.dtype(inputs)
@@ -286,14 +291,6 @@ class EmbeddingTable(EmbeddingTableBase):
             out = call_layer(self.table, inputs, **kwargs)
             if isinstance(self.combiner, tf.keras.layers.Layer):
                 out = call_layer(self.combiner, out, **kwargs)
-            else:
-                # If non-sequential columns is 3D tensor (batch size, 1, emb size)
-                # we get rid of the 2nd dim (1)
-                out = tf.cond(
-                    tf.logical_and(tf.rank(out) == 3, out.shape[1] == 1),
-                    lambda: tf.squeeze(out, axis=1),
-                    lambda: out,
-                )
 
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
@@ -303,7 +300,14 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def compute_output_shape(self, input_shape):
-        return input_shape
+        first_dims = input_shape
+        if (self.combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
+            first_dims = input_shape[:-1]
+        output_shapes = tf.TensorShape(first_dims + [self.dim])
+        return output_shapes
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
 
     @classmethod
     def from_config(cls, config):
@@ -332,7 +336,7 @@ def Embeddings(
     block_name: str = "embeddings",
     sequence_combiner: Optional[
         Union[str, tf.keras.layers.Layer, Dict[str, Union[str, tf.keras.layers.Layer]]]
-    ] = None,
+    ] = "mean",
     embedding_dims: Optional[Dict[str, int]] = None,
     embedding_dim_default: Optional[int] = 32,
     infer_embedding_sizes: bool = True,
@@ -398,7 +402,7 @@ def Embeddings(
 
     for col in cols:
         combiner = None
-        if Tags.SEQUENCE in col.tags:
+        if Tags.SEQUENCE in col.tags or Tags.LIST in col.tags or col.is_list:
             if isinstance(sequence_combiner, dict):
                 combiner = sequence_combiner[col.name]
             else:
@@ -432,12 +436,24 @@ class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
         self.weight_feature_name = weight_feature_name
 
     def call(self, inputs, features):
-        weights = tf.expand_dims(tf.cast(features[self.weight_feature_name], tf.float32), -1)
+        weight_feature = features[self.weight_feature_name]
+        if isinstance(inputs, tf.RaggedTensor) and not isinstance(weight_feature, tf.RaggedTensor):
+            raise ValueError(
+                f"If inputs is a tf.RaggedTensor, the weight feature ({self.weight_feature_name}) "
+                f"should also be a tf.RaggedTensor (and not a {type(weight_feature)}), "
+                "so that the list length can vary per example for both input embedding "
+                "and weight features."
+            )
+
+        weights = tf.expand_dims(tf.cast(weight_feature, tf.float32), -1)
         output = tf.divide(
             tf.reduce_sum(tf.multiply(inputs, weights), axis=self.axis),
             tf.reduce_sum(weights, axis=self.axis),
         )
         return output
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
     @staticmethod
     def from_schema_convention(schema: Schema, weight_features_name_suffix: str = "_weight"):

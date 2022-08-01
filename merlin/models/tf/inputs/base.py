@@ -22,10 +22,11 @@ from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import (
     Filter,
     ParallelBlock,
+    SequentialBlock,
     TabularAggregationType,
     TabularBlock,
 )
-from merlin.models.tf.core.transformations import AsDenseFeatures
+from merlin.models.tf.core.transformations import AsDenseFeatures, AsRaggedFeatures
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
@@ -218,7 +219,7 @@ def InputBlockV2(
     continuous_column_selector: Union[Tags, Schema] = Tags.CONTINUOUS,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
-    aggregation: Optional[TabularAggregationType] = None,
+    aggregation: Optional[TabularAggregationType] = "concat",
 ) -> ParallelBlock:
     """The entry block of the model to process input features from a schema.
     This is the 2nd version of InputBlock, which is more flexible for accepting
@@ -244,7 +245,7 @@ def InputBlockV2(
     post : Optional[BlockType], optional
         Transformation block to apply after the embeddings lookup, by default None
     aggregation : Optional[TabularAggregationType], optional
-        Transformation block to apply for aggregating the inputs, by default None
+        Transformation block to apply for aggregating the inputs, by default "concat"
 
     Returns
     -------
@@ -267,9 +268,12 @@ def InputBlockV2(
     else:
         continuous = TabularBlock(schema=con_schema, pre=con_filter)
 
-    return ParallelBlock(
-        dict(continuous=continuous, embeddings=embeddings),
-        pre=pre,
-        post=post,
-        aggregation=aggregation,
+    return SequentialBlock(
+        AsRaggedFeatures(),
+        ParallelBlock(
+            dict(continuous=continuous, embeddings=embeddings),
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+        ),
     )

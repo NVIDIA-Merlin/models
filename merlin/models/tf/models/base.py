@@ -16,7 +16,7 @@ from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is
 from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
-from merlin.models.tf.core.transformations import AsDenseFeatures, AsRaggedFeatures
+from merlin.models.tf.core.transformations import AsRaggedFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
@@ -311,7 +311,7 @@ class BaseModel(tf.keras.Model):
             optimizer=optimizer,
             loss=self._create_loss(loss),
             metrics=self._create_metrics(metrics),
-            weighted_metrics=weighted_metrics,
+            weighted_metrics=self._create_weighted_metrics(weighted_metrics),
             run_eagerly=run_eagerly,
             loss_weights=loss_weights,
             steps_per_execution=steps_per_execution,
@@ -325,7 +325,10 @@ class BaseModel(tf.keras.Model):
 
         num_v1_blocks = len(self.prediction_tasks)
 
-        if isinstance(metrics, (list, tuple)):
+        if isinstance(metrics, dict):
+            out = metrics
+
+        elif isinstance(metrics, (list, tuple)):
             if num_v1_blocks > 0:
                 if num_v1_blocks == 1:
                     out[self.prediction_tasks[0].task_name] = metrics
@@ -339,12 +342,36 @@ class BaseModel(tf.keras.Model):
                     for i, block in enumerate(self.prediction_blocks):
                         out[block.full_name] = metrics[i]
 
-        if not metrics:
+        elif metrics is None:
             for task_name, task in self.prediction_tasks_by_name().items():
                 out[task_name] = [m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS]
 
             for task_name, task in self.predictions_by_name().items():
                 out[task_name] = task.create_default_metrics()
+
+        return out
+
+    def _create_weighted_metrics(self, weighted_metrics=None):
+        out = {}
+
+        num_v1_blocks = len(self.prediction_tasks)
+
+        if isinstance(weighted_metrics, dict):
+            out = weighted_metrics
+
+        elif isinstance(weighted_metrics, (list, tuple)):
+            if num_v1_blocks > 0:
+                if num_v1_blocks == 1:
+                    out[self.prediction_tasks[0].task_name] = weighted_metrics
+                else:
+                    for i, task in enumerate(self.prediction_tasks):
+                        out[task.task_name] = weighted_metrics[i]
+            else:
+                if len(self.prediction_blocks) == 1:
+                    out[self.prediction_blocks[0].full_name] = weighted_metrics
+                else:
+                    for i, block in enumerate(self.prediction_blocks):
+                        out[block.full_name] = weighted_metrics[i]
 
         return out
 
@@ -430,7 +457,13 @@ class BaseModel(tf.keras.Model):
         return outputs
 
     def call_train_test(
-        self, x: TabularData, y=None, training=False, testing=False, **kwargs
+        self,
+        x: TabularData,
+        y: Optional[Union[tf.tensor, TabularData]] = None,
+        sample_weight=Optional[Union[float, tf.Tensor]],
+        training: bool = False,
+        testing: bool = False,
+        **kwargs,
     ) -> Union[Prediction, PredictionOutput]:
         """Apply the model's call method during Train or Test modes and prepare
         Prediction (v2) or PredictionOutput (v1 - depreciated) objects
@@ -443,6 +476,8 @@ class BaseModel(tf.keras.Model):
             Target tensors, by default None
         training : bool, optional
             Flag for train mode, by default False
+        sample_weight : Union[float, tf.Tensor], optional
+            Sample weights to be used by the loss and by weighted_metrics
         testing : bool, optional
             Flag for test mode, by default False
 
@@ -450,6 +485,7 @@ class BaseModel(tf.keras.Model):
         -------
         Union[Prediction, PredictionOutput]
         """
+
         forward = self(
             x,
             targets=y,
@@ -460,31 +496,38 @@ class BaseModel(tf.keras.Model):
         if not (self.prediction_tasks or self.prediction_blocks):
             return PredictionOutput(forward, y)
 
-        predictions, targets, output = {}, {}, None
+        predictions, targets, sample_weights, output = {}, {}, {}, None
         # V1
         if self.prediction_tasks:
             for task in self.prediction_tasks:
                 task_x = forward
                 if isinstance(forward, dict) and task.task_name in forward:
                     task_x = forward[task.task_name]
+
                 if isinstance(task_x, PredictionOutput):
                     output = task_x
-                    task_y = task_x.targets
-                    task_x = task_x.predictions
+                    task_y = output.targets
+                    task_x = output.predictions
+                    task_sample_weight = (
+                        sample_weight if output.sample_weight is None else output.sample_weight
+                    )
                 else:
                     task_y = y[task.target_name] if isinstance(y, dict) and y else y
+                    task_sample_weight = sample_weight
 
                 targets[task.task_name] = task_y
                 predictions[task.task_name] = task_x
+                sample_weights[task.task_name] = task_sample_weight
 
             if len(predictions) == 1 and len(targets) == 1:
-                predictions = predictions[list(predictions.keys())[0]]
-                targets = targets[list(targets.keys())[0]]
+                predictions = list(predictions.values())[0]
+                targets = list(targets.values())[0]
+                sample_weights = list(sample_weights.values())[0]
 
             if output:
-                return output.copy_with_updates(predictions, targets)
-
-            return PredictionOutput(predictions, targets)
+                return output.copy_with_updates(predictions, targets, sample_weight=sample_weights)
+            else:
+                return PredictionOutput(predictions, targets, sample_weight=sample_weights)
 
         # V2
         for task in self.prediction_blocks:
@@ -492,34 +535,36 @@ class BaseModel(tf.keras.Model):
             if isinstance(forward, dict) and task.full_name in forward:
                 task_x = forward[task.full_name]
             if isinstance(task_x, Prediction):
-                task_y = task_x.targets
-                task_x = task_x.outputs
+                output = task_x
+                task_y = output.targets
+                task_x = output.outputs
+                task_sample_weight = (
+                    sample_weight if output.sample_weight is None else output.sample_weight
+                )
             else:
                 task_y = y[task.target] if isinstance(y, dict) and y else y
+                task_sample_weight = sample_weight
 
             targets[task.full_name] = task_y
             predictions[task.full_name] = task_x
+            sample_weights[task.full_name] = task_sample_weight
 
-        if len(predictions) == 1 and len(targets) == 1:
-            predictions = predictions[list(predictions.keys())[0]]
-            targets = targets[list(targets.keys())[0]]
-
-        return Prediction(predictions, targets)
+        return Prediction(predictions, targets, sample_weights)
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
-            outputs = self.call_train_test(x, y, training=True)
-            loss = self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
+            outputs = self.call_train_test(x, y, sample_weight=sample_weight, training=True)
+            loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
         self._validate_target_and_loss(outputs.targets, loss)
 
         # Run backwards pass.
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-        metrics = self.compute_metrics(outputs, sample_weight, training=True)
+        metrics = self.compute_metrics(outputs, training=True)
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -529,15 +574,15 @@ class BaseModel(tf.keras.Model):
         """Custom test step using the `compute_loss` method."""
 
         x, y, sample_weight = unpack_x_y_sample_weight(data)
-        outputs = self.call_train_test(x, y, testing=True)
+        outputs = self.call_train_test(x, y, sample_weight=sample_weight, testing=True)
 
         if getattr(self, "pre_eval_topk", None) is not None:
             # During eval, the retrieval-task only returns positive scores
             # so we need to retrieve top-k negative scores to compute the loss
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
-        self.compute_loss(x, outputs.targets, outputs.predictions, sample_weight)
-        metrics = self.compute_metrics(outputs, sample_weight, training=False)
+        self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
+        metrics = self.compute_metrics(outputs, training=False)
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -547,7 +592,6 @@ class BaseModel(tf.keras.Model):
     def compute_metrics(
         self,
         prediction_outputs: PredictionOutput,
-        sample_weight: tf.Tensor,
         training: bool,
     ) -> Dict[str, tf.Tensor]:
         """Overrides Model.compute_metrics() for some custom behaviour
@@ -558,8 +602,6 @@ class BaseModel(tf.keras.Model):
         ----------
         prediction_outputs : PredictionOutput
             Contains properties with targets and predictions
-        sample_weight : tf.Tensor
-            Sample weights for weighted metrics
         training : bool
             Flag that indicates if metrics are being computed during
             training or evaluation
@@ -587,7 +629,9 @@ class BaseModel(tf.keras.Model):
                 topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
 
             self.compiled_metrics.update_state(
-                prediction_outputs.targets, prediction_outputs.predictions, sample_weight
+                prediction_outputs.targets,
+                prediction_outputs.predictions,
+                prediction_outputs.sample_weight,
             )
         # Returns the current value of metrics
         metrics = self.metrics_results()
@@ -838,7 +882,7 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            AsDenseFeatures()(inputs),  # TODO: Change this to ragged
+            AsRaggedFeatures()(inputs),
             targets=targets,
             training=training,
             testing=testing,

@@ -206,15 +206,16 @@ class TestAddRandomNegativesToBatch:
         testing_utils.model_test(model, dataset, run_eagerly=run_eagerly)
 
     def test_model_with_dataloader(self, music_streaming_data: Dataset, tf_random_seed: int):
-        add_negatives = UniformNegativeSampling(music_streaming_data.schema, 5, seed=tf_random_seed)
+        add_negatives = UniformNegativeSampling(
+            music_streaming_data.schema, 5, seed=tf_random_seed, return_tuple=True
+        )
 
         batch_size, n_per_positive = 10, 5
         dataset = BatchedDataset(music_streaming_data, batch_size=batch_size)
         dataset = dataset.map(add_negatives)
 
         batch_output = next(iter(dataset))
-        features = batch_output.outputs
-        targets = batch_output.targets
+        features, targets = batch_output
 
         expected_batch_size = batch_size + batch_size * n_per_positive
 
