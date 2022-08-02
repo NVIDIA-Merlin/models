@@ -629,6 +629,83 @@ def test_category_encoding_different_input_different_output():
     expected_values_2 = [1, 1, 1, 1, 1]
     test_case.assertAllEqual(expected_values_2, outputs["sparse_feature"].values)
     test_case.assertAllEqual(expected_indices_2, outputs["sparse_feature"].indices)
-    # 1. Dense output
+
+    # 2. Dense output
     category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=False,)
+    expected_1 = [[0, 1, 1, 1, 0], [1, 0, 0, 2, 0]]
+    expected_2 = [[0, 1, 1, 1, 0, 0], [0, 1, 0, 1, 0, 0]]
     outputs = category_encoding(inputs)
+    test_case.assertAllEqual(expected_1, outputs["dense_feature"])
+    test_case.assertAllEqual(expected_2, outputs["sparse_feature"])
+
+
+def test_category_encoding_invalid_input():
+    test_case = TestCase()
+    schema = Schema(
+        [create_categorical_column("ragged_feature", tags=[Tags.CATEGORICAL], num_items=5),]
+    )
+    inputs = {}
+    inputs["ragged_feature"] = tf.ragged.constant([[1, 2, 3], [3, 1], []])
+    category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=False,)
+    with test_case.assertRaisesRegex(ValueError, "inputs should not contain a RaggedTensor"):
+        category_encoding(inputs)
+
+
+@pytest.mark.parametrize("input", [np.array([[1, 2, 3, 4], [4, 3, 1, 4]])])
+@pytest.mark.parametrize("weight", [np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]])])
+def test_category_encoding_weightd_count_dense(input, weight):
+    test_case = TestCase()
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
+
+    expected_output = [[0, 0.1, 0.2, 0.3, 0.4, 0], [0, 0.4, 0, 0.1, 0.5, 0]]
+    # pyformat: enable
+    expected_output_shape = [2, 6]
+
+    category_encoding = ml.CategoryEncoding(
+        schema=schema, output_mode="count", count_weights=weight
+    )
+
+    inputs = {}
+    inputs["feature"] = input
+    outputs = category_encoding(inputs)
+    test_case.assertAllEqual(expected_output_shape, outputs["feature"].shape.as_list())
+    test_case.assertAllClose(expected_output, outputs["feature"])
+
+
+@pytest.mark.parametrize("input", [tf.sparse.from_dense(np.array([[1, 2, 3, 4], [4, 3, 1, 4]]))])
+@pytest.mark.parametrize(
+    "weight", [tf.sparse.from_dense(np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]]))]
+)
+def test_category_encoding_weightd_count_sparse(input, weight):
+    test_case = TestCase()
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
+
+    expected_output = [[0, 0.1, 0.2, 0.3, 0.4, 0], [0, 0.4, 0, 0.1, 0.5, 0]]
+    # pyformat: enable
+    expected_output_shape = [2, 6]
+
+    category_encoding = ml.CategoryEncoding(
+        schema=schema, output_mode="count", count_weights=weight
+    )
+
+    inputs = {}
+    inputs["feature"] = input
+    outputs = category_encoding(inputs)
+    test_case.assertAllEqual(expected_output_shape, outputs["feature"].shape.as_list())
+    test_case.assertAllClose(expected_output, outputs["feature"])
+
+
+@pytest.mark.parametrize("input", [tf.sparse.from_dense(np.array([[1, 2, 3, 4], [4, 3, 1, 4]]))])
+@pytest.mark.parametrize("weight", [np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]])])
+def test_category_encoding_weightd_count_not_match(input, weight):
+    test_case = TestCase()
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
+    category_encoding = ml.CategoryEncoding(
+        schema=schema, output_mode="count", count_weights=weight
+    )
+    inputs = {}
+    inputs["feature"] = input
+    with test_case.assertRaisesRegex(
+        ValueError, "Argument `weights` must be a SparseTensor if `values` is a SparseTensor"
+    ):
+        category_encoding(inputs)
