@@ -19,6 +19,8 @@ from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
 from keras.layers.preprocessing import preprocessing_utils
+from keras.layers.preprocessing import preprocessing_utils as utils
+from keras.utils import layer_utils
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.core.base import Block, PredictionOutput
@@ -32,6 +34,11 @@ from merlin.models.tf.utils.tf_utils import (
 )
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
+
+INT = utils.INT
+ONE_HOT = utils.ONE_HOT
+MULTI_HOT = utils.MULTI_HOT
+COUNT = utils.COUNT
 
 
 @Block.registry.register("as-ragged")
@@ -315,10 +322,7 @@ class RemovePad3D(Block):
                 predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
             )
 
-        return outputs.copy_with_updates(
-            predictions=predictions,
-            targets=targets,
-        )
+        return outputs.copy_with_updates(predictions=predictions, targets=targets,)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -392,9 +396,7 @@ class ItemsPredictionWeightTying(Block):
 
     def build(self, input_shape):
         self.bias = self.add_weight(
-            name="output_layer_bias",
-            shape=(self.num_classes,),
-            initializer=self.bias_initializer,
+            name="output_layer_bias", shape=(self.num_classes,), initializer=self.bias_initializer,
         )
         return super().build(input_shape)
 
@@ -430,10 +432,8 @@ class CategoricalOneHot(TabularBlock):
         # run_eagerly=False)
         self.flatten = []
 
-    def build(self, input_shapes):
-        super(CategoricalOneHot, self).build(input_shapes)
-
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        # Ensures the input is a Tensor, raise error if SparseTensor or RaggedTensor
         self._check_inputs_type(inputs)
         outputs = {}
         for name, val in self.cardinalities.items():
@@ -478,6 +478,133 @@ class CategoricalOneHot(TabularBlock):
         config = super().get_config()
         if self.schema:
             config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
+        return config
+
+
+@Block.registry.register_with_multiple_names("category_encoding")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+@requires_schema
+class CategoryEncoding(TabularBlock):
+    """
+    A preprocessing layer which encodes integer features.
+
+    This layer provides options for condensing data into a categorical encoding. It accepts integer
+    values as inputs, and it outputs a dense or sparse representation of those inputs. Only
+    categorical features with "CATEGORICAL" as Tag can be transformed, and other features without
+    this Tag would be discarded
+
+    Parameters:
+    ----------
+    schema : Optional[Schema]
+        The `Schema` with the input features
+    output_mode: Optional[str]
+        Specification for the output of the layer. Defaults to `"multi_hot"`. Values can be
+        "one_hot", "multi_hot" or "count", configuring the transformation layer as follows:
+        - "one_hot": Encodes each individual element in the input into an array of cardinality
+            size, containing a 1 at the element index. If the last dimension is size 1, will encode
+            on that dimension. If the last dimension is not size 1, will append a new dimension for
+            the encoded output.
+        - "multi_hot": Encodes each sample in the input into a single array of cardinality size,
+            containing a 1 for each vocabulary term present in the sample. Treats the last dimension
+            as the sample dimension, if input shape is `(..., sample_length)`, output shape will be
+            `(..., cardinality)`.
+        - "count": Like `"multi_hot"`, but the int array contains a count of the number of times the
+            token at that index appeared in the sample.
+    sparse: Optional[Boolean]
+        If true, returns a `SparseTensor` instead of a dense `Tensor`. Defaults to `False`.
+    count_weights: Optional[Union(tf.Tensor, tf.RaggedTensor, tf.SparseTensor)]
+        count_weights is used to calculate weighted sum of times a token at that index appeared when
+        `output_mode` is "count"
+    """
+
+    def __init__(
+        self,
+        schema: Schema = None,
+        output_mode="one_hot",
+        sparse=False,
+        count_weights=None,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        if schema:
+            self.set_schema(schema.select_by_tag(Tags.CATEGORICAL))
+        self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
+        # 'output_mode' must be one of (COUNT, ONE_HOT, MULTI_HOT)
+        layer_utils.validate_string_arg(
+            output_mode,
+            allowable_strings=(COUNT, ONE_HOT, MULTI_HOT),
+            layer_name="CategoryEncoding",
+            arg_name="output_mode",
+        )
+        self.output_mode = output_mode
+        self.sparse = sparse
+        if count_weights is not None:
+            if self.output_mode != COUNT:
+                raise ValueError(
+                    "`count_weights` is not used when `output_mode` is not "
+                    "`'count'`. Received `count_weights={count_weights}`."
+                )
+            self.count_weights = utils.ensure_tensor(count_weights, self.compute_dtype)
+        else:
+            self.count_weights = None
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, depth in self.cardinalities.items():
+            # Ensures the input is a Tensor, SparseTensor or RaggedTensor, then convert to Tensor
+            outputs[name] = utils.ensure_tensor(inputs[name])
+
+            if isinstance(outputs[name], tf.SparseTensor):
+                max_value = tf.reduce_max(outputs[name].values)
+                min_value = tf.reduce_min(outputs[name].values)
+            else:
+                max_value = tf.reduce_max(outputs[name])
+                min_value = tf.reduce_min(outputs[name])
+            condition = tf.logical_and(
+                tf.greater(tf.cast(depth, max_value.dtype), max_value),
+                tf.greater_equal(min_value, tf.cast(0, min_value.dtype)),
+            )
+            assertion = tf.Assert(
+                condition,
+                [
+                    "Input values must be in the range 0 <= values < num_tokens"
+                    " with num_tokens={}".format(depth)
+                ],
+            )
+            with tf.control_dependencies([assertion]):
+                outputs[name] = utils.encode_categorical_inputs(
+                    outputs[name],
+                    output_mode=self.output_mode,
+                    depth=depth,
+                    dtype=self.compute_dtype,
+                    sparse=self.sparse,
+                    count_weights=self.count_weights,
+                )
+        return outputs
+
+    def compute_output_shape(self, input_shapes):
+        outputs = {}
+        for key in self.schema.column_names:
+            input_shape = input_shapes[key]
+            if not input_shape:
+                outputs[key] = tf.TensorShape([self.cardinalities[key]])
+            if self.output_mode == ONE_HOT and input_shape[-1] != 1:
+                outputs[key] = tf.TensorShape(input_shape + [self.cardinalities[key]])
+            else:
+                outputs[key] = tf.TensorShape(input_shape[:-1] + [self.cardinalities[key]])
+        return outputs
+
+    def get_config(self):
+        config = super().get_config()
+        if self.schema:
+            config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
+        config.update(
+            {
+                "output_mode": self.output_mode,
+                "sparse": self.sparse,
+                "count_weights": self.count_weights.numpy() if self.count_weights else None,
+            }
+        )
         return config
 
 
@@ -793,10 +920,7 @@ class HashedCross(TabularBlock):
         # Encode outputs.
         outputs = {}
         outputs[self.output_name] = preprocessing_utils.encode_categorical_inputs(
-            output,
-            output_mode=self.output_mode,
-            depth=self.num_bins,
-            sparse=self.sparse,
+            output, output_mode=self.output_mode, depth=self.num_bins, sparse=self.sparse,
         )
         return outputs
 
