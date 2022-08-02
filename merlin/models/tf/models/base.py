@@ -23,7 +23,10 @@ from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.predictions.base import PredictionBlock
+from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
+
+# from merlin.models.tf.predictions.dot_product import DotProductCategoricalPrediction
+from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import call_layer, maybe_serialize_keras_objects
 from merlin.models.utils.dataset import unique_rows_by_features
@@ -302,6 +305,14 @@ class BaseModel(tf.keras.Model):
             self.output_names = [task.task_name for task in self.prediction_tasks]
         else:
             self.output_names = [block.full_name for block in self.prediction_blocks]
+            negative_sampling = kwargs.pop("negative_sampling", None)
+            if negative_sampling:
+                if not isinstance(self.prediction_blocks[0], ContrastivePredictionBlock):
+                    raise ValueError(
+                        "Negative sampling strategy can be used only with a"
+                        " `ContrastivePredictionBlock` prediction block"
+                    )
+                self.prediction_blocks[0].compile(negative_sampling=negative_sampling)
 
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
