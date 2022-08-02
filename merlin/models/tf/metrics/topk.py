@@ -15,7 +15,7 @@
 #
 
 # Adapted from source code: https://github.com/karlhigley/ranking-metrics-torch
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
 from keras.utils import losses_utils, metrics_utils
@@ -336,6 +336,7 @@ class NDCGAt(TopkMetric):
         super().__init__(ndcg_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
     """Aggregator for top-k metrics (TopkMetric) that is optimized
     to sort top-k predictions only once for all metrics.
@@ -457,7 +458,7 @@ def filter_topk_metrics(
 def split_metrics(
     metrics: Sequence[Metric],
     return_other_metrics: bool = False,
-) -> List[TopkMetric, TopKMetricsAggregator, Metric]:
+) -> Tuple[TopkMetric, TopKMetricsAggregator, Metric]:
     """Split the list of metrics into top-k metrics, top-k aggregators and others
 
     Parameters
