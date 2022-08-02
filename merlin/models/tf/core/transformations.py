@@ -653,7 +653,12 @@ class CategoryEncoding(TabularBlock):
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, depth in self.cardinalities.items():
-            # Ensures the input is a Tensor, SparseTensor or RaggedTensor, then convert to Tensor
+            # Ensures the input is a Tensor, SparseTensor, then convert to Tensor
+            if isinstance(inputs[name], tf.RaggedTensor):
+                raise ValueError(
+                    f"All `CategoryEncoding` inputs should not contain a RaggedTensor. Received "
+                    f"{name} with type of {type(inputs[name])}"
+                )
             outputs[name] = utils.ensure_tensor(inputs[name])
 
             if isinstance(outputs[name], tf.SparseTensor):

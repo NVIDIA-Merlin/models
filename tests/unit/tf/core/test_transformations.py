@@ -76,8 +76,7 @@ def test_expand_dims_axis_as_dict():
 def test_categorical_encoding_as_pre(ecommerce_data: Dataset, run_eagerly):
     schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
     body = ParallelBlock(
-        TabularBlock.from_schema(schema=schema, pre=ml.CategoryEncoding(schema)),
-        is_input=True,
+        TabularBlock.from_schema(schema=schema, pre=ml.CategoryEncoding(schema)), is_input=True,
     ).connect(ml.MLPBlock([32]))
     model = ml.Model(body, ml.BinaryClassificationTask("click"))
 
@@ -476,11 +475,7 @@ def test_category_encoding_different_input_different_output():
     )
 
     # 1. Sparse output
-    category_encoding = ml.CategoryEncoding(
-        schema=schema,
-        output_mode="count",
-        sparse=True,
-    )
+    category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=True,)
     outputs = category_encoding(inputs)
 
     # The expected output["dense_feature"] should be (X for missing value):
@@ -497,11 +492,7 @@ def test_category_encoding_different_input_different_output():
     test_case.assertAllEqual(expected_indices_2, outputs["sparse_feature"].indices)
 
     # 2. Dense output
-    category_encoding = ml.CategoryEncoding(
-        schema=schema,
-        output_mode="count",
-        sparse=False,
-    )
+    category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=False,)
     expected_1 = [[0, 1, 1, 1, 0], [1, 0, 0, 2, 0]]
     expected_2 = [[0, 1, 1, 1, 0, 0], [0, 1, 0, 1, 0, 0]]
     outputs = category_encoding(inputs)
@@ -512,17 +503,11 @@ def test_category_encoding_different_input_different_output():
 def test_category_encoding_invalid_input():
     test_case = TestCase()
     schema = Schema(
-        [
-            create_categorical_column("ragged_feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
+        [create_categorical_column("ragged_feature", tags=[Tags.CATEGORICAL], num_items=5),]
     )
     inputs = {}
     inputs["ragged_feature"] = tf.ragged.constant([[1, 2, 3], [3, 1], []])
-    category_encoding = ml.CategoryEncoding(
-        schema=schema,
-        output_mode="count",
-        sparse=False,
-    )
+    category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=False,)
     with test_case.assertRaisesRegex(ValueError, "inputs should not contain a RaggedTensor"):
         category_encoding(inputs)
 
@@ -531,11 +516,7 @@ def test_category_encoding_invalid_input():
 @pytest.mark.parametrize("weight", [np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]])])
 def test_category_encoding_weightd_count_dense(input, weight):
     test_case = TestCase()
-    schema = Schema(
-        [
-            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
-    )
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
 
     expected_output = [[0, 0.1, 0.2, 0.3, 0.4, 0], [0, 0.4, 0, 0.1, 0.5, 0]]
     # pyformat: enable
@@ -558,11 +539,7 @@ def test_category_encoding_weightd_count_dense(input, weight):
 )
 def test_category_encoding_weightd_count_sparse(input, weight):
     test_case = TestCase()
-    schema = Schema(
-        [
-            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
-    )
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
 
     expected_output = [[0, 0.1, 0.2, 0.3, 0.4, 0], [0, 0.4, 0, 0.1, 0.5, 0]]
     # pyformat: enable
@@ -583,11 +560,7 @@ def test_category_encoding_weightd_count_sparse(input, weight):
 @pytest.mark.parametrize("weight", [np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]])])
 def test_category_encoding_weightd_count_not_match(input, weight):
     test_case = TestCase()
-    schema = Schema(
-        [
-            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
-    )
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
     category_encoding = ml.CategoryEncoding(
         schema=schema, output_mode="count", count_weights=weight
     )
@@ -608,11 +581,7 @@ def test_category_encoding_weightd_count_not_match(input, weight):
 )
 def test_category_encoding_multi_hot_2d_input(input):
     test_case = TestCase()
-    schema = Schema(
-        [
-            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
-    )
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
 
     if isinstance(input, tf.SparseTensor):
         expected_output = [[0, 1, 1, 1, 0, 0], [0, 1, 0, 1, 0, 0]]
@@ -642,11 +611,7 @@ def test_category_encoding_multi_hot_2d_input(input):
 )
 def test_category_encoding_multi_hot_single_value(input):
     test_case = TestCase()
-    schema = Schema(
-        [
-            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
-    )
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
 
     if isinstance(input, tf.SparseTensor):
         expected_output = [[0, 1, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
@@ -676,11 +641,7 @@ def test_category_encoding_multi_hot_single_value(input):
 )
 def test_category_encoding_one_hot(input):
     test_case = TestCase()
-    schema = Schema(
-        [
-            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
-    )
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
 
     if isinstance(input, tf.SparseTensor):
         expected_output = [
@@ -711,18 +672,11 @@ def test_category_encoding_one_hot(input):
 
 @pytest.mark.parametrize(
     "input",
-    [
-        tf.convert_to_tensor([[1, 2], [2, 0]]),
-        tf.sparse.from_dense(np.array([[1, 2], [2, 0]])),
-    ],
+    [tf.convert_to_tensor([[1, 2], [2, 0]]), tf.sparse.from_dense(np.array([[1, 2], [2, 0]])),],
 )
 def test_category_encoding_one_hot_2D_input_should_raise(input):
     test_case = TestCase()
-    schema = Schema(
-        [
-            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
-    )
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
     category_encoding = ml.CategoryEncoding(schema=schema, output_mode="one_hot")
     inputs = {}
     inputs["feature"] = input
@@ -741,11 +695,7 @@ def test_category_encoding_one_hot_2D_input_should_raise(input):
 )
 def test_category_encoding_should_raise_if_input_3D(input):
     test_case = TestCase()
-    schema = Schema(
-        [
-            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
-    )
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
     category_encoding = ml.CategoryEncoding(schema=schema, output_mode="multi_hot")
     inputs = {}
     inputs["feature"] = input
@@ -800,11 +750,6 @@ def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
     body = ParallelBlock(branches, is_input=True).connect(ml.MLPBlock([64]))
     model = ml.Model(body, ml.BinaryClassificationTask("click"))
 
-<<<<<<< HEAD
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
-=======
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    testing_utils.model_test(model, ecommerce_data)
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
 
@@ -838,7 +783,43 @@ def test_category_encoding_different_input_different_output():
     expected_values_2 = [1, 1, 1, 1, 1]
     test_case.assertAllEqual(expected_values_2, outputs["sparse_feature"].values)
     test_case.assertAllEqual(expected_indices_2, outputs["sparse_feature"].indices)
-    # 1. Dense output
+
+    # 2. Dense output
     category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=False,)
+    expected_1 = [[0, 1, 1, 1, 0], [1, 0, 0, 2, 0]]
+    expected_2 = [[0, 1, 1, 1, 0, 0], [0, 1, 0, 1, 0, 0]]
     outputs = category_encoding(inputs)
->>>>>>> Add CategoryEncoding block.
+    test_case.assertAllEqual(expected_1, outputs["dense_feature"])
+    test_case.assertAllEqual(expected_2, outputs["sparse_feature"])
+
+
+def test_category_encoding_invalid_input():
+    test_case = TestCase()
+    schema = Schema(
+        [create_categorical_column("ragged_feature", tags=[Tags.CATEGORICAL], num_items=5),]
+    )
+    inputs = {}
+    inputs["ragged_feature"] = tf.ragged.constant([[1, 2, 3], [3, 1], []])
+    category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=False,)
+    with test_case.assertRaisesRegex(ValueError, "inputs should not contain a RaggedTensor"):
+        category_encoding(inputs)
+
+
+@pytest.mark.parametrize("input", [np.array([[1, 2, 3, 4], [4, 3, 1, 4]])])
+@pytest.mark.parametrize("weight", [np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]])])
+def test_category_encoding_weightd_count_dense(input, weight):
+    test_case = TestCase()
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
+
+    expected_output = [[0, 0.1, 0.2, 0.3, 0.4, 0], [0, 0.4, 0, 0.1, 0.5, 0]]
+    # pyformat: enable
+    expected_output_shape = [2, 6]
+
+    category_encoding = ml.CategoryEncoding(
+        schema=schema, output_mode="count", count_weights=weight
+    )
+
+    inputs = {}
+    inputs["feature"] = input
+    outputs = category_encoding(inputs)
+
