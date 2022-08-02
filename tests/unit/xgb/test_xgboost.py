@@ -15,8 +15,10 @@
 #
 from unittest.mock import patch
 
+import numpy as np
 import pandas as pd
 import pytest
+import sklearn.datasets
 import xgboost
 
 from merlin.core.dispatch import HAS_GPU
@@ -204,3 +206,26 @@ def test_dataset_to_xy_does_not_modify_column_order():
         qid_column=None,
     )
     assert X.columns.tolist() == feature_columns
+
+
+def test_predict_without_target(dask_client):
+    rows = 200
+    num_features = 16
+    X, y = sklearn.datasets.make_regression(
+        n_samples=rows,
+        n_features=num_features,
+        n_informative=num_features // 3,
+        random_state=0,
+    )
+
+    feature_names = [str(i) for i in range(num_features)]
+    df = pd.DataFrame(
+        np.hstack((X, y.reshape(-1, 1))), columns=feature_names + ["target"], dtype=np.float32
+    )
+    train_ds = Dataset(df.iloc[:160])
+    valid_ds = Dataset(df.iloc[40:])
+    test_ds = Dataset(df.iloc[40:].drop(columns="target"))
+
+    model = XGBoost(schema=train_ds.schema, target_columns="target")
+    model.fit(train_ds, evals=[(valid_ds, "validation_set")])
+    model.predict(test_ds)

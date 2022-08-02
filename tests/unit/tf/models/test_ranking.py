@@ -15,9 +15,11 @@
 # #
 #
 import pytest
+import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
+from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -52,6 +54,54 @@ def test_dlrm_model(music_streaming_data, run_eagerly):
         music_streaming_data.schema.remove_by_tag(Tags.TARGET)
     )
     testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_dlrm_model_with_sample_weights_and_weighted_metrics(music_streaming_data, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "user_age", "click"]
+    )
+
+    def add_sample_weight(features, labels, sample_weight_col_name="user_age"):
+        sample_weight = tf.cast(features.pop(sample_weight_col_name), tf.float32)
+        return features, labels, sample_weight
+
+    batched_ds = BatchedDataset(music_streaming_data, batch_size=10)
+    batched_ds = batched_ds.map(add_sample_weight)
+    batch = next(iter(batched_ds))
+
+    model = ml.DLRMModel(
+        music_streaming_data.schema.select_by_name(["item_id", "click"]),
+        embedding_dim=2,
+        bottom_block=ml.MLPBlock([2]),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    weighted_metrics = (
+        tf.keras.metrics.Precision(name="weighted_precision"),
+        tf.keras.metrics.Recall(name="weighted_recall"),
+        tf.keras.metrics.BinaryAccuracy(name="weighted_binary_accuracy"),
+        tf.keras.metrics.AUC(name="weighted_auc"),
+    )
+
+    model.compile(optimizer="adam", run_eagerly=run_eagerly, weighted_metrics=weighted_metrics)
+
+    metrics = model.train_step(batch)
+
+    assert set(metrics.keys()) == set(
+        [
+            "loss",
+            "regularization_loss",
+            "binary_accuracy",
+            "recall",
+            "precision",
+            "auc",
+            "weighted_binary_accuracy",
+            "weighted_recall",
+            "weighted_precision",
+            "weighted_auc",
+        ]
+    )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
