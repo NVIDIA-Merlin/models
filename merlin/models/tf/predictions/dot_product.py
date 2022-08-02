@@ -21,7 +21,46 @@ LOG = logging.getLogger("merlin_models")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 # Or: RetrievalCategoricalPrediction
 class DotProductCategoricalPrediction(ContrastivePredictionBlock):
-    """Contrastive prediction using negative-sampling, used in retrieval models."""
+    """Contrastive prediction using negative-sampling,
+    used in retrieval models.
+
+       Parameters
+       ----------
+       schema : Schema
+           The schema object including features to use and their properties.
+           This Schema object will be automatically generated using
+           [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
+           Next to this, it's also possible to construct it manually
+       negative_samplers : ItemSamplersType, optional
+           List of samplers for negative sampling,
+           by default by default "in-batch"
+       downscore_false_negatives : bool, optional
+           Identify false negatives (sampled item ids equal to the positive item and downscore them
+           to the `sampling_downscore_false_negatives_value`),
+           by default False
+       target : Optional[str], optional
+           If specified, name of the target tensor to retrieve from dataloader,
+           by default None
+       pre: Optional[Block], optional
+           Optional block to transform predictions before applying the prediction layer,
+           by default None
+       post: Optional[Block], optional
+           Optional block to transform predictions after applying the prediction layer,
+           by default None
+       logits_temperature: float, optional
+           Parameter used to reduce model overconfidence, so that logits / T.
+           by default 1.
+       name: Optional[Text], optional
+           Task name, by default None
+       default_loss: Union[str, tf.keras.losses.Loss]
+           Default loss to set if the user does not specify one
+       default_metrics: Sequence[tf.keras.metrics.Metric]
+           Default metrics to set if the user does not specify any
+       query_name : str, optional
+           Identify query tower for query/user embeddings, by default 'query'
+       item_name : str, optional
+           Identify item tower for item embeddings, by default'item'
+    """
 
     DEFAULT_K = 10
 
@@ -106,7 +145,14 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class DotProduct(Layer):
-    """Dot-product between queries & items."""
+    """Dot-product between queries & items.
+    Parameters:
+    -----------
+    query_name : str, optional
+        Identify query tower for query/user embeddings, by default 'query'
+    item_name : str, optional
+        Identify item tower for item embeddings, by default 'item'
+    """
 
     def __init__(self, query_name: str = "query", item_name: str = "item", **kwargs):
         super().__init__(**kwargs)
@@ -133,7 +179,34 @@ class DotProduct(Layer):
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 class ContrastiveDotProduct(DotProduct):
-    """Contrastive dot-product between queries & items."""
+    """Contrastive dot-product between queries & items.
+    Parameters
+    ----------
+    schema : Schema
+        The schema object including features to use and their properties.
+        This Schema object will be automatically generated using
+        [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
+        Next to this, it's also possible to construct it manually
+    negative_samplers : ItemSamplersType, optional
+        List of samplers for negative sampling,
+        by default by default "in-batch"
+    downscore_false_negatives : bool, optional
+        Identify false negatives (sampled item ids equal to the positive item and downscore them
+        to the `sampling_downscore_false_negatives_value`),
+        by default False
+    false_negative_score : float, optional
+        Value to be used to downscore false negatives when
+        `sampling_downscore_false_negatives=True`,
+        by default `np.finfo(np.float32).min / 100.0`
+    query_name : str, optional
+        Identify query tower for query/user embeddings, by default 'query'
+    item_name : str, optional
+        Identify item tower for item embeddings, by default 'item'
+    item_id_tag : Tags, optional
+        The tag to select the item id feature, by default `Tags.ITEM_ID`
+    query_id_tag : Tags, optional
+        The tag to select the user id feature, by default `Tags.USER_ID`
+    """
 
     def __init__(
         self,
@@ -151,6 +224,10 @@ class ContrastiveDotProduct(DotProduct):
         if not isinstance(negative_samplers, (list, tuple)):
             negative_samplers = [negative_samplers]
         self.negative_samplers = [ItemSampler.parse(s) for s in list(negative_samplers)]
+        assert (
+            len(self.negative_samplers) > 0
+        ), "At least one sampler is required by ContrastiveDotProduct for negative sampling"
+
         self.downscore_false_negatives = downscore_false_negatives
         self.false_negative_score = false_negative_score
         self.item_id_tag = item_id_tag
@@ -229,6 +306,24 @@ class ContrastiveDotProduct(DotProduct):
         training=False,
         testing=False,
     ) -> Items:
+        """Method to sample negatives from `self.negative_samplers`
+
+        Parameters
+        ----------
+        positive_items : Items
+            Class containing embeddings and metadata about positive items
+        features : TabularData
+            Dictionary of input raw tensors
+        training : bool, optional
+            Flag for train mode, by default False
+        testing : bool, optional
+            Flag for test mode, by default False
+
+        Returns
+        -------
+        Items
+            Class containing embeddings and metadata about sampled negative items
+        """
         negative_items: List[Items] = []
         sampling_kwargs = {"training": training, "testing": testing, "features": features}
 
