@@ -97,10 +97,11 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Filter</span><span class="p">,</span>
     <span class="n">ParallelBlock</span><span class="p">,</span>
+    <span class="n">SequentialBlock</span><span class="p">,</span>
     <span class="n">TabularAggregationType</span><span class="p">,</span>
     <span class="n">TabularBlock</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="n">AsDenseFeatures</span><span class="p">,</span> <span class="n">AsRaggedFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.continuous</span> <span class="kn">import</span> <span class="n">ContinuousFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ContinuousEmbedding</span><span class="p">,</span>
@@ -293,7 +294,7 @@
     <span class="n">continuous_column_selector</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Schema</span><span class="p">]</span> <span class="o">=</span> <span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">,</span>
     <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;concat&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParallelBlock</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;The entry block of the model to process input features from a schema.</span>
 <span class="sd">    This is the 2nd version of InputBlock, which is more flexible for accepting</span>
@@ -319,7 +320,7 @@
 <span class="sd">    post : Optional[BlockType], optional</span>
 <span class="sd">        Transformation block to apply after the embeddings lookup, by default None</span>
 <span class="sd">    aggregation : Optional[TabularAggregationType], optional</span>
-<span class="sd">        Transformation block to apply for aggregating the inputs, by default None</span>
+<span class="sd">        Transformation block to apply for aggregating the inputs, by default &quot;concat&quot;</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -342,11 +343,14 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">continuous</span> <span class="o">=</span> <span class="n">TabularBlock</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="n">con_schema</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">con_filter</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
-        <span class="nb">dict</span><span class="p">(</span><span class="n">continuous</span><span class="o">=</span><span class="n">continuous</span><span class="p">,</span> <span class="n">embeddings</span><span class="o">=</span><span class="n">embeddings</span><span class="p">),</span>
-        <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
-        <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
-        <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span>
+    <span class="k">return</span> <span class="n">SequentialBlock</span><span class="p">(</span>
+        <span class="n">AsRaggedFeatures</span><span class="p">(),</span>
+        <span class="n">ParallelBlock</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span><span class="n">continuous</span><span class="o">=</span><span class="n">continuous</span><span class="p">,</span> <span class="n">embeddings</span><span class="o">=</span><span class="n">embeddings</span><span class="p">),</span>
+            <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
+            <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
+            <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span>
+        <span class="p">),</span>
     <span class="p">)</span>
 </pre></div>
 
