@@ -1,8 +1,9 @@
 import pytest
 import tensorflow as tf
+from pathlib import Path
 
-import merlin.models.tf as mm
 from merlin.io import Dataset
+import merlin.models.tf as mm
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
@@ -67,6 +68,22 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
     )
     testing_utils.test_model_signature(model.first.item_block(), item_features, ["output_1"])
 
+
+def test_two_tower_model_reload(tmpdir, ecommerce_data: Dataset):
+    dataset = ecommerce_data
+    schema = dataset.schema
+    model = mm.TwoTowerModel(
+        schema,
+        query_tower=mm.MLPBlock([4], no_activation_last_layer=True),
+        samplers=[mm.InBatchSampler()],
+        embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),
+    )
+    testing_utils.model_test(model, dataset, reload_model=True)
+
+    query_tower = model.retrieval_block.query_block()
+    query_tower_path = Path(tmpdir) / "query_tower"
+    query_tower.save(query_tower_path)
+    tf.keras.models.load_model(query_tower_path)
 
 def test_two_tower_model_l2_reg(testing_data: Dataset):
     model = mm.TwoTowerModel(
