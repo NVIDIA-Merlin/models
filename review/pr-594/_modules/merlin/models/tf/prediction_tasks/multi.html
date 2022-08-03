@@ -92,6 +92,7 @@
 
 <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Layer</span>
 
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.base</span> <span class="kn">import</span> <span class="n">ParallelPredictionBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span>
 
@@ -100,13 +101,32 @@
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
     <span class="n">task_blocks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Layer</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Layer</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">task_weight_dict</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">task_pre_dict</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Block</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">bias_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParallelPredictionBlock</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Creates Multi-task prediction Blocks from schema</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    schema : Schema</span>
+<span class="sd">        The `Schema` with the input features</span>
+<span class="sd">    task_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional</span>
+<span class="sd">        Task blocks to be used for prediction, by default None</span>
+<span class="sd">    task_weight_dict : Optional[Dict[str, float]], optional</span>
+<span class="sd">        Dict where keys are target feature names and values are weights for each task,</span>
+<span class="sd">        by default None</span>
+<span class="sd">    task_pre_dict: Optional[Dict[str, Block]], optional</span>
+<span class="sd">        Dict where keys are target feature names and values are Blocks to be used as pre</span>
+<span class="sd">        for those tasks</span>
+<span class="sd">    bias_block : Optional[Layer], optional</span>
+<span class="sd">        Bias block to be used for prediction, by default None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">ParallelPredictionBlock</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span>
         <span class="n">schema</span><span class="p">,</span>
         <span class="n">task_blocks</span><span class="o">=</span><span class="n">task_blocks</span><span class="p">,</span>
         <span class="n">task_weight_dict</span><span class="o">=</span><span class="n">task_weight_dict</span><span class="p">,</span>
+        <span class="n">task_pre_dict</span><span class="o">=</span><span class="n">task_pre_dict</span><span class="p">,</span>
         <span class="n">bias_block</span><span class="o">=</span><span class="n">bias_block</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span></div>
