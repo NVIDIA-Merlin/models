@@ -363,7 +363,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampled_softmax_mode</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
             <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">targets</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">]</span>
+            <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">])</span>
 
         <span class="n">neg_items_ids</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">training</span> <span class="ow">or</span> <span class="n">testing</span><span class="p">:</span>
@@ -378,9 +378,14 @@
                 <span class="p">)</span>
 
             <span class="n">batch_items_embeddings</span> <span class="o">=</span> <span class="n">predictions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">]</span>
-            <span class="n">batch_items_metadata</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="n">feat_name</span><span class="p">:</span> <span class="n">features</span><span class="p">[</span><span class="n">feat_name</span><span class="p">]</span> <span class="k">for</span> <span class="n">feat_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_required_features</span>
-            <span class="p">}</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampled_softmax_mode</span><span class="p">:</span>
+                <span class="n">batch_items_metadata</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">:</span> <span class="n">positive_item_ids</span><span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">batch_items_metadata</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">feat_name</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="n">feat_name</span><span class="p">])</span>
+                    <span class="k">for</span> <span class="n">feat_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_required_features</span>
+                <span class="p">}</span>
 
             <span class="n">positive_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
                 <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">predictions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">query_name</span><span class="p">],</span> <span class="n">predictions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_name</span><span class="p">]),</span>
@@ -424,7 +429,7 @@
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
                     <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">targets</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">]</span>
+                    <span class="n">positive_item_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">])</span>
 
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">neg_items_ids_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="n">neg_items_ids</span> <span class="o">=</span> <span class="n">neg_items_ids_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>

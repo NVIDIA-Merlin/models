@@ -140,10 +140,11 @@
         <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Text</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target_name</span> <span class="o">=</span> <span class="n">target_name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">task_block</span> <span class="o">=</span> <span class="n">task_block</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span> <span class="o">=</span> <span class="n">task_name</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_name</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_block</span> <span class="o">=</span> <span class="n">task_block</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pre</span> <span class="o">=</span> <span class="n">pre</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pre_eval_topk</span> <span class="o">=</span> <span class="n">pre_eval_topk</span></div>
 
@@ -180,7 +181,7 @@
             <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_block</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">:</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">x</span></div>
 
@@ -281,7 +282,14 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span><span class="p">:</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;task_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span>
 
-        <span class="k">return</span> <span class="n">config</span></div></div>
+        <span class="k">return</span> <span class="n">config</span></div>
+
+<div class="viewcode-block" id="PredictionTask.create_default_metrics"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.PredictionTask.html#merlin.models.tf.PredictionTask.create_default_metrics">[docs]</a>    <span class="k">def</span> <span class="nf">create_default_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_METRICS</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metric</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">child_name</span><span class="p">(</span><span class="n">to_snake_case</span><span class="p">(</span><span class="n">metric</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))))</span>
+
+        <span class="k">return</span> <span class="n">metrics</span></div></div>
 
 
 <div class="viewcode-block" id="ParallelPredictionBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
@@ -305,27 +313,50 @@
         <span class="o">*</span><span class="n">prediction_tasks</span><span class="p">:</span> <span class="n">PredictionTask</span><span class="p">,</span>
         <span class="n">task_blocks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Layer</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Layer</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">bias_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">task_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">prediction_tasks</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bias_block</span> <span class="o">=</span> <span class="n">bias_block</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bias_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bias_block</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bias_logit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">prediction_task_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">prediction_tasks</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">prediction_tasks</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">prediction_task_dict</span><span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">task_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">task</span>
 
-        <span class="nb">super</span><span class="p">(</span><span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prediction_task_dict</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ParallelPredictionBlock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prediction_task_dict</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">use_layer_name</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">task_blocks</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_set_task_blocks</span><span class="p">(</span><span class="n">task_blocks</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ParallelPredictionBlock.get_tasks_from_schema"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelPredictionBlock.html#merlin.models.tf.ParallelPredictionBlock.get_tasks_from_schema">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_tasks_from_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">schema</span><span class="p">,</span> <span class="n">task_weight_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_tasks_from_schema</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">schema</span><span class="p">,</span>
+        <span class="n">task_weight_dict</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">task_pre_dict</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Block</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Built Multi-task prediction Block from schema</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        schema : Schema</span>
+<span class="sd">            The `Schema` with the input features</span>
+<span class="sd">        task_weight_dict : Optional[Dict[str, float]], optional</span>
+<span class="sd">            Dict where keys are target feature names and values are weights for each task,</span>
+<span class="sd">            by default None</span>
+<span class="sd">        task_pre_dict: Optional[Dict[str, Block]], optional</span>
+<span class="sd">            Dict where keys are target feature names and values are Blocks to be used as</span>
+<span class="sd">            pre for those tasks</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">task_weight_dict</span> <span class="o">=</span> <span class="n">task_weight_dict</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="n">task_pre_dict</span> <span class="o">=</span> <span class="n">task_pre_dict</span> <span class="ow">or</span> <span class="p">{}</span>
 
         <span class="n">tasks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">task_weights</span> <span class="o">=</span> <span class="p">[]</span>
@@ -333,10 +364,14 @@
         <span class="kn">from</span> <span class="nn">merlin.models.tf.prediction_tasks.regression</span> <span class="kn">import</span> <span class="n">RegressionTask</span>
 
         <span class="k">for</span> <span class="n">binary_target</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-            <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">binary_target</span><span class="p">))</span>
+            <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">binary_target</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">task_pre_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">binary_target</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+            <span class="p">)</span>
             <span class="n">task_weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task_weight_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">binary_target</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">regression_target</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">REGRESSION</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-            <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">RegressionTask</span><span class="p">(</span><span class="n">regression_target</span><span class="p">))</span>
+            <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">RegressionTask</span><span class="p">(</span><span class="n">regression_target</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">task_pre_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">regression_target</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+            <span class="p">)</span>
             <span class="n">task_weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task_weight_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">regression_target</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
         <span class="c1"># TODO: Add multi-class classification here. Figure out how to get number of classes</span>
 
@@ -348,6 +383,7 @@
         <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
         <span class="n">task_blocks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Layer</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Layer</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">task_weight_dict</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">task_pre_dict</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Block</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">bias_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ParallelPredictionBlock&quot;</span><span class="p">:</span>
@@ -360,13 +396,17 @@
 <span class="sd">        task_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional</span>
 <span class="sd">            Task blocks to be used for prediction, by default None</span>
 <span class="sd">        task_weight_dict : Optional[Dict[str, float]], optional</span>
-<span class="sd">            Weights for each task, by default None</span>
+<span class="sd">            Dict where keys are target feature names and values are weights for each task,</span>
+<span class="sd">            by default None</span>
+<span class="sd">        task_pre_dict: Optional[Dict[str, Block]], optional</span>
+<span class="sd">            Dict where keys are target feature names and values are Blocks to be used as pre</span>
+<span class="sd">            for those tasks</span>
 <span class="sd">        bias_block : Optional[Layer], optional</span>
 <span class="sd">            Bias block to be used for prediction, by default None</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">task_weight_dict</span> <span class="o">=</span> <span class="n">task_weight_dict</span> <span class="ow">or</span> <span class="p">{}</span>
 
-        <span class="n">task_weights</span><span class="p">,</span> <span class="n">tasks</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_tasks_from_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">task_weight_dict</span><span class="p">)</span>
+        <span class="n">task_weights</span><span class="p">,</span> <span class="n">tasks</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_tasks_from_schema</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> <span class="n">task_weight_dict</span><span class="p">,</span> <span class="n">task_pre_dict</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="o">*</span><span class="n">tasks</span><span class="p">,</span>
@@ -493,6 +533,7 @@
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tensorflow_metadata_json_to_schema</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">])</span>
 
         <span class="n">prediction_tasks</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;prediction_tasks&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;parallel_layers&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">*</span><span class="n">prediction_tasks</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span></div>
 

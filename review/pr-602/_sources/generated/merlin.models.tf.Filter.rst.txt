@@ -19,7 +19,6 @@
       ~Filter.add_update
       ~Filter.add_variable
       ~Filter.add_weight
-      ~Filter.apply
       ~Filter.apply_to_all
       ~Filter.as_tabular
       ~Filter.build
@@ -49,12 +48,10 @@
       ~Filter.get_input_mask_at
       ~Filter.get_input_shape_at
       ~Filter.get_item_ids_from_inputs
-      ~Filter.get_losses_for
       ~Filter.get_output_at
       ~Filter.get_output_mask_at
       ~Filter.get_output_shape_at
       ~Filter.get_padding_mask_from_item_id
-      ~Filter.get_updates_for
       ~Filter.get_weights
       ~Filter.parse
       ~Filter.parse_block
