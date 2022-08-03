@@ -195,10 +195,11 @@ class TopkMetricWithLabelRelevantCountsMixin:
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
-    def __init__(self, fn, k=5, pre_sorted=True, name=None, dtype=None, **kwargs):
+    def __init__(self, fn, k=5, pre_sorted=True, name=None, **kwargs):
+        self.name_orig = name
         if name is not None:
             name = f"{name}_{k}"
-        super().__init__(name=name, dtype=dtype)
+        super().__init__(name=name, **kwargs)
         self._fn = fn
         self.k = k
         self._pre_sorted = pre_sorted
@@ -276,27 +277,28 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         return tf.cast(labels, self._dtype), tf.cast(predictions, self._dtype)
 
     def get_config(self):
-        config = {}
+        config = {
+            "name": self.name_orig,
+            "k": self.k,
+            "pre_sorted": self._pre_sorted,
+        }
 
         if type(self) is TopkMetric:
-            # Only include function argument when the object is of a subclass.
+            # Only include function argument when the object is a TopkMetric and not a subclass.
             config["fn"] = self._fn
-            config["k"] = self.k
-            config["pre_sorted"] = self.pre_sorted
 
             for k, v in self._fn_kwargs.items():
                 config[k] = backend.eval(v) if tf.is_tensor(v) or isinstance(v, tf.Variable) else v
-            base_config = super(TopkMetric, self).get_config()
-            return dict(list(base_config.items()) + list(config.items()))
 
-        return {}
+        base_config = super(TopkMetric, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
     @classmethod
     def from_config(cls, config):
-        fn = config.pop("fn", None)
-        k = config.pop("k", None)
-        pre_sorted = config.pop("pre_sorted", None)
         if cls is TopkMetric:
+            fn = config.pop("fn", None)
+            k = config.pop("k", None)
+            pre_sorted = config.pop("pre_sorted", None)
             return cls(get_metric(fn), k=k, pre_sorted=pre_sorted, **config)
         return super(TopkMetric, cls).from_config(config)
 
