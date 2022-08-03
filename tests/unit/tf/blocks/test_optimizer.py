@@ -598,7 +598,7 @@ def test_lazy_adam_for_large_embeddings(ecommerce_data, run_eagerly):
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
-            ml.OptimizerBlocks("adam", [mlp, small_embeddings]),
+            ml.OptimizerBlocks("adam", [mlp] + small_embeddings),
             ml.OptimizerBlocks(ml.LazyAdam(), large_embeddings),
         ],
     )
@@ -608,17 +608,15 @@ def test_lazy_adam_for_large_embeddings(ecommerce_data, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_lazy_adam_in_EmbeddingTable(ecommerce_data, run_eagerly):
-    schema = ecommerce_data.schema
+def test_lazy_adam_by_EmbeddingTable(ecommerce_data, run_eagerly):
+    schema = ecommerce_data.schema.select_by_name(["user_categories", "user_shops", "user_brands"])
     dims = schema_utils.get_embedding_sizes_from_schema(schema)
 
-    table_0 = ml.EmbeddingTable(
-        dims["user_categories"], schema.select_by_name("user_categories").first
-    )
-    table_1 = ml.EmbeddingTable(dims["user_shops"], schema.select_by_name("user_shops").first)
-    table_2 = ml.EmbeddingTable(dims["user_brands"], schema.select_by_name("user_brands").first)
+    table_0 = ml.EmbeddingTable(dims["user_categories"], schema["user_categories"], combiner=None)
+    table_1 = ml.EmbeddingTable(dims["user_shops"], schema["user_shops"], combiner=None)
+    table_2 = ml.EmbeddingTable(dims["user_brands"], schema["user_brands"], combiner=None)
     embedding_layer = ml.ParallelBlock(
-        {"0": table_0, "1": table_1, "2": table_2}, aggregation="concat"
+        {"user_categories": table_0, "user_shops": table_1, "user_brands": table_2}, schema=schema
     )
 
     model = ml.Model(
