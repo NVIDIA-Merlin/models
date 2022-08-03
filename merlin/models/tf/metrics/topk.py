@@ -347,8 +347,8 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
         Multiple arguments with TopkMetric instances
     """
 
-    def __init__(self, *topk_metrics: TopkMetric):
-        super(TopKMetricsAggregator, self).__init__()
+    def __init__(self, *topk_metrics: TopkMetric, **kwargs):
+        super(TopKMetricsAggregator, self).__init__(**kwargs)
         assert len(topk_metrics) > 0, "At least one topk_metrics should be provided"
         assert all(
             isinstance(m, TopkMetric) for m in topk_metrics
@@ -418,18 +418,17 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
         return [aggregator]
 
     def get_config(self):
-        config = {}
-        for i, metric in enumerate(self.topk_metrics):
-            config[i] = tf.keras.utils.serialize_keras_object(metric)
+        config = super(TopKMetricsAggregator, self).get_config()
+        config["topk_metrics"] = [tf.keras.layers.serialize(metric) for metric in self.topk_metrics]
         return config
 
     @classmethod
-    def from_config(cls, config, custom_objects=None):
-        metrics = [
-            tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
-            for conf in config.values()
+    def from_config(cls, config):
+        topk_metrics = config.pop("topk_metrics")
+        topk_metrics = [
+            tf.keras.layers.deserialize(metric_config) for metric_config in topk_metrics
         ]
-        return TopKMetricsAggregator(*metrics)
+        return cls(*topk_metrics, **config)
 
 
 def filter_topk_metrics(
