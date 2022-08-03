@@ -21,6 +21,7 @@ from merlin.models.tf.blocks.sampling.base import EmbeddingWithMetadata, ItemSam
 from merlin.models.tf.typing import TabularData
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class InBatchSampler(ItemSampler):
     """Provides in-batch sampling [1]_ for two-tower item retrieval
     models. The implementation is very simple, as it
@@ -47,6 +48,7 @@ class InBatchSampler(ItemSampler):
     """
 
     def __init__(self, batch_size: Optional[int] = None, **kwargs):
+        self._arg_batch_size = batch_size
         super().__init__(max_num_samples=batch_size, **kwargs)
         self._last_batch_items_embeddings: tf.Tensor = None  # type: ignore
         self._last_batch_items_metadata: TabularData = {}
@@ -105,3 +107,9 @@ class InBatchSampler(ItemSampler):
         return EmbeddingWithMetadata(
             self._last_batch_items_embeddings, self._last_batch_items_metadata
         )
+
+    def get_config(self):
+        config = super(InBatchSampler, self).get_config()
+        if self._arg_batch_size is not None:
+            config["batch_size"] = self._arg_batch_size
+        return config
