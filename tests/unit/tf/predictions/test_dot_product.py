@@ -126,7 +126,9 @@ def test_retrieval_prediction_only_positive_when_not_training(ecommerce_data: Da
 def _retrieval_inputs_(batch_size):
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
-    positive_items = tf.random.uniform(shape=(10,), minval=1, maxval=100, dtype=tf.int32)
+    positive_items = tf.random.uniform(
+        shape=(batch_size,), minval=1, maxval=1000000, dtype=tf.int32
+    )
     inputs = {"query": users_embeddings, "item": items_embeddings, "item_id": positive_items}
     features = {"product_id": positive_items, "user_id": None}
     return inputs, features
