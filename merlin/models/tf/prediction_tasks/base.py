@@ -106,7 +106,7 @@ class PredictionTask(Layer, ContextMixin):
             x = self.task_block(x)
 
         if self.pre:
-            x = self.pre(inputs, **kwargs)
+            x = self.pre(x, **kwargs)
 
         return x
 
@@ -261,8 +261,27 @@ class ParallelPredictionBlock(ParallelBlock):
             self._set_task_blocks(task_blocks)
 
     @classmethod
-    def get_tasks_from_schema(cls, schema, task_weight_dict=None):
+    def get_tasks_from_schema(
+        cls,
+        schema,
+        task_weight_dict: Optional[Dict[str, float]] = None,
+        task_pre_dict: Optional[Dict[str, Block]] = None,
+    ):
+        """Built Multi-task prediction Block from schema
+
+        Parameters
+        ----------
+        schema : Schema
+            The `Schema` with the input features
+        task_weight_dict : Optional[Dict[str, float]], optional
+            Dict where keys are target feature names and values are weights for each task,
+            by default None
+        task_pre_dict: Optional[Dict[str, Block]], optional
+            Dict where keys are target feature names and values are Blocks to be used as
+            pre for those tasks
+        """
         task_weight_dict = task_weight_dict or {}
+        task_pre_dict = task_pre_dict or {}
 
         tasks: List[PredictionTask] = []
         task_weights = []
@@ -270,10 +289,14 @@ class ParallelPredictionBlock(ParallelBlock):
         from merlin.models.tf.prediction_tasks.regression import RegressionTask
 
         for binary_target in schema.select_by_tag(Tags.BINARY_CLASSIFICATION).column_names:
-            tasks.append(BinaryClassificationTask(binary_target))
+            tasks.append(
+                BinaryClassificationTask(binary_target, pre=task_pre_dict.get(binary_target, None))
+            )
             task_weights.append(task_weight_dict.get(binary_target, 1.0))
         for regression_target in schema.select_by_tag(Tags.REGRESSION).column_names:
-            tasks.append(RegressionTask(regression_target))
+            tasks.append(
+                RegressionTask(regression_target, pre=task_pre_dict.get(regression_target, None))
+            )
             task_weights.append(task_weight_dict.get(regression_target, 1.0))
         # TODO: Add multi-class classification here. Figure out how to get number of classes
 
@@ -285,6 +308,7 @@ class ParallelPredictionBlock(ParallelBlock):
         schema: Schema,
         task_blocks: Optional[Union[Layer, Dict[str, Layer]]] = None,
         task_weight_dict: Optional[Dict[str, float]] = None,
+        task_pre_dict: Optional[Dict[str, Block]] = None,
         bias_block: Optional[Layer] = None,
         **kwargs,
     ) -> "ParallelPredictionBlock":
@@ -297,13 +321,17 @@ class ParallelPredictionBlock(ParallelBlock):
         task_blocks : Optional[Union[Layer, Dict[str, Layer]]], optional
             Task blocks to be used for prediction, by default None
         task_weight_dict : Optional[Dict[str, float]], optional
-            Weights for each task, by default None
+            Dict where keys are target feature names and values are weights for each task,
+            by default None
+        task_pre_dict: Optional[Dict[str, Block]], optional
+            Dict where keys are target feature names and values are Blocks to be used as pre
+            for those tasks
         bias_block : Optional[Layer], optional
             Bias block to be used for prediction, by default None
         """
         task_weight_dict = task_weight_dict or {}
 
-        task_weights, tasks = cls.get_tasks_from_schema(schema, task_weight_dict)
+        task_weights, tasks = cls.get_tasks_from_schema(schema, task_weight_dict, task_pre_dict)
 
         return cls(
             *tasks,

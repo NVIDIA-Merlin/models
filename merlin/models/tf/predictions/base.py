@@ -8,11 +8,35 @@ from merlin.models.tf.core.base import name_fn
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
-from merlin.models.tf.utils.tf_utils import call_layer
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PredictionBlock(Layer):
+    """Base-class for prediction blocks.
+
+    Parameters
+    ----------
+    prediction : Layer
+        The prediction layer
+    default_loss: Union[str, tf.keras.losses.Loss]
+        Default loss to set if the user does not specify one
+    default_metrics: Sequence[tf.keras.metrics.Metric]
+        Default metrics to set if the user does not specify any
+    name: Optional[Text], optional
+        Task name, by default None
+    target: Optional[str], optional
+        Label name, by default None
+    pre: Optional[Block], optional
+        Optional block to transform predictions before applying the prediction layer,
+        by default None
+    post: Optional[Block], optional
+        Optional block to transform predictions after applying the prediction layer,
+        by default None
+    logits_temperature: float, optional
+        Parameter used to reduce model overconfidence, so that logits / T.
+        by default 1.
+    """
+
     def __init__(
         self,
         prediction: Layer,
@@ -92,7 +116,7 @@ class PredictionBlock(Layer):
         outputs = super(PredictionBlock, self).__call__(inputs, *args, **kwargs)
 
         if self.post:
-            outputs = tf_utils.call_layer(self.post, inputs, **kwargs)
+            outputs = tf_utils.call_layer(self.post, outputs, **kwargs)
 
         if getattr(self, "logits_scaler", None):
             outputs = self.logits_scaler(outputs)
@@ -151,68 +175,6 @@ class PredictionBlock(Layer):
                 "pre": tf.keras.layers.deserialize,
                 "post": tf.keras.layers.deserialize,
                 "logits_scaler": tf.keras.layers.deserialize,
-            },
-        )
-
-        return super().from_config(config)
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ContrastivePredictionBlock(PredictionBlock):
-    """A prediction block that uses contrastive loss."""
-
-    def __init__(
-        self,
-        prediction: Layer,
-        prediction_with_negatives: Layer,
-        default_loss: Union[str, tf.keras.losses.Loss],
-        default_metrics: Sequence[tf.keras.metrics.Metric],
-        name: Optional[str] = None,
-        target: Optional[str] = None,
-        pre: Optional[Layer] = None,
-        post: Optional[Layer] = None,
-        logits_temperature: float = 1.0,
-        **kwargs,
-    ):
-        super(ContrastivePredictionBlock, self).__init__(
-            prediction,
-            default_loss=default_loss,
-            default_metrics=default_metrics,
-            target=target,
-            pre=pre,
-            post=post,
-            logits_temperature=logits_temperature,
-            name=name,
-            **kwargs,
-        )
-        self.prediction_with_negatives = prediction_with_negatives
-
-    def call(self, inputs, training=False, testing=False, **kwargs):
-        to_call = self.prediction
-
-        if self.prediction_with_negatives.has_negative_samplers and (training or testing):
-            to_call = self.prediction_with_negatives
-
-        return call_layer(to_call, inputs, training=training, testing=testing, **kwargs)
-
-    def get_config(self):
-        config = super(ContrastivePredictionBlock, self).get_config()
-        config.update(
-            {
-                "prediction_with_negatives": tf.keras.utils.serialize_keras_object(
-                    self.prediction_with_negatives
-                ),
-            }
-        )
-
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        config = tf_utils.maybe_deserialize_keras_objects(
-            config,
-            {
-                "prediction_with_negatives": tf.keras.layers.deserialize,
             },
         )
 

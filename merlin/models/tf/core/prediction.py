@@ -55,6 +55,7 @@ class PredictionContext(NamedTuple):
 class Prediction(NamedTuple):
     outputs: Dict[str, TensorLike]
     targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]] = None
+    sample_weight: Optional[tf.Tensor] = None
     features: Optional[Dict[str, TensorLike]] = None
 
     @property

@@ -27,6 +27,7 @@ from merlin.models.tf.core.transformations import (
     CategoricalOneHot,
     ExpandDims,
     HashedCross,
+    HashedCrossAll,
     LabelToOneHot,
 )
 
@@ -44,6 +45,7 @@ from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
 from merlin.models.tf.blocks.interaction import DotProductInteraction, FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
+from merlin.models.tf.blocks.multi_optimizers import MultiOptimizer, OptimizerBlocks
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, ItemRetrievalScorer
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
@@ -67,7 +69,13 @@ from merlin.models.tf.core.base import (
     NoOp,
     right_shift_layer,
 )
-from merlin.models.tf.core.combinators import Cond, ParallelBlock, ResidualBlock, SequentialBlock
+from merlin.models.tf.core.combinators import (
+    Cond,
+    MapValues,
+    ParallelBlock,
+    ResidualBlock,
+    SequentialBlock,
+)
 from merlin.models.tf.data_augmentation.noise import StochasticSwapNoise
 from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
@@ -128,6 +136,7 @@ Optimizer.__repr__ = repr_utils.layer_repr_no_children
 __all__ = [
     "Block",
     "Cond",
+    "MapValues",
     "ModelContext",
     "SequentialBlock",
     "ResidualBlock",
@@ -161,6 +170,7 @@ __all__ = [
     "AsSparseFeatures",
     "CategoricalOneHot",
     "HashedCross",
+    "HashedCrossAll",
     "ElementwiseSum",
     "ElementwiseSumItemMulti",
     "AsTabular",
@@ -178,6 +188,8 @@ __all__ = [
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",
+    "MultiOptimizer",
+    "OptimizerBlocks",
     "ItemRetrievalTask",
     "ItemRetrievalScorer",
     "NextItemPredictionTask",

@@ -18,6 +18,7 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.utils import testing_utils
 
 
@@ -36,6 +37,28 @@ def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
         "click/prediction_block/precision",
         "regularization_loss",
     }
+
+
+def test_logits_scaler(ecommerce_data: Dataset):
+    import numpy as np
+    from tensorflow.keras.utils import set_random_seed
+
+    set_random_seed(42)
+    logits_temperature = 0.5
+    model_1 = mm.Model(
+        mm.InputBlock(ecommerce_data.schema),
+        mm.MLPBlock([8]),
+        _BinaryPrediction("click", logits_temperature=logits_temperature),
+    )
+
+    inputs = mm.sample_batch(ecommerce_data, batch_size=10, include_targets=False)
+    prediction_1 = model_1(inputs)
+
+    model_1.blocks[-1].post = LogitsTemperatureScaler(logits_temperature)
+    model_1.blocks[-1].logits_temperature = 1
+    prediction_2 = model_1(inputs)
+
+    assert np.allclose(prediction_1.numpy(), prediction_2.numpy())
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
