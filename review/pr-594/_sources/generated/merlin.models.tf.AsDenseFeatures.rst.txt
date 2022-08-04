@@ -19,7 +19,6 @@
       ~AsDenseFeatures.add_update
       ~AsDenseFeatures.add_variable
       ~AsDenseFeatures.add_weight
-      ~AsDenseFeatures.apply
       ~AsDenseFeatures.apply_to_all
       ~AsDenseFeatures.as_tabular
       ~AsDenseFeatures.build
@@ -48,12 +47,10 @@
       ~AsDenseFeatures.get_input_mask_at
       ~AsDenseFeatures.get_input_shape_at
       ~AsDenseFeatures.get_item_ids_from_inputs
-      ~AsDenseFeatures.get_losses_for
       ~AsDenseFeatures.get_output_at
       ~AsDenseFeatures.get_output_mask_at
       ~AsDenseFeatures.get_output_shape_at
       ~AsDenseFeatures.get_padding_mask_from_item_id
-      ~AsDenseFeatures.get_updates_for
       ~AsDenseFeatures.get_weights
       ~AsDenseFeatures.parse
       ~AsDenseFeatures.parse_block
