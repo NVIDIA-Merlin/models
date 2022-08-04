@@ -184,7 +184,32 @@ class PredictionBlock(Layer):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ContrastivePredictionBlock(PredictionBlock):
-    """A prediction block that uses contrastive loss."""
+    """Base-class for prediction blocks that uses contrastive loss.
+
+    Parameters
+    ----------
+    prediction : Layer
+        The prediction layer
+    prediction_with_negatives : Layer
+        The prediction layer that includes negative sampling
+    default_loss: Union[str, tf.keras.losses.Loss]
+        Default loss to set if the user does not specify one
+    default_metrics: Sequence[tf.keras.metrics.Metric]
+        Default metrics to set if the user does not specify any
+    name: Optional[Text], optional
+        Task name, by default None
+    target: Optional[str], optional
+        Label name, by default None
+    pre: Optional[Block], optional
+        Optional block to transform predictions before applying the prediction layer,
+        by default None
+    post: Optional[Block], optional
+        Optional block to transform predictions after applying the prediction layer,
+        by default None
+    logits_temperature: float, optional
+        Parameter used to reduce model overconfidence, so that logits / T.
+        by default 1.
+    """
 
     def __init__(
         self,
@@ -199,6 +224,7 @@ class ContrastivePredictionBlock(PredictionBlock):
         logits_temperature: float = 1.0,
         **kwargs,
     ):
+
         super(ContrastivePredictionBlock, self).__init__(
             prediction,
             default_loss=default_loss,
