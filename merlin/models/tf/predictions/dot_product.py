@@ -35,7 +35,6 @@ LOG = logging.getLogger("merlin_models")
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-# Or: RetrievalCategoricalPrediction
 class DotProductCategoricalPrediction(ContrastivePredictionBlock):
     """Contrastive prediction using negative-sampling,
     used in retrieval models.
@@ -131,7 +130,6 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
         self.prediction_with_negatives.negative_sampling = negative_sampling
         self.prediction_with_negatives.downscore_false_negatives = downscore_false_negatives
 
-    # TODO
     def add_sampler(self, sampler):
         self.prediction_with_negatives.negative_samplers.append(sampler)
 
