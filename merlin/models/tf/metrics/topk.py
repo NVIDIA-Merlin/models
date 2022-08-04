@@ -15,7 +15,7 @@
 #
 
 # Adapted from source code: https://github.com/karlhigley/ranking-metrics-torch
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
 from keras.utils import losses_utils, metrics_utils
@@ -301,36 +301,42 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         return super(TopkMetric, cls).from_config(config)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("recall_at", "recall")
 class RecallAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="recall_at"):
         super().__init__(recall_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("precision_at", "precision")
 class PrecisionAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="precision_at"):
         super().__init__(precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("map_at", "map")
 class AvgPrecisionAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="map_at"):
         super().__init__(average_precision_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("mrr_at", "mrr")
 class MRRAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="mrr_at"):
         super().__init__(mrr_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 class NDCGAt(TopkMetric):
     def __init__(self, k=10, pre_sorted=False, name="ndcg_at"):
         super().__init__(ndcg_at, k=k, pre_sorted=pre_sorted, name=name)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
     """Aggregator for top-k metrics (TopkMetric) that is optimized
     to sort top-k predictions only once for all metrics.
@@ -409,6 +415,20 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
         aggregator = cls(*metrics)
         return [aggregator]
 
+    def get_config(self):
+        config = {}
+        for i, metric in enumerate(self.topk_metrics):
+            config[i] = tf.keras.utils.serialize_keras_object(metric)
+        return config
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        metrics = [
+            tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+            for conf in config.values()
+        ]
+        return TopKMetricsAggregator(*metrics)
+
 
 def filter_topk_metrics(
     metrics: Sequence[Metric],
@@ -433,3 +453,30 @@ def filter_topk_metrics(
         ]
     )
     return topk_metrics
+
+
+def split_metrics(
+    metrics: Sequence[Metric],
+    return_other_metrics: bool = False,
+) -> Tuple[TopkMetric, TopKMetricsAggregator, Metric]:
+    """Split the list of metrics into top-k metrics, top-k aggregators and others
+
+    Parameters
+    ----------
+    metrics : List[Metric]
+        List of metrics
+
+    Returns
+    -------
+    List[TopkMetric, TopKMetricsAggregator, Metric]
+        List with the top-k metrics in the list of input metrics
+    """
+    topk_metrics, topk_aggregators, other_metrics = [], [], []
+    for metric in metrics:
+        if isinstance(metric, TopkMetric):
+            topk_metrics.append(metric)
+        elif isinstance(metric, TopKMetricsAggregator):
+            topk_aggregators.append(metric)
+        else:
+            other_metrics.append(metric)
+    return topk_metrics, topk_aggregators, other_metrics
