@@ -15,13 +15,16 @@
 #
 from unittest.mock import patch
 
+import numpy as np
+import pandas as pd
 import pytest
+import sklearn.datasets
 import xgboost
 
 from merlin.core.dispatch import HAS_GPU
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
-from merlin.models.xgb import XGBoost
+from merlin.models.xgb import XGBoost, dataset_to_xy
 
 
 def test_without_dask_client(music_streaming_data: Dataset):
@@ -191,3 +194,38 @@ class TestEvals:
         model = XGBoost(train.schema, objective="reg:logistic")
         with pytest.raises(AssertionError):
             model.fit(train, evals=[([], "valid")])
+
+
+def test_dataset_to_xy_does_not_modify_column_order():
+    df = pd.DataFrame(data={"z": [0], "target": [-1], "a": [1], "Z": [2]})
+    feature_columns = ["z", "Z", "a"]
+    X, y, _ = dataset_to_xy(
+        dataset=Dataset(df),
+        feature_columns=feature_columns,
+        target_columns="target",
+        qid_column=None,
+    )
+    assert X.columns.tolist() == feature_columns
+
+
+def test_predict_without_target(dask_client):
+    rows = 200
+    num_features = 16
+    X, y = sklearn.datasets.make_regression(
+        n_samples=rows,
+        n_features=num_features,
+        n_informative=num_features // 3,
+        random_state=0,
+    )
+
+    feature_names = [str(i) for i in range(num_features)]
+    df = pd.DataFrame(
+        np.hstack((X, y.reshape(-1, 1))), columns=feature_names + ["target"], dtype=np.float32
+    )
+    train_ds = Dataset(df.iloc[:160])
+    valid_ds = Dataset(df.iloc[40:])
+    test_ds = Dataset(df.iloc[40:].drop(columns="target"))
+
+    model = XGBoost(schema=train_ds.schema, target_columns="target")
+    model.fit(train_ds, evals=[(valid_ds, "validation_set")])
+    model.predict(test_ds)

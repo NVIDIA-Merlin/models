@@ -27,7 +27,7 @@ import merlin.io
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
 from merlin.models.tf.core.base import Block, BlockType
-from merlin.models.tf.core.combinators import SequentialBlock
+from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Filter,
@@ -40,7 +40,7 @@ from merlin.models.tf.core.transformations import AsDenseFeatures, AsSparseFeatu
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import df_to_tensor
+from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
@@ -129,7 +129,7 @@ class EmbeddingTable(EmbeddingTableBase):
        `Flatten` then `Dense` layers upstream
        (without it, the shape of the dense outputs cannot be computed).
     combiner: A string specifying how to combine embedding results for each
-       entry. Currently "mean", "sqrtn" and "sum" are supported.
+       entry ("mean", "sqrtn" and "sum" are supported) or a layer.
        Default is None (no combiner used)
     trainable: Boolean, whether the layer's variables should be trainable.
     name: String name of the layer.
@@ -157,7 +157,7 @@ class EmbeddingTable(EmbeddingTableBase):
         embeddings_constraint=None,
         mask_zero=False,
         input_length=None,
-        combiner: Optional[str] = None,
+        combiner: Optional[Union[str, tf.keras.layers.Layer]] = None,
         trainable=True,
         name=None,
         dtype=None,
@@ -167,6 +167,7 @@ class EmbeddingTable(EmbeddingTableBase):
         **kwargs,
     ):
         """Create an EmbeddingTable."""
+        name = name or col_schema.name
         super(EmbeddingTable, self).__init__(
             dim, col_schema, trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs
         )
@@ -235,7 +236,15 @@ class EmbeddingTable(EmbeddingTableBase):
         Invoked automatically before the first execution of `call()`.
         """
         self.table._maybe_build(inputs)
+
         return super(EmbeddingTable, self)._maybe_build(inputs)
+
+    def build(self, input_shapes):
+        if not self.table.built:
+            self.table.build(input_shapes)
+        # if isinstance(self.combiner, tf.keras.layers.Layer):
+        #    self.combiner.build(self.table.compute_output_shape(input_shapes))
+        return super(EmbeddingTable, self).build(input_shapes)
 
     def call(self, inputs, **kwargs):
         """
@@ -248,47 +257,240 @@ class EmbeddingTable(EmbeddingTableBase):
         -------
         A tensor corresponding to the embeddings for inputs
         """
+        if isinstance(inputs, dict):
+            inputs = inputs[self.col_schema.name]
+
+        # Eliminating the last dim==1 of dense tensors before embedding lookup
+        if isinstance(inputs, tf.Tensor):
+            inputs = tf.squeeze(inputs, axis=-1)
+
+        """
         dtype = backend.dtype(inputs)
         if dtype != "int32" and dtype != "int64":
             inputs = tf.cast(inputs, "int32")
+        """
 
-        if self.combiner:
+        if self.combiner and isinstance(self.combiner, str):
             if not isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
                 raise ValueError(
-                    "Combiner only supported for RaggedTensor and SparseTensor. "
-                    f"Received: {type(inputs)}"
+                    f"Combiner ({self.combiner}) only supported for RaggedTensor and SparseTensor. "
+                    f"Received: {type(inputs)}. Column name: {self.col_schema.name}"
                 )
             if isinstance(inputs, tf.RaggedTensor):
                 inputs = inputs.to_sparse()
             out = tf.nn.safe_embedding_lookup_sparse(
                 self.table.embeddings, inputs, None, combiner=self.combiner
             )
-            if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
-                # Instead of casting the variable as in most layers, cast the output, as
-                # this is mathematically equivalent but is faster.
-                out = tf.cast(out, self._dtype_policy.compute_dtype)
         else:
             if not isinstance(inputs, (tf.RaggedTensor, tf.Tensor)):
                 raise ValueError(
                     "EmbeddingTable supports only RaggedTensor and Tensor input types. "
                     f"Received: {type(inputs)}"
                 )
-            out = self.table(inputs)
+
+            out = call_layer(self.table, inputs, **kwargs)
+            if isinstance(self.combiner, tf.keras.layers.Layer):
+                out = call_layer(self.combiner, out, **kwargs)
+
+        if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
+            # Instead of casting the variable as in most layers, cast the output, as
+            # this is mathematically equivalent but is faster.
+            out = tf.cast(out, self._dtype_policy.compute_dtype)
 
         return out
+
+    def compute_output_shape(self, input_shape):
+        first_dims = input_shape
+        if (self.combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
+            first_dims = input_shape[:-1]
+        output_shapes = tf.TensorShape(first_dims + [self.dim])
+        return output_shapes
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
 
     @classmethod
     def from_config(cls, config):
         config["table"] = tf.keras.layers.deserialize(config["table"])
+        if "combiner-layer" in config:
+            config["combiner"] = tf.keras.layers.deserialize(config.pop("combiner-layer"))
 
         return super().from_config(config)
 
     def get_config(self):
         config = super().get_config()
         config["table"] = tf.keras.layers.serialize(self.table)
-        config["combiner"] = self.combiner
+        if isinstance(self.combiner, tf.keras.layers.Layer):
+            config["combiner-layer"] = tf.keras.layers.serialize(self.combiner)
+        else:
+            config["combiner"] = self.combiner
 
         return config
+
+
+def Embeddings(
+    schema: Schema,
+    pre: Optional[BlockType] = None,
+    post: Optional[BlockType] = None,
+    aggregation: Optional[TabularAggregationType] = None,
+    block_name: str = "embeddings",
+    sequence_combiner: Optional[
+        Union[str, tf.keras.layers.Layer, Dict[str, Union[str, tf.keras.layers.Layer]]]
+    ] = "mean",
+    embedding_dims: Optional[Dict[str, int]] = None,
+    embedding_dim_default: Optional[int] = 32,
+    infer_embedding_sizes: bool = True,
+    infer_embedding_sizes_multiplier: float = 2.0,
+    infer_embeddings_ensure_dim_multiple_of_8: bool = True,
+    **kwargs,
+) -> ParallelBlock:
+    """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
+    from the schema.
+
+    Parameters
+    ----------
+    schema : Schema
+        Schema of the input data. This Schema object will be automatically generated using
+        [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
+        Next to this, it's also possible to construct it manually.
+    pre : Optional[BlockType], optional
+        Transformation block to apply before the embeddings lookup, by default None
+    post : Optional[BlockType], optional
+        Transformation block to apply after the embeddings lookup, by default None
+    aggregation : Optional[TabularAggregationType], optional
+        Transformation block to apply for aggregating the inputs, by default None
+    block_name : str, optional
+        Name of the block, by default "embeddings"
+    sequence_combiner : Optional[Union[str, tf.keras.layers.Layer]], optional
+       A string specifying how to combine embedding results for each
+       entry ("mean", "sqrtn" and "sum" are supported) or a layer.
+       Default is None (no combiner used)
+    embedding_dims : Optional[Dict[str, int]], optional
+        A Dict like {"feature_name": embedding size, ...}, by default None
+    embedding_dim_default : Optional[int], optional
+        For features not included in embedding_dims, use this dim, by default 32
+    infer_embedding_sizes : bool, optional
+        Infer the features embedding sizes based on their cardinality on schema, by default True
+    infer_embedding_sizes_multiplier : float, optional
+        Multiplier factor to be used when inferring embedding sizes, by default 2.0
+    infer_embeddings_ensure_dim_multiple_of_8 : bool, optional
+        Ensures that the inferred embedding sizes are rounded up to the next multiple of 8,
+        for better performance for embedding looks on GPUs. By default True
+
+    Returns
+    -------
+    ParallelBlock
+        Returns a parallel block with an embedding table for each categorical features
+    """
+
+    cols = schema.select_by_tag(Tags.CATEGORICAL)
+    tables = {}
+
+    embedding_dims = embedding_dims or {}
+    if infer_embedding_sizes:
+        inferred_embedding_dims = schema_utils.get_embedding_sizes_from_schema(
+            schema,
+            infer_embedding_sizes_multiplier,
+            infer_embeddings_ensure_dim_multiple_of_8,
+        )
+        # Adding inferred embedding dims only for features where the embedding sizes
+        # were not pre-defined
+        inferred_embedding_dims = {
+            k: v for k, v in inferred_embedding_dims.items() if k not in embedding_dims
+        }
+        embedding_dims = {**embedding_dims, **inferred_embedding_dims}
+
+    for col in cols:
+        combiner = None
+        if Tags.SEQUENCE in col.tags or Tags.LIST in col.tags or col.is_list:
+            if isinstance(sequence_combiner, dict):
+                combiner = sequence_combiner[col.name]
+            else:
+                combiner = sequence_combiner
+
+        embedding_size = embedding_dims.get(col.name, embedding_dim_default)
+        tables[col.name] = EmbeddingTable(embedding_size, col, combiner=combiner, **kwargs)
+
+    return ParallelBlock(
+        tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=cols
+    )
+
+
+class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
+    def __init__(self, weight_feature_name: str, axis=1, **kwargs):
+        """Computes the weighted average of a Tensor based
+        on one of the input features.
+        Typically used as a combiner for EmbeddingTable
+        for aggregating sequential embedding features
+
+        Parameters
+        ----------
+        weight_feature_name : str
+            Name of the feature to be used as weight for average
+        axis : int, optional
+            Axis for reduction, by default 1 (assuming the 2nd dim is
+            the sequence length)
+        """
+        super(AverageEmbeddingsByWeightFeature, self).__init__(**kwargs)
+        self.axis = axis
+        self.weight_feature_name = weight_feature_name
+
+    def call(self, inputs, features):
+        weight_feature = features[self.weight_feature_name]
+        if isinstance(inputs, tf.RaggedTensor) and not isinstance(weight_feature, tf.RaggedTensor):
+            raise ValueError(
+                f"If inputs is a tf.RaggedTensor, the weight feature ({self.weight_feature_name}) "
+                f"should also be a tf.RaggedTensor (and not a {type(weight_feature)}), "
+                "so that the list length can vary per example for both input embedding "
+                "and weight features."
+            )
+
+        weights = tf.expand_dims(tf.cast(weight_feature, tf.float32), -1)
+        output = tf.divide(
+            tf.reduce_sum(tf.multiply(inputs, weights), axis=self.axis),
+            tf.reduce_sum(weights, axis=self.axis),
+        )
+        return output
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    @staticmethod
+    def from_schema_convention(schema: Schema, weight_features_name_suffix: str = "_weight"):
+        """Infers the weight features corresponding to sequential embedding
+        features based on the feature name suffix. For example, if a
+        sequential categorical feature is called `item_id_seq`, if there is another
+        feature in the schema called `item_id_seq_weight`, then it will be used
+        for weighted average. If a weight feature cannot be found for a given
+        seq cat. feature then standard mean is used as combiner
+
+
+        Parameters
+        ----------
+        schema : Schema
+            The feature schema
+        weight_features_name_suffix : str
+            Suffix to look for a corresponding weight feature
+
+        Returns
+        -------
+        Dict[str, WeightedAverageByFeature]
+            A dict where the key is the sequential categorical feature name and the value
+            is an instance of WeightedAverageByFeature with the corresponding weight feature name
+        """
+        cat_cols = schema.select_by_tag(Tags.CATEGORICAL)
+        seq_combiners = {}
+        for cat_col in cat_cols:
+            combiner = None
+            if Tags.SEQUENCE in cat_col.tags:
+                weight_col_name = f"{cat_col.name}{weight_features_name_suffix}"
+                if weight_col_name in schema.column_names:
+                    combiner = AverageEmbeddingsByWeightFeature(weight_col_name)
+                else:
+                    combiner = tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1))
+                seq_combiners[cat_col.name] = combiner
+
+        return seq_combiners
 
 
 @dataclass

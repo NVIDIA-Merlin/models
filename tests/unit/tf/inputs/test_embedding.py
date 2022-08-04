@@ -62,7 +62,7 @@ class TestEmbeddingTable:
     )
 
     def test_raises_with_invalid_schema(self):
-        column_schema = ColumnSchema(["item_id"])
+        column_schema = ColumnSchema("item_id")
         with pytest.raises(ValueError) as exc_info:
             mm.EmbeddingTable(16, column_schema)
         assert "needs to have a int-domain" in str(exc_info.value)
@@ -70,7 +70,7 @@ class TestEmbeddingTable:
     @pytest.mark.parametrize(
         ["dim", "kwargs", "inputs", "expected_output_shape"],
         [
-            (32, {}, tf.constant([1]), [1, 32]),
+            (32, {}, tf.constant([[1]]), [1, 32]),
             (16, {}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, None, 16]),
             (16, {"combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
             (16, {"combiner": "mean"}, tf.sparse.from_dense(tf.constant([[1, 2, 3]])), [1, 16]),
@@ -105,7 +105,7 @@ class TestEmbeddingTable:
         with pytest.raises(ValueError) as exc_info:
             layer(inputs)
 
-        assert "Combiner only supported for RaggedTensor and SparseTensor." in str(exc_info.value)
+        assert "only supported for RaggedTensor and SparseTensor." in str(exc_info.value)
 
     def test_sparse_without_combiner(self):
         dim = 16
@@ -168,7 +168,7 @@ class TestEmbeddingTable:
 
         assert embedding_table.input_dim == vocab_size
 
-        inputs = tf.constant([1])
+        inputs = tf.constant([[1]])
         output = embedding_table(inputs)
 
         assert list(output.shape) == [1, embedding_dim]

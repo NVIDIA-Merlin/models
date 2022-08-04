@@ -61,8 +61,10 @@ class XGBoost:
         self.params = {**params, "objective": objective}
 
         target_tag = get_target_tag(objective)
+        if isinstance(target_columns, str):
+            target_columns = [target_columns]
         self.target_columns = target_columns or get_targets(schema, target_tag)
-        self.feature_columns = get_features(schema)
+        self.feature_columns = get_features(schema, self.target_columns)
 
         if objective.startswith("rank") and qid_column is None:
             qid_column = schema.select_by_tag(Tags.USER_ID).column_names[0]
@@ -175,17 +177,15 @@ class XGBoost:
         if self.booster is None:
             raise ValueError("The fit method must be called before evaluate.")
 
-        X, _, qid = dataset_to_xy(
+        X, y, qid = dataset_to_xy(
             dataset, self.feature_columns, self.target_columns, self.qid_column
         )
-        data = xgb.dask.DaskDMatrix(self.dask_client, X, qid=qid)
-        preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs)
 
         # convert to DMatrix
         # (eval doesn't have dask support currently)
         if qid is not None:
             qid = qid.compute()
-        eval_data = xgb.DMatrix(X.compute(), label=preds.compute(), qid=qid)
+        eval_data = xgb.DMatrix(X.compute(), label=y.compute(), qid=qid)
 
         metrics_str = self.booster.eval(eval_data)
         metrics = {}
@@ -213,9 +213,7 @@ class XGBoost:
         if self.booster is None:
             raise ValueError("The fit method must be called before predict.")
 
-        X, _, qid = dataset_to_xy(
-            dataset, self.feature_columns, self.target_columns, self.qid_column
-        )
+        X, _, qid = dataset_to_xy(dataset, self.feature_columns, [], self.qid_column)
         data = xgb.dask.DaskDMatrix(self.dask_client, X, qid=qid)
         preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs).compute()
 
@@ -252,10 +250,10 @@ def get_targets(schema: Schema, target_tag: Tags) -> List[str]:
     )
 
 
-def get_features(schema: Schema):
+def get_features(schema: Schema, target_columns: List[str]):
     """Find feature columns from schema. Returns all non-list column names from the schema
     that are not tagged as targets."""
-    all_target_columns = schema.select_by_tag(Tags.TARGET).column_names
+    all_target_columns = schema.select_by_tag(Tags.TARGET).column_names + target_columns
 
     # Ignore list-like columns from schema
     list_column_names = [
@@ -265,7 +263,9 @@ def get_features(schema: Schema):
     if list_column_names:
         warnings.warn(f"Ignoring list columns as inputs to XGBoost model: {list_column_names}.")
 
-    feature_columns = schema.excluding_by_name(list_column_names + all_target_columns).column_names
+    feature_columns = schema.excluding_by_name(
+        set(list_column_names + all_target_columns)
+    ).column_names
     if len(feature_columns) == 0:
         raise ValueError("No feature columns found in schema.")
 
@@ -275,7 +275,7 @@ def get_features(schema: Schema):
 def dataset_to_xy(
     dataset: Dataset,
     feature_columns: List[str],
-    target_columns: Union[str, list],
+    target_columns: List[str],
     qid_column: Optional[str],
 ):
     """Convert Merlin Dataset to XGBoost DMatrix"""
@@ -288,8 +288,5 @@ def dataset_to_xy(
 
     X = df[feature_columns]
     y = df[target_columns]
-
-    # Ensure columns are in a consistent order
-    X = X[sorted(X.columns)]
 
     return X, y, qid

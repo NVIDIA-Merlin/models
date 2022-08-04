@@ -27,6 +27,7 @@ from merlin.models.tf.core.transformations import (
     CategoricalOneHot,
     ExpandDims,
     HashedCross,
+    HashedCrossAll,
     LabelToOneHot,
 )
 
@@ -44,6 +45,7 @@ from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
 from merlin.models.tf.blocks.interaction import DotProductInteraction, FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
+from merlin.models.tf.blocks.multi_optimizers import MultiOptimizer, OptimizerBlocks
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, ItemRetrievalScorer
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
@@ -67,15 +69,23 @@ from merlin.models.tf.core.base import (
     NoOp,
     right_shift_layer,
 )
-from merlin.models.tf.core.combinators import Cond, ParallelBlock, ResidualBlock, SequentialBlock
+from merlin.models.tf.core.combinators import (
+    Cond,
+    MapValues,
+    ParallelBlock,
+    ResidualBlock,
+    SequentialBlock,
+)
 from merlin.models.tf.data_augmentation.noise import StochasticSwapNoise
 from merlin.models.tf.dataset import sample_batch
-from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
+    AverageEmbeddingsByWeightFeature,
     ContinuousEmbedding,
     EmbeddingFeatures,
     EmbeddingOptions,
+    Embeddings,
     EmbeddingTable,
     FeatureConfig,
     SequenceEmbeddingFeatures,
@@ -107,6 +117,9 @@ from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.predictions.base import PredictionBlock
+from merlin.models.tf.predictions.classification import BinaryPrediction
+from merlin.models.tf.predictions.regression import RegressionPrediction
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
 
@@ -123,6 +136,7 @@ Optimizer.__repr__ = repr_utils.layer_repr_no_children
 __all__ = [
     "Block",
     "Cond",
+    "MapValues",
     "ModelContext",
     "SequentialBlock",
     "ResidualBlock",
@@ -142,6 +156,9 @@ __all__ = [
     "EmbeddingFeatures",
     "SequenceEmbeddingFeatures",
     "EmbeddingOptions",
+    "EmbeddingTable",
+    "AverageEmbeddingsByWeightFeature",
+    "Embeddings",
     "FeatureConfig",
     "TableConfig",
     "ParallelPredictionBlock",
@@ -153,6 +170,7 @@ __all__ = [
     "AsSparseFeatures",
     "CategoricalOneHot",
     "HashedCross",
+    "HashedCrossAll",
     "ElementwiseSum",
     "ElementwiseSumItemMulti",
     "AsTabular",
@@ -163,10 +181,15 @@ __all__ = [
     "DotProductInteraction",
     "FMPairwiseInteraction",
     "LabelToOneHot",
+    "PredictionBlock",
+    "BinaryPrediction",
+    "RegressionPrediction",
     "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",
+    "MultiOptimizer",
+    "OptimizerBlocks",
     "ItemRetrievalTask",
     "ItemRetrievalScorer",
     "NextItemPredictionTask",
@@ -180,6 +203,7 @@ __all__ = [
     "Model",
     "RetrievalModel",
     "InputBlock",
+    "InputBlockV2",
     "PredictionTasks",
     "StochasticSwapNoise",
     "ExpandDims",
