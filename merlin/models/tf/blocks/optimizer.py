@@ -312,6 +312,11 @@ class LazyAdam(tf.keras.optimizers.Adam):
     than the original Adam algorithm, and may lead to different empirical results.
 
     Note, amsgrad is currently not supported and the argument can only be False.
+
+    References
+    ----------
+    [1] TensorFlow Addons Optimizers: LazyAdam
+    https://github.com/tensorflow/addons/blob/v0.17.0/tensorflow_addons/optimizers/lazy_adam.py#L30
     """
 
     def __init__(
@@ -331,6 +336,7 @@ class LazyAdam(tf.keras.optimizers.Adam):
         learning_rate: Union[FloatTensorLike, Callable]
             A `Tensor` or a floating point value. or a schedule that is a
             `tf.keras.optimizers.schedules.LearningRateSchedule` The learning rate.
+            FloatTensorLike = Union[tf.Tensor, float, np.float16, np.float32, np.float64]
         beta_1: FloatTensorLike
             A `float` value or a constant `float` tensor. The exponential decay rate for the 1st
             moment estimates.
