@@ -20,8 +20,9 @@ from merlin.models.tf.blocks.interaction import DotProductInteraction
 from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block, Debug
 from merlin.models.tf.core.combinators import Filter, ParallelBlock, SequentialBlock
+from merlin.models.tf.core.transformations import AsRaggedFeatures
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
-from merlin.models.tf.inputs.embedding import EmbeddingFeatures, EmbeddingOptions
+from merlin.models.tf.inputs.embedding import EmbeddingOptions, Embeddings
 from merlin.schema import Schema, Tags
 
 
@@ -101,7 +102,23 @@ def DLRMBlock(
             "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
         )
 
-    embeddings = EmbeddingFeatures.from_schema(cat_schema, embedding_options=embedding_options)
+    embeddings_kwargs = dict(
+        sequence_combiner=embedding_options.combiner,
+        embedding_dims=embedding_options.embedding_dims,
+        embedding_dim_default=embedding_options.embedding_dim_default,
+        infer_embedding_sizes=embedding_options.infer_embedding_sizes,
+        infer_embedding_sizes_multiplier=embedding_options.infer_embedding_sizes_multiplier,
+    )
+    embeddings_kwargs["infer_embeddings_ensure_dim_multiple_of_8"] = (
+        embedding_options.infer_embeddings_ensure_dim_multiple_of_8,
+    )
+    embeddings = SequentialBlock(
+        AsRaggedFeatures(),
+        Embeddings(
+            cat_schema,
+            **embeddings_kwargs,
+        ),
+    )
 
     if len(con_schema) > 0:
         if bottom_block is None:
