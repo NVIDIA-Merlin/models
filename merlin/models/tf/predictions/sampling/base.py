@@ -9,6 +9,17 @@ ITEM_EMBEDDING_KEY = "__item_embedding__"
 
 
 class Items(NamedTuple):
+    """Storea item ids and their metadata
+
+    Parameters
+    ----------
+    id : tf.Tensor
+        The tensor of item ids
+    metadata:
+        dictionary of tensors containing meta information
+        about items such as item embeddings and item category
+    """
+
     id: tf.Tensor
     metadata: Dict[str, tf.Tensor]
 
@@ -64,7 +75,20 @@ class Items(NamedTuple):
 negative_sampling_registry: Registry = Registry.class_registry("tf.negative_sampling")
 
 
-class ItemSampler(tf.keras.layers.Layer, RegistryMixin["ItemSampler"], abc.ABC):
+class ItemSamplerV2(tf.keras.layers.Layer, RegistryMixin["ItemSampler"], abc.ABC):
+    """Base-class for negative sampling
+
+    Parameters
+    ----------
+    max_num_samples : int
+        The number of maximum samples to store
+
+    Returns
+    -------
+    Items
+        The sampled ids and their metadata
+    """
+
     registry = negative_sampling_registry
 
     def __init__(
@@ -72,7 +96,7 @@ class ItemSampler(tf.keras.layers.Layer, RegistryMixin["ItemSampler"], abc.ABC):
         max_num_samples: Optional[int] = None,
         **kwargs,
     ):
-        super(ItemSampler, self).__init__(**kwargs)
+        super(ItemSamplerV2, self).__init__(**kwargs)
         self.set_max_num_samples(max_num_samples)
 
     def call(
@@ -111,4 +135,4 @@ def _list_to_tensor(input_list: List[tf.Tensor]) -> tf.Tensor:
     return output
 
 
-ItemSamplersType = Union[ItemSampler, Sequence[Union[ItemSampler, str]], str]
+ItemSamplersType = Union[ItemSamplerV2, Sequence[Union[ItemSamplerV2, str]], str]

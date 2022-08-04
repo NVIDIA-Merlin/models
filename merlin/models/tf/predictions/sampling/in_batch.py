@@ -17,12 +17,12 @@ from typing import Optional
 
 import tensorflow as tf
 
-from merlin.models.tf.predictions.sampling.base import Items, ItemSampler
+from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
 
 
-@ItemSampler.registry.register("in-batch")
+@ItemSamplerV2.registry.register("in-batch")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class InBatchSampler(ItemSampler):
+class InBatchSamplerV2(ItemSamplerV2):
     """Provides in-batch sampling [1]_ for two-tower item retrieval
     models. The implementation is very simple, as it
     just returns the current item embeddings and metadata, but it is necessary to have
@@ -71,6 +71,27 @@ class InBatchSampler(ItemSampler):
     def call(
         self, items: Items, features=None, targets=None, training=False, testing=False
     ) -> Items:
+        """Returns the item embeddings and item ids from
+        the current batch.
+
+        Parameters
+        ----------
+        items : Items
+            The items ids and their embeddings from the current batch
+        features : optional
+            The metadata with raw input features, by default None
+        targets : _type_, optional
+            The tensor of targets, by default None
+        training : bool, optional
+            Flag indicating if on training mode, by default False
+        testing : bool, optional
+             Flag indicating if on evaluation mode, by default False
+
+        Returns
+        -------
+        Items
+            NamedTuple with the sampled item ids and item metadata
+        """
         self.add(items)
         items = self.sample()
 

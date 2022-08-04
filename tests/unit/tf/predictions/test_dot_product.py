@@ -7,14 +7,16 @@ from merlin.models.tf.predictions.dot_product import (
     ContrastiveDotProduct,
     DotProductCategoricalPrediction,
 )
-from merlin.models.tf.predictions.sampling.in_batch import InBatchSampler
+from merlin.models.tf.predictions.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.utils import testing_utils
 
 
 def test_dot_product_prediction(ecommerce_data: Dataset):
     model = mm.RetrievalModel(
         mm.TwoTowerBlock(ecommerce_data.schema, query_tower=mm.MLPBlock([8])),
-        DotProductCategoricalPrediction(ecommerce_data.schema, negative_samplers=InBatchSampler()),
+        DotProductCategoricalPrediction(
+            ecommerce_data.schema, negative_samplers=InBatchSamplerV2()
+        ),
     )
 
     _, history = testing_utils.model_test(model, ecommerce_data)
@@ -33,16 +35,18 @@ def test_setting_negative_sampling_strategy(ecommerce_data: Dataset, run_eagerly
 def test_add_sampler(ecommerce_data: Dataset):
     model = mm.RetrievalModel(
         mm.TwoTowerBlock(ecommerce_data.schema, query_tower=mm.MLPBlock([8])),
-        DotProductCategoricalPrediction(ecommerce_data.schema, negative_samplers=InBatchSampler()),
+        DotProductCategoricalPrediction(
+            ecommerce_data.schema, negative_samplers=InBatchSamplerV2()
+        ),
     )
     assert len(model.prediction_blocks[0].prediction_with_negatives.negative_samplers) == 1
-    model.prediction_blocks[0].add_sampler(mm.InBatchSampler())
+    model.prediction_blocks[0].add_sampler(mm.InBatchSamplerV2())
     assert len(model.prediction_blocks[0].prediction_with_negatives.negative_samplers) == 2
 
 
 def test_contrastive_dot_product(ecommerce_data: Dataset):
     batch_size = 10
-    inbatch_sampler = InBatchSampler()
+    inbatch_sampler = InBatchSamplerV2()
 
     retrieval_scorer = ContrastiveDotProduct(
         schema=ecommerce_data.schema,
@@ -73,7 +77,7 @@ def test_item_retrieval_scorer_no_sampler(ecommerce_data: Dataset):
 def test_item_retrieval_scorer_downscore_false_negatives(ecommerce_data: Dataset):
     batch_size = 10
 
-    inbatch_sampler = InBatchSampler()
+    inbatch_sampler = InBatchSamplerV2()
     inputs, features = _retrieval_inputs_(batch_size=batch_size)
 
     FALSE_NEGATIVE_SCORE = -100_000_000.0
@@ -109,7 +113,7 @@ def test_item_retrieval_scorer_downscore_false_negatives(ecommerce_data: Dataset
 def test_retrieval_prediction_only_positive_when_not_training(ecommerce_data: Dataset):
     batch_size = 10
 
-    inbatch_sampler = InBatchSampler()
+    inbatch_sampler = InBatchSamplerV2()
     item_retrieval_prediction = DotProductCategoricalPrediction(
         schema=ecommerce_data.schema,
         negative_samplers=[inbatch_sampler],
