@@ -94,11 +94,10 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.interaction</span> <span class="kn">import</span> <span class="n">DotProductInteraction</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">Debug</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">SequentialBlock</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.continuous</span> <span class="kn">import</span> <span class="n">ContinuousFeatures</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="n">Embeddings</span><span class="p">,</span> <span class="n">EmbeddingOptions</span>
-<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
-
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="n">AsRaggedFeatures</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.continuous</span> <span class="kn">import</span> <span class="n">ContinuousFeatures</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingOptions</span><span class="p">,</span> <span class="n">Embeddings</span>
+<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 
 <div class="viewcode-block" id="DLRMBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.DLRMBlock.html#merlin.models.tf.DLRMBlock">[docs]</a><span class="k">def</span> <span class="nf">DLRMBlock</span><span class="p">(</span>
@@ -177,16 +176,21 @@
             <span class="s2">&quot;last layer of bottom MLP (</span><span class="si">{bottom_block.layers[-1].units}</span><span class="s2">) &quot;</span>
         <span class="p">)</span>
 
+    <span class="n">embeddings_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">sequence_combiner</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span>
+        <span class="n">embedding_dims</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dims</span><span class="p">,</span>
+        <span class="n">embedding_dim_default</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dim_default</span><span class="p">,</span>
+        <span class="n">infer_embedding_sizes</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes</span><span class="p">,</span>
+        <span class="n">infer_embedding_sizes_multiplier</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes_multiplier</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">embeddings_kwargs</span><span class="p">[</span><span class="s2">&quot;infer_embeddings_ensure_dim_multiple_of_8&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">embeddings</span> <span class="o">=</span> <span class="n">SequentialBlock</span><span class="p">(</span>
         <span class="n">AsRaggedFeatures</span><span class="p">(),</span>
         <span class="n">Embeddings</span><span class="p">(</span>
             <span class="n">cat_schema</span><span class="p">,</span>
-            <span class="n">sequence_combiner</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span>
-            <span class="n">embedding_dims</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dims</span><span class="p">,</span>
-            <span class="n">embedding_dim_default</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dim_default</span><span class="p">,</span>
-            <span class="n">infer_embedding_sizes</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes</span><span class="p">,</span>
-            <span class="n">infer_embedding_sizes_multiplier</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes_multiplier</span><span class="p">,</span>
-            <span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">embeddings_kwargs</span><span class="p">,</span>
         <span class="p">),</span>
     <span class="p">)</span>
 
