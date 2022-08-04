@@ -426,6 +426,9 @@ class CategoricalOneHot(TabularBlock):
         if schema:
             self.set_schema(schema.select_by_tag(Tags.CATEGORICAL))
         self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
+        # record which input should be flatten and use it in call, for graph execution compile(
+        # run_eagerly=False)
+        self.flatten = []
 
     def build(self, input_shapes):
         super(CategoricalOneHot, self).build(input_shapes)
@@ -434,7 +437,9 @@ class CategoricalOneHot(TabularBlock):
         self._check_inputs_type(inputs)
         outputs = {}
         for name, val in self.cardinalities.items():
-            outputs[name] = tf.squeeze(tf.one_hot(inputs[name], val))
+            if name in self.flatten:
+                outputs[name] = tf.reshape(inputs[name], [-1])
+            outputs[name] = tf.one_hot(outputs[name], val)
         return outputs
 
     def _check_inputs_type(self, inputs):
