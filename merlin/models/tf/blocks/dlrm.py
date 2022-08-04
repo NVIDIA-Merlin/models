@@ -18,8 +18,8 @@ from typing import Optional
 
 from merlin.models.tf.blocks.interaction import DotProductInteraction
 from merlin.models.tf.core.base import Block, Debug
-from merlin.models.tf.core.combinators import Filter, ParallelBlock, SequentialBlock
-from merlin.models.tf.inputs.continuous import ContinuousFeatures
+from merlin.models.tf.core.combinators import Filter, SequentialBlock
+from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingFeatures, EmbeddingOptions
 from merlin.schema import Schema, Tags
 
@@ -108,9 +108,12 @@ def DLRMBlock(
                 "The bottom_block is required by DLRM when "
                 "continuous features are available in the schema"
             )
-        con = ContinuousFeatures.from_schema(con_schema)
-        bottom_block = con.connect(bottom_block)  # type: ignore
-        interaction_inputs = ParallelBlock({"embeddings": embeddings, "bottom_block": bottom_block})
+        interaction_inputs = InputBlockV2(
+            schema,
+            embeddings=embeddings,
+            continuous_projection=bottom_block,
+            aggregation=None,
+        )
     else:
         interaction_inputs = embeddings  # type: ignore
         bottom_block = None
@@ -125,7 +128,7 @@ def DLRMBlock(
 
     top_block_inputs = interaction_inputs.connect_with_shortcut(
         DotProductInteractionBlock(),
-        shortcut_filter=Filter("bottom_block"),
+        shortcut_filter=Filter("continuous"),
         aggregation="concat",
     )
     top_block_outputs = top_block_inputs.connect(top_block)
