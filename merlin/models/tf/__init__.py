@@ -125,6 +125,8 @@ from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.tf.predictions.base import PredictionBlock
 from merlin.models.tf.predictions.classification import BinaryPrediction
 from merlin.models.tf.predictions.regression import RegressionPrediction
+from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
+from merlin.models.tf.predictions.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
 
