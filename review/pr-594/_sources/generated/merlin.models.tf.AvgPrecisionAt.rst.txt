@@ -19,6 +19,7 @@
       ~AvgPrecisionAt.add_update
       ~AvgPrecisionAt.add_variable
       ~AvgPrecisionAt.add_weight
+      ~AvgPrecisionAt.apply
       ~AvgPrecisionAt.build
       ~AvgPrecisionAt.call
       ~AvgPrecisionAt.check_cast_inputs
@@ -32,9 +33,11 @@
       ~AvgPrecisionAt.get_input_at
       ~AvgPrecisionAt.get_input_mask_at
       ~AvgPrecisionAt.get_input_shape_at
+      ~AvgPrecisionAt.get_losses_for
       ~AvgPrecisionAt.get_output_at
       ~AvgPrecisionAt.get_output_mask_at
       ~AvgPrecisionAt.get_output_shape_at
+      ~AvgPrecisionAt.get_updates_for
       ~AvgPrecisionAt.get_weights
       ~AvgPrecisionAt.merge_state
       ~AvgPrecisionAt.reset_state
