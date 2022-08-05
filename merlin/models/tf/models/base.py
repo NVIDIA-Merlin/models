@@ -20,10 +20,10 @@ from merlin.models.tf.core.transformations import AsRaggedFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
-from merlin.models.tf.metrics.topk import filter_topk_metrics
+from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.predictions.base import PredictionBlock
+from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import call_layer, maybe_serialize_keras_objects
@@ -303,6 +303,14 @@ class BaseModel(tf.keras.Model):
             self.output_names = [task.task_name for task in self.prediction_tasks]
         else:
             self.output_names = [block.full_name for block in self.prediction_blocks]
+            negative_sampling = kwargs.pop("negative_sampling", None)
+            if negative_sampling:
+                if not isinstance(self.prediction_blocks[0], ContrastivePredictionBlock):
+                    raise ValueError(
+                        "Negative sampling strategy can be used only with a"
+                        " `ContrastivePredictionBlock` prediction block"
+                    )
+                self.prediction_blocks[0].compile(negative_sampling=negative_sampling)
 
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
@@ -324,11 +332,16 @@ class BaseModel(tf.keras.Model):
         out = {}
 
         num_v1_blocks = len(self.prediction_tasks)
-
         if isinstance(metrics, dict):
             out = metrics
 
         elif isinstance(metrics, (list, tuple)):
+            # Retrieve top-k metrics & wrap them in TopKMetricsAggregator
+            topk_metrics, topk_aggregators, other_metrics = split_metrics(metrics)
+            if len(topk_metrics) > 0:
+                topk_aggregators.append(TopKMetricsAggregator(*topk_metrics))
+            metrics = other_metrics + topk_aggregators
+
             if num_v1_blocks > 0:
                 if num_v1_blocks == 1:
                     out[self.prediction_tasks[0].task_name] = metrics
@@ -625,8 +638,9 @@ class BaseModel(tf.keras.Model):
             # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
             # should have standard signature for better compatibility with Keras methods
             # like self.compiled_metrics.update_state()
-            for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
-                topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
+            if hasattr(prediction_outputs, "label_relevant_counts"):
+                for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
+                    topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
 
             self.compiled_metrics.update_state(
                 prediction_outputs.targets,
