@@ -118,7 +118,7 @@ from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.tf.predictions.base import PredictionBlock
-from merlin.models.tf.predictions.classification import BinaryPrediction
+from merlin.models.tf.predictions.classification import BinaryPrediction, CategoricalPrediction
 from merlin.models.tf.predictions.regression import RegressionPrediction
 from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
 from merlin.models.tf.predictions.sampling.in_batch import InBatchSamplerV2

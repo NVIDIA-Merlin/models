@@ -38,3 +38,19 @@ def test_binary_prediction_block(ecommerce_data: Dataset, run_eagerly):
         "click/binary_prediction/auc",
         "regularization_loss",
     }
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_categorical_prediction_block(ecommerce_data: Dataset, run_eagerly):
+    schema = ecommerce_data.schema.remove_by_tag("target")
+    schema["item_id"] = schema["item_id"].with_tags(schema["item_id"].tags + "target")
+    ecommerce_data.schema = schema
+    model = mm.Model(
+        mm.InputBlock(schema),
+        mm.MLPBlock([8]),
+        mm.CategoricalPrediction(
+            target=schema.select_by_name("item_id"), target_name="item_id", max_num_samples=20
+        ),
+    )
+
+    _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
