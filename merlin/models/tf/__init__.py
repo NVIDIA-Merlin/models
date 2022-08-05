@@ -41,7 +41,7 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 from merlin.models.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
-from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
+from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate, MMOEBlockV2, CGCBlockV2
 from merlin.models.tf.blocks.interaction import DotProductInteraction, FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
 from merlin.models.tf.blocks.multi_optimizers import MultiOptimizer, OptimizerBlocks
