@@ -139,7 +139,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
 
     def __init__(
         self,
-        target: Union[
+        target_layer: Union[
             Schema, ColumnSchema, EmbeddingTable, "CategoricalTarget", "EmbeddingTablePrediction"
         ] = None,
         target_name: str = None,
@@ -157,21 +157,24 @@ class CategoricalPrediction(ContrastivePredictionBlock):
         ),
         **kwargs,
     ):
-        self.target_name = target_name
+        self.target_name = kwargs.pop("target", target_name)
         self.max_num_samples = kwargs.pop("max_num_samples", None)
         prediction = kwargs.pop("prediction", None)
-        if target is not None:
-            if isinstance(target, (Schema, ColumnSchema)):
-                prediction = CategoricalTarget(target)
-            elif isinstance(target, EmbeddingTable):
-                prediction = EmbeddingTablePrediction(target)
+
+        if target_layer is not None:
+            if isinstance(target_layer, (Schema, ColumnSchema)):
+                prediction = CategoricalTarget(target_layer)
+            elif isinstance(target_layer, EmbeddingTable):
+                prediction = EmbeddingTablePrediction(target_layer)
             else:
-                prediction = target
+                prediction = target_layer
 
         prediction_with_negatives = kwargs.pop(
             "prediction_with_negatives",
             ContrastiveLookUps(
-                prediction, feature_name=target_name, max_num_samples=self.max_num_samples
+                prediction=prediction,
+                feature_name=target_name,
+                max_num_samples=self.max_num_samples,
             ),
         )
         super().__init__(
@@ -180,6 +183,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
             default_loss=default_loss,
             default_metrics=default_metrics,
             name=name,
+            target=self.target_name,
             pre=pre,
             post=post,
             logits_temperature=logits_temperature,
@@ -301,8 +305,9 @@ class EmbeddingTablePrediction(Layer):
 
     def __init__(self, table: EmbeddingTable, bias_initializer="zeros", **kwargs):
         self.table = table
-        self.nun_classes = table.input_dim
+        self.num_classes = table.input_dim
         self.bias_initializer = bias_initializer
+        super().__init__(**kwargs)
 
     def build(self, input_shape):
         self.bias = self.add_weight(
@@ -314,13 +319,31 @@ class EmbeddingTablePrediction(Layer):
         return super().build(input_shape)
 
     def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
-        logits = tf.matmul(inputs, self.table.embeddings, transpose_b=True)
+        logits = tf.matmul(inputs, self.table.table.embeddings, transpose_b=True)
         logits = tf.nn.bias_add(logits, self.bias)
 
         return logits
 
     def embedding_lookup(self, inputs, **kwargs):
-        return self.table(inputs, **kwargs)
+        return self.table.table(inputs, **kwargs)
+
+    def compute_output_shape(self, input_shape):
+        return (input_shape[0], self.num_classes)
+
+    def get_config(self):
+        config = maybe_serialize_keras_objects(
+            self,
+            {
+                **super().get_config(),
+            },
+            ["table"],
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["table"])
+        return super().from_config(config)
 
 
 @runtime_checkable
@@ -364,8 +387,11 @@ class ContrastiveLookUps(Layer):
 
     def call(self, inputs, features, targets, training=False, testing=False):
         if isinstance(targets, dict):
-            assert self.feature_name is not None, "When training multi-task, you should specify the"
-            f" the target name `{self.feature_name}` of for the sampled softmax task"
+            if self.feature_name is None:
+                raise ValueError(
+                    "When training with multi-task, you should specify the "
+                    "`target_name` for the sampled softmax task"
+                )
             targets = targets[self.feature_name]
         # Get positive weights
         pos_item_id = tf.squeeze(targets)

@@ -262,7 +262,7 @@ class EmbeddingTable(EmbeddingTableBase):
 
         # Eliminating the last dim==1 of dense tensors before embedding lookup
         if isinstance(inputs, tf.Tensor):
-            inputs = tf.squeeze(inputs, axis=-1)
+            inputs = tf.squeeze(inputs)
 
         """
         dtype = backend.dtype(inputs)
@@ -300,6 +300,8 @@ class EmbeddingTable(EmbeddingTableBase):
         return out
 
     def compute_output_shape(self, input_shape):
+        if isinstance(input_shape, dict):
+            input_shape = input_shape[self.col_schema.name]
         first_dims = input_shape
         if (self.combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
             first_dims = input_shape[:-1]
