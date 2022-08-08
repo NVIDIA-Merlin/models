@@ -313,10 +313,10 @@ class LazyAdam(tf.keras.optimizers.Adam):
 
     Note, amsgrad is currently not supported and the argument can only be False.
 
-    References
-    ----------
-    [1] TensorFlow Addons Optimizers: LazyAdam
+    This implementation was adapted from the original Tensforflow  Addons implementation of
+    TensorFlow Addons Optimizers: LazyAdam:
     https://github.com/tensorflow/addons/blob/v0.17.0/tensorflow_addons/optimizers/lazy_adam.py#L30
+
     """
 
     def __init__(
