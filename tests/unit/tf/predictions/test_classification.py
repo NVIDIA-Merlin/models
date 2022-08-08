@@ -72,8 +72,7 @@ def test_categorical_prediction_block(ecommerce_data: Dataset, run_eagerly):
     }
 
 
-# TODO Fix graph model
-@pytest.mark.parametrize("run_eagerly", [True])
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
     def last_interaction_as_target(inputs, targets):
         inputs = mm.AsRaggedFeatures()(inputs)

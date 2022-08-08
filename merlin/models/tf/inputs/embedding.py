@@ -262,7 +262,7 @@ class EmbeddingTable(EmbeddingTableBase):
 
         # Eliminating the last dim==1 of dense tensors before embedding lookup
         if isinstance(inputs, tf.Tensor):
-            inputs = tf.squeeze(inputs)
+            inputs = tf.squeeze(inputs, axis=-1)
 
         """
         dtype = backend.dtype(inputs)
