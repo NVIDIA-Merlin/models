@@ -1,0 +1,93 @@
+﻿merlin.models.tf.ItemRetrievalTask
+==================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: ItemRetrievalTask
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ItemRetrievalTask.__init__
+      ~ItemRetrievalTask.add_loss
+      ~ItemRetrievalTask.add_metric
+      ~ItemRetrievalTask.add_update
+      ~ItemRetrievalTask.add_variable
+      ~ItemRetrievalTask.add_weight
+      ~ItemRetrievalTask.build
+      ~ItemRetrievalTask.build_task
+      ~ItemRetrievalTask.call
+      ~ItemRetrievalTask.child_name
+      ~ItemRetrievalTask.compute_mask
+      ~ItemRetrievalTask.compute_output_shape
+      ~ItemRetrievalTask.compute_output_signature
+      ~ItemRetrievalTask.count_params
+      ~ItemRetrievalTask.create_default_metrics
+      ~ItemRetrievalTask.finalize_state
+      ~ItemRetrievalTask.from_config
+      ~ItemRetrievalTask.from_schema
+      ~ItemRetrievalTask.get_config
+      ~ItemRetrievalTask.get_input_at
+      ~ItemRetrievalTask.get_input_mask_at
+      ~ItemRetrievalTask.get_input_shape_at
+      ~ItemRetrievalTask.get_output_at
+      ~ItemRetrievalTask.get_output_mask_at
+      ~ItemRetrievalTask.get_output_shape_at
+      ~ItemRetrievalTask.get_weights
+      ~ItemRetrievalTask.pre_call
+      ~ItemRetrievalTask.pre_loss
+      ~ItemRetrievalTask.set_retrieval_cache_query
+      ~ItemRetrievalTask.set_weights
+      ~ItemRetrievalTask.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ItemRetrievalTask.DEFAULT_LOSS
+      ~ItemRetrievalTask.DEFAULT_METRICS
+      ~ItemRetrievalTask.activity_regularizer
+      ~ItemRetrievalTask.compute_dtype
+      ~ItemRetrievalTask.context
+      ~ItemRetrievalTask.dtype
+      ~ItemRetrievalTask.dtype_policy
+      ~ItemRetrievalTask.dynamic
+      ~ItemRetrievalTask.inbound_nodes
+      ~ItemRetrievalTask.input
+      ~ItemRetrievalTask.input_mask
+      ~ItemRetrievalTask.input_shape
+      ~ItemRetrievalTask.input_spec
+      ~ItemRetrievalTask.losses
+      ~ItemRetrievalTask.metrics
+      ~ItemRetrievalTask.name
+      ~ItemRetrievalTask.name_scope
+      ~ItemRetrievalTask.non_trainable_variables
+      ~ItemRetrievalTask.non_trainable_weights
+      ~ItemRetrievalTask.outbound_nodes
+      ~ItemRetrievalTask.output
+      ~ItemRetrievalTask.output_mask
+      ~ItemRetrievalTask.output_shape
+      ~ItemRetrievalTask.pre_eval_topk
+      ~ItemRetrievalTask.retrieval_scorer
+      ~ItemRetrievalTask.stateful
+      ~ItemRetrievalTask.submodules
+      ~ItemRetrievalTask.supports_masking
+      ~ItemRetrievalTask.task_name
+      ~ItemRetrievalTask.trainable
+      ~ItemRetrievalTask.trainable_variables
+      ~ItemRetrievalTask.trainable_weights
+      ~ItemRetrievalTask.updates
+      ~ItemRetrievalTask.variable_dtype
+      ~ItemRetrievalTask.variables
+      ~ItemRetrievalTask.weights
+   
+   
