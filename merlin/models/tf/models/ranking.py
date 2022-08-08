@@ -1,5 +1,5 @@
 import warnings
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import tensorflow as tf
 
@@ -11,7 +11,7 @@ from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.core.transformations import CategoricalOneHot
-from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
@@ -241,8 +241,6 @@ def DeepFMModel(
 def WideAndDeepModel(
     schema: Schema,
     deep_block: Block,
-    embedding_dims: Optional[Dict[str, int]] = None,
-    embedding_dim_default: Optional[int] = None,
     wide_schema: Optional[Schema] = None,
     deep_schema: Optional[Schema] = None,
     wide_preprocess: Optional[Block] = None,
@@ -251,22 +249,32 @@ def WideAndDeepModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    embedding_option_kwargs: dict = {},
     **kwargs,
 ) -> Model:
     """Wide-and-Deep-model architecture.
 
     Example Usage::
+        1. Using default input block
         wide_deep = ml.benchmark.WideAndDeepModel(
-                schema,
-                deep_block=ml.MLPBlock([32, 16]),
-                embedding_dims={"user_catetory": 32},
-                embedding_dim_default=64,
-                wide_schema=wide_schema,
-                prediction_tasks=ml.BinaryClassificationTask("click"),
-            )
+            schema,
+            deep_block=ml.MLPBlock([32, 16]),
+            wide_schema=wide_schema,
+            deep_schema=deep_schema,
+            prediction_tasks=ml.BinaryClassificationTask("click"),
+        )
         wide_deep.compile(optimizer="adam")
         wide_deep.fit(train_data, epochs=10)
+
+        2. Custom input block
+        deep_embedding = ml.Embeddings(schema, embedding_dim_default=8, infer_embedding_sizes=False)
+        model = ml.WideAndDeepModel(
+            schema,
+            deep_input_block = ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
+            wide_schema=wide_schema,
+            wide_preprocess=ml.HashedCross(wide_schema, 1000),
+            deep_block=ml.MLPBlock([32, 16]),
+            prediction_tasks=ml.BinaryClassificationTask("click"),
+        )
 
     References
     ----------
@@ -280,13 +288,6 @@ def WideAndDeepModel(
         The `Schema` with the input features
     deep_block: Block
         Block (structure) of deep model.
-    embedding_dims : Optional[dict]
-        Dimensions of the embeddings, in order to specify different dimensions for different
-        features, for features not specified by this dict, default dimension
-        (embedding_dim_default) would be used to set their embeddings.by default None, then
-        embedding_dim_default would be the fixed embedding dimension for all features
-    embedding_dim : Optional[int]
-        Default dimension of feateures not specified in embedding_dims
     wide_schema : Optional[Schema]
         The 'Schema' of input features for wide model, by default no features would be sent to
         wide model, and the model would become a pure deep model, if specified, only features
@@ -323,9 +324,6 @@ def WideAndDeepModel(
             ```
     prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
         The prediction tasks to be used, by default this will be inferred from the Schema.
-    embedding_option_kwargs: Optional[dict]
-        Additional arguments to provide to `EmbeddingOptions` object for embeddings tables setting.
-        Defaults to {}
 
     Returns
     -------
@@ -334,23 +332,6 @@ def WideAndDeepModel(
     """
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
-
-    if embedding_dims and embedding_dim_default:
-        embedding_options = EmbeddingOptions(
-            embedding_dims=embedding_dims,
-            embedding_dim_default=embedding_dim_default,
-            **embedding_option_kwargs,
-        )
-    elif embedding_dims:
-        embedding_options = EmbeddingOptions(
-            embedding_dims=embedding_dims, **embedding_option_kwargs
-        )
-    elif embedding_dim_default:
-        embedding_options = EmbeddingOptions(
-            embedding_dim_default=embedding_dim_default, **embedding_option_kwargs
-        )
-    else:
-        embedding_options = EmbeddingOptions(**embedding_option_kwargs)
 
     if not wide_schema:
         warnings.warn("If not specify wide_schema, NO feature would be sent to wide model")
@@ -361,9 +342,8 @@ def WideAndDeepModel(
 
     if not deep_input_block:
         if len(deep_schema) > 0:
-            deep_input_block = InputBlock(
+            deep_input_block = InputBlockV2(
                 deep_schema,
-                embedding_options=embedding_options,
                 **kwargs,
             )
     deep_body = deep_input_block.connect(deep_block).connect(

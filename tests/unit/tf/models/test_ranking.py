@@ -180,7 +180,6 @@ def test_wide_deep_model(music_streaming_data, run_eagerly):
 
     model = ml.WideAndDeepModel(
         music_streaming_data.schema,
-        embedding_dim_default=64,
         wide_schema=wide_schema,
         deep_schema=deep_schema,
         deep_block=ml.MLPBlock([32, 16]),
@@ -227,15 +226,18 @@ def test_wide_deep_model_hashed_cross(ecommerce_data, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_wide_deep_embedding_dims_dict(music_streaming_data, run_eagerly):
+def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly):
 
+    schema = music_streaming_data.schema
     # prepare wide_schema
-    wide_schema = music_streaming_data.schema.select_by_name(["country"])
+    wide_schema = schema.select_by_name(["country", "user_age"])
+    deep_embedding = ml.Embeddings(schema, embedding_dim_default=16, infer_embedding_sizes=False)
 
     model = ml.WideAndDeepModel(
-        music_streaming_data.schema,
-        embedding_dims={"country": 32, "user_genres": 128},
+        schema,
+        deep_input_block=ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
         wide_schema=wide_schema,
+        wide_preprocess=ml.HashedCross(wide_schema, 1000),
         deep_block=ml.MLPBlock([32, 16]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
