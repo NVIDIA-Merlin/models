@@ -355,7 +355,10 @@ class ContrastiveDotProduct(DotProduct):
         if len(negative_items) == 0:
             raise Exception(f"No negative items where sampled from samplers {self.samplers}")
 
-        negatives = sum(negative_items) if len(negative_items) > 1 else negative_items[0]
+        negatives = negative_items[0]
+        if len(negative_items) > 1:
+            for neg in negative_items[1:]:
+                negatives += neg
 
         return negatives
 

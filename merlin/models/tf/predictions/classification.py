@@ -25,7 +25,6 @@ from merlin.models.tf.inputs.embedding import EmbeddingTable
 from merlin.models.tf.metrics.topk import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
 from merlin.models.tf.predictions.sampling.base import Items, ItemSamplersType, ItemSamplerV2
-from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSampler
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
     call_layer,
@@ -104,12 +103,15 @@ class CategoricalPrediction(ContrastivePredictionBlock):
 
     Parameters
     ----------
-    target : Union[Schema, ColumnSchema,
+    target_layer : Union[Schema, ColumnSchema,
                 EmbeddingTable, 'CategoricalTarget&quot',
                 'EmbeddingTablePrediction']
         The target feature to predict. To perform weight-tying [1] technique, you should provide
         the `EmbeddingTable` or `EmbeddingTablePrediction` related to the
         taregt feature.
+    negative_samplers : ItemSamplersType, optional
+        List of samplers for negative sampling,
+        by default None
     pre: Optional[Block], optional
         Optional block to transform predictions before computing the binary logits,
         by default None
@@ -142,6 +144,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
         target_layer: Union[
             Schema, ColumnSchema, EmbeddingTable, "CategoricalTarget", "EmbeddingTablePrediction"
         ] = None,
+        negative_samplers: ItemSamplersType = None,
         target_name: str = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
@@ -173,6 +176,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
             "prediction_with_negatives",
             ContrastiveLookUps(
                 prediction=prediction,
+                negative_samplers=negative_samplers,
                 feature_name=target_name,
                 max_num_samples=self.max_num_samples,
             ),
@@ -189,6 +193,15 @@ class CategoricalPrediction(ContrastivePredictionBlock):
             logits_temperature=logits_temperature,
             **kwargs,
         )
+
+    def compile(self, negative_sampling=None, downscore_false_negatives=False):
+        if negative_sampling is not None:
+            if not isinstance(negative_sampling, (list, tuple)):
+                negative_sampling = [negative_sampling]
+            negative_sampling = [ItemSamplerV2.parse(s) for s in list(negative_sampling)]
+
+        self.prediction_with_negatives.negative_samplers = negative_sampling
+        self.prediction_with_negatives.downscore_false_negatives = downscore_false_negatives
 
     def get_config(self):
         config = super(ContrastivePredictionBlock, self).get_config()
@@ -360,26 +373,24 @@ class ContrastiveLookUps(Layer):
     def __init__(
         self,
         prediction: LookUpProtocol,
+        negative_samplers: ItemSamplersType,
         feature_name: str = None,
-        negative_samplers: ItemSamplersType = None,
         downscore_false_negatives=True,
         false_negative_score: float = MIN_FLOAT,
         **kwargs,
     ):
         self.prediction = prediction
-        self.num_classes = prediction.num_classes
         self.downscore_false_negatives = downscore_false_negatives
         self.false_negative_score = false_negative_score
         self.feature_name = feature_name
 
-        if negative_samplers is None:
-            negative_samplers = PopularityBasedSampler(self.num_classes, **kwargs)
-        if not isinstance(negative_samplers, (list, tuple)):
-            negative_samplers = [negative_samplers]
-        self.negative_samplers = [ItemSamplerV2.parse(s) for s in list(negative_samplers)]
-        assert (
-            len(self.negative_samplers) > 0
-        ), "At least one sampler is required by ContrastiveLookUps for negative sampling"
+        if negative_samplers is not None:
+            if not isinstance(negative_samplers, (list, tuple)):
+                negative_samplers = [negative_samplers]
+            self.negative_samplers = [ItemSamplerV2.parse(s) for s in list(negative_samplers)]
+        else:
+            self.negative_samplers = negative_samplers
+
         super().__init__()
 
     def build(self, input_shape):
@@ -405,7 +416,9 @@ class ContrastiveLookUps(Layer):
 
         # Apply dot-product
         negative_scores = tf.linalg.matmul(inputs, negative_weights, transpose_b=True)
-        positive_scores = tf.linalg.matmul(inputs, positive_weights, transpose_b=True)
+        positive_scores = tf.reduce_sum(
+            tf.multiply(inputs, positive_weights), keepdims=True, axis=-1
+        )
 
         if self.downscore_false_negatives:
             negative_scores, _ = rescore_false_negatives(
@@ -474,7 +487,10 @@ class ContrastiveLookUps(Layer):
         if len(negative_items) == 0:
             raise Exception(f"No negative items where sampled from samplers {self.samplers}")
 
-        negatives = sum(negative_items) if len(negative_items) > 1 else negative_items[0]
+        negatives = negative_items[0]
+        if len(negative_items) > 1:
+            for neg in negative_items[1:]:
+                negatives += neg
 
         return negatives
 

@@ -21,7 +21,7 @@ from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class PopularityBasedSampler(ItemSamplerV2):
+class PopularityBasedSamplerV2(ItemSamplerV2):
     """
     Provides a popularity-based negative sampling for the softmax layer
     to ensure training efficiency when the catalog of items is very large.
@@ -62,7 +62,7 @@ class PopularityBasedSampler(ItemSamplerV2):
         assert (
             self.max_num_samples <= self.max_id
         ), f"Number of items to sample `{self.max_num_samples}`"
-        f" should be less than total number of ids `{self.max_id}`"
+        f"should be less than total number of ids `{self.max_id}`"
 
     def add(self, items: Items):
         pass
