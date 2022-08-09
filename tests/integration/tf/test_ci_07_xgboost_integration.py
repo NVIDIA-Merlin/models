@@ -4,7 +4,7 @@ from tests.conftest import REPO_ROOT
 
 
 @testbook(
-    REPO_ROOT / "examples/07-Train-an-xgboost-model-using-the-Merlin-Models-API.ipynb",
+    REPO_ROOT / "examples/07-Train-a-third-party-model-using-the-Merlin-Models-API.ipynb",
     execute=False,
 )
 def test_func(tb):
