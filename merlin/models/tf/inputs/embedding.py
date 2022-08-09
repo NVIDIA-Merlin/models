@@ -16,7 +16,7 @@
 
 from copy import copy, deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
@@ -347,6 +347,10 @@ def Embeddings(
     infer_embedding_sizes: bool = True,
     infer_embedding_sizes_multiplier: float = 2.0,
     infer_embeddings_ensure_dim_multiple_of_8: bool = True,
+    non_trainable: List[str] = [],
+    embeddings_initializers: Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+    ] = None,
     **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
@@ -381,6 +385,14 @@ def Embeddings(
     infer_embeddings_ensure_dim_multiple_of_8 : bool, optional
         Ensures that the inferred embedding sizes are rounded up to the next multiple of 8,
         for better performance for embedding looks on GPUs. By default True
+    non_trainable : List[str]
+        Name of the column(s) whose embeddings should be frozen during training
+        trainable will be set to False for these column(s)
+    embeddings_initializers : Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+        ],
+        An initializer function or a dict where keys are feature names and values are
+        callable to initialize embedding tables
 
     Returns
     -------
@@ -414,7 +426,14 @@ def Embeddings(
                 combiner = sequence_combiner
 
         embedding_size = embedding_dims.get(col.name, embedding_dim_default)
-        tables[col.name] = EmbeddingTable(embedding_size, col, combiner=combiner, **kwargs)
+        tables[col.name] = EmbeddingTable(
+            embedding_size,
+            col,
+            combiner=combiner,
+            trainable=col not in non_trainable,
+            embeddings_initializer=embeddings_initializers.get(col.name, "uniform"),
+            **kwargs,
+        )
 
     return ParallelBlock(
         tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=cols
