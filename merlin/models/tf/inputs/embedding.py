@@ -247,7 +247,7 @@ class EmbeddingTable(EmbeddingTableBase):
         #    self.combiner.build(self.table.compute_output_shape(input_shapes))
         return super(EmbeddingTable, self).build(input_shapes)
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs: Union[tf.Tensor, TabularData], **kwargs) -> tf.Tensor:
         """
         Parameters
         ----------
