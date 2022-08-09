@@ -73,6 +73,7 @@
       ~ParallelPredictionBlock.repr_extra
       ~ParallelPredictionBlock.repr_ignore
       ~ParallelPredictionBlock.select_by_name
+      ~ParallelPredictionBlock.select_by_names
       ~ParallelPredictionBlock.set_aggregation
       ~ParallelPredictionBlock.set_post
       ~ParallelPredictionBlock.set_pre
