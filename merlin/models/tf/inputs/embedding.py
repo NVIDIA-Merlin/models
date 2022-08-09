@@ -163,7 +163,6 @@ class EmbeddingTable(EmbeddingTableBase):
         dtype=None,
         dynamic=False,
         table=None,
-        weights=None,
         **kwargs,
     ):
         """Create an EmbeddingTable."""
@@ -180,8 +179,8 @@ class EmbeddingTable(EmbeddingTableBase):
                 activity_regularizer=activity_regularizer,
                 embeddings_constraint=embeddings_constraint,
                 mask_zero=mask_zero,
-                weights=weights,
                 input_length=input_length,
+                trainable=trainable,
             )
             self.table = tf.keras.layers.Embedding(
                 input_dim=self.input_dim,
@@ -227,7 +226,7 @@ class EmbeddingTable(EmbeddingTableBase):
             dim,
             col_schema,
             name=name,
-            weights=[tf.Variable(embeddings, trainable=trainable)],
+            embeddings_initializer=tf.keras.initializers.constant(embeddings),
             trainable=trainable,
             **kwargs,
         )

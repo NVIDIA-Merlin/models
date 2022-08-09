@@ -197,14 +197,6 @@ class TestEmbeddingTable:
             pre_trained_weights_df, name="item_id", trainable=trainable
         )
 
-        assert embedding_table.input_dim == vocab_size
-
-        inputs = tf.constant([[1]])
-        output = embedding_table(inputs)
-
-        assert list(output.shape) == [1, embedding_dim]
-        np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
-
         model = mm.Model(
             tf.keras.layers.Lambda(lambda inputs: inputs["item_id"]),
             embedding_table,
