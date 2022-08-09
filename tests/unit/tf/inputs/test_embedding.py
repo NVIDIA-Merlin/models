@@ -74,6 +74,7 @@ class TestEmbeddingTable:
             (16, {}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, None, 16]),
             (16, {"combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
             (16, {"combiner": "mean"}, tf.sparse.from_dense(tf.constant([[1, 2, 3]])), [1, 16]),
+            (12, {}, {"item_id": tf.constant([[1]])}, [1, 12]),
         ],
     )
     def test_layer(self, dim, kwargs, inputs, expected_output_shape):
@@ -85,6 +86,8 @@ class TestEmbeddingTable:
 
         if "combiner" in kwargs:
             assert isinstance(output, tf.Tensor)
+        elif isinstance(inputs, dict):
+            assert type(inputs[column_schema.name]) is type(output)
         else:
             assert type(inputs) is type(output)
 
