@@ -72,6 +72,7 @@
       ~DualEncoderBlock.repr_extra
       ~DualEncoderBlock.repr_ignore
       ~DualEncoderBlock.select_by_name
+      ~DualEncoderBlock.select_by_names
       ~DualEncoderBlock.set_aggregation
       ~DualEncoderBlock.set_post
       ~DualEncoderBlock.set_pre
