@@ -1,0 +1,854 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "63959d5a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# Copyright 2021 NVIDIA Corporation. All Rights Reserved.\n",
+    "#\n",
+    "# Licensed under the Apache License, Version 2.0 (the \"License\");\n",
+    "# you may not use this file except in compliance with the License.\n",
+    "# You may obtain a copy of the License at\n",
+    "#\n",
+    "#     http://www.apache.org/licenses/LICENSE-2.0\n",
+    "#\n",
+    "# Unless required by applicable law or agreed to in writing, software\n",
+    "# distributed under the License is distributed on an \"AS IS\" BASIS,\n",
+    "# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n",
+    "# See the License for the specific language governing permissions and\n",
+    "# limitations under the License.\n",
+    "# ================================"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "906fc19a",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "<img src=\"http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png\" style=\"width: 90px; float: right;\">\n",
+    "\n",
+    "# Two-Stage Recommender Systems\n",
+    "\n",
+    "This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. \n",
+    "\n",
+    "In large scale recommender systems pipelines, the size of the item catalog (number of unique items) might be in the order of millions. At such scale, a typical setup is having two-stage pipeline, where a faster candidate retrieval model quickly extracts thousands of relevant items and a then a more powerful ranking model (i.e. with more features and more powerful architecture) ranks the top-k items that are going to be displayed to the user. For ML-based candidate retrieval model, as it needs to quickly score millions of items for a given user, a popular choices are models that can produce recommendation scores by just computing the dot product the user embeddings and item embeddings. Popular choices of such models are **Matrix Factorization**, which learns low-rank user and item embeddings, and the **Two-Tower architecture**, which is a neural network with two MLP towers where both user and item features are fed to generate user and item embeddings in the output."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "401daa6d",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "\n",
+    "### Dataset\n",
+    "\n",
+    "In this notebook, we are building a Two-Tower model for Item Retrieval task using synthetic datasets that are mimicking the real [Ali-CCP: Alibaba Click and Conversion Prediction](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1) dataset.\n",
+    "### Learning objectives\n",
+    "- Preparing the data with NVTabular\n",
+    "- Training and evaluating Two-Tower model with Merlin Models\n",
+    "- Exporting the model for deployment"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cdac1fea",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "### Importing Libraries"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "92aa8daa",
+   "metadata": {
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2022-05-09 08:50:20.819016: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX\n",
+      "To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
+      "2022-05-09 08:50:21.707446: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -> device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "\n",
+    "import nvtabular as nvt\n",
+    "from nvtabular.ops import *\n",
+    "from merlin.models.utils.example_utils import workflow_fit_transform\n",
+    "\n",
+    "from merlin.schema.tags import Tags\n",
+    "\n",
+    "import merlin.models.tf as mm\n",
+    "from merlin.io.dataset import Dataset\n",
+    "\n",
+    "import tensorflow as tf"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "# disable INFO and DEBUG logging everywhere\n",
+    "import logging\n",
+    "\n",
+    "logging.disable(logging.WARNING)"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "### Feature Engineering with NVTabular"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "Let's generate synthetic train and validation dataset objects."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "from merlin.datasets.synthetic import generate_data\n",
+    "\n",
+    "DATA_FOLDER = os.environ.get(\"DATA_FOLDER\", \"/workspace/data/\")\n",
+    "NUM_ROWS = os.environ.get(\"NUM_ROWS\", 1000000)\n",
+    "SYNTHETIC_DATA = eval(os.environ.get(\"SYNTHETIC_DATA\", \"True\"))\n",
+    "\n",
+    "if SYNTHETIC_DATA:\n",
+    "    train, valid = generate_data(\"aliccp-raw\", int(NUM_ROWS), set_sizes=(0.7, 0.3))\n",
+    "else:\n",
+    "    train = nvt.Dataset(DATA_FOLDER + \"/train/*.parquet\")\n",
+    "    valid = nvt.Dataset(DATA_FOLDER + \"/valid/*.parquet\")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "# define output path for the processed parquet files\n",
+    "output_path = os.path.join(DATA_FOLDER, \"processed\")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "We keep only positive interactions where clicks==1 in the dataset with `Filter()` op."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "user_id = [\"user_id\"] >> Categorify() >> TagAsUserID()\n",
+    "item_id = [\"item_id\"] >> Categorify() >> TagAsItemID()\n",
+    "\n",
+    "item_features = [\"item_category\", \"item_shop\", \"item_brand\"] >> Categorify() >> TagAsItemFeatures()\n",
+    "\n",
+    "user_features = (\n",
+    "    [\n",
+    "        \"user_shops\",\n",
+    "        \"user_profile\",\n",
+    "        \"user_group\",\n",
+    "        \"user_gender\",\n",
+    "        \"user_age\",\n",
+    "        \"user_consumption_2\",\n",
+    "        \"user_is_occupied\",\n",
+    "        \"user_geography\",\n",
+    "        \"user_intentions\",\n",
+    "        \"user_brands\",\n",
+    "        \"user_categories\",\n",
+    "    ]\n",
+    "    >> Categorify()\n",
+    "    >> TagAsUserFeatures()\n",
+    ")\n",
+    "\n",
+    "inputs = user_id + item_id + item_features + user_features + [\"click\"]\n",
+    "\n",
+    "outputs = inputs >> Filter(f=lambda df: df[\"click\"] == 1)"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "With `transform_aliccp` function, we can execute fit() and transform() on the raw dataset applying the operators defined in the NVTabular workflow pipeline above. The processed parquet files are saved to output_path."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "from merlin.datasets.ecommerce import transform_aliccp\n",
+    "\n",
+    "transform_aliccp((train, valid), output_path, nvt_workflow=outputs)"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "## Building a Two-Tower Model with Merlin Models"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "We will use Two-Tower Model for item retrieval task. Real-world large scale recommender systems have hundreds of millions of items (products) and users. Thus, these systems often composed of two stages: candidate generation (retrieval) and ranking (scoring the retrieved items). At candidate generation step, a subset of relevant items from large item corpus is retrieved. You can read more about two stage Recommender Systems here. In this example, we're going to focus on the retrieval stage.\n",
+    "\n",
+    "A Two-Tower Model consists of item (candidate) and user (query) encoder towers. With two towers, the model can learn representations (embeddings) for queries and candidates separately. \n",
+    "\n",
+    "<img src=\"./images/TwoTower.png\"  width=\"30%\">\n",
+    "\n",
+    "Image Adapted from: [Off-policy Learning in Two-stage Recommender Systems](https://dl.acm.org/doi/abs/10.1145/3366423.3380130)"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "We use the `schema` object to define our model."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "output_path"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "train = Dataset(os.path.join(output_path, \"train\", \"*.parquet\"))\n",
+    "valid = Dataset(os.path.join(output_path, \"valid\", \"*.parquet\"))\n",
+    "\n",
+    "schema = train.schema"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "schema = schema.select_by_tag([Tags.ITEM_ID, Tags.USER_ID, Tags.ITEM, Tags.USER])"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "We can print out the feature column names."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "schema.column_names"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "We expect the label names to be empty."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "label_names = schema.select_by_tag(Tags.TARGET).column_names\n",
+    "label_names"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "### Negative sampling\n",
+    "Many datasets for recommender systems contain implicit feedback with logs of user interactions like clicks, add-to-cart, purchases, music listening events, rather than explicit ratings that reflects user preferences over items. To be able to learn from implicit feedback, we use the general (and naive) assumption that the interacted items are more relevant for the user than the non-interacted ones.\n",
+    "In Merlin Models we provide some scalable negative sampling algorithms for the Item Retrieval Task. In particular, we use in this example the in-batch sampling algorithm which uses the items interacted by other users as negatives within the same mini-batch."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "### Building the Model"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "Now, let's build our Two-Tower model. In a nutshell, we aggregate all user features to feed in user tower and feed the item features to the item tower. Then we compute the positive score by multiplying the user embedding with the item embedding and sample negative items (read more about negative sampling [here](https://openreview.net/pdf?id=824xC-SgWgU) and [here](https://medium.com/mlearning-ai/overview-negative-sampling-on-recommendation-systems-230a051c6cd7)), whose item embeddings are also multiplied by the user embedding. Then we apply the loss function on top of the positive and negative scores."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "model = mm.TwoTowerModel(\n",
+    "    schema,\n",
+    "    query_tower=mm.MLPBlock([128, 64], no_activation_last_layer=True),\n",
+    "    samplers=[mm.InBatchSampler()],\n",
+    "    embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),\n",
+    ")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "Let's explain the parameters in the TwoTowerModel():\n",
+    "- no_activation_last_layer: when set True, no activation is used for top hidden layer. Learn more [here](https://storage.googleapis.com/pub-tools-public-publication-data/pdf/b9f4e78a8830fe5afcf2f0452862fb3c0d6584ea.pdf).\n",
+    "- infer_embedding_sizes: when set True, automatically defines the embedding dimension from the feature cardinality in the schema\n",
+    "\n",
+    "**Metrics:**\n",
+    "\n",
+    "The following information retrieval metrics are used to compute the Top-10 accuracy of recommendation lists containing all items:\n",
+    "\n",
+    "- **Normalized Discounted Cumulative Gain (NDCG@10)**: NDCG accounts for rank of the relevant item in the recommendation list and is a more fine-grained metric than HR, which only verifies whether the relevant item is among the top-k items.\n",
+    "\n",
+    "- **Recall@10**: Also known as HitRate@n when there is only one relevant item in the recommendation list. Recall just verifies whether the relevant item is among the top-n items."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "We need to initialize the dataloaders."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "model.compile(optimizer=\"adam\", run_eagerly=False, metrics=[mm.RecallAt(10), mm.NDCGAt(10)])\n",
+    "model.fit(train, validation_data=valid, batch_size=4096, epochs=3)"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "## Exporting Retrieval Models"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "So far we have trained and evaluated our Retrieval model. Now, the next step is to deploy our model and generate top-K recommendations given a user (query). We can efficiently serve our model by indexing the trained item embeddings into an **Approximate Nearest Neighbors (ANN)** engine. Basically, for a given user query vector, that is generated passing the user features into user tower of retrieval model, we do an ANN search query to find the ids of nearby item vectors, and at serve time, we score user embeddings over all indexed top-K item embeddings within the ANN engine.\n",
+    "\n",
+    "In doing so, we need to export\n",
+    " \n",
+    "- user (query) tower\n",
+    "- item and user features\n",
+    "- item embeddings"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "#### Save User (query) tower"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "We are able to save the user tower model as a TF model to disk. The user tower model is needed to generate a user embedding vector when a user feature vector <i>x</i> is fed into that model."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "query_tower = model.retrieval_block.query_block()\n",
+    "query_tower.save(\"query_tower\")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "#### Extract and save User features"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "With `unique_rows_by_features` utility function we can easily extract both unique user and item features tables as cuDF dataframes. Note that for user features table, we use `USER` and `USER_ID` tags."
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "from merlin.models.utils.dataset import unique_rows_by_features\n",
+    "\n",
+    "user_features = (\n",
+    "    unique_rows_by_features(train, Tags.USER, Tags.USER_ID).compute().reset_index(drop=True)\n",
+    ")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "user_features.head()"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "user_features.shape"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "# save to disk\n",
+    "user_features.to_parquet(\"user_features.parquet\")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "#### Extract and save Item features"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "item_features = (\n",
+    "    unique_rows_by_features(train, Tags.ITEM, Tags.ITEM_ID).compute().reset_index(drop=True)\n",
+    ")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "item_features.head()"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "# save to disk\n",
+    "item_features.to_parquet(\"item_features.parquet\")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "#### Extract and save Item embeddings"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "item_embs = model.item_embeddings(Dataset(item_features, schema=schema), batch_size=1024)\n",
+    "item_embs_df = item_embs.compute(scheduler=\"synchronous\")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "item_embs_df"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "# select only embedding columns\n",
+    "item_embeddings = item_embs_df.iloc[:, 4:]"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "item_embeddings.head()"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "outputs": [],
+   "source": [
+    "# save to disk\n",
+    "item_embeddings.to_parquet(\"item_embeddings.parquet\")"
+   ],
+   "metadata": {
+    "collapsed": false,
+    "pycharm": {
+     "name": "#%%\n"
+    }
+   }
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1eed43c3",
+   "metadata": {
+    "pycharm": {
+     "name": "#%% md\n"
+    }
+   },
+   "source": [
+    "That's it. You have learned how to train and evaluate your Two-Tower retrieval model, and then how to export the required components to be able to deploy this model to generate recommendations. In order to learn more on serving a model to [Triton Inference Server](https://github.com/triton-inference-server/server), please explore the examples in the [Merlin](https://github.com/NVIDIA-Merlin/Merlin) and [Merlin Systems](https://github.com/NVIDIA-Merlin/systems) repos."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.10"
+  },
+  "merlin": {
+   "containers": [
+    "nvcr.io/nvidia/merlin/merlin-tensorflow:latest"
+   ]
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
