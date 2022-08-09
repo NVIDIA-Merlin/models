@@ -99,6 +99,22 @@ class TestEmbeddingTable:
         output = copied_layer(inputs)
         assert list(output.shape) == expected_output_shape
 
+    @pytest.mark.parametrize(
+        ["input_shape", "expected_output_shape", "kwargs"],
+        [
+            (tf.TensorShape([1, 1]), tf.TensorShape([1, 10]), {}),
+            (tf.TensorShape([1, 3]), tf.TensorShape([1, 3, 10]), {}),
+            (tf.TensorShape([2, None]), tf.TensorShape([2, None, 10]), {}),
+            (tf.TensorShape([2, None]), tf.TensorShape([2, 10]), {"combiner": "mean"}),
+            ({"item_id": tf.TensorShape([1, 1])}, tf.TensorShape([1, 10]), {}),
+        ],
+    )
+    def test_compute_output_shape(self, input_shape, expected_output_shape, kwargs):
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(10, column_schema, **kwargs)
+        output_shape = layer.compute_output_shape(input_shape)
+        assert list(output_shape) == list(expected_output_shape)
+
     def test_dense_with_combiner(self):
         dim = 16
         column_schema = self.sample_column_schema
