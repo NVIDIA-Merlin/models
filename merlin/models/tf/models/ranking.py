@@ -241,6 +241,8 @@ def DeepFMModel(
 def WideAndDeepModel(
     schema: Schema,
     deep_block: Block,
+    wide_model_name: Optional[str] = "wide_model_block",
+    deep_model_name: Optional[str] = "deep_model_block",
     wide_schema: Optional[Schema] = None,
     deep_schema: Optional[Schema] = None,
     wide_preprocess: Optional[Block] = None,
@@ -347,7 +349,7 @@ def WideAndDeepModel(
                 **kwargs,
             )
     deep_body = deep_input_block.connect(deep_block).connect(
-        MLPBlock([1], no_activation_last_layer=True)
+        MLPBlock([1], no_activation_last_layer=True), block_name=deep_model_name
     )
 
     if not wide_input_block:
@@ -357,7 +359,9 @@ def WideAndDeepModel(
                 is_input=True,
                 aggregation="concat",
             )
-    wide_body = wide_input_block.connect(MLPBlock([1], no_activation_last_layer=True))
+    wide_body = wide_input_block.connect(
+        MLPBlock([1], no_activation_last_layer=True), block_name=wide_model_name
+    )
 
     branches = {"wide": wide_body, "deep": deep_body}
     wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
