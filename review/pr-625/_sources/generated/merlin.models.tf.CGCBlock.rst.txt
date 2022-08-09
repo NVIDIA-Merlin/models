@@ -20,7 +20,6 @@
       ~CGCBlock.add_update
       ~CGCBlock.add_variable
       ~CGCBlock.add_weight
-      ~CGCBlock.apply
       ~CGCBlock.apply_to_all
       ~CGCBlock.apply_to_branch
       ~CGCBlock.as_tabular
@@ -50,12 +49,10 @@
       ~CGCBlock.get_input_mask_at
       ~CGCBlock.get_input_shape_at
       ~CGCBlock.get_item_ids_from_inputs
-      ~CGCBlock.get_losses_for
       ~CGCBlock.get_output_at
       ~CGCBlock.get_output_mask_at
       ~CGCBlock.get_output_shape_at
       ~CGCBlock.get_padding_mask_from_item_id
-      ~CGCBlock.get_updates_for
       ~CGCBlock.get_weights
       ~CGCBlock.parse
       ~CGCBlock.parse_block
@@ -70,6 +67,7 @@
       ~CGCBlock.repr_extra
       ~CGCBlock.repr_ignore
       ~CGCBlock.select_by_name
+      ~CGCBlock.select_by_names
       ~CGCBlock.set_aggregation
       ~CGCBlock.set_post
       ~CGCBlock.set_pre
