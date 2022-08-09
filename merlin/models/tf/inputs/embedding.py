@@ -190,6 +190,7 @@ class EmbeddingTable(EmbeddingTableBase):
                 **table_kwargs,
             )
         self.combiner = combiner
+        self.supports_masking = True
 
     @classmethod
     def from_pretrained(

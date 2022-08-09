@@ -99,6 +99,18 @@ class TestEmbeddingTable:
         output = copied_layer(inputs)
         assert list(output.shape) == expected_output_shape
 
+    def test_layer_simple(self):
+        col_schema = self.sample_column_schema
+        dim = np.random.randint(1, high=32)
+        testing_utils.layer_test(
+            mm.EmbeddingTable,
+            kwargs={"dim": dim, "col_schema": col_schema},
+            input_data=tf.constant([[1], [2], [3]], dtype=tf.int32),
+            expected_output_shape=tf.TensorShape([None, dim]),
+            expected_output_dtype=tf.float32,
+            supports_masking=True,
+        )
+
     @pytest.mark.parametrize(
         ["input_shape", "expected_output_shape", "kwargs"],
         [
