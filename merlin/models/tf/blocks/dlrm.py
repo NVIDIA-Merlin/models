@@ -18,9 +18,9 @@ from typing import Optional
 
 from merlin.models.tf.blocks.interaction import DotProductInteraction
 from merlin.models.tf.core.base import Block, Debug
-from merlin.models.tf.core.combinators import Filter, ParallelBlock, SequentialBlock
-from merlin.models.tf.inputs.continuous import ContinuousFeatures
-from merlin.models.tf.inputs.embedding import EmbeddingFeatures, EmbeddingOptions
+from merlin.models.tf.core.combinators import Filter, SequentialBlock
+from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.models.tf.inputs.embedding import EmbeddingFeatures, EmbeddingOptions, AverageEmbeddingsByWeightFeature, Embeddings
 from merlin.schema import Schema, Tags
 
 
@@ -130,6 +130,71 @@ def DLRMBlock(
     )
     top_block_outputs = top_block_inputs.connect(top_block)
 
+    return top_block_outputs
+
+def DLRMBlockV2(
+    schema: Schema,
+    embedding_dim: int,
+    infer_embedding_sizes = False,
+    bottom_block: Optional[Block] = None,
+    top_block: Optional[Block] = None,
+) -> SequentialBlock:
+    if schema is None:
+        raise ValueError("The schema is required by DLRM")
+    if embedding_dim is None:
+        raise ValueError("The embedding_dim is required")
+
+    con_schema = schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET).excluding_by_tag(Tags.SEQUENCE)
+    cat_schema = schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET)
+
+    if not len(cat_schema) > 0:
+        raise ValueError("DLRM requires categorical features")
+    if (
+        embedding_dim is not None
+        and bottom_block is not None
+        and embedding_dim != bottom_block.layers[-1].units
+    ):
+        raise ValueError(
+            f"The embedding_dim ({embedding_dim}) needs to match the "
+            "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
+        )
+
+    embeddings = Embeddings(
+        schema,
+        sequence_combiner=AverageEmbeddingsByWeightFeature.from_schema_convention(
+            schema, "_val"
+        ),
+        embedding_dim_default=embedding_dim,
+        infer_embedding_sizes = infer_embedding_sizes
+    )
+
+    if len(con_schema) > 0:
+        if bottom_block is None:
+            raise ValueError(
+                "The bottom_block is required by DLRM when "
+                "continuous features are available in the schema"
+            )
+        interaction_inputs = InputBlockV2(
+            schema,
+            embeddings=embeddings,
+            continuous_projection=bottom_block,
+            aggregation=None,
+        )
+    else:
+        interaction_inputs = embeddings  # type: ignore
+        bottom_block = None
+    interaction_inputs = interaction_inputs.connect(Debug())
+    if not top_block:
+        return interaction_inputs.connect(DotProductInteractionBlock())
+    if not bottom_block:
+        return interaction_inputs.connect(DotProductInteractionBlock(), top_block)
+
+    top_block_inputs = interaction_inputs.connect_with_shortcut(
+        DotProductInteractionBlock(),
+        shortcut_filter=Filter("continuous"),
+        aggregation="concat",
+    )
+    top_block_outputs = top_block_inputs.connect(top_block)
     return top_block_outputs
 
 
