@@ -190,24 +190,6 @@ def test_wide_deep_model(music_streaming_data, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_wide_deep_model_multi_optimizers(ecommerce_data, run_eagerly):
-
-    wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
-    deep_schema = ecommerce_data.schema
-
-    model = ml.WideAndDeepModel(
-        ecommerce_data.schema,
-        wide_schema=wide_schema,
-        deep_schema=deep_schema,
-        wide_preprocess=ml.HashedCross(wide_schema, 1000),
-        deep_block=ml.MLPBlock([32, 16]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
-    )
-
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
-
-
-@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_wide_deep_model_categorical_one_hot(ecommerce_data, run_eagerly):
 
     wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
