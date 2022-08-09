@@ -67,6 +67,7 @@
       ~ParallelBlock.repr_extra
       ~ParallelBlock.repr_ignore
       ~ParallelBlock.select_by_name
+      ~ParallelBlock.select_by_names
       ~ParallelBlock.set_aggregation
       ~ParallelBlock.set_post
       ~ParallelBlock.set_pre
