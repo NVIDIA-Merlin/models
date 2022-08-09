@@ -180,6 +180,7 @@ class EmbeddingTable(EmbeddingTableBase):
                 embeddings_constraint=embeddings_constraint,
                 mask_zero=mask_zero,
                 input_length=input_length,
+                trainable=trainable,
             )
             self.table = tf.keras.layers.Embedding(
                 input_dim=self.input_dim,
