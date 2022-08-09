@@ -490,7 +490,7 @@ class ContrastiveLookUps(Layer):
         Returns
         -------
         Items
-            Class containing sampled negative ids
+            Class containing the sampled negative ids
         """
         negative_items: List[Items] = []
         sampling_kwargs = {"training": training, "testing": testing, "features": features}
