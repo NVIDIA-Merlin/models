@@ -52,7 +52,7 @@ class Items(NamedTuple):
 
     def __add__(self, other):
         return Items(
-            id=_list_to_tensor([self.id, other.ids]),
+            id=_list_to_tensor([self.id, other.id]),
             metadata={
                 key: _list_to_tensor([self.metadata[key], other.metadata[key]])
                 for key, val in self.metadata.items()
