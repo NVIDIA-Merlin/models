@@ -29,8 +29,6 @@ class PopularityBasedSamplerV2(ItemSamplerV2):
 
     Parameters
     ----------
-    max_num_samples: int
-        The number of unique negatives to sample at each batch.
     max_id: int
         The maximum id value to be sampled. It should be equal to the
         categorical feature cardinality
@@ -38,12 +36,11 @@ class PopularityBasedSamplerV2(ItemSamplerV2):
         The minimum id value to be sampled. Useful to ignore the first categorical
         encoded ids, which are usually reserved for <nulls>, out-of-vocabulary or padding.
         Defaults to 0.
+    max_num_samples: int
+        The number of unique negatives to sample at each batch.
     seed: int
         Fix the random values returned by the sampler to ensure reproducibility
         Defaults to None
-    item_id_feature_name: str
-        Name of the column containing the item ids
-        Defaults to `item_id`
     """
 
     def __init__(

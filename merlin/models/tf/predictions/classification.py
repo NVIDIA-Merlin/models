@@ -122,7 +122,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
         Parameter used to reduce model overconfidence, so that logits / T.
         by default 1
     name: str, optional
-        The name of the task., by default None
+        The name of the task, by default None
     default_loss: Union[str, tf.keras.losses.Loss], optional
         Default loss to use for categorical-classification
         by default 'categorical_crossentropy'
@@ -370,6 +370,28 @@ class LookUpProtocol(Protocol):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ContrastiveLookUps(Layer):
+    """Contrastive layer for sampled softmax layer.
+
+    Parameters
+    ----------
+    prediction : LookUpProtocol
+        The prediction layer used for computing the logits scores. It should be an
+        instance of `LookUpProtocol`, i.e. it includes the method `embedding_lookup`
+        that indexes the output weights.
+    negative_samplers : ItemSamplersType
+        List of samplers for negative sampling,
+    feature_name : str, optional
+        The name of the target feature, by default None
+    downscore_false_negatives : bool, optional
+        Identify false negatives (sampled item ids equal to the positive item and downscore them
+        to the `sampling_downscore_false_negatives_value`),
+        by default False
+    false_negative_score : float, optional
+        Value to be used to downscore false negatives when
+        `sampling_downscore_false_negatives=True`,
+        by default `np.finfo(np.float32).min / 100.0`
+    """
+
     def __init__(
         self,
         prediction: LookUpProtocol,
