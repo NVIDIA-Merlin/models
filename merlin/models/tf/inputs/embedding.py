@@ -435,12 +435,12 @@ def Embeddings(
             else:
                 emb_initializer = embeddings_initializers
             kwargs["embeddings_initializer"] = emb_initializer
-        
+
         tables[col.name] = EmbeddingTable(
             embedding_size,
             col,
             combiner=combiner,
-            trainable=trainable.get(col.name, True), 
+            trainable=trainable.get(col.name, True),
             **kwargs,
         )
 
