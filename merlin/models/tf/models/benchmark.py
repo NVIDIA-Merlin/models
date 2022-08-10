@@ -36,7 +36,7 @@ def NCFModel(
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     embeddings_l2_reg: float = 0.0,
-    **kwargs
+    **kwargs,
 ) -> Model:
     """NCF-model architecture.
 
