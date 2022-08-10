@@ -16,7 +16,7 @@
 
 from copy import copy, deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
@@ -385,7 +385,7 @@ def Embeddings(
     infer_embeddings_ensure_dim_multiple_of_8 : bool, optional
         Ensures that the inferred embedding sizes are rounded up to the next multiple of 8,
         for better performance for embedding looks on GPUs. By default True
-    non_trainable : List[str]
+    non_trainable : Optional[Dict[str, bool]] = None
         Name of the column(s) whose embeddings should be frozen during training
         trainable will be set to False for these column(s)
     embeddings_initializers : Optional[
@@ -426,7 +426,7 @@ def Embeddings(
                 combiner = sequence_combiner
 
         embedding_size = embedding_dims.get(col.name, embedding_dim_default)
-        initializer_default  = "uniform"
+        initializer_default = "uniform"
         if not embeddings_initializers:
             emb_initializer = initializer_default
         elif isinstance(embeddings_initializers, dict):
