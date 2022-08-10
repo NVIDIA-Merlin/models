@@ -32,6 +32,7 @@ def DLRMBlock(
     embedding_options: EmbeddingOptions = None,
     bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
+    embeddings: Optional[Block] = None,
 ) -> SequentialBlock:
     """Builds the DLRM architecture, as proposed in the following
     `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.
@@ -84,7 +85,8 @@ def DLRMBlock(
         raise ValueError("DLRM requires categorical features")
 
 
-    embeddings = _get_embeddings(embedding_dim, embedding_options, bottom_block, cat_schema)
+    if embeddings is None:
+        embeddings = _get_embeddings(embedding_dim, embedding_options, bottom_block, cat_schema)
 
     if len(con_schema) > 0:
         if bottom_block is None:
