@@ -258,3 +258,29 @@ def DeepFMModel(
     model = Model(deep_fm, prediction_tasks)
 
     return model
+
+def MLPModel(
+    schema: Schema,
+    deep_block: MLPBlock([512, 256]),
+    stacked=True,
+    input_block = None,
+    embedding_options: EmbeddingOptions = EmbeddingOptions(
+        embedding_dims=None,
+        embedding_dim_default=64,
+        infer_embedding_sizes=False,
+        infer_embedding_sizes_multiplier=2.0,
+    ),
+    prediction_tasks: Optional[
+        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+    ] = None,
+    **kwargs
+) -> Model:
+    aggregation = kwargs.pop("aggregation", "concat")
+    input_block = input_block or InputBlock(
+        schema, aggregation=aggregation, embedding_options=embedding_options, **kwargs
+    )
+    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+    mlp_body = input_block.connect(deep_block)
+    
+    model = Model(mlp_body, prediction_tasks)
+    return model

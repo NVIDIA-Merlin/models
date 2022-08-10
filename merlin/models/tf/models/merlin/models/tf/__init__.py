@@ -101,7 +101,7 @@ from merlin.models.tf.metrics.topk import (
 )
 from merlin.models.tf.models import benchmark
 from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel
-from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, DLRMModelV2
+from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, DLRMModelV2, MLPModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
     TwoTowerModel,

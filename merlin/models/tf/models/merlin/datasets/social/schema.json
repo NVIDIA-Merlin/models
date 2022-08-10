@@ -1,0 +1,323 @@
+{
+  "feature": [
+    {
+      "name": "user_categories",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_categories",
+        "max": "6086",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"freq_threshold\": 0.0, \"cat_path\": \"/merlin/unique.user_categories.parquet\", \"max_size\": 10000000.0, \"embedding_sizes\": {\"cardinality\": 6086.0, \"dimension\": 211.0}, \"num_buckets\": null, \"start_index\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_intentions",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_intentions",
+        "max": "33786",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"start_index\": 0.0, \"cat_path\": \"/merlin/unique.user_intentions.parquet\", \"max_size\": 10000000.0, \"freq_threshold\": 0.0, \"embedding_sizes\": {\"cardinality\": 33786.0, \"dimension\": 512.0}, \"num_buckets\": null}"
+        ]
+      }
+    },
+    {
+      "name": "user_profile",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_profile",
+        "max": "98",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"embedding_sizes\": {\"dimension\": 21.0, \"cardinality\": 98.0}, \"num_buckets\": null, \"cat_path\": \"/merlin/unique.user_profile.parquet\", \"max_size\": 10000000.0, \"start_index\": 0.0, \"freq_threshold\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_group",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_group",
+        "max": "14",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"max_size\": 10000000.0, \"num_buckets\": null, \"start_index\": 0.0, \"cat_path\": \"/merlin/unique.user_group.parquet\", \"freq_threshold\": 0.0, \"embedding_sizes\": {\"cardinality\": 14.0, \"dimension\": 16.0}}"
+        ]
+      }
+    },
+    {
+      "name": "user_gender",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_gender",
+        "max": "3",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"max_size\": 10000000.0, \"embedding_sizes\": {\"cardinality\": 3.0, \"dimension\": 16.0}, \"start_index\": 0.0, \"cat_path\": \"/merlin/unique.user_gender.parquet\", \"freq_threshold\": 0.0, \"num_buckets\": null}"
+        ]
+      }
+    },
+    {
+      "name": "user_age",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_age",
+        "max": "8",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"embedding_sizes\": {\"cardinality\": 8.0, \"dimension\": 16.0}, \"num_buckets\": null, \"cat_path\": \"/merlin/unique.user_age.parquet\", \"start_index\": 0.0, \"freq_threshold\": 0.0, \"max_size\": 10000000.0}"
+        ]
+      }
+    },
+    {
+      "name": "user_consumption_1",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_consumption_1",
+        "max": "4",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"max_size\": 10000000.0, \"start_index\": 0.0, \"freq_threshold\": 0.0, \"embedding_sizes\": {\"dimension\": 16.0, \"cardinality\": 4.0}, \"num_buckets\": null, \"cat_path\": \"/merlin/unique.user_consumption_1.parquet\"}"
+        ]
+      }
+    },
+    {
+      "name": "user_is_occupied",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_is_occupied",
+        "max": "3",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"max_size\": 10000000.0, \"cat_path\": \"/merlin/unique.user_is_occupied.parquet\", \"embedding_sizes\": {\"cardinality\": 3.0, \"dimension\": 16.0}, \"freq_threshold\": 0.0, \"start_index\": 0.0, \"num_buckets\": null}"
+        ]
+      }
+    },
+    {
+      "name": "user_geography",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_geography",
+        "max": "5",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical"
+        ],
+        "comment": [
+          "{\"num_buckets\": null, \"cat_path\": \"/merlin/unique.user_geography.parquet\", \"freq_threshold\": 0.0, \"start_index\": 0.0, \"max_size\": 10000000.0, \"embedding_sizes\": {\"cardinality\": 5.0, \"dimension\": 16.0}}"
+        ]
+      }
+    },
+    {
+      "name": "user_id",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_id",
+        "max": "294736",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "user",
+          "categorical",
+          "user_id"
+        ],
+        "comment": [
+          "{\"start_index\": 0.0, \"embedding_sizes\": {\"cardinality\": 294736.0, \"dimension\": 512.0}, \"cat_path\": \"/merlin/unique.user_id.parquet\", \"num_buckets\": null, \"freq_threshold\": 0.0, \"max_size\": 10000000.0}"
+        ]
+      }
+    },
+    {
+      "name": "item_category",
+      "type": "INT",
+      "intDomain": {
+        "name": "item_category",
+        "max": "8581",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "categorical"
+        ],
+        "comment": [
+          "{\"cat_path\": \"/merlin/unique.item_category.parquet\", \"num_buckets\": null, \"embedding_sizes\": {\"dimension\": 255.0, \"cardinality\": 8581.0}, \"max_size\": 10000000.0, \"start_index\": 0.0, \"freq_threshold\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "item_user_id",
+      "type": "INT",
+      "intDomain": {
+        "name": "user_id",
+        "max": "294736",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "categorical"
+        ],
+        "comment": [
+          "{\"cat_path\": \"/merlin/unique.item_poster.parquet\", \"freq_threshold\": 0.0, \"max_size\": 10000000.0, \"num_buckets\": null, \"embedding_sizes\": {\"dimension\": 512.0, \"cardinality\": 208179.0}, \"start_index\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "item_id",
+      "type": "INT",
+      "intDomain": {
+        "name": "item_id",
+        "max": "3078306",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "item",
+          "item_id",
+          "categorical"
+        ],
+        "comment": [
+          "{\"num_buckets\": null, \"max_size\": 10000000.0, \"cat_path\": \"/merlin/unique.item_id.parquet\", \"start_index\": 0.0, \"embedding_sizes\": {\"dimension\": 512.0, \"cardinality\": 3078306.0}, \"freq_threshold\": 0.0}"
+        ]
+      }
+    },
+    {
+      "name": "position",
+      "type": "INT",
+      "intDomain": {
+        "name": "position",
+        "max": "4",
+        "isCategorical": true
+      },
+      "annotation": {
+        "tag": [
+          "categorical",
+          "context"
+        ],
+        "comment": [
+          "{\"start_index\": 0.0, \"cat_path\": \"/merlin/unique.position.parquet\", \"freq_threshold\": 0.0, \"max_size\": 10000000.0, \"num_buckets\": null, \"embedding_sizes\": {\"cardinality\": 4.0, \"dimension\": 16.0}}"
+        ]
+      }
+    },
+    {
+      "name": "click",
+      "type": "INT",
+      "intDomain": {
+        "name": "click"
+      },
+      "annotation": {
+        "tag": [
+          "binary_classification",
+          "target"
+        ]
+      }
+    },
+    {
+      "name": "like",
+      "type": "INT",
+      "intDomain": {
+        "name": "like"
+      },
+      "annotation": {
+        "tag": [
+          "binary_classification",
+          "target"
+        ]
+      }
+    },
+    {
+      "name": "comment",
+      "type": "INT",
+      "intDomain": {
+        "name": "comment"
+      },
+      "annotation": {
+        "tag": [
+          "binary_classification",
+          "target"
+        ]
+      }
+    },
+    {
+      "name": "share",
+      "type": "INT",
+      "intDomain": {
+        "name": "share"
+      },
+      "annotation": {
+        "tag": [
+          "binary_classification",
+          "target"
+        ]
+      }
+    },
+    {
+      "name": "hide",
+      "type": "INT",
+      "intDomain": {
+        "name": "hide"
+      },
+      "annotation": {
+        "tag": [
+          "binary_classification",
+          "target"
+        ]
+      }
+    }
+  ]
+}
