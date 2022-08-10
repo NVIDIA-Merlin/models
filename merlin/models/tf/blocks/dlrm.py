@@ -74,6 +74,8 @@ def DLRMBlock(
         The bottom_block is required by DLRM
     ValueError
         The embedding_dim (X) needs to match the last layer of bottom MLP (Y).
+    ValueError
+        Only one-of `embeddings` or `embedding_options` can be used.
     """
     if schema is None:
         raise ValueError("The schema is required by DLRM")
@@ -84,6 +86,8 @@ def DLRMBlock(
     if not len(cat_schema) > 0:
         raise ValueError("DLRM requires categorical features")
 
+    if embeddings is not None and embedding_options is not None:
+        raise ValueError("Only one-of `embeddings` or `embedding_options` may be provided.")
 
     if embeddings is None:
         embeddings = _get_embeddings(embedding_dim, embedding_options, bottom_block, cat_schema)

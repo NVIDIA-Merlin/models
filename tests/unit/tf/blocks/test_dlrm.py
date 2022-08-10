@@ -95,3 +95,16 @@ def test_dlrm_emb_dim_do_not_match_bottom_mlp(testing_data: Dataset):
     with pytest.raises(ValueError) as excinfo:
         mm.DLRMBlock(schema=testing_data.schema, bottom_block=mm.MLPBlock([64]), embedding_dim=75)
     assert "needs to match the last layer of bottom MLP" in str(excinfo.value)
+
+
+def test_dlrm_raises_with_embeddings_and_options(testing_data: Dataset):
+    schema = testing_data.schema
+    embedding_dim = 10
+    with pytest.raises(ValueError) as excinfo:
+        mm.DLRMBlock(
+            schema,
+            embedding_dim,
+            embedding_options=mm.EmbeddingOptions(),
+            embeddings=mm.Embeddings(schema),
+        )
+    assert "Only one-of `embeddings` or `embedding_options` may be provided" in str(excinfo.value)
