@@ -1,0 +1,6 @@
+﻿merlin.models.utils.misc\_utils.filter\_kwargs
+==============================================
+
+.. currentmodule:: merlin.models.utils.misc_utils
+
+.. autofunction:: filter_kwargs
