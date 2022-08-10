@@ -144,7 +144,7 @@ def test_categorical_one_hot_from_config():
         ]
     )
     inputs = {}
-    inputs["cat1"] = tf.constant([1, 2, 3, 2, 1])
+    inputs["cat1"] = tf.constant([[1], [2], [3], [2], [1]])
     inputs["cat2"] = tf.constant([101, 101, 103, 102, 102])
     inputs["cont1"] = tf.random.uniform((5, 1), minval=0, maxval=1, dtype=tf.float32)
 
