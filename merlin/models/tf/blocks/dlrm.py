@@ -28,7 +28,8 @@ from merlin.schema import Schema, Tags
 
 def DLRMBlock(
     schema: Schema,
-    embedding_dim: int,
+    *,
+    embedding_dim: int = None,
     embedding_options: EmbeddingOptions = None,
     bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,

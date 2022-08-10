@@ -99,12 +99,27 @@ def test_dlrm_emb_dim_do_not_match_bottom_mlp(testing_data: Dataset):
 
 def test_dlrm_raises_with_embeddings_and_options(testing_data: Dataset):
     schema = testing_data.schema
-    embedding_dim = 10
     with pytest.raises(ValueError) as excinfo:
         mm.DLRMBlock(
             schema,
-            embedding_dim,
+            embedding_dim=10,
             embedding_options=mm.EmbeddingOptions(),
             embeddings=mm.Embeddings(schema),
         )
     assert "Only one-of `embeddings` or `embedding_options` may be provided" in str(excinfo.value)
+
+
+def test_dlrm_with_embeddings(testing_data: Dataset):
+    schema = testing_data.schema
+    dim = 12
+    dlrm = mm.DLRMBlock(
+        schema,
+        embeddings=mm.SequentialBlock(
+            mm.AsRaggedFeatures(),
+            mm.Embeddings(schema, infer_embedding_sizes=False, embedding_dim_default=dim),
+        ),
+        bottom_block=mm.MLPBlock([dim]),
+    )
+    outputs = dlrm(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
+
+    assert list(outputs.shape) == [100, (dim * dim - dim) / 2]
