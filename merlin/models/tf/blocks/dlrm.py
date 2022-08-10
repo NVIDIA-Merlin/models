@@ -77,48 +77,14 @@ def DLRMBlock(
     if schema is None:
         raise ValueError("The schema is required by DLRM")
 
-    if embedding_dim is None:
-        raise ValueError("The embedding_dim is required")
-
-    if embedding_options is not None:
-        embedding_options.embedding_dim_default = embedding_dim
-        embedding_options.infer_embedding_sizes = False
-    else:
-        embedding_options = EmbeddingOptions(embedding_dim_default=embedding_dim)
-
     con_schema = schema.select_by_tag(Tags.CONTINUOUS).excluding_by_tag(Tags.TARGET)
     cat_schema = schema.select_by_tag(Tags.CATEGORICAL).excluding_by_tag(Tags.TARGET)
 
     if not len(cat_schema) > 0:
         raise ValueError("DLRM requires categorical features")
 
-    if (
-        embedding_dim is not None
-        and bottom_block is not None
-        and embedding_dim != bottom_block.layers[-1].units
-    ):
-        raise ValueError(
-            f"The embedding_dim ({embedding_dim}) needs to match the "
-            "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
-        )
 
-    embeddings_kwargs = dict(
-        sequence_combiner=embedding_options.combiner,
-        embedding_dims=embedding_options.embedding_dims,
-        embedding_dim_default=embedding_options.embedding_dim_default,
-        infer_embedding_sizes=embedding_options.infer_embedding_sizes,
-        infer_embedding_sizes_multiplier=embedding_options.infer_embedding_sizes_multiplier,
-    )
-    embeddings_kwargs["infer_embeddings_ensure_dim_multiple_of_8"] = (
-        embedding_options.infer_embeddings_ensure_dim_multiple_of_8,
-    )
-    embeddings = SequentialBlock(
-        AsRaggedFeatures(),
-        Embeddings(
-            cat_schema,
-            **embeddings_kwargs,
-        ),
-    )
+    embeddings = _get_embeddings(embedding_dim, embedding_options, bottom_block, cat_schema)
 
     if len(con_schema) > 0:
         if bottom_block is None:
@@ -149,6 +115,46 @@ def DLRMBlock(
     top_block_outputs = top_block_inputs.connect(top_block)
 
     return top_block_outputs
+
+
+def _get_embeddings(embedding_dim, embedding_options, bottom_block, cat_schema):
+    if embedding_dim is None:
+        raise ValueError("The embedding_dim is required")
+
+    if embedding_options is not None:
+        embedding_options.embedding_dim_default = embedding_dim
+        embedding_options.infer_embedding_sizes = False
+    else:
+        embedding_options = EmbeddingOptions(embedding_dim_default=embedding_dim)
+
+    if (
+        embedding_dim is not None
+        and bottom_block is not None
+        and embedding_dim != bottom_block.layers[-1].units
+    ):
+        raise ValueError(
+            f"The embedding_dim ({embedding_dim}) needs to match the "
+            "last layer of bottom MLP ({bottom_block.layers[-1].units}) "
+        )
+
+    embeddings_kwargs = dict(
+        sequence_combiner=embedding_options.combiner,
+        embedding_dims=embedding_options.embedding_dims,
+        embedding_dim_default=embedding_options.embedding_dim_default,
+        infer_embedding_sizes=embedding_options.infer_embedding_sizes,
+        infer_embedding_sizes_multiplier=embedding_options.infer_embedding_sizes_multiplier,
+    )
+    embeddings_kwargs["infer_embeddings_ensure_dim_multiple_of_8"] = (
+        embedding_options.infer_embeddings_ensure_dim_multiple_of_8,
+    )
+    embeddings = SequentialBlock(
+        AsRaggedFeatures(),
+        Embeddings(
+            cat_schema,
+            **embeddings_kwargs,
+        ),
+    )
+    return embeddings
 
 
 def DotProductInteractionBlock():
