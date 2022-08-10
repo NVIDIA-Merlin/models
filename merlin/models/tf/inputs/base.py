@@ -199,7 +199,6 @@ def InputBlock(
         branches["categorical"] = emb_cls.from_schema(  # type: ignore
             schema, tags=categorical_tags, embedding_options=embedding_options, **emb_kwargs
         )
-
     if continuous_projection:
         return ContinuousEmbedding(
             ParallelBlock(branches),
