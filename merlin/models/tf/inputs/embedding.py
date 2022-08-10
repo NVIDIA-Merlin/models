@@ -163,7 +163,6 @@ class EmbeddingTable(EmbeddingTableBase):
         dtype=None,
         dynamic=False,
         table=None,
-        weights=None,
         **kwargs,
     ):
         """Create an EmbeddingTable."""
@@ -180,8 +179,8 @@ class EmbeddingTable(EmbeddingTableBase):
                 activity_regularizer=activity_regularizer,
                 embeddings_constraint=embeddings_constraint,
                 mask_zero=mask_zero,
-                weights=weights,
                 input_length=input_length,
+                trainable=trainable,
             )
             self.table = tf.keras.layers.Embedding(
                 input_dim=self.input_dim,
@@ -190,6 +189,7 @@ class EmbeddingTable(EmbeddingTableBase):
                 **table_kwargs,
             )
         self.combiner = combiner
+        self.supports_masking = True
 
     @classmethod
     def from_pretrained(
@@ -226,7 +226,7 @@ class EmbeddingTable(EmbeddingTableBase):
             dim,
             col_schema,
             name=name,
-            weights=[tf.Variable(embeddings, trainable=trainable)],
+            embeddings_initializer=tf.keras.initializers.constant(embeddings),
             trainable=trainable,
             **kwargs,
         )
@@ -246,7 +246,7 @@ class EmbeddingTable(EmbeddingTableBase):
         #    self.combiner.build(self.table.compute_output_shape(input_shapes))
         return super(EmbeddingTable, self).build(input_shapes)
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs: Union[tf.Tensor, TabularData], **kwargs) -> tf.Tensor:
         """
         Parameters
         ----------
@@ -299,7 +299,12 @@ class EmbeddingTable(EmbeddingTableBase):
 
         return out
 
-    def compute_output_shape(self, input_shape):
+    def compute_output_shape(
+        self, input_shape: Union[tf.TensorShape, Dict[str, tf.TensorShape]]
+    ) -> tf.Tensor:
+        if isinstance(input_shape, dict):
+            input_shape = input_shape[self.col_schema.name]
+
         first_dims = input_shape
         if (self.combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
             first_dims = input_shape[:-1]
