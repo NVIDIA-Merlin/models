@@ -274,7 +274,6 @@
         <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;categorical&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emb_cls</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span>  <span class="c1"># type: ignore</span>
             <span class="n">schema</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="n">categorical_tags</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span><span class="p">,</span> <span class="o">**</span><span class="n">emb_kwargs</span>
         <span class="p">)</span>
-
     <span class="k">if</span> <span class="n">continuous_projection</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">ContinuousEmbedding</span><span class="p">(</span>
             <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">),</span>
