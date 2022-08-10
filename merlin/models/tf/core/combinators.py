@@ -239,9 +239,9 @@ class SequentialBlock(Block):
         Returns
         -------
         bool
-            True if all layer within SequentialBlock are trainable, otherwise False
+            True if any layer within SequentialBlock are trainable, otherwise False
         """
-        return all(layer.trainable for layer in self.layers)
+        return any(layer.trainable for layer in self.layers)
 
     @trainable.setter
     def trainable(self, value):
