@@ -74,6 +74,7 @@ class TestEmbeddingTable:
             (16, {}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, None, 16]),
             (16, {"combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
             (16, {"combiner": "mean"}, tf.sparse.from_dense(tf.constant([[1, 2, 3]])), [1, 16]),
+            (12, {}, {"item_id": tf.constant([[1]])}, [1, 12]),
         ],
     )
     def test_layer(self, dim, kwargs, inputs, expected_output_shape):
@@ -85,6 +86,8 @@ class TestEmbeddingTable:
 
         if "combiner" in kwargs:
             assert isinstance(output, tf.Tensor)
+        elif isinstance(inputs, dict):
+            assert type(inputs[column_schema.name]) is type(output)
         else:
             assert type(inputs) is type(output)
 
@@ -95,6 +98,34 @@ class TestEmbeddingTable:
 
         output = copied_layer(inputs)
         assert list(output.shape) == expected_output_shape
+
+    def test_layer_simple(self):
+        col_schema = self.sample_column_schema
+        dim = np.random.randint(1, high=32)
+        testing_utils.layer_test(
+            mm.EmbeddingTable,
+            kwargs={"dim": dim, "col_schema": col_schema},
+            input_data=tf.constant([[1], [2], [3]], dtype=tf.int32),
+            expected_output_shape=tf.TensorShape([None, dim]),
+            expected_output_dtype=tf.float32,
+            supports_masking=True,
+        )
+
+    @pytest.mark.parametrize(
+        ["input_shape", "expected_output_shape", "kwargs"],
+        [
+            (tf.TensorShape([1, 1]), tf.TensorShape([1, 10]), {}),
+            (tf.TensorShape([1, 3]), tf.TensorShape([1, 3, 10]), {}),
+            (tf.TensorShape([2, None]), tf.TensorShape([2, None, 10]), {}),
+            (tf.TensorShape([2, None]), tf.TensorShape([2, 10]), {"combiner": "mean"}),
+            ({"item_id": tf.TensorShape([1, 1])}, tf.TensorShape([1, 10]), {}),
+        ],
+    )
+    def test_compute_output_shape(self, input_shape, expected_output_shape, kwargs):
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(10, column_schema, **kwargs)
+        output_shape = layer.compute_output_shape(input_shape)
+        assert list(output_shape) == list(expected_output_shape)
 
     def test_dense_with_combiner(self):
         dim = 16
@@ -165,14 +196,6 @@ class TestEmbeddingTable:
         embedding_table = mm.EmbeddingTable.from_pretrained(
             pre_trained_weights_df, name="item_id", trainable=trainable
         )
-
-        assert embedding_table.input_dim == vocab_size
-
-        inputs = tf.constant([[1]])
-        output = embedding_table(inputs)
-
-        assert list(output.shape) == [1, embedding_dim]
-        np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
         model = mm.Model(
             tf.keras.layers.Lambda(lambda inputs: inputs["item_id"]),

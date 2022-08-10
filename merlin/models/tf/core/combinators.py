@@ -429,6 +429,22 @@ class ParallelBlock(TabularBlock):
         """
         return self.parallel_dict.get(name)
 
+    def select_by_names(self, names: List[str]) -> Optional[List[Block]]:
+        """Select a list of parallel blocks by names
+
+        Returns
+        -------
+        List[Block]
+            The blocks corresponding to the names
+        """
+        blocks = []
+        for name in names:
+            if name in self.parallel_dict:
+                blocks.append(self.parallel_dict.get(name))
+            else:
+                raise ValueError(f"Given name {name} is not in ParallelBlock {self.name}")
+        return blocks
+
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]
 
