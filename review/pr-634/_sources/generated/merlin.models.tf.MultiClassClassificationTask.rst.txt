@@ -19,7 +19,6 @@
       ~MultiClassClassificationTask.add_update
       ~MultiClassClassificationTask.add_variable
       ~MultiClassClassificationTask.add_weight
-      ~MultiClassClassificationTask.apply
       ~MultiClassClassificationTask.build
       ~MultiClassClassificationTask.build_task
       ~MultiClassClassificationTask.call
@@ -36,11 +35,9 @@
       ~MultiClassClassificationTask.get_input_at
       ~MultiClassClassificationTask.get_input_mask_at
       ~MultiClassClassificationTask.get_input_shape_at
-      ~MultiClassClassificationTask.get_losses_for
       ~MultiClassClassificationTask.get_output_at
       ~MultiClassClassificationTask.get_output_mask_at
       ~MultiClassClassificationTask.get_output_shape_at
-      ~MultiClassClassificationTask.get_updates_for
       ~MultiClassClassificationTask.get_weights
       ~MultiClassClassificationTask.pre_call
       ~MultiClassClassificationTask.pre_loss

@@ -510,12 +510,12 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">emb_initializer</span> <span class="o">=</span> <span class="n">embeddings_initializers</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;embeddings_initializer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emb_initializer</span>
-        
+
         <span class="n">tables</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">EmbeddingTable</span><span class="p">(</span>
             <span class="n">embedding_size</span><span class="p">,</span>
             <span class="n">col</span><span class="p">,</span>
             <span class="n">combiner</span><span class="o">=</span><span class="n">combiner</span><span class="p">,</span>
-            <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> 
+            <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
