@@ -1,6 +1,11 @@
+import pytest
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
+
+pytest.importorskip("xgboost")
+pytest.importorskip("lightfm")
+pytest.importorskip("implicit")
 
 
 @testbook(
