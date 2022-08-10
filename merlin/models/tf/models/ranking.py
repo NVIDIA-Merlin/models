@@ -334,6 +334,10 @@ def WideAndDeepModel(
             ```
     prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
         The prediction tasks to be used, by default this will be inferred from the Schema.
+    wide_model_name: Optional[str]
+        name of wide model, default as "wide_model_block".
+    deep_model_name: Optional[str]
+        name of deep model, default as "deep_model_block".
 
     Returns
     -------
