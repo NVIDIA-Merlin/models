@@ -347,7 +347,7 @@ def Embeddings(
     infer_embedding_sizes: bool = True,
     infer_embedding_sizes_multiplier: float = 2.0,
     infer_embeddings_ensure_dim_multiple_of_8: bool = True,
-    non_trainable: List[str] = [],
+    non_trainable: Optional[Dict[str, bool]] = None,
     embeddings_initializers: Optional[
         Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
     ] = None,
@@ -426,12 +426,19 @@ def Embeddings(
                 combiner = sequence_combiner
 
         embedding_size = embedding_dims.get(col.name, embedding_dim_default)
+        initializer_default  = "uniform"
+        if not embeddings_initializers:
+            emb_initializer = initializer_default
+        elif isinstance(embeddings_initializers, dict):
+            emb_initializer = embeddings_initializers.get(col.name, "uniform")
+        else:
+            emb_initializer = embeddings_initializers
         tables[col.name] = EmbeddingTable(
             embedding_size,
             col,
             combiner=combiner,
-            trainable=col not in non_trainable,
-            embeddings_initializer=embeddings_initializers.get(col.name, "uniform"),
+            trainable=col.name not in non_trainable.keys(),
+            embeddings_initializer=emb_initializer,
             **kwargs,
         )
 
