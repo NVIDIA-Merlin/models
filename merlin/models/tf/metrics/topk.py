@@ -195,7 +195,7 @@ class TopkMetricWithLabelRelevantCountsMixin:
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
-    def __init__(self, fn, k=5, pre_sorted=True, name=None, **kwargs):
+    def __init__(self, fn, k=5, pre_sorted=True, name=None, log_base=None, **kwargs):
         self.name_orig = name
         if name is not None:
             name = f"{name}_{k}"
@@ -203,7 +203,9 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         self._fn = fn
         self.k = k
         self._pre_sorted = pre_sorted
-        self._fn_kwargs = kwargs
+        self._fn_kwargs = {}
+        if log_base is not None:
+            self._fn_kwargs["log_base"] = log_base
         self.label_relevant_counts = None
 
     @property
