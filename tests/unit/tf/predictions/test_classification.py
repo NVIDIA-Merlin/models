@@ -106,19 +106,6 @@ def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
         )
         _, history = testing_utils.model_test(model, dataloader, run_eagerly=run_eagerly)
 
-    dataloader, schema = _next_item_loader(sequence_testing_data)
-    model = mm.Model(
-        mm.InputBlockV2(
-            schema,
-        ),
-        mm.MLPBlock([32]),
-        mm.CategoricalPrediction(target_layer=schema["item_id_seq"], target_name="item_id_seq"),
-    )
-
-    batch = next(iter(dataloader))
-    output = model(batch[0], batch[1], training=True)
-    assert output.shape == (batch[1].shape[0], 51997)
-
 
 def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
     dataloader, schema = _next_item_loader(sequence_testing_data)

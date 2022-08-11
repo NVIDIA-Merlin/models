@@ -151,3 +151,14 @@ def _list_to_tensor(input_list: List[tf.Tensor]) -> tf.Tensor:
 
 
 ItemSamplersType = Union[ItemSamplerV2, Sequence[Union[ItemSamplerV2, str]], str]
+
+
+def parse_negative_samplers(negative_sampling: ItemSamplersType):
+    """
+    Parse the negative sampling strategies and returns
+    the corresponding list of samplers.
+    """
+    if not isinstance(negative_sampling, (list, tuple)):
+        negative_sampling = [negative_sampling]
+    negative_sampling = [ItemSamplerV2.parse(s) for s in list(negative_sampling)]
+    return negative_sampling

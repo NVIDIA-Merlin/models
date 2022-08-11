@@ -24,7 +24,11 @@ from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.embedding import EmbeddingTable
 from merlin.models.tf.metrics.topk import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
-from merlin.models.tf.predictions.sampling.base import Items, ItemSamplersType, ItemSamplerV2
+from merlin.models.tf.predictions.sampling.base import (
+    Items,
+    ItemSamplersType,
+    parse_negative_samplers,
+)
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
     call_layer,
@@ -174,7 +178,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
 
         prediction_with_negatives = kwargs.pop(
             "prediction_with_negatives",
-            ContrastiveLookUps(
+            SampledLookUps(
                 prediction=prediction,
                 negative_samplers=negative_samplers,
                 feature_name=target_name,
@@ -196,10 +200,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
 
     def compile(self, negative_sampling=None, downscore_false_negatives=False):
         if negative_sampling is not None:
-            if not isinstance(negative_sampling, (list, tuple)):
-                negative_sampling = [negative_sampling]
-            negative_sampling = [ItemSamplerV2.parse(s) for s in list(negative_sampling)]
-
+            negative_sampling = parse_negative_samplers(negative_sampling)
         self.prediction_with_negatives.negative_samplers = negative_sampling
         self.prediction_with_negatives.downscore_false_negatives = downscore_false_negatives
 
@@ -369,8 +370,14 @@ class LookUpProtocol(Protocol):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ContrastiveLookUps(Layer):
-    """Contrastive layer for sampled softmax layer.
+class SampledLookUps(Layer):
+    """Contrastive layer for sampled logits.
+
+    This layer can be used to compute the output scores of a multi-classification
+    task only on a subset of sampled classes.
+
+    For example, we could use this class to define the sampled softmax task [1] where
+    negatives are defined using a popularity-based sampler.
 
     Parameters
     ----------
@@ -390,6 +397,12 @@ class ContrastiveLookUps(Layer):
         Value to be used to downscore false negatives when
         `sampling_downscore_false_negatives=True`,
         by default `np.finfo(np.float32).min / 100.0`
+
+    References:
+    -----------
+    [1] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
+       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
+       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
     """
 
     def __init__(
@@ -407,9 +420,7 @@ class ContrastiveLookUps(Layer):
         self.feature_name = feature_name
 
         if negative_samplers is not None:
-            if not isinstance(negative_samplers, (list, tuple)):
-                negative_samplers = [negative_samplers]
-            self.negative_samplers = [ItemSamplerV2.parse(s) for s in list(negative_samplers)]
+            self.negative_samplers = parse_negative_samplers(negative_samplers)
         else:
             self.negative_samplers = negative_samplers
 

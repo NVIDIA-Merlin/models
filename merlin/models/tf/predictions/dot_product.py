@@ -23,7 +23,11 @@ from tensorflow.keras.layers import Layer
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.metrics.topk import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock
-from merlin.models.tf.predictions.sampling.base import Items, ItemSamplersType, ItemSamplerV2
+from merlin.models.tf.predictions.sampling.base import (
+    Items,
+    ItemSamplersType,
+    parse_negative_samplers,
+)
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer, rescore_false_negatives
@@ -127,6 +131,8 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
         )
 
     def compile(self, negative_sampling=None, downscore_false_negatives=False):
+        if negative_sampling is not None:
+            negative_sampling = parse_negative_samplers(negative_sampling)
         self.prediction_with_negatives.negative_sampling = negative_sampling
         self.prediction_with_negatives.downscore_false_negatives = downscore_false_negatives
 
@@ -235,9 +241,7 @@ class ContrastiveDotProduct(DotProduct):
         **kwargs,
     ):
         super().__init__(query_name, item_name, **kwargs)
-        if not isinstance(negative_samplers, (list, tuple)):
-            negative_samplers = [negative_samplers]
-        self.negative_samplers = [ItemSamplerV2.parse(s) for s in list(negative_samplers)]
+        self.negative_samplers = parse_negative_samplers(negative_samplers)
         assert (
             len(self.negative_samplers) > 0
         ), "At least one sampler is required by ContrastiveDotProduct for negative sampling"
