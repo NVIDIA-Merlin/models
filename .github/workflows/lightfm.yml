@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e .[lightfm-dev]
+          python -m pip install .[lightfm-dev]
       - name: Build
         run: |
           python setup.py develop
