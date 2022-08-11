@@ -103,6 +103,8 @@ def TwoTowerModel(
     item_tower: Optional[Block] = None,
     query_tower_tag=Tags.USER,
     item_tower_tag=Tags.ITEM,
+    query_tower_input_block: Optional[Block] = None,
+    item_tower_input_block: Optional[Block] = None,
     embedding_options: EmbeddingOptions = EmbeddingOptions(
         embedding_dims=None,
         embedding_dim_default=64,
@@ -143,6 +145,12 @@ def TwoTowerModel(
         The tag to select query features, by default `Tags.USER`
     item_tower_tag: Tag
         The tag to select item features, by default `Tags.ITEM`
+    query_tower_input_block : Optional[Block]
+        The input block for query tower. By default InputBlock with schemas tagged with
+        query_tower_tag.
+    item_tower_input_block : Optional[Block]
+        The input block for item tower. By default InputBlock with schemas tagged with
+        item_tower_tag.
     embedding_options : EmbeddingOptions
         Options for the input embeddings.
         - embedding_dims: Optional[Dict[str, int]] - The dimension of the
@@ -185,6 +193,8 @@ def TwoTowerModel(
         schema=schema,
         query_tower=query_tower,
         item_tower=item_tower,
+        query_tower_input_block=query_tower_input_block,
+        item_tower_input_block=item_tower_input_block,
         query_tower_tag=query_tower_tag,
         item_tower_tag=item_tower_tag,
         embedding_options=embedding_options,

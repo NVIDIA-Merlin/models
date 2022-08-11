@@ -267,12 +267,19 @@ def InputBlockV2(
     else:
         continuous = TabularBlock(schema=con_schema, pre=con_filter)
 
-    return SequentialBlock(
-        AsRaggedFeatures(),
-        ParallelBlock(
-            dict(continuous=continuous, embeddings=embeddings),
-            pre=pre,
-            post=post,
-            aggregation=aggregation,
-        ),
+    parallel_blocks = ParallelBlock(
+        dict(continuous=continuous, embeddings=embeddings),
+        pre=pre,
+        post=post,
+        aggregation=aggregation,
     )
+    input_blocks = SequentialBlock(
+        AsRaggedFeatures(),
+        parallel_blocks,
+    )
+
+    # Make sure input_block has schema, since AsRaggedFeatures dose not have schema
+    if getattr(parallel_blocks, "schema", False):
+        input_blocks.set_schema(parallel_blocks.schema)
+
+    return input_blocks

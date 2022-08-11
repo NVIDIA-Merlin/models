@@ -68,6 +68,27 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
     testing_utils.test_model_signature(model.first.item_block(), item_features, ["output_1"])
 
 
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_two_tower_with_custom_input_block(ecommerce_data: Dataset, run_eagerly):
+    schema = ecommerce_data.schema.select_by_name(
+        ["user_brands", "user_categories", "item_brand", "item_id"]
+    )
+    item_embeddings = mm.Embeddings(schema.select_by_tag(Tags.ITEM), infer_embedding_sizes=True)
+    query_embeddings = mm.Embeddings(schema.select_by_tag(Tags.USER), infer_embedding_sizes=True)
+    model = mm.TwoTowerModel(
+        schema,
+        query_tower=mm.MLPBlock([2]),
+        item_tower_input_block=mm.InputBlockV2(
+            schema.select_by_tag(Tags.ITEM), embeddings=item_embeddings
+        ),
+        query_tower_input_block=mm.InputBlockV2(
+            schema.select_by_tag(Tags.USER), embeddings=query_embeddings
+        ),
+    )
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    model.fit(ecommerce_data, batch_size=50, epochs=1, steps_per_epoch=1)
+
+
 def test_two_tower_model_l2_reg(testing_data: Dataset):
     model = mm.TwoTowerModel(
         testing_data.schema,

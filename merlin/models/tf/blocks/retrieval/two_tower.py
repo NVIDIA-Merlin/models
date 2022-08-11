@@ -47,6 +47,12 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
         The tag to select query features, by default `Tags.USER`
     item_tower_tag : Tag
         The tag to select item features, by default `Tags.ITEM`
+    query_tower_input_block : Optional[Block]
+        The input block for query tower. By default InputBlock with schemas tagged with
+        query_tower_tag.
+    item_tower_input_block : Optional[Block]
+        The input block for item tower. By default InputBlock with schemas tagged with
+        item_tower_tag.
     embedding_options : EmbeddingOptions
         Options for the input embeddings.
         - embedding_dims: Optional[Dict[str, int]] - The dimension of the
@@ -79,6 +85,8 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
         schema: Schema,
         query_tower: Block,
         item_tower: Optional[Block] = None,
+        query_tower_input_block: Optional[Block] = None,
+        item_tower_input_block: Optional[Block] = None,
         query_tower_tag=Tags.USER,
         item_tower_tag=Tags.ITEM,
         embedding_options: EmbeddingOptions = EmbeddingOptions(
@@ -103,8 +111,11 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
                     f"The schema should contain features with the tag `{item_tower_tag}`,"
                     "required by item-tower"
                 )
-            item_tower_inputs = InputBlock(item_schema, embedding_options=embedding_options)
-            _item_tower = item_tower_inputs.connect(_item_tower)
+            if not item_tower_input_block:
+                item_tower_input_block = InputBlock(
+                    item_schema, embedding_options=embedding_options
+                )
+            _item_tower = item_tower_input_block.connect(_item_tower)
         if not getattr(query_tower, "inputs", None):
             query_schema = schema.select_by_tag(query_tower_tag) if query_tower_tag else schema
             if not query_schema:
@@ -112,7 +123,10 @@ class TwoTowerBlock(DualEncoderBlock, RetrievalMixin):
                     f"The schema should contain features with the tag `{query_schema}`,"
                     "required by query-tower"
                 )
-            query_inputs = InputBlock(query_schema, embedding_options=embedding_options)
-            query_tower = query_inputs.connect(query_tower)
+            if not query_tower_input_block:
+                query_tower_input_block = InputBlock(
+                    query_schema, embedding_options=embedding_options
+                )
+            query_tower = query_tower_input_block.connect(query_tower)
 
         super().__init__(query_tower, _item_tower, post=post, **kwargs)
