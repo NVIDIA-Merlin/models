@@ -390,18 +390,15 @@ class ParallelBlock(TabularBlock):
             for branch in self.parallel_values:
                 if not getattr(branch, "has_schema", True):
                     branch.set_schema(schema)
-
-        # Merge schemas if any sub block has a schema, combine all schemas of sub block togher into
-        # a collection, and call self.set_schema(collection)
-        if not schema and any(getattr(m, "_schema", False) for m in self.parallel_values):
+        else:
+            # Merge schemas if any sub block has a schema, combine all schemas of sub blocks to a
+            # collection, and call self.set_schema(collection)
             collection = Schema()
-            if len(self.parallel_values) == 1:
-                self.set_schema(self.parallel_values[0].schema)
-            else:
-                for sub_block in self.parallel_values:
-                    if getattr(sub_block, "_schema", False):
-                        collection = collection + sub_block.schema
-            self.set_schema(collection)
+            for sub_block in self.parallel_values:
+                if getattr(sub_block, "_schema", False):
+                    collection = collection + sub_block.schema
+            if len(collection) > 0:
+                self.set_schema(collection)
 
     @property
     def parallel_values(self) -> List[tf.keras.layers.Layer]:
