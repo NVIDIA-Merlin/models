@@ -257,6 +257,7 @@ class CGCBlockV2(ParallelBlock):
         add_shared_gate: bool = True,
         schema: Optional[Schema] = None,
         name: Optional[str] = None,
+        gate_dim: int = 32,
         **kwargs,
     ):
 
@@ -299,7 +300,7 @@ class CGCBlockV2(ParallelBlock):
         )
 
         post = CGCGateTransformation(
-            output_names, num_task_experts, num_shared_experts, add_shared_gate=add_shared_gate
+            output_names, num_task_experts, num_shared_experts, add_shared_gate=add_shared_gate, dim=gate_dim
         )
 
         super().__init__(

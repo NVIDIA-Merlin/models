@@ -3,7 +3,7 @@ from typing import List, Optional, Union
 import tensorflow as tf
 
 from merlin.models.tf.blocks.cross import CrossBlock
-from merlin.models.tf.blocks.dlrm import DLRMBlock
+from merlin.models.tf.blocks.dlrm import DLRMBlock, DLRMBlockV2
 from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
@@ -74,6 +74,29 @@ def DLRMModel(
 
     return model
 
+def DLRMModelV2(
+    schema: Schema,
+    embedding_dim: int,
+    infer_embedding_sizes: bool = False,
+    bottom_block: Optional[Block] = None,
+    top_block: Optional[Block] = None,
+    prediction_tasks: Optional[
+        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+    ] = None,
+) -> Model:
+
+    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+
+    dlrm_body = DLRMBlockV2(
+        schema,
+        embedding_dim=embedding_dim,
+        infer_embedding_sizes=infer_embedding_sizes,
+        bottom_block=bottom_block,
+        top_block=top_block,
+    )
+    model = Model(dlrm_body, prediction_tasks)
+
+    return model
 
 def DCNModel(
     schema: Schema,
@@ -234,4 +257,30 @@ def DeepFMModel(
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     model = Model(deep_fm, prediction_tasks)
 
+    return model
+
+def MLPModel(
+    schema: Schema,
+    deep_block: MLPBlock([512, 256]),
+    stacked=True,
+    input_block = None,
+    embedding_options: EmbeddingOptions = EmbeddingOptions(
+        embedding_dims=None,
+        embedding_dim_default=64,
+        infer_embedding_sizes=False,
+        infer_embedding_sizes_multiplier=2.0,
+    ),
+    prediction_tasks: Optional[
+        Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
+    ] = None,
+    **kwargs
+) -> Model:
+    aggregation = kwargs.pop("aggregation", "concat")
+    input_block = input_block or InputBlock(
+        schema, aggregation=aggregation, embedding_options=embedding_options, **kwargs
+    )
+    prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
+    mlp_body = input_block.connect(deep_block)
+    
+    model = Model(mlp_body, prediction_tasks)
     return model
