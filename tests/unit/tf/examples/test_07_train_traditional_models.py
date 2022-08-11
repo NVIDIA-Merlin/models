@@ -9,7 +9,7 @@ pytest.importorskip("implicit")
 
 
 @testbook(
-    REPO_ROOT / "examples/07-Train-a-third-party-model-using-the-Merlin-Models-API.ipynb",
+    REPO_ROOT / "examples/07-Train-traditional-ML-models-using-the-Merlin-Models-API.ipynb",
     execute=False,
 )
 def test_func(tb):
@@ -29,7 +29,7 @@ def test_func(tb):
         p1.start()
         """
     )
-    tb.cells.pop(26)
+    tb.cells.pop(34)
     tb.execute()
     xgboost_metrics = tb.ref("metrics")
     implicit_metrics = tb.ref("implicit_metrics")
