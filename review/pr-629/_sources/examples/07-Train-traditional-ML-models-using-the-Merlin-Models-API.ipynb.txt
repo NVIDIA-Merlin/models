@@ -368,7 +368,7 @@
    "id": "3b0dad36",
    "metadata": {},
    "source": [
-    "There are two Implicit models you can train. The `AlternatingLeastSquares` and `BayesianPersonalizedRanking` models. We will train a `BayesianPersonalizedRanking` model"
+    "There are two `implicit` models you can train. The `AlternatingLeastSquares` and `BayesianPersonalizedRanking` models. We will train a `BayesianPersonalizedRanking` model"
    ]
   },
   {
