@@ -237,11 +237,13 @@
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_logits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;post_logits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_logits</span>
-        <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-            <span class="s2">&quot;logits_temperature&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logits_temperature</span><span class="p">,</span>
-            <span class="s2">&quot;cache_query&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span><span class="p">,</span>
-            <span class="s2">&quot;store_negative_ids&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_negative_ids</span><span class="p">,</span>
-        <span class="p">})</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;logits_temperature&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logits_temperature</span><span class="p">,</span>
+                <span class="s2">&quot;cache_query&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span><span class="p">,</span>
+                <span class="s2">&quot;store_negative_ids&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_negative_ids</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">schema_to_tensorflow_metadata_json</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">config</span></div>
 
@@ -250,7 +252,9 @@
         <span class="k">if</span> <span class="s2">&quot;schema&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
             <span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">tensorflow_metadata_json_to_schema</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">])</span>
         <span class="k">if</span> <span class="s2">&quot;samplers&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
-            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">]]</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">]</span>
+            <span class="p">]</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div></div>
 </pre></div>
 
