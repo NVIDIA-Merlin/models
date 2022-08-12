@@ -22,8 +22,10 @@ from merlin.schema import Schema
 
 def DLRMModel(
     schema: Schema,
-    embedding_dim: int,
-    embedding_options: EmbeddingOptions = None,
+    *,
+    embeddings: Optional[Block] = None,
+    embedding_dim: Optional[int] = None,
+    embedding_options: Optional[EmbeddingOptions] = None,
     bottom_block: Optional[Block] = None,
     top_block: Optional[Block] = None,
     prediction_tasks: Optional[
@@ -46,8 +48,13 @@ def DLRMModel(
     ----------
     schema : Schema
         The `Schema` with the input features
+    embeddings : Optional[Block]
+        Optional block for categorical embeddings.
+        Overrides the default embeddings inferred from the schema.
     embedding_dim : int
         Dimension of the embeddings
+    embedding_options : Optional[EmbeddingOptions]
+        Configuration for categorical embeddings. Alternatively use the embeddings parameter.
     bottom_block : Block
         The `Block` that combines the continuous features (typically a `MLPBlock`)
     top_block : Optional[Block], optional
@@ -68,6 +75,7 @@ def DLRMModel(
         schema,
         embedding_dim=embedding_dim,
         embedding_options=embedding_options,
+        embeddings=embeddings,
         bottom_block=bottom_block,
         top_block=top_block,
     )
