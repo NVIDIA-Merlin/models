@@ -17,6 +17,7 @@
 from typing import Optional
 
 from merlin.models.tf.blocks.interaction import DotProductInteraction
+from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block, Debug
 from merlin.models.tf.core.combinators import Filter, ParallelBlock, SequentialBlock
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
@@ -134,4 +135,4 @@ def DLRMBlock(
 
 
 def DotProductInteractionBlock():
-    return SequentialBlock(DotProductInteraction(), pre_aggregation="stack")
+    return SequentialBlock(StackFeatures(axis=1), DotProductInteraction())
