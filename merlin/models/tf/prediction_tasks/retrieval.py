@@ -162,11 +162,13 @@ class ItemRetrievalTask(MultiClassClassificationTask):
             config["samplers"] = [tf.keras.layers.serialize(sampler) for sampler in self.samplers]
         if self.post_logits is not None:
             config["post_logits"] = self.post_logits
-        config.update({
-            "logits_temperature": self.logits_temperature,
-            "cache_query": self.cache_query,
-            "store_negative_ids": self.store_negative_ids,
-        })
+        config.update(
+            {
+                "logits_temperature": self.logits_temperature,
+                "cache_query": self.cache_query,
+                "store_negative_ids": self.store_negative_ids,
+            }
+        )
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         return config
 
@@ -175,5 +177,7 @@ class ItemRetrievalTask(MultiClassClassificationTask):
         if "schema" in config:
             config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
         if "samplers" in config:
-            config["samplers"] = [tf.keras.layers.deserialize(sampler) for sampler in config["samplers"]]
+            config["samplers"] = [
+                tf.keras.layers.deserialize(sampler) for sampler in config["samplers"]
+            ]
         return super().from_config(config)
