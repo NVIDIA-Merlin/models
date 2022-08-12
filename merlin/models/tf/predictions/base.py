@@ -149,7 +149,11 @@ class PredictionBlock(Layer):
     def create_default_metrics(self) -> List[tf.keras.metrics.Metric]:
         metrics = []
         for metric in self._default_metrics:
-            name = self.full_name + "/" + to_snake_case(metric["class_name"])
+            name = (
+                self.full_name
+                + "/"
+                + to_snake_case(metric["class_name"].replace("merlin.models>", ""))
+            )
             metric["config"]["name"] = name
             metrics.append(tf.keras.metrics.deserialize(metric))
 

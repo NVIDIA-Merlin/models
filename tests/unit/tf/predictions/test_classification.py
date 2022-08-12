@@ -66,11 +66,11 @@ def test_categorical_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
-        "item_category/categorical_prediction/merlin.models>ndcg_at_10",
-        "item_category/categorical_prediction/merlin.models>_precision_at_10",
-        "item_category/categorical_prediction/merlin.models>_avg_precision_at_10",
-        "item_category/categorical_prediction/merlin.models>mrr_at_10",
-        "item_category/categorical_prediction/merlin.models>_recall_at_10",
+        "item_category/categorical_prediction/ndcg_at_10",
+        "item_category/categorical_prediction/precision_at_10",
+        "item_category/categorical_prediction/avg_precision_at_10",
+        "item_category/categorical_prediction/mrr_at_10",
+        "item_category/categorical_prediction/recall_at_10",
         "regularization_loss",
     }
 
