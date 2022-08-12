@@ -40,7 +40,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install "tensorflow<${{ matrix.tf-max }}"
-          python -m pip install -e .[tensorflow-dev]
+          python -m pip install .[tensorflow-dev]
       - name: Build
         run: |
           python setup.py develop
@@ -107,7 +107,7 @@ jobs:
           pip install "merlin-core@git+https://github.com/NVIDIA-Merlin/core.git"
       - name: Install dependencies
         run: |
-          python -m pip install -e .[tensorflow-dev]
+          python -m pip install .[tensorflow-dev]
       - name: Build
         run: |
           python setup.py develop

@@ -22,26 +22,31 @@ from merlin.schema import Tags
 
 
 def test_dlrm_block(testing_data: Dataset):
+    schema = testing_data.schema
     dlrm = ml.DLRMBlock(
-        testing_data.schema,
+        schema,
         embedding_dim=64,
         bottom_block=ml.MLPBlock([64]),
         top_block=ml.DenseResidualBlock(),
     )
     outputs = dlrm(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
-
-    assert list(outputs.shape) == [100, 2080]
+    num_features = len(schema.select_by_tag(Tags.CATEGORICAL)) + 1
+    dot_product_dim = (num_features - 1) * num_features // 2
+    assert list(outputs.shape) == [100, dot_product_dim + 64]
 
 
 def test_dlrm_block_no_top_block(testing_data: Dataset):
+    schema = testing_data.schema
     dlrm = ml.DLRMBlock(
-        testing_data.schema,
+        schema,
         embedding_dim=64,
         bottom_block=ml.MLPBlock([64]),
     )
     outputs = dlrm(ml.sample_batch(testing_data, batch_size=100, include_targets=False))
+    num_features = len(schema.select_by_tag(Tags.CATEGORICAL)) + 1
+    dot_product_dim = (num_features - 1) * num_features // 2
 
-    assert list(outputs.shape) == [100, 2016]
+    assert list(outputs.shape) == [100, dot_product_dim]
 
 
 def test_dlrm_block_no_continuous_features(testing_data: Dataset):
