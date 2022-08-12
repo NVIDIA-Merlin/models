@@ -48,7 +48,6 @@ class InBatchSampler(ItemSampler):
     """
 
     def __init__(self, batch_size: Optional[int] = None, **kwargs):
-        self._arg_batch_size = batch_size
         super().__init__(max_num_samples=batch_size, **kwargs)
         self._last_batch_items_embeddings: tf.Tensor = None  # type: ignore
         self._last_batch_items_metadata: TabularData = {}
