@@ -110,6 +110,5 @@ class InBatchSampler(ItemSampler):
 
     def get_config(self):
         config = super(InBatchSampler, self).get_config()
-        if self._arg_batch_size is not None:
-            config["batch_size"] = self._arg_batch_size
+        config["batch_size"] = self.batch_size
         return config
