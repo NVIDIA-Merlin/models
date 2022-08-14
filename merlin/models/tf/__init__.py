@@ -107,7 +107,7 @@ from merlin.models.tf.metrics.topk import (
 )
 from merlin.models.tf.models import benchmark
 from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel
-from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel
+from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, WideAndDeepModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
     TwoTowerModel,
@@ -229,6 +229,7 @@ __all__ = [
     "DLRMModel",
     "DCNModel",
     "DeepFMModel",
+    "WideAndDeepModel",
     "losses",
     "LossType",
     "sample_batch",

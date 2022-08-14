@@ -426,6 +426,9 @@ class CategoricalOneHot(TabularBlock):
         if schema:
             self.set_schema(schema.select_by_tag(Tags.CATEGORICAL))
         self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
+        # record which input should be flatten and use it in call, for graph execution compile(
+        # run_eagerly=False)
+        self.flatten = []
 
     def build(self, input_shapes):
         super(CategoricalOneHot, self).build(input_shapes)
@@ -434,7 +437,10 @@ class CategoricalOneHot(TabularBlock):
         self._check_inputs_type(inputs)
         outputs = {}
         for name, val in self.cardinalities.items():
-            outputs[name] = tf.squeeze(tf.one_hot(inputs[name], val))
+            shape = inputs[name].get_shape().as_list()
+            if name in self.flatten or (len(shape) > 1 and shape[-1] == 1):
+                inputs[name] = tf.reshape(inputs[name], [-1])
+            outputs[name] = tf.one_hot(inputs[name], val)
         return outputs
 
     def _check_inputs_type(self, inputs):
@@ -456,8 +462,14 @@ class CategoricalOneHot(TabularBlock):
                     f"or `[batch_size, 1]` or `[batch_size, n]`. Received: input {key} with "
                     f"shape={val}"
                 )
-            elif rank > 1 and val[-1] != 1:
-                outputs[key] = tf.TensorShape((val[0], val[1], self.cardinalities[key]))
+            # 2-D input
+            elif rank == 2:
+                if val[-1] != 1:
+                    outputs[key] = tf.TensorShape((val[0], val[1], self.cardinalities[key]))
+                elif val[-1] == 1:
+                    self.flatten.append(key)
+                    outputs[key] = tf.TensorShape((val[0], self.cardinalities[key]))
+            # 1-D input
             else:
                 outputs[key] = tf.TensorShape((val[0], self.cardinalities[key]))
         return outputs
