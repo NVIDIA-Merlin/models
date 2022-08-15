@@ -231,7 +231,7 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
     schema = music_streaming_data.schema
     # prepare wide_schema
     wide_schema = schema.select_by_name(["country", "user_age"])
-    deep_embedding = ml.Embeddings(schema, embedding_dim_default=16, infer_embedding_sizes=False)
+    deep_embedding = ml.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), embedding_dims=16)
 
     model = ml.WideAndDeepModel(
         schema,

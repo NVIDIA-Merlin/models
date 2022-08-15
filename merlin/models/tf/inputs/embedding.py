@@ -40,11 +40,12 @@ from merlin.models.tf.core.transformations import AsDenseFeatures, AsSparseFeatu
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor
+from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor, list_col_to_ragged
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
     create_categorical_column,
+    infer_embedding_dim,
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
 )
@@ -260,6 +261,9 @@ class EmbeddingTable(EmbeddingTableBase):
         if isinstance(inputs, dict):
             inputs = inputs[self.col_schema.name]
 
+        if isinstance(inputs, tuple) and len(inputs) == 2:
+            inputs = list_col_to_ragged(inputs)
+
         # Eliminating the last dim==1 of dense tensors before embedding lookup
         if isinstance(inputs, tf.Tensor):
             inputs = tf.squeeze(inputs, axis=-1)
@@ -305,6 +309,9 @@ class EmbeddingTable(EmbeddingTableBase):
         if isinstance(input_shape, dict):
             input_shape = input_shape[self.col_schema.name]
 
+        if isinstance(input_shape, tuple) and isinstance(input_shape[1], tf.TensorShape):
+            input_shape = tf.TensorShape([input_shape[1][0], None])
+
         first_dims = input_shape
         if (self.combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
             first_dims = input_shape[:-1]
@@ -335,22 +342,19 @@ class EmbeddingTable(EmbeddingTableBase):
 
 def Embeddings(
     schema: Schema,
+    embedding_dims: Optional[Union[Dict[str, int], int]] = None,
+    infer_dim_fn: Callable[[ColumnSchema], int] = infer_embedding_dim,
+    trainable: Optional[Dict[str, bool]] = None,
+    sequence_combiner: Optional[
+        Union[str, tf.keras.layers.Layer, Dict[str, Union[str, tf.keras.layers.Layer]]]
+    ] = "mean",
+    embeddings_initializers: Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+    ] = None,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
     block_name: str = "embeddings",
-    sequence_combiner: Optional[
-        Union[str, tf.keras.layers.Layer, Dict[str, Union[str, tf.keras.layers.Layer]]]
-    ] = "mean",
-    embedding_dims: Optional[Dict[str, int]] = None,
-    embedding_dim_default: Optional[int] = 32,
-    infer_embedding_sizes: bool = True,
-    infer_embedding_sizes_multiplier: float = 2.0,
-    infer_embeddings_ensure_dim_multiple_of_8: bool = True,
-    trainable: Optional[Dict[str, bool]] = None,
-    embeddings_initializers: Optional[
-        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
-    ] = None,
     **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
@@ -358,42 +362,36 @@ def Embeddings(
 
     Parameters
     ----------
-    schema : Schema
+    schema: Schema
         Schema of the input data. This Schema object will be automatically generated using
         [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
         Next to this, it's also possible to construct it manually.
-    pre : Optional[BlockType], optional
-        Transformation block to apply before the embeddings lookup, by default None
-    post : Optional[BlockType], optional
-        Transformation block to apply after the embeddings lookup, by default None
-    aggregation : Optional[TabularAggregationType], optional
-        Transformation block to apply for aggregating the inputs, by default None
-    block_name : str, optional
-        Name of the block, by default "embeddings"
-    sequence_combiner : Optional[Union[str, tf.keras.layers.Layer]], optional
+    embedding_dims: Optional[Union[Dict[str, int], int]], optional
+        A dim to use for all features, or a
+        Dict like {"feature_name": embedding size, ...}, by default None
+    infer_dim_fn: Callable[[ColumnSchema], int], defaults to infer_embedding_dim
+        The function to use to infer the embedding dimension, by default infer_embedding_dim
+    trainable: Optional[Dict[str, bool]] = None
+        Name of the column(s) whose embeddings should be frozen (or trainable) during training
+        trainable will be set to False/True for these column(s), accordingly
+    sequence_combiner: Optional[Union[str, tf.keras.layers.Layer]], optional
        A string specifying how to combine embedding results for each
        entry ("mean", "sqrtn" and "sum" are supported) or a layer.
        Default is None (no combiner used)
-    embedding_dims : Optional[Dict[str, int]], optional
-        A Dict like {"feature_name": embedding size, ...}, by default None
-    embedding_dim_default : Optional[int], optional
-        For features not included in embedding_dims, use this dim, by default 32
-    infer_embedding_sizes : bool, optional
-        Infer the features embedding sizes based on their cardinality on schema, by default True
-    infer_embedding_sizes_multiplier : float, optional
-        Multiplier factor to be used when inferring embedding sizes, by default 2.0
-    infer_embeddings_ensure_dim_multiple_of_8 : bool, optional
-        Ensures that the inferred embedding sizes are rounded up to the next multiple of 8,
-        for better performance for embedding looks on GPUs. By default True
-    trainable : Optional[Dict[str, bool]] = None
-        Name of the column(s) whose embeddings should be frozen (or trainable) during training
-        trainable will be set to False/True for these column(s), accordingly
-    embeddings_initializers : Optional[
+    embeddings_initializers: Optional[
         Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
         ],
         An initializer function or a dict where keys are feature names and values are
         callable to initialize embedding tables. Pre-trained embeddings can be fed via
         embeddings_initializers arg.
+    pre: Optional[BlockType], optional
+        Transformation block to apply before the embeddings lookup, by default None
+    post: Optional[BlockType], optional
+        Transformation block to apply after the embeddings lookup, by default None
+    aggregation: Optional[TabularAggregationType], optional
+        Transformation block to apply for aggregating the inputs, by default None
+    block_name: str, optional
+        Name of the block, by default "embeddings"
 
     Returns
     -------
@@ -401,25 +399,10 @@ def Embeddings(
         Returns a parallel block with an embedding table for each categorical features
     """
 
-    cols = schema.select_by_tag(Tags.CATEGORICAL)
     tables = {}
-
-    embedding_dims = embedding_dims or {}
-    if infer_embedding_sizes:
-        inferred_embedding_dims = schema_utils.get_embedding_sizes_from_schema(
-            schema,
-            infer_embedding_sizes_multiplier,
-            infer_embeddings_ensure_dim_multiple_of_8,
-        )
-        # Adding inferred embedding dims only for features where the embedding sizes
-        # were not pre-defined
-        inferred_embedding_dims = {
-            k: v for k, v in inferred_embedding_dims.items() if k not in embedding_dims
-        }
-        embedding_dims = {**embedding_dims, **inferred_embedding_dims}
-
     trainable = trainable or {}
-    for col in cols:
+
+    for col in schema:
         combiner = None
         if Tags.SEQUENCE in col.tags or Tags.LIST in col.tags or col.is_list:
             if isinstance(sequence_combiner, dict):
@@ -427,25 +410,30 @@ def Embeddings(
             else:
                 combiner = sequence_combiner
 
-        embedding_size = embedding_dims.get(col.name, embedding_dim_default)
+        dim = None
+        if isinstance(embedding_dims, dict):
+            dim = embedding_dims.get(col.name)
+        elif isinstance(embedding_dims, int):
+            dim = embedding_dims
 
+        embeddings_initializer = kwargs.pop("embeddings_initializer", None)
         if embeddings_initializers:
             if isinstance(embeddings_initializers, dict):
-                emb_initializer = embeddings_initializers.get(col.name, "uniform")
+                embeddings_initializer = embeddings_initializers.get(col.name, "uniform")
             else:
-                emb_initializer = embeddings_initializers
-            kwargs["embeddings_initializer"] = emb_initializer
+                embeddings_initializer = embeddings_initializers
 
         tables[col.name] = EmbeddingTable(
-            embedding_size,
+            dim or infer_dim_fn(col),
             col,
             combiner=combiner,
+            embeddings_initializer=embeddings_initializer,
             trainable=trainable.get(col.name, True),
             **kwargs,
         )
 
     return ParallelBlock(
-        tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=cols
+        tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=schema
     )
 
 

@@ -95,7 +95,9 @@ def test_tabular_features_yoochoose_model_inputblockv2(
 def test_tabular_seq_features_ragged_embeddings(sequence_testing_data: Dataset):
     tab_module = ml.InputBlockV2(
         sequence_testing_data.schema,
-        embeddings=ml.Embeddings(sequence_testing_data.schema, sequence_combiner=None),
+        embeddings=ml.Embeddings(
+            sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+        ),
         aggregation=None,
     )
 
@@ -121,7 +123,10 @@ def test_tabular_seq_features_ragged_emb_combiner(sequence_testing_data: Dataset
     con2d = sequence_testing_data.schema.select_by_tag(Tags.CONTINUOUS).remove_by_tag(Tags.SEQUENCE)
     input_block = ml.InputBlockV2(
         sequence_testing_data.schema,
-        embeddings=ml.Embeddings(sequence_testing_data.schema, sequence_combiner=seq_combiner),
+        embeddings=ml.Embeddings(
+            sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL),
+            sequence_combiner=seq_combiner,
+        ),
         continuous_column_selector=con2d,
         aggregation=None,
     )
@@ -155,7 +160,7 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
     input_block_weighed_avg = ml.InputBlockV2(
         schema,
         embeddings=ml.Embeddings(
-            schema,
+            schema.select_by_tag(Tags.CATEGORICAL),
             sequence_combiner=ml.AverageEmbeddingsByWeightFeature.from_schema_convention(
                 schema, "_weights"
             ),
@@ -168,7 +173,8 @@ def test_tabular_seq_features_ragged_custom_emb_combiner(sequence_testing_data: 
     input_block_simple_avg = ml.InputBlockV2(
         schema,
         embeddings=ml.Embeddings(
-            schema, sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1))
+            schema.select_by_tag(Tags.CATEGORICAL),
+            sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
         ),
         aggregation=None,
     )
@@ -220,11 +226,8 @@ def test_tabular_seq_features_avg_embeddings_with_mapvalues(sequence_testing_dat
 def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset, aggregation: str):
     cat_schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     embeddings_block = ml.Embeddings(
-        cat_schema,
+        cat_schema.select_by_tag(Tags.CATEGORICAL),
         embedding_dims={"item_id_seq": 15, "test_user_id": 21},
-        infer_embedding_sizes=True,
-        infer_embedding_sizes_multiplier=2.0,
-        infer_embeddings_ensure_dim_multiple_of_8=True,
         embeddings_initializer="truncated_normal",
     )
     input_block = ml.InputBlockV2(cat_schema, embeddings=embeddings_block, aggregation=aggregation)
