@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2021, NVIDIA CORPORATION.
+# Copyright (c) 2022, NVIDIA CORPORATION.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import tensorflow as tf
 
-from merlin.models import _version
+from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 
-__version__ = _version.get_versions()["version"]
+
+def test_in_batch_sampler_reload():
+    batch_size = 43
+    sampler = InBatchSampler(batch_size=batch_size)
+    serialized = tf.keras.layers.serialize(sampler)
+    reloaded = tf.keras.layers.deserialize(serialized)
+    assert reloaded.batch_size == batch_size
