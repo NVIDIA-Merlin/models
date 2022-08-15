@@ -215,6 +215,51 @@ class TestEmbeddingTable:
             np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
 
+@pytest.mark.parametrize("trainable", [True, False])
+def test_pretrained_from_InputBlockV2(trainable, music_streaming_data: Dataset):
+    vocab_size = music_streaming_data.schema.column_schemas["item_id"].int_domain.max + 1
+    embedding_dim = 32
+    weights = np.random.rand(vocab_size, embedding_dim)
+    pre_trained_weights_df = pd.DataFrame(weights)
+
+    embed_dims = {}
+    embed_dims["item_id"] = pre_trained_weights_df.shape[1]
+    embeddings_init = {
+        "item_id": mm.TensorInitializer(weights),
+    }
+
+    embeddings_block = mm.Embeddings(
+        music_streaming_data.schema,
+        infer_embedding_sizes=True,
+        embeddings_initializers=embeddings_init,
+        trainable={"item_id": trainable},
+        embedding_dims=embed_dims,
+    )
+    input_block = mm.InputBlockV2(music_streaming_data.schema, embeddings=embeddings_block)
+
+    model = mm.DCNModel(
+        music_streaming_data.schema,
+        depth=2,
+        input_block=input_block,
+        deep_block=mm.MLPBlock([64, 32]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
+    )
+    model_test(model, music_streaming_data)
+
+    if trainable:
+        np.testing.assert_raises(
+            AssertionError,
+            np.testing.assert_array_almost_equal,
+            weights,
+            embeddings_block["item_id"].table.embeddings,
+        )
+    else:
+        np.testing.assert_array_almost_equal(
+            weights,
+            embeddings_block["item_id"].table.embeddings,
+        )
+
+
 def test_embedding_features_yoochoose(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
