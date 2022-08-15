@@ -422,6 +422,10 @@
     <span class="n">infer_embedding_sizes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">infer_embedding_sizes_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
     <span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">trainable</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParallelBlock</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Creates a ParallelBlock with an EmbeddingTable for each categorical feature</span>
@@ -456,6 +460,15 @@
 <span class="sd">    infer_embeddings_ensure_dim_multiple_of_8 : bool, optional</span>
 <span class="sd">        Ensures that the inferred embedding sizes are rounded up to the next multiple of 8,</span>
 <span class="sd">        for better performance for embedding looks on GPUs. By default True</span>
+<span class="sd">    trainable : Optional[Dict[str, bool]] = None</span>
+<span class="sd">        Name of the column(s) whose embeddings should be frozen (or trainable) during training</span>
+<span class="sd">        trainable will be set to False/True for these column(s), accordingly</span>
+<span class="sd">    embeddings_initializers : Optional[</span>
+<span class="sd">        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]</span>
+<span class="sd">        ],</span>
+<span class="sd">        An initializer function or a dict where keys are feature names and values are</span>
+<span class="sd">        callable to initialize embedding tables. Pre-trained embeddings can be fed via</span>
+<span class="sd">        embeddings_initializers arg.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -480,6 +493,7 @@
         <span class="p">}</span>
         <span class="n">embedding_dims</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">embedding_dims</span><span class="p">,</span> <span class="o">**</span><span class="n">inferred_embedding_dims</span><span class="p">}</span>
 
+    <span class="n">trainable</span> <span class="o">=</span> <span class="n">trainable</span> <span class="ow">or</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
         <span class="n">combiner</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">tags</span> <span class="ow">or</span> <span class="n">Tags</span><span class="o">.</span><span class="n">LIST</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">tags</span> <span class="ow">or</span> <span class="n">col</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
@@ -489,7 +503,21 @@
                 <span class="n">combiner</span> <span class="o">=</span> <span class="n">sequence_combiner</span>
 
         <span class="n">embedding_size</span> <span class="o">=</span> <span class="n">embedding_dims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">embedding_dim_default</span><span class="p">)</span>
-        <span class="n">tables</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">EmbeddingTable</span><span class="p">(</span><span class="n">embedding_size</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">combiner</span><span class="o">=</span><span class="n">combiner</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">embeddings_initializers</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">embeddings_initializers</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">emb_initializer</span> <span class="o">=</span> <span class="n">embeddings_initializers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;uniform&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">emb_initializer</span> <span class="o">=</span> <span class="n">embeddings_initializers</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;embeddings_initializer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emb_initializer</span>
+
+        <span class="n">tables</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">EmbeddingTable</span><span class="p">(</span>
+            <span class="n">embedding_size</span><span class="p">,</span>
+            <span class="n">col</span><span class="p">,</span>
+            <span class="n">combiner</span><span class="o">=</span><span class="n">combiner</span><span class="p">,</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
         <span class="n">tables</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">block_name</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">cols</span>
