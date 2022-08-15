@@ -50,7 +50,9 @@ def topk_metrics_test_data():
 @pytest.fixture
 def topk_metrics_test_data_pre_sorted(topk_metrics_test_data):
     labels, predictions, _ = topk_metrics_test_data
-    predictions, labels, label_relevant_counts = extract_topk(5, predictions, labels)
+    predictions, labels, label_relevant_counts = extract_topk(
+        5, predictions, labels, shuffle_ties=True
+    )
     return labels, predictions, label_relevant_counts
 
 
@@ -179,7 +181,7 @@ def test_topk_metrics_classes_pre_or_not_sorted_matches(
     labels, predictions, label_relevant_counts = topk_metrics_test_data
     # Pre-sorting predictions and labels
     predictions_sorted, labels_sorted, label_relevant_counts_sorted = extract_topk(
-        4, predictions, labels
+        4, predictions, labels, shuffle_ties=True
     )
 
     metric1 = metric_class(k=4, pre_sorted=True)
