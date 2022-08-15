@@ -19,6 +19,7 @@
       ~NDCGAt.add_update
       ~NDCGAt.add_variable
       ~NDCGAt.add_weight
+      ~NDCGAt.apply
       ~NDCGAt.build
       ~NDCGAt.call
       ~NDCGAt.check_cast_inputs
@@ -32,9 +33,11 @@
       ~NDCGAt.get_input_at
       ~NDCGAt.get_input_mask_at
       ~NDCGAt.get_input_shape_at
+      ~NDCGAt.get_losses_for
       ~NDCGAt.get_output_at
       ~NDCGAt.get_output_mask_at
       ~NDCGAt.get_output_shape_at
+      ~NDCGAt.get_updates_for
       ~NDCGAt.get_weights
       ~NDCGAt.merge_state
       ~NDCGAt.reset_state
