@@ -9,13 +9,13 @@ from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsE
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.core.base import Block, BlockType
-from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
+from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import ItemRecommenderModel, Model, RetrievalModel
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.predictions.classification import CategoricalPrediction, CategoricalTarget
 from merlin.models.tf.utils.tf_utils import df_to_tensor
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
@@ -375,8 +375,6 @@ class YoutubeDNNRetrievalModel(ItemRecommenderModel):
         top_block: Block = MLPBlock([64]),
         aggregation: str = "concat",
         l2_normalization: bool = True,
-        extra_pre_call: Optional[Block] = None,
-        task_block: Optional[Block] = None,
         logits_temperature: float = 1.0,
         sampled_softmax: bool = True,
         num_sampled: int = 100,
