@@ -57,6 +57,25 @@ def test_dlrm_model(music_streaming_data, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
+def test_dlrm_model_with_embeddings(music_streaming_data, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "user_age", "click"]
+    )
+    schema = music_streaming_data.schema
+    embedding_dim = 4
+    model = ml.DLRMModel(
+        schema,
+        embeddings=ml.Embeddings(
+            schema, embedding_dim_default=embedding_dim, infer_embedding_sizes=False
+        ),
+        bottom_block=ml.MLPBlock([embedding_dim]),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_dlrm_model_with_sample_weights_and_weighted_metrics(music_streaming_data, run_eagerly):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_age", "click"]
