@@ -152,6 +152,12 @@
         <span class="n">store_negative_ids</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span> <span class="o">=</span> <span class="n">samplers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_logits</span> <span class="o">=</span> <span class="n">post_logits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logits_temperature</span> <span class="o">=</span> <span class="n">logits_temperature</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span> <span class="o">=</span> <span class="n">cache_query</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">store_negative_ids</span> <span class="o">=</span> <span class="n">store_negative_ids</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">column_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">item_domain</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">categorical_domains</span><span class="p">(</span><span class="n">schema</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_id_feature_name</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span> <span class="o">=</span> <span class="n">cache_query</span>
@@ -222,7 +228,34 @@
         <span class="k">return</span> <span class="n">result</span>
 
 <div class="viewcode-block" id="ItemRetrievalTask.set_retrieval_cache_query"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ItemRetrievalTask.html#merlin.models.tf.ItemRetrievalTask.set_retrieval_cache_query">[docs]</a>    <span class="k">def</span> <span class="nf">set_retrieval_cache_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_scorer</span><span class="o">.</span><span class="n">cache_query</span> <span class="o">=</span> <span class="n">value</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_scorer</span><span class="o">.</span><span class="n">cache_query</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="ItemRetrievalTask.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ItemRetrievalTask.html#merlin.models.tf.ItemRetrievalTask.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ItemRetrievalTask</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
+        <span class="k">del</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;pre&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">:</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">samplers</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_logits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;post_logits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_logits</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;logits_temperature&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logits_temperature</span><span class="p">,</span>
+                <span class="s2">&quot;cache_query&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_query</span><span class="p">,</span>
+                <span class="s2">&quot;store_negative_ids&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">store_negative_ids</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">schema_to_tensorflow_metadata_json</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">config</span></div>
+
+<div class="viewcode-block" id="ItemRetrievalTask.from_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ItemRetrievalTask.html#merlin.models.tf.ItemRetrievalTask.from_config">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s2">&quot;schema&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">tensorflow_metadata_json_to_schema</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;schema&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="s2">&quot;samplers&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">sampler</span><span class="p">)</span> <span class="k">for</span> <span class="n">sampler</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;samplers&quot;</span><span class="p">]</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
