@@ -111,15 +111,17 @@ def test_dlrm_raises_with_embeddings_and_options(testing_data: Dataset):
 
 def test_dlrm_with_embeddings(testing_data: Dataset):
     schema = testing_data.schema
-    dim = 12
+    embedding_dim = 12
+    top_dim = 4
     dlrm = mm.DLRMBlock(
         schema,
         embeddings=mm.SequentialBlock(
             mm.AsRaggedFeatures(),
-            mm.Embeddings(schema, infer_embedding_sizes=False, embedding_dim_default=dim),
+            mm.Embeddings(schema, infer_embedding_sizes=False, embedding_dim_default=embedding_dim),
         ),
-        bottom_block=mm.MLPBlock([dim]),
+        bottom_block=mm.MLPBlock([embedding_dim]),
+        top_block=mm.MLPBlock([top_dim]),
     )
     outputs = dlrm(mm.sample_batch(testing_data, batch_size=100, include_targets=False))
 
-    assert list(outputs.shape) == [100, (dim * dim - dim) / 2]
+    assert list(outputs.shape) == [100, 4]
