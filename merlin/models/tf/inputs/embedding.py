@@ -347,6 +347,10 @@ def Embeddings(
     infer_embedding_sizes: bool = True,
     infer_embedding_sizes_multiplier: float = 2.0,
     infer_embeddings_ensure_dim_multiple_of_8: bool = True,
+    trainable: Optional[Dict[str, bool]] = None,
+    embeddings_initializers: Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+    ] = None,
     **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
@@ -381,6 +385,15 @@ def Embeddings(
     infer_embeddings_ensure_dim_multiple_of_8 : bool, optional
         Ensures that the inferred embedding sizes are rounded up to the next multiple of 8,
         for better performance for embedding looks on GPUs. By default True
+    trainable : Optional[Dict[str, bool]] = None
+        Name of the column(s) whose embeddings should be frozen (or trainable) during training
+        trainable will be set to False/True for these column(s), accordingly
+    embeddings_initializers : Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+        ],
+        An initializer function or a dict where keys are feature names and values are
+        callable to initialize embedding tables. Pre-trained embeddings can be fed via
+        embeddings_initializers arg.
 
     Returns
     -------
@@ -405,6 +418,7 @@ def Embeddings(
         }
         embedding_dims = {**embedding_dims, **inferred_embedding_dims}
 
+    trainable = trainable or {}
     for col in cols:
         combiner = None
         if Tags.SEQUENCE in col.tags or Tags.LIST in col.tags or col.is_list:
@@ -414,7 +428,21 @@ def Embeddings(
                 combiner = sequence_combiner
 
         embedding_size = embedding_dims.get(col.name, embedding_dim_default)
-        tables[col.name] = EmbeddingTable(embedding_size, col, combiner=combiner, **kwargs)
+
+        if embeddings_initializers:
+            if isinstance(embeddings_initializers, dict):
+                emb_initializer = embeddings_initializers.get(col.name, "uniform")
+            else:
+                emb_initializer = embeddings_initializers
+            kwargs["embeddings_initializer"] = emb_initializer
+
+        tables[col.name] = EmbeddingTable(
+            embedding_size,
+            col,
+            combiner=combiner,
+            trainable=trainable.get(col.name, True),
+            **kwargs,
+        )
 
     return ParallelBlock(
         tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=cols
