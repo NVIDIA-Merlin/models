@@ -56,8 +56,7 @@ def test_categorical_prediction_block(ecommerce_data: Dataset, run_eagerly):
         mm.InputBlock(schema),
         mm.MLPBlock([8]),
         mm.CategoricalPrediction(
-            target_layer=schema["item_category"],
-            target_name="item_category",
+            prediction=schema["item_category"],
             negative_samplers=PopularityBasedSamplerV2(max_id=100, max_num_samples=20),
         ),
     )
@@ -99,8 +98,7 @@ def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
             ),
             mm.MLPBlock([32]),
             mm.CategoricalPrediction(
-                target_layer=target,
-                target_name="item_id_seq",
+                prediction=target,
                 negative_samplers=PopularityBasedSamplerV2(max_id=51996, max_num_samples=20),
             ),
         )
@@ -114,7 +112,7 @@ def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
             schema,
         ),
         mm.MLPBlock([32]),
-        mm.CategoricalPrediction(target_layer=schema["item_id_seq"], target_name="item_id_seq"),
+        mm.CategoricalPrediction(prediction=schema["item_id_seq"]),
     )
     batch = next(iter(dataloader))
     output = model(batch[0], batch[1], training=True)

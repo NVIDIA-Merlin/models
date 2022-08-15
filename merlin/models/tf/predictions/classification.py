@@ -107,13 +107,13 @@ class CategoricalPrediction(ContrastivePredictionBlock):
 
     Parameters
     ----------
-    target_layer : Union[Schema, ColumnSchema,
-                EmbeddingTable, 'CategoricalTarget&quot',
+    prediction: Union[Schema, ColumnSchema,
+                EmbeddingTable, 'CategoricalTarget',
                 'EmbeddingTablePrediction']
         The target feature to predict. To perform weight-tying [1] technique, you should provide
         the `EmbeddingTable` or `EmbeddingTablePrediction` related to the
-        taregt feature.
-    negative_samplers : ItemSamplersType, optional
+        target feature.
+    negative_samplers: ItemSamplersType, optional
         List of samplers for negative sampling,
         by default None
     pre: Optional[Block], optional
@@ -145,7 +145,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
 
     def __init__(
         self,
-        target_layer: Union[
+        prediction: Union[
             Schema, ColumnSchema, EmbeddingTable, "CategoricalTarget", "EmbeddingTablePrediction"
         ] = None,
         negative_samplers: ItemSamplersType = None,
@@ -164,29 +164,33 @@ class CategoricalPrediction(ContrastivePredictionBlock):
         ),
         **kwargs,
     ):
-        self.target_name = kwargs.pop("target", target_name)
         self.max_num_samples = kwargs.pop("max_num_samples", None)
-        prediction = kwargs.pop("prediction", None)
+        _prediction = kwargs.pop("prediction", None)
 
-        if target_layer is not None:
-            if isinstance(target_layer, (Schema, ColumnSchema)):
-                prediction = CategoricalTarget(target_layer)
-            elif isinstance(target_layer, EmbeddingTable):
-                prediction = EmbeddingTablePrediction(target_layer)
+        if prediction is not None:
+            if isinstance(prediction, (Schema, ColumnSchema)):
+                _prediction = CategoricalTarget(prediction)
+                if isinstance(prediction, Schema):
+                    prediction = prediction.first
+                target_name = target_name or prediction.name
+            elif isinstance(prediction, EmbeddingTable):
+                _prediction = EmbeddingTablePrediction(prediction)
+                target_name = _prediction.table.col_schema.name
             else:
-                prediction = target_layer
+                _prediction = prediction
 
         prediction_with_negatives = kwargs.pop(
             "prediction_with_negatives",
             SampledLookUps(
-                prediction=prediction,
+                prediction=_prediction,
                 negative_samplers=negative_samplers,
                 feature_name=target_name,
                 max_num_samples=self.max_num_samples,
             ),
         )
+        self.target_name = kwargs.pop("target", target_name)
         super().__init__(
-            prediction=prediction,
+            prediction=_prediction,
             prediction_with_negatives=prediction_with_negatives,
             default_loss=default_loss,
             default_metrics=default_metrics,
