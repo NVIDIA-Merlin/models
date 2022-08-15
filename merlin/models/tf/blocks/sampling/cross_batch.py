@@ -22,6 +22,7 @@ from merlin.models.tf.blocks.sampling.base import EmbeddingWithMetadata, ItemSam
 from merlin.models.tf.typing import TabularData
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class PopularityBasedSampler(ItemSampler):
     """
     Provides a popularity-based negative sampling for the softmax layer
@@ -149,3 +150,13 @@ class PopularityBasedSampler(ItemSampler):
             [tf.zeros(self.min_id + 1, dtype=tf.float32), estimated_probs], axis=0
         )
         return estimated_probs
+
+    def get_config(self):
+        config = super().get_config()
+        config["max_id"] = self.max_id
+        config["min_id"] = self.min_id
+        config["max_num_samples"] = self.max_num_samples
+        config["seed"] = self.seed
+        config["item_id_feature_name"] = self.item_id_feature_name
+
+        return config
