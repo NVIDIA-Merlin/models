@@ -443,6 +443,12 @@ class ItemRetrievalScorer(Block):
         config["sampling_downscore_false_negatives"] = self.downscore_false_negatives
         config["sampling_downscore_false_negatives_value"] = self.false_negatives_score
         config["item_id_feature_name"] = self.item_id_feature_name
+        config["item_domain"] = self.item_domain
+        config["query_name"] = self.query_name
+        config["item_name"] = self.item_name
+        config["cache_query"] = self.cache_query
+        config["sampled_softmax_mode"] = self.sampled_softmax_mode
+        config["store_negative_ids"] = self.store_negative_ids
 
         return config
 
