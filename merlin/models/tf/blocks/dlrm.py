@@ -150,6 +150,7 @@ def _get_embeddings(embedding_dim, embedding_options, bottom_block, cat_schema):
         embedding_dim_default=embedding_options.embedding_dim_default,
         infer_embedding_sizes=embedding_options.infer_embedding_sizes,
         infer_embedding_sizes_multiplier=embedding_options.infer_embedding_sizes_multiplier,
+        embeddings_initializers=embedding_options.embeddings_initializers,
     )
     embeddings_kwargs["infer_embeddings_ensure_dim_multiple_of_8"] = (
         embedding_options.infer_embeddings_ensure_dim_multiple_of_8,
