@@ -104,7 +104,7 @@ def test_dlrm_raises_with_embeddings_and_options(testing_data: Dataset):
             schema,
             embedding_dim=10,
             embedding_options=mm.EmbeddingOptions(),
-            embeddings=mm.Embeddings(schema),
+            embeddings=mm.Embeddings(schema.select_by_tag(Tags.CATEGORICAL)),
         )
     assert "Only one-of `embeddings` or `embedding_options` may be provided" in str(excinfo.value)
 
@@ -115,10 +115,7 @@ def test_dlrm_with_embeddings(testing_data: Dataset):
     top_dim = 4
     dlrm = mm.DLRMBlock(
         schema,
-        embeddings=mm.SequentialBlock(
-            mm.AsRaggedFeatures(),
-            mm.Embeddings(schema, infer_embedding_sizes=False, embedding_dim_default=embedding_dim),
-        ),
+        embeddings=mm.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
         bottom_block=mm.MLPBlock([embedding_dim]),
         top_block=mm.MLPBlock([top_dim]),
     )

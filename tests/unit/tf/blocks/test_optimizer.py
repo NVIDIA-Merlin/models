@@ -579,7 +579,7 @@ def test_split_embeddins_on_size():
     inputs["cat1"] = tf.constant([[1], [2], [4], [6], [6]])
     inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
     inputs["cat3"] = tf.constant([[101], [101], [101], [102], [102]])
-    embeddings = ml.Embeddings(schema)
+    embeddings = ml.Embeddings(schema.select_by_tag(Tags.CATEGORICAL))
     large_tables, small_tables = ml.split_embeddings_on_size(embeddings, threshold=100)
     assert len(large_tables) == 1
     assert large_tables[0].name == "cat1"
@@ -590,7 +590,7 @@ def test_split_embeddins_on_size():
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_lazy_adam_for_large_embeddings(ecommerce_data, run_eagerly):
     schema = ecommerce_data.schema
-    embeddings = ml.Embeddings(schema)
+    embeddings = ml.Embeddings(schema.select_by_tag(Tags.CATEGORICAL))
     large_embeddings, small_embeddings = ml.split_embeddings_on_size(embeddings, threshold=1000)
     input = ml.InputBlockV2(schema, embeddings=embeddings)
     mlp = ml.MLPBlock([64])
@@ -612,9 +612,9 @@ def test_lazy_adam_by_EmbeddingTable(ecommerce_data, run_eagerly):
     schema = ecommerce_data.schema.select_by_name(["user_categories", "user_shops", "user_brands"])
     dims = schema_utils.get_embedding_sizes_from_schema(schema)
 
-    table_0 = ml.EmbeddingTable(dims["user_categories"], schema["user_categories"], combiner=None)
-    table_1 = ml.EmbeddingTable(dims["user_shops"], schema["user_shops"], combiner=None)
-    table_2 = ml.EmbeddingTable(dims["user_brands"], schema["user_brands"], combiner=None)
+    table_0 = ml.EmbeddingTable(dims["user_categories"], schema["user_categories"])
+    table_1 = ml.EmbeddingTable(dims["user_shops"], schema["user_shops"])
+    table_2 = ml.EmbeddingTable(dims["user_brands"], schema["user_brands"])
     embedding_layer = ml.ParallelBlock(
         {"user_categories": table_0, "user_shops": table_1, "user_brands": table_2}, schema=schema
     )
