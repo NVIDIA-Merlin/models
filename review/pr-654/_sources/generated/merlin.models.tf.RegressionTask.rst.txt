@@ -19,6 +19,7 @@
       ~RegressionTask.add_update
       ~RegressionTask.add_variable
       ~RegressionTask.add_weight
+      ~RegressionTask.apply
       ~RegressionTask.build
       ~RegressionTask.build_task
       ~RegressionTask.call
@@ -34,9 +35,11 @@
       ~RegressionTask.get_input_at
       ~RegressionTask.get_input_mask_at
       ~RegressionTask.get_input_shape_at
+      ~RegressionTask.get_losses_for
       ~RegressionTask.get_output_at
       ~RegressionTask.get_output_mask_at
       ~RegressionTask.get_output_shape_at
+      ~RegressionTask.get_updates_for
       ~RegressionTask.get_weights
       ~RegressionTask.pre_call
       ~RegressionTask.pre_loss

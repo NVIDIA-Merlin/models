@@ -19,6 +19,7 @@
       ~SequentialBlock.add_update
       ~SequentialBlock.add_variable
       ~SequentialBlock.add_weight
+      ~SequentialBlock.apply
       ~SequentialBlock.as_tabular
       ~SequentialBlock.build
       ~SequentialBlock.call
@@ -43,10 +44,12 @@
       ~SequentialBlock.get_input_mask_at
       ~SequentialBlock.get_input_shape_at
       ~SequentialBlock.get_item_ids_from_inputs
+      ~SequentialBlock.get_losses_for
       ~SequentialBlock.get_output_at
       ~SequentialBlock.get_output_mask_at
       ~SequentialBlock.get_output_shape_at
       ~SequentialBlock.get_padding_mask_from_item_id
+      ~SequentialBlock.get_updates_for
       ~SequentialBlock.get_weights
       ~SequentialBlock.parse
       ~SequentialBlock.parse_block
