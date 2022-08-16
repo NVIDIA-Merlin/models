@@ -259,7 +259,7 @@ class XGBoost:
 
     @classmethod
     def load(cls, path) -> "XGBoost":
-        """Load the model from a directory where a saved model is stored."""
+        """Load the model from a directory where a model has been saved."""
         model_path = Path(path) / "model.json"
         booster = xgb.Booster()
         booster.load_model(model_path)
