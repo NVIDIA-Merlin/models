@@ -115,10 +115,7 @@ def test_dlrm_with_embeddings(testing_data: Dataset):
     top_dim = 4
     dlrm = mm.DLRMBlock(
         schema,
-        embeddings=mm.SequentialBlock(
-            mm.AsRaggedFeatures(),
-            mm.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
-        ),
+        embeddings=mm.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
         bottom_block=mm.MLPBlock([embedding_dim]),
         top_block=mm.MLPBlock([top_dim]),
     )
