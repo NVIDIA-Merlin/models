@@ -176,6 +176,10 @@ def get_embedding_sizes_from_schema(
     }
 
 
+def col_is_list(col: ColumnSchema) -> bool:
+    return Tags.SEQUENCE in col.tags or Tags.LIST in col.tags or col.is_list
+
+
 def get_embedding_size_from_cardinality(
     cardinality: int, multiplier: float = 2.0, ensure_multiple_of_8: bool = False
 ) -> int:

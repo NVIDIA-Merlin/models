@@ -44,6 +44,7 @@ from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor, list_col_t
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
+    col_is_list,
     create_categorical_column,
     infer_embedding_dim,
     schema_to_tensorflow_metadata_json,
@@ -349,7 +350,7 @@ def Embeddings(
         Union[str, tf.keras.layers.Layer, Dict[str, Union[str, tf.keras.layers.Layer]]]
     ] = "mean",
     embeddings_initializers: Optional[
-        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None], str]
     ] = None,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
@@ -403,31 +404,11 @@ def Embeddings(
     trainable = trainable or {}
 
     for col in schema:
-        combiner = None
-        if Tags.SEQUENCE in col.tags or Tags.LIST in col.tags or col.is_list:
-            if isinstance(sequence_combiner, dict):
-                combiner = sequence_combiner[col.name]
-            else:
-                combiner = sequence_combiner
-
-        dim = None
-        if isinstance(embedding_dims, dict):
-            dim = embedding_dims.get(col.name)
-        elif isinstance(embedding_dims, int):
-            dim = embedding_dims
-
-        embeddings_initializer = kwargs.pop("embeddings_initializer", None)
-        if embeddings_initializers:
-            if isinstance(embeddings_initializers, dict):
-                embeddings_initializer = embeddings_initializers.get(col.name, "uniform")
-            else:
-                embeddings_initializer = embeddings_initializers
-
         tables[col.name] = EmbeddingTable(
-            dim or infer_dim_fn(col),
+            _get_dim(col, embedding_dims, infer_dim_fn),
             col,
-            combiner=combiner,
-            embeddings_initializer=embeddings_initializer,
+            combiner=_get_combiner(col, sequence_combiner),
+            embeddings_initializer=_get_initializer(col, embeddings_initializers),
             trainable=trainable.get(col.name, True),
             **kwargs,
         )
@@ -435,6 +416,40 @@ def Embeddings(
     return ParallelBlock(
         tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=schema
     )
+
+
+def _get_combiner(col, sequence_combiner):
+    combiner = None
+    if col_is_list(col):
+        if isinstance(sequence_combiner, dict):
+            combiner = sequence_combiner[col.name]
+        else:
+            combiner = sequence_combiner
+
+    return combiner
+
+
+def _get_dim(col, embedding_dims, infer_dim_fn):
+    dim = None
+    if isinstance(embedding_dims, dict):
+        dim = embedding_dims.get(col.name)
+    elif isinstance(embedding_dims, int):
+        dim = embedding_dims
+
+    if not dim:
+        dim = infer_dim_fn(col)
+
+    return dim
+
+
+def _get_initializer(col, embeddings_initializers):
+    initializer = None
+    if isinstance(embeddings_initializers, dict):
+        initializer = embeddings_initializers.get(col.name)
+    elif isinstance(embeddings_initializers, Callable):
+        initializer = embeddings_initializers
+
+    return initializer
 
 
 class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
