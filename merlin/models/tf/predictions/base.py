@@ -16,7 +16,7 @@
 import sys
 import types as python_types
 import warnings
-from typing import Optional, Union
+from typing import Callable, Optional, Sequence, Union
 
 import tensorflow as tf
 from keras.utils import generic_utils
@@ -28,6 +28,8 @@ from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer
+
+MetricsFn = Callable[[], Sequence[tf.keras.metrics.Metric]]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -62,7 +64,7 @@ class PredictionBlock(Layer):
         self,
         prediction: Layer,
         default_loss: Union[str, tf.keras.losses.Loss],
-        get_default_metrics,
+        default_metrics_fn: MetricsFn,
         name: Optional[str] = None,
         target: Optional[str] = None,
         pre: Optional[Layer] = None,
@@ -78,7 +80,7 @@ class PredictionBlock(Layer):
         super().__init__(name=name or self.full_name, **kwargs)
         self.prediction = prediction
         self.default_loss = default_loss
-        self.get_default_metrics = get_default_metrics
+        self.default_metrics_fn = default_metrics_fn
         self.pre = pre
         self.post = post
         if logits_scaler is not None:
@@ -214,10 +216,10 @@ class PredictionBlock(Layer):
 
     def get_config(self):
         config = super(PredictionBlock, self).get_config()
-        function_config = self._serialize_function_to_config(self.get_default_metrics)
+        function_config = self._serialize_function_to_config(self.default_metrics_fn)
         config.update(
             {
-                "get_default_metrics": function_config[0],
+                "default_metrics_fn": function_config[0],
                 "function_type": function_config[1],
                 "module": function_config[2],
                 "target": self.target,
@@ -242,8 +244,8 @@ class PredictionBlock(Layer):
 
     @classmethod
     def from_config(cls, config):
-        config["get_default_metrics"] = cls._parse_function_from_config(
-            config, "get_default_metrics", "module", "function_type"
+        config["default_metrics_fn"] = cls._parse_function_from_config(
+            config, "default_metrics_fn", "module", "function_type"
         )
 
         config = tf_utils.maybe_deserialize_keras_objects(
@@ -295,7 +297,7 @@ class ContrastivePredictionBlock(PredictionBlock):
         prediction: Layer,
         prediction_with_negatives: Layer,
         default_loss: Union[str, tf.keras.losses.Loss],
-        get_default_metrics,
+        default_metrics_fn: MetricsFn,
         name: Optional[str] = None,
         target: Optional[str] = None,
         pre: Optional[Layer] = None,
@@ -307,7 +309,7 @@ class ContrastivePredictionBlock(PredictionBlock):
         super(ContrastivePredictionBlock, self).__init__(
             prediction,
             default_loss=default_loss,
-            get_default_metrics=get_default_metrics,
+            default_metrics_fn=default_metrics_fn,
             target=target,
             pre=pre,
             post=post,

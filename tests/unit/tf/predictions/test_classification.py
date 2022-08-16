@@ -37,10 +37,10 @@ def test_binary_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
-        "click/binary_prediction/precision",
-        "click/binary_prediction/recall",
-        "click/binary_prediction/binary_accuracy",
-        "click/binary_prediction/auc",
+        "precision",
+        "recall",
+        "binary_accuracy",
+        "auc",
         "regularization_loss",
     }
 
@@ -65,11 +65,11 @@ def test_categorical_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
-        "item_category/categorical_prediction/ndcg_at_10",
-        "item_category/categorical_prediction/precision_at_10",
-        "item_category/categorical_prediction/map_at_10",
-        "item_category/categorical_prediction/mrr_at_10",
-        "item_category/categorical_prediction/recall_at_10",
+        "ndcg_at_10",
+        "precision_at_10",
+        "map_at_10",
+        "mrr_at_10",
+        "recall_at_10",
         "regularization_loss",
     }
 

@@ -23,7 +23,7 @@ from tensorflow.python.ops import embedding_ops
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.embedding import EmbeddingTable
 from merlin.models.tf.metrics.topk import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
-from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
+from merlin.models.tf.predictions.base import ContrastivePredictionBlock, MetricsFn, PredictionBlock
 from merlin.models.tf.predictions.sampling.base import (
     Items,
     ItemSamplersType,
@@ -42,7 +42,7 @@ from merlin.schema import ColumnSchema, Schema
 LOG = logging.getLogger("merlin_models")
 
 
-def binary_default_metrics():
+def default_binary_metrics():
     return (
         tf.keras.metrics.Precision(name="precision"),
         tf.keras.metrics.Recall(name="recall"),
@@ -51,14 +51,13 @@ def binary_default_metrics():
     )
 
 
-def categorical_prediction_default_metrics():
-    DEFAULT_K = 10
+def default_categorical_prediction_metrics(k=10):
     return (
-        RecallAt(DEFAULT_K),
-        MRRAt(DEFAULT_K),
-        NDCGAt(DEFAULT_K),
-        AvgPrecisionAt(DEFAULT_K),
-        PrecisionAt(DEFAULT_K),
+        RecallAt(k),
+        MRRAt(k),
+        NDCGAt(k),
+        AvgPrecisionAt(k),
+        PrecisionAt(k),
     )
 
 
@@ -87,7 +86,7 @@ class BinaryPrediction(PredictionBlock):
     default_loss: Union[str, tf.keras.losses.Loss], optional
         Default loss to use for binary-classification
         by 'binary_crossentropy'
-    get_default_metrics: Callable
+    default_metrics_fn: Callable
         A function returning the list of default metrics
         to use for binary-classification
     """
@@ -100,14 +99,14 @@ class BinaryPrediction(PredictionBlock):
         logits_temperature: float = 1.0,
         name: Optional[str] = None,
         default_loss: Union[str, tf.keras.losses.Loss] = "binary_crossentropy",
-        get_default_metrics=binary_default_metrics,
+        default_metrics_fn: MetricsFn = default_binary_metrics,
         **kwargs,
     ):
         prediction = kwargs.pop("prediction", None)
         super().__init__(
             prediction=prediction or tf.keras.layers.Dense(1, activation="sigmoid"),
             default_loss=default_loss,
-            get_default_metrics=get_default_metrics,
+            default_metrics_fn=default_metrics_fn,
             target=target,
             pre=pre,
             post=post,
@@ -170,7 +169,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
         logits_temperature: float = 1.0,
         name: Optional[str] = None,
         default_loss: Union[str, tf.keras.losses.Loss] = "categorical_crossentropy",
-        get_default_metrics=categorical_prediction_default_metrics,
+        default_metrics_fn: MetricsFn = default_categorical_prediction_metrics,
         **kwargs,
     ):
         self.max_num_samples = kwargs.pop("max_num_samples", None)
@@ -202,7 +201,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
             prediction=_prediction,
             prediction_with_negatives=prediction_with_negatives,
             default_loss=default_loss,
-            get_default_metrics=get_default_metrics,
+            default_metrics_fn=default_metrics_fn,
             name=name,
             target=self.target_name,
             pre=pre,

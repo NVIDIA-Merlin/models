@@ -3,7 +3,7 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from merlin.models.tf.predictions.base import PredictionBlock
+from merlin.models.tf.predictions.base import MetricsFn, PredictionBlock
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -38,7 +38,7 @@ class RegressionPrediction(PredictionBlock):
         post: Optional[Layer] = None,
         name: Optional[str] = None,
         default_loss="mse",
-        get_default_metrics=lambda: (
+        default_metrics_fn: MetricsFn = lambda: (
             tf.keras.metrics.RootMeanSquaredError(name="root_mean_squared_error"),
         ),
         **kwargs,
@@ -47,7 +47,7 @@ class RegressionPrediction(PredictionBlock):
         super().__init__(
             prediction=prediction or tf.keras.layers.Dense(1, activation="linear"),
             default_loss=default_loss,
-            get_default_metrics=get_default_metrics,
+            default_metrics_fn=default_metrics_fn,
             target=target,
             pre=pre,
             post=post,

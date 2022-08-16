@@ -21,8 +21,8 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.prediction import Prediction
-from merlin.models.tf.metrics.topk import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock
+from merlin.models.tf.predictions.classification import default_categorical_prediction_metrics
 from merlin.models.tf.predictions.sampling.base import (
     Items,
     ItemSamplersType,
@@ -36,17 +36,6 @@ from merlin.models.utils.constants import MIN_FLOAT
 from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin_models")
-
-
-def dot_product_prediction_default_metrics():
-    DEFAULT_K = 10
-    return (
-        RecallAt(DEFAULT_K),
-        MRRAt(DEFAULT_K),
-        NDCGAt(DEFAULT_K),
-        AvgPrecisionAt(DEFAULT_K),
-        PrecisionAt(DEFAULT_K),
-    )
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -104,7 +93,7 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
         logits_temperature: float = 1.0,
         name: Optional[str] = None,
         default_loss: Union[str, tf.keras.losses.Loss] = "categorical_crossentropy",
-        get_default_metrics=dot_product_prediction_default_metrics,
+        default_metrics_fn=default_categorical_prediction_metrics,
         query_name: str = "query",
         item_name: str = "item",
         **kwargs,
@@ -125,7 +114,7 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
             prediction=prediction,
             prediction_with_negatives=prediction_with_negatives,
             default_loss=default_loss,
-            get_default_metrics=get_default_metrics,
+            default_metrics_fn=default_metrics_fn,
             name=name,
             target=target,
             pre=pre,
