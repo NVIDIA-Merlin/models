@@ -14,9 +14,11 @@
 # limitations under the License.
 #
 
+import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
+from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSamplerV2
 
 
 def test_inbatch_sampler():
@@ -43,3 +45,34 @@ def test_inbatch_sampler_no_metadata_features():
 
     tf.assert_equal(input_data.id, output_data.id)
     assert output_data.metadata == {}
+
+
+def test_popularity_sampler():
+    num_classes = 1000
+    min_id = 2
+    num_sampled = 10
+    item_ids = tf.random.uniform(shape=(10,), minval=1, maxval=num_classes, dtype=tf.int32)
+
+    popularity_sampler = PopularityBasedSamplerV2(
+        max_num_samples=num_sampled, max_id=num_classes - 1, min_id=min_id
+    )
+
+    input_data = ml.Items(item_ids, {})
+    output_data = popularity_sampler(input_data)
+
+    assert len(tf.unique_with_counts(output_data.id)[0]) == num_sampled
+
+    tf.assert_equal(tf.reduce_all(output_data.id >= min_id), True)
+
+
+def test_popularity_sampler_with_num_samples_greater_than_cardinality():
+
+    num_classes = 50
+    min_id = 2
+    num_sampled = 100
+
+    with pytest.raises(Exception) as excinfo:
+        _ = PopularityBasedSamplerV2(
+            max_num_samples=num_sampled, max_id=num_classes - 1, min_id=min_id
+        )
+    assert "Number of items to sample `100`" in str(excinfo.value)

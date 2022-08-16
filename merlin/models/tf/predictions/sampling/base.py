@@ -52,7 +52,7 @@ class Items(NamedTuple):
 
     def __add__(self, other):
         return Items(
-            id=_list_to_tensor([self.id, other.ids]),
+            id=_list_to_tensor([self.id, other.id]),
             metadata={
                 key: _list_to_tensor([self.metadata[key], other.metadata[key]])
                 for key, val in self.metadata.items()
@@ -151,3 +151,14 @@ def _list_to_tensor(input_list: List[tf.Tensor]) -> tf.Tensor:
 
 
 ItemSamplersType = Union[ItemSamplerV2, Sequence[Union[ItemSamplerV2, str]], str]
+
+
+def parse_negative_samplers(negative_sampling: ItemSamplersType):
+    """
+    Parse the negative sampling strategies and returns
+    the corresponding list of samplers.
+    """
+    if not isinstance(negative_sampling, (list, tuple)):
+        negative_sampling = [negative_sampling]
+    negative_sampling = [ItemSamplerV2.parse(s) for s in list(negative_sampling)]
+    return negative_sampling
