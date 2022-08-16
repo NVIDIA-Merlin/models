@@ -243,16 +243,13 @@ class XGBoost:
 
     def save(self, path) -> None:
         """Save model to path."""
-        Path(path).mkdir(parents=True)
-        model_path = Path(path) / "model.json"
-        self.booster.save_model(model_path)
-        schema_path = Path(path) / "schema.json"
-        schema_to_tensorflow_metadata_json(self.schema, schema_path)
-        params_path = Path(path) / "params.json"
-        with open(params_path, "w") as f:
+        export_dir = Path(path)
+        export_dir.mkdir(parents=True)
+        self.booster.save_model(export_dir / "model.json")
+        schema_to_tensorflow_metadata_json(self.schema, export_dir / "schema.json")
+        with open(export_dir / "params.json", "w") as f:
             json.dump(self.params, f, indent=4)
-        config_path = Path(path) / "config.json"
-        with open(config_path, "w") as f:
+        with open(export_dir / "config.json", "w") as f:
             json.dump(
                 dict(qid_column=self.qid_column, target_columns=self.target_columns), f, indent=4
             )
@@ -260,16 +257,13 @@ class XGBoost:
     @classmethod
     def load(cls, path) -> "XGBoost":
         """Load the model from a directory where a model has been saved."""
-        model_path = Path(path) / "model.json"
+        load_dir = Path(path)
         booster = xgb.Booster()
-        booster.load_model(model_path)
-        schema_path = Path(path) / "schema.json"
-        schema = tensorflow_metadata_json_to_schema(schema_path)
-        params_path = Path(path) / "params.json"
-        with open(params_path, "r") as f:
+        booster.load_model(load_dir / "model.json")
+        schema = tensorflow_metadata_json_to_schema(load_dir / "schema.json")
+        with open(load_dir / "params.json", "r") as f:
             params = json.load(f)
-        config_path = Path(path) / "config.json"
-        with open(config_path, "r") as f:
+        with open(load_dir / "config.json", "r") as f:
             config = json.load(f)
         return cls(
             schema,
