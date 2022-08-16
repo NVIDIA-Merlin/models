@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -255,8 +256,10 @@ def test_reload(dask_client, tmpdir):
     )
     _ = model.evaluate(valid)
 
-    model.save(tmpdir)
-    reloaded = XGBoost.load(tmpdir)
+    model_dir = Path(tmpdir) / "xgb_model"
+
+    model.save(model_dir)
+    reloaded = XGBoost.load(model_dir)
 
     np.testing.assert_array_almost_equal(model.predict(valid), reloaded.predict(valid))
 

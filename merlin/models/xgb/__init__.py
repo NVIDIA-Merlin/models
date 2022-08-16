@@ -243,6 +243,7 @@ class XGBoost:
 
     def save(self, path) -> None:
         """Save model to path."""
+        Path(path).mkdir(parents=True)
         model_path = Path(path) / "model.json"
         self.booster.save_model(model_path)
         schema_path = Path(path) / "schema.json"
