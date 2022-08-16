@@ -410,7 +410,7 @@ def Embeddings(
 
     if trainable:
         kwargs["trainable"] = trainable
-    if embeddings_regularizer:
+    if embeddings_initializer:
         kwargs["embeddings_initializer"] = embeddings_initializer
     if embeddings_regularizer:
         kwargs["embeddings_regularizer"] = embeddings_regularizer
