@@ -13,23 +13,6 @@ pytest.importorskip("implicit")
     execute=False,
 )
 def test_func(tb):
-    tb.inject(
-        """
-        from unittest.mock import patch
-        from merlin.datasets.synthetic import generate_data
-        mock_train, mock_valid = generate_data(
-            input="movielens-100k",
-            num_rows=1000,
-            set_sizes=(0.8, 0.2)
-        )
-        p1 = patch(
-            "merlin.datasets.entertainment.get_movielens",
-            return_value=[mock_train, mock_valid]
-        )
-        p1.start()
-        """
-    )
-    tb.cells.pop(34)
     tb.execute()
     xgboost_metrics = tb.ref("metrics")
     implicit_metrics = tb.ref("implicit_metrics")
