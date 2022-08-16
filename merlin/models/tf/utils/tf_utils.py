@@ -137,11 +137,50 @@ def rescore_false_negatives(
     return tf.squeeze(negative_scores), valid_negatives_mask
 
 
-def extract_topk(k, predictions, labels):
+def extract_topk(
+    k: int,
+    predictions: tf.Tensor,
+    labels: tf.Tensor,
+    shuffle_ties: bool = False,
+    shuffle_ties_epsilon=1e-6,
+) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
+    """Extracts top-k values of predictions, sorting the corresponding
+    labels accordingly.
+
+    Parameters
+    ----------
+    k : int
+        Cut-off to extract top-k items
+    predictions : tf.Tensor
+        Tensor with the predictions per example
+    labels : tf.Tensor
+        Tensor with the labels per example
+    shuffle_ties : bool, optional
+        Adds a small random value to predictions to break ties if any, by default False
+    shuffle_ties_epsilon : _type_, optional
+        The maximum random value to be added to break ties (used only if shuffle_ties=True),
+        by default 1e-6
+
+    Returns
+    -------
+    Tuple(tf.Tensor,tf.Tensor,tf.Tensor)
+        Returns a triple with the following tensors
+        (topk_predictions,topk_labels,label_relevant_counts).
+        The label_relevant_counts holds the total number of positive values per example,
+        as some metrics (e.g. recall) need that information, which is lost when we
+        extract top-k values
+    """
     # Computes the number of relevant items per row (before extracting only the top-k)
     label_relevant_counts = tf.reduce_sum(labels, axis=-1)
     # Limits k to the number of prediction scores
     k = tf.minimum(k, tf.shape(predictions)[-1])
+
+    if shuffle_ties:
+        # Adds a small random value to break ties in the range [0,shuffle_ties_epsilon)
+        predictions = predictions + (
+            tf.random.uniform(tf.shape(predictions)) * shuffle_ties_epsilon
+        )
+
     topk_predictions, topk_indices = tf.math.top_k(predictions, k)
     topk_labels = gather_torch_like(labels, topk_indices, k)
     return topk_predictions, topk_labels, label_relevant_counts
