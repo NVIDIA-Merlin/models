@@ -145,8 +145,8 @@ def _get_embeddings(embedding_dim, embedding_options, bottom_block, cat_schema):
 
     embeddings_kwargs = dict(
         sequence_combiner=embedding_options.combiner,
-        embeddings_initializers=embedding_options.embeddings_initializers,
-        embedding_dims=embedding_options.embedding_dim_default,
+        embeddings_initializer=embedding_options.embeddings_initializers,
+        dim=embedding_options.embedding_dim_default,
         infer_dim_fn=partial(
             infer_embedding_dim,
             multiplier=embedding_options.infer_embedding_sizes_multiplier,

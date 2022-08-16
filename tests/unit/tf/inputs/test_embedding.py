@@ -230,9 +230,9 @@ def test_pretrained_from_InputBlockV2(trainable, music_streaming_data: Dataset):
 
     embeddings_block = mm.Embeddings(
         music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL),
-        embeddings_initializers=embeddings_init,
+        embeddings_initializer=embeddings_init,
         trainable={"item_id": trainable},
-        embedding_dims=embed_dims,
+        dim=embed_dims,
     )
     input_block = mm.InputBlockV2(music_streaming_data.schema, embeddings=embeddings_block)
 

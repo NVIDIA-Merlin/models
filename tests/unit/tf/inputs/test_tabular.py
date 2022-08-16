@@ -227,8 +227,8 @@ def test_embedding_tables_from_schema_infer_dims(sequence_testing_data: Dataset,
     cat_schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     embeddings_block = ml.Embeddings(
         cat_schema.select_by_tag(Tags.CATEGORICAL),
-        embedding_dims={"item_id_seq": 15, "test_user_id": 21},
-        embeddings_initializers="truncated_normal",
+        dim={"item_id_seq": 15, "test_user_id": 21},
+        embeddings_initializer="truncated_normal",
     )
     input_block = ml.InputBlockV2(cat_schema, embeddings=embeddings_block, aggregation=aggregation)
 

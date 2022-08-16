@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import inspect
 from copy import copy, deepcopy
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Union
@@ -26,6 +26,7 @@ from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableCon
 import merlin.io
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
+from merlin.models.tf.blocks.mlp import InitializerType, RegularizerType
 from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.tabular import (
@@ -102,6 +103,9 @@ class EmbeddingTableBase(Block):
         return cls(col_schema=col_schema, **config)
 
 
+CombinerType = Union[str, tf.keras.layers.Layer]
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingTable(EmbeddingTableBase):
     """Embedding table that is backed by a standard Keras Embedding Layer.
@@ -159,7 +163,7 @@ class EmbeddingTable(EmbeddingTableBase):
         embeddings_constraint=None,
         mask_zero=False,
         input_length=None,
-        combiner: Optional[Union[str, tf.keras.layers.Layer]] = None,
+        combiner: Optional[CombinerType] = None,
         trainable=True,
         name=None,
         dtype=None,
@@ -343,15 +347,14 @@ class EmbeddingTable(EmbeddingTableBase):
 
 def Embeddings(
     schema: Schema,
-    embedding_dims: Optional[Union[Dict[str, int], int]] = None,
+    dim: Optional[Union[Dict[str, int], int]] = None,
     infer_dim_fn: Callable[[ColumnSchema], int] = infer_embedding_dim,
-    trainable: Optional[Dict[str, bool]] = None,
-    sequence_combiner: Optional[
-        Union[str, tf.keras.layers.Layer, Dict[str, Union[str, tf.keras.layers.Layer]]]
-    ] = "mean",
-    embeddings_initializers: Optional[
-        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None], str]
-    ] = None,
+    sequence_combiner: Optional[Union[CombinerType, Dict[str, CombinerType]]] = "mean",
+    embeddings_initializer: Optional[Union[InitializerType, Dict[str, InitializerType]]] = None,
+    embeddings_regularizer: Optional[Union[RegularizerType, Dict[str, RegularizerType]]] = None,
+    activity_regularizer: Optional[Union[RegularizerType, Dict[str, RegularizerType]]] = None,
+    trainable: Optional[Union[bool, Dict[str, bool]]] = None,
+    table_cls=EmbeddingTable,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
@@ -379,7 +382,7 @@ def Embeddings(
        A string specifying how to combine embedding results for each
        entry ("mean", "sqrtn" and "sum" are supported) or a layer.
        Default is None (no combiner used)
-    embeddings_initializers: Optional[
+    embeddings_initializer: Optional[
         Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
         ],
         An initializer function or a dict where keys are feature names and values are
@@ -399,23 +402,47 @@ def Embeddings(
     ParallelBlock
         Returns a parallel block with an embedding table for each categorical features
     """
+    if sequence_combiner and "combiner" in kwargs:
+        raise ValueError(
+            "`combiner` cannot be specified as a keyword argument ",
+            "when `sequence_combiner` is specified",
+        )
+
+    if trainable:
+        kwargs["trainable"] = trainable
+    if embeddings_regularizer:
+        kwargs["embeddings_initializer"] = embeddings_initializer
+    if embeddings_regularizer:
+        kwargs["embeddings_regularizer"] = embeddings_regularizer
+    if activity_regularizer:
+        kwargs["activity_regularizer"] = activity_regularizer
 
     tables = {}
-    trainable = trainable or {}
 
     for col in schema:
-        tables[col.name] = EmbeddingTable(
-            _get_dim(col, embedding_dims, infer_dim_fn),
-            col,
-            combiner=_get_combiner(col, sequence_combiner),
-            embeddings_initializer=_get_initializer(col, embeddings_initializers),
-            trainable=trainable.get(col.name, True),
-            **kwargs,
-        )
+        table_kwargs = _forward_kwargs_to_table(col, table_cls, kwargs)
+        if sequence_combiner:
+            table_kwargs["combiner"] = _get_combiner(col, sequence_combiner)
+        tables[col.name] = table_cls(_get_dim(col, dim, infer_dim_fn), col, **table_kwargs)
 
     return ParallelBlock(
         tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=schema
     )
+
+
+def _forward_kwargs_to_table(col, table_cls, kwargs):
+    arg_spec = inspect.getfullargspec(table_cls.__init__)
+    table_kwargs = dict(zip(arg_spec.args[-len(arg_spec.defaults) :], arg_spec.defaults))
+
+    for key, val in kwargs.items():
+        if key in table_kwargs:
+            if isinstance(val, dict):
+                if col.name in val:
+                    table_kwargs[key] = val[col.name]
+            else:
+                table_kwargs[key] = val
+
+    return table_kwargs
 
 
 def _get_combiner(col, sequence_combiner):
@@ -537,7 +564,7 @@ class EmbeddingOptions:
     infer_embedding_sizes_multiplier: float = 2.0
     infer_embeddings_ensure_dim_multiple_of_8: bool = False
     embeddings_initializers: Optional[
-        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None], str]
     ] = None
     embeddings_l2_reg: float = 0.0
     combiner: Optional[str] = "mean"

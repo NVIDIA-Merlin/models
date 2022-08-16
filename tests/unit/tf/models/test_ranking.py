@@ -65,9 +65,7 @@ def test_dlrm_model_with_embeddings(music_streaming_data, run_eagerly):
     embedding_dim = 4
     model = ml.DLRMModel(
         schema,
-        embeddings=ml.Embeddings(
-            schema.select_by_tag(Tags.CATEGORICAL), embedding_dims=embedding_dim
-        ),
+        embeddings=ml.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
         bottom_block=ml.MLPBlock([embedding_dim]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
@@ -250,7 +248,7 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
     schema = music_streaming_data.schema
     # prepare wide_schema
     wide_schema = schema.select_by_name(["country", "user_age"])
-    deep_embedding = ml.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), embedding_dims=16)
+    deep_embedding = ml.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=16)
 
     model = ml.WideAndDeepModel(
         schema,
