@@ -257,7 +257,9 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
 
     def _maybe_sort_top_k(self, y_pred, y_true, label_relevant_counts: tf.Tensor = None):
         if not self.pre_sorted:
-            y_pred, y_true, label_relevant_counts = extract_topk(self.k, y_pred, y_true)
+            y_pred, y_true, label_relevant_counts = extract_topk(
+                self.k, y_pred, y_true, shuffle_ties=True
+            )
         else:
             if label_relevant_counts is None:
                 raise Exception(
@@ -369,10 +371,12 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
     def update_state(
         self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: Optional[tf.Tensor] = None
     ):
-        # Extractubg sorted top-k prediction scores and labels only ONCE
+        # Extracting sorted top-k prediction scores and labels only ONCE
         # so that sorting does not need to happen for each individual metric
         # (as the top-k metrics have been set with pre_sorted=True in this constructor
-        y_pred, y_true, label_relevant_counts_from_targets = extract_topk(self.k, y_pred, y_true)
+        y_pred, y_true, label_relevant_counts_from_targets = extract_topk(
+            self.k, y_pred, y_true, shuffle_ties=True
+        )
 
         # If label_relevant_counts is not set by a block (e.g. TopKIndexBlock) that
         # has already extracted the top-k predictions, it is assumed that
