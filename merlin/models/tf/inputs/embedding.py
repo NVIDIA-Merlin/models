@@ -45,7 +45,6 @@ from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor, list_col_t
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
-    col_is_list,
     create_categorical_column,
     infer_embedding_dim,
     schema_to_tensorflow_metadata_json,
@@ -163,7 +162,7 @@ class EmbeddingTable(EmbeddingTableBase):
         embeddings_constraint=None,
         mask_zero=False,
         input_length=None,
-        combiner: Optional[CombinerType] = None,
+        sequence_combiner: Optional[CombinerType] = None,
         trainable=True,
         name=None,
         dtype=None,
@@ -194,7 +193,7 @@ class EmbeddingTable(EmbeddingTableBase):
                 name=self.col_schema.name,
                 **table_kwargs,
             )
-        self.combiner = combiner
+        self.sequence_combiner = sequence_combiner
         self.supports_masking = True
 
     @classmethod
@@ -279,27 +278,25 @@ class EmbeddingTable(EmbeddingTableBase):
             inputs = tf.cast(inputs, "int32")
         """
 
-        if self.combiner and isinstance(self.combiner, str):
-            if not isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
-                raise ValueError(
-                    f"Combiner ({self.combiner}) only supported for RaggedTensor and SparseTensor. "
-                    f"Received: {type(inputs)}. Column name: {self.col_schema.name}"
+        if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
+            if self.sequence_combiner and isinstance(self.sequence_combiner, str):
+                if isinstance(inputs, tf.RaggedTensor):
+                    inputs = inputs.to_sparse()
+                out = tf.nn.safe_embedding_lookup_sparse(
+                    self.table.embeddings, inputs, None, combiner=self.sequence_combiner
                 )
-            if isinstance(inputs, tf.RaggedTensor):
-                inputs = inputs.to_sparse()
-            out = tf.nn.safe_embedding_lookup_sparse(
-                self.table.embeddings, inputs, None, combiner=self.combiner
-            )
-        else:
-            if not isinstance(inputs, (tf.RaggedTensor, tf.Tensor)):
-                raise ValueError(
-                    "EmbeddingTable supports only RaggedTensor and Tensor input types. "
-                    f"Received: {type(inputs)}"
-                )
+            else:
+                if isinstance(inputs, tf.SparseTensor):
+                    raise ValueError(
+                        "Sparse tensors are not supported without sequence_combiner ",
+                        "please convert the tensor to a ragged or dense.",
+                    )
 
+                out = call_layer(self.table, inputs, **kwargs)
+                if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
+                    out = call_layer(self.sequence_combiner, out, **kwargs)
+        else:
             out = call_layer(self.table, inputs, **kwargs)
-            if isinstance(self.combiner, tf.keras.layers.Layer):
-                out = call_layer(self.combiner, out, **kwargs)
 
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
@@ -318,7 +315,7 @@ class EmbeddingTable(EmbeddingTableBase):
             input_shape = tf.TensorShape([input_shape[1][0], None])
 
         first_dims = input_shape
-        if (self.combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
+        if (self.sequence_combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
             first_dims = input_shape[:-1]
         output_shapes = tf.TensorShape(first_dims + [self.dim])
         return output_shapes
@@ -330,17 +327,17 @@ class EmbeddingTable(EmbeddingTableBase):
     def from_config(cls, config):
         config["table"] = tf.keras.layers.deserialize(config["table"])
         if "combiner-layer" in config:
-            config["combiner"] = tf.keras.layers.deserialize(config.pop("combiner-layer"))
+            config["sequence_combiner"] = tf.keras.layers.deserialize(config.pop("combiner-layer"))
 
         return super().from_config(config)
 
     def get_config(self):
         config = super().get_config()
         config["table"] = tf.keras.layers.serialize(self.table)
-        if isinstance(self.combiner, tf.keras.layers.Layer):
-            config["combiner-layer"] = tf.keras.layers.serialize(self.combiner)
+        if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
+            config["combiner-layer"] = tf.keras.layers.serialize(self.sequence_combiner)
         else:
-            config["combiner"] = self.combiner
+            config["sequence_combiner"] = self.sequence_combiner
 
         return config
 
@@ -408,12 +405,6 @@ def Embeddings(
     ParallelBlock
         Returns a parallel block with an embedding table for each categorical features
     """
-    if sequence_combiner and "combiner" in kwargs:
-        raise ValueError(
-            "`combiner` cannot be specified as a keyword argument ",
-            "when `sequence_combiner` is specified",
-        )
-
     if trainable:
         kwargs["trainable"] = trainable
     if embeddings_initializer:
@@ -422,13 +413,13 @@ def Embeddings(
         kwargs["embeddings_regularizer"] = embeddings_regularizer
     if activity_regularizer:
         kwargs["activity_regularizer"] = activity_regularizer
+    if sequence_combiner:
+        kwargs["sequence_combiner"] = sequence_combiner
 
     tables = {}
 
     for col in schema:
         table_kwargs = _forward_kwargs_to_table(col, table_cls, kwargs)
-        if sequence_combiner:
-            table_kwargs["combiner"] = _get_combiner(col, sequence_combiner)
         tables[col.name] = table_cls(_get_dim(col, dim, infer_dim_fn), col, **table_kwargs)
 
     return ParallelBlock(
@@ -449,17 +440,6 @@ def _forward_kwargs_to_table(col, table_cls, kwargs):
                 table_kwargs[key] = val
 
     return table_kwargs
-
-
-def _get_combiner(col, sequence_combiner):
-    combiner = None
-    if col_is_list(col):
-        if isinstance(sequence_combiner, dict):
-            combiner = sequence_combiner[col.name]
-        else:
-            combiner = sequence_combiner
-
-    return combiner
 
 
 def _get_dim(col, embedding_dims, infer_dim_fn):
