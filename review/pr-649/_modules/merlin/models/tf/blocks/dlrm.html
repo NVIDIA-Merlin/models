@@ -220,8 +220,8 @@
 
     <span class="n">embeddings_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">sequence_combiner</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span>
-        <span class="n">embeddings_initializers</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embeddings_initializers</span><span class="p">,</span>
-        <span class="n">embedding_dims</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dim_default</span><span class="p">,</span>
+        <span class="n">embeddings_initializer</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embeddings_initializers</span><span class="p">,</span>
+        <span class="n">dim</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dim_default</span><span class="p">,</span>
         <span class="n">infer_dim_fn</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span>
             <span class="n">infer_embedding_dim</span><span class="p">,</span>
             <span class="n">multiplier</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes_multiplier</span><span class="p">,</span>

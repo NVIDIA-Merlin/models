@@ -88,7 +88,7 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
-
+<span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span><span class="p">,</span> <span class="n">deepcopy</span>
 <span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
@@ -101,6 +101,7 @@
 <span class="kn">import</span> <span class="nn">merlin.io</span>
 <span class="kn">from</span> <span class="nn">merlin.core.dispatch</span> <span class="kn">import</span> <span class="n">DataFrameType</span>
 <span class="kn">from</span> <span class="nn">merlin.io</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.mlp</span> <span class="kn">import</span> <span class="n">InitializerType</span><span class="p">,</span> <span class="n">RegularizerType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">SequentialBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.tabular</span> <span class="kn">import</span> <span class="p">(</span>
@@ -177,6 +178,9 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">col_schema</span><span class="o">=</span><span class="n">col_schema</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
 
 
+<span class="n">CombinerType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span>
+
+
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">EmbeddingTable</span><span class="p">(</span><span class="n">EmbeddingTableBase</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Embedding table that is backed by a standard Keras Embedding Layer.</span>
@@ -234,7 +238,7 @@
         <span class="n">embeddings_constraint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">mask_zero</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">input_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CombinerType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -418,15 +422,14 @@
 
 <span class="k">def</span> <span class="nf">Embeddings</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
-    <span class="n">embedding_dims</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">infer_dim_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">ColumnSchema</span><span class="p">],</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">infer_embedding_dim</span><span class="p">,</span>
-    <span class="n">trainable</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">sequence_combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-        <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]]</span>
-    <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
-    <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-        <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span>
-    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sequence_combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">CombinerType</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CombinerType</span><span class="p">]]]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+    <span class="n">embeddings_initializer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">InitializerType</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">InitializerType</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">embeddings_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">RegularizerType</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">RegularizerType</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">activity_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">RegularizerType</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">RegularizerType</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">trainable</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">table_cls</span><span class="o">=</span><span class="n">EmbeddingTable</span><span class="p">,</span>
     <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -454,7 +457,7 @@
 <span class="sd">       A string specifying how to combine embedding results for each</span>
 <span class="sd">       entry (&quot;mean&quot;, &quot;sqrtn&quot; and &quot;sum&quot; are supported) or a layer.</span>
 <span class="sd">       Default is None (no combiner used)</span>
-<span class="sd">    embeddings_initializers: Optional[</span>
+<span class="sd">    embeddings_initializer: Optional[</span>
 <span class="sd">        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]</span>
 <span class="sd">        ],</span>
 <span class="sd">        An initializer function or a dict where keys are feature names and values are</span>
@@ -474,23 +477,47 @@
 <span class="sd">    ParallelBlock</span>
 <span class="sd">        Returns a parallel block with an embedding table for each categorical features</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sequence_combiner</span> <span class="ow">and</span> <span class="s2">&quot;combiner&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;`combiner` cannot be specified as a keyword argument &quot;</span><span class="p">,</span>
+            <span class="s2">&quot;when `sequence_combiner` is specified&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">trainable</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;trainable&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trainable</span>
+    <span class="k">if</span> <span class="n">embeddings_initializer</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;embeddings_initializer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embeddings_initializer</span>
+    <span class="k">if</span> <span class="n">embeddings_regularizer</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;embeddings_regularizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embeddings_regularizer</span>
+    <span class="k">if</span> <span class="n">activity_regularizer</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;activity_regularizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">activity_regularizer</span>
 
     <span class="n">tables</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">trainable</span> <span class="o">=</span> <span class="n">trainable</span> <span class="ow">or</span> <span class="p">{}</span>
 
     <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">schema</span><span class="p">:</span>
-        <span class="n">tables</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">EmbeddingTable</span><span class="p">(</span>
-            <span class="n">_get_dim</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">embedding_dims</span><span class="p">,</span> <span class="n">infer_dim_fn</span><span class="p">),</span>
-            <span class="n">col</span><span class="p">,</span>
-            <span class="n">combiner</span><span class="o">=</span><span class="n">_get_combiner</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">sequence_combiner</span><span class="p">),</span>
-            <span class="n">embeddings_initializer</span><span class="o">=</span><span class="n">_get_initializer</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">embeddings_initializers</span><span class="p">),</span>
-            <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">table_kwargs</span> <span class="o">=</span> <span class="n">_forward_kwargs_to_table</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">table_cls</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sequence_combiner</span><span class="p">:</span>
+            <span class="n">table_kwargs</span><span class="p">[</span><span class="s2">&quot;combiner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_get_combiner</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">sequence_combiner</span><span class="p">)</span>
+        <span class="n">tables</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">table_cls</span><span class="p">(</span><span class="n">_get_dim</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">infer_dim_fn</span><span class="p">),</span> <span class="n">col</span><span class="p">,</span> <span class="o">**</span><span class="n">table_kwargs</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
         <span class="n">tables</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">block_name</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span>
     <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_forward_kwargs_to_table</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">table_cls</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">arg_spec</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getfullargspec</span><span class="p">(</span><span class="n">table_cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+    <span class="n">table_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">arg_spec</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">arg_spec</span><span class="o">.</span><span class="n">defaults</span><span class="p">)</span> <span class="p">:],</span> <span class="n">arg_spec</span><span class="o">.</span><span class="n">defaults</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">table_kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+                    <span class="n">table_kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">table_kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">return</span> <span class="n">table_kwargs</span>
 
 
 <span class="k">def</span> <span class="nf">_get_combiner</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">sequence_combiner</span><span class="p">):</span>
@@ -612,7 +639,7 @@
     <span class="n">infer_embedding_sizes_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
     <span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-        <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span>
     <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">embeddings_l2_reg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span>
