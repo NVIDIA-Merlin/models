@@ -13,9 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional, Sequence, Union
+import sys
+import types as python_types
+import warnings
+from typing import Callable, Optional, Sequence, Union
 
 import tensorflow as tf
+from keras.utils import generic_utils
 from keras.utils.generic_utils import to_snake_case
 from tensorflow.keras.layers import Layer
 
@@ -24,6 +28,8 @@ from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer
+
+MetricsFn = Callable[[], Sequence[tf.keras.metrics.Metric]]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -36,8 +42,9 @@ class PredictionBlock(Layer):
         The prediction layer
     default_loss: Union[str, tf.keras.losses.Loss]
         Default loss to set if the user does not specify one
-    default_metrics: Sequence[tf.keras.metrics.Metric]
-        Default metrics to set if the user does not specify any
+    get_default_metrics: Callable
+        A function returning the list of default metrics to set
+        if the user does not specify any
     name: Optional[Text], optional
         Task name, by default None
     target: Optional[str], optional
@@ -57,7 +64,7 @@ class PredictionBlock(Layer):
         self,
         prediction: Layer,
         default_loss: Union[str, tf.keras.losses.Loss],
-        default_metrics: Sequence[tf.keras.metrics.Metric],
+        default_metrics_fn: MetricsFn,
         name: Optional[str] = None,
         target: Optional[str] = None,
         pre: Optional[Layer] = None,
@@ -73,12 +80,7 @@ class PredictionBlock(Layer):
         super().__init__(name=name or self.full_name, **kwargs)
         self.prediction = prediction
         self.default_loss = default_loss
-        self._default_metrics = [
-            tf.keras.metrics.serialize(metric)
-            if isinstance(metric, tf.keras.metrics.Metric)
-            else metric
-            for metric in default_metrics
-        ]
+        self.default_metrics_fn = default_metrics_fn
         self.pre = pre
         self.post = post
         if logits_scaler is not None:
@@ -146,21 +148,81 @@ class PredictionBlock(Layer):
 
         return outputs
 
-    def create_default_metrics(self) -> List[tf.keras.metrics.Metric]:
-        metrics = []
-        for metric in self._default_metrics:
-            name = self.full_name + "/" + to_snake_case(metric["class_name"])
-            metric["config"]["name"] = name
-            metrics.append(tf.keras.metrics.deserialize(metric))
-
+    def create_default_metrics(self):
+        metrics = self.get_default_metrics()
+        for metric in metrics:
+            metric._name = self.full_name + "/" + to_snake_case(metric.name)
         return metrics
+
+    def _serialize_function_to_config(self, inputs):
+        """function to serialize a callable function,
+
+        Note: This code is adapted from Keras source code of
+        the [Lambda layer]
+        (https://github.com/keras-team/keras/blob/master/keras/layers/core/lambda_layer.py#L300)
+
+        """
+        if isinstance(inputs, python_types.LambdaType):
+            output = generic_utils.func_dump(inputs)
+            output_type = "lambda"
+            module = inputs.__module__
+        elif callable(inputs):
+            output = inputs.__name__
+            output_type = "function"
+            module = inputs.__module__
+        else:
+            raise ValueError("Invalid input for serialization, type: %s " % type(inputs))
+
+        return output, output_type, module
+
+    @classmethod
+    def _parse_function_from_config(
+        cls, config, func_attr_name, module_attr_name, func_type_attr_name
+    ):
+        """ "function to de-serialize a callable function,
+
+        Note: This code is adapted from Keras source code of
+        the [Lambda layer]
+        (https://github.com/keras-team/keras/blob/master/keras/layers/core/lambda_layer.py#L350)
+
+        """
+        globs = globals().copy()
+        module = config.pop(module_attr_name, None)
+        if module in sys.modules:
+            globs.update(sys.modules[module].__dict__)
+        elif module is not None:
+            # Note: we don't know the name of the function if it's a lambda.
+            warnings.warn(
+                "{} is not loaded, but a Lambda layer uses it. "
+                "It may cause errors.".format(module),
+                UserWarning,
+                stacklevel=2,
+            )
+        function_type = config.pop(func_type_attr_name)
+        if function_type == "function":
+            function = generic_utils.deserialize_keras_object(
+                config[func_attr_name], printable_module_name="default metrics function"
+            )
+        elif function_type == "lambda":
+            # Unsafe deserialization from bytecode
+            function = generic_utils.func_load(config[func_attr_name], globs=globs)
+        else:
+            supported_types = ["function", "lambda"]
+            raise TypeError(
+                f"Unsupported value for `function_type` argument. Received: "
+                f"function_type={function_type}. Expected one of {supported_types}"
+            )
+        return function
 
     def get_config(self):
         config = super(PredictionBlock, self).get_config()
+        function_config = self._serialize_function_to_config(self.default_metrics_fn)
         config.update(
             {
+                "default_metrics_fn": function_config[0],
+                "function_type": function_config[1],
+                "module": function_config[2],
                 "target": self.target,
-                "default_metrics": self._default_metrics,
             }
         )
 
@@ -182,10 +244,13 @@ class PredictionBlock(Layer):
 
     @classmethod
     def from_config(cls, config):
+        config["default_metrics_fn"] = cls._parse_function_from_config(
+            config, "default_metrics_fn", "module", "function_type"
+        )
+
         config = tf_utils.maybe_deserialize_keras_objects(
             config,
             {
-                "default_metrics": tf.keras.metrics.deserialize,
                 "default_loss": tf.keras.losses.deserialize,
                 "prediction": tf.keras.layers.deserialize,
                 "pre": tf.keras.layers.deserialize,
@@ -209,8 +274,9 @@ class ContrastivePredictionBlock(PredictionBlock):
         The prediction layer that includes negative sampling
     default_loss: Union[str, tf.keras.losses.Loss]
         Default loss to set if the user does not specify one
-    default_metrics: Sequence[tf.keras.metrics.Metric]
-        Default metrics to set if the user does not specify any
+    get_default_metrics: Callable
+        A function returning the list of default metrics to set
+        if the user does not specify any
     name: Optional[Text], optional
         Task name, by default None
     target: Optional[str], optional
@@ -231,7 +297,7 @@ class ContrastivePredictionBlock(PredictionBlock):
         prediction: Layer,
         prediction_with_negatives: Layer,
         default_loss: Union[str, tf.keras.losses.Loss],
-        default_metrics: Sequence[tf.keras.metrics.Metric],
+        default_metrics_fn: MetricsFn,
         name: Optional[str] = None,
         target: Optional[str] = None,
         pre: Optional[Layer] = None,
@@ -243,7 +309,7 @@ class ContrastivePredictionBlock(PredictionBlock):
         super(ContrastivePredictionBlock, self).__init__(
             prediction,
             default_loss=default_loss,
-            default_metrics=default_metrics,
+            default_metrics_fn=default_metrics_fn,
             target=target,
             pre=pre,
             post=post,

@@ -359,8 +359,11 @@ class BaseModel(tf.keras.Model):
             for task_name, task in self.prediction_tasks_by_name().items():
                 out[task_name] = [m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS]
 
-            for task_name, task in self.predictions_by_name().items():
-                out[task_name] = task.create_default_metrics()
+            for prediction_name, prediction_block in self.predictions_by_name().items():
+                out[prediction_name] = prediction_block.default_metrics_fn()
+                if len(self.prediction_blocks) > 1:
+                    for metric in out[prediction_name]:
+                        metric._name = "/".join([prediction_block.full_name, metric.name])
 
         return out
 

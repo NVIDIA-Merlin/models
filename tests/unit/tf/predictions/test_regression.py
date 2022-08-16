@@ -32,6 +32,6 @@ def test_regression_block(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
-        "click/regression_prediction/root_mean_squared_error",
+        "root_mean_squared_error",
         "regularization_loss",
     }
