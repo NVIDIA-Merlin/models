@@ -15,7 +15,7 @@
 #
 
 import logging
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -36,6 +36,17 @@ from merlin.models.utils.constants import MIN_FLOAT
 from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin_models")
+
+
+def dot_product_prediction_default_metrics():
+    DEFAULT_K = 10
+    return (
+        RecallAt(DEFAULT_K),
+        MRRAt(DEFAULT_K),
+        NDCGAt(DEFAULT_K),
+        AvgPrecisionAt(DEFAULT_K),
+        PrecisionAt(DEFAULT_K),
+    )
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -73,15 +84,14 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
            Task name, by default None
        default_loss: Union[str, tf.keras.losses.Loss]
            Default loss to set if the user does not specify one
-       default_metrics: Sequence[tf.keras.metrics.Metric]
-           Default metrics to set if the user does not specify any
+        get_default_metrics: Callable, optional
+           A function returning the list of default metrics
+           to use for Contrastive dot-product task
        query_name : str, optional
            Identify query tower for query/user embeddings, by default 'query'
        item_name : str, optional
            Identify item tower for item embeddings, by default'item'
     """
-
-    DEFAULT_K = 10
 
     def __init__(
         self,
@@ -94,13 +104,7 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
         logits_temperature: float = 1.0,
         name: Optional[str] = None,
         default_loss: Union[str, tf.keras.losses.Loss] = "categorical_crossentropy",
-        default_metrics: Sequence[tf.keras.metrics.Metric] = (
-            RecallAt(DEFAULT_K),
-            MRRAt(DEFAULT_K),
-            NDCGAt(DEFAULT_K),
-            AvgPrecisionAt(DEFAULT_K),
-            PrecisionAt(DEFAULT_K),
-        ),
+        get_default_metrics=dot_product_prediction_default_metrics,
         query_name: str = "query",
         item_name: str = "item",
         **kwargs,
@@ -121,7 +125,7 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
             prediction=prediction,
             prediction_with_negatives=prediction_with_negatives,
             default_loss=default_loss,
-            default_metrics=default_metrics,
+            get_default_metrics=get_default_metrics,
             name=name,
             target=target,
             pre=pre,

@@ -88,7 +88,7 @@ def _BinaryPrediction(name, **kwargs):
     return mm.PredictionBlock(
         tf.keras.layers.Dense(1, activation="sigmoid"),
         default_loss="binary_crossentropy",
-        default_metrics=(tf.keras.metrics.Precision(),),
+        get_default_metrics=lambda: (tf.keras.metrics.Precision(name="precision"),),
         target=name,
         **kwargs
     )

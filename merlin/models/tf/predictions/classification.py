@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import logging
-from typing import List, Optional, Protocol, Sequence, Union, runtime_checkable
+from typing import List, Optional, Protocol, Union, runtime_checkable
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -42,6 +42,26 @@ from merlin.schema import ColumnSchema, Schema
 LOG = logging.getLogger("merlin_models")
 
 
+def binary_default_metrics():
+    return (
+        tf.keras.metrics.Precision(name="precision"),
+        tf.keras.metrics.Recall(name="recall"),
+        tf.keras.metrics.BinaryAccuracy(name="binary_accuracy"),
+        tf.keras.metrics.AUC(name="auc"),
+    )
+
+
+def categorical_prediction_default_metrics():
+    DEFAULT_K = 10
+    return (
+        RecallAt(DEFAULT_K),
+        MRRAt(DEFAULT_K),
+        NDCGAt(DEFAULT_K),
+        AvgPrecisionAt(DEFAULT_K),
+        PrecisionAt(DEFAULT_K),
+    )
+
+
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BinaryPrediction(PredictionBlock):
     """
@@ -67,8 +87,9 @@ class BinaryPrediction(PredictionBlock):
     default_loss: Union[str, tf.keras.losses.Loss], optional
         Default loss to use for binary-classification
         by 'binary_crossentropy'
-    default_metrics: Sequence[tf.keras.metrics.Metric], optional
-        Default metrics to use for binary-classification
+    get_default_metrics: Callable
+        A function returning the list of default metrics
+        to use for binary-classification
     """
 
     def __init__(
@@ -79,19 +100,14 @@ class BinaryPrediction(PredictionBlock):
         logits_temperature: float = 1.0,
         name: Optional[str] = None,
         default_loss: Union[str, tf.keras.losses.Loss] = "binary_crossentropy",
-        default_metrics=(
-            tf.keras.metrics.Precision(name="precision"),
-            tf.keras.metrics.Recall(name="recall"),
-            tf.keras.metrics.BinaryAccuracy(name="binary_accuracy"),
-            tf.keras.metrics.AUC(name="auc"),
-        ),
+        get_default_metrics=binary_default_metrics,
         **kwargs,
     ):
         prediction = kwargs.pop("prediction", None)
         super().__init__(
             prediction=prediction or tf.keras.layers.Dense(1, activation="sigmoid"),
             default_loss=default_loss,
-            default_metrics=default_metrics,
+            get_default_metrics=get_default_metrics,
             target=target,
             pre=pre,
             post=post,
@@ -130,8 +146,9 @@ class CategoricalPrediction(ContrastivePredictionBlock):
     default_loss: Union[str, tf.keras.losses.Loss], optional
         Default loss to use for categorical-classification
         by default 'categorical_crossentropy'
-    default_metrics: Sequence[tf.keras.metrics.Metric], optional
-        Default metrics to use categorical-classification
+    get_default_metrics: Callable, optional
+        A function returning the list of default metrics
+        to use for categorical-classification
 
     References:
     ----------
@@ -140,8 +157,6 @@ class CategoricalPrediction(ContrastivePredictionBlock):
     arXiv:1611.01462 (2016).
 
     """
-
-    DEFAULT_K = 10
 
     def __init__(
         self,
@@ -155,13 +170,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
         logits_temperature: float = 1.0,
         name: Optional[str] = None,
         default_loss: Union[str, tf.keras.losses.Loss] = "categorical_crossentropy",
-        default_metrics: Sequence[tf.keras.metrics.Metric] = (
-            RecallAt(DEFAULT_K),
-            MRRAt(DEFAULT_K),
-            NDCGAt(DEFAULT_K),
-            AvgPrecisionAt(DEFAULT_K),
-            PrecisionAt(DEFAULT_K),
-        ),
+        get_default_metrics=categorical_prediction_default_metrics,
         **kwargs,
     ):
         self.max_num_samples = kwargs.pop("max_num_samples", None)
@@ -193,7 +202,7 @@ class CategoricalPrediction(ContrastivePredictionBlock):
             prediction=_prediction,
             prediction_with_negatives=prediction_with_negatives,
             default_loss=default_loss,
-            default_metrics=default_metrics,
+            get_default_metrics=get_default_metrics,
             name=name,
             target=self.target_name,
             pre=pre,

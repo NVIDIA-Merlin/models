@@ -67,7 +67,7 @@ def test_categorical_prediction_block(ecommerce_data: Dataset, run_eagerly):
         "loss",
         "item_category/categorical_prediction/ndcg_at_10",
         "item_category/categorical_prediction/precision_at_10",
-        "item_category/categorical_prediction/avg_precision_at_10",
+        "item_category/categorical_prediction/map_at_10",
         "item_category/categorical_prediction/mrr_at_10",
         "item_category/categorical_prediction/recall_at_10",
         "regularization_loss",
