@@ -250,6 +250,11 @@ class XGBoost:
         params_path = Path(path) / "params.json"
         with open(params_path, "w") as f:
             json.dump(self.params, f, indent=4)
+        config_path = Path(path) / "config.json"
+        with open(config_path, "w") as f:
+            json.dump(
+                dict(qid_column=self.qid_column, target_columns=self.target_columns), f, indent=4
+            )
 
     @classmethod
     def load(cls, path) -> "XGBoost":
@@ -262,8 +267,16 @@ class XGBoost:
         params_path = Path(path) / "params.json"
         with open(params_path, "r") as f:
             params = json.load(f)
-        print(params)
-        return cls(schema, booster=booster, **params)
+        config_path = Path(path) / "config.json"
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        return cls(
+            schema,
+            target_columns=config.get("target_columns"),
+            qid_column=config.get("qid_column"),
+            booster=booster,
+            **params,
+        )
 
 
 OBJECTIVES = {

@@ -232,11 +232,11 @@ def test_predict_without_target(dask_client):
 
 
 def test_reload(dask_client, tmpdir):
-    train, valid = generate_data("e-commerce", num_rows=40, set_sizes=(0.5, 0.5))
+    train, valid = generate_data("social", num_rows=40, set_sizes=(0.5, 0.5))
 
     schema = train.schema
     xgb_booster_params = {
-        "objective": "binary:logistic",
+        "objective": "rank:pairwise",
     }
 
     xgb_train_params = {
@@ -245,7 +245,7 @@ def test_reload(dask_client, tmpdir):
         "early_stopping_rounds": 1,
     }
 
-    model = XGBoost(schema, **xgb_booster_params)
+    model = XGBoost(schema, target_columns=["click"], qid_column="user_id", **xgb_booster_params)
     model.fit(
         train,
         evals=[
@@ -261,3 +261,6 @@ def test_reload(dask_client, tmpdir):
     np.testing.assert_array_almost_equal(model.predict(valid), reloaded.predict(valid))
 
     assert reloaded.schema == model.schema
+    assert reloaded.target_columns == model.target_columns
+    assert reloaded.feature_columns == model.feature_columns
+    assert reloaded.qid_column == model.qid_column
