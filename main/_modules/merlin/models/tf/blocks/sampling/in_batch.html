@@ -96,7 +96,8 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span>
 
 
-<div class="viewcode-block" id="InBatchSampler"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.InBatchSampler.html#merlin.models.tf.InBatchSampler">[docs]</a><span class="k">class</span> <span class="nc">InBatchSampler</span><span class="p">(</span><span class="n">ItemSampler</span><span class="p">):</span>
+<div class="viewcode-block" id="InBatchSampler"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.InBatchSampler.html#merlin.models.tf.InBatchSampler">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">InBatchSampler</span><span class="p">(</span><span class="n">ItemSampler</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Provides in-batch sampling [1]_ for two-tower item retrieval</span>
 <span class="sd">    models. The implementation is very simple, as it</span>
 <span class="sd">    just returns the current item embeddings and metadata, but it is necessary to have</span>
@@ -179,7 +180,12 @@
 <div class="viewcode-block" id="InBatchSampler.sample"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.InBatchSampler.html#merlin.models.tf.InBatchSampler.sample">[docs]</a>    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmbeddingWithMetadata</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">EmbeddingWithMetadata</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_last_batch_items_embeddings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_batch_items_metadata</span>
-        <span class="p">)</span></div></div>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="InBatchSampler.get_config"><a class="viewcode-back" href="../../../../../../generated/merlin.models.tf.InBatchSampler.html#merlin.models.tf.InBatchSampler.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">InBatchSampler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span>
+        <span class="k">return</span> <span class="n">config</span></div></div>
 </pre></div>
 
            </div>
