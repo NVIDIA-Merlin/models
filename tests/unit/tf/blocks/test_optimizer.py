@@ -612,9 +612,11 @@ def test_lazy_adam_by_EmbeddingTable(ecommerce_data, run_eagerly):
     schema = ecommerce_data.schema.select_by_name(["user_categories", "user_shops", "user_brands"])
     dims = schema_utils.get_embedding_sizes_from_schema(schema)
 
-    table_0 = ml.EmbeddingTable(dims["user_categories"], schema["user_categories"], combiner=None)
-    table_1 = ml.EmbeddingTable(dims["user_shops"], schema["user_shops"], combiner=None)
-    table_2 = ml.EmbeddingTable(dims["user_brands"], schema["user_brands"], combiner=None)
+    table_0 = ml.EmbeddingTable(
+        dims["user_categories"], schema["user_categories"], sequence_combiner=None
+    )
+    table_1 = ml.EmbeddingTable(dims["user_shops"], schema["user_shops"], sequence_combiner=None)
+    table_2 = ml.EmbeddingTable(dims["user_brands"], schema["user_brands"], sequence_combiner=None)
     embedding_layer = ml.ParallelBlock(
         {"user_categories": table_0, "user_shops": table_1, "user_brands": table_2}, schema=schema
     )
