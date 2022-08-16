@@ -66,7 +66,7 @@ def test_dlrm_model_with_embeddings(music_streaming_data, run_eagerly):
     model = ml.DLRMModel(
         schema,
         embeddings=ml.Embeddings(
-            schema, embedding_dim_default=embedding_dim, infer_embedding_sizes=False
+            schema.select_by_tag(Tags.CATEGORICAL), embedding_dims=embedding_dim
         ),
         bottom_block=ml.MLPBlock([embedding_dim]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
