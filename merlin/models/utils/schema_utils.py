@@ -176,10 +176,14 @@ def get_embedding_sizes_from_schema(
     }
 
 
+def col_is_list(col: ColumnSchema) -> bool:
+    return Tags.SEQUENCE in col.tags or Tags.LIST in col.tags or col.is_list
+
+
 def get_embedding_size_from_cardinality(
     cardinality: int, multiplier: float = 2.0, ensure_multiple_of_8: bool = False
 ) -> int:
-    """Provides a heristic (from Google) that suggests the embedding
+    """Provides a heuristic (from Google) that suggests the embedding
     dimension as a function (forth root) of the feature cardinality.
 
     Parameters
@@ -205,3 +209,13 @@ def get_embedding_size_from_cardinality(
         embedding_size = int(math.ceil((embedding_size / 8)) * 8)
 
     return embedding_size
+
+
+def infer_embedding_dim(
+    col_schema: ColumnSchema, multiplier: float = 2.0, ensure_multiple_of_8: bool = True
+):
+    cardinality = col_schema.int_domain.max + 1
+
+    return get_embedding_size_from_cardinality(
+        cardinality, multiplier=multiplier, ensure_multiple_of_8=ensure_multiple_of_8
+    )

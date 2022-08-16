@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import inspect
 from copy import copy, deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Type, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
@@ -26,6 +26,7 @@ from tensorflow.python.tpu.tpu_embedding_v2_utils import FeatureConfig, TableCon
 import merlin.io
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
+from merlin.models.tf.blocks.mlp import InitializerType, RegularizerType
 from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
 from merlin.models.tf.core.tabular import (
@@ -40,11 +41,12 @@ from merlin.models.tf.core.transformations import AsDenseFeatures, AsSparseFeatu
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor
+from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor, list_col_to_ragged
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
     create_categorical_column,
+    infer_embedding_dim,
     schema_to_tensorflow_metadata_json,
     tensorflow_metadata_json_to_schema,
 )
@@ -98,6 +100,9 @@ class EmbeddingTableBase(Block):
         col_schema = schema.first
 
         return cls(col_schema=col_schema, **config)
+
+
+CombinerType = Union[str, tf.keras.layers.Layer]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -157,7 +162,7 @@ class EmbeddingTable(EmbeddingTableBase):
         embeddings_constraint=None,
         mask_zero=False,
         input_length=None,
-        combiner: Optional[Union[str, tf.keras.layers.Layer]] = None,
+        sequence_combiner: Optional[CombinerType] = None,
         trainable=True,
         name=None,
         dtype=None,
@@ -188,7 +193,7 @@ class EmbeddingTable(EmbeddingTableBase):
                 name=self.col_schema.name,
                 **table_kwargs,
             )
-        self.combiner = combiner
+        self.sequence_combiner = sequence_combiner
         self.supports_masking = True
 
     @classmethod
@@ -260,6 +265,9 @@ class EmbeddingTable(EmbeddingTableBase):
         if isinstance(inputs, dict):
             inputs = inputs[self.col_schema.name]
 
+        if isinstance(inputs, tuple) and len(inputs) == 2:
+            inputs = list_col_to_ragged(inputs)
+
         # Eliminating the last dim==1 of dense tensors before embedding lookup
         if isinstance(inputs, tf.Tensor):
             inputs = tf.squeeze(inputs, axis=-1)
@@ -270,27 +278,25 @@ class EmbeddingTable(EmbeddingTableBase):
             inputs = tf.cast(inputs, "int32")
         """
 
-        if self.combiner and isinstance(self.combiner, str):
-            if not isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
-                raise ValueError(
-                    f"Combiner ({self.combiner}) only supported for RaggedTensor and SparseTensor. "
-                    f"Received: {type(inputs)}. Column name: {self.col_schema.name}"
+        if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
+            if self.sequence_combiner and isinstance(self.sequence_combiner, str):
+                if isinstance(inputs, tf.RaggedTensor):
+                    inputs = inputs.to_sparse()
+                out = tf.nn.safe_embedding_lookup_sparse(
+                    self.table.embeddings, inputs, None, combiner=self.sequence_combiner
                 )
-            if isinstance(inputs, tf.RaggedTensor):
-                inputs = inputs.to_sparse()
-            out = tf.nn.safe_embedding_lookup_sparse(
-                self.table.embeddings, inputs, None, combiner=self.combiner
-            )
-        else:
-            if not isinstance(inputs, (tf.RaggedTensor, tf.Tensor)):
-                raise ValueError(
-                    "EmbeddingTable supports only RaggedTensor and Tensor input types. "
-                    f"Received: {type(inputs)}"
-                )
+            else:
+                if isinstance(inputs, tf.SparseTensor):
+                    raise ValueError(
+                        "Sparse tensors are not supported without sequence_combiner ",
+                        "please convert the tensor to a ragged or dense.",
+                    )
 
+                out = call_layer(self.table, inputs, **kwargs)
+                if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
+                    out = call_layer(self.sequence_combiner, out, **kwargs)
+        else:
             out = call_layer(self.table, inputs, **kwargs)
-            if isinstance(self.combiner, tf.keras.layers.Layer):
-                out = call_layer(self.combiner, out, **kwargs)
 
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
@@ -305,8 +311,11 @@ class EmbeddingTable(EmbeddingTableBase):
         if isinstance(input_shape, dict):
             input_shape = input_shape[self.col_schema.name]
 
+        if isinstance(input_shape, tuple) and isinstance(input_shape[1], tf.TensorShape):
+            input_shape = tf.TensorShape([input_shape[1][0], None])
+
         first_dims = input_shape
-        if (self.combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
+        if (self.sequence_combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
             first_dims = input_shape[:-1]
         output_shapes = tf.TensorShape(first_dims + [self.dim])
         return output_shapes
@@ -318,135 +327,132 @@ class EmbeddingTable(EmbeddingTableBase):
     def from_config(cls, config):
         config["table"] = tf.keras.layers.deserialize(config["table"])
         if "combiner-layer" in config:
-            config["combiner"] = tf.keras.layers.deserialize(config.pop("combiner-layer"))
+            config["sequence_combiner"] = tf.keras.layers.deserialize(config.pop("combiner-layer"))
 
         return super().from_config(config)
 
     def get_config(self):
         config = super().get_config()
         config["table"] = tf.keras.layers.serialize(self.table)
-        if isinstance(self.combiner, tf.keras.layers.Layer):
-            config["combiner-layer"] = tf.keras.layers.serialize(self.combiner)
+        if isinstance(self.sequence_combiner, tf.keras.layers.Layer):
+            config["combiner-layer"] = tf.keras.layers.serialize(self.sequence_combiner)
         else:
-            config["combiner"] = self.combiner
+            config["sequence_combiner"] = self.sequence_combiner
 
         return config
 
 
 def Embeddings(
     schema: Schema,
+    dim: Optional[Union[Dict[str, int], int]] = None,
+    infer_dim_fn: Callable[[ColumnSchema], int] = infer_embedding_dim,
+    sequence_combiner: Optional[Union[CombinerType, Dict[str, CombinerType]]] = "mean",
+    embeddings_initializer: Optional[Union[InitializerType, Dict[str, InitializerType]]] = None,
+    embeddings_regularizer: Optional[Union[RegularizerType, Dict[str, RegularizerType]]] = None,
+    activity_regularizer: Optional[Union[RegularizerType, Dict[str, RegularizerType]]] = None,
+    trainable: Optional[Union[bool, Dict[str, bool]]] = None,
+    table_cls: Type[tf.keras.layers.Layer] = EmbeddingTable,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
     block_name: str = "embeddings",
-    sequence_combiner: Optional[
-        Union[str, tf.keras.layers.Layer, Dict[str, Union[str, tf.keras.layers.Layer]]]
-    ] = "mean",
-    embedding_dims: Optional[Dict[str, int]] = None,
-    embedding_dim_default: Optional[int] = 32,
-    infer_embedding_sizes: bool = True,
-    infer_embedding_sizes_multiplier: float = 2.0,
-    infer_embeddings_ensure_dim_multiple_of_8: bool = True,
-    trainable: Optional[Dict[str, bool]] = None,
-    embeddings_initializers: Optional[
-        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
-    ] = None,
     **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
-    from the schema.
+    in the schema.
 
     Parameters
     ----------
-    schema : Schema
+    schema: Schema
         Schema of the input data. This Schema object will be automatically generated using
         [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
         Next to this, it's also possible to construct it manually.
-    pre : Optional[BlockType], optional
-        Transformation block to apply before the embeddings lookup, by default None
-    post : Optional[BlockType], optional
-        Transformation block to apply after the embeddings lookup, by default None
-    aggregation : Optional[TabularAggregationType], optional
-        Transformation block to apply for aggregating the inputs, by default None
-    block_name : str, optional
-        Name of the block, by default "embeddings"
-    sequence_combiner : Optional[Union[str, tf.keras.layers.Layer]], optional
+    dim: Optional[Union[Dict[str, int], int]], optional
+        A dim to use for all features, or a
+        Dict like {"feature_name": embedding size, ...}, by default None
+    infer_dim_fn: Callable[[ColumnSchema], int], defaults to infer_embedding_dim
+        The function to use to infer the embedding dimension, by default infer_embedding_dim
+    sequence_combiner: Optional[Union[str, tf.keras.layers.Layer]], optional
        A string specifying how to combine embedding results for each
        entry ("mean", "sqrtn" and "sum" are supported) or a layer.
        Default is None (no combiner used)
-    embedding_dims : Optional[Dict[str, int]], optional
-        A Dict like {"feature_name": embedding size, ...}, by default None
-    embedding_dim_default : Optional[int], optional
-        For features not included in embedding_dims, use this dim, by default 32
-    infer_embedding_sizes : bool, optional
-        Infer the features embedding sizes based on their cardinality on schema, by default True
-    infer_embedding_sizes_multiplier : float, optional
-        Multiplier factor to be used when inferring embedding sizes, by default 2.0
-    infer_embeddings_ensure_dim_multiple_of_8 : bool, optional
-        Ensures that the inferred embedding sizes are rounded up to the next multiple of 8,
-        for better performance for embedding looks on GPUs. By default True
-    trainable : Optional[Dict[str, bool]] = None
-        Name of the column(s) whose embeddings should be frozen (or trainable) during training
-        trainable will be set to False/True for these column(s), accordingly
-    embeddings_initializers : Optional[
-        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
-        ],
+    embeddings_initializer: Union[InitializerType, Dict[str, InitializerType]], optional
         An initializer function or a dict where keys are feature names and values are
         callable to initialize embedding tables. Pre-trained embeddings can be fed via
-        embeddings_initializers arg.
+        embeddings_initializer arg.
+    embeddings_regularizer: Union[RegularizerType, Dict[str, RegularizerType]], optional
+        A regularizer function or a dict where keys are feature names and values are
+        callable to apply regularization to embedding tables.
+    activity_regularizer: Union[RegularizerType, Dict[str, RegularizerType]], optional
+        A regularizer function or a dict where keys are feature names and values are
+        callable to apply regularization to the activations of the embedding tables.
+    trainable: Optional[Dict[str, bool]] = None
+        Name of the column(s) whose embeddings should be frozen (or trainable) during training
+        trainable will be set to False/True for these column(s), accordingly
+    table_cls: Type[tf.keras.layers.Layer], by default EmbeddingTable
+        The class to use for each embedding table.
+    pre: Optional[BlockType], optional
+        Transformation block to apply before the embeddings lookup, by default None
+    post: Optional[BlockType], optional
+        Transformation block to apply after the embeddings lookup, by default None
+    aggregation: Optional[TabularAggregationType], optional
+        Transformation block to apply for aggregating the inputs, by default None
+    block_name: str, optional
+        Name of the block, by default "embeddings"
 
     Returns
     -------
     ParallelBlock
         Returns a parallel block with an embedding table for each categorical features
     """
+    if trainable:
+        kwargs["trainable"] = trainable
+    if embeddings_initializer:
+        kwargs["embeddings_initializer"] = embeddings_initializer
+    if embeddings_regularizer:
+        kwargs["embeddings_regularizer"] = embeddings_regularizer
+    if activity_regularizer:
+        kwargs["activity_regularizer"] = activity_regularizer
+    if sequence_combiner:
+        kwargs["sequence_combiner"] = sequence_combiner
 
-    cols = schema.select_by_tag(Tags.CATEGORICAL)
     tables = {}
 
-    embedding_dims = embedding_dims or {}
-    if infer_embedding_sizes:
-        inferred_embedding_dims = schema_utils.get_embedding_sizes_from_schema(
-            schema,
-            infer_embedding_sizes_multiplier,
-            infer_embeddings_ensure_dim_multiple_of_8,
-        )
-        # Adding inferred embedding dims only for features where the embedding sizes
-        # were not pre-defined
-        inferred_embedding_dims = {
-            k: v for k, v in inferred_embedding_dims.items() if k not in embedding_dims
-        }
-        embedding_dims = {**embedding_dims, **inferred_embedding_dims}
-
-    trainable = trainable or {}
-    for col in cols:
-        combiner = None
-        if Tags.SEQUENCE in col.tags or Tags.LIST in col.tags or col.is_list:
-            if isinstance(sequence_combiner, dict):
-                combiner = sequence_combiner[col.name]
-            else:
-                combiner = sequence_combiner
-
-        embedding_size = embedding_dims.get(col.name, embedding_dim_default)
-
-        if embeddings_initializers:
-            if isinstance(embeddings_initializers, dict):
-                emb_initializer = embeddings_initializers.get(col.name, "uniform")
-            else:
-                emb_initializer = embeddings_initializers
-            kwargs["embeddings_initializer"] = emb_initializer
-
-        tables[col.name] = EmbeddingTable(
-            embedding_size,
-            col,
-            combiner=combiner,
-            trainable=trainable.get(col.name, True),
-            **kwargs,
-        )
+    for col in schema:
+        table_kwargs = _forward_kwargs_to_table(col, table_cls, kwargs)
+        tables[col.name] = table_cls(_get_dim(col, dim, infer_dim_fn), col, **table_kwargs)
 
     return ParallelBlock(
-        tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=cols
+        tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=schema
     )
+
+
+def _forward_kwargs_to_table(col, table_cls, kwargs):
+    arg_spec = inspect.getfullargspec(table_cls.__init__)
+    table_kwargs = dict(zip(arg_spec.args[-len(arg_spec.defaults) :], arg_spec.defaults))
+
+    for key, val in kwargs.items():
+        if key in table_kwargs:
+            if isinstance(val, dict):
+                if col.name in val:
+                    table_kwargs[key] = val[col.name]
+            else:
+                table_kwargs[key] = val
+
+    return table_kwargs
+
+
+def _get_dim(col, embedding_dims, infer_dim_fn):
+    dim = None
+    if isinstance(embedding_dims, dict):
+        dim = embedding_dims.get(col.name)
+    elif isinstance(embedding_dims, int):
+        dim = embedding_dims
+
+    if not dim:
+        dim = infer_dim_fn(col)
+
+    return dim
 
 
 class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
@@ -534,7 +540,7 @@ class EmbeddingOptions:
     infer_embedding_sizes_multiplier: float = 2.0
     infer_embeddings_ensure_dim_multiple_of_8: bool = False
     embeddings_initializers: Optional[
-        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None], str]
     ] = None
     embeddings_l2_reg: float = 0.0
     combiner: Optional[str] = "mean"

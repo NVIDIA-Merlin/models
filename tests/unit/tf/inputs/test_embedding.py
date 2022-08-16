@@ -72,8 +72,13 @@ class TestEmbeddingTable:
         [
             (32, {}, tf.constant([[1]]), [1, 32]),
             (16, {}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, None, 16]),
-            (16, {"combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
-            (16, {"combiner": "mean"}, tf.sparse.from_dense(tf.constant([[1, 2, 3]])), [1, 16]),
+            (16, {"sequence_combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
+            (
+                16,
+                {"sequence_combiner": "mean"},
+                tf.sparse.from_dense(tf.constant([[1, 2, 3]])),
+                [1, 16],
+            ),
             (12, {}, {"item_id": tf.constant([[1]])}, [1, 12]),
         ],
     )
@@ -84,7 +89,7 @@ class TestEmbeddingTable:
         output = layer(inputs)
         assert list(output.shape) == expected_output_shape
 
-        if "combiner" in kwargs:
+        if "sequence_combiner" in kwargs:
             assert isinstance(output, tf.Tensor)
         elif isinstance(inputs, dict):
             assert type(inputs[column_schema.name]) is type(output)
@@ -117,7 +122,7 @@ class TestEmbeddingTable:
             (tf.TensorShape([1, 1]), tf.TensorShape([1, 10]), {}),
             (tf.TensorShape([1, 3]), tf.TensorShape([1, 3, 10]), {}),
             (tf.TensorShape([2, None]), tf.TensorShape([2, None, 10]), {}),
-            (tf.TensorShape([2, None]), tf.TensorShape([2, 10]), {"combiner": "mean"}),
+            (tf.TensorShape([2, None]), tf.TensorShape([2, 10]), {"sequence_combiner": "mean"}),
             ({"item_id": tf.TensorShape([1, 1])}, tf.TensorShape([1, 10]), {}),
         ],
     )
@@ -130,13 +135,12 @@ class TestEmbeddingTable:
     def test_dense_with_combiner(self):
         dim = 16
         column_schema = self.sample_column_schema
-        layer = mm.EmbeddingTable(dim, column_schema, combiner="mean")
+        layer = mm.EmbeddingTable(dim, column_schema, sequence_combiner="mean")
 
         inputs = tf.constant([1])
-        with pytest.raises(ValueError) as exc_info:
-            layer(inputs)
+        outputs = layer(inputs)
 
-        assert "only supported for RaggedTensor and SparseTensor." in str(exc_info.value)
+        assert outputs.shape == tf.TensorShape([dim])
 
     def test_sparse_without_combiner(self):
         dim = 16
@@ -147,9 +151,7 @@ class TestEmbeddingTable:
         with pytest.raises(ValueError) as exc_info:
             layer(inputs)
 
-        assert "EmbeddingTable supports only RaggedTensor and Tensor input types." in str(
-            exc_info.value
-        )
+        assert "Sparse tensors are not supported without sequence_combiner" in str(exc_info.value)
 
     def test_embedding_in_model(self, music_streaming_data: Dataset):
         dim = 16
@@ -229,11 +231,10 @@ def test_pretrained_from_InputBlockV2(trainable, music_streaming_data: Dataset):
     }
 
     embeddings_block = mm.Embeddings(
-        music_streaming_data.schema,
-        infer_embedding_sizes=True,
-        embeddings_initializers=embeddings_init,
+        music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL),
+        embeddings_initializer=embeddings_init,
         trainable={"item_id": trainable},
-        embedding_dims=embed_dims,
+        dim=embed_dims,
     )
     input_block = mm.InputBlockV2(music_streaming_data.schema, embeddings=embeddings_block)
 
