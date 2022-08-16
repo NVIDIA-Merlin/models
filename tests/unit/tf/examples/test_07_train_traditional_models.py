@@ -13,7 +13,7 @@ pytest.importorskip("implicit")
     execute=False,
 )
 def test_func(tb):
-    tb.execute()
+    tb.execute_cell(list(range(34)))
     xgboost_metrics = tb.ref("metrics")
     implicit_metrics = tb.ref("implicit_metrics")
 
