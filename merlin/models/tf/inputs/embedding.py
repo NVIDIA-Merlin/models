@@ -16,7 +16,7 @@
 import inspect
 from copy import copy, deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Type, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
@@ -354,7 +354,7 @@ def Embeddings(
     embeddings_regularizer: Optional[Union[RegularizerType, Dict[str, RegularizerType]]] = None,
     activity_regularizer: Optional[Union[RegularizerType, Dict[str, RegularizerType]]] = None,
     trainable: Optional[Union[bool, Dict[str, bool]]] = None,
-    table_cls=EmbeddingTable,
+    table_cls: Type[tf.keras.layers.Layer] = EmbeddingTable,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
@@ -362,7 +362,7 @@ def Embeddings(
     **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
-    from the schema.
+    in the schema.
 
     Parameters
     ----------
@@ -370,24 +370,30 @@ def Embeddings(
         Schema of the input data. This Schema object will be automatically generated using
         [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
         Next to this, it's also possible to construct it manually.
-    embedding_dims: Optional[Union[Dict[str, int], int]], optional
+    dim: Optional[Union[Dict[str, int], int]], optional
         A dim to use for all features, or a
         Dict like {"feature_name": embedding size, ...}, by default None
     infer_dim_fn: Callable[[ColumnSchema], int], defaults to infer_embedding_dim
         The function to use to infer the embedding dimension, by default infer_embedding_dim
-    trainable: Optional[Dict[str, bool]] = None
-        Name of the column(s) whose embeddings should be frozen (or trainable) during training
-        trainable will be set to False/True for these column(s), accordingly
     sequence_combiner: Optional[Union[str, tf.keras.layers.Layer]], optional
        A string specifying how to combine embedding results for each
        entry ("mean", "sqrtn" and "sum" are supported) or a layer.
        Default is None (no combiner used)
-    embeddings_initializer: Optional[
-        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
-        ],
+    embeddings_initializer: Union[InitializerType, Dict[str, InitializerType]], optional
         An initializer function or a dict where keys are feature names and values are
         callable to initialize embedding tables. Pre-trained embeddings can be fed via
-        embeddings_initializers arg.
+        embeddings_initializer arg.
+    embeddings_regularizer: Union[RegularizerType, Dict[str, RegularizerType]], optional
+        A regularizer function or a dict where keys are feature names and values are
+        callable to apply regularization to embedding tables.
+    activity_regularizer: Union[RegularizerType, Dict[str, RegularizerType]], optional
+        A regularizer function or a dict where keys are feature names and values are
+        callable to apply regularization to the activations of the embedding tables.
+    trainable: Optional[Dict[str, bool]] = None
+        Name of the column(s) whose embeddings should be frozen (or trainable) during training
+        trainable will be set to False/True for these column(s), accordingly
+    table_cls: Type[tf.keras.layers.Layer], by default EmbeddingTable
+        The class to use for each embedding table.
     pre: Optional[BlockType], optional
         Transformation block to apply before the embeddings lookup, by default None
     post: Optional[BlockType], optional
@@ -467,16 +473,6 @@ def _get_dim(col, embedding_dims, infer_dim_fn):
         dim = infer_dim_fn(col)
 
     return dim
-
-
-def _get_initializer(col, embeddings_initializers):
-    initializer = None
-    if isinstance(embeddings_initializers, dict):
-        initializer = embeddings_initializers.get(col.name)
-    elif isinstance(embeddings_initializers, Callable):
-        initializer = embeddings_initializers
-
-    return initializer
 
 
 class AverageEmbeddingsByWeightFeature(tf.keras.layers.Layer):
