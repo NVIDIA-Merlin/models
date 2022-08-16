@@ -1,4 +1,6 @@
+import json
 import warnings
+from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import distributed
@@ -7,6 +9,10 @@ import xgboost as xgb
 
 from merlin.core.utils import global_dask_client
 from merlin.io import Dataset
+from merlin.models.utils.schema_utils import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
 from merlin.schema import Schema, Tags
 
 
@@ -71,6 +77,7 @@ class XGBoost:
         self.qid_column = qid_column
         self.evals_result = {}
         self.booster = booster
+        self.schema = schema
 
     @property
     def dask_client(self) -> Optional[distributed.Client]:
@@ -218,6 +225,30 @@ class XGBoost:
         preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs).compute()
 
         return preds
+
+    def save(self, path) -> None:
+        """Save model to path."""
+        model_path = Path(path) / "model.json"
+        self.booster.save_model(model_path)
+        schema_path = Path(path) / "schema.json"
+        schema_to_tensorflow_metadata_json(self.schema, schema_path)
+        params_path = Path(path) / "params.json"
+        with open(params_path, "w") as f:
+            json.dump(self.params, f, indent=4)
+
+    @classmethod
+    def load(cls, path) -> "XGBoost":
+        """Load the model from a directory where a saved model is stored."""
+        model_path = Path(path) / "model.json"
+        booster = xgb.Booster()
+        booster.load_model(model_path)
+        schema_path = Path(path) / "schema.json"
+        schema = tensorflow_metadata_json_to_schema(schema_path)
+        params_path = Path(path) / "params.json"
+        with open(params_path, "r") as f:
+            params = json.load(f)
+        print(params)
+        return cls(schema, booster=booster, **params)
 
 
 OBJECTIVES = {

@@ -229,3 +229,35 @@ def test_predict_without_target(dask_client):
     model = XGBoost(schema=train_ds.schema, target_columns="target")
     model.fit(train_ds, evals=[(valid_ds, "validation_set")])
     model.predict(test_ds)
+
+
+def test_reload(dask_client, tmpdir):
+    train, valid = generate_data("e-commerce", num_rows=40, set_sizes=(0.5, 0.5))
+
+    schema = train.schema
+    xgb_booster_params = {
+        "objective": "binary:logistic",
+    }
+
+    xgb_train_params = {
+        "num_boost_round": 1,
+        "verbose_eval": 1,
+        "early_stopping_rounds": 1,
+    }
+
+    model = XGBoost(schema, **xgb_booster_params)
+    model.fit(
+        train,
+        evals=[
+            (valid, "validation_set"),
+        ],
+        **xgb_train_params
+    )
+    _ = model.evaluate(valid)
+
+    model.save(tmpdir)
+    reloaded = XGBoost.load(tmpdir)
+
+    np.testing.assert_array_almost_equal(model.predict(valid), reloaded.predict(valid))
+
+    assert reloaded.schema == model.schema
