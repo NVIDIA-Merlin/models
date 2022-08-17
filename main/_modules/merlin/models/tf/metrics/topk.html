@@ -332,7 +332,9 @@
 
     <span class="k">def</span> <span class="nf">_maybe_sort_top_k</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_sorted</span><span class="p">:</span>
-            <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span> <span class="o">=</span> <span class="n">extract_topk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">)</span>
+            <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span> <span class="o">=</span> <span class="n">extract_topk</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">shuffle_ties</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">label_relevant_counts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
@@ -444,10 +446,12 @@
     <span class="k">def</span> <span class="nf">update_state</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">sample_weight</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
-        <span class="c1"># Extractubg sorted top-k prediction scores and labels only ONCE</span>
+        <span class="c1"># Extracting sorted top-k prediction scores and labels only ONCE</span>
         <span class="c1"># so that sorting does not need to happen for each individual metric</span>
         <span class="c1"># (as the top-k metrics have been set with pre_sorted=True in this constructor</span>
-        <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts_from_targets</span> <span class="o">=</span> <span class="n">extract_topk</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">)</span>
+        <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts_from_targets</span> <span class="o">=</span> <span class="n">extract_topk</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">shuffle_ties</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
 
         <span class="c1"># If label_relevant_counts is not set by a block (e.g. TopKIndexBlock) that</span>
         <span class="c1"># has already extracted the top-k predictions, it is assumed that</span>
