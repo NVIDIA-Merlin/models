@@ -15,15 +15,19 @@
 #
 
 import logging
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.prediction import Prediction
-from merlin.models.tf.metrics.topk import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock
-from merlin.models.tf.predictions.sampling.base import Items, ItemSamplersType, ItemSamplerV2
+from merlin.models.tf.predictions.classification import default_categorical_prediction_metrics
+from merlin.models.tf.predictions.sampling.base import (
+    Items,
+    ItemSamplersType,
+    parse_negative_samplers,
+)
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer, rescore_false_negatives
@@ -69,15 +73,14 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
            Task name, by default None
        default_loss: Union[str, tf.keras.losses.Loss]
            Default loss to set if the user does not specify one
-       default_metrics: Sequence[tf.keras.metrics.Metric]
-           Default metrics to set if the user does not specify any
+        get_default_metrics: Callable, optional
+           A function returning the list of default metrics
+           to use for Contrastive dot-product task
        query_name : str, optional
            Identify query tower for query/user embeddings, by default 'query'
        item_name : str, optional
            Identify item tower for item embeddings, by default'item'
     """
-
-    DEFAULT_K = 10
 
     def __init__(
         self,
@@ -90,13 +93,7 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
         logits_temperature: float = 1.0,
         name: Optional[str] = None,
         default_loss: Union[str, tf.keras.losses.Loss] = "categorical_crossentropy",
-        default_metrics: Sequence[tf.keras.metrics.Metric] = (
-            RecallAt(DEFAULT_K),
-            MRRAt(DEFAULT_K),
-            NDCGAt(DEFAULT_K),
-            AvgPrecisionAt(DEFAULT_K),
-            PrecisionAt(DEFAULT_K),
-        ),
+        default_metrics_fn=default_categorical_prediction_metrics,
         query_name: str = "query",
         item_name: str = "item",
         **kwargs,
@@ -117,7 +114,7 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
             prediction=prediction,
             prediction_with_negatives=prediction_with_negatives,
             default_loss=default_loss,
-            default_metrics=default_metrics,
+            default_metrics_fn=default_metrics_fn,
             name=name,
             target=target,
             pre=pre,
@@ -127,6 +124,8 @@ class DotProductCategoricalPrediction(ContrastivePredictionBlock):
         )
 
     def compile(self, negative_sampling=None, downscore_false_negatives=False):
+        if negative_sampling is not None:
+            negative_sampling = parse_negative_samplers(negative_sampling)
         self.prediction_with_negatives.negative_sampling = negative_sampling
         self.prediction_with_negatives.downscore_false_negatives = downscore_false_negatives
 
@@ -235,9 +234,7 @@ class ContrastiveDotProduct(DotProduct):
         **kwargs,
     ):
         super().__init__(query_name, item_name, **kwargs)
-        if not isinstance(negative_samplers, (list, tuple)):
-            negative_samplers = [negative_samplers]
-        self.negative_samplers = [ItemSamplerV2.parse(s) for s in list(negative_samplers)]
+        self.negative_samplers = parse_negative_samplers(negative_samplers)
         assert (
             len(self.negative_samplers) > 0
         ), "At least one sampler is required by ContrastiveDotProduct for negative sampling"
@@ -355,7 +352,10 @@ class ContrastiveDotProduct(DotProduct):
         if len(negative_items) == 0:
             raise Exception(f"No negative items where sampled from samplers {self.samplers}")
 
-        negatives = sum(negative_items) if len(negative_items) > 1 else negative_items[0]
+        negatives = negative_items[0]
+        if len(negative_items) > 1:
+            for neg in negative_items[1:]:
+                negatives += neg
 
         return negatives
 

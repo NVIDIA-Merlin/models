@@ -34,7 +34,7 @@ def test_prediction_block(ecommerce_data: Dataset, run_eagerly):
 
     assert set(history.history.keys()) == {
         "loss",
-        "click/prediction_block/precision",
+        "precision",
         "regularization_loss",
     }
 
@@ -88,7 +88,7 @@ def _BinaryPrediction(name, **kwargs):
     return mm.PredictionBlock(
         tf.keras.layers.Dense(1, activation="sigmoid"),
         default_loss="binary_crossentropy",
-        default_metrics=(tf.keras.metrics.Precision(),),
+        default_metrics_fn=lambda: (tf.keras.metrics.Precision(name="precision"),),
         target=name,
         **kwargs
     )
