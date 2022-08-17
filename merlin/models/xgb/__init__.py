@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import json
+import os
 import warnings
 from pathlib import Path
 from typing import Dict, List, Optional, Union
@@ -241,8 +242,14 @@ class XGBoost:
 
         return preds
 
-    def save(self, path) -> None:
-        """Save model to path."""
+    def save(self, path: Union[str, os.PathLike]) -> None:
+        """Save the model to a directory.
+
+        Parameters
+        ----------
+        path : Union[str, os.PathLike]
+            Directory where the model will be saved.
+        """
         export_dir = Path(path)
         export_dir.mkdir(parents=True)
         self.booster.save_model(export_dir / "model.json")
@@ -255,8 +262,18 @@ class XGBoost:
             )
 
     @classmethod
-    def load(cls, path) -> "XGBoost":
-        """Load the model from a directory where a model has been saved."""
+    def load(cls, path: Union[str, os.PathLike]) -> "XGBoost":
+        """Load the model from a directory where a model has been saved.
+
+        Parameters
+        ----------
+        path : Union[str, os.PathLike]
+            Path where a Merlin XGBoost model has been saved.
+
+        Returns
+        -------
+        XGBoost model instance
+        """
         load_dir = Path(path)
         booster = xgb.Booster()
         booster.load_model(load_dir / "model.json")
