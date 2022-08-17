@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -229,3 +230,40 @@ def test_predict_without_target(dask_client):
     model = XGBoost(schema=train_ds.schema, target_columns="target")
     model.fit(train_ds, evals=[(valid_ds, "validation_set")])
     model.predict(test_ds)
+
+
+def test_reload(dask_client, tmpdir):
+    train, valid = generate_data("social", num_rows=40, set_sizes=(0.5, 0.5))
+
+    schema = train.schema
+    xgb_booster_params = {
+        "objective": "rank:pairwise",
+    }
+
+    xgb_train_params = {
+        "num_boost_round": 1,
+        "verbose_eval": 1,
+        "early_stopping_rounds": 1,
+    }
+
+    model = XGBoost(schema, target_columns=["click"], qid_column="user_id", **xgb_booster_params)
+    model.fit(
+        train,
+        evals=[
+            (valid, "validation_set"),
+        ],
+        **xgb_train_params
+    )
+    _ = model.evaluate(valid)
+
+    model_dir = Path(tmpdir) / "xgb_model"
+
+    model.save(model_dir)
+    reloaded = XGBoost.load(model_dir)
+
+    np.testing.assert_array_almost_equal(model.predict(valid), reloaded.predict(valid))
+
+    assert reloaded.schema == model.schema
+    assert reloaded.target_columns == model.target_columns
+    assert reloaded.feature_columns == model.feature_columns
+    assert reloaded.qid_column == model.qid_column
