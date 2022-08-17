@@ -1031,7 +1031,11 @@ class Model(BaseModel):
     @property
     def frozen_blocks(self):
         """
-        Get frozen blocks of model.
+        Get frozen blocks of model, only on which you called freeze_blocks before, the result dose
+        not include those blocks frozen in other methods, for example, if you create the embedding
+        and set the `trainable` as False, it would not be tracked by this property, but you can also
+        call unfreeze_blocks on those blocks.
+
         Please note that sub-block of self._frozen_blocks is also frozen, but not recorded by this
         variable, because if you want to unfreeze the whole model, you only need to unfreeze blocks
         you froze before (called freeze_blocks before), this function would unfreeze all sub-blocks
@@ -1048,6 +1052,11 @@ class Model(BaseModel):
     ):
         """Freeze all sub-blocks of given blocks recursively. Please make sure to compile the model
         after freezing.
+
+        Important note about layer-freezing: Calling `compile()` on a model is meant to "save" the
+        behavior of that model, which means that whether the layer is frozen or not would be
+        preserved for the model, so if you want to freeze any layer of the model, please make sure
+        to compile it again.
 
         Parameters
         ----------
@@ -1093,7 +1102,14 @@ class Model(BaseModel):
         self,
         blocks: Union[Sequence[Block], Sequence[str]],
     ):
-        """Unfreeze all sub-blocks of given blocks recursively"""
+        """
+        Unfreeze all sub-blocks of given blocks recursively
+
+        Important note about layer-freezing: Calling `compile()` on a model is meant to "save" the
+        behavior of that model, which means that whether the layer is frozen or not would be
+        preserved for the model, so if you want to freeze any layer of the model, please make sure
+        to compile it again.
+        """
         if not isinstance(blocks, (list, tuple)):
             blocks = [blocks]
         if isinstance(blocks[0], Block):
@@ -1111,7 +1127,14 @@ class Model(BaseModel):
             b.trainable = True
 
     def unfreeze_all_frozen_blocks(self):
-        """Unfreeze all blocks (including blocks and sub-blocks) of this model recursively"""
+        """
+        Unfreeze all blocks (including blocks and sub-blocks) of this model recursively
+
+        Important note about layer-freezing: Calling `compile()` on a model is meant to "save" the
+        behavior of that model, which means that whether the layer is frozen or not would be
+        preserved for the model, so if you want to freeze any layer of the model, please make sure
+        to compile it again.
+        """
         for b in self._frozen_blocks:
             b.trainable = True
         self._frozen_blocks = set()
