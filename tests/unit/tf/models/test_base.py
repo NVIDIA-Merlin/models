@@ -278,6 +278,10 @@ def test_freeze_parallel_block(ecommerce_data):
     # Compile(Make sure set run_eagerly mode) and fit -> model.freeze_blocks -> compile and fit
     # Set run_eagerly=True in order to avoid error: "Called a function referencing variables which
     # have been deleted". Model needs to be built by fit or build.
+
+    # Currently works well with run_eagerly=True, for graph mode (run_eagerly=False), when
+    # re-compile and fit, related to issue #647.
+    # TODO: work for graph mode (run_eagerly = False)
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
