@@ -1,0 +1,6 @@
+﻿merlin.models.utils.schema\_utils.get\_embedding\_size\_from\_cardinality
+=========================================================================
+
+.. currentmodule:: merlin.models.utils.schema_utils
+
+.. autofunction:: get_embedding_size_from_cardinality
