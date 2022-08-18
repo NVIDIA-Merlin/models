@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import collections
 import inspect
 import sys
+import warnings
 from collections.abc import Sequence as SequenceCollection
-from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Sequence, Union, runtime_checkable
 
 import six
 import tensorflow as tf
@@ -26,7 +28,11 @@ from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, Pred
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
-from merlin.models.tf.utils.tf_utils import call_layer, maybe_serialize_keras_objects
+from merlin.models.tf.utils.tf_utils import (
+    call_layer,
+    get_sub_blocks,
+    maybe_serialize_keras_objects,
+)
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
@@ -849,6 +855,7 @@ class Model(BaseModel):
             block.schema for block in self.submodules if getattr(block, "is_input", False)
         ]
         self.schema = sum(input_block_schemas, Schema())
+        self._frozen_blocks = set()
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
@@ -1027,6 +1034,152 @@ class Model(BaseModel):
             # required args, which is wrong. This is a workaround.
             _arg_spec = self._saved_model_arg_spec
             self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
+
+    @property
+    def frozen_blocks(self):
+        """
+        Get frozen blocks of model, only on which you called freeze_blocks before, the result dose
+        not include those blocks frozen in other methods, for example, if you create the embedding
+        and set the `trainable` as False, it would not be tracked by this property, but you can also
+        call unfreeze_blocks on those blocks.
+
+        Please note that sub-block of self._frozen_blocks is also frozen, but not recorded by this
+        variable, because if you want to unfreeze the whole model, you only need to unfreeze blocks
+        you froze before (called freeze_blocks before), this function would unfreeze all sub-blocks
+        recursively and automatically.
+
+        If you want to get all frozen blocks and sub-blocks of the model:
+            `get_sub_blocks(model.frozen_blocks)`
+        """
+        return list(self._frozen_blocks)
+
+    def freeze_blocks(
+        self,
+        blocks: Union[Sequence[Block], Sequence[str]],
+    ):
+        """Freeze all sub-blocks of given blocks recursively. Please make sure to compile the model
+        after freezing.
+
+        Important note about layer-freezing: Calling `compile()` on a model is meant to "save" the
+        behavior of that model, which means that whether the layer is frozen or not would be
+        preserved for the model, so if you want to freeze any layer of the model, please make sure
+        to compile it again.
+
+        TODO: Make it work for graph mode. Now if model compile and fit for multiple times with
+        graph mode (run_eagerly=True) could raise TensorFlow error. Please find example in
+        test_freeze_parallel_block.
+
+        Parameters
+        ----------
+        blocks : Union[Sequence[Block], Sequence[str]]
+            Blocks or names of blocks to be frozen
+
+        Example :
+            ```python
+            input_block = ml.InputBlockV2(schema)
+            layer_1 = ml.MLPBlock([64], name="layer_1")
+            layer_2 = ml.MLPBlock([1], no_activation_last_layer=True, name="layer_2")
+            two_layer = ml.SequentialBlock([layer_1, layer_2], name="two_layers")
+            body = input_block.connect(two_layer)
+            model = ml.Model(body, ml.BinaryClassificationTask("click"))
+
+            # Compile(Make sure set run_eagerly mode) and fit -> model.freeze_blocks -> compile and
+            # fit Set run_eagerly=True in order to avoid error: "Called a function referencing
+            # variables which have been deleted". Model needs to be built by fit or build.
+
+            model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
+            model.fit(ecommerce_data, batch_size=128, epochs=1)
+
+            model.freeze_blocks(["user_categories", "layer_2"])
+            # From the result of model.summary(), you can find which block is frozen (trainable: N)
+            print(model.summary(expand_nested=True, show_trainable=True, line_length=80))
+
+            model.compile(run_eagerly=False, optimizer="adam")
+            model.fit(ecommerce_data, batch_size=128, epochs=10)
+            ```
+
+        """
+        if not isinstance(blocks, (list, tuple)):
+            blocks = [blocks]
+        if isinstance(blocks[0], str):
+            blocks_to_freeze = self.get_blocks_by_name(blocks)
+        elif isinstance(blocks[0], Block):
+            blocks_to_freeze = blocks
+        for b in blocks_to_freeze:
+            b.trainable = False
+        self._frozen_blocks.update(blocks_to_freeze)
+
+    def unfreeze_blocks(
+        self,
+        blocks: Union[Sequence[Block], Sequence[str]],
+    ):
+        """
+        Unfreeze all sub-blocks of given blocks recursively
+
+        Important note about layer-freezing: Calling `compile()` on a model is meant to "save" the
+        behavior of that model, which means that whether the layer is frozen or not would be
+        preserved for the model, so if you want to freeze any layer of the model, please make sure
+        to compile it again.
+        """
+        if not isinstance(blocks, (list, tuple)):
+            blocks = [blocks]
+        if isinstance(blocks[0], Block):
+            blocks_to_unfreeze = set(get_sub_blocks(blocks))
+        elif isinstance(blocks[0], str):
+            blocks_to_unfreeze = self.get_blocks_by_name(blocks)
+        for b in blocks_to_unfreeze:
+            if b not in self._frozen_blocks:
+                warnings.warn(
+                    f"Block or sub-block {b} was not frozen when calling unfreeze_block("
+                    f"{blocks})."
+                )
+            else:
+                self._frozen_blocks.remove(b)
+            b.trainable = True
+
+    def unfreeze_all_frozen_blocks(self):
+        """
+        Unfreeze all blocks (including blocks and sub-blocks) of this model recursively
+
+        Important note about layer-freezing: Calling `compile()` on a model is meant to "save" the
+        behavior of that model, which means that whether the layer is frozen or not would be
+        preserved for the model, so if you want to freeze any layer of the model, please make sure
+        to compile it again.
+        """
+        for b in self._frozen_blocks:
+            b.trainable = True
+        self._frozen_blocks = set()
+
+    def get_blocks_by_name(self, block_names: Sequence[str]) -> List[Block]:
+        """Get blocks by given block_names, return a list of blocks
+        Traverse(Iterate) the model to check each block (sub_block) by BFS"""
+        result_blocks = set()
+        if not isinstance(block_names, (list, tuple)):
+            block_names = [block_names]
+
+        for block in self.blocks:
+            # Traversse all submodule (BFS) except ModelContext
+            deque = collections.deque()
+            if not isinstance(block, ModelContext):
+                deque.append(block)
+            while deque:
+                current_module = deque.popleft()
+                # Already found all blocks
+                if len(block_names) == 0:
+                    break
+                # Found a block
+                if current_module.name in block_names:
+                    result_blocks.add(current_module)
+                    block_names.remove(current_module.name)
+                for sub_module in current_module._flatten_modules(
+                    include_self=False, recursive=False
+                ):
+                    # Filter out modelcontext
+                    if type(sub_module) != ModelContext:
+                        deque.append(sub_module)
+            if len(block_names) > 0:
+                raise ValueError(f"Cannot find block with the name of {block_names}")
+        return list(result_blocks)
 
 
 @runtime_checkable
