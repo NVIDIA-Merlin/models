@@ -277,7 +277,9 @@ def generate_user_item_interactions(
             domain = feature.float_domain
             min_value, max_value = (domain.min, domain.max) if domain else (0.0, 1.0)
 
-            data[feature.name] = _array.random.uniform(min_value, max_value, num_interactions)
+            data[feature.name] = _array.random.uniform(
+                min_value, max_value, num_interactions
+            ).astype(str(feature.dtype))
 
     return data
 
