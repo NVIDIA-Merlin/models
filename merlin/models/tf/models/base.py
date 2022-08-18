@@ -29,7 +29,6 @@ from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, Pred
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
 from merlin.models.tf.predictions.topk import TopKLayer, TopKPrediction
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.batch_utils import TFModelEncode
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
     call_layer,
@@ -1459,6 +1458,8 @@ class ItemRecommenderModel(Model):
             Top-k recommender model
         """
         import numpy as np
+
+        from merlin.models.tf.utils.batch_utils import TFModelEncode
 
         # Convert item_encoder to TopKPredictionBlock
         if not id_column and getattr(item_dataset, "schema", None):

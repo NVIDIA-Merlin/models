@@ -10,7 +10,6 @@ from merlin.models.tf.core.base import Block
 from merlin.models.tf.predictions.base import MetricsFn, Prediction, PredictionBlock
 from merlin.models.tf.predictions.classification import default_categorical_prediction_metrics
 from merlin.models.tf.utils import tf_utils
-from merlin.models.tf.utils.batch_utils import TFModelEncode
 from merlin.schema import Tags
 
 
@@ -154,6 +153,8 @@ class TopKLayer(Layer):
     def get_candidates_dataset(
         self, block: Block, data: merlin.io.Dataset, id_column: Optional[str] = None
     ):
+        from merlin.models.tf.utils.batch_utils import TFModelEncode
+
         if not id_column and getattr(block, "schema", None):
             tagged = block.schema.select_by_tag(Tags.ITEM_ID)
             if tagged.column_schemas:
