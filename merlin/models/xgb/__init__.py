@@ -1,4 +1,22 @@
+#
+# Copyright (c) 2022, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import json
+import os
 import warnings
+from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import distributed
@@ -7,6 +25,10 @@ import xgboost as xgb
 
 from merlin.core.utils import global_dask_client
 from merlin.io import Dataset
+from merlin.models.utils.schema_utils import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
 from merlin.schema import Schema, Tags
 
 
@@ -71,6 +93,7 @@ class XGBoost:
         self.qid_column = qid_column
         self.evals_result = {}
         self.booster = booster
+        self.schema = schema
 
     @property
     def dask_client(self) -> Optional[distributed.Client]:
@@ -218,6 +241,54 @@ class XGBoost:
         preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs).compute()
 
         return preds
+
+    def save(self, path: Union[str, os.PathLike]) -> None:
+        """Save the model to a directory.
+
+        Parameters
+        ----------
+        path : Union[str, os.PathLike]
+            Directory where the model will be saved.
+        """
+        export_dir = Path(path)
+        export_dir.mkdir(parents=True)
+        self.booster.save_model(export_dir / "model.json")
+        schema_to_tensorflow_metadata_json(self.schema, export_dir / "schema.json")
+        with open(export_dir / "params.json", "w") as f:
+            json.dump(self.params, f, indent=4)
+        with open(export_dir / "config.json", "w") as f:
+            json.dump(
+                dict(qid_column=self.qid_column, target_columns=self.target_columns), f, indent=4
+            )
+
+    @classmethod
+    def load(cls, path: Union[str, os.PathLike]) -> "XGBoost":
+        """Load the model from a directory where a model has been saved.
+
+        Parameters
+        ----------
+        path : Union[str, os.PathLike]
+            Path where a Merlin XGBoost model has been saved.
+
+        Returns
+        -------
+        XGBoost model instance
+        """
+        load_dir = Path(path)
+        booster = xgb.Booster()
+        booster.load_model(load_dir / "model.json")
+        schema = tensorflow_metadata_json_to_schema(load_dir / "schema.json")
+        with open(load_dir / "params.json", "r") as f:
+            params = json.load(f)
+        with open(load_dir / "config.json", "r") as f:
+            config = json.load(f)
+        return cls(
+            schema,
+            target_columns=config.get("target_columns"),
+            qid_column=config.get("qid_column"),
+            booster=booster,
+            **params,
+        )
 
 
 OBJECTIVES = {
