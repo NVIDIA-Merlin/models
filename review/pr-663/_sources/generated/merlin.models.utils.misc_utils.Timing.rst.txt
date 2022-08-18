@@ -1,0 +1,22 @@
+﻿merlin.models.utils.misc\_utils.Timing
+======================================
+
+.. currentmodule:: merlin.models.utils.misc_utils
+
+.. autoclass:: Timing
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Timing.__init__
+   
+   
+
+   
+   
+   
