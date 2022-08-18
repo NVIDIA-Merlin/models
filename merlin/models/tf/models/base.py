@@ -28,7 +28,11 @@ from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, Pred
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
-from merlin.models.tf.utils.tf_utils import call_layer, maybe_serialize_keras_objects
+from merlin.models.tf.utils.tf_utils import (
+    call_layer,
+    get_sub_blocks,
+    maybe_serialize_keras_objects,
+)
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
 
@@ -1045,7 +1049,7 @@ class Model(BaseModel):
         recursively and automatically.
 
         If you want to get all frozen blocks and sub-blocks of the model:
-            `model.get_sub_blocks(model.frozen_blocks)`
+            `get_sub_blocks(model.frozen_blocks)`
         """
         return list(self._frozen_blocks)
 
@@ -1060,6 +1064,10 @@ class Model(BaseModel):
         behavior of that model, which means that whether the layer is frozen or not would be
         preserved for the model, so if you want to freeze any layer of the model, please make sure
         to compile it again.
+
+        TODO: Make it work for graph mode. Now if model compile and fit for multiple times with
+        graph mode (run_eagerly=True) could raise TensorFlow error. Please find example in
+        test_freeze_parallel_block.
 
         Parameters
         ----------
@@ -1094,7 +1102,7 @@ class Model(BaseModel):
         if not isinstance(blocks, (list, tuple)):
             blocks = [blocks]
         if isinstance(blocks[0], str):
-            blocks_to_freeze = self.find_blocks_by_name(blocks)
+            blocks_to_freeze = self.get_blocks_by_name(blocks)
         elif isinstance(blocks[0], Block):
             blocks_to_freeze = blocks
         for b in blocks_to_freeze:
@@ -1116,9 +1124,9 @@ class Model(BaseModel):
         if not isinstance(blocks, (list, tuple)):
             blocks = [blocks]
         if isinstance(blocks[0], Block):
-            blocks_to_unfreeze = set(self.get_sub_blocks(blocks))
+            blocks_to_unfreeze = set(get_sub_blocks(blocks))
         elif isinstance(blocks[0], str):
-            blocks_to_unfreeze = self.find_blocks_by_name(blocks)
+            blocks_to_unfreeze = self.get_blocks_by_name(blocks)
         for b in blocks_to_unfreeze:
             if b not in self._frozen_blocks:
                 warnings.warn(
@@ -1142,7 +1150,7 @@ class Model(BaseModel):
             b.trainable = True
         self._frozen_blocks = set()
 
-    def find_blocks_by_name(self, block_names: Sequence[str]) -> List[Block]:
+    def get_blocks_by_name(self, block_names: Sequence[str]) -> List[Block]:
         """Get blocks by given block_names, return a list of blocks
         Traverse(Iterate) the model to check each block (sub_block) by BFS"""
         result_blocks = set()
@@ -1171,29 +1179,6 @@ class Model(BaseModel):
                         deque.append(sub_module)
             if len(block_names) > 0:
                 raise ValueError(f"Cannot find block with the name of {block_names}")
-        return list(result_blocks)
-
-    def get_sub_blocks(self, blocks: Sequence[Block]) -> List[Block]:
-        """Get all sub-blocks of given blocks, including blocks themselves, return a list of blocks
-        Traverse(Iterate) the model to check each block (sub_block) by BFS"""
-        result_blocks = set()
-        if not isinstance(blocks, (list, tuple)):
-            blocks = [blocks]
-        for block in blocks:
-            # Iterate all submodule (BFS) except ModelContext
-            deque = collections.deque()
-            if not isinstance(block, ModelContext):
-                deque.append(block)
-            while deque:
-                current_module = deque.popleft()
-                # Add all sub-blocks include itself
-                result_blocks.add(current_module)
-                for sub_module in current_module._flatten_modules(
-                    include_self=False, recursive=False
-                ):
-                    # filter out modelcontext
-                    if type(sub_module) != ModelContext:
-                        deque.append(sub_module)
         return list(result_blocks)
 
 

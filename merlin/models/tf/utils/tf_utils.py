@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Any, Sequence, Tuple, Union
+import collections
+from typing import Any, List, Sequence, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
@@ -22,6 +23,7 @@ from packaging import version
 
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
+from merlin.models.tf.core.base import Block, ModelContext
 from merlin.models.tf.typing import TabularData
 from merlin.models.utils.misc_utils import filter_kwargs
 
@@ -399,6 +401,28 @@ def call_layer(layer: tf.keras.layers.Layer, inputs, *args, **kwargs):
             filtered_kwargs = filter_kwargs(filtered_kwargs, call_fn, **_k)
 
     return layer(inputs, *args, **filtered_kwargs)
+
+
+def get_sub_blocks(blocks: Sequence[Block]) -> List[Block]:
+    """Get all sub-blocks of given blocks, including blocks themselves, return a list of blocks
+    Traverse(Iterate) the model to check each block (sub_block) by BFS"""
+    result_blocks = set()
+    if not isinstance(blocks, (list, tuple)):
+        blocks = [blocks]
+    for block in blocks:
+        # Iterate all submodule (BFS) except ModelContext
+        deque = collections.deque()
+        if not isinstance(block, ModelContext):
+            deque.append(block)
+        while deque:
+            current_module = deque.popleft()
+            # Add all sub-blocks include itself
+            result_blocks.add(current_module)
+            for sub_module in current_module._flatten_modules(include_self=False, recursive=False):
+                # filter out modelcontext
+                if type(sub_module) != ModelContext:
+                    deque.append(sub_module)
+    return list(result_blocks)
 
 
 def list_col_to_ragged(col: Tuple[tf.Tensor, tf.Tensor]):

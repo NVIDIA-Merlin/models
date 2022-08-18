@@ -249,21 +249,23 @@ def test_find_blocks_and_sub_blocks(ecommerce_data):
     ===========================================================================================
     """
 
-    assert model.find_blocks_by_name("layer_1") == [layer_1]
-    assert layer_1 in model.get_sub_blocks(layer_1)
+    assert model.get_blocks_by_name("layer_1") == [layer_1]
+    assert layer_1 in tf_utils.get_sub_blocks(layer_1)
     # Including MLPBlock, _Dense, and Dense
-    assert len(model.get_sub_blocks(layer_1)) == 3
+    assert len(tf_utils.get_sub_blocks(layer_1)) == 3
 
-    assert len(model.find_blocks_by_name(["layer_1", "layer_2"])) == 2
-    assert model.find_blocks_by_name("two_layers") == [two_layer]
-    assert len(model.get_sub_blocks(two_layer)) == 7
-    assert len(model.find_blocks_by_name("user_categories")) == 1
+    assert len(model.get_blocks_by_name(["layer_1", "layer_2"])) == 2
+    assert model.get_blocks_by_name("two_layers") == [two_layer]
+    assert len(tf_utils.get_sub_blocks(two_layer)) == 7
+    assert len(model.get_blocks_by_name("user_categories")) == 1
 
     with test_case.assertRaisesRegex(ValueError, "Cannot find block with the name of"):
-        model.find_blocks_by_name("two_layer")
+        model.get_blocks_by_name("two_layer")
 
 
-def test_freeze_parallel_block(ecommerce_data):
+# TODO: make it work for graph mode (run_eagerly = False)
+@pytest.mark.parametrize("run_eagerly", [True])
+def test_freeze_parallel_block(ecommerce_data, run_eagerly):
     # Train all parameters at first then freeze some layers
     test_case = TestCase()
     schema = ecommerce_data.schema.select_by_name(
@@ -281,8 +283,9 @@ def test_freeze_parallel_block(ecommerce_data):
 
     # Currently works well with run_eagerly=True, for graph mode (run_eagerly=False), when
     # re-compile and fit, related to issue #647.
-    # TODO: work for graph mode (run_eagerly = False)
-    model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
+    # TODO: make it work for graph mode (run_eagerly = False), not only for this test, but also for
+    # all the tests related to layer-freezing.
+    model.compile(run_eagerly=run_eagerly, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
     model.freeze_blocks(["user_categories"])
@@ -322,30 +325,29 @@ def test_freeze_parallel_block(ecommerce_data):
 
     ===========================================================================================
     """
-    assert model.find_blocks_by_name("user_categories")[0].trainable is False
-    # assert model.find_blocks_by_name("layer_2")[0].trainable is False
-    # assert all(block.trainable is False for block in model.get_sub_blocks(layer_2))
+    assert model.get_blocks_by_name("user_categories")[0].trainable is False
 
     # Record weights before training
     frozen_weights = {}
     unfrozen_weights = {}
 
-    user_categories_block = model.find_blocks_by_name("user_categories")[0]
+    user_categories_block = model.get_blocks_by_name("user_categories")[0]
     assert len(user_categories_block.trainable_weights) == 0
     assert len(user_categories_block.non_trainable_weights) == 1
     frozen_weights["user_categories"] = copy.deepcopy(user_categories_block.weights[0].numpy())
 
-    item_category_block = model.find_blocks_by_name("item_category")[0]
+    item_category_block = model.get_blocks_by_name("item_category")[0]
     assert len(item_category_block.trainable_weights) == 1
     assert len(item_category_block.non_trainable_weights) == 0
     unfrozen_weights["item_category"] = copy.deepcopy(item_category_block.weights[0].numpy())
 
-    layer_1_block = model.find_blocks_by_name("layer_1")[0]
+    layer_1_block = model.get_blocks_by_name("layer_1")[0]
     assert len(layer_1_block.trainable_weights) == 2
     assert len(layer_1_block.non_trainable_weights) == 0
     unfrozen_weights["layer_1"] = copy.deepcopy(layer_1_block.weights[0].numpy())
 
     # Train model
+    # The last time compile and fit, so run_eagerly=False is working
     model.compile(run_eagerly=False, optimizer="adam")
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
@@ -417,30 +419,30 @@ def test_freeze_sequential_block(ecommerce_data):
 
     ===========================================================================================
     """
-    assert model.find_blocks_by_name("user_categories")[0].trainable is False
-    assert model.find_blocks_by_name("layer_2")[0].trainable is False
-    assert all(block.trainable is False for block in model.get_sub_blocks(layer_2))
+    assert model.get_blocks_by_name("user_categories")[0].trainable is False
+    assert model.get_blocks_by_name("layer_2")[0].trainable is False
+    assert all(block.trainable is False for block in tf_utils.get_sub_blocks(layer_2))
 
     # Record weights before training
     frozen_weights = {}
     unfrozen_weights = {}
 
-    user_categories_block = model.find_blocks_by_name("user_categories")[0]
+    user_categories_block = model.get_blocks_by_name("user_categories")[0]
     assert len(user_categories_block.trainable_weights) == 0
     assert len(user_categories_block.non_trainable_weights) == 1
     frozen_weights["user_categories"] = copy.deepcopy(user_categories_block.weights[0].numpy())
 
-    item_category_block = model.find_blocks_by_name("item_category")[0]
+    item_category_block = model.get_blocks_by_name("item_category")[0]
     assert len(item_category_block.trainable_weights) == 1
     assert len(item_category_block.non_trainable_weights) == 0
     unfrozen_weights["item_category"] = copy.deepcopy(item_category_block.weights[0].numpy())
 
-    layer_1_block = model.find_blocks_by_name("layer_1")[0]
+    layer_1_block = model.get_blocks_by_name("layer_1")[0]
     assert len(layer_1_block.trainable_weights) == 2
     assert len(layer_1_block.non_trainable_weights) == 0
     unfrozen_weights["layer_1"] = copy.deepcopy(layer_1.weights[0].numpy())
 
-    layer_2_block = model.find_blocks_by_name("layer_2")[0]
+    layer_2_block = model.get_blocks_by_name("layer_2")[0]
     assert len(layer_2_block.trainable_weights) == 0
     assert len(layer_2_block.non_trainable_weights) == 2
     frozen_weights["layer_2"] = copy.deepcopy(layer_2_block.weights[0].numpy())
@@ -549,11 +551,11 @@ def test_freeze_unfreeze(ecommerce_data):
     ===========================================================================================
     """
     assert len(model.frozen_blocks) == 2
-    assert model.find_blocks_by_name("user_categories")[0].trainable is False
-    assert len(model.find_blocks_by_name("user_categories")[0].trainable_weights) == 0
-    assert model.find_blocks_by_name("layer_2")[0].trainable is False
-    assert len(model.find_blocks_by_name("layer_2")[0].trainable_weights) == 0
-    assert all(block.trainable is False for block in model.get_sub_blocks(layer_2))
+    assert model.get_blocks_by_name("user_categories")[0].trainable is False
+    assert len(model.get_blocks_by_name("user_categories")[0].trainable_weights) == 0
+    assert model.get_blocks_by_name("layer_2")[0].trainable is False
+    assert len(model.get_blocks_by_name("layer_2")[0].trainable_weights) == 0
+    assert all(block.trainable is False for block in tf_utils.get_sub_blocks(layer_2))
 
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
@@ -562,11 +564,11 @@ def test_freeze_unfreeze(ecommerce_data):
     model.unfreeze_blocks(["user_categories", "layer_2"])
 
     assert len(model.frozen_blocks) == 0
-    assert model.find_blocks_by_name("user_categories")[0].trainable is True
-    assert model.find_blocks_by_name("layer_2")[0].trainable is True
-    assert all(block.trainable is True for block in model.get_sub_blocks(layer_2))
-    assert len(model.find_blocks_by_name("user_categories")[0].trainable_weights) == 1
-    assert len(model.find_blocks_by_name("layer_2")[0].trainable_weights) == 2
+    assert model.get_blocks_by_name("user_categories")[0].trainable is True
+    assert model.get_blocks_by_name("layer_2")[0].trainable is True
+    assert all(block.trainable is True for block in tf_utils.get_sub_blocks(layer_2))
+    assert len(model.get_blocks_by_name("user_categories")[0].trainable_weights) == 1
+    assert len(model.get_blocks_by_name("layer_2")[0].trainable_weights) == 2
 
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
@@ -629,11 +631,11 @@ def test_unfreeze_all_blocks(ecommerce_data):
     ===========================================================================================
     """
     assert len(model.frozen_blocks) == 2
-    assert model.find_blocks_by_name("user_categories")[0].trainable is False
-    assert len(model.find_blocks_by_name("user_categories")[0].trainable_weights) == 0
-    assert model.find_blocks_by_name("layer_2")[0].trainable is False
-    assert len(model.find_blocks_by_name("layer_2")[0].trainable_weights) == 0
-    assert all(block.trainable is False for block in model.get_sub_blocks(layer_2))
+    assert model.get_blocks_by_name("user_categories")[0].trainable is False
+    assert len(model.get_blocks_by_name("user_categories")[0].trainable_weights) == 0
+    assert model.get_blocks_by_name("layer_2")[0].trainable is False
+    assert len(model.get_blocks_by_name("layer_2")[0].trainable_weights) == 0
+    assert all(block.trainable is False for block in tf_utils.get_sub_blocks(layer_2))
 
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
@@ -642,13 +644,13 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.unfreeze_all_frozen_blocks()
 
     assert len(model.frozen_blocks) == 0
-    assert model.find_blocks_by_name("user_categories")[0].trainable is True
-    assert model.find_blocks_by_name("layer_2")[0].trainable is True
-    assert all(block.trainable is True for block in model.get_sub_blocks(layer_2))
-    assert len(model.find_blocks_by_name("user_categories")[0].trainable_weights) == 1
-    assert len(model.find_blocks_by_name("user_categories")[0].non_trainable_weights) == 0
-    assert len(model.find_blocks_by_name("layer_2")[0].trainable_weights) == 2
-    assert len(model.find_blocks_by_name("layer_2")[0].non_trainable_weights) == 0
+    assert model.get_blocks_by_name("user_categories")[0].trainable is True
+    assert model.get_blocks_by_name("layer_2")[0].trainable is True
+    assert all(block.trainable is True for block in tf_utils.get_sub_blocks(layer_2))
+    assert len(model.get_blocks_by_name("user_categories")[0].trainable_weights) == 1
+    assert len(model.get_blocks_by_name("user_categories")[0].non_trainable_weights) == 0
+    assert len(model.get_blocks_by_name("layer_2")[0].trainable_weights) == 2
+    assert len(model.get_blocks_by_name("layer_2")[0].non_trainable_weights) == 0
 
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
