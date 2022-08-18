@@ -5,6 +5,7 @@ import sys
 from collections.abc import Sequence as SequenceCollection
 from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Union, runtime_checkable
 
+import numpy as np
 import six
 import tensorflow as tf
 from keras.utils.losses_utils import cast_losses_to_common_dtype
@@ -17,7 +18,7 @@ from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
 from merlin.models.tf.core.transformations import AsRaggedFeatures
-from merlin.models.tf.dataset import BatchedDataset
+from merlin.models.tf.dataset import BatchedDataset, sample_batch
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
@@ -829,6 +830,7 @@ class Model(BaseModel):
         context: Optional[ModelContext] = None,
         pre: Optional[tf.keras.layers.Layer] = None,
         post: Optional[tf.keras.layers.Layer] = None,
+        schema=None,
         **kwargs,
     ):
         super(Model, self).__init__(**kwargs)
@@ -846,10 +848,13 @@ class Model(BaseModel):
         self.context = context
         self._is_fitting = False
 
-        input_block_schemas = [
-            block.schema for block in self.submodules if getattr(block, "is_input", False)
-        ]
-        self.schema = sum(input_block_schemas, Schema())
+        if schema:
+            self.schema = schema
+        else:
+            input_block_schemas = [
+                block.schema for block in self.submodules if getattr(block, "is_input", False)
+            ]
+            self.schema = sum(input_block_schemas, Schema())
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
@@ -1248,12 +1253,15 @@ class ItemRecommenderModel(Model):
         *block: tf.keras.layers.Layer,
         pre: Optional[tf.keras.layers.Layer] = None,
         post: Optional[tf.keras.layers.Layer] = None,
+        schema=None,
         **kwargs,
     ):
         if not isinstance(block[-1], CategoricalPrediction):
-            raise ValueError("The last layer of the model must be a CategoricalPrediction.")
+            if not schema:
+                raise ValueError("You must specify a schema for the model.")
+            block = block + (CategoricalPrediction(schema.select_by_tag(Tags.ITEM_ID)),)
 
-        super().__init__(*block, pre=pre, post=post, **kwargs)
+        super().__init__(*block, pre=pre, post=post, schema=schema, **kwargs)
 
     @classmethod
     def from_item_encoder(
@@ -1294,13 +1302,27 @@ class ItemRecommenderModel(Model):
     ) -> merlin.io.Dataset:
         from merlin.models.tf.utils.batch_utils import TFModelEncode
 
+        # Call query_encoder to build it
+        self.query_encoder(sample_batch(dataset, batch_size, include_targets=False))
+
+        # query_encoder.build(self._build_input_shape)
         get_user_emb = TFModelEncode(
-            Model(*self.blocks[:-1]), batch_size=batch_size, schema=self.schema
+            self.query_encoder,
+            batch_size=batch_size,
+            schema=self.schema,
+            output_concat_func=np.concatenate,
         )
 
         embeddings = dataset.to_ddf().map_partitions(get_user_emb)
 
         return merlin.io.Dataset(embeddings)
+
+    @property
+    def query_encoder(self):
+        if not hasattr(self, "_query_encoder"):
+            self._query_encoder = Model(*self.blocks[:-1], schema=self.schema)
+
+        return self._query_encoder
 
     def item_embeddings(self) -> merlin.io.Dataset:
         pass

@@ -210,6 +210,23 @@ class CategoricalPrediction(ContrastivePredictionBlock):
             **kwargs,
         )
 
+    def call(self, inputs, training=False, testing=False, targets=None, **kwargs):
+        out = super().call(inputs, training=training, testing=testing, **kwargs)
+
+        # TODO: What about when sparse-cross-entropy is used?
+        target = None
+        if targets and isinstance(targets, dict) and self.target_name in targets:
+            _target = targets[self.target_name]
+            if len(_target.shape) == 2:
+                _target = tf.squeeze(_target, axis=-1)
+            if out.shape != _target.shape:
+                target = tf.one_hot(_target, depth=out.shape[-1])
+
+        if target is not None:
+            return Prediction(out, target)
+
+        return out
+
     def compile(self, negative_sampling=None, downscore_false_negatives=False):
         if negative_sampling is not None:
             negative_sampling = parse_negative_samplers(negative_sampling)

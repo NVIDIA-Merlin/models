@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pandas as pd
 import pytest
 import tensorflow as tf
 
@@ -188,3 +189,22 @@ def test_sub_class_model(ecommerce_data: Dataset):
 
     model = SubClassedModel(ecommerce_data.schema, "click")
     testing_utils.model_test(model, ecommerce_data)
+
+
+def test_item_recommender(ecommerce_data: Dataset):
+    # TODO: How do we simplify this?
+    item_id = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID).first.with_tags(Tags.TARGET)
+    schema = ecommerce_data.schema.remove_by_tag(Tags.ITEM) + Schema([item_id])
+    ecommerce_data.schema = schema
+
+    model = ml.ItemRecommenderModel(ml.InputBlock(schema), ml.MLPBlock([4]), schema=schema)
+
+    testing_utils.model_test(model, ecommerce_data)
+
+    query_embs = model.query_embeddings(ecommerce_data, batch_size=10).compute(
+        scheduler="synchronous"
+    )
+    if not isinstance(query_embs, pd.DataFrame):
+        query_embs = query_embs.to_pandas()
+
+    assert query_embs.shape[1] == 29

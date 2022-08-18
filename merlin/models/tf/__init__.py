@@ -106,7 +106,7 @@ from merlin.models.tf.metrics.topk import (
     TopKMetricsAggregator,
 )
 from merlin.models.tf.models import benchmark
-from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel
+from merlin.models.tf.models.base import BaseModel, ItemRecommenderModel, Model, RetrievalModel
 from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, WideAndDeepModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
@@ -214,6 +214,7 @@ __all__ = [
     "TopKMetricsAggregator",
     "Model",
     "RetrievalModel",
+    "ItemRecommenderModel",
     "InputBlock",
     "InputBlockV2",
     "PredictionTasks",
