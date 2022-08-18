@@ -24,6 +24,7 @@ from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_met
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
+from merlin.models.tf.predictions.classification import CategoricalPrediction
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import call_layer, maybe_serialize_keras_objects
@@ -1245,11 +1246,14 @@ class ItemRecommenderModel(Model):
     def __init__(
         self,
         *block: tf.keras.layers.Layer,
+        pre: Optional[tf.keras.layers.Layer] = None,
+        post: Optional[tf.keras.layers.Layer] = None,
+        **kwargs,
     ):
         if not isinstance(block[-1], CategoricalPrediction):
             raise ValueError("The last layer of the model must be a CategoricalPrediction.")
 
-        super().__init__(self, *block)
+        super().__init__(*block, pre=pre, post=post, **kwargs)
 
     @classmethod
     def from_item_encoder(
@@ -1258,7 +1262,7 @@ class ItemRecommenderModel(Model):
         query_encoder: tf.keras.layers.Layer,
         negative_samplers=None,
     ) -> "ItemRecommenderModel":
-        # Conver item_encoder to PredictionBlock
+        # Convert item_encoder to PredictionBlock
         prediction = ...
 
         return cls(query_encoder, prediction)
@@ -1287,10 +1291,16 @@ class ItemRecommenderModel(Model):
         self,
         dataset: merlin.io.Dataset,
         batch_size: int,
-        query_tag: Union[str, Tags] = Tags.USER,
-        query_id_tag: Union[str, Tags] = Tags.USER_ID,
     ) -> merlin.io.Dataset:
-        pass
+        from merlin.models.tf.utils.batch_utils import TFModelEncode
+
+        get_user_emb = TFModelEncode(
+            Model(*self.blocks[:-1]), batch_size=batch_size, schema=self.schema
+        )
+
+        embeddings = dataset.to_ddf().map_partitions(get_user_emb)
+
+        return merlin.io.Dataset(embeddings)
 
     def item_embeddings(self) -> merlin.io.Dataset:
         pass

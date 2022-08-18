@@ -344,9 +344,6 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
         l2_normalization=True,
         sampled_softmax=True,
         num_sampled=100,
-        embedding_options=mm.EmbeddingOptions(
-            embedding_dim_default=2,
-        ),
     )
     model.compile(optimizer="adam", run_eagerly=False)
 

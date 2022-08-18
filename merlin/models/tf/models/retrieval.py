@@ -16,6 +16,7 @@ from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.tf.predictions.classification import CategoricalPrediction, CategoricalTarget
+from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.utils.tf_utils import df_to_tensor
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Schema, Tags
@@ -371,22 +372,28 @@ class YoutubeDNNRetrievalModel(ItemRecommenderModel):
     def __init__(
         self,
         schema: Schema,
-        input_block: tf.keras.layer.Layer = None,
+        input_block: tf.keras.layers.Layer = None,
         top_block: Block = MLPBlock([64]),
         aggregation: str = "concat",
         l2_normalization: bool = True,
         logits_temperature: float = 1.0,
         sampled_softmax: bool = True,
         num_sampled: int = 100,
-        min_sampled_id: int = 0,
+        **kwargs,
     ):
         input_block = input_block or InputBlockV2(
             schema,
             aggregation=aggregation,
         )
 
+        pred_kwargs = {}
+        if sampled_softmax:
+            pred_kwargs["negative_samplers"] = PopularityBasedSamplerV2(
+                schema.select_by_tag(Tags.ITEM_ID).first,
+                max_num_samples=num_sampled,
+            )
+
         prediction = CategoricalPrediction(
-            schema.select_by_tag(Tags.ITEM_ID),
-            logits_temperature=logits_temperature,
+            schema.select_by_tag(Tags.ITEM_ID), logits_temperature=logits_temperature, **pred_kwargs
         )
-        super().__init__(input_block, top_block, prediction)
+        super(YoutubeDNNRetrievalModel, self).__init__(input_block, top_block, prediction, **kwargs)

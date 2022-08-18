@@ -18,6 +18,8 @@ from typing import Optional
 import tensorflow as tf
 
 from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
+from merlin.models.utils import schema_utils
+from merlin.schema import ColumnSchema, Schema
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -45,15 +47,15 @@ class PopularityBasedSamplerV2(ItemSamplerV2):
 
     def __init__(
         self,
-        max_id: int,
-        min_id: int = 0,
+        col_schema: ColumnSchema,
         max_num_samples: int = 10,
         seed: Optional[int] = None,
         **kwargs,
     ):
         super().__init__(max_num_samples=max_num_samples, **kwargs)
-        self.max_id = max_id
-        self.min_id = min_id
+        self.col_schema = col_schema
+        self.max_id = col_schema.int_domain.max
+        self.min_id = col_schema.int_domain.min
         self.seed = seed
 
         assert (
@@ -107,8 +109,15 @@ class PopularityBasedSamplerV2(ItemSamplerV2):
 
     def get_config(self):
         config = super().get_config()
-        config["max_id"] = self.max_id
-        config["min_id"] = self.min_id
+        schema = schema_utils.schema_to_tensorflow_metadata_json(Schema([self.col_schema]))
+        config["schema"] = schema
         config["max_num_samples"] = self.max_num_samples
         config["seed"] = self.seed
         return config
+
+    @classmethod
+    def from_config(cls, config):
+        schema = schema_utils.tensorflow_metadata_json_to_schema(config.pop("schema"))
+        col_schema = schema.first
+
+        return cls(col_schema=col_schema, **config)
