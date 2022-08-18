@@ -368,3 +368,37 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     losses = model.fit(dataloader, epochs=1)
 
     assert losses is not None
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_to_recommender_v2(ecommerce_data: Dataset, run_eagerly):
+    def _item_id_as_target(inputs, targets):
+        items = inputs["item_id"]
+        return inputs, items
+
+    dataloader = BatchedDataset(ecommerce_data, batch_size=50)
+    dataloader = dataloader.map(_item_id_as_target)
+
+    model = mm.TwoTowerModelV2(ecommerce_data.schema, query_tower=mm.MLPBlock([64, 128]))
+    model.compile(run_eagerly=run_eagerly, optimizer="adam")
+    _ = model.fit(ecommerce_data, batch_size=50, epochs=5, steps_per_epoch=1)
+
+    recommender = model.to_item_recommender(dataset=ecommerce_data, batch_size=50, k=10)
+    recommender.compile(run_eagerly=run_eagerly, optimizer="adam")
+    history = recommender.evaluate(dataloader, return_dict=True)
+    assert set(history.keys()) == {
+        "loss",
+        "recall_at_10",
+        "mrr_at_10",
+        "ndcg_at_10",
+        "map_at_10",
+        "precision_at_10",
+        "regularization_loss",
+    }
+
+    scores, top_ids = recommender.predict(dataloader, output_context=True)
+    assert scores.shape[-1] == 10
+
+    recommender.compile(run_eagerly=run_eagerly, optimizer="adam", k=20)
+    scores, top_ids = recommender.predict(dataloader, output_context=True)
+    assert scores.shape[-1] == 20

@@ -23,16 +23,18 @@ TensorLike = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
 class PredictionContext(NamedTuple):
     features: Dict[str, TensorLike]
     targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]] = None
+    top_ids: Optional[tf.Tensor] = None
     mask: tf.Tensor = (None,)
     training: bool = False
     testing: bool = False
 
     def with_updates(
-        self, targets=None, features=None, mask=None, training=None, testing=None
+        self, targets=None, features=None, top_ids=None, mask=None, training=None, testing=None
     ) -> "PredictionContext":
         return PredictionContext(
             features if features is not None else self.features,
             targets if targets is not None else self.targets,
+            top_ids if top_ids is not None else self.top_ids,
             mask if mask is not None else self.mask,
             training or self.training,
             testing or self.testing,
@@ -57,6 +59,7 @@ class Prediction(NamedTuple):
     targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]] = None
     sample_weight: Optional[tf.Tensor] = None
     features: Optional[Dict[str, TensorLike]] = None
+    top_ids: Optional[tf.Tensor] = None
 
     @property
     def predictions(self):

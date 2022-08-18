@@ -111,6 +111,7 @@ from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, Wi
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
     TwoTowerModel,
+    TwoTowerModelV2,
     YoutubeDNNRetrievalModel,
 )
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
