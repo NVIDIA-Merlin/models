@@ -331,7 +331,9 @@ def test_wide_deep_model_paper_example(ecommerce_data, run_eagerly):
             ml.OptimizerBlocks("adagrad", deep_model),
         ],
     )
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=True, optimizer=multi_optimizer)
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizer
+    )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
