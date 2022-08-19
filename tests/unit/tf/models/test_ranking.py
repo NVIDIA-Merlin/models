@@ -234,7 +234,7 @@ def test_wide_deep_model_hashed_cross(ecommerce_data, run_eagerly):
         ecommerce_data.schema,
         wide_schema=wide_schema,
         deep_schema=deep_schema,
-        wide_preprocess=ml.HashedCross(wide_schema, 1000),
+        wide_preprocess=ml.HashedCross(schema=wide_schema, num_bins=1000, output_mode="one_hot"),
         deep_block=ml.MLPBlock([32, 16]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
