@@ -1,0 +1,88 @@
+﻿merlin.models.tf.AvgPrecisionAt
+===============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: AvgPrecisionAt
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~AvgPrecisionAt.__init__
+      ~AvgPrecisionAt.add_loss
+      ~AvgPrecisionAt.add_metric
+      ~AvgPrecisionAt.add_update
+      ~AvgPrecisionAt.add_variable
+      ~AvgPrecisionAt.add_weight
+      ~AvgPrecisionAt.build
+      ~AvgPrecisionAt.call
+      ~AvgPrecisionAt.check_cast_inputs
+      ~AvgPrecisionAt.compute_mask
+      ~AvgPrecisionAt.compute_output_shape
+      ~AvgPrecisionAt.compute_output_signature
+      ~AvgPrecisionAt.count_params
+      ~AvgPrecisionAt.finalize_state
+      ~AvgPrecisionAt.from_config
+      ~AvgPrecisionAt.get_config
+      ~AvgPrecisionAt.get_input_at
+      ~AvgPrecisionAt.get_input_mask_at
+      ~AvgPrecisionAt.get_input_shape_at
+      ~AvgPrecisionAt.get_output_at
+      ~AvgPrecisionAt.get_output_mask_at
+      ~AvgPrecisionAt.get_output_shape_at
+      ~AvgPrecisionAt.get_weights
+      ~AvgPrecisionAt.merge_state
+      ~AvgPrecisionAt.reset_state
+      ~AvgPrecisionAt.reset_states
+      ~AvgPrecisionAt.result
+      ~AvgPrecisionAt.set_weights
+      ~AvgPrecisionAt.update_state
+      ~AvgPrecisionAt.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~AvgPrecisionAt.activity_regularizer
+      ~AvgPrecisionAt.compute_dtype
+      ~AvgPrecisionAt.dtype
+      ~AvgPrecisionAt.dtype_policy
+      ~AvgPrecisionAt.dynamic
+      ~AvgPrecisionAt.inbound_nodes
+      ~AvgPrecisionAt.input
+      ~AvgPrecisionAt.input_mask
+      ~AvgPrecisionAt.input_shape
+      ~AvgPrecisionAt.input_spec
+      ~AvgPrecisionAt.label_relevant_counts
+      ~AvgPrecisionAt.losses
+      ~AvgPrecisionAt.metrics
+      ~AvgPrecisionAt.name
+      ~AvgPrecisionAt.name_scope
+      ~AvgPrecisionAt.non_trainable_variables
+      ~AvgPrecisionAt.non_trainable_weights
+      ~AvgPrecisionAt.outbound_nodes
+      ~AvgPrecisionAt.output
+      ~AvgPrecisionAt.output_mask
+      ~AvgPrecisionAt.output_shape
+      ~AvgPrecisionAt.pre_sorted
+      ~AvgPrecisionAt.stateful
+      ~AvgPrecisionAt.submodules
+      ~AvgPrecisionAt.supports_masking
+      ~AvgPrecisionAt.trainable
+      ~AvgPrecisionAt.trainable_variables
+      ~AvgPrecisionAt.trainable_weights
+      ~AvgPrecisionAt.updates
+      ~AvgPrecisionAt.variable_dtype
+      ~AvgPrecisionAt.variables
+      ~AvgPrecisionAt.weights
+   
+   
