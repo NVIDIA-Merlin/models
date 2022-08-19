@@ -803,8 +803,8 @@ class HashedCross(TabularBlock):
         num_bins : int
             Number of hash bins.
         output_mode: string
-            Specification for the output of the layer. Defaults to "int".  Values can be "int", or
-            "one_hot", configuring the layer as follows:
+            Specification for the output of the layer. Defaults to "one_hot".  Values can be "int",
+            or "one_hot", configuring the layer as follows:
             - `"int"`: Return the integer bin indices directly.
             - `"one_hot"`: Encodes each individual element in the input into an array with the same
                 size as `num_bins`, containing a 1 at the input's bin index.
@@ -826,7 +826,7 @@ class HashedCross(TabularBlock):
         schema: Schema,
         num_bins: int = None,
         sparse: bool = False,
-        output_mode: str = "int",
+        output_mode: str = "one_hot",
         output_name: str = None,
         infer_num_bins: bool = False,
         max_num_bins: int = 100000,

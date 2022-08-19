@@ -249,8 +249,6 @@ def DeepFMModel(
 def WideAndDeepModel(
     schema: Schema,
     deep_block: Block,
-    wide_model_name: Optional[str] = "wide_model_block",
-    deep_model_name: Optional[str] = "deep_model_block",
     wide_schema: Optional[Schema] = None,
     deep_schema: Optional[Schema] = None,
     wide_preprocess: Optional[Block] = None,
@@ -313,7 +311,7 @@ def WideAndDeepModel(
             ```python
             # CategoricalOneHot as preprocess for wide model
             import merlin.models.tf as ml
-            model = ml.benchmark.WideAndDeepModel(
+            model = ml.WideAndDeepModel(
                 schema = schema,
                 wide_schema=wide_schema,
                 deep_schema=deep_schema,
@@ -323,21 +321,20 @@ def WideAndDeepModel(
             )
 
             # HashedCross as preprocess for wide model
-            model = ml.benchmark.WideAndDeepModel(
+            model = ml.WideAndDeepModel(
                 schema = schema,
                 wide_schema=wide_schema,
                 deep_schema=deep_schema,
-                wide_preprocess = ml.HashedCross(wide_schema, num_bins=1000),
+                wide_preprocess = ml.ParallelBlock([
+                    ml.CategoricalOneHot(one_hot_schema),
+                    ml.HashedCross(wide_schema, num_bins=1000)]
+                ),
                 deep_block=ml.MLPBlock([32, 16]),
                 prediction_tasks=ml.BinaryClassificationTask("click"),
             )
             ```
     prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
         The prediction tasks to be used, by default this will be inferred from the Schema.
-    wide_model_name: Optional[str]
-        name of wide model, default as "wide_model_block".
-    deep_model_name: Optional[str]
-        name of deep model, default as "deep_model_block".
 
     Returns
     -------
@@ -361,7 +358,7 @@ def WideAndDeepModel(
                 **kwargs,
             )
     deep_body = deep_input_block.connect(deep_block).connect(
-        MLPBlock([1], no_activation_last_layer=True), block_name=deep_model_name
+        MLPBlock([1], no_activation_last_layer=True)
     )
 
     if not wide_input_block:
@@ -371,9 +368,7 @@ def WideAndDeepModel(
                 is_input=True,
                 aggregation="concat",
             )
-    wide_body = wide_input_block.connect(
-        MLPBlock([1], no_activation_last_layer=True), block_name=wide_model_name
-    )
+    wide_body = wide_input_block.connect(MLPBlock([1], no_activation_last_layer=True))
 
     branches = {"wide": wide_body, "deep": deep_body}
     wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")

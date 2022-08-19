@@ -242,3 +242,115 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_wide_deep_model_paper_example(ecommerce_data, run_eagerly):
+
+    wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
+    deep_schema = ecommerce_data.schema.select_by_name(
+        names=["user_categories", "item_category", "item_brand"]
+    )
+
+    model = ml.WideAndDeepModel(
+        ecommerce_data.schema,
+        wide_schema=wide_schema,
+        deep_schema=deep_schema,
+        wide_preprocess=ml.HashedCross(wide_schema, 1000),
+        deep_block=ml.MLPBlock([31, 16]),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=True)
+    print(model.summary(expand_nested=True, show_trainable=True, line_length=80))
+    """
+     Layer (type)                       Output Shape                    Param #     Trainable
+    ===========================================================================================
+    parallel_block_2 (ParallelBlock)   multiple                        9186        Y
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | sequential_block_6 (SequentialBloc  multiple                     2           Y          |
+    | k)                                                                                      |
+    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+    || parallel_block_1 (ParallelBlock)  multiple                     0           Y          ||
+    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+    ||| tabular_block_1 (TabularBlock)  multiple                     0           Y          |||
+    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+    || sequential_block_5 (SequentialBloc  multiple                   2           Y          ||
+    || k)                                                                                    ||
+    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+    ||| private__dense_3 (_Dense)    multiple                        2           Y          |||
+    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    | sequential_block_3 (SequentialBloc  multiple                     9184        Y          |
+    | k)                                                                                      |
+    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+    || sequential_block_1 (SequentialBloc  multiple                   9167        Y          ||
+    || k)                                                                                    ||
+    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+    ||| parallel_block (ParallelBlock)  multiple                     7632        Y          |||
+    ||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||
+    |||| embeddings (ParallelBlock)  multiple                       7632        Y          ||||
+    |||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||||
+    ||||| user_categories (EmbeddingTable)  multiple               4816        Y          |||||
+    |||||                                                                                 |||||
+    ||||| item_category (EmbeddingTable)  multiple                 808         Y          |||||
+    |||||                                                                                 |||||
+    ||||| item_brand (EmbeddingTable)  multiple                    2008        Y          |||||
+    ||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||
+    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+    ||| sequential_block (SequentialBlock)  multiple                 1535        Y          |||
+    ||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||
+    |||| private__dense (_Dense)    multiple                        1023        Y          ||||
+    ||||                                                                                   ||||
+    |||| private__dense_1 (_Dense)  multiple                        512         Y          ||||
+    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+    || sequential_block_2 (SequentialBloc  multiple                   17          Y          ||
+    || k)                                                                                    ||
+    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+    ||| private__dense_2 (_Dense)    multiple                        17          Y          |||
+    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+    click/binary_classification_task (  multiple                       2           Y
+    BinaryClassificationTask)
+
+    model_context (ModelContext)       multiple                        0           Y
+
+    ===========================================================================================
+    """
+
+    # Get the names of wide model and deep model from model.summary()
+    wide_model = model.get_blocks_by_name("sequential_block_6")
+    deep_model = model.get_blocks_by_name("sequential_block_3")
+
+    multi_optimizer = ml.MultiOptimizer(
+        default_optimizer="adagrad",
+        optimizers_and_blocks=[
+            ml.OptimizerBlocks("ftrl", wide_model),
+            ml.OptimizerBlocks("adagrad", deep_model),
+        ],
+    )
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=True, optimizer=multi_optimizer)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_wide_deep_model_parallelblock_as_preprocess(ecommerce_data, run_eagerly):
+
+    wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
+    deep_schema = ecommerce_data.schema.select_by_name(
+        names=["user_categories", "item_category", "item_category"]
+    )
+
+    model = ml.WideAndDeepModel(
+        schema=ecommerce_data.schema,
+        wide_schema=wide_schema,
+        deep_schema=deep_schema,
+        wide_preprocess=ml.ParallelBlock(
+            [ml.CategoricalOneHot(wide_schema), ml.HashedCross(wide_schema, num_bins=1000)]
+        ),
+        deep_block=ml.MLPBlock([32, 16]),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
