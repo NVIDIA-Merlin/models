@@ -1,0 +1,6 @@
+﻿merlin.models.utils.misc\_utils.get\_label\_feature\_name
+=========================================================
+
+.. currentmodule:: merlin.models.utils.misc_utils
+
+.. autofunction:: get_label_feature_name
