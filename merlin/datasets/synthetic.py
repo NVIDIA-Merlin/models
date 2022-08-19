@@ -44,6 +44,7 @@ KNOWN_DATASETS: Dict[str, Path] = {
     "criteo": HERE / "advertising/criteo/transformed",
     "aliccp": HERE / "ecommerce/aliccp/transformed",
     "aliccp-raw": HERE / "ecommerce/aliccp/raw",
+    "drepessi2022-preprocessed": HERE / "ecommerce/drepessi2022/preprocessed/",
 }
 
 
@@ -70,6 +71,7 @@ def generate_data(
     - criteo
     - aliccp
     - aliccp-raw
+    - drepessi
 
 
     Parameters
