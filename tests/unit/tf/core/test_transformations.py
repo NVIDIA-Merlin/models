@@ -202,7 +202,7 @@ def test_hashedcross_scalars():
     inputs = {}
     inputs["cat1"] = tf.constant("A")
     inputs["cat2"] = tf.constant(101)
-    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10)
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross_op(inputs)
     output_name, output_value = outputs.popitem()
 
@@ -222,7 +222,7 @@ def test_hashedcross_1d():
     inputs = {}
     inputs["cat1"] = tf.constant(["A", "B", "A", "B", "A"])
     inputs["cat2"] = tf.constant([101, 101, 101, 102, 102])
-    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10)
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross_op(inputs)
     _, output_value = outputs.popitem()
 
@@ -241,7 +241,7 @@ def test_hashedcross_2d():
     inputs = {}
     inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
     inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
-    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10)
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross_op(inputs)
     _, output_value = outputs.popitem()
 
@@ -259,7 +259,7 @@ def test_hashedcross_output_shape():
     inputs_shape = {}
     inputs_shape["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]]).shape
     inputs_shape["cat2"] = tf.constant([[101], [101], [101], [102], [102]]).shape
-    hashed_cross = ml.HashedCross(schema=schema, num_bins=10)
+    hashed_cross = ml.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross.compute_output_shape(inputs_shape)
     _, output_shape = outputs.popitem()
 
@@ -357,7 +357,7 @@ def test_hashedcross_single_input_fails():
     test_case = TestCase()
     schema = Schema([create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20)])
     with test_case.assertRaisesRegex(ValueError, "at least two features"):
-        ml.HashedCross(num_bins=10, schema=schema)([tf.constant(1)])
+        ml.HashedCross(num_bins=10, schema=schema, output_mode="int")([tf.constant(1)])
 
 
 def test_hashedcross_from_config():
