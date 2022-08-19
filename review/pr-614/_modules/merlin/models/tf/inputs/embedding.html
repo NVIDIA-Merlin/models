@@ -88,10 +88,10 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
-
+<span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span><span class="p">,</span> <span class="n">deepcopy</span>
 <span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras</span> <span class="kn">import</span> <span class="n">backend</span>
@@ -101,6 +101,7 @@
 <span class="kn">import</span> <span class="nn">merlin.io</span>
 <span class="kn">from</span> <span class="nn">merlin.core.dispatch</span> <span class="kn">import</span> <span class="n">DataFrameType</span>
 <span class="kn">from</span> <span class="nn">merlin.io</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.mlp</span> <span class="kn">import</span> <span class="n">InitializerType</span><span class="p">,</span> <span class="n">RegularizerType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">SequentialBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.tabular</span> <span class="kn">import</span> <span class="p">(</span>
@@ -115,11 +116,12 @@
 <span class="c1"># https://github.com/PyCQA/pylint/issues/3613</span>
 <span class="c1"># pylint: disable=no-value-for-parameter, unexpected-keyword-arg</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="n">call_layer</span><span class="p">,</span> <span class="n">df_to_tensor</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="n">call_layer</span><span class="p">,</span> <span class="n">df_to_tensor</span><span class="p">,</span> <span class="n">list_col_to_ragged</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">schema_utils</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils.doc_utils</span> <span class="kn">import</span> <span class="n">docstring_parameter</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils.schema_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">create_categorical_column</span><span class="p">,</span>
+    <span class="n">infer_embedding_dim</span><span class="p">,</span>
     <span class="n">schema_to_tensorflow_metadata_json</span><span class="p">,</span>
     <span class="n">tensorflow_metadata_json_to_schema</span><span class="p">,</span>
 <span class="p">)</span>
@@ -173,6 +175,9 @@
         <span class="n">col_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">first</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">col_schema</span><span class="o">=</span><span class="n">col_schema</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span><span class="p">)</span>
+
+
+<span class="n">CombinerType</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span>
 
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
@@ -232,13 +237,12 @@
         <span class="n">embeddings_constraint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">mask_zero</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">input_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sequence_combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CombinerType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">dynamic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">table</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Create an EmbeddingTable.&quot;&quot;&quot;</span>
@@ -255,8 +259,8 @@
                 <span class="n">activity_regularizer</span><span class="o">=</span><span class="n">activity_regularizer</span><span class="p">,</span>
                 <span class="n">embeddings_constraint</span><span class="o">=</span><span class="n">embeddings_constraint</span><span class="p">,</span>
                 <span class="n">mask_zero</span><span class="o">=</span><span class="n">mask_zero</span><span class="p">,</span>
-                <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
                 <span class="n">input_length</span><span class="o">=</span><span class="n">input_length</span><span class="p">,</span>
+                <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
                 <span class="n">input_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
@@ -264,7 +268,8 @@
                 <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">col_schema</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">table_kwargs</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">combiner</span> <span class="o">=</span> <span class="n">combiner</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span> <span class="o">=</span> <span class="n">sequence_combiner</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supports_masking</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_pretrained</span><span class="p">(</span>
@@ -301,7 +306,7 @@
             <span class="n">dim</span><span class="p">,</span>
             <span class="n">col_schema</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">)],</span>
+            <span class="n">embeddings_initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">embeddings</span><span class="p">),</span>
             <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
@@ -321,7 +326,7 @@
         <span class="c1">#    self.combiner.build(self.table.compute_output_shape(input_shapes))</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">EmbeddingTable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">TabularData</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -335,6 +340,9 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">col_schema</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
 
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="n">list_col_to_ragged</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
         <span class="c1"># Eliminating the last dim==1 of dense tensors before embedding lookup</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
             <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
@@ -345,27 +353,25 @@
 <span class="sd">            inputs = tf.cast(inputs, &quot;int32&quot;)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">combiner</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">)):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Combiner (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">combiner</span><span class="si">}</span><span class="s2">) only supported for RaggedTensor and SparseTensor. &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;Received: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span><span class="si">}</span><span class="s2">. Column name: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">col_schema</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
+                    <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">to_sparse</span><span class="p">()</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">safe_embedding_lookup_sparse</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">combiner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span>
                 <span class="p">)</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">):</span>
-                <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">to_sparse</span><span class="p">()</span>
-            <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">safe_embedding_lookup_sparse</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">embeddings</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">combiner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">combiner</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">RaggedTensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;EmbeddingTable supports only RaggedTensor and Tensor input types. &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;Received: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Sparse tensors are not supported without sequence_combiner &quot;</span><span class="p">,</span>
+                        <span class="s2">&quot;please convert the tensor to a ragged or dense.&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
 
+                <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+                    <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype_policy</span><span class="o">.</span><span class="n">compute_dtype</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype_policy</span><span class="o">.</span><span class="n">variable_dtype</span><span class="p">:</span>
             <span class="c1"># Instead of casting the variable as in most layers, cast the output, as</span>
@@ -374,9 +380,17 @@
 
         <span class="k">return</span> <span class="n">out</span>
 
-    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">input_shape</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">col_schema</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">):</span>
+            <span class="n">input_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span>
+
         <span class="n">first_dims</span> <span class="o">=</span> <span class="n">input_shape</span>
-        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">combiner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">input_shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">input_shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">first_dims</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">output_shapes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">first_dims</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">output_shapes</span>
@@ -388,107 +402,132 @@
     <span class="k">def</span> <span class="nf">from_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">])</span>
         <span class="k">if</span> <span class="s2">&quot;combiner-layer&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
-            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;combiner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;combiner-layer&quot;</span><span class="p">))</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sequence_combiner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">deserialize</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;combiner-layer&quot;</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
         <span class="n">config</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
-            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;combiner-layer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;combiner-layer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;combiner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combiner</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;sequence_combiner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span>
 
         <span class="k">return</span> <span class="n">config</span>
 
 
 <span class="k">def</span> <span class="nf">Embeddings</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
+    <span class="n">dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">infer_dim_fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">ColumnSchema</span><span class="p">],</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">infer_embedding_dim</span><span class="p">,</span>
+    <span class="n">sequence_combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">CombinerType</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CombinerType</span><span class="p">]]]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+    <span class="n">embeddings_initializer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">InitializerType</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">InitializerType</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">embeddings_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">RegularizerType</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">RegularizerType</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">activity_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">RegularizerType</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">RegularizerType</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">trainable</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">table_cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]</span> <span class="o">=</span> <span class="n">EmbeddingTable</span><span class="p">,</span>
     <span class="n">pre</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">block_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;embeddings&quot;</span><span class="p">,</span>
-    <span class="n">sequence_combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-        <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">]]]</span>
-    <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
-    <span class="n">embedding_dims</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">embedding_dim_default</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
-    <span class="n">infer_embedding_sizes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">infer_embedding_sizes_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
-    <span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParallelBlock</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Creates a ParallelBlock with an EmbeddingTable for each categorical feature</span>
-<span class="sd">    from the schema.</span>
+<span class="sd">    in the schema.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    schema : Schema</span>
+<span class="sd">    schema: Schema</span>
 <span class="sd">        Schema of the input data. This Schema object will be automatically generated using</span>
 <span class="sd">        [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).</span>
 <span class="sd">        Next to this, it&#39;s also possible to construct it manually.</span>
-<span class="sd">    pre : Optional[BlockType], optional</span>
-<span class="sd">        Transformation block to apply before the embeddings lookup, by default None</span>
-<span class="sd">    post : Optional[BlockType], optional</span>
-<span class="sd">        Transformation block to apply after the embeddings lookup, by default None</span>
-<span class="sd">    aggregation : Optional[TabularAggregationType], optional</span>
-<span class="sd">        Transformation block to apply for aggregating the inputs, by default None</span>
-<span class="sd">    block_name : str, optional</span>
-<span class="sd">        Name of the block, by default &quot;embeddings&quot;</span>
-<span class="sd">    sequence_combiner : Optional[Union[str, tf.keras.layers.Layer]], optional</span>
+<span class="sd">    dim: Optional[Union[Dict[str, int], int]], optional</span>
+<span class="sd">        A dim to use for all features, or a</span>
+<span class="sd">        Dict like {&quot;feature_name&quot;: embedding size, ...}, by default None</span>
+<span class="sd">    infer_dim_fn: Callable[[ColumnSchema], int], defaults to infer_embedding_dim</span>
+<span class="sd">        The function to use to infer the embedding dimension, by default infer_embedding_dim</span>
+<span class="sd">    sequence_combiner: Optional[Union[str, tf.keras.layers.Layer]], optional</span>
 <span class="sd">       A string specifying how to combine embedding results for each</span>
 <span class="sd">       entry (&quot;mean&quot;, &quot;sqrtn&quot; and &quot;sum&quot; are supported) or a layer.</span>
 <span class="sd">       Default is None (no combiner used)</span>
-<span class="sd">    embedding_dims : Optional[Dict[str, int]], optional</span>
-<span class="sd">        A Dict like {&quot;feature_name&quot;: embedding size, ...}, by default None</span>
-<span class="sd">    embedding_dim_default : Optional[int], optional</span>
-<span class="sd">        For features not included in embedding_dims, use this dim, by default 32</span>
-<span class="sd">    infer_embedding_sizes : bool, optional</span>
-<span class="sd">        Infer the features embedding sizes based on their cardinality on schema, by default True</span>
-<span class="sd">    infer_embedding_sizes_multiplier : float, optional</span>
-<span class="sd">        Multiplier factor to be used when inferring embedding sizes, by default 2.0</span>
-<span class="sd">    infer_embeddings_ensure_dim_multiple_of_8 : bool, optional</span>
-<span class="sd">        Ensures that the inferred embedding sizes are rounded up to the next multiple of 8,</span>
-<span class="sd">        for better performance for embedding looks on GPUs. By default True</span>
+<span class="sd">    embeddings_initializer: Union[InitializerType, Dict[str, InitializerType]], optional</span>
+<span class="sd">        An initializer function or a dict where keys are feature names and values are</span>
+<span class="sd">        callable to initialize embedding tables. Pre-trained embeddings can be fed via</span>
+<span class="sd">        embeddings_initializer arg.</span>
+<span class="sd">    embeddings_regularizer: Union[RegularizerType, Dict[str, RegularizerType]], optional</span>
+<span class="sd">        A regularizer function or a dict where keys are feature names and values are</span>
+<span class="sd">        callable to apply regularization to embedding tables.</span>
+<span class="sd">    activity_regularizer: Union[RegularizerType, Dict[str, RegularizerType]], optional</span>
+<span class="sd">        A regularizer function or a dict where keys are feature names and values are</span>
+<span class="sd">        callable to apply regularization to the activations of the embedding tables.</span>
+<span class="sd">    trainable: Optional[Dict[str, bool]] = None</span>
+<span class="sd">        Name of the column(s) whose embeddings should be frozen (or trainable) during training</span>
+<span class="sd">        trainable will be set to False/True for these column(s), accordingly</span>
+<span class="sd">    table_cls: Type[tf.keras.layers.Layer], by default EmbeddingTable</span>
+<span class="sd">        The class to use for each embedding table.</span>
+<span class="sd">    pre: Optional[BlockType], optional</span>
+<span class="sd">        Transformation block to apply before the embeddings lookup, by default None</span>
+<span class="sd">    post: Optional[BlockType], optional</span>
+<span class="sd">        Transformation block to apply after the embeddings lookup, by default None</span>
+<span class="sd">    aggregation: Optional[TabularAggregationType], optional</span>
+<span class="sd">        Transformation block to apply for aggregating the inputs, by default None</span>
+<span class="sd">    block_name: str, optional</span>
+<span class="sd">        Name of the block, by default &quot;embeddings&quot;</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    ParallelBlock</span>
 <span class="sd">        Returns a parallel block with an embedding table for each categorical features</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">trainable</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;trainable&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trainable</span>
+    <span class="k">if</span> <span class="n">embeddings_initializer</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;embeddings_initializer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embeddings_initializer</span>
+    <span class="k">if</span> <span class="n">embeddings_regularizer</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;embeddings_regularizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embeddings_regularizer</span>
+    <span class="k">if</span> <span class="n">activity_regularizer</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;activity_regularizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">activity_regularizer</span>
+    <span class="k">if</span> <span class="n">sequence_combiner</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_combiner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sequence_combiner</span>
 
-    <span class="n">cols</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">)</span>
     <span class="n">tables</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">embedding_dims</span> <span class="ow">or</span> <span class="p">{}</span>
-    <span class="k">if</span> <span class="n">infer_embedding_sizes</span><span class="p">:</span>
-        <span class="n">inferred_embedding_dims</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">get_embedding_sizes_from_schema</span><span class="p">(</span>
-            <span class="n">schema</span><span class="p">,</span>
-            <span class="n">infer_embedding_sizes_multiplier</span><span class="p">,</span>
-            <span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="c1"># Adding inferred embedding dims only for features where the embedding sizes</span>
-        <span class="c1"># were not pre-defined</span>
-        <span class="n">inferred_embedding_dims</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inferred_embedding_dims</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">embedding_dims</span>
-        <span class="p">}</span>
-        <span class="n">embedding_dims</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">embedding_dims</span><span class="p">,</span> <span class="o">**</span><span class="n">inferred_embedding_dims</span><span class="p">}</span>
-
-    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
-        <span class="n">combiner</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">tags</span> <span class="ow">or</span> <span class="n">Tags</span><span class="o">.</span><span class="n">LIST</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">tags</span> <span class="ow">or</span> <span class="n">col</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sequence_combiner</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                <span class="n">combiner</span> <span class="o">=</span> <span class="n">sequence_combiner</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">combiner</span> <span class="o">=</span> <span class="n">sequence_combiner</span>
-
-        <span class="n">embedding_size</span> <span class="o">=</span> <span class="n">embedding_dims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">embedding_dim_default</span><span class="p">)</span>
-        <span class="n">tables</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">EmbeddingTable</span><span class="p">(</span><span class="n">embedding_size</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="n">combiner</span><span class="o">=</span><span class="n">combiner</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">schema</span><span class="p">:</span>
+        <span class="n">table_kwargs</span> <span class="o">=</span> <span class="n">_forward_kwargs_to_table</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">table_cls</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">tables</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">table_cls</span><span class="p">(</span><span class="n">_get_dim</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">infer_dim_fn</span><span class="p">),</span> <span class="n">col</span><span class="p">,</span> <span class="o">**</span><span class="n">table_kwargs</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
-        <span class="n">tables</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">block_name</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">cols</span>
+        <span class="n">tables</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span> <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">block_name</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">schema</span>
     <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_forward_kwargs_to_table</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">table_cls</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">arg_spec</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getfullargspec</span><span class="p">(</span><span class="n">table_cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+    <span class="n">table_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">arg_spec</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">arg_spec</span><span class="o">.</span><span class="n">defaults</span><span class="p">)</span> <span class="p">:],</span> <span class="n">arg_spec</span><span class="o">.</span><span class="n">defaults</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">table_kwargs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+                    <span class="n">table_kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">table_kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="k">return</span> <span class="n">table_kwargs</span>
+
+
+<span class="k">def</span> <span class="nf">_get_dim</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">embedding_dims</span><span class="p">,</span> <span class="n">infer_dim_fn</span><span class="p">):</span>
+    <span class="n">dim</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">embedding_dims</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="n">embedding_dims</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">embedding_dims</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="n">embedding_dims</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">dim</span><span class="p">:</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="n">infer_dim_fn</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dim</span>
 
 
 <span class="k">class</span> <span class="nc">AverageEmbeddingsByWeightFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Layer</span><span class="p">):</span>
@@ -576,7 +615,7 @@
     <span class="n">infer_embedding_sizes_multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
     <span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">embeddings_initializers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-        <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span>
     <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">embeddings_l2_reg</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="n">combiner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span>

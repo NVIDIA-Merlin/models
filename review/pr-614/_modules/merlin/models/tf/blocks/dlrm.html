@@ -88,23 +88,27 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1">#</span>
-
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.interaction</span> <span class="kn">import</span> <span class="n">DotProductInteraction</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.aggregation</span> <span class="kn">import</span> <span class="n">StackFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">Debug</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">SequentialBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.continuous</span> <span class="kn">import</span> <span class="n">ContinuousFeatures</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingFeatures</span><span class="p">,</span> <span class="n">EmbeddingOptions</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.inputs.embedding</span> <span class="kn">import</span> <span class="n">EmbeddingOptions</span><span class="p">,</span> <span class="n">Embeddings</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils.schema_utils</span> <span class="kn">import</span> <span class="n">infer_embedding_dim</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 
 <div class="viewcode-block" id="DLRMBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.DLRMBlock.html#merlin.models.tf.DLRMBlock">[docs]</a><span class="k">def</span> <span class="nf">DLRMBlock</span><span class="p">(</span>
     <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
-    <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">embedding_options</span><span class="p">:</span> <span class="n">EmbeddingOptions</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">bottom_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">top_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">embeddings</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SequentialBlock</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Builds the DLRM architecture, as proposed in the following</span>
 <span class="sd">    `paper https://arxiv.org/pdf/1906.00091.pdf`_ [1]_.</span>
@@ -146,18 +150,11 @@
 <span class="sd">        The bottom_block is required by DLRM</span>
 <span class="sd">    ValueError</span>
 <span class="sd">        The embedding_dim (X) needs to match the last layer of bottom MLP (Y).</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        Only one-of `embeddings` or `embedding_options` can be used.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">schema</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The schema is required by DLRM&quot;</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">embedding_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The embedding_dim is required&quot;</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">embedding_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dim_default</span> <span class="o">=</span> <span class="n">embedding_dim</span>
-        <span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">embedding_options</span> <span class="o">=</span> <span class="n">EmbeddingOptions</span><span class="p">(</span><span class="n">embedding_dim_default</span><span class="o">=</span><span class="n">embedding_dim</span><span class="p">)</span>
 
     <span class="n">con_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CONTINUOUS</span><span class="p">)</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
     <span class="n">cat_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">)</span><span class="o">.</span><span class="n">excluding_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">TARGET</span><span class="p">)</span>
@@ -165,17 +162,11 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">cat_schema</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;DLRM requires categorical features&quot;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="p">(</span>
-        <span class="n">embedding_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="ow">and</span> <span class="n">bottom_block</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="ow">and</span> <span class="n">embedding_dim</span> <span class="o">!=</span> <span class="n">bottom_block</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
-    <span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;The embedding_dim (</span><span class="si">{</span><span class="n">embedding_dim</span><span class="si">}</span><span class="s2">) needs to match the &quot;</span>
-            <span class="s2">&quot;last layer of bottom MLP (</span><span class="si">{bottom_block.layers[-1].units}</span><span class="s2">) &quot;</span>
-        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">embeddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">embedding_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Only one-of `embeddings` or `embedding_options` may be provided.&quot;</span><span class="p">)</span>
 
-    <span class="n">embeddings</span> <span class="o">=</span> <span class="n">EmbeddingFeatures</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">cat_schema</span><span class="p">,</span> <span class="n">embedding_options</span><span class="o">=</span><span class="n">embedding_options</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">embeddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">embeddings</span> <span class="o">=</span> <span class="n">_get_embeddings</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_options</span><span class="p">,</span> <span class="n">bottom_block</span><span class="p">,</span> <span class="n">cat_schema</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">con_schema</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">bottom_block</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -208,8 +199,41 @@
     <span class="k">return</span> <span class="n">top_block_outputs</span></div>
 
 
+<span class="k">def</span> <span class="nf">_get_embeddings</span><span class="p">(</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">embedding_options</span><span class="p">,</span> <span class="n">bottom_block</span><span class="p">,</span> <span class="n">cat_schema</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">embedding_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The embedding_dim is required&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">embedding_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dim_default</span> <span class="o">=</span> <span class="n">embedding_dim</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">embedding_options</span> <span class="o">=</span> <span class="n">EmbeddingOptions</span><span class="p">(</span><span class="n">embedding_dim_default</span><span class="o">=</span><span class="n">embedding_dim</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">embedding_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="n">bottom_block</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="n">embedding_dim</span> <span class="o">!=</span> <span class="n">bottom_block</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">units</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The embedding_dim (</span><span class="si">{</span><span class="n">embedding_dim</span><span class="si">}</span><span class="s2">) needs to match the &quot;</span>
+            <span class="s2">&quot;last layer of bottom MLP (</span><span class="si">{bottom_block.layers[-1].units}</span><span class="s2">) &quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">embeddings_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">sequence_combiner</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">combiner</span><span class="p">,</span>
+        <span class="n">embeddings_initializer</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embeddings_initializers</span><span class="p">,</span>
+        <span class="n">dim</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">embedding_dim_default</span><span class="p">,</span>
+        <span class="n">infer_dim_fn</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">infer_embedding_dim</span><span class="p">,</span>
+            <span class="n">multiplier</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embedding_sizes_multiplier</span><span class="p">,</span>
+            <span class="n">ensure_multiple_of_8</span><span class="o">=</span><span class="n">embedding_options</span><span class="o">.</span><span class="n">infer_embeddings_ensure_dim_multiple_of_8</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Embeddings</span><span class="p">(</span><span class="n">cat_schema</span><span class="p">,</span> <span class="o">**</span><span class="n">embeddings_kwargs</span><span class="p">)</span>
+
+
 <span class="k">def</span> <span class="nf">DotProductInteractionBlock</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">SequentialBlock</span><span class="p">(</span><span class="n">DotProductInteraction</span><span class="p">(),</span> <span class="n">pre_aggregation</span><span class="o">=</span><span class="s2">&quot;stack&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">SequentialBlock</span><span class="p">(</span><span class="n">StackFeatures</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">DotProductInteraction</span><span class="p">())</span>
 </pre></div>
 
            </div>

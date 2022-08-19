@@ -72,6 +72,7 @@
       ~TwoTowerBlock.repr_extra
       ~TwoTowerBlock.repr_ignore
       ~TwoTowerBlock.select_by_name
+      ~TwoTowerBlock.select_by_names
       ~TwoTowerBlock.set_aggregation
       ~TwoTowerBlock.set_post
       ~TwoTowerBlock.set_pre

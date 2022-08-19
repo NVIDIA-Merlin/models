@@ -94,7 +94,7 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DCNModel.html#merlin.models.tf.DCNModel" title="merlin.models.tf.DCNModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DCNModel</span></code></a>(schema, depth[, deep_block, …])</p></td>
 <td><p>Create a model using the architecture proposed in DCN V2: Improved Deep &amp; Cross Network [1].</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMModel.html#merlin.models.tf.DLRMModel" title="merlin.models.tf.DLRMModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMModel</span></code></a>(schema, embedding_dim[, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMModel.html#merlin.models.tf.DLRMModel" title="merlin.models.tf.DLRMModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMModel</span></code></a>(schema, *[, embeddings, …])</p></td>
 <td><p>DLRM-model architecture.</p></td>
 </tr>
 </tbody>
@@ -154,7 +154,7 @@
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMBlock.html#merlin.models.tf.DLRMBlock" title="merlin.models.tf.DLRMBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMBlock</span></code></a>(schema, embedding_dim[, …])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/merlin.models.tf.DLRMBlock.html#merlin.models.tf.DLRMBlock" title="merlin.models.tf.DLRMBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DLRMBlock</span></code></a>(schema, *[, embedding_dim, …])</p></td>
 <td><p>Builds the DLRM architecture, as proposed in the following <a href="#id11"><span class="problematic" id="id12">`paper https://arxiv.org/pdf/1906.00091.pdf`_</span></a> <a href="#id13"><span class="problematic" id="id1">[1]_</span></a>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.tf.MLPBlock.html#merlin.models.tf.MLPBlock" title="merlin.models.tf.MLPBlock"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MLPBlock</span></code></a>(dimensions[, activation, use_bias, …])</p></td>
@@ -425,7 +425,7 @@
 <td><p>Provides a heristic (from Google) that suggests the embedding sizes as a function (forth root) of categorical features cardinalities, obtained from the schema.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality" title="merlin.models.utils.schema_utils.get_embedding_size_from_cardinality"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merlin.models.utils.schema_utils.get_embedding_size_from_cardinality</span></code></a>(…)</p></td>
-<td><p>Provides a heristic (from Google) that suggests the embedding dimension as a function (forth root) of the feature cardinality.</p></td>
+<td><p>Provides a heuristic (from Google) that suggests the embedding dimension as a function (forth root) of the feature cardinality.</p></td>
 </tr>
 </tbody>
 </table>

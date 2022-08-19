@@ -251,10 +251,14 @@
     <span class="p">}</span></div>
 
 
+<span class="k">def</span> <span class="nf">col_is_list</span><span class="p">(</span><span class="n">col</span><span class="p">:</span> <span class="n">ColumnSchema</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">Tags</span><span class="o">.</span><span class="n">SEQUENCE</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">tags</span> <span class="ow">or</span> <span class="n">Tags</span><span class="o">.</span><span class="n">LIST</span> <span class="ow">in</span> <span class="n">col</span><span class="o">.</span><span class="n">tags</span> <span class="ow">or</span> <span class="n">col</span><span class="o">.</span><span class="n">is_list</span>
+
+
 <div class="viewcode-block" id="get_embedding_size_from_cardinality"><a class="viewcode-back" href="../../../../generated/merlin.models.utils.schema_utils.get_embedding_size_from_cardinality.html#merlin.models.utils.schema_utils.get_embedding_size_from_cardinality">[docs]</a><span class="k">def</span> <span class="nf">get_embedding_size_from_cardinality</span><span class="p">(</span>
     <span class="n">cardinality</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">ensure_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Provides a heristic (from Google) that suggests the embedding</span>
+    <span class="sd">&quot;&quot;&quot;Provides a heuristic (from Google) that suggests the embedding</span>
 <span class="sd">    dimension as a function (forth root) of the feature cardinality.</span>
 
 <span class="sd">    Parameters</span>
@@ -280,6 +284,16 @@
         <span class="n">embedding_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">embedding_size</span> <span class="o">/</span> <span class="mi">8</span><span class="p">))</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">embedding_size</span></div>
+
+
+<span class="k">def</span> <span class="nf">infer_embedding_dim</span><span class="p">(</span>
+    <span class="n">col_schema</span><span class="p">:</span> <span class="n">ColumnSchema</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">ensure_multiple_of_8</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="p">):</span>
+    <span class="n">cardinality</span> <span class="o">=</span> <span class="n">col_schema</span><span class="o">.</span><span class="n">int_domain</span><span class="o">.</span><span class="n">max</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">get_embedding_size_from_cardinality</span><span class="p">(</span>
+        <span class="n">cardinality</span><span class="p">,</span> <span class="n">multiplier</span><span class="o">=</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">ensure_multiple_of_8</span><span class="o">=</span><span class="n">ensure_multiple_of_8</span>
+    <span class="p">)</span>
 </pre></div>
 
            </div>
