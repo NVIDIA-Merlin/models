@@ -709,3 +709,69 @@ def test_category_encoding_weightd_count_not_match(input, weight):
         ValueError, "Argument `weights` must be a SparseTensor if `values` is a SparseTensor"
     ):
         category_encoding(inputs)
+
+
+@pytest.mark.parametrize("input", [tf.sparse.from_dense(np.array([[1, 2, 3, 0], [0, 3, 1, 0]]))])
+def test_category_encoding_multi_hot_sparse_input(input):
+    test_case = TestCase()
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
+
+    expected_output = [[0, 1, 1, 1, 0, 0], [0, 1, 0, 1, 0, 0]]
+    # pyformat: enable
+    expected_output_shape = [2, 6]
+
+    category_encoding = ml.CategoryEncoding(schema=schema, output_mode="multi_hot")
+
+    inputs = {}
+    inputs["feature"] = input
+    outputs = category_encoding(inputs)
+    test_case.assertAllEqual(expected_output_shape, outputs["feature"].shape.as_list())
+    test_case.assertAllClose(expected_output, outputs["feature"])
+
+
+def test_hashedcrossall():
+    schema = Schema(
+        [
+            # num_items: 0, 1, 2 thus cardinality = 3
+            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=2),
+            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=2),
+            create_categorical_column("cat3", tags=[Tags.CATEGORICAL], num_items=2),
+        ]
+    )
+    inputs = {}
+    inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
+    inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
+    inputs["cat3"] = tf.constant([[1], [0], [1], [2], [2]])
+
+    hashed_cross_all = ml.HashedCrossAll(
+        schema=schema,
+        infer_num_bins=True,
+        output_mode="one_hot",
+        sparse=True,
+        max_num_bins=25,
+        max_level=3,
+    )
+
+    outputs = hashed_cross_all(inputs)
+    assert len(outputs) == 4
+
+    output_value_0 = outputs["cross_cat1_cat2"]
+    assert output_value_0.shape.as_list() == [5, 9]
+
+    output_value_1 = outputs["cross_cat1_cat2_cat3"]
+    assert output_value_1.shape.as_list() == [5, 25]
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
+    cross_schema = ecommerce_data.schema.select_by_name(
+        names=["user_categories", "item_category", "item_brand"]
+    )
+    branches = {
+        "cross_product": ml.HashedCrossAll(cross_schema, max_num_bins=1000, infer_num_bins=True),
+        "features": ml.InputBlock(ecommerce_data.schema),
+    }
+    body = ParallelBlock(branches, is_input=True).connect(ml.MLPBlock([64]))
+    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
