@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accelerate Training on Large Embedding Tables by LazyAdam &mdash; Merlin Models  documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/togglebutton.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/mystnb.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script >let toggleHintShow = 'Click to show';</script>
+        <script >let toggleHintHide = 'Click to hide';</script>
+        <script >let toggleOpenOnPrint = 'true';</script>
+        <script src="../_static/togglebutton.js"></script>
+        <script >var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Merlin Models
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../models_overview.html">Standard Models: Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="index.html">Example Notebooks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../additional_resources.html">Additional Resources</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Merlin Models</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Accelerate Training on Large Embedding Tables by LazyAdam</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2022 NVIDIA Corporation. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ================================</span>
+</pre></div>
+</div>
+</div>
+</div>
+<img alt="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" />
+<div class="tex2jax_ignore mathjax_ignore section" id="accelerate-training-on-large-embedding-tables-by-lazyadam">
+<h1>Accelerate Training on Large Embedding Tables by LazyAdam<a class="headerlink" href="#accelerate-training-on-large-embedding-tables-by-lazyadam" title="Permalink to this headline"></a></h1>
+<p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags">merlin-tensorflow</a> container.</p>
+<p>Merlin Models provide various model APIs for training, as shown in Notebook <a class="reference external" href="https://nvidia-merlin.github.io/models/main/examples/03-Exploring-different-models.html">Iterating over Deep Learning Models using Merlin Models</a>. We can create a model, such as <a class="reference external" href="https://nvidia-merlin.github.io/models/main/models_overview.html?highlight=two%20tower#two-tower">Two Tower</a>, <a class="reference external" href="https://nvidia-merlin.github.io/models/main/examples/03-Exploring-different-models.html#dlrm-model">DLRM</a> and so on, by simply one line: <code class="docutils literal notranslate"><span class="pre">model=mm.DLRMModel(schema)</span></code>. Some models contain large embedding tables, and training could be slow on such large sparse embeddings. However, this process could be accelerated by using a special optimizer, LazyAdam.</p>
+<p>In this example, we utilize LazyAdam for large embedding tables and nomal Adam for other trainable weights to accelerate the whole training process.</p>
+<div class="section" id="learning-objectives">
+<h2>Learning objectives<a class="headerlink" href="#learning-objectives" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p>Training a model with multiple optimizers</p></li>
+<li><p>Utilizing LazyAdam for training on large embedding tables</p></li>
+<li><p>Utilizing <code class="docutils literal notranslate"><span class="pre">find_blocks_by_name</span></code> to get a layer inside a model</p></li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="c1">#import merlin</span>
+<span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
+<span class="kn">import</span> <span class="nn">merlin.models.tf</span> <span class="k">as</span> <span class="nn">ml</span>
+<span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-08-14 06:05:07.036450: I tensorflow/core/platform/cpu_feature_guard.cc:194] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2022-08-14 06:05:09.554587: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16255 MB memory:  -&gt; device: 0, name: Tesla V100-SXM2-32GB-LS, pci bus id: 0000:8a:00.0, compute capability: 7.0
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="generate-synthetic-dataset">
+<h2>Generate Synthetic Dataset<a class="headerlink" href="#generate-synthetic-dataset" title="Permalink to this headline"></a></h2>
+<p>To generate the synthetic dataset for our example, we can use <code class="docutils literal notranslate"><span class="pre">generate_data()</span></code></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">NUM_ROWS</span> <span class="o">=</span> <span class="mi">1000000</span>
+<span class="n">train</span><span class="p">,</span> <span class="n">valid</span> <span class="o">=</span> <span class="n">generate_data</span><span class="p">(</span><span class="s2">&quot;e-commerce-large&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">NUM_ROWS</span><span class="p">),</span> <span class="n">set_sizes</span><span class="o">=</span><span class="p">(</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can print out the feature column names.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span>
+<span class="n">schema</span><span class="o">.</span><span class="n">column_names</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&#39;user_categories&#39;,
+ &#39;user_shops&#39;,
+ &#39;user_brands&#39;,
+ &#39;user_intentions&#39;,
+ &#39;user_profile&#39;,
+ &#39;user_group&#39;,
+ &#39;user_gender&#39;,
+ &#39;user_age&#39;,
+ &#39;user_consumption_1&#39;,
+ &#39;user_consumption_2&#39;,
+ &#39;user_is_occupied&#39;,
+ &#39;user_geography&#39;,
+ &#39;user_id&#39;,
+ &#39;item_category&#39;,
+ &#39;item_shop&#39;,
+ &#39;item_intention&#39;,
+ &#39;item_brand&#39;,
+ &#39;item_id&#39;,
+ &#39;user_item_categories&#39;,
+ &#39;user_item_shops&#39;,
+ &#39;user_item_brands&#39;,
+ &#39;user_item_intentions&#39;,
+ &#39;position&#39;,
+ &#39;click&#39;,
+ &#39;conversion&#39;]
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="building-a-two-tower-model-with-merlin-models">
+<h2>Building a Two-Tower Model with Merlin Models<a class="headerlink" href="#building-a-two-tower-model-with-merlin-models" title="Permalink to this headline"></a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_embeddings</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Embeddings</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">),</span> <span class="n">infer_embedding_sizes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">query_embeddings</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Embeddings</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">),</span> <span class="n">infer_embedding_sizes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">TwoTowerModel</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> 
+                         <span class="n">item_tower</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">InputBlockV2</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">),</span> <span class="n">embeddings</span><span class="o">=</span><span class="n">item_embeddings</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">])),</span> 
+                         <span class="n">query_tower</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">InputBlockV2</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">),</span> <span class="n">embeddings</span><span class="o">=</span><span class="n">query_embeddings</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">])),</span>
+                         <span class="n">samplers</span><span class="o">=</span><span class="p">[</span><span class="n">ml</span><span class="o">.</span><span class="n">InBatchSampler</span><span class="p">()],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>The model initializer would infer the embedding table size from the schema, where the first dimension (<code class="docutils literal notranslate"><span class="pre">input_dim</span></code>) of each embedding table is the same as the cardinalities (categories) of each feature, and the second dimension is specified by the user. By setting <code class="docutils literal notranslate"><span class="pre">infer_embedding_sizes=True</span></code>, the initializer would infer the size based on the cardinalities:
+$$output_dim=\left \lfloor cardinality^{0.25}\times multiplier \right \rfloor$$
+The multiplier is 8 by <a class="reference external" href="http://default.To">default.To</a> achieve the best performance with GPU operators, we adjust the embedding dimensions to multiples of 8.</p>
+</div>
+<div class="section" id="apply-multiple-optimizers-to-the-model">
+<h2>Apply Multiple Optimizers to the Model<a class="headerlink" href="#apply-multiple-optimizers-to-the-model" title="Permalink to this headline"></a></h2>
+<p>We usually set one optimizer to train a model, but for large embedding tables, at each batch, the weights to be updated could be really sparse, in other words, each time we only update the model based on a small batch of training data, so for a large embedding table (first dimension &gt;&gt;  batch size), at most batch_size rows would be updated. Thus in order to acceleate training on large embedding tables, we want to utilize the Lazy Adam for those large tables.</p>
+<p>Compared with Adam, Lazy Adam is optimized for sparse updates. It only update sparse variables indices for current batch. However it may result in slight difference in experiment results compared with Adam.</p>
+<div class="section" id="split-embedding-tables-based-on-the-first-dimension-input-dim">
+<h3>Split Embedding Tables based on the First Dimension (<code class="docutils literal notranslate"><span class="pre">input_dim</span></code>)<a class="headerlink" href="#split-embedding-tables-based-on-the-first-dimension-input-dim" title="Permalink to this headline"></a></h3>
+<p>Since we want to apply LazyAdam to these large tables, we have to split all tables into two sets. The result of <code class="docutils literal notranslate"><span class="pre">split_embeddings_on_size</span></code> (i.e. <code class="docutils literal notranslate"><span class="pre">item_large_tables</span></code> and <code class="docutils literal notranslate"><span class="pre">item_small_tables</span></code>) are two lists of embedding tables.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_large_tables</span><span class="p">,</span> <span class="n">item_small_tables</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">split_embeddings_on_size</span><span class="p">(</span><span class="n">item_embeddings</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="n">query_large_tables</span><span class="p">,</span> <span class="n">query_small_tables</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">split_embeddings_on_size</span><span class="p">(</span><span class="n">query_embeddings</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can print out the size of each embedding table:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Large embedding tables of query tower:&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">query_large_tables</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;first dimension: &quot;</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="s2">&quot;second dimension&quot;</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Small embedding tables of query tower:&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span>  <span class="n">query_small_tables</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">&quot;first dimension: &quot;</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="s2">&quot;second dimension&quot;</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Large embedding tables of query tower:
+user_categories first dimension:  6087 second dimension 24
+user_shops first dimension:  116742 second dimension 40
+user_brands first dimension:  58016 second dimension 32
+user_intentions first dimension:  33787 second dimension 32
+user_id first dimension:  294737 second dimension 48
+Small embedding tables of query tower:
+user_profile first dimension:  99 second dimension 8
+user_group first dimension:  15 second dimension 8
+user_gender first dimension:  4 second dimension 8
+user_age first dimension:  9 second dimension 8
+user_consumption_1 first dimension:  5 second dimension 8
+user_consumption_2 first dimension:  5 second dimension 8
+user_is_occupied first dimension:  4 second dimension 8
+user_geography first dimension:  6 second dimension 8
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="set-multioptimizer">
+<h3>Set MultiOptimizer<a class="headerlink" href="#set-multioptimizer" title="Permalink to this headline"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">MultiOptimizer</span></code> module enables multiple optimizers <a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/optimizers">(e.g. Adam, SGD, RMSProp, Adagrad)</a> to be used in different layers in parallel. Here we want to apply Lazy Adam for large embedding tables, while small embedding tables and all other layers with Adam.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">MultiOptimizer</span><span class="p">(</span>
+                <span class="n">default_optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span>
+                <span class="n">optimizers_and_blocks</span><span class="o">=</span><span class="p">[</span><span class="n">ml</span><span class="o">.</span><span class="n">OptimizerBlocks</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">LazyAdam</span><span class="p">(),</span> <span class="n">item_large_tables</span> <span class="o">+</span> <span class="n">query_large_tables</span><span class="p">),</span>
+                                       <span class="n">ml</span><span class="o">.</span><span class="n">OptimizerBlocks</span><span class="p">(</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">item_small_tables</span> <span class="o">+</span> <span class="n">query_small_tables</span><span class="p">)]</span>
+                <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Note all other trainable parameters not specified an optimizer would use the <code class="docutils literal notranslate"><span class="pre">default_optimizer</span></code>.</p>
+</div>
+</div>
+<div class="section" id="train-the-model-and-evaluate-training-time">
+<h2>Train the Model and Evaluate Training Time<a class="headerlink" href="#train-the-model-and-evaluate-training-time" title="Permalink to this headline"></a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:AutoGraph could not transform &lt;bound method Socket.send of &lt;zmq.Socket(zmq.PUSH) at 0x7f84eb5a9100&gt;&gt; and will run it as-is.
+Please report this to the TensorFlow team. When filing the bug, set the verbosity to 10 (on Linux, `export AUTOGRAPH_VERBOSITY=10`) and attach the full output.
+Cause: module, class, method, function, traceback, frame, or code object was expected, got cython_function_or_method
+To silence this warning, decorate the function with @tf.autograph.experimental.do_not_convert
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The sampler InBatchSampler returned no samples for this batch.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING: AutoGraph could not transform &lt;bound method Socket.send of &lt;zmq.Socket(zmq.PUSH) at 0x7f84eb5a9100&gt;&gt; and will run it as-is.
+Please report this to the TensorFlow team. When filing the bug, set the verbosity to 10 (on Linux, `export AUTOGRAPH_VERBOSITY=10`) and attach the full output.
+Cause: module, class, method, function, traceback, frame, or code object was expected, got cython_function_or_method
+To silence this warning, decorate the function with @tf.autograph.experimental.do_not_convert
+684/684 [==============================] - 30s 18ms/step - loss: 6.9128 - recall_at_10: 0.0268 - mrr_at_10: 0.0217 - ndcg_at_10: 0.0229 - map_at_10: 0.0217 - precision_at_10: 0.0027 - regularization_loss: 0.0000e+00
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f807f26a040&gt;
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="compare-training-time-with-adam">
+<h3>Compare Training Time with Adam<a class="headerlink" href="#compare-training-time-with-adam" title="Permalink to this headline"></a></h3>
+<p>Now we create another same model and compile it with Adam optimizer. For this notebook, we use a single Tesla V100-SXM2-32GB-LS. The training result shows that for each step, it costs about 71ms. And as shown in above experiment, the training time with Lazy Adam is about 18 ms, it achieves about 4X speed up.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_embeddings</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Embeddings</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">),</span> <span class="n">infer_embedding_sizes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">query_embeddings</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">Embeddings</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">),</span> <span class="n">infer_embedding_sizes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">TwoTowerModel</span><span class="p">(</span><span class="n">schema</span><span class="p">,</span> 
+                         <span class="n">item_tower</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">InputBlockV2</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">),</span> <span class="n">embeddings</span><span class="o">=</span><span class="n">item_embeddings</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">])),</span> 
+                         <span class="n">query_tower</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">InputBlockV2</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">),</span> <span class="n">embeddings</span><span class="o">=</span><span class="n">query_embeddings</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">64</span><span class="p">])),</span>
+                         <span class="n">samplers</span><span class="o">=</span><span class="p">[</span><span class="n">ml</span><span class="o">.</span><span class="n">InBatchSampler</span><span class="p">()],</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The sampler InBatchSampler returned no samples for this batch.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>684/684 [==============================] - 56s 71ms/step - loss: 6.9128 - recall_at_10: 0.0271 - mrr_at_10: 0.0197 - ndcg_at_10: 0.0214 - map_at_10: 0.0197 - precision_at_10: 0.0027 - regularization_loss: 0.0000e+00
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f807d5dab80&gt;
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="retrieve-layers-inside-a-model">
+<h2>Retrieve Layers Inside a Model<a class="headerlink" href="#retrieve-layers-inside-a-model" title="Permalink to this headline"></a></h2>
+<p>If the embeddings are created by default and inside the model initialization, like the example model shown below. In order to get the embedding layer (first layer) inside the model, we can first print the whole architecture of the model by <code class="docutils literal notranslate"><span class="pre">model.summary(expand_nested=True,</span> <span class="pre">show_trainable=True,</span> <span class="pre">line_length=80)</span></code>.</p>
+<p>Now we create a Wide and Deep Model as an example, since the embedding layer is created inside the initialization of the class <code class="docutils literal notranslate"><span class="pre">ml.WideAndDeepModel</span></code>, we have to print out the model and find the name of it.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">example_schema</span> <span class="o">=</span> <span class="n">train</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;user_categories&quot;</span><span class="p">,</span> <span class="s2">&quot;item_category&quot;</span><span class="p">,</span> <span class="s2">&quot;item_id&quot;</span><span class="p">,</span> <span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="s2">&quot;click&quot;</span><span class="p">])</span>
+<span class="n">wide_schema</span> <span class="o">=</span> <span class="n">example_schema</span><span class="o">.</span><span class="n">select_by_name</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;user_categories&quot;</span><span class="p">,</span> <span class="s2">&quot;item_category&quot;</span><span class="p">])</span>
+<span class="n">example_model</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">WideAndDeepModel</span><span class="p">(</span>
+        <span class="n">example_schema</span><span class="p">,</span>
+        <span class="n">wide_schema</span><span class="o">=</span><span class="n">wide_schema</span><span class="p">,</span>
+        <span class="n">deep_schema</span><span class="o">=</span><span class="n">example_schema</span><span class="p">,</span>
+        <span class="n">deep_block</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">16</span><span class="p">]),</span>
+        <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">ml</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="s2">&quot;click&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+<span class="c1"># Build the model before summary</span>
+<span class="n">example_model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">)</span>
+<span class="n">example_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">example_model</span><span class="o">.</span><span class="n">summary</span><span class="p">(</span><span class="n">expand_nested</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">show_trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">line_length</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>   
+                                                    
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Model: &quot;model&quot;
+___________________________________________________________________________________________
+ Layer (type)                       Output Shape                    Param #     Trainable  
+===========================================================================================
+ parallel_block_6 (ParallelBlock)   multiple                        285393428   Y          
+|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+| sequential_block_25 (SequentialBlo  multiple                     3           Y          |
+| ck)                                                                                     |
+||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+|| parallel_block_5 (ParallelBlock)  multiple                     0           Y          ||
+|||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+||| tabular_block_5 (TabularBlock)  multiple                     0           Y          |||
+||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+|| sequential_block_24 (SequentialBlo  multiple                   3           Y          ||
+|| ck)                                                                                   ||
+|||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+||| private__dense_11 (_Dense)   multiple                        3           Y          |||
+||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+| sequential_block_23 (SequentialBlo  multiple                     285393425   Y          |
+| ck)                                                                                     |
+||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+|| sequential_block_21 (SequentialBlo  multiple                   285393408   Y          ||
+|| ck)                                                                                   ||
+|||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+||| sequential_block_20 (SequentialBlo  multiple                 285390448   Y          |||
+||| ck)                                                                                 |||
+||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||
+|||| as_ragged_features_8 (AsRaggedFeat  multiple               0           Y          ||||
+|||| ures)                                                                             ||||
+||||                                                                                   ||||
+|||| parallel_block_4 (ParallelBlock)  multiple                 285390448   Y          ||||
+|||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||||
+||||| embeddings (ParallelBlock)  multiple                     285390448   Y          |||||
+||||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||||
+|||||| user_categories (EmbeddingTable)  multiple             146088      Y          ||||||
+||||||                                                                               ||||||
+|||||| item_category (EmbeddingTable)  multiple               205968      Y          ||||||
+||||||                                                                               ||||||
+|||||| item_id (EmbeddingTable)  multiple                     270891016   Y          ||||||
+||||||                                                                               ||||||
+|||||| user_id (EmbeddingTable)  multiple                     14147376    Y          ||||||
+|||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||||
+||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||
+|||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+||| sequential_block_19 (SequentialBlo  multiple                 2960        Y          |||
+||| ck)                                                                                 |||
+||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||
+|||| private__dense_9 (_Dense)  multiple                        2960        Y          ||||
+|||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+|| sequential_block_22 (SequentialBlo  multiple                   17          Y          ||
+|| ck)                                                                                   ||
+|||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
+||| private__dense_10 (_Dense)   multiple                        17          Y          |||
+||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
+|¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
+¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
+ click/binary_classification_task (  multiple                       2           Y          
+ BinaryClassificationTask)                                                                 
+                                                                                           
+ model_context_2 (ModelContext)     multiple                        0           Y          
+                                                                                           
+===========================================================================================
+Total params: 285,393,431
+Trainable params: 285,393,430
+Non-trainable params: 1
+___________________________________________________________________________________________
+</pre></div>
+</div>
+</div>
+</div>
+<p>Above summary result shows the entire structure of the model, including name, style, number of parameters, and trainable argument of each layer, you can see some layers are nexted. For example, a <code class="docutils literal notranslate"><span class="pre">ParallelBlock</span></code> contains several sub-layers, they do not have order and data pass them in parallel. And a <code class="docutils literal notranslate"><span class="pre">SequentialBlcok</span></code> contain a sequence of blocks, data pass them one by one. A <code class="docutils literal notranslate"><span class="pre">ParallelBlock</span></code> block can also contain <code class="docutils literal notranslate"><span class="pre">ParallelBlcok</span></code> or <code class="docutils literal notranslate"><span class="pre">SequentialBlock</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>||||| embeddings (ParallelBlock)  multiple             285390448   Y           |||||
+||||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||||
+|||||| user_categories (EmbeddingTable)  multiple      146088      Y          ||||||
+||||||                                                                        ||||||
+|||||| item_category (EmbeddingTable)  multiple        205968      Y          ||||||
+||||||                                                                        ||||||
+|||||| item_id (EmbeddingTable)  multiple              270891016   Y          ||||||
+||||||                                                                        ||||||
+|||||| user_id (EmbeddingTable)  multiple               14147376    Y         ||||||
+|||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||||
+</pre></div>
+</div>
+<p>We can find out that the <code class="docutils literal notranslate"><span class="pre">embeddings</span></code> contains all embedding tables, and it is a <code class="docutils literal notranslate"><span class="pre">ParallelBlock</span></code>. Now in order to get the this layer, we can call <code class="docutils literal notranslate"><span class="pre">model.get_blocks_by_name(&quot;embeddings&quot;)</span></code> and set different optimizer for it.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">embedding_layer</span> <span class="o">=</span> <span class="n">example_model</span><span class="o">.</span><span class="n">get_blocks_by_name</span><span class="p">(</span><span class="s2">&quot;embeddings&quot;</span><span class="p">)</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">MultiOptimizer</span><span class="p">(</span>
+                <span class="n">default_optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span>
+                <span class="n">optimizers_and_blocks</span><span class="o">=</span><span class="p">[</span><span class="n">ml</span><span class="o">.</span><span class="n">OptimizerBlocks</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">LazyAdam</span><span class="p">(),</span> <span class="n">embedding_layer</span><span class="p">)]</span>
+                <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, NVIDIA.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

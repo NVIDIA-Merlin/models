@@ -1,0 +1,32 @@
+﻿merlin.models.tf.losses.SparseCategoricalCrossEntropy
+=====================================================
+
+.. currentmodule:: merlin.models.tf.losses
+
+.. autoclass:: SparseCategoricalCrossEntropy
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~SparseCategoricalCrossEntropy.__init__
+      ~SparseCategoricalCrossEntropy.call
+      ~SparseCategoricalCrossEntropy.from_config
+      ~SparseCategoricalCrossEntropy.get_config
+      ~SparseCategoricalCrossEntropy.parse
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~SparseCategoricalCrossEntropy.registry
+   
+   
