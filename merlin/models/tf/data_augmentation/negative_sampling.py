@@ -25,7 +25,7 @@ from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class UniformNegativeSampling(tf.keras.layers.Layer):
+class NegativeSampling(tf.keras.layers.Layer):
     """Random in-batch negative sampling.
 
     Only works with positive-only binary-target batches.
@@ -42,7 +42,7 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         Whether the negative sampling should happen when testing=True, by default True
     return_tuple : bool, optional
         Whether to return a Prediction or a tuple. The tuple option should be used
-        when using UniformNegativeSampling with BatchedDataset.map()
+        when using NegativeSampling with BatchedDataset.map()
         which accepts a tuple with length 2 or 3 (x,y,sample_weight), by default False
     """
 
@@ -56,7 +56,7 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         **kwargs
     ):
 
-        super(UniformNegativeSampling, self).__init__(**kwargs)
+        super(NegativeSampling, self).__init__(**kwargs)
         self.n_per_positive = n_per_positive
         self.item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.schema = schema.select_by_tag(Tags.ITEM)
