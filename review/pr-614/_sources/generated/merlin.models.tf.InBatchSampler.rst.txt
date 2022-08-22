@@ -20,6 +20,7 @@
       ~InBatchSampler.add_update
       ~InBatchSampler.add_variable
       ~InBatchSampler.add_weight
+      ~InBatchSampler.apply
       ~InBatchSampler.build
       ~InBatchSampler.call
       ~InBatchSampler.compute_mask
@@ -32,9 +33,11 @@
       ~InBatchSampler.get_input_at
       ~InBatchSampler.get_input_mask_at
       ~InBatchSampler.get_input_shape_at
+      ~InBatchSampler.get_losses_for
       ~InBatchSampler.get_output_at
       ~InBatchSampler.get_output_mask_at
       ~InBatchSampler.get_output_shape_at
+      ~InBatchSampler.get_updates_for
       ~InBatchSampler.get_weights
       ~InBatchSampler.sample
       ~InBatchSampler.set_batch_size
