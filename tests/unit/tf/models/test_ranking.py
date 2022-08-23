@@ -206,6 +206,25 @@ def test_wide_deep_model(music_streaming_data, run_eagerly):
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
 
 
+@pytest.mark.parametrize("sparse", [True, False])
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_wide_deep_model_wide_categorical_one_hot(ecommerce_data, sparse, run_eagerly):
+
+    wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
+    deep_schema = ecommerce_data.schema
+
+    model = ml.WideAndDeepModel(
+        ecommerce_data.schema,
+        wide_schema=wide_schema,
+        deep_schema=deep_schema,
+        wide_preprocess=ml.CategoryEncoding(wide_schema, sparse=sparse),
+        deep_block=ml.MLPBlock([32, 16]),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_wide_deep_model_hashed_cross(ecommerce_data, run_eagerly):
 
@@ -236,7 +255,7 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
         schema,
         deep_input_block=ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
         wide_schema=wide_schema,
-        wide_preprocess=ml.HashedCross(wide_schema, 1000),
+        wide_preprocess=ml.HashedCross(wide_schema, 1000, sparse=True),
         deep_block=ml.MLPBlock([32, 16]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
@@ -245,24 +264,32 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_wide_deep_model_paper_example(ecommerce_data, run_eagerly):
+def test_wide_deep_model_wide_feature_interaction_multi_optimizer(ecommerce_data, run_eagerly):
 
-    wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
+    wide_schema = ecommerce_data.schema.select_by_name(
+        names=["user_categories", "item_category", "user_brands", "item_brand"]
+    )
     deep_schema = ecommerce_data.schema.select_by_name(
-        names=["user_categories", "item_category", "item_brand"]
+        names=["user_categories", "item_category", "user_brands", "item_brand"]
     )
 
     model = ml.WideAndDeepModel(
         ecommerce_data.schema,
         wide_schema=wide_schema,
         deep_schema=deep_schema,
-        wide_preprocess=ml.HashedCross(wide_schema, 1000),
+        wide_preprocess=ml.ParallelBlock(
+            [
+                # One-hot representations of categorical features
+                ml.CategoricalOneHot(wide_schema, sparse=True),
+                # One-hot representations of hashed 2nd-level feature interactions
+                ml.HashedCrossAll(wide_schema, num_bins=1000, max_level=2, sparse=True),
+            ],
+            aggregation="concat",
+        ),
         deep_block=ml.MLPBlock([31, 16]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
-
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=True)
-    print(model.summary(expand_nested=True, show_trainable=True, line_length=80))
+    # print(model.summary(expand_nested=True, show_trainable=True, line_length=80))
     """
      Layer (type)                       Output Shape                    Param #     Trainable
     ===========================================================================================
@@ -320,6 +347,8 @@ def test_wide_deep_model_paper_example(ecommerce_data, run_eagerly):
     ===========================================================================================
     """
 
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=True)
+
     # Get the names of wide model and deep model from model.summary()
     wide_model = model.get_blocks_by_name("sequential_block_6")
     deep_model = model.get_blocks_by_name("sequential_block_3")
@@ -334,25 +363,3 @@ def test_wide_deep_model_paper_example(ecommerce_data, run_eagerly):
     testing_utils.model_test(
         model, ecommerce_data, run_eagerly=run_eagerly, optimizer=multi_optimizer
     )
-
-
-@pytest.mark.parametrize("run_eagerly", [True, False])
-def test_wide_deep_model_parallelblock_as_preprocess(ecommerce_data, run_eagerly):
-
-    wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
-    deep_schema = ecommerce_data.schema.select_by_name(
-        names=["user_categories", "item_category", "item_category"]
-    )
-
-    model = ml.WideAndDeepModel(
-        schema=ecommerce_data.schema,
-        wide_schema=wide_schema,
-        deep_schema=deep_schema,
-        wide_preprocess=ml.ParallelBlock(
-            [ml.CategoricalOneHot(wide_schema), ml.HashedCross(wide_schema, num_bins=1000)]
-        ),
-        deep_block=ml.MLPBlock([32, 16]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
-    )
-
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
