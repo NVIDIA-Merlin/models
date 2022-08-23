@@ -1,0 +1,23 @@
+﻿merlin.models.utils.registry.RegistryMixin
+==========================================
+
+.. currentmodule:: merlin.models.utils.registry
+
+.. autoclass:: RegistryMixin
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~RegistryMixin.__init__
+      ~RegistryMixin.parse
+   
+   
+
+   
+   
+   
