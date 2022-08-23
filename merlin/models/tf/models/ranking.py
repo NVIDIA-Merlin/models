@@ -259,7 +259,7 @@ def WideAndDeepModel(
     ] = None,
     **kwargs,
 ) -> Model:
-    """Wide-and-Deep-model architecture.
+    """Wide-and-Deep-model architecture [1].
 
     Example Usage::
         1. Using default input block
@@ -279,10 +279,43 @@ def WideAndDeepModel(
             schema,
             deep_input_block = ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
             wide_schema=wide_schema,
-            wide_preprocess=ml.HashedCross(wide_schema, 1000),
+            wide_preprocess=ml.CategoricalOneHot(wide_schema, sparse=True),
             deep_block=ml.MLPBlock([32, 16]),
             prediction_tasks=ml.BinaryClassificationTask("click"),
         )
+
+        3. Wide preprocess with one-hot categorical features and hashed 2nd-level feature
+            interactions
+        model = ml.WideAndDeepModel(
+            schema,
+            wide_schema=wide_schema,
+            deep_schema=deep_schema,
+            wide_preprocess=ml.ParallelBlock(
+                [
+                    # One-hot representations of categorical features
+                    ml.CategoricalOneHot(wide_schema, sparse=True),
+                    # One-hot representations of hashed 2nd-level feature interactions
+                    ml.HashedCrossAll(wide_schema, num_bins=1000, max_level=2, sparse=True),
+                ],
+                aggregation="concat",
+            ),
+            deep_block=ml.MLPBlock([31, 16]),
+            prediction_tasks=ml.BinaryClassificationTask("click"),
+        ).
+
+        On Wide&Deep paper [1] they proposed usage of separate optimizers for dense (AdaGrad) and
+        sparse embeddings parameters (FTRL). You can implement that by using `MultiOptimizer` class.
+        For example:
+            wide_model = model.get_blocks_by_name("sequential_block_6")
+            deep_model = model.get_blocks_by_name("sequential_block_3")
+
+            multi_optimizer = ml.MultiOptimizer(
+                default_optimizer="adagrad",
+                optimizers_and_blocks=[
+                    ml.OptimizerBlocks("ftrl", wide_model),
+                    ml.OptimizerBlocks("adagrad", deep_model),
+                ],
+            )
 
     References
     ----------
