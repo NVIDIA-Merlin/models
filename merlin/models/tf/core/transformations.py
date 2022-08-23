@@ -459,6 +459,7 @@ class CategoryEncoding(TabularBlock):
         super().__init__(**kwargs)
         if schema:
             self.set_schema(schema.select_by_tag(Tags.CATEGORICAL))
+        self.sparse = sparse
         self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
         # 'output_mode' must be one of (COUNT, ONE_HOT, MULTI_HOT)
         layer_utils.validate_string_arg(
@@ -961,7 +962,8 @@ def HashedCrossAll(
     max_num_bins: int = 100000,
     max_level: int = 2,
     sparse: bool = False,
-    output_mode: str = "int",
+    output_mode: str = "one_hot",
+    ignore_combinations: Sequence[Sequence[str]] = [],
 ) -> Block:
     """Parallel block consists of HashedCross blocks for all combinations of schema with all levels
         through level 2 to max_level.
@@ -989,7 +991,7 @@ def HashedCrossAll(
         please use HashedCross to define each one with different num_bins.
     output_mode: string
         Specification for the output of the layer. Defaults to
-        `"int"`.  Values can be `"int"`, or `"one_hot"` configuring the layer as
+        `"one_hot"`.  Values can be `"int"`, or `"one_hot"` configuring the layer as
         follows:
         - `"int"`: Return the integer bin indices directly.
         - `"one_hot"`: Encodes each individual element in the input into an
@@ -1003,6 +1005,13 @@ def HashedCrossAll(
         if the multiplier is bigger than max_num_bins, then it would be cliped by max_num_bins
     max_num_bins: int
         Upper bound of num_bins for all hashed cross transformation blocks, by default 100000.
+
+    ignore_combinations :  Sequence[Sequence[str]]
+        If provided, ignore feature combinations from this list. Useful to avoid interacting
+        features whose combined value is always the same. For example, interacting these features
+        is not useful and one of the features is dependent on the other :
+        [["item_id", "item_category"], ["user_id", "user_birth_city"]]
+
 
     Example usage::
 
@@ -1028,6 +1037,14 @@ def HashedCrossAll(
     if max_level == 3:
         for combination_tuple in combinations(schema.column_names, 3):
             all_combinations.append(list(combination_tuple))
+
+    if ignore_combinations is not None and len(ignore_combinations) > 0:
+        ignore_combinations_set = list([set(c) for c in ignore_combinations])
+        valid_combinations = []
+        for combination in all_combinations:
+            if not (set(combination) in ignore_combinations_set):
+                valid_combinations.append(combination)
+        all_combinations = valid_combinations
 
     hashed_crosses = []
     for schema_names in all_combinations:
