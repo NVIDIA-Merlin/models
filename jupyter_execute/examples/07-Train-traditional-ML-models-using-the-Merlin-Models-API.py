@@ -20,7 +20,7 @@
 # ==============================================================================
 
 
-# <img src="http://developer.download.nvidia.com/compute/machine-learning/frameworks/nvidia_logo.png" style="width: 90px; float: right;">
+# <img src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_07-train-traditional-ml-models-using-the-merlin-models-api/nvidia_logo.png" style="width: 90px; float: right;">
 # 
 # # Train traditional ML models using the Merlin Models API
 # 
