@@ -280,7 +280,7 @@ def test_wide_deep_model_wide_feature_interaction_multi_optimizer(ecommerce_data
         wide_preprocess=ml.ParallelBlock(
             [
                 # One-hot representations of categorical features
-                ml.CategoricalOneHot(wide_schema, sparse=True),
+                ml.CategoryEncoding(wide_schema, sparse=True),
                 # One-hot representations of hashed 2nd-level feature interactions
                 ml.HashedCrossAll(wide_schema, num_bins=1000, max_level=2, sparse=True),
             ],

@@ -262,7 +262,9 @@ def WideAndDeepModel(
     """Wide-and-Deep-model architecture [1].
 
     Example Usage::
+
         1. Using default input block
+        ```python
         wide_deep = ml.benchmark.WideAndDeepModel(
             schema,
             deep_block=ml.MLPBlock([32, 16]),
@@ -272,20 +274,24 @@ def WideAndDeepModel(
         )
         wide_deep.compile(optimizer="adam")
         wide_deep.fit(train_data, epochs=10)
+        ```
 
         2. Custom input block
+        ```python
         deep_embedding = ml.Embeddings(schema, embedding_dim_default=8, infer_embedding_sizes=False)
         model = ml.WideAndDeepModel(
             schema,
             deep_input_block = ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
             wide_schema=wide_schema,
-            wide_preprocess=ml.CategoricalOneHot(wide_schema, sparse=True),
+            wide_preprocess=ml.CategoryEncoding(wide_schema, output_mode="multi_hot", sparse=True),
             deep_block=ml.MLPBlock([32, 16]),
             prediction_tasks=ml.BinaryClassificationTask("click"),
         )
+        ```
 
         3. Wide preprocess with one-hot categorical features and hashed 2nd-level feature
             interactions
+        ```python
         model = ml.WideAndDeepModel(
             schema,
             wide_schema=wide_schema,
@@ -293,7 +299,7 @@ def WideAndDeepModel(
             wide_preprocess=ml.ParallelBlock(
                 [
                     # One-hot representations of categorical features
-                    ml.CategoricalOneHot(wide_schema, sparse=True),
+                    ml.CategoryEncoding(wide_schema, output_mode="one_hot", sparse=True),
                     # One-hot representations of hashed 2nd-level feature interactions
                     ml.HashedCrossAll(wide_schema, num_bins=1000, max_level=2, sparse=True),
                 ],
@@ -301,11 +307,13 @@ def WideAndDeepModel(
             ),
             deep_block=ml.MLPBlock([31, 16]),
             prediction_tasks=ml.BinaryClassificationTask("click"),
-        ).
+        )
+        ```
 
         On Wide&Deep paper [1] they proposed usage of separate optimizers for dense (AdaGrad) and
         sparse embeddings parameters (FTRL). You can implement that by using `MultiOptimizer` class.
         For example:
+        ```python
             wide_model = model.get_blocks_by_name("sequential_block_6")
             deep_model = model.get_blocks_by_name("sequential_block_3")
 
@@ -316,6 +324,7 @@ def WideAndDeepModel(
                     ml.OptimizerBlocks("adagrad", deep_model),
                 ],
             )
+        ```
 
     References
     ----------
@@ -337,35 +346,9 @@ def WideAndDeepModel(
         The 'Schema' of input features for deep model, by default all features would be sent to
         deep model. deep_schema and wide_schema could contain the same features
     wide_preprocess : Optional[Block]
-        Transformation block for preprocess data in wide model. Such as CategoricalOneHot,
-        CategoryEncoding, HashedCross, and HashedCrossAll, please note the schema of transformation
-        block should be the same as the wide_schema.  By default None.
-        For example:
-            ```python
-            # CategoricalOneHot as preprocess for wide model
-            import merlin.models.tf as ml
-            model = ml.WideAndDeepModel(
-                schema = schema,
-                wide_schema=wide_schema,
-                deep_schema=deep_schema,
-                wide_preprocess = ml.CategoricalOneHot(wide_schema)
-                deep_block=ml.MLPBlock([32, 16]),
-                prediction_tasks=ml.BinaryClassificationTask("click"),
-            )
-
-            # HashedCross as preprocess for wide model
-            model = ml.WideAndDeepModel(
-                schema = schema,
-                wide_schema=wide_schema,
-                deep_schema=deep_schema,
-                wide_preprocess = ml.ParallelBlock([
-                    ml.CategoricalOneHot(one_hot_schema),
-                    ml.HashedCross(wide_schema, num_bins=1000)]
-                ),
-                deep_block=ml.MLPBlock([32, 16]),
-                prediction_tasks=ml.BinaryClassificationTask("click"),
-            )
-            ```
+        Transformation block for preprocess data in wide model. Such as CategoryEncoding,
+        HashedCross, and HashedCrossAll, please note the schema of transformation
+        block should be the same as the wide_schema. See example usage. By default None.
     prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
         The prediction tasks to be used, by default this will be inferred from the Schema.
 
