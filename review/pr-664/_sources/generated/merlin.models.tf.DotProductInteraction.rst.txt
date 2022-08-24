@@ -19,7 +19,6 @@
       ~DotProductInteraction.add_update
       ~DotProductInteraction.add_variable
       ~DotProductInteraction.add_weight
-      ~DotProductInteraction.apply
       ~DotProductInteraction.build
       ~DotProductInteraction.call
       ~DotProductInteraction.compute_mask
@@ -32,11 +31,9 @@
       ~DotProductInteraction.get_input_at
       ~DotProductInteraction.get_input_mask_at
       ~DotProductInteraction.get_input_shape_at
-      ~DotProductInteraction.get_losses_for
       ~DotProductInteraction.get_output_at
       ~DotProductInteraction.get_output_mask_at
       ~DotProductInteraction.get_output_shape_at
-      ~DotProductInteraction.get_updates_for
       ~DotProductInteraction.get_weights
       ~DotProductInteraction.set_weights
       ~DotProductInteraction.with_name_scope
