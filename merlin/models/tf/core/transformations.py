@@ -321,7 +321,7 @@ class RemovePad3D(Block):
                 predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
             )
 
-        return outputs.copy_with_updates(predictions=predictions, targets=targets,)
+        return outputs.copy_with_updates(predictions=predictions, targets=targets)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -395,7 +395,9 @@ class ItemsPredictionWeightTying(Block):
 
     def build(self, input_shape):
         self.bias = self.add_weight(
-            name="output_layer_bias", shape=(self.num_classes,), initializer=self.bias_initializer,
+            name="output_layer_bias",
+            shape=(self.num_classes,),
+            initializer=self.bias_initializer,
         )
         return super().build(input_shape)
 
@@ -432,7 +434,6 @@ class CategoricalOneHot(TabularBlock):
         self.flatten = []
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        # Ensures the input is a Tensor, raise error if SparseTensor or RaggedTensor
         self._check_inputs_type(inputs)
         outputs = {}
         for name, val in self.cardinalities.items():
@@ -968,7 +969,10 @@ class HashedCross(TabularBlock):
         # Encode outputs.
         outputs = {}
         outputs[self.output_name] = preprocessing_utils.encode_categorical_inputs(
-            output, output_mode=self.output_mode, depth=self.num_bins, sparse=self.sparse,
+            output,
+            output_mode=self.output_mode,
+            depth=self.num_bins,
+            sparse=self.sparse,
         )
         return outputs
 
