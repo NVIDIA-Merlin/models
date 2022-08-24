@@ -123,7 +123,11 @@ def test_categorical_one_hot_encoding():
 )
 def test_categorical_one_hot_invalid_input(input):
     test_case = TestCase()
-    s = Schema([create_categorical_column("cat1", num_items=10, tags=[Tags.CATEGORICAL]),])
+    s = Schema(
+        [
+            create_categorical_column("cat1", num_items=10, tags=[Tags.CATEGORICAL]),
+        ]
+    )
     inputs = {}
     inputs["cat1"] = input
     categorical_one_hot = ml.CategoricalOneHot(schema=s)
@@ -165,7 +169,8 @@ def test_categorical_one_hot_from_config():
 def test_categorical_one_hot_as_pre(ecommerce_data: Dataset, run_eagerly):
     schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
     body = ParallelBlock(
-        TabularBlock.from_schema(schema=schema, pre=ml.CategoricalOneHot(schema)), is_input=True,
+        TabularBlock.from_schema(schema=schema, pre=ml.CategoricalOneHot(schema)),
+        is_input=True,
     ).connect(ml.MLPBlock([32]))
     model = ml.Model(body, ml.BinaryClassificationTask("click"))
 
@@ -438,7 +443,13 @@ def test_hashedcross_onehot_output():
     assert output_value.shape.as_list() == [5, 5]
     test_case.assertAllClose(
         output_value,
-        [[0, 1, 0, 0, 0], [0, 0, 0, 0, 1], [0, 1, 0, 0, 0], [0, 1, 0, 0, 0], [0, 0, 0, 1, 0],],
+        [
+            [0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1],
+            [0, 1, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 0, 0, 1, 0],
+        ],
     )
 
 
@@ -503,7 +514,13 @@ def test_hashedcrosses_in_parallelblock():
     assert output_value_0.shape.as_list() == [5, 5]
     test_case.assertAllClose(
         output_value_0,
-        [[0, 1, 0, 0, 0], [0, 0, 0, 0, 1], [0, 1, 0, 0, 0], [0, 1, 0, 0, 0], [0, 0, 0, 1, 0],],
+        [
+            [0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1],
+            [0, 1, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 0, 0, 1, 0],
+        ],
     )
     output_value_1 = outputs["cross_1"]
     output_value_1 = tf.sparse.to_dense(output_value_1)
@@ -549,56 +566,6 @@ def test_hashedcross_in_model(ecommerce_data: Dataset, run_eagerly):
     testing_utils.model_test(model, ecommerce_data)
 
 
-def test_hashedcrossall():
-    schema = Schema(
-        [
-            # num_items: 0, 1, 2 thus cardinality = 3
-            create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=2),
-            create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=2),
-            create_categorical_column("cat3", tags=[Tags.CATEGORICAL], num_items=2),
-        ]
-    )
-    inputs = {}
-    inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
-    inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
-    inputs["cat3"] = tf.constant([[1], [0], [1], [2], [2]])
-
-    hashed_cross_all = ml.HashedCrossAll(
-        schema=schema,
-        infer_num_bins=True,
-        output_mode="one_hot",
-        sparse=True,
-        max_num_bins=25,
-        max_level=3,
-    )
-
-    outputs = hashed_cross_all(inputs)
-    assert len(outputs) == 4
-
-    output_value_0 = outputs["cross_cat1_cat2"]
-    assert output_value_0.shape.as_list() == [5, 9]
-
-    output_value_1 = outputs["cross_cat1_cat2_cat3"]
-    assert output_value_1.shape.as_list() == [5, 25]
-
-
-@pytest.mark.parametrize("run_eagerly", [True, False])
-def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
-    cross_schema = ecommerce_data.schema.select_by_name(
-        names=["user_categories", "item_category", "item_brand"]
-    )
-    branches = {
-        "cross_product": ml.HashedCrossAll(cross_schema, max_num_bins=1000, infer_num_bins=True),
-        "features": ml.InputBlock(ecommerce_data.schema),
-    }
-    body = ParallelBlock(branches, is_input=True).connect(ml.MLPBlock([64]))
-    model = ml.Model(body, ml.BinaryClassificationTask("click"))
-
-    model.compile(optimizer="adam", run_eagerly=run_eagerly)
-    testing_utils.model_test(model, ecommerce_data)
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
-
-
 def test_category_encoding_different_input_different_output():
     test_case = TestCase()
     schema = Schema(
@@ -614,7 +581,11 @@ def test_category_encoding_different_input_different_output():
     )
 
     # 1. Sparse output
-    category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=True,)
+    category_encoding = ml.CategoryEncoding(
+        schema=schema,
+        output_mode="count",
+        sparse=True,
+    )
     outputs = category_encoding(inputs)
 
     # The expected output["dense_feature"] should be (X for missing value):
@@ -631,7 +602,11 @@ def test_category_encoding_different_input_different_output():
     test_case.assertAllEqual(expected_indices_2, outputs["sparse_feature"].indices)
 
     # 2. Dense output
-    category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=False,)
+    category_encoding = ml.CategoryEncoding(
+        schema=schema,
+        output_mode="count",
+        sparse=False,
+    )
     expected_1 = [[0, 1, 1, 1, 0], [1, 0, 0, 2, 0]]
     expected_2 = [[0, 1, 1, 1, 0, 0], [0, 1, 0, 1, 0, 0]]
     outputs = category_encoding(inputs)
@@ -642,11 +617,17 @@ def test_category_encoding_different_input_different_output():
 def test_category_encoding_invalid_input():
     test_case = TestCase()
     schema = Schema(
-        [create_categorical_column("ragged_feature", tags=[Tags.CATEGORICAL], num_items=5),]
+        [
+            create_categorical_column("ragged_feature", tags=[Tags.CATEGORICAL], num_items=5),
+        ]
     )
     inputs = {}
     inputs["ragged_feature"] = tf.ragged.constant([[1, 2, 3], [3, 1], []])
-    category_encoding = ml.CategoryEncoding(schema=schema, output_mode="count", sparse=False,)
+    category_encoding = ml.CategoryEncoding(
+        schema=schema,
+        output_mode="count",
+        sparse=False,
+    )
     with test_case.assertRaisesRegex(ValueError, "inputs should not contain a RaggedTensor"):
         category_encoding(inputs)
 
@@ -655,7 +636,11 @@ def test_category_encoding_invalid_input():
 @pytest.mark.parametrize("weight", [np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]])])
 def test_category_encoding_weightd_count_dense(input, weight):
     test_case = TestCase()
-    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
+    schema = Schema(
+        [
+            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
+        ]
+    )
 
     expected_output = [[0, 0.1, 0.2, 0.3, 0.4, 0], [0, 0.4, 0, 0.1, 0.5, 0]]
     # pyformat: enable
@@ -678,7 +663,11 @@ def test_category_encoding_weightd_count_dense(input, weight):
 )
 def test_category_encoding_weightd_count_sparse(input, weight):
     test_case = TestCase()
-    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
+    schema = Schema(
+        [
+            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
+        ]
+    )
 
     expected_output = [[0, 0.1, 0.2, 0.3, 0.4, 0], [0, 0.4, 0, 0.1, 0.5, 0]]
     # pyformat: enable
@@ -699,7 +688,11 @@ def test_category_encoding_weightd_count_sparse(input, weight):
 @pytest.mark.parametrize("weight", [np.array([[0.1, 0.2, 0.3, 0.4], [0.2, 0.1, 0.4, 0.3]])])
 def test_category_encoding_weightd_count_not_match(input, weight):
     test_case = TestCase()
-    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
+    schema = Schema(
+        [
+            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
+        ]
+    )
     category_encoding = ml.CategoryEncoding(
         schema=schema, output_mode="count", count_weights=weight
     )
@@ -720,7 +713,11 @@ def test_category_encoding_weightd_count_not_match(input, weight):
 )
 def test_category_encoding_multi_hot_2d_input(input):
     test_case = TestCase()
-    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),])
+    schema = Schema(
+        [
+            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
+        ]
+    )
 
     if isinstance(input, tf.SparseTensor):
         expected_output = [[0, 1, 1, 1, 0, 0], [0, 1, 0, 1, 0, 0]]
@@ -870,14 +867,12 @@ def test_hashedcrossall():
             create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=2),
             create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=2),
             create_categorical_column("cat3", tags=[Tags.CATEGORICAL], num_items=2),
-            create_categorical_column("cat4", tags=[Tags.CATEGORICAL], num_items=3),
         ]
     )
     inputs = {}
     inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
     inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
     inputs["cat3"] = tf.constant([[1], [0], [1], [2], [2]])
-    inputs["cat4"] = tf.constant([[1], [0], [1], [3], [2]])
 
     hashed_cross_all = ml.HashedCrossAll(
         schema=schema,
@@ -886,11 +881,10 @@ def test_hashedcrossall():
         sparse=True,
         max_num_bins=25,
         max_level=3,
-        ignore_combinations=[["cat4", "cat1"], ["cat4", "cat2"], ["cat4", "cat3"]],
     )
 
     outputs = hashed_cross_all(inputs)
-    assert len(outputs) == 7
+    assert len(outputs) == 4
 
     output_value_0 = outputs["cross_cat1_cat2"]
     assert output_value_0.shape.as_list() == [5, 9]
