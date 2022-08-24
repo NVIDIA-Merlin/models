@@ -593,7 +593,9 @@ class CategoryEncoding(TabularBlock):
     This layer provides options for condensing data into a categorical encoding. It accepts integer
     values as inputs, and it outputs a dense or sparse representation of those inputs. Only
     categorical features with "CATEGORICAL" as Tag can be transformed, and other features without
-    this Tag would be discarded
+    this Tag would be discarded.
+    It outputs a TabularData (Dict of features), where each feature is a 2D tensor computed
+    based on the outputmode.
 
     Parameters:
     ----------
@@ -602,18 +604,21 @@ class CategoryEncoding(TabularBlock):
     output_mode: Optional[str]
         Specification for the output of the layer. Defaults to `"multi_hot"`. Values can be
         "one_hot", "multi_hot" or "count", configuring the transformation layer as follows:
-        - "one_hot": Encodes each individual element in the input into an array of cardinality
-            size, containing a 1 at the element index. If the last dimension is size 1, will encode
-            on that dimension. If the last dimension is not size 1, will append a new dimension for
-            the encoded output.
-        - "multi_hot": Encodes each sample in the input into a single array of cardinality size,
-            containing a 1 for each vocabulary term present in the sample. Treats the last dimension
-            as the sample dimension, if input shape is `(..., sample_length)`, output shape will be
-            `(..., cardinality)`.
-        - "count": Like `"multi_hot"`, but the int array contains a count of the number of times the
-            token at that index appeared in the sample.
+        - "one_hot": Encodes each individual element in the input into a tensor with shape
+            (batch_size, feature_cardinality), containing a 1 at the element index.
+            It accepts both 1D tensor or 2D tensor if squeezable (i.e., if the last dimension is 1).
+        - "multi_hot": Encodes each categorical value from the 2D input features into a
+            multi-hot representation with shape (batch_size, feature_cardinality), with 1 at
+            the indices present in the sequence and 0 for the other position.
+            If 1D feature is provided, it behaves the same as "one_hot".
+        - "count": also expects 2D tensor like `"multi_hot"` and outputs the features
+            with shape (batch_size, feature_cardinality). But instead of returning "multi-hot"
+            values, it outputs the frequency (count) of the number of items each item occurs
+            in each sample.
     sparse: Optional[Boolean]
         If true, returns a `SparseTensor` instead of a dense `Tensor`. Defaults to `False`.
+        Setting sparse=True is recommended for high-cardinality features, in order to avoid
+        out-of-memory errors.
     count_weights: Optional[Union(tf.Tensor, tf.RaggedTensor, tf.SparseTensor)]
         count_weights is used to calculate weighted sum of times a token at that index appeared when
         `output_mode` is "count"
@@ -650,6 +655,9 @@ class CategoryEncoding(TabularBlock):
         else:
             self.count_weights = None
 
+        # Used to reshape 1D<->2Dtensors depending on the output_mode, when in graph mode
+        self._2d_features_last_dim = {}
+
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, depth in self.cardinalities.items():
@@ -659,6 +667,11 @@ class CategoryEncoding(TabularBlock):
                     f"All `CategoryEncoding` inputs should not contain a RaggedTensor. Received "
                     f"{name} with type of {type(inputs[name])}"
                 )
+
+            shape = inputs[name].get_shape().as_list()
+            if len(shape) > 2:
+                raise ValueError("`CategoryEncoding` only accepts 1D or 2D-shaped inputs")
+
             outputs[name] = utils.ensure_tensor(inputs[name])
 
             if isinstance(outputs[name], tf.SparseTensor):
@@ -679,6 +692,9 @@ class CategoryEncoding(TabularBlock):
                 ],
             )
             with tf.control_dependencies([assertion]):
+
+                outputs[name] = self.adjust_tensor_shape(outputs[name], name)
+
                 outputs[name] = utils.encode_categorical_inputs(
                     outputs[name],
                     output_mode=self.output_mode,
@@ -689,16 +705,44 @@ class CategoryEncoding(TabularBlock):
                 )
         return outputs
 
+    def adjust_tensor_shape(self, input, feat_name):
+        shape = input.get_shape().as_list()
+        output = input
+        reshape_fn = tf.sparse.reshape if isinstance(output, tf.SparseTensor) else tf.reshape
+        if self.output_mode == ONE_HOT:
+            if len(shape) > 1:
+                if (self._2d_features_last_dim.get(feat_name, None) == 1) or (shape[-1] == 1):
+                    output = reshape_fn(output, [-1])
+                else:
+                    raise ValueError(
+                        "One-hot accepts input tensors that are squeezable to 1D, but received"
+                        f" a tensor with shape: {shape}"
+                    )
+        # For MULTI_HOT or COUNT, ensures the tensor is 2D
+        else:
+            if len(shape) == 1:
+                expand_dims_fn = (
+                    tf.sparse.expand_dims if isinstance(output, tf.SparseTensor) else tf.expand_dims
+                )
+                output = expand_dims_fn(output, 1)
+            else:
+                # Ensures that the shape is known to avoid error on graph mode
+                new_shape = (-1, self._2d_features_last_dim.get(feat_name, shape[-1]))
+                output = reshape_fn(output, new_shape)
+        return output
+
     def compute_output_shape(self, input_shapes):
         outputs = {}
         for key in self.schema.column_names:
             input_shape = input_shapes[key]
             if not input_shape:
                 outputs[key] = tf.TensorShape([self.cardinalities[key]])
-            if self.output_mode == ONE_HOT and input_shape[-1] != 1:
-                outputs[key] = tf.TensorShape(input_shape + [self.cardinalities[key]])
             else:
-                outputs[key] = tf.TensorShape(input_shape[:-1] + [self.cardinalities[key]])
+                outputs[key] = tf.TensorShape(input_shape[:1] + [self.cardinalities[key]])
+
+                if len(input_shape) == 2:
+                    self._2d_features_last_dim[key] = input_shape[-1]
+
         return outputs
 
     def get_config(self):
