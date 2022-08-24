@@ -110,7 +110,6 @@
 <span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">schema_utils</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
-<span class="n">INT</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">INT</span>
 <span class="n">ONE_HOT</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ONE_HOT</span>
 <span class="n">MULTI_HOT</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">MULTI_HOT</span>
 <span class="n">COUNT</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">COUNT</span>
@@ -397,10 +396,7 @@
                 <span class="n">predictions</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">non_pad_mask</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">predictions</span><span class="p">))</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">outputs</span><span class="o">.</span><span class="n">copy_with_updates</span><span class="p">(</span>
-            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-            <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">outputs</span><span class="o">.</span><span class="n">copy_with_updates</span><span class="p">(</span><span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,)</span>
 
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
@@ -474,9 +470,7 @@
 
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;output_layer_bias&quot;</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,),</span>
-            <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bias_initializer</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;output_layer_bias&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,),</span> <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bias_initializer</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
 
@@ -571,7 +565,9 @@
 <span class="sd">    This layer provides options for condensing data into a categorical encoding. It accepts integer</span>
 <span class="sd">    values as inputs, and it outputs a dense or sparse representation of those inputs. Only</span>
 <span class="sd">    categorical features with &quot;CATEGORICAL&quot; as Tag can be transformed, and other features without</span>
-<span class="sd">    this Tag would be discarded</span>
+<span class="sd">    this Tag would be discarded.</span>
+<span class="sd">    It outputs a TabularData (Dict of features), where each feature is a 2D tensor computed</span>
+<span class="sd">    based on the outputmode.</span>
 
 <span class="sd">    Parameters:</span>
 <span class="sd">    ----------</span>
@@ -580,18 +576,21 @@
 <span class="sd">    output_mode: Optional[str]</span>
 <span class="sd">        Specification for the output of the layer. Defaults to `&quot;multi_hot&quot;`. Values can be</span>
 <span class="sd">        &quot;one_hot&quot;, &quot;multi_hot&quot; or &quot;count&quot;, configuring the transformation layer as follows:</span>
-<span class="sd">        - &quot;one_hot&quot;: Encodes each individual element in the input into an array of cardinality</span>
-<span class="sd">            size, containing a 1 at the element index. If the last dimension is size 1, will encode</span>
-<span class="sd">            on that dimension. If the last dimension is not size 1, will append a new dimension for</span>
-<span class="sd">            the encoded output.</span>
-<span class="sd">        - &quot;multi_hot&quot;: Encodes each sample in the input into a single array of cardinality size,</span>
-<span class="sd">            containing a 1 for each vocabulary term present in the sample. Treats the last dimension</span>
-<span class="sd">            as the sample dimension, if input shape is `(..., sample_length)`, output shape will be</span>
-<span class="sd">            `(..., cardinality)`.</span>
-<span class="sd">        - &quot;count&quot;: Like `&quot;multi_hot&quot;`, but the int array contains a count of the number of times the</span>
-<span class="sd">            token at that index appeared in the sample.</span>
+<span class="sd">        - &quot;one_hot&quot;: Encodes each individual element in the input into a tensor with shape</span>
+<span class="sd">            (batch_size, feature_cardinality), containing a 1 at the element index.</span>
+<span class="sd">            It accepts both 1D tensor or 2D tensor if squeezable (i.e., if the last dimension is 1).</span>
+<span class="sd">        - &quot;multi_hot&quot;: Encodes each categorical value from the 2D input features into a</span>
+<span class="sd">            multi-hot representation with shape (batch_size, feature_cardinality), with 1 at</span>
+<span class="sd">            the indices present in the sequence and 0 for the other position.</span>
+<span class="sd">            If 1D feature is provided, it behaves the same as &quot;one_hot&quot;.</span>
+<span class="sd">        - &quot;count&quot;: also expects 2D tensor like `&quot;multi_hot&quot;` and outputs the features</span>
+<span class="sd">            with shape (batch_size, feature_cardinality). But instead of returning &quot;multi-hot&quot;</span>
+<span class="sd">            values, it outputs the frequency (count) of the number of items each item occurs</span>
+<span class="sd">            in each sample.</span>
 <span class="sd">    sparse: Optional[Boolean]</span>
 <span class="sd">        If true, returns a `SparseTensor` instead of a dense `Tensor`. Defaults to `False`.</span>
+<span class="sd">        Setting sparse=True is recommended for high-cardinality features, in order to avoid</span>
+<span class="sd">        out-of-memory errors.</span>
 <span class="sd">    count_weights: Optional[Union(tf.Tensor, tf.RaggedTensor, tf.SparseTensor)]</span>
 <span class="sd">        count_weights is used to calculate weighted sum of times a token at that index appeared when</span>
 <span class="sd">        `output_mode` is &quot;count&quot;</span>
@@ -628,6 +627,9 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">count_weights</span> <span class="o">=</span> <span class="kc">None</span>
 
+        <span class="c1"># Used to reshape 1D&lt;-&gt;2Dtensors depending on the output_mode, when in graph mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_2d_features_last_dim</span> <span class="o">=</span> <span class="p">{}</span>
+
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">depth</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cardinalities</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -637,6 +639,11 @@
                     <span class="sa">f</span><span class="s2">&quot;All `CategoryEncoding` inputs should not contain a RaggedTensor. Received &quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> with type of </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
+
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`CategoryEncoding` only accepts 1D or 2D-shaped inputs&quot;</span><span class="p">)</span>
+
             <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ensure_tensor</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
 
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">):</span>
@@ -657,6 +664,9 @@
                 <span class="p">],</span>
             <span class="p">)</span>
             <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">assertion</span><span class="p">]):</span>
+
+                <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_tensor_shape</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">name</span><span class="p">)</span>
+
                 <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">encode_categorical_inputs</span><span class="p">(</span>
                     <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span>
                     <span class="n">output_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span><span class="p">,</span>
@@ -667,16 +677,44 @@
                 <span class="p">)</span>
         <span class="k">return</span> <span class="n">outputs</span>
 
+    <span class="k">def</span> <span class="nf">adjust_tensor_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">feat_name</span><span class="p">):</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="nb">input</span>
+        <span class="n">reshape_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">reshape</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span> <span class="o">==</span> <span class="n">ONE_HOT</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_2d_features_last_dim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feat_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+                    <span class="n">output</span> <span class="o">=</span> <span class="n">reshape_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;One-hot accepts input tensors that are squeezable to 1D, but received&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot; a tensor with shape: </span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+        <span class="c1"># For MULTI_HOT or COUNT, ensures the tensor is 2D</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">expand_dims_fn</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">expand_dims</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span>
+                <span class="p">)</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">expand_dims_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Ensures that the shape is known to avoid error on graph mode</span>
+                <span class="n">new_shape</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_2d_features_last_dim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feat_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">reshape_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span>
+
     <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
             <span class="n">input_shape</span> <span class="o">=</span> <span class="n">input_shapes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">input_shape</span><span class="p">:</span>
                 <span class="n">outputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">cardinalities</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span> <span class="o">==</span> <span class="n">ONE_HOT</span> <span class="ow">and</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">outputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">input_shape</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cardinalities</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">outputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cardinalities</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span>
+                <span class="n">outputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cardinalities</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_2d_features_last_dim</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
         <span class="k">return</span> <span class="n">outputs</span>
 
     <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1005,10 +1043,7 @@
         <span class="c1"># Encode outputs.</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">outputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">preprocessing_utils</span><span class="o">.</span><span class="n">encode_categorical_inputs</span><span class="p">(</span>
-            <span class="n">output</span><span class="p">,</span>
-            <span class="n">output_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span><span class="p">,</span>
-            <span class="n">depth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span><span class="p">,</span>
-            <span class="n">sparse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sparse</span><span class="p">,</span>
+            <span class="n">output</span><span class="p">,</span> <span class="n">output_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sparse</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">outputs</span>
 
