@@ -216,7 +216,7 @@ def test_wide_deep_model_categorical_one_hot(ecommerce_data, run_eagerly):
         ecommerce_data.schema,
         wide_schema=wide_schema,
         deep_schema=deep_schema,
-        wide_preprocess=ml.CategoricalOneHot(wide_schema),
+        wide_preprocess=ml.CategoryEncoding(wide_schema),
         deep_block=ml.MLPBlock([32, 16]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
