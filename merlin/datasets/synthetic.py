@@ -71,7 +71,7 @@ def generate_data(
     - criteo
     - aliccp
     - aliccp-raw
-    - drepessi
+    - dressipi
 
 
     Parameters
