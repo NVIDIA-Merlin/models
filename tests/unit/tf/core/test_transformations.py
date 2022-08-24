@@ -76,7 +76,7 @@ def test_expand_dims_axis_as_dict():
 def test_categorical_encoding_as_pre(ecommerce_data: Dataset, run_eagerly):
     schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
     body = ParallelBlock(
-        TabularBlock.from_schema(schema=schema, pre=ml.CategoryEncoding(schema)), is_input=True,
+        TabularBlock.from_schema(schema=schema, pre=ml.CategoricalOneHot(schema)), is_input=True,
     ).connect(ml.MLPBlock([32]))
     model = ml.Model(body, ml.BinaryClassificationTask("click"))
 
@@ -712,14 +712,12 @@ def test_hashedcrossall():
             create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=2),
             create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=2),
             create_categorical_column("cat3", tags=[Tags.CATEGORICAL], num_items=2),
-            create_categorical_column("cat4", tags=[Tags.CATEGORICAL], num_items=3),
         ]
     )
     inputs = {}
     inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
     inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
     inputs["cat3"] = tf.constant([[1], [0], [1], [2], [2]])
-    inputs["cat4"] = tf.constant([[1], [0], [1], [3], [2]])
 
     hashed_cross_all = ml.HashedCrossAll(
         schema=schema,
@@ -728,11 +726,10 @@ def test_hashedcrossall():
         sparse=True,
         max_num_bins=25,
         max_level=3,
-        ignore_combinations=[["cat4", "cat1"], ["cat4", "cat2"], ["cat4", "cat3"]],
     )
 
     outputs = hashed_cross_all(inputs)
-    assert len(outputs) == 7
+    assert len(outputs) == 4
 
     output_value_0 = outputs["cross_cat1_cat2"]
     assert output_value_0.shape.as_list() == [5, 9]
