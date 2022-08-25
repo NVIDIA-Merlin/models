@@ -1,0 +1,91 @@
+﻿merlin.models.tf.MultiClassClassificationTask
+=============================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: MultiClassClassificationTask
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~MultiClassClassificationTask.__init__
+      ~MultiClassClassificationTask.add_loss
+      ~MultiClassClassificationTask.add_metric
+      ~MultiClassClassificationTask.add_update
+      ~MultiClassClassificationTask.add_variable
+      ~MultiClassClassificationTask.add_weight
+      ~MultiClassClassificationTask.build
+      ~MultiClassClassificationTask.build_task
+      ~MultiClassClassificationTask.call
+      ~MultiClassClassificationTask.child_name
+      ~MultiClassClassificationTask.compute_mask
+      ~MultiClassClassificationTask.compute_output_shape
+      ~MultiClassClassificationTask.compute_output_signature
+      ~MultiClassClassificationTask.count_params
+      ~MultiClassClassificationTask.create_default_metrics
+      ~MultiClassClassificationTask.finalize_state
+      ~MultiClassClassificationTask.from_config
+      ~MultiClassClassificationTask.from_schema
+      ~MultiClassClassificationTask.get_config
+      ~MultiClassClassificationTask.get_input_at
+      ~MultiClassClassificationTask.get_input_mask_at
+      ~MultiClassClassificationTask.get_input_shape_at
+      ~MultiClassClassificationTask.get_output_at
+      ~MultiClassClassificationTask.get_output_mask_at
+      ~MultiClassClassificationTask.get_output_shape_at
+      ~MultiClassClassificationTask.get_weights
+      ~MultiClassClassificationTask.pre_call
+      ~MultiClassClassificationTask.pre_loss
+      ~MultiClassClassificationTask.set_weights
+      ~MultiClassClassificationTask.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~MultiClassClassificationTask.DEFAULT_LOSS
+      ~MultiClassClassificationTask.DEFAULT_METRICS
+      ~MultiClassClassificationTask.activity_regularizer
+      ~MultiClassClassificationTask.compute_dtype
+      ~MultiClassClassificationTask.context
+      ~MultiClassClassificationTask.dtype
+      ~MultiClassClassificationTask.dtype_policy
+      ~MultiClassClassificationTask.dynamic
+      ~MultiClassClassificationTask.inbound_nodes
+      ~MultiClassClassificationTask.input
+      ~MultiClassClassificationTask.input_mask
+      ~MultiClassClassificationTask.input_shape
+      ~MultiClassClassificationTask.input_spec
+      ~MultiClassClassificationTask.losses
+      ~MultiClassClassificationTask.metrics
+      ~MultiClassClassificationTask.name
+      ~MultiClassClassificationTask.name_scope
+      ~MultiClassClassificationTask.non_trainable_variables
+      ~MultiClassClassificationTask.non_trainable_weights
+      ~MultiClassClassificationTask.outbound_nodes
+      ~MultiClassClassificationTask.output
+      ~MultiClassClassificationTask.output_mask
+      ~MultiClassClassificationTask.output_shape
+      ~MultiClassClassificationTask.pre_eval_topk
+      ~MultiClassClassificationTask.stateful
+      ~MultiClassClassificationTask.submodules
+      ~MultiClassClassificationTask.supports_masking
+      ~MultiClassClassificationTask.task_name
+      ~MultiClassClassificationTask.trainable
+      ~MultiClassClassificationTask.trainable_variables
+      ~MultiClassClassificationTask.trainable_weights
+      ~MultiClassClassificationTask.updates
+      ~MultiClassClassificationTask.variable_dtype
+      ~MultiClassClassificationTask.variables
+      ~MultiClassClassificationTask.weights
+   
+   

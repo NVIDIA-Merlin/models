@@ -1,0 +1,90 @@
+﻿merlin.models.tf.BinaryClassificationTask
+=========================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: BinaryClassificationTask
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~BinaryClassificationTask.__init__
+      ~BinaryClassificationTask.add_loss
+      ~BinaryClassificationTask.add_metric
+      ~BinaryClassificationTask.add_update
+      ~BinaryClassificationTask.add_variable
+      ~BinaryClassificationTask.add_weight
+      ~BinaryClassificationTask.build
+      ~BinaryClassificationTask.build_task
+      ~BinaryClassificationTask.call
+      ~BinaryClassificationTask.child_name
+      ~BinaryClassificationTask.compute_mask
+      ~BinaryClassificationTask.compute_output_shape
+      ~BinaryClassificationTask.compute_output_signature
+      ~BinaryClassificationTask.count_params
+      ~BinaryClassificationTask.create_default_metrics
+      ~BinaryClassificationTask.finalize_state
+      ~BinaryClassificationTask.from_config
+      ~BinaryClassificationTask.get_config
+      ~BinaryClassificationTask.get_input_at
+      ~BinaryClassificationTask.get_input_mask_at
+      ~BinaryClassificationTask.get_input_shape_at
+      ~BinaryClassificationTask.get_output_at
+      ~BinaryClassificationTask.get_output_mask_at
+      ~BinaryClassificationTask.get_output_shape_at
+      ~BinaryClassificationTask.get_weights
+      ~BinaryClassificationTask.pre_call
+      ~BinaryClassificationTask.pre_loss
+      ~BinaryClassificationTask.set_weights
+      ~BinaryClassificationTask.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BinaryClassificationTask.DEFAULT_LOSS
+      ~BinaryClassificationTask.DEFAULT_METRICS
+      ~BinaryClassificationTask.activity_regularizer
+      ~BinaryClassificationTask.compute_dtype
+      ~BinaryClassificationTask.context
+      ~BinaryClassificationTask.dtype
+      ~BinaryClassificationTask.dtype_policy
+      ~BinaryClassificationTask.dynamic
+      ~BinaryClassificationTask.inbound_nodes
+      ~BinaryClassificationTask.input
+      ~BinaryClassificationTask.input_mask
+      ~BinaryClassificationTask.input_shape
+      ~BinaryClassificationTask.input_spec
+      ~BinaryClassificationTask.losses
+      ~BinaryClassificationTask.metrics
+      ~BinaryClassificationTask.name
+      ~BinaryClassificationTask.name_scope
+      ~BinaryClassificationTask.non_trainable_variables
+      ~BinaryClassificationTask.non_trainable_weights
+      ~BinaryClassificationTask.outbound_nodes
+      ~BinaryClassificationTask.output
+      ~BinaryClassificationTask.output_mask
+      ~BinaryClassificationTask.output_shape
+      ~BinaryClassificationTask.pre_eval_topk
+      ~BinaryClassificationTask.stateful
+      ~BinaryClassificationTask.submodules
+      ~BinaryClassificationTask.supports_masking
+      ~BinaryClassificationTask.task_name
+      ~BinaryClassificationTask.trainable
+      ~BinaryClassificationTask.trainable_variables
+      ~BinaryClassificationTask.trainable_weights
+      ~BinaryClassificationTask.updates
+      ~BinaryClassificationTask.variable_dtype
+      ~BinaryClassificationTask.variables
+      ~BinaryClassificationTask.weights
+   
+   
