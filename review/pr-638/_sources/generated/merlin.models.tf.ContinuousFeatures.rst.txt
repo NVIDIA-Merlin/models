@@ -19,6 +19,7 @@
       ~ContinuousFeatures.add_update
       ~ContinuousFeatures.add_variable
       ~ContinuousFeatures.add_weight
+      ~ContinuousFeatures.apply
       ~ContinuousFeatures.apply_to_all
       ~ContinuousFeatures.as_tabular
       ~ContinuousFeatures.build
@@ -47,10 +48,12 @@
       ~ContinuousFeatures.get_input_mask_at
       ~ContinuousFeatures.get_input_shape_at
       ~ContinuousFeatures.get_item_ids_from_inputs
+      ~ContinuousFeatures.get_losses_for
       ~ContinuousFeatures.get_output_at
       ~ContinuousFeatures.get_output_mask_at
       ~ContinuousFeatures.get_output_shape_at
       ~ContinuousFeatures.get_padding_mask_from_item_id
+      ~ContinuousFeatures.get_updates_for
       ~ContinuousFeatures.get_weights
       ~ContinuousFeatures.parse
       ~ContinuousFeatures.parse_block
