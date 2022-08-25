@@ -470,7 +470,9 @@
 
     <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_weight</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;output_layer_bias&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,),</span> <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bias_initializer</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;output_layer_bias&quot;</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,),</span>
+            <span class="n">initializer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bias_initializer</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
 
@@ -863,7 +865,7 @@
 <span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;hashed_cross&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">HashedCross</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A transformation block which crosses categorical features using the &quot;hasing trick&quot;.</span>
+    <span class="sd">&quot;&quot;&quot;A transformation block which crosses categorical features using the &quot;hashing trick&quot;.</span>
 <span class="sd">    Conceptually, the transformation can be thought of as: hash(concatenation of features) %</span>
 <span class="sd">    num_bins</span>
 <span class="sd">    Example usage::</span>
@@ -971,7 +973,10 @@
         <span class="c1"># Encode outputs.</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">outputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">preprocessing_utils</span><span class="o">.</span><span class="n">encode_categorical_inputs</span><span class="p">(</span>
-            <span class="n">output</span><span class="p">,</span> <span class="n">output_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sparse</span><span class="p">,</span>
+            <span class="n">output</span><span class="p">,</span>
+            <span class="n">output_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span><span class="p">,</span>
+            <span class="n">depth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span><span class="p">,</span>
+            <span class="n">sparse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sparse</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">outputs</span>
 
