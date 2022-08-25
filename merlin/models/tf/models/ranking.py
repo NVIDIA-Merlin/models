@@ -10,7 +10,7 @@ from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
-from merlin.models.tf.core.transformations import CategoricalOneHot
+from merlin.models.tf.core.transformations import CategoryEncoding
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
@@ -228,7 +228,7 @@ def DeepFMModel(
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
 
     branches = {
-        "categorical": CategoricalOneHot(schema),
+        "categorical": CategoryEncoding(schema),
         "continuous": ContinuousFeatures.from_schema(schema),
     }
     first_order_block = ParallelBlock(branches, aggregation="concat").connect(
