@@ -395,7 +395,9 @@ class ItemsPredictionWeightTying(Block):
 
     def build(self, input_shape):
         self.bias = self.add_weight(
-            name="output_layer_bias", shape=(self.num_classes,), initializer=self.bias_initializer,
+            name="output_layer_bias",
+            shape=(self.num_classes,),
+            initializer=self.bias_initializer,
         )
         return super().build(input_shape)
 
@@ -788,7 +790,7 @@ class PopularityLogitsCorrection(Block):
 @Block.registry.register("hashed_cross")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class HashedCross(TabularBlock):
-    """A transformation block which crosses categorical features using the "hasing trick".
+    """A transformation block which crosses categorical features using the "hashing trick".
     Conceptually, the transformation can be thought of as: hash(concatenation of features) %
     num_bins
     Example usage::
@@ -896,7 +898,10 @@ class HashedCross(TabularBlock):
         # Encode outputs.
         outputs = {}
         outputs[self.output_name] = preprocessing_utils.encode_categorical_inputs(
-            output, output_mode=self.output_mode, depth=self.num_bins, sparse=self.sparse,
+            output,
+            output_mode=self.output_mode,
+            depth=self.num_bins,
+            sparse=self.sparse,
         )
         return outputs
 
