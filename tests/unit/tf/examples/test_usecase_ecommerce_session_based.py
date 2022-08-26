@@ -5,6 +5,7 @@ from tests.conftest import REPO_ROOT
 
 @testbook(
     REPO_ROOT / "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.ipynb",
+    timeout=180,
     execute=False,
 )
 def test_usecase_pretrained_embeddings(tb):
@@ -24,6 +25,7 @@ def test_usecase_pretrained_embeddings(tb):
         )
         p1.start()
         os.environ["DATA_FOLDER"] = "/tmp/data/"
+        os.environ["EPOCHS"] = "1"
         """
     )
     tb.execute()
