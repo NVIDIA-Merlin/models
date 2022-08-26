@@ -362,31 +362,42 @@ def WideAndDeepModel(
 
     if not wide_schema:
         warnings.warn("If not specify wide_schema, NO feature would be sent to wide model")
-        wide_schema = None
 
     if not deep_schema:
         deep_schema = schema
 
+    branches = dict()
+
     if not deep_input_block:
-        if len(deep_schema) > 0:
+        if deep_schema is not None and len(deep_schema) > 0:
             deep_input_block = InputBlockV2(
                 deep_schema,
                 **kwargs,
             )
-    deep_body = deep_input_block.connect(deep_block).connect(
-        MLPBlock([1], no_activation_last_layer=True)
-    )
+    if deep_input_block:
+        deep_body = deep_input_block.connect(deep_block).connect(
+            MLPBlock([1], no_activation_last_layer=True)
+        )
+        branches["deep"] = deep_body
 
     if not wide_input_block:
-        if len(wide_schema) > 0:
+        if wide_schema is not None and len(wide_schema) > 0:
             wide_input_block = ParallelBlock(
                 TabularBlock.from_schema(schema=wide_schema, pre=wide_preprocess),
                 is_input=True,
                 aggregation="concat",
             )
-    wide_body = wide_input_block.connect(MLPBlock([1], no_activation_last_layer=True))
 
-    branches = {"wide": wide_body, "deep": deep_body}
+    if wide_input_block:
+        wide_body = wide_input_block.connect(MLPBlock([1], no_activation_last_layer=True))
+        branches["wide"] = wide_body
+
+    if len(branches) == 0:
+        raise ValueError(
+            "At least the deep part (deep_schema/deep_input_block) "
+            "or wide part (wide_schema/wide_input_block) must be provided."
+        )
+
     wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
     model = Model(wide_and_deep_body, prediction_tasks)
 
