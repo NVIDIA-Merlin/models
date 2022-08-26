@@ -52,7 +52,7 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         n_per_positive: int,
         seed: Optional[int] = None,
         run_when_testing: bool = True,
-        return_tuple: bool = False,
+        return_tuple: bool = True,
         **kwargs
     ):
 
