@@ -64,6 +64,7 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         self.run_when_testing = run_when_testing
         self.return_tuple = return_tuple
 
+    @tf.function
     def call(self, inputs: TabularData, targets=None, testing=False, **kwargs) -> Prediction:
         """Extend batch of inputs and targets with negatives."""
         if targets is None or (testing and not self.run_when_testing):
