@@ -24,7 +24,7 @@ def test_usecase_pretrained_embeddings(tb):
             return_value=[mock_train, mock_valid]
         )
         p1.start()
-        os.environ["DATA_FOLDER"] = "/tmp/data/"
+        os.environ["DATA_FOLDER"] = "/tmp/dressipi2022/"
         os.environ["EPOCHS"] = "1"
         """
     )
