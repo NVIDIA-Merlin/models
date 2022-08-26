@@ -4,7 +4,8 @@ from tests.conftest import REPO_ROOT
 
 
 @testbook(
-    REPO_ROOT / "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.ipynb", execute=False
+    REPO_ROOT / "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.ipynb",
+    execute=False,
 )
 def test_usecase_pretrained_embeddings(tb):
     tb.inject(
@@ -26,6 +27,15 @@ def test_usecase_pretrained_embeddings(tb):
         """
     )
     tb.execute()
-    model = tb.ref("metrics")
-    assert set(history.keys()) == set(['loss', 'recall_at_100', 'mrr_at_100', 
-                                        'ndcg_at_100', 'map_at_100', 'precision_at_100', 'regularization_loss'])
+    metrics_mlp = tb.ref("metrics_mlp")
+    assert set(metrics_mlp.keys()) == set(
+        [
+            "loss",
+            "recall_at_100",
+            "mrr_at_100",
+            "ndcg_at_100",
+            "map_at_100",
+            "precision_at_100",
+            "regularization_loss",
+        ]
+    )
