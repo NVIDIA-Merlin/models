@@ -574,6 +574,9 @@ class CategoryEncoding(TabularBlock):
                     sparse=self.sparse,
                     count_weights=self.count_weights,
                 )
+
+                if not self.sparse and isinstance(outputs[name], tf.SparseTensor):
+                    outputs[name] = tf.sparse.to_dense(outputs[name])
         return outputs
 
     def compute_output_shape(self, input_shapes):

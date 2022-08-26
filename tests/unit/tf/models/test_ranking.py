@@ -14,10 +14,12 @@
 # # limitations under the License.
 # #
 #
+import numpy as np
 import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
+from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.utils import testing_utils
@@ -263,12 +265,126 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
+def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data, run_eagerly):
+    ml_dataset = generate_data("movielens-1m", 100)
+    # data_ddf = ml_dataset.to_ddf()
+    # data_ddf = data_ddf[[c for c in list(data_ddf.columns) if c != "rating"]]
+
+    # Removing the rating regression target
+    schema = ml_dataset.schema.remove_col("rating")
+    target_col = schema.select_by_tag(Tags.TARGET).column_names[0]
+
+    cat_schema = schema.select_by_tag(Tags.CATEGORICAL)
+    cat_schema_onehot = cat_schema.remove_col("genres")
+    cat_schema_multihot = cat_schema.select_by_name("genres")
+
+    ignore_combinations = [["age", "userId"], ["userId", "occupation"]]
+
+    wide_preprocessing_blocks = [
+        # One-hot features
+        ml.SequentialBlock(
+            ml.Filter(cat_schema_onehot),
+            ml.CategoryEncoding(cat_schema_onehot, sparse=True, output_mode="one_hot"),
+        ),
+        # Multi-hot features
+        ml.SequentialBlock(
+            ml.Filter(cat_schema_multihot),
+            ml.AsDenseFeatures(max_seq_length=6),
+            ml.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
+        ),
+        # 2nd level feature interactions of one-hot features
+        ml.SequentialBlock(
+            ml.Filter(cat_schema),
+            ml.AsDenseFeatures(max_seq_length=6),
+            ml.HashedCrossAll(
+                cat_schema,
+                num_bins=100,
+                max_level=2,
+                output_mode="multi_hot",
+                sparse=True,
+                ignore_combinations=ignore_combinations,
+            ),
+        ),
+    ]
+
+    batch = ml.sample_batch(ml_dataset, batch_size=100, include_targets=False)
+
+    output_wide_features = ml.ParallelBlock(wide_preprocessing_blocks)(batch)
+    assert set(output_wide_features.keys()) == set(
+        [
+            "userId",
+            "movieId",
+            "title",
+            "gender",
+            "age",
+            "occupation",
+            "zipcode",
+            "genres",
+            "cross_movieId_userId",
+            "cross_title_userId",
+            "cross_genres_userId",
+            "cross_gender_userId",
+            "cross_userId_zipcode",
+            "cross_movieId_title",
+            "cross_genres_movieId",
+            "cross_gender_movieId",
+            "cross_age_movieId",
+            "cross_movieId_occupation",
+            "cross_movieId_zipcode",
+            "cross_genres_title",
+            "cross_gender_title",
+            "cross_age_title",
+            "cross_occupation_title",
+            "cross_title_zipcode",
+            "cross_gender_genres",
+            "cross_age_genres",
+            "cross_genres_occupation",
+            "cross_genres_zipcode",
+            "cross_age_gender",
+            "cross_gender_occupation",
+            "cross_gender_zipcode",
+            "cross_age_occupation",
+            "cross_age_zipcode",
+            "cross_occupation_zipcode",
+        ]
+    )
+
+    assert all([isinstance(t, tf.SparseTensor) for t in output_wide_features.values()])
+    assert all([len(t.shape) == 2 for t in output_wide_features.values()])
+    assert all([t.shape[1] > 1 for t in output_wide_features.values()])
+    assert all(
+        [
+            np.all(np.sum(tf.sparse.to_dense(v).numpy(), axis=1) == 1.0)
+            for k, v in output_wide_features.items()
+            if "genres" not in k
+        ]
+    ), "All features should be one-hot, except 'genres'"
+    assert (
+        np.max(np.sum(tf.sparse.to_dense(output_wide_features["genres"]).numpy(), axis=1)) > 1.0
+    ), "'genres' should be multi-hot"
+
+    model = ml.WideAndDeepModel(
+        cat_schema,
+        wide_schema=cat_schema,
+        deep_schema=cat_schema,
+        wide_preprocess=ml.ParallelBlock(
+            wide_preprocessing_blocks,
+            aggregation="concat",
+        ),
+        deep_block=ml.MLPBlock([32, 16]),
+        prediction_tasks=ml.BinaryClassificationTask(target_col),
+    )
+
+    testing_utils.model_test(model, ml_dataset, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
 def test_wide_deep_model_wide_feature_interaction_multi_optimizer(ecommerce_data, run_eagerly):
 
-    wide_schema = ecommerce_data.schema.select_by_name(
+    deep_schema = ecommerce_data.schema.select_by_name(
         names=["user_categories", "item_category", "user_brands", "item_brand"]
     )
-    deep_schema = ecommerce_data.schema.select_by_name(
+    wide_schema = ecommerce_data.schema.select_by_name(
         names=["user_categories", "item_category", "user_brands", "item_brand"]
     )
 

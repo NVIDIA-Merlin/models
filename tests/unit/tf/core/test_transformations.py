@@ -791,7 +791,7 @@ def test_hashedcrossall():
     )
 
     outputs = hashed_cross_all(inputs)
-    assert len(outputs) == 17
+    assert len(outputs) == 33
 
     output_value_0 = outputs["cross_cat1_cat3"]
     assert output_value_0.shape.as_list() == [5, 9]
