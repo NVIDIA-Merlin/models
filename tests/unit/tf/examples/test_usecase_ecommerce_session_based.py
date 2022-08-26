@@ -39,3 +39,15 @@ def test_usecase_pretrained_embeddings(tb):
             "regularization_loss",
         ]
     )
+    metrics_bi_lstm = tb.ref("metrics_bi_lstm")
+    assert set(metrics_bi_lstm.keys()) == set(
+        [
+            "loss",
+            "recall_at_100",
+            "mrr_at_100",
+            "ndcg_at_100",
+            "map_at_100",
+            "precision_at_100",
+            "regularization_loss",
+        ]
+    )
