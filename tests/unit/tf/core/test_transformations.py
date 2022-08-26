@@ -768,6 +768,8 @@ def test_hashedcrossall():
             create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=2),
             create_categorical_column("cat3", tags=[Tags.CATEGORICAL], num_items=2),
             create_categorical_column("cat4", tags=[Tags.CATEGORICAL], num_items=3),
+            create_categorical_column("cat5", tags=[Tags.CATEGORICAL], num_items=3),
+            create_categorical_column("cat6", tags=[Tags.CATEGORICAL], num_items=3),
         ]
     )
     inputs = {}
@@ -775,6 +777,8 @@ def test_hashedcrossall():
     inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
     inputs["cat3"] = tf.constant([[1], [0], [1], [2], [2]])
     inputs["cat4"] = tf.constant([[1], [0], [1], [3], [2]])
+    inputs["cat5"] = tf.constant([[1], [0], [1], [3], [2]])
+    inputs["cat6"] = tf.constant([[1], [0], [1], [3], [2]])
 
     hashed_cross_all = ml.HashedCrossAll(
         schema=schema,
@@ -783,16 +787,16 @@ def test_hashedcrossall():
         sparse=True,
         max_num_bins=25,
         max_level=3,
-        ignore_combinations=[["cat4", "cat1"], ["cat4", "cat2"], ["cat4", "cat3"]],
+        ignore_combinations=[["cat3", "cat4", "cat5"], ["cat1", "cat2"]],
     )
 
     outputs = hashed_cross_all(inputs)
-    assert len(outputs) == 7
+    assert len(outputs) == 17
 
-    output_value_0 = outputs["cross_cat1_cat2"]
+    output_value_0 = outputs["cross_cat1_cat3"]
     assert output_value_0.shape.as_list() == [5, 9]
 
-    output_value_1 = outputs["cross_cat1_cat2_cat3"]
+    output_value_1 = outputs["cross_cat1_cat3_cat6"]
     assert output_value_1.shape.as_list() == [5, 25]
 
 

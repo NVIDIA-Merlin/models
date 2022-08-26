@@ -870,7 +870,7 @@ class HashedCross(TabularBlock):
         self.sparse = sparse
         if not output_name:
             self.output_name = "cross"
-            for name in schema.column_names:
+            for name in sorted(schema.column_names):
                 self.output_name = self.output_name + "_" + name
         else:
             self.output_name = output_name
@@ -1051,10 +1051,11 @@ def HashedCrossAll(
         Upper bound of num_bins for all hashed cross transformation blocks, by default 100000.
 
     ignore_combinations :  Sequence[Sequence[str]]
-        If provided, ignore feature combinations from this list. Useful to avoid interacting
-        features whose combined value is always the same. For example, interacting these features
-        is not useful and one of the features is dependent on the other :
-        [["item_id", "item_category"], ["user_id", "user_birth_city"]]
+        If provided, ignore feature combinations from this list.
+        Useful to avoid interacting features whose combined value is always the same.
+        For example, interacting these features is not useful and one of the features
+        is dependent on the other :
+        [["item_id", "item_category"], ["user_id", "user_birth_city", "user_age"]]
 
 
     Example usage::
@@ -1077,18 +1078,21 @@ def HashedCrossAll(
 
     all_combinations = []
     for combination_tuple in combinations(schema.column_names, 2):
-        all_combinations.append(list(combination_tuple))
+        all_combinations.append(set(combination_tuple))
+
     if max_level == 3:
         for combination_tuple in combinations(schema.column_names, 3):
-            all_combinations.append(list(combination_tuple))
+            all_combinations.append(set(combination_tuple))
 
-    if ignore_combinations is not None and len(ignore_combinations) > 0:
+    if ignore_combinations:
         ignore_combinations_set = list([set(c) for c in ignore_combinations])
-        valid_combinations = []
-        for combination in all_combinations:
-            if not (set(combination) in ignore_combinations_set):
-                valid_combinations.append(combination)
-        all_combinations = valid_combinations
+        all_combinations = list(
+            [
+                combination
+                for combination in all_combinations
+                if (combination not in ignore_combinations_set)
+            ]
+        )
 
     hashed_crosses = []
     for schema_names in all_combinations:
