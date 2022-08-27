@@ -16,10 +16,10 @@ from merlin.models.tf.core.base import (
     right_shift_layer,
 )
 from merlin.models.tf.core.tabular import (
+    TABULAR_MODULE_PARAMS_DOCSTRING,
     Filter,
     TabularAggregationType,
     TabularBlock,
-    TABULAR_MODULE_PARAMS_DOCSTRING,
 )
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer
