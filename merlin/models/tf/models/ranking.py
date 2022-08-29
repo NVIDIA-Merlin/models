@@ -6,7 +6,7 @@ import tensorflow as tf
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
-from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
@@ -254,6 +254,10 @@ def WideAndDeepModel(
     wide_preprocess: Optional[Block] = None,
     deep_input_block: Optional[Block] = None,
     wide_input_block: Optional[Block] = None,
+    deep_regularizer: Optional[RegularizerType] = None,
+    wide_regularizer: Optional[RegularizerType] = None,
+    deep_dropout: Optional[float] = None,
+    wide_dropout: Optional[float] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
@@ -349,6 +353,22 @@ def WideAndDeepModel(
         Transformation block for preprocess data in wide model. Such as CategoryEncoding,
         HashedCross, and HashedCrossAll, please note the schema of transformation
         block should be the same as the wide_schema. See example usage. By default None.
+    deep_input_block : Optional[Block]
+        The input block to be used by the deep part. It fnot provided, it is created internally
+        by using the deep_schema. Defaults to None.
+    wide_input_block : Optional[Block]
+        The input block to be used by the wide part. It fnot provided, it is created internally
+        by using the wide_schema. Defaults to None.
+    deep_regularizer : Optional[RegularizerType]
+        Regularizer function applied to the last layer kernel weights matrix and biases of
+        the MLP layer of the wide part. Defaults to None.
+    wide_regularizer : Optional[RegularizerType]
+        Regularizer function applied to the last layer kernel weights matrix and biases
+        of the last MLP layer of deep part). Defaults to None.
+    deep_dropout: Optional[float]
+        The dropout to be used by the last layer of deep part. Defaults to None.
+    wide_dropout: Optional[float]
+        The dropout to be used by the last layer of wide part. Defaults to None.
     prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
         The prediction tasks to be used, by default this will be inferred from the Schema.
 
@@ -376,7 +396,13 @@ def WideAndDeepModel(
             )
     if deep_input_block:
         deep_body = deep_input_block.connect(deep_block).connect(
-            MLPBlock([1], no_activation_last_layer=True)
+            MLPBlock(
+                [1],
+                no_activation_last_layer=True,
+                kernel_regularizer=deep_regularizer,
+                bias_regularizer=deep_regularizer,
+                dropout=deep_dropout,
+            )
         )
         branches["deep"] = deep_body
 
@@ -389,7 +415,15 @@ def WideAndDeepModel(
             )
 
     if wide_input_block:
-        wide_body = wide_input_block.connect(MLPBlock([1], no_activation_last_layer=True))
+        wide_body = wide_input_block.connect(
+            MLPBlock(
+                [1],
+                no_activation_last_layer=True,
+                kernel_regularizer=wide_regularizer,
+                bias_regularizer=wide_regularizer,
+                dropout=wide_dropout,
+            )
+        )
         branches["wide"] = wide_body
 
     if len(branches) == 0:

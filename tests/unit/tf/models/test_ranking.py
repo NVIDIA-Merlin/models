@@ -17,6 +17,7 @@
 import numpy as np
 import pytest
 import tensorflow as tf
+from tensorflow.keras import regularizers
 
 import merlin.models.tf as ml
 from merlin.datasets.synthetic import generate_data
@@ -258,6 +259,10 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
         wide_schema=wide_schema,
         wide_preprocess=ml.HashedCross(wide_schema, 1000, sparse=True),
         deep_block=ml.MLPBlock([32, 16]),
+        deep_regularizer=regularizers.l2(1e-5),
+        wide_regularizer=regularizers.l2(1e-5),
+        deep_dropout=0.1,
+        wide_dropout=0.2,
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 
