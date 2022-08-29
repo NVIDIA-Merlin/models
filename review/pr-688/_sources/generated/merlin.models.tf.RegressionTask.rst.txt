@@ -1,0 +1,90 @@
+﻿merlin.models.tf.RegressionTask
+===============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: RegressionTask
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~RegressionTask.__init__
+      ~RegressionTask.add_loss
+      ~RegressionTask.add_metric
+      ~RegressionTask.add_update
+      ~RegressionTask.add_variable
+      ~RegressionTask.add_weight
+      ~RegressionTask.build
+      ~RegressionTask.build_task
+      ~RegressionTask.call
+      ~RegressionTask.child_name
+      ~RegressionTask.compute_mask
+      ~RegressionTask.compute_output_shape
+      ~RegressionTask.compute_output_signature
+      ~RegressionTask.count_params
+      ~RegressionTask.create_default_metrics
+      ~RegressionTask.finalize_state
+      ~RegressionTask.from_config
+      ~RegressionTask.get_config
+      ~RegressionTask.get_input_at
+      ~RegressionTask.get_input_mask_at
+      ~RegressionTask.get_input_shape_at
+      ~RegressionTask.get_output_at
+      ~RegressionTask.get_output_mask_at
+      ~RegressionTask.get_output_shape_at
+      ~RegressionTask.get_weights
+      ~RegressionTask.pre_call
+      ~RegressionTask.pre_loss
+      ~RegressionTask.set_weights
+      ~RegressionTask.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~RegressionTask.DEFAULT_LOSS
+      ~RegressionTask.DEFAULT_METRICS
+      ~RegressionTask.activity_regularizer
+      ~RegressionTask.compute_dtype
+      ~RegressionTask.context
+      ~RegressionTask.dtype
+      ~RegressionTask.dtype_policy
+      ~RegressionTask.dynamic
+      ~RegressionTask.inbound_nodes
+      ~RegressionTask.input
+      ~RegressionTask.input_mask
+      ~RegressionTask.input_shape
+      ~RegressionTask.input_spec
+      ~RegressionTask.losses
+      ~RegressionTask.metrics
+      ~RegressionTask.name
+      ~RegressionTask.name_scope
+      ~RegressionTask.non_trainable_variables
+      ~RegressionTask.non_trainable_weights
+      ~RegressionTask.outbound_nodes
+      ~RegressionTask.output
+      ~RegressionTask.output_mask
+      ~RegressionTask.output_shape
+      ~RegressionTask.pre_eval_topk
+      ~RegressionTask.stateful
+      ~RegressionTask.submodules
+      ~RegressionTask.supports_masking
+      ~RegressionTask.task_name
+      ~RegressionTask.trainable
+      ~RegressionTask.trainable_variables
+      ~RegressionTask.trainable_weights
+      ~RegressionTask.updates
+      ~RegressionTask.variable_dtype
+      ~RegressionTask.variables
+      ~RegressionTask.weights
+   
+   
