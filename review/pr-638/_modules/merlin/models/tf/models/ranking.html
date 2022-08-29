@@ -81,7 +81,7 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.cross</span> <span class="kn">import</span> <span class="n">CrossBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.dlrm</span> <span class="kn">import</span> <span class="n">DLRMBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.interaction</span> <span class="kn">import</span> <span class="n">FMPairwiseInteraction</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.mlp</span> <span class="kn">import</span> <span class="n">MLPBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.mlp</span> <span class="kn">import</span> <span class="n">MLPBlock</span><span class="p">,</span> <span class="n">RegularizerType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.aggregation</span> <span class="kn">import</span> <span class="n">ConcatFeatures</span><span class="p">,</span> <span class="n">StackFeatures</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span><span class="p">,</span> <span class="n">TabularBlock</span>
@@ -329,6 +329,10 @@
     <span class="n">wide_preprocess</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">deep_input_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">wide_input_block</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Block</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">deep_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RegularizerType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">wide_regularizer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RegularizerType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">deep_dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">wide_dropout</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">prediction_tasks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
         <span class="n">Union</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">PredictionTask</span><span class="p">],</span> <span class="n">ParallelPredictionBlock</span><span class="p">]</span>
     <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -424,6 +428,22 @@
 <span class="sd">        Transformation block for preprocess data in wide model. Such as CategoryEncoding,</span>
 <span class="sd">        HashedCross, and HashedCrossAll, please note the schema of transformation</span>
 <span class="sd">        block should be the same as the wide_schema. See example usage. By default None.</span>
+<span class="sd">    deep_input_block : Optional[Block]</span>
+<span class="sd">        The input block to be used by the deep part. It fnot provided, it is created internally</span>
+<span class="sd">        by using the deep_schema. Defaults to None.</span>
+<span class="sd">    wide_input_block : Optional[Block]</span>
+<span class="sd">        The input block to be used by the wide part. It fnot provided, it is created internally</span>
+<span class="sd">        by using the wide_schema. Defaults to None.</span>
+<span class="sd">    deep_regularizer : Optional[RegularizerType]</span>
+<span class="sd">        Regularizer function applied to the last layer kernel weights matrix and biases of</span>
+<span class="sd">        the MLP layer of the wide part. Defaults to None.</span>
+<span class="sd">    wide_regularizer : Optional[RegularizerType]</span>
+<span class="sd">        Regularizer function applied to the last layer kernel weights matrix and biases</span>
+<span class="sd">        of the last MLP layer of deep part). Defaults to None.</span>
+<span class="sd">    deep_dropout: Optional[float]</span>
+<span class="sd">        The dropout to be used by the last layer of deep part. Defaults to None.</span>
+<span class="sd">    wide_dropout: Optional[float]</span>
+<span class="sd">        The dropout to be used by the last layer of wide part. Defaults to None.</span>
 <span class="sd">    prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]</span>
 <span class="sd">        The prediction tasks to be used, by default this will be inferred from the Schema.</span>
 
@@ -437,31 +457,56 @@
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">wide_schema</span><span class="p">:</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;If not specify wide_schema, NO feature would be sent to wide model&quot;</span><span class="p">)</span>
-        <span class="n">wide_schema</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">deep_schema</span><span class="p">:</span>
         <span class="n">deep_schema</span> <span class="o">=</span> <span class="n">schema</span>
 
+    <span class="n">branches</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">deep_input_block</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deep_schema</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">deep_schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">deep_schema</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">deep_input_block</span> <span class="o">=</span> <span class="n">InputBlockV2</span><span class="p">(</span>
                 <span class="n">deep_schema</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
             <span class="p">)</span>
-    <span class="n">deep_body</span> <span class="o">=</span> <span class="n">deep_input_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">deep_block</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
-        <span class="n">MLPBlock</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">no_activation_last_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">deep_input_block</span><span class="p">:</span>
+        <span class="n">deep_body</span> <span class="o">=</span> <span class="n">deep_input_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">deep_block</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="n">MLPBlock</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">no_activation_last_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">kernel_regularizer</span><span class="o">=</span><span class="n">deep_regularizer</span><span class="p">,</span>
+                <span class="n">bias_regularizer</span><span class="o">=</span><span class="n">deep_regularizer</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">deep_dropout</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;deep&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deep_body</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">wide_input_block</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">wide_schema</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">wide_schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">wide_schema</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">wide_input_block</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">(</span>
                 <span class="n">TabularBlock</span><span class="o">.</span><span class="n">from_schema</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="n">wide_schema</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">wide_preprocess</span><span class="p">),</span>
                 <span class="n">is_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span><span class="p">,</span>
             <span class="p">)</span>
-    <span class="n">wide_body</span> <span class="o">=</span> <span class="n">wide_input_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">no_activation_last_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
 
-    <span class="n">branches</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;wide&quot;</span><span class="p">:</span> <span class="n">wide_body</span><span class="p">,</span> <span class="s2">&quot;deep&quot;</span><span class="p">:</span> <span class="n">deep_body</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">wide_input_block</span><span class="p">:</span>
+        <span class="n">wide_body</span> <span class="o">=</span> <span class="n">wide_input_block</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+            <span class="n">MLPBlock</span><span class="p">(</span>
+                <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">no_activation_last_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">kernel_regularizer</span><span class="o">=</span><span class="n">wide_regularizer</span><span class="p">,</span>
+                <span class="n">bias_regularizer</span><span class="o">=</span><span class="n">wide_regularizer</span><span class="p">,</span>
+                <span class="n">dropout</span><span class="o">=</span><span class="n">wide_dropout</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;wide&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wide_body</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">branches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;At least the deep part (deep_schema/deep_input_block) &quot;</span>
+            <span class="s2">&quot;or wide part (wide_schema/wide_input_block) must be provided.&quot;</span>
+        <span class="p">)</span>
+
     <span class="n">wide_and_deep_body</span> <span class="o">=</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">branches</span><span class="p">,</span> <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;element-wise-sum&quot;</span><span class="p">)</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">wide_and_deep_body</span><span class="p">,</span> <span class="n">prediction_tasks</span><span class="p">)</span>
 
