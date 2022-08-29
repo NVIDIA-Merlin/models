@@ -19,6 +19,8 @@ from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
 from keras.layers.preprocessing import preprocessing_utils
+from keras.layers.preprocessing import preprocessing_utils as utils
+from keras.utils import layer_utils
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.core.base import Block, PredictionOutput
@@ -32,6 +34,10 @@ from merlin.models.tf.utils.tf_utils import (
 )
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
+
+ONE_HOT = utils.ONE_HOT
+MULTI_HOT = utils.MULTI_HOT
+COUNT = utils.COUNT
 
 
 @Block.registry.register("as-ragged")
@@ -315,10 +321,7 @@ class RemovePad3D(Block):
                 predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
             )
 
-        return outputs.copy_with_updates(
-            predictions=predictions,
-            targets=targets,
-        )
+        return outputs.copy_with_updates(predictions=predictions, targets=targets)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -406,78 +409,179 @@ class ItemsPredictionWeightTying(Block):
         return logits
 
 
-@Block.registry.register_with_multiple_names("categorical_to_onehot")
+@Block.registry.register_with_multiple_names("category_encoding")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 @requires_schema
-class CategoricalOneHot(TabularBlock):
+class CategoryEncoding(TabularBlock):
     """
-    Transform categorical features (2-D and 3-D tensors) to a one-hot representation, only
+    A preprocessing layer which encodes integer features.
+
+    This layer provides options for condensing data into a categorical encoding. It accepts integer
+    values as inputs, and it outputs a dense or sparse representation of those inputs. Only
     categorical features with "CATEGORICAL" as Tag can be transformed, and other features without
-    this Tag would be discarded
+    this Tag would be discarded.
+    It outputs a TabularData (Dict of features), where each feature is a 2D tensor computed
+    based on the outputmode.
 
     Parameters:
     ----------
     schema : Optional[Schema]
         The `Schema` with the input features
+    output_mode: Optional[str]
+        Specification for the output of the layer. Defaults to `"multi_hot"`. Values can be
+        "one_hot", "multi_hot" or "count", configuring the transformation layer as follows:
+        - "one_hot": Encodes each individual element in the input into a tensor with shape
+            (batch_size, feature_cardinality), containing a 1 at the element index.
+            It accepts both 1D tensor or 2D tensor if squeezable (i.e., if the last dimension is 1).
+        - "multi_hot": Encodes each categorical value from the 2D input features into a
+            multi-hot representation with shape (batch_size, feature_cardinality), with 1 at
+            the indices present in the sequence and 0 for the other position.
+            If 1D feature is provided, it behaves the same as "one_hot".
+        - "count": also expects 2D tensor like `"multi_hot"` and outputs the features
+            with shape (batch_size, feature_cardinality). But instead of returning "multi-hot"
+            values, it outputs the frequency (count) of the number of items each item occurs
+            in each sample.
+    sparse: Optional[Boolean]
+        If true, returns a `SparseTensor` instead of a dense `Tensor`. Defaults to `False`.
+        Setting sparse=True is recommended for high-cardinality features, in order to avoid
+        out-of-memory errors.
+    count_weights: Optional[Union(tf.Tensor, tf.RaggedTensor, tf.SparseTensor)]
+        count_weights is used to calculate weighted sum of times a token at that index appeared when
+        `output_mode` is "count"
     """
 
-    def __init__(self, schema: Schema = None, **kwargs):
+    def __init__(
+        self,
+        schema: Schema = None,
+        output_mode="one_hot",
+        sparse=False,
+        count_weights=None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         if schema:
             self.set_schema(schema.select_by_tag(Tags.CATEGORICAL))
         self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
-        # record which input should be flatten and use it in call, for graph execution compile(
-        # run_eagerly=False)
-        self.flatten = []
+        # 'output_mode' must be one of (COUNT, ONE_HOT, MULTI_HOT)
+        layer_utils.validate_string_arg(
+            output_mode,
+            allowable_strings=(COUNT, ONE_HOT, MULTI_HOT),
+            layer_name="CategoryEncoding",
+            arg_name="output_mode",
+        )
+        self.output_mode = output_mode
+        self.sparse = sparse
+        if count_weights is not None:
+            if self.output_mode != COUNT:
+                raise ValueError(
+                    "`count_weights` is not used when `output_mode` is not "
+                    "`'count'`. Received `count_weights={count_weights}`."
+                )
+            self.count_weights = utils.ensure_tensor(count_weights, self.compute_dtype)
+        else:
+            self.count_weights = None
 
-    def build(self, input_shapes):
-        super(CategoricalOneHot, self).build(input_shapes)
+        # Used to reshape 1D<->2Dtensors depending on the output_mode, when in graph mode
+        self._2d_features_last_dim = {}
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        self._check_inputs_type(inputs)
         outputs = {}
-        for name, val in self.cardinalities.items():
+        for name, depth in self.cardinalities.items():
+            # Ensures the input is a Tensor, SparseTensor, then convert to Tensor
+            if isinstance(inputs[name], tf.RaggedTensor):
+                raise ValueError(
+                    f"All `CategoryEncoding` inputs should not contain a RaggedTensor. Received "
+                    f"{name} with type of {type(inputs[name])}"
+                )
+
             shape = inputs[name].get_shape().as_list()
-            if name in self.flatten or (len(shape) > 1 and shape[-1] == 1):
-                inputs[name] = tf.reshape(inputs[name], [-1])
-            outputs[name] = tf.one_hot(inputs[name], val)
+            if len(shape) > 2:
+                raise ValueError("`CategoryEncoding` only accepts 1D or 2D-shaped inputs")
+
+            outputs[name] = utils.ensure_tensor(inputs[name])
+
+            if isinstance(outputs[name], tf.SparseTensor):
+                max_value = tf.reduce_max(outputs[name].values)
+                min_value = tf.reduce_min(outputs[name].values)
+            else:
+                max_value = tf.reduce_max(outputs[name])
+                min_value = tf.reduce_min(outputs[name])
+            condition = tf.logical_and(
+                tf.greater(tf.cast(depth, max_value.dtype), max_value),
+                tf.greater_equal(min_value, tf.cast(0, min_value.dtype)),
+            )
+            assertion = tf.Assert(
+                condition,
+                [
+                    "Input values must be in the range 0 <= values < num_tokens"
+                    " with num_tokens={}".format(depth)
+                ],
+            )
+            with tf.control_dependencies([assertion]):
+
+                outputs[name] = self.adjust_tensor_shape(outputs[name], name)
+
+                outputs[name] = utils.encode_categorical_inputs(
+                    outputs[name],
+                    output_mode=self.output_mode,
+                    depth=depth,
+                    dtype=self.compute_dtype,
+                    sparse=self.sparse,
+                    count_weights=self.count_weights,
+                )
         return outputs
 
-    def _check_inputs_type(self, inputs):
-        for name, val in self.cardinalities.items():
-            if not isinstance(inputs[name], tf.Tensor):
-                raise ValueError(
-                    f"All `CategoricalOneHot` inputs should be a Tensor. Received {name} with type "
-                    f"of {type(inputs[name])}"
+    def adjust_tensor_shape(self, input, feat_name):
+        shape = input.get_shape().as_list()
+        output = input
+        reshape_fn = tf.sparse.reshape if isinstance(output, tf.SparseTensor) else tf.reshape
+        if self.output_mode == ONE_HOT:
+            if len(shape) > 1:
+                if (self._2d_features_last_dim.get(feat_name, None) == 1) or (shape[-1] == 1):
+                    output = reshape_fn(output, [-1])
+                else:
+                    raise ValueError(
+                        "One-hot accepts input tensors that are squeezable to 1D, but received"
+                        f" a tensor with shape: {shape}"
+                    )
+        # For MULTI_HOT or COUNT, ensures the tensor is 2D
+        else:
+            if len(shape) == 1:
+                expand_dims_fn = (
+                    tf.sparse.expand_dims if isinstance(output, tf.SparseTensor) else tf.expand_dims
                 )
+                output = expand_dims_fn(output, 1)
+            else:
+                # Ensures that the shape is known to avoid error on graph mode
+                new_shape = (-1, self._2d_features_last_dim.get(feat_name, shape[-1]))
+                output = reshape_fn(output, new_shape)
+        return output
 
-    def compute_output_shape(self, input_shape):
+    def compute_output_shape(self, input_shapes):
         outputs = {}
         for key in self.schema.column_names:
-            val = input_shape[key].as_list()
-            rank = len(val)
-            if rank > 2:
-                raise ValueError(
-                    "All `CategoricalOneHot` inputs should have shape `[batch_size]` "
-                    f"or `[batch_size, 1]` or `[batch_size, n]`. Received: input {key} with "
-                    f"shape={val}"
-                )
-            # 2-D input
-            elif rank == 2:
-                if val[-1] != 1:
-                    outputs[key] = tf.TensorShape((val[0], val[1], self.cardinalities[key]))
-                elif val[-1] == 1:
-                    self.flatten.append(key)
-                    outputs[key] = tf.TensorShape((val[0], self.cardinalities[key]))
-            # 1-D input
+            input_shape = input_shapes[key]
+            if not input_shape:
+                outputs[key] = tf.TensorShape([self.cardinalities[key]])
             else:
-                outputs[key] = tf.TensorShape((val[0], self.cardinalities[key]))
+                outputs[key] = tf.TensorShape(input_shape[:1] + [self.cardinalities[key]])
+
+                if len(input_shape) == 2:
+                    self._2d_features_last_dim[key] = input_shape[-1]
+
         return outputs
 
     def get_config(self):
         config = super().get_config()
         if self.schema:
             config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
+        config.update(
+            {
+                "output_mode": self.output_mode,
+                "sparse": self.sparse,
+                "count_weights": self.count_weights.numpy() if self.count_weights else None,
+            }
+        )
         return config
 
 
