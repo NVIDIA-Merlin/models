@@ -262,11 +262,17 @@ class EmbeddingTable(EmbeddingTableBase):
         -------
         A tensor or dict of tensors corresponding to the embeddings for inputs
         """
-        return_dict = False
         if isinstance(inputs, dict):
-            return_dict = True
-            inputs = inputs[self.col_schema.name]
+            out = {}
+            for col_name in [self.col_schema.name]:
+                if col_name in inputs:
+                    out[col_name] = self._call_table(inputs[col_name], **kwargs)
+        else:
+            out = self._call_table(inputs, **kwargs)
 
+        return out
+
+    def _call_table(self, inputs, **kwargs):
         if isinstance(inputs, tuple) and len(inputs) == 2:
             inputs = list_col_to_ragged(inputs)
 
@@ -299,17 +305,23 @@ class EmbeddingTable(EmbeddingTableBase):
             # this is mathematically equivalent but is faster.
             out = tf.cast(out, self._dtype_policy.compute_dtype)
 
-        if return_dict:
-            out = {self.col_schema.name: out}
-
         return out
 
     def compute_output_shape(
         self, input_shape: Union[tf.TensorShape, Dict[str, tf.TensorShape]]
-    ) -> tf.Tensor:
+    ) -> Union[tf.TensorShape, Dict[str, tf.TensorShape]]:
         if isinstance(input_shape, dict):
-            input_shape = input_shape[self.col_schema.name]
+            output_shapes = {}
+            for col_name in [self.col_schema.name]:
+                output_shapes[col_name] = self._compute_output_shape_table(input_shape[col_name])
+        else:
+            output_shapes = self._compute_output_shape_table(input_shape)
 
+        return output_shapes
+
+    def _compute_output_shape_table(
+        self, input_shape: Union[tf.TensorShape, tuple]
+    ) -> tf.TensorShape:
         if isinstance(input_shape, tuple) and isinstance(input_shape[1], tf.TensorShape):
             input_shape = tf.TensorShape([input_shape[1][0], None])
 
@@ -317,6 +329,7 @@ class EmbeddingTable(EmbeddingTableBase):
         if (self.sequence_combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
             first_dims = input_shape[:-1]
         output_shapes = tf.TensorShape(first_dims + [self.dim])
+
         return output_shapes
 
     def compute_call_output_shape(self, input_shapes):

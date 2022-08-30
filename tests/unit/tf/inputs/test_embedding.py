@@ -79,7 +79,7 @@ class TestEmbeddingTable:
                 tf.sparse.from_dense(tf.constant([[1, 2, 3]])),
                 [1, 16],
             ),
-            (12, {}, {"item_id": tf.constant([[1]])}, [1, 12]),
+            (12, {}, {"item_id": tf.constant([[1]])}, {"item_id": [1, 12]}),
         ],
     )
     def test_layer(self, dim, kwargs, inputs, expected_output_shape):
@@ -87,14 +87,12 @@ class TestEmbeddingTable:
         layer = mm.EmbeddingTable(dim, column_schema, **kwargs)
 
         output = layer(inputs)
-        if isinstance(output, dict):
-            output = output[column_schema.name]
-        assert list(output.shape) == expected_output_shape
+        self._assert_output_shape(output, expected_output_shape)
 
         if "sequence_combiner" in kwargs:
             assert isinstance(output, tf.Tensor)
         elif isinstance(inputs, dict):
-            assert type(inputs[column_schema.name]) is type(output)
+            assert isinstance(inputs[column_schema.name], type(output[column_schema.name]))
         else:
             assert type(inputs) is type(output)
 
@@ -104,9 +102,23 @@ class TestEmbeddingTable:
         assert copied_layer.input_dim == layer.input_dim
 
         output = copied_layer(inputs)
-        if isinstance(output, dict):
-            output = output[column_schema.name]
-        assert list(output.shape) == expected_output_shape
+        self._assert_output_shape(output, expected_output_shape)
+
+    def _get_shape(self, tensor_or_shape) -> tf.TensorShape:
+        if hasattr(tensor_or_shape, "shape"):
+            output_shape = tensor_or_shape.shape
+        else:
+            output_shape = tensor_or_shape
+        return output_shape
+
+    def _assert_output_shape(self, output, expected_output_shape):
+        if isinstance(expected_output_shape, dict):
+            for key in expected_output_shape.keys():
+                output_shape = self._get_shape(output[key])
+                assert list(output_shape) == list(expected_output_shape[key])
+        else:
+            output_shape = self._get_shape(output)
+            assert list(output_shape) == list(expected_output_shape)
 
     def test_layer_simple(self):
         col_schema = self.sample_column_schema
@@ -127,14 +139,14 @@ class TestEmbeddingTable:
             (tf.TensorShape([1, 3]), tf.TensorShape([1, 3, 10]), {}),
             (tf.TensorShape([2, None]), tf.TensorShape([2, None, 10]), {}),
             (tf.TensorShape([2, None]), tf.TensorShape([2, 10]), {"sequence_combiner": "mean"}),
-            ({"item_id": tf.TensorShape([1, 1])}, tf.TensorShape([1, 10]), {}),
+            ({"item_id": tf.TensorShape([1, 1])}, {"item_id": tf.TensorShape([1, 10])}, {}),
         ],
     )
     def test_compute_output_shape(self, input_shape, expected_output_shape, kwargs):
         column_schema = self.sample_column_schema
         layer = mm.EmbeddingTable(10, column_schema, **kwargs)
         output_shape = layer.compute_output_shape(input_shape)
-        assert list(output_shape) == list(expected_output_shape)
+        self._assert_output_shape(output_shape, expected_output_shape)
 
     def test_dense_with_combiner(self):
         dim = 16
