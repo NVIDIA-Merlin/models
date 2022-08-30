@@ -247,8 +247,6 @@ class EmbeddingTable(EmbeddingTableBase):
     def build(self, input_shapes):
         if not self.table.built:
             self.table.build(input_shapes)
-        # if isinstance(self.combiner, tf.keras.layers.Layer):
-        #    self.combiner.build(self.table.compute_output_shape(input_shapes))
         return super(EmbeddingTable, self).build(input_shapes)
 
     def call(self, inputs: Union[tf.Tensor, TabularData], **kwargs) -> tf.Tensor:
@@ -271,12 +269,6 @@ class EmbeddingTable(EmbeddingTableBase):
         # Eliminating the last dim==1 of dense tensors before embedding lookup
         if isinstance(inputs, tf.Tensor):
             inputs = tf.squeeze(inputs, axis=-1)
-
-        """
-        dtype = backend.dtype(inputs)
-        if dtype != "int32" and dtype != "int64":
-            inputs = tf.cast(inputs, "int32")
-        """
 
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):
