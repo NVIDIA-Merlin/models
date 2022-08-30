@@ -260,7 +260,9 @@ class EmbeddingTable(EmbeddingTableBase):
         -------
         A tensor corresponding to the embeddings for inputs
         """
+        return_dict = False
         if isinstance(inputs, dict):
+            return_dict = True
             inputs = inputs[self.col_schema.name]
 
         if isinstance(inputs, tuple) and len(inputs) == 2:
@@ -294,6 +296,9 @@ class EmbeddingTable(EmbeddingTableBase):
             # Instead of casting the variable as in most layers, cast the output, as
             # this is mathematically equivalent but is faster.
             out = tf.cast(out, self._dtype_policy.compute_dtype)
+
+        if return_dict:
+            out = {self.col_schema.name: out}
 
         return out
 

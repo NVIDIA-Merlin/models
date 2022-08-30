@@ -87,6 +87,8 @@ class TestEmbeddingTable:
         layer = mm.EmbeddingTable(dim, column_schema, **kwargs)
 
         output = layer(inputs)
+        if isinstance(output, dict):
+            output = output[column_schema.name]
         assert list(output.shape) == expected_output_shape
 
         if "sequence_combiner" in kwargs:
@@ -102,6 +104,8 @@ class TestEmbeddingTable:
         assert copied_layer.input_dim == layer.input_dim
 
         output = copied_layer(inputs)
+        if isinstance(output, dict):
+            output = output[column_schema.name]
         assert list(output.shape) == expected_output_shape
 
     def test_layer_simple(self):
