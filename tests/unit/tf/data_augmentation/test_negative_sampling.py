@@ -70,10 +70,7 @@ class TestAddRandomNegativesToBatch:
         dataset = Dataset(input_df, schema=schema)
         batched_dataset = BatchedDataset(dataset, batch_size=10)
         batched_dataset = batched_dataset.map(sampler)
-        first_batch_outputs = next(iter(batched_dataset))
-
-        outputs = first_batch_outputs.outputs
-        targets = first_batch_outputs.targets
+        outputs, targets = next(iter(batched_dataset))
 
         output_dict = {
             key: output_tensor.numpy().reshape(-1) for key, output_tensor in outputs.items()
@@ -133,9 +130,7 @@ class TestAddRandomNegativesToBatch:
 
         sampler = UniformNegativeSampling(schema, 5, seed=tf_random_seed)
 
-        with_negatives = sampler(inputs, targets=targets)
-        outputs = with_negatives.outputs
-        targets = with_negatives.targets
+        outputs, targets = sampler(inputs, targets=targets)
 
         max_batch_size = batch_size + batch_size * n_per_positive
 
@@ -182,7 +177,7 @@ class TestAddRandomNegativesToBatch:
 
         sampling = mm.Cond(
             ExampleIsTraining(),
-            UniformNegativeSampling(schema, 5, seed=tf_random_seed),
+            UniformNegativeSampling(schema, 5, seed=tf_random_seed, return_tuple=False),
             ExamplePredictionIdentity(),
         )
         model = mm.Model(
