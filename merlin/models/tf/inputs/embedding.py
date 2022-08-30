@@ -249,16 +249,18 @@ class EmbeddingTable(EmbeddingTableBase):
             self.table.build(input_shapes)
         return super(EmbeddingTable, self).build(input_shapes)
 
-    def call(self, inputs: Union[tf.Tensor, TabularData], **kwargs) -> tf.Tensor:
+    def call(
+        self, inputs: Union[tf.Tensor, TabularData], **kwargs
+    ) -> Union[tf.Tensor, TabularData]:
         """
         Parameters
         ----------
         inputs : Union[tf.Tensor, tf.RaggedTensor, tf.SparseTensor]
-            Tensors representing the input batch
+            Tensors or dictionary of tensors representing the input batch.
 
         Returns
         -------
-        A tensor corresponding to the embeddings for inputs
+        A tensor or dict of tensors corresponding to the embeddings for inputs
         """
         return_dict = False
         if isinstance(inputs, dict):
