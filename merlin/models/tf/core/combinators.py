@@ -112,16 +112,10 @@ class SequentialBlock(Block):
         tf.TensorShape
             The output shape
         """
-        output_shape = input_shape
-        for layer in self.layers:
-            output_shape = layer.compute_output_shape(output_shape)
-        return output_shape
+        return compute_output_shape_sequentially(self.layers, input_shape)
 
     def compute_output_signature(self, input_signature):
-        output_signature = input_signature
-        for layer in self.layers:
-            output_signature = layer.compute_output_signature(output_signature)
-        return output_signature
+        return compute_output_signature_sequentially(self.layers, input_signature)
 
     def build(self, input_shape=None):
         """Builds the sequential block
@@ -132,21 +126,7 @@ class SequentialBlock(Block):
             The input shape, by default None
         """
         self._maybe_propagate_context(input_shape)
-        last_layer = None
-        for layer in self.layers:
-            try:
-                layer.build(input_shape)
-            except TypeError:
-                t, v, tb = sys.exc_info()
-                if isinstance(input_shape, dict) and isinstance(last_layer, TabularBlock):
-                    v = TypeError(
-                        f"Couldn't build {layer}, "
-                        f"did you forget to add aggregation to {last_layer}?"
-                    )
-                six.reraise(t, v, tb)
-            input_shape = layer.compute_output_shape(input_shape)
-            last_layer = layer
-        self.built = True
+        build_sequentially(self, self.layers, input_shape)
 
     def set_schema(self, schema=None):
         for layer in self.layers:
@@ -284,11 +264,7 @@ class SequentialBlock(Block):
         return list(values)
 
     def call(self, inputs, training=False, **kwargs):
-        outputs = inputs
-        for i, layer in enumerate(self.layers):
-            outputs = call_layer(layer, outputs, training=training, **kwargs)
-
-        return outputs
+        return call_sequentially(self.layers, inputs, training=training, **kwargs)
 
     def compute_loss(self, inputs, targets, **kwargs):
         outputs, targets = inputs, targets
@@ -747,3 +723,50 @@ class MapValues(Layer):
     def from_config(cls, config):
         layer = tf.keras.layers.deserialize(config.pop("layer"))
         return cls(layer, **config)
+
+
+def call_sequentially(layers, inputs, **kwargs):
+    """Call layers sequentially."""
+
+    outputs = inputs
+    for layer in layers:
+        outputs = call_layer(layer, outputs, **kwargs)
+
+    return outputs
+
+
+def build_sequentially(self, layers, input_shape):
+    """Build layers sequentially."""
+    last_layer = None
+    for layer in layers:
+        try:
+            layer.build(input_shape)
+        except TypeError:
+            t, v, tb = sys.exc_info()
+            if isinstance(input_shape, dict) and isinstance(last_layer, TabularBlock):
+                v = TypeError(
+                    f"Couldn't build {layer}, "
+                    f"did you forget to add aggregation to {last_layer}?"
+                )
+            six.reraise(t, v, tb)
+        input_shape = layer.compute_output_shape(input_shape)
+        last_layer = layer
+    self.built = True
+
+
+def compute_output_signature_sequentially(layers, input_signature):
+    """Compute output signature sequentially."""
+    output_signature = input_signature
+    for layer in layers:
+        output_signature = layer.compute_output_signature(output_signature)
+
+    return output_signature
+
+
+def compute_output_shape_sequentially(layers, input_shape):
+    """Compute output shape sequentially."""
+    output_shape = input_shape
+    for layer in layers:
+        output_shape = layer.compute_output_shape(output_shape)
+
+    return output_shape
