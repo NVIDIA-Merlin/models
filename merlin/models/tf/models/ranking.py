@@ -6,7 +6,7 @@ import tensorflow as tf
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
-from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
@@ -249,22 +249,26 @@ def DeepFMModel(
 def WideAndDeepModel(
     schema: Schema,
     deep_block: Block,
-    wide_model_name: Optional[str] = "wide_model_block",
-    deep_model_name: Optional[str] = "deep_model_block",
     wide_schema: Optional[Schema] = None,
     deep_schema: Optional[Schema] = None,
     wide_preprocess: Optional[Block] = None,
     deep_input_block: Optional[Block] = None,
     wide_input_block: Optional[Block] = None,
+    deep_regularizer: Optional[RegularizerType] = None,
+    wide_regularizer: Optional[RegularizerType] = None,
+    deep_dropout: Optional[float] = None,
+    wide_dropout: Optional[float] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     **kwargs,
 ) -> Model:
-    """Wide-and-Deep-model architecture.
+    """Wide-and-Deep-model architecture [1].
 
     Example Usage::
+
         1. Using default input block
+        ```python
         wide_deep = ml.benchmark.WideAndDeepModel(
             schema,
             deep_block=ml.MLPBlock([32, 16]),
@@ -274,17 +278,57 @@ def WideAndDeepModel(
         )
         wide_deep.compile(optimizer="adam")
         wide_deep.fit(train_data, epochs=10)
+        ```
 
         2. Custom input block
+        ```python
         deep_embedding = ml.Embeddings(schema, embedding_dim_default=8, infer_embedding_sizes=False)
         model = ml.WideAndDeepModel(
             schema,
             deep_input_block = ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
             wide_schema=wide_schema,
-            wide_preprocess=ml.HashedCross(wide_schema, 1000),
+            wide_preprocess=ml.CategoryEncoding(wide_schema, output_mode="multi_hot", sparse=True),
             deep_block=ml.MLPBlock([32, 16]),
             prediction_tasks=ml.BinaryClassificationTask("click"),
         )
+        ```
+
+        3. Wide preprocess with one-hot categorical features and hashed 2nd-level feature
+            interactions
+        ```python
+        model = ml.WideAndDeepModel(
+            schema,
+            wide_schema=wide_schema,
+            deep_schema=deep_schema,
+            wide_preprocess=ml.ParallelBlock(
+                [
+                    # One-hot representations of categorical features
+                    ml.CategoryEncoding(wide_schema, output_mode="one_hot", sparse=True),
+                    # One-hot representations of hashed 2nd-level feature interactions
+                    ml.HashedCrossAll(wide_schema, num_bins=1000, max_level=2, sparse=True),
+                ],
+                aggregation="concat",
+            ),
+            deep_block=ml.MLPBlock([31, 16]),
+            prediction_tasks=ml.BinaryClassificationTask("click"),
+        )
+        ```
+
+        On Wide&Deep paper [1] they proposed usage of separate optimizers for dense (AdaGrad) and
+        sparse embeddings parameters (FTRL). You can implement that by using `MultiOptimizer` class.
+        For example:
+        ```python
+            wide_model = model.get_blocks_by_name("sequential_block_6")
+            deep_model = model.get_blocks_by_name("sequential_block_3")
+
+            multi_optimizer = ml.MultiOptimizer(
+                default_optimizer="adagrad",
+                optimizers_and_blocks=[
+                    ml.OptimizerBlocks("ftrl", wide_model),
+                    ml.OptimizerBlocks("adagrad", deep_model),
+                ],
+            )
+        ```
 
     References
     ----------
@@ -306,32 +350,25 @@ def WideAndDeepModel(
         The 'Schema' of input features for deep model, by default all features would be sent to
         deep model. deep_schema and wide_schema could contain the same features
     wide_preprocess : Optional[Block]
-        Transformation block for preprocess data in wide model. Such as CategoricalOneHot,
-        CategoryEncoding, HashedCross, and HashedCrossAll, please note the schema of transformation
-        block should be the same as the wide_schema.  By default None.
-        For example:
-            ```python
-            # CategoricalOneHot as preprocess for wide model
-            import merlin.models.tf as ml
-            model = ml.benchmark.WideAndDeepModel(
-                schema = schema,
-                wide_schema=wide_schema,
-                deep_schema=deep_schema,
-                wide_preprocess = ml.CategoricalOneHot(wide_schema)
-                deep_block=ml.MLPBlock([32, 16]),
-                prediction_tasks=ml.BinaryClassificationTask("click"),
-            )
-
-            # HashedCross as preprocess for wide model
-            model = ml.benchmark.WideAndDeepModel(
-                schema = schema,
-                wide_schema=wide_schema,
-                deep_schema=deep_schema,
-                wide_preprocess = ml.HashedCross(wide_schema, num_bins=1000),
-                deep_block=ml.MLPBlock([32, 16]),
-                prediction_tasks=ml.BinaryClassificationTask("click"),
-            )
-            ```
+        Transformation block for preprocess data in wide model. Such as CategoryEncoding,
+        HashedCross, and HashedCrossAll, please note the schema of transformation
+        block should be the same as the wide_schema. See example usage. By default None.
+    deep_input_block : Optional[Block]
+        The input block to be used by the deep part. It fnot provided, it is created internally
+        by using the deep_schema. Defaults to None.
+    wide_input_block : Optional[Block]
+        The input block to be used by the wide part. It fnot provided, it is created internally
+        by using the wide_schema. Defaults to None.
+    deep_regularizer : Optional[RegularizerType]
+        Regularizer function applied to the last layer kernel weights matrix and biases of
+        the MLP layer of the wide part. Defaults to None.
+    wide_regularizer : Optional[RegularizerType]
+        Regularizer function applied to the last layer kernel weights matrix and biases
+        of the last MLP layer of deep part). Defaults to None.
+    deep_dropout: Optional[float]
+        The dropout to be used by the last layer of deep part. Defaults to None.
+    wide_dropout: Optional[float]
+        The dropout to be used by the last layer of wide part. Defaults to None.
     prediction_tasks: Optional[Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
         The prediction tasks to be used, by default this will be inferred from the Schema.
 
@@ -345,33 +382,56 @@ def WideAndDeepModel(
 
     if not wide_schema:
         warnings.warn("If not specify wide_schema, NO feature would be sent to wide model")
-        wide_schema = None
 
     if not deep_schema:
         deep_schema = schema
 
+    branches = dict()
+
     if not deep_input_block:
-        if len(deep_schema) > 0:
+        if deep_schema is not None and len(deep_schema) > 0:
             deep_input_block = InputBlockV2(
                 deep_schema,
                 **kwargs,
             )
-    deep_body = deep_input_block.connect(deep_block).connect(
-        MLPBlock([1], no_activation_last_layer=True), block_name=deep_model_name
-    )
+    if deep_input_block:
+        deep_body = deep_input_block.connect(deep_block).connect(
+            MLPBlock(
+                [1],
+                no_activation_last_layer=True,
+                kernel_regularizer=deep_regularizer,
+                bias_regularizer=deep_regularizer,
+                dropout=deep_dropout,
+            )
+        )
+        branches["deep"] = deep_body
 
     if not wide_input_block:
-        if len(wide_schema) > 0:
+        if wide_schema is not None and len(wide_schema) > 0:
             wide_input_block = ParallelBlock(
                 TabularBlock.from_schema(schema=wide_schema, pre=wide_preprocess),
                 is_input=True,
                 aggregation="concat",
             )
-    wide_body = wide_input_block.connect(
-        MLPBlock([1], no_activation_last_layer=True), block_name=wide_model_name
-    )
 
-    branches = {"wide": wide_body, "deep": deep_body}
+    if wide_input_block:
+        wide_body = wide_input_block.connect(
+            MLPBlock(
+                [1],
+                no_activation_last_layer=True,
+                kernel_regularizer=wide_regularizer,
+                bias_regularizer=wide_regularizer,
+                dropout=wide_dropout,
+            )
+        )
+        branches["wide"] = wide_body
+
+    if len(branches) == 0:
+        raise ValueError(
+            "At least the deep part (deep_schema/deep_input_block) "
+            "or wide part (wide_schema/wide_input_block) must be provided."
+        )
+
     wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
     model = Model(wide_and_deep_body, prediction_tasks)
 
