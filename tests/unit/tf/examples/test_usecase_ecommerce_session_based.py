@@ -8,7 +8,7 @@ from tests.conftest import REPO_ROOT
     timeout=180,
     execute=False,
 )
-def test_usecase_pretrained_embeddings(tb):
+def test_usecase_ecommerce_session_based(tb):
     tb.inject(
         """
         import os
