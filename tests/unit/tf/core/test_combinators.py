@@ -103,6 +103,54 @@ def test_parallel_block_select_from_names():
         blocks.select_by_names(["0", "2"])
 
 
+def test_parallel_block_select_by_tags(music_streaming_data):
+    continuous_block = mm.Filter(Tags.CONTINUOUS)
+    embedding_block = mm.EmbeddingFeatures.from_schema(
+        music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
+    )
+    branches = {"continuous": continuous_block, "embedding": embedding_block}
+    parallel_block = mm.ParallelBlock(branches, schema=music_streaming_data.schema)
+
+    continuous_tags = parallel_block.select_by_tag(Tags.CONTINUOUS)
+    assert isinstance(continuous_tags, mm.ParallelBlock)
+    assert sorted(continuous_tags.schema.column_names) == ["item_recency", "position", "user_age"]
+
+    categorical_tags = parallel_block.select_by_tag(Tags.CATEGORICAL)
+    assert sorted(categorical_tags.schema.column_names) == [
+        "country",
+        "item_category",
+        "item_genres",
+        "item_id",
+        "session_id",
+        "user_genres",
+        "user_id",
+    ]
+
+    item_tags = parallel_block.select_by_tag(Tags.ITEM)
+    assert sorted(item_tags.schema.column_names) == [
+        "item_category",
+        "item_genres",
+        "item_id",
+        "item_recency",
+    ]
+    user_tags = parallel_block.select_by_tag([Tags.ITEM, Tags.USER])
+    assert sorted(user_tags.schema.column_names) == [
+        "country",
+        "item_category",
+        "item_genres",
+        "item_id",
+        "item_recency",
+        "user_age",
+        "user_genres",
+    ]
+
+    with pytest.raises(ValueError) as exc_info:
+        parallel_block.select_by_tag([Tags.SEQUENCE, Tags.TIME])
+        assert (
+            "None of the tags ['SEQUENCE', 'TIME'] were found in ParallelBlock 'parallel_block'."
+        ) in exc_info
+
+
 class TestCond:
     def test_true(self):
         condition = tf.keras.layers.Lambda(lambda _: True)

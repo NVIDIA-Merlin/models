@@ -445,6 +445,48 @@ class ParallelBlock(TabularBlock):
                 raise ValueError(f"Given name {name} is not in ParallelBlock {self.name}")
         return blocks
 
+    def select_by_tag(self, tags: Union[str, Tags, List[Union[str, Tags]]]) -> "ParallelBlock":
+        """Select a list of parallel blocks by tags
+
+        Parameters
+        ----------
+        tags: str or Tags or List[Union[str, Tags]]
+             List of tags that describe which blocks to match
+
+        Returns
+        -------
+        ParallelBlock
+        """
+        if not isinstance(tags, (list, tuple)):
+            tags = [tags]
+
+        selected_branches = {}
+        selected_schemas = {}
+
+        for name, branch in self.parallel_dict.items():
+            branch_has_schema = getattr(branch, "has_schema", False)
+            if not branch_has_schema:
+                continue
+            for column in branch.schema.column_names:
+                if any(tag in branch.schema[column].tags for tag in tags):
+                    selected_branches[name] = branch
+                    if (
+                        column in selected_schemas
+                        and selected_schemas[column] is not branch.schema[column]
+                    ):
+                        raise ValueError(
+                            f"Duplicate columns {column} found with different " "schema."
+                        )
+                    selected_schemas[column] = branch.schema[column]
+
+        if not selected_branches or not selected_schemas:
+            raise ValueError(
+                f"None of the tags {[t.name for t in tags]} were found in "
+                f"ParallelBlock '{self.name}'."
+            )
+
+        return ParallelBlock(selected_branches, schema=Schema(selected_schemas))
+
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]
 
