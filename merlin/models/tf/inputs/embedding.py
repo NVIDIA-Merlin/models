@@ -472,10 +472,13 @@ def Embeddings(
 
 def _forward_kwargs_to_table(col, table_cls, kwargs):
     arg_spec = inspect.getfullargspec(table_cls.__init__)
-    table_kwargs = dict(zip(arg_spec.args[-len(arg_spec.defaults) :], arg_spec.defaults))
+    supported_kwargs = arg_spec.kwonlyargs
+    if arg_spec.defaults:
+        supported_kwargs += arg_spec.args[-len(arg_spec.defaults) :]
 
+    table_kwargs = {}
     for key, val in kwargs.items():
-        if key in table_kwargs:
+        if key in supported_kwargs:
             if isinstance(val, dict):
                 if col.name in val:
                     table_kwargs[key] = val[col.name]
