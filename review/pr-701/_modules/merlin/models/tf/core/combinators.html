@@ -90,10 +90,16 @@
     <span class="n">is_input_block</span><span class="p">,</span>
     <span class="n">right_shift_layer</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.core.tabular</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">TabularAggregationType</span><span class="p">,</span> <span class="n">TabularBlock</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.tabular</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">TABULAR_MODULE_PARAMS_DOCSTRING</span><span class="p">,</span>
+    <span class="n">Filter</span><span class="p">,</span>
+    <span class="n">TabularAggregationType</span><span class="p">,</span>
+    <span class="n">TabularBlock</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils</span> <span class="kn">import</span> <span class="n">tf_utils</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.utils.tf_utils</span> <span class="kn">import</span> <span class="n">call_layer</span>
 <span class="kn">from</span> <span class="nn">merlin.models.utils</span> <span class="kn">import</span> <span class="n">schema_utils</span>
+<span class="kn">from</span> <span class="nn">merlin.models.utils.doc_utils</span> <span class="kn">import</span> <span class="n">docstring_parameter</span>
 <span class="kn">from</span> <span class="nn">merlin.schema</span> <span class="kn">import</span> <span class="n">Schema</span><span class="p">,</span> <span class="n">Tags</span>
 
 
@@ -404,7 +410,8 @@
         <span class="k">return</span> <span class="n">right_shift_layer</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ParallelBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock">[docs]</a><span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
+<div class="viewcode-block" id="ParallelBlock"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock">[docs]</a><span class="nd">@docstring_parameter</span><span class="p">(</span><span class="n">tabular_module_parameters</span><span class="o">=</span><span class="n">TABULAR_MODULE_PARAMS_DOCSTRING</span><span class="p">)</span>
+<span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ParallelBlock</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Merge multiple layers or TabularModule&#39;s into a single output of TabularData.</span>
 
@@ -413,9 +420,15 @@
 <span class="sd">    inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]]</span>
 <span class="sd">        keras layers to merge into, this can also be one or multiple layers keyed by the</span>
 <span class="sd">        name the module should have.</span>
+<span class="sd">    {tabular_module_parameters}</span>
 <span class="sd">    use_layer_name: use the original name of layers provided in inputs as key-index of the</span>
 <span class="sd">        parallel branches.</span>
-<span class="sd">    {tabular_module_parameters}</span>
+<span class="sd">    strict:</span>
+<span class="sd">        If true, inputs must be a dictionary. Otherwise, an error will be raised.</span>
+<span class="sd">    automatic_pruning:</span>
+<span class="sd">        If true, branches with no output will automatically be pruned.</span>
+<span class="sd">    **kwargs:</span>
+<span class="sd">        Extra arguments to pass to TabularBlock.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ParallelBlock.__init__"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -595,20 +608,13 @@
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="s2">&quot;Inputs needs to be a dict&quot;</span>
 
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
-            <span class="n">name</span> <span class="ow">in</span> <span class="n">inputs</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-        <span class="p">):</span>
-            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                    <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">out</span><span class="p">}</span>
-                <span class="n">outputs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-                    <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">out</span><span class="p">}</span>
-                <span class="n">outputs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">layer_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_filter_layer_inputs_using_schema</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">out</span><span class="p">}</span>
+            <span class="n">outputs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">outputs</span></div>
 
@@ -616,12 +622,10 @@
         <span class="n">output_shapes</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
-                <span class="n">key</span> <span class="ow">in</span> <span class="n">input_shape</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-            <span class="p">):</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">out</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
+            <span class="n">layer_input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_filter_layer_inputs_using_schema</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">input_shape</span>
+            <span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">layer_input_shape</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                 <span class="n">output_shapes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
@@ -631,23 +635,34 @@
 
 <div class="viewcode-block" id="ParallelBlock.build"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">):</span>
         <span class="n">to_prune</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">propagate_all_inputs</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
-            <span class="n">name</span> <span class="ow">in</span> <span class="n">input_shape</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-        <span class="p">):</span>
-            <span class="n">propagate_all_inputs</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">branch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">branch_shape</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">propagate_all_inputs</span> <span class="k">else</span> <span class="n">input_shape</span>
-            <span class="n">branch</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">branch_shape</span><span class="p">)</span>
-            <span class="n">branch_out_shape</span> <span class="o">=</span> <span class="n">branch</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">branch_shape</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">automatic_pruning</span> <span class="ow">and</span> <span class="n">branch_out_shape</span> <span class="o">==</span> <span class="p">{}:</span>
-                <span class="n">to_prune</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">layer_input_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_filter_layer_inputs_using_schema</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">input_shape</span>
+            <span class="p">)</span>
+            <span class="n">layer</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">layer_input_shape</span><span class="p">)</span>
+            <span class="n">layer_out_shape</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">compute_output_shape</span><span class="p">(</span><span class="n">layer_input_shape</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">automatic_pruning</span> <span class="ow">and</span> <span class="n">layer_out_shape</span> <span class="o">==</span> <span class="p">{}:</span>
+                <span class="n">to_prune</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">to_prune</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parallel_layers</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_maybe_filter_layer_inputs_using_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="n">has_schema</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="s2">&quot;has_schema&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">has_schema</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">layer_inputs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">layer_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer_inputs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="n">name</span> <span class="ow">in</span> <span class="n">layer_inputs</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span>
+        <span class="p">):</span>
+            <span class="n">layer_inputs</span> <span class="o">=</span> <span class="n">layer_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">layer_inputs</span>
 
 <div class="viewcode-block" id="ParallelBlock.get_config"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.get_config">[docs]</a>    <span class="k">def</span> <span class="nf">get_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">config</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ParallelBlock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
