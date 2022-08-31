@@ -87,6 +87,10 @@ class EmbeddingTableBase(Block):
     def input_dim(self):
         return self.col_schema.int_domain.max + 1
 
+    @property
+    def table_name(self):
+        return self.col_schema.int_domain.name or self.col_schema.name
+
     def add_feature(self, col_schema: ColumnSchema) -> None:
         if not col_schema.int_domain:
             raise ValueError("`col_schema` needs to have an int-domain")
@@ -214,7 +218,7 @@ class EmbeddingTable(EmbeddingTableBase):
             self.table = tf.keras.layers.Embedding(
                 input_dim=self.input_dim,
                 output_dim=self.dim,
-                name=self.col_schema.name,
+                name=self.table_name,
                 **table_kwargs,
             )
         self.sequence_combiner = sequence_combiner
