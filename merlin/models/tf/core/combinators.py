@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Union
 
 import six
 import tensorflow as tf
+import tensorflow.keras
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.base import (
@@ -260,7 +261,9 @@ class SequentialBlock(Block):
     def regularizers(self):
         values = set()
         for layer in self.layers:
-            values.update(layer.regularizers)
+            regularizers = getattr(layer, "regularizers", None)
+            if regularizers:
+                values.update(regularizers)
         return list(values)
 
     def call(self, inputs, training=False, **kwargs):
@@ -391,6 +394,23 @@ class ParallelBlock(TabularBlock):
                 self.set_schema(s)
 
     @property
+    def schema(self):
+        if self.has_schema:
+            return self._schema
+
+        if all(getattr(m, "_schema", False) for m in self.parallel_values):
+            if len(self.parallel_values) == 1:
+                return self.parallel_values[0].schema
+            else:
+                s = reduce(
+                    lambda a, b: a + b, [m.schema for m in self.parallel_values]
+                )  # type: ignore
+
+                return s
+
+        return None
+
+    @property
     def parallel_values(self) -> List[tf.keras.layers.Layer]:
         if isinstance(self.parallel_layers, dict):
             return list(self.parallel_layers.values())
@@ -510,9 +530,9 @@ class ParallelBlock(TabularBlock):
         return super().build(input_shape)
 
     def _maybe_filter_layer_inputs_using_schema(self, name, layer, inputs):
-        has_schema = getattr(layer, "has_schema", False)
-        if has_schema and isinstance(inputs, dict):
-            layer_inputs = {k: v for k, v in inputs.items() if k in layer.schema.column_names}
+        maybe_schema = getattr(layer, "_schema", None)
+        if maybe_schema and isinstance(inputs, dict):
+            layer_inputs = {k: v for k, v in inputs.items() if k in maybe_schema.column_names}
         else:
             layer_inputs = inputs
 

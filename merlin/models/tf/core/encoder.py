@@ -1,6 +1,7 @@
 from typing import Optional, Union
 
 import tensorflow as tf
+from packaging import version
 
 from merlin.models.tf.core import combinators
 from merlin.models.tf.inputs.base import InputBlockV2
@@ -23,14 +24,14 @@ class EncoderBlock(tf.keras.Model):
         super().__init__()
         if isinstance(inputs, Schema):
             input_block = InputBlockV2(inputs)
-            self.schema = inputs
+            self._schema = inputs
         else:
             input_block = inputs
             if not hasattr(inputs, "schema"):
                 raise ValueError("inputs must have a schema")
-            self.schema = inputs.schema
+            self._schema = inputs.schema
 
-        self.blocks = [input_block] + list(blocks)
+        self.blocks = [input_block] + list(blocks) if blocks else [input_block]
         self.pre = pre
         self.post = post
 
@@ -42,19 +43,24 @@ class EncoderBlock(tf.keras.Model):
 
     def build(self, input_shape):
         combinators.build_sequentially(self, list(self.to_call), input_shape=input_shape)
+        if not hasattr(self.build, "_is_default"):
+            self._build_input_shape = input_shape
 
     def compute_output_shape(self, input_shape):
         return combinators.compute_output_shape_sequentially(list(self.to_call), input_shape)
 
-    # def _set_save_spec(self, inputs, args=None, kwargs=None):
-    #     # We need to overwrite this in order to fix a Keras-bug in TF<2.9
-    #     super()._set_save_spec(inputs, args, kwargs)
+    def _set_save_spec(self, inputs, args=None, kwargs=None):
+        # We need to overwrite this in order to fix a Keras-bug in TF<2.9
+        if "features" in kwargs:
+            kwargs.pop("features")
 
-    #     if version.parse(tf.__version__) < version.parse("2.9.0"):
-    #         # Keras will interpret kwargs like `features` & `targets` as
-    #         # required args, which is wrong. This is a workaround.
-    #         _arg_spec = self._saved_model_arg_spec
-    #         self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
+        super()._set_save_spec(inputs, args, kwargs)
+
+        if version.parse(tf.__version__) < version.parse("2.9.0"):
+            # Keras will interpret kwargs like `features` & `targets` as
+            # required args, which is wrong. This is a workaround.
+            _arg_spec = self._saved_model_arg_spec
+            self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
 
     @property
     def to_call(self):
@@ -66,6 +72,14 @@ class EncoderBlock(tf.keras.Model):
 
         if self.post:
             yield self.post
+
+    @property
+    def has_schema(self) -> bool:
+        return True
+
+    @property
+    def schema(self) -> Schema:
+        return self._schema
 
     @classmethod
     def from_config(cls, config, custom_objects=None):

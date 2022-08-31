@@ -845,9 +845,9 @@ class Model(BaseModel):
             blocks = blocks[0].layers
 
         self.blocks = blocks
-        # for block in self.submodules:
-        #     if hasattr(block, "_set_context"):
-        #         block._set_context(context)
+        for block in self.submodules:
+            if hasattr(block, "_set_context"):
+                block._set_context(context)
 
         self.pre = pre
         self.post = post

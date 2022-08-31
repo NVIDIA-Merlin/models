@@ -1,7 +1,6 @@
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.schema import Tags
 
 
 def test_encoder_block(music_streaming_data: Dataset):
@@ -10,9 +9,13 @@ def test_encoder_block(music_streaming_data: Dataset):
     )
 
     schema = music_streaming_data.schema
-    user_schema = schema.select_by_tag(Tags.USER)
-    user_encoder = mm.EncoderBlock(user_schema, mm.MLPBlock([4]))
-    item_schema = schema.select_by_tag(Tags.ITEM)
+    user_schema = schema.select_by_name(["user_id", "user_genres"])
+
+    # input_v1 = mm.InputBlock(user_schema)
+    input_v2 = mm.InputBlockV2(user_schema)
+
+    user_encoder = mm.EncoderBlock(input_v2, mm.MLPBlock([4]))
+    item_schema = schema.select_by_name(["item_id"])
     item_encoder = mm.EncoderBlock(item_schema, mm.MLPBlock([4]))
 
     model = mm.Model(
@@ -20,9 +23,12 @@ def test_encoder_block(music_streaming_data: Dataset):
         mm.DotProductCategoricalPrediction(schema),
     )
 
-    testing_utils.model_test(model, music_streaming_data)
+    # testing_utils.model_test(model, music_streaming_data)
+    model.compile(run_eagerly=True, optimizer="adam")
+    model.fit(music_streaming_data, batch_size=50, epochs=1, steps_per_epoch=1)
 
-    item_features = testing_utils.get_model_inputs(
-        schema.select_by_tag(Tags.ITEM),
-    )
+    user_features = testing_utils.get_model_inputs(user_schema, ["user_genres"])
+    testing_utils.test_model_signature(user_encoder, user_features, ["output_1"])
+
+    item_features = testing_utils.get_model_inputs(item_schema)
     testing_utils.test_model_signature(item_encoder, item_features, ["output_1"])
