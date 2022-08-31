@@ -75,6 +75,9 @@ class ModelBlock(Block, tf.keras.Model):
     def __init__(self, block: Block, **kwargs):
         super().__init__(**kwargs)
         self.block = block
+        if hasattr(self, "set_schema"):
+            block_schema = getattr(block, "schema", None)
+            self.set_schema(block_schema)
 
     def call(self, inputs, **kwargs):
         if "features" not in kwargs:
