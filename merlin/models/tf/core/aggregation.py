@@ -60,7 +60,10 @@ class ConcatFeatures(TabularAggregation):
         for name in sorted(inputs.keys()):
             tensors.append(tf.cast(inputs[name], self.output_dtype))
 
-        output = tf.concat(tensors, axis=-1)
+        if any([isinstance(t, tf.SparseTensor) for t in tensors]):
+            output = tf.sparse.concat(axis=self.axis, sp_inputs=tensors)
+        else:
+            output = tf.concat(tensors, axis=self.axis)
 
         return output
 
