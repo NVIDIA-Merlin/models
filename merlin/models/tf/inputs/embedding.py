@@ -62,7 +62,7 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
 
 
 class EmbeddingTableBase(Block):
-    def __init__(self, dim: int, col_schema: ColumnSchema, trainable=True, **kwargs):
+    def __init__(self, dim: int, col_schema: ColumnSchema, *, trainable=True, **kwargs):
         super(EmbeddingTableBase, self).__init__(trainable=trainable, **kwargs)
         self.dim = dim
 
@@ -184,6 +184,7 @@ class EmbeddingTable(EmbeddingTableBase):
         self,
         dim: int,
         col_schema: ColumnSchema,
+        *,
         embeddings_initializer="uniform",
         embeddings_regularizer=None,
         activity_regularizer=None,
