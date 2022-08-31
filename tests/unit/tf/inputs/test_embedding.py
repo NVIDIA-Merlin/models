@@ -232,6 +232,24 @@ class TestEmbeddingTable:
         else:
             np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
+    def test_multiple_features(self):
+        dim = 4
+        col_schema_a = ColumnSchema(
+            "a", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}
+        )
+        col_schema_b = ColumnSchema(
+            "b", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}
+        )
+        embedding_table = mm.EmbeddingTable(dim, col_schema_a)
+        embedding_table.add_feature(col_schema_b)
+        result = embedding_table(
+            {
+                "a": tf.constant([[1]]),
+                "b": tf.ragged.constant([[1]]),
+            }
+        )
+        np.testing.assert_array_equal(result["a"].numpy(), result["b"].numpy()[0])
+
 
 @pytest.mark.parametrize("trainable", [True, False])
 def test_pretrained_from_InputBlockV2(trainable, music_streaming_data: Dataset):
