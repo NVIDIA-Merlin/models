@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
+from typing import Optional, Tuple, Union
 
 import tensorflow as tf
 
@@ -64,10 +64,18 @@ class InBatchNegatives(tf.keras.layers.Layer):
         self.run_when_testing = run_when_testing
         self.return_tuple = return_tuple
 
-    def call(self, inputs: TabularData, targets=None, testing=False, **kwargs) -> Prediction:
+    def call(
+        self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
+    ) -> Union[Prediction, Tuple]:
         """Extend batch of inputs and targets with negatives."""
+
+        def get_tuple(x, y):
+            if training or testing:
+                return Prediction(x, y)
+            return (x, y)
+
         if targets is None or (testing and not self.run_when_testing):
-            return Prediction(inputs, targets)
+            return get_tuple(inputs, targets)
 
         # 1. Select item-features
         fist_input = list(inputs.values())[0]
@@ -76,7 +84,7 @@ class InBatchNegatives(tf.keras.layers.Layer):
         )
 
         if batch_size is None:
-            return Prediction(inputs, targets)
+            return get_tuple(inputs, targets)
 
         sampled_num_negatives = self.n_per_positive * batch_size
         # 2. Sample `n_per_positive * batch_size` items at random
@@ -142,10 +150,7 @@ class InBatchNegatives(tf.keras.layers.Layer):
         else:
             raise ValueError("Unsupported target type: {}".format(type(targets)))
 
-        if self.return_tuple:
-            return (outputs, targets)
-
-        return Prediction(outputs, targets)
+        return get_tuple(outputs, targets)
 
     def get_config(self):
         """Returns the config of the layer as a Python dictionary."""

@@ -68,10 +68,7 @@ class TestAddRandomNegativesToBatch:
         input_df = input_df[sorted(input_df.columns)]
         dataset = Dataset(input_df, schema=schema)
         loader = mm.Loader(dataset, batch_size=10, transform=sampler)
-        first_batch_outputs = next(iter(loader))
-
-        outputs = first_batch_outputs.outputs
-        targets = first_batch_outputs.targets
+        outputs, targets = next(iter(loader))
 
         output_dict = {
             key: output_tensor.numpy().reshape(-1) for key, output_tensor in outputs.items()
@@ -113,8 +110,7 @@ class TestAddRandomNegativesToBatch:
 
         sampler = InBatchNegatives(schema, n_per_positive, seed=tf_random_seed)
 
-        with_negatives = sampler(features)
-        outputs = with_negatives.outputs
+        outputs, targets = sampler(features)
 
         def assert_fn(output_batch_size):
             assert output_batch_size == batch_size
@@ -131,9 +127,7 @@ class TestAddRandomNegativesToBatch:
 
         sampler = InBatchNegatives(schema, 5, seed=tf_random_seed)
 
-        with_negatives = sampler(inputs, targets=targets)
-        outputs = with_negatives.outputs
-        targets = with_negatives.targets
+        outputs, targets = sampler(inputs, targets=targets)
 
         max_batch_size = batch_size + batch_size * n_per_positive
 
@@ -211,8 +205,7 @@ class TestAddRandomNegativesToBatch:
         batch_size, n_per_positive = 10, 5
         loader = mm.Loader(music_streaming_data, batch_size=batch_size, transform=add_negatives)
 
-        batch_output = next(iter(loader))
-        features, targets = batch_output
+        features, targets = next(iter(dataset))
 
         expected_batch_size = batch_size + batch_size * n_per_positive
 
