@@ -22,7 +22,7 @@ from tensorflow.python.ops import embedding_ops
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.core.base import Block, BlockType, EmbeddingWithMetadata, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock
-from merlin.models.tf.core.tabular import Filter, TabularAggregationType
+from merlin.models.tf.core.tabular import TabularAggregationType
 from merlin.models.tf.core.transformations import L2Norm
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
@@ -100,10 +100,7 @@ class DualEncoderBlock(ParallelBlock):
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 
-        branches = {
-            "query": Filter(query_block.schema).connect(self._query_block),
-            "item": Filter(item_block.schema).connect(self._item_block),
-        }
+        branches = {"query": self._query_block, "item": self._item_block}
 
         super().__init__(
             branches,
