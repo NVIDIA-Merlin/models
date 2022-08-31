@@ -1,0 +1,132 @@
+﻿merlin.models.tf.CGCBlock
+=========================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: CGCBlock
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~CGCBlock.__init__
+      ~CGCBlock.add_branch
+      ~CGCBlock.add_loss
+      ~CGCBlock.add_metric
+      ~CGCBlock.add_update
+      ~CGCBlock.add_variable
+      ~CGCBlock.add_weight
+      ~CGCBlock.apply_to_all
+      ~CGCBlock.apply_to_branch
+      ~CGCBlock.as_tabular
+      ~CGCBlock.build
+      ~CGCBlock.calculate_batch_size_from_input_shapes
+      ~CGCBlock.call
+      ~CGCBlock.call_outputs
+      ~CGCBlock.check_schema
+      ~CGCBlock.compute_call_output_shape
+      ~CGCBlock.compute_mask
+      ~CGCBlock.compute_output_shape
+      ~CGCBlock.compute_output_signature
+      ~CGCBlock.connect
+      ~CGCBlock.connect_branch
+      ~CGCBlock.connect_debug_block
+      ~CGCBlock.connect_with_residual
+      ~CGCBlock.connect_with_shortcut
+      ~CGCBlock.copy
+      ~CGCBlock.count_params
+      ~CGCBlock.finalize_state
+      ~CGCBlock.from_config
+      ~CGCBlock.from_features
+      ~CGCBlock.from_layer
+      ~CGCBlock.from_schema
+      ~CGCBlock.get_config
+      ~CGCBlock.get_input_at
+      ~CGCBlock.get_input_mask_at
+      ~CGCBlock.get_input_shape_at
+      ~CGCBlock.get_item_ids_from_inputs
+      ~CGCBlock.get_output_at
+      ~CGCBlock.get_output_mask_at
+      ~CGCBlock.get_output_shape_at
+      ~CGCBlock.get_padding_mask_from_item_id
+      ~CGCBlock.get_weights
+      ~CGCBlock.parse
+      ~CGCBlock.parse_block
+      ~CGCBlock.parse_config
+      ~CGCBlock.post_call
+      ~CGCBlock.pre_call
+      ~CGCBlock.prepare
+      ~CGCBlock.register_features
+      ~CGCBlock.repeat
+      ~CGCBlock.repeat_in_parallel
+      ~CGCBlock.repr_add
+      ~CGCBlock.repr_extra
+      ~CGCBlock.repr_ignore
+      ~CGCBlock.select_by_name
+      ~CGCBlock.select_by_names
+      ~CGCBlock.select_by_tag
+      ~CGCBlock.set_aggregation
+      ~CGCBlock.set_post
+      ~CGCBlock.set_pre
+      ~CGCBlock.set_schema
+      ~CGCBlock.set_weights
+      ~CGCBlock.super
+      ~CGCBlock.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~CGCBlock.REQUIRES_SCHEMA
+      ~CGCBlock.activity_regularizer
+      ~CGCBlock.aggregation
+      ~CGCBlock.compute_dtype
+      ~CGCBlock.context
+      ~CGCBlock.dtype
+      ~CGCBlock.dtype_policy
+      ~CGCBlock.dynamic
+      ~CGCBlock.has_schema
+      ~CGCBlock.inbound_nodes
+      ~CGCBlock.input
+      ~CGCBlock.input_mask
+      ~CGCBlock.input_shape
+      ~CGCBlock.input_spec
+      ~CGCBlock.is_input
+      ~CGCBlock.is_tabular
+      ~CGCBlock.layers
+      ~CGCBlock.losses
+      ~CGCBlock.metrics
+      ~CGCBlock.name
+      ~CGCBlock.name_scope
+      ~CGCBlock.non_trainable_variables
+      ~CGCBlock.non_trainable_weights
+      ~CGCBlock.outbound_nodes
+      ~CGCBlock.output
+      ~CGCBlock.output_mask
+      ~CGCBlock.output_shape
+      ~CGCBlock.parallel_dict
+      ~CGCBlock.parallel_values
+      ~CGCBlock.post
+      ~CGCBlock.pre
+      ~CGCBlock.registry
+      ~CGCBlock.schema
+      ~CGCBlock.stateful
+      ~CGCBlock.submodules
+      ~CGCBlock.supports_masking
+      ~CGCBlock.trainable
+      ~CGCBlock.trainable_variables
+      ~CGCBlock.trainable_weights
+      ~CGCBlock.updates
+      ~CGCBlock.variable_dtype
+      ~CGCBlock.variables
+      ~CGCBlock.weights
+   
+   
