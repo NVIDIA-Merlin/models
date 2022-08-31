@@ -580,7 +580,7 @@ class BaseModel(tf.keras.Model):
         """Custom train step using the `compute_loss` method."""
 
         with tf.GradientTape() as tape:
-            x, y, sample_weight = unpack_x_y_sample_weight(data)
+            x, y, sample_weight = _unpack_x_y_sample_weight(data)
             outputs = self.call_train_test(x, y, sample_weight=sample_weight, training=True)
             loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
@@ -598,7 +598,7 @@ class BaseModel(tf.keras.Model):
     def test_step(self, data):
         """Custom test step using the `compute_loss` method."""
 
-        x, y, sample_weight = unpack_x_y_sample_weight(data)
+        x, y, sample_weight = _unpack_x_y_sample_weight(data)
         outputs = self.call_train_test(x, y, sample_weight=sample_weight, testing=True)
 
         if getattr(self, "pre_eval_topk", None) is not None:
@@ -1409,3 +1409,9 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
             kwargs.pop("shuffle", None)
 
     return data
+
+
+def _unpack_x_y_sample_weight(data):
+    if isinstance(data, Prediction):
+        return (data.outputs, data.targets, data.sample_weight)
+    return unpack_x_y_sample_weight(data)
