@@ -1,7 +1,6 @@
 from typing import Optional, Union
 
 import tensorflow as tf
-from packaging import version
 
 from merlin.models.tf.core import combinators
 from merlin.models.tf.inputs.base import InputBlockV2
@@ -47,15 +46,15 @@ class EncoderBlock(tf.keras.Model):
     def compute_output_shape(self, input_shape):
         return combinators.compute_output_shape_sequentially(list(self.to_call), input_shape)
 
-    def _set_save_spec(self, inputs, args=None, kwargs=None):
-        # We need to overwrite this in order to fix a Keras-bug in TF<2.9
-        super()._set_save_spec(inputs, args, kwargs)
+    # def _set_save_spec(self, inputs, args=None, kwargs=None):
+    #     # We need to overwrite this in order to fix a Keras-bug in TF<2.9
+    #     super()._set_save_spec(inputs, args, kwargs)
 
-        if version.parse(tf.__version__) < version.parse("2.9.0"):
-            # Keras will interpret kwargs like `features` & `targets` as
-            # required args, which is wrong. This is a workaround.
-            _arg_spec = self._saved_model_arg_spec
-            self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
+    #     if version.parse(tf.__version__) < version.parse("2.9.0"):
+    #         # Keras will interpret kwargs like `features` & `targets` as
+    #         # required args, which is wrong. This is a workaround.
+    #         _arg_spec = self._saved_model_arg_spec
+    #         self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
 
     @property
     def to_call(self):

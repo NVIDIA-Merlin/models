@@ -845,9 +845,9 @@ class Model(BaseModel):
             blocks = blocks[0].layers
 
         self.blocks = blocks
-        for block in self.submodules:
-            if hasattr(block, "_set_context"):
-                block._set_context(context)
+        # for block in self.submodules:
+        #     if hasattr(block, "_set_context"):
+        #         block._set_context(context)
 
         self.pre = pre
         self.post = post
@@ -860,19 +860,19 @@ class Model(BaseModel):
         self.schema = sum(input_block_schemas, Schema())
         self._frozen_blocks = set()
 
-    def _maybe_build(self, inputs):
-        if isinstance(inputs, dict):
-            _ragged_inputs = AsRaggedFeatures()(inputs)
-            feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
-            feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
+    # def _maybe_build(self, inputs):
+    #     if isinstance(inputs, dict):
+    #         _ragged_inputs = AsRaggedFeatures()(inputs)
+    #         feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
+    #         feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
-            for block in self.blocks:
-                block._feature_shapes = feature_shapes
-                block._feature_dtypes = feature_dtypes
-                for child in block.submodules:
-                    child._feature_shapes = feature_shapes
-                    child._feature_dtypes = feature_dtypes
-        super()._maybe_build(inputs)
+    #         for block in self.blocks:
+    #             block._feature_shapes = feature_shapes
+    #             block._feature_dtypes = feature_dtypes
+    #             for child in block.submodules:
+    #                 child._feature_shapes = feature_shapes
+    #                 child._feature_dtypes = feature_dtypes
+    #     super()._maybe_build(inputs)
 
     def build(self, input_shape=None):
         """Builds the model

@@ -21,3 +21,8 @@ def test_encoder_block(music_streaming_data: Dataset):
     )
 
     testing_utils.model_test(model, music_streaming_data)
+
+    item_features = testing_utils.get_model_inputs(
+        schema.select_by_tag(Tags.ITEM),
+    )
+    testing_utils.test_model_signature(item_encoder, item_features, ["output_1"])
