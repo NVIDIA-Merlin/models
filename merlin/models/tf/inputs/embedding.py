@@ -71,6 +71,8 @@ class EmbeddingTableBase(Block):
 
         self.col_schema = col_schema
 
+        self.feature_names = [col_schema.name]
+
     @classmethod
     def from_pretrained(
         cls,
@@ -84,6 +86,28 @@ class EmbeddingTableBase(Block):
     @property
     def input_dim(self):
         return self.col_schema.int_domain.max + 1
+
+    def add_feature(self, col_schema: ColumnSchema) -> None:
+        if not col_schema.int_domain:
+            raise ValueError("`col_schema` needs to have an int-domain")
+
+        if (
+            col_schema.int_domain.name
+            and self.col_schema.int_domain.name
+            and col_schema.int_domain.name != self.col_schema.int_domain.name
+        ):
+            raise ValueError(
+                "`col_schema` int-domain name does not match table domain name. "
+                f"{col_schema.int_domain.name} != {self.col_schema.int_domain.name} "
+            )
+
+        if col_schema.int_domain.max != self.col_schema.int_domain.max:
+            raise ValueError(
+                "`col_schema.int_domain.max` does not match existing input dim."
+                f"{col_schema.int_domain.max} != {self.col_schema.int_domain.max} "
+            )
+
+        self.feature_names += col_schema.name
 
     def get_config(self):
         config = super().get_config()
