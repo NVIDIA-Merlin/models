@@ -192,7 +192,7 @@ def test_items_weight_tying_with_different_domain_name():
     assert weight_tying_embeddings.shape == (101, 64)
 
 
-def test_hashedcross_scalars():
+def test_hashedcross_int():
     test_case = TestCase()
     schema = Schema(
         [
@@ -201,15 +201,15 @@ def test_hashedcross_scalars():
         ]
     )
     inputs = {}
-    inputs["cat1"] = tf.constant("A")
-    inputs["cat2"] = tf.constant(101)
-    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10)
+    inputs["cat1"] = tf.constant(["A", "B"])
+    inputs["cat2"] = tf.constant([101, 102])
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross_op(inputs)
     output_name, output_value = outputs.popitem()
 
     assert output_name == "cross_cat1_cat2"
-    assert output_value.shape.as_list() == []
-    test_case.assertAllClose(output_value, 1)
+    assert output_value.shape.as_list() == [2, 1]
+    test_case.assertAllClose(output_value, [[1], [6]])
 
 
 def test_hashedcross_1d():
@@ -223,12 +223,12 @@ def test_hashedcross_1d():
     inputs = {}
     inputs["cat1"] = tf.constant(["A", "B", "A", "B", "A"])
     inputs["cat2"] = tf.constant([101, 101, 101, 102, 102])
-    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10)
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross_op(inputs)
     _, output_value = outputs.popitem()
 
-    assert output_value.shape.as_list() == [5]
-    test_case.assertAllClose(output_value, [1, 4, 1, 6, 3])
+    assert output_value.shape.as_list() == [5, 1]
+    test_case.assertAllClose(output_value, [[1], [4], [1], [6], [3]])
 
 
 def test_hashedcross_2d():
@@ -242,7 +242,7 @@ def test_hashedcross_2d():
     inputs = {}
     inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
     inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
-    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10)
+    hashed_cross_op = ml.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross_op(inputs)
     _, output_value = outputs.popitem()
 
@@ -260,7 +260,7 @@ def test_hashedcross_output_shape():
     inputs_shape = {}
     inputs_shape["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]]).shape
     inputs_shape["cat2"] = tf.constant([[101], [101], [101], [102], [102]]).shape
-    hashed_cross = ml.HashedCross(schema=schema, num_bins=10)
+    hashed_cross = ml.HashedCross(schema=schema, num_bins=10, output_mode="int")
     outputs = hashed_cross.compute_output_shape(inputs_shape)
     _, output_shape = outputs.popitem()
 
@@ -364,7 +364,7 @@ def test_hashedcross_single_input_fails():
     test_case = TestCase()
     schema = Schema([create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=20)])
     with test_case.assertRaisesRegex(ValueError, "at least two features"):
-        ml.HashedCross(num_bins=10, schema=schema)([tf.constant(1)])
+        ml.HashedCross(num_bins=10, schema=schema, output_mode="int")([tf.constant(1)])
 
 
 def test_hashedcross_from_config():
@@ -723,18 +723,11 @@ def test_category_encoding_one_hot(input):
 
 @pytest.mark.parametrize(
     "input",
-    [
-        tf.convert_to_tensor([[1, 2], [2, 0]]),
-        tf.sparse.from_dense(np.array([[1, 2], [2, 0]])),
-    ],
+    [tf.convert_to_tensor([[1, 2], [2, 0]]), tf.sparse.from_dense(np.array([[1, 2], [2, 0]]))],
 )
 def test_category_encoding_one_hot_2D_input_should_raise(input):
     test_case = TestCase()
-    schema = Schema(
-        [
-            create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5),
-        ]
-    )
+    schema = Schema([create_categorical_column("feature", tags=[Tags.CATEGORICAL], num_items=5)])
     category_encoding = ml.CategoryEncoding(schema=schema, output_mode="one_hot")
     inputs = {}
     inputs["feature"] = input
@@ -762,7 +755,7 @@ def test_category_encoding_should_raise_if_input_3D(input):
     inputs = {}
     inputs["feature"] = input
     with test_case.assertRaisesRegex(
-        ValueError, r"`CategoryEncoding` only accepts 1D or 2D-shaped inputs"
+        Exception, r"`CategoryEncoding` only accepts 1D or 2D-shaped inputs"
     ):
         category_encoding(inputs)
 
@@ -774,12 +767,18 @@ def test_hashedcrossall():
             create_categorical_column("cat1", tags=[Tags.CATEGORICAL], num_items=2),
             create_categorical_column("cat2", tags=[Tags.CATEGORICAL], num_items=2),
             create_categorical_column("cat3", tags=[Tags.CATEGORICAL], num_items=2),
+            create_categorical_column("cat4", tags=[Tags.CATEGORICAL], num_items=3),
+            create_categorical_column("cat5", tags=[Tags.CATEGORICAL], num_items=3),
+            create_categorical_column("cat6", tags=[Tags.CATEGORICAL], num_items=3),
         ]
     )
     inputs = {}
     inputs["cat1"] = tf.constant([["A"], ["B"], ["A"], ["B"], ["A"]])
     inputs["cat2"] = tf.constant([[101], [101], [101], [102], [102]])
     inputs["cat3"] = tf.constant([[1], [0], [1], [2], [2]])
+    inputs["cat4"] = tf.constant([[1], [0], [1], [3], [2]])
+    inputs["cat5"] = tf.constant([[1], [0], [1], [3], [2]])
+    inputs["cat6"] = tf.constant([[1], [0], [1], [3], [2]])
 
     hashed_cross_all = ml.HashedCrossAll(
         schema=schema,
@@ -788,15 +787,16 @@ def test_hashedcrossall():
         sparse=True,
         max_num_bins=25,
         max_level=3,
+        ignore_combinations=[["cat3", "cat4", "cat5"], ["cat1", "cat2"]],
     )
 
     outputs = hashed_cross_all(inputs)
-    assert len(outputs) == 4
+    assert len(outputs) == 33
 
-    output_value_0 = outputs["cross_cat1_cat2"]
+    output_value_0 = outputs["cross_cat1_cat3"]
     assert output_value_0.shape.as_list() == [5, 9]
 
-    output_value_1 = outputs["cross_cat1_cat2_cat3"]
+    output_value_1 = outputs["cross_cat1_cat3_cat6"]
     assert output_value_1.shape.as_list() == [5, 25]
 
 

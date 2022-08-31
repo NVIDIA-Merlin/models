@@ -133,11 +133,10 @@ class AsDenseFeatures(TabularBlock):
         outputs = {}
 
         for key, val in input_shape.items():
-            if self.max_seq_length:
+            if isinstance(val, tuple):
                 outputs[key] = tf.TensorShape((batch_size, self.max_seq_length))
             else:
-                # TODO: What to do here?
-                raise ValueError("max_seq_length must be specified")
+                outputs[key] = tf.TensorShape((batch_size))
 
         return outputs
 
@@ -409,6 +408,39 @@ class ItemsPredictionWeightTying(Block):
         return logits
 
 
+def reshape_categorical_input_tensor_for_encoding(
+    input, feat_name, features_2d_last_dim, output_mode, ensure_1d_for_one_hot_mode=True
+):
+    output = input
+    reshape_fn = tf.sparse.reshape if isinstance(output, tf.SparseTensor) else tf.reshape
+    if ensure_1d_for_one_hot_mode and output_mode == ONE_HOT:
+        if features_2d_last_dim.get(feat_name, None) == 1 or input.get_shape()[-1] == 1:
+            output = reshape_fn(output, [-1])
+        elif feat_name in features_2d_last_dim or (
+            input.get_shape()[-1] is not None and len(input.get_shape()) == 2
+        ):
+            raise ValueError(
+                "One-hot accepts input tensors that are squeezable to 1D, but received"
+                f" a tensor with shape: {input.get_shape()}"
+            )
+
+    else:
+        # if feat_name in features_2d_last_dim or len(input.get_shape()) == 2:
+        if feat_name in features_2d_last_dim or (
+            input.get_shape()[-1] is not None and len(input.get_shape()) == 2
+        ):
+            # Ensures that the shape is known to avoid error on graph mode
+            new_shape = (-1, features_2d_last_dim.get(feat_name, input.get_shape()[-1]))
+            output = reshape_fn(output, new_shape)
+        else:
+            expand_dims_fn = (
+                tf.sparse.expand_dims if isinstance(output, tf.SparseTensor) else tf.expand_dims
+            )
+            output = expand_dims_fn(output, 1)
+
+    return output
+
+
 @Block.registry.register_with_multiple_names("category_encoding")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
 @requires_schema
@@ -461,6 +493,7 @@ class CategoryEncoding(TabularBlock):
         super().__init__(**kwargs)
         if schema:
             self.set_schema(schema.select_by_tag(Tags.CATEGORICAL))
+        self.sparse = sparse
         self.cardinalities = schema_utils.categorical_cardinalities(self.schema)
         # 'output_mode' must be one of (COUNT, ONE_HOT, MULTI_HOT)
         layer_utils.validate_string_arg(
@@ -482,7 +515,7 @@ class CategoryEncoding(TabularBlock):
             self.count_weights = None
 
         # Used to reshape 1D<->2Dtensors depending on the output_mode, when in graph mode
-        self._2d_features_last_dim = {}
+        self.features_2d_last_dim = {}
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
@@ -494,9 +527,16 @@ class CategoryEncoding(TabularBlock):
                     f"{name} with type of {type(inputs[name])}"
                 )
 
-            shape = inputs[name].get_shape().as_list()
-            if len(shape) > 2:
-                raise ValueError("`CategoryEncoding` only accepts 1D or 2D-shaped inputs")
+            assertion_min_rank = tf.Assert(
+                tf.logical_and(
+                    tf.greater_equal(tf.rank(inputs[name]), 1),
+                    tf.less_equal(tf.rank(inputs[name]), 2),
+                ),
+                [
+                    "`CategoryEncoding` only accepts 1D or 2D-shaped inputs, but got "
+                    f"different rank for {name}"
+                ],
+            )
 
             outputs[name] = utils.ensure_tensor(inputs[name])
 
@@ -510,16 +550,21 @@ class CategoryEncoding(TabularBlock):
                 tf.greater(tf.cast(depth, max_value.dtype), max_value),
                 tf.greater_equal(min_value, tf.cast(0, min_value.dtype)),
             )
-            assertion = tf.Assert(
+            assertion_valid_values = tf.Assert(
                 condition,
                 [
                     "Input values must be in the range 0 <= values < num_tokens"
                     " with num_tokens={}".format(depth)
                 ],
             )
-            with tf.control_dependencies([assertion]):
-
-                outputs[name] = self.adjust_tensor_shape(outputs[name], name)
+            with tf.control_dependencies([assertion_min_rank, assertion_valid_values]):
+                outputs[name] = reshape_categorical_input_tensor_for_encoding(
+                    outputs[name],
+                    name,
+                    self.features_2d_last_dim,
+                    self.output_mode,
+                    ensure_1d_for_one_hot_mode=True,
+                )
 
                 outputs[name] = utils.encode_categorical_inputs(
                     outputs[name],
@@ -529,33 +574,10 @@ class CategoryEncoding(TabularBlock):
                     sparse=self.sparse,
                     count_weights=self.count_weights,
                 )
-        return outputs
 
-    def adjust_tensor_shape(self, input, feat_name):
-        shape = input.get_shape().as_list()
-        output = input
-        reshape_fn = tf.sparse.reshape if isinstance(output, tf.SparseTensor) else tf.reshape
-        if self.output_mode == ONE_HOT:
-            if len(shape) > 1:
-                if (self._2d_features_last_dim.get(feat_name, None) == 1) or (shape[-1] == 1):
-                    output = reshape_fn(output, [-1])
-                else:
-                    raise ValueError(
-                        "One-hot accepts input tensors that are squeezable to 1D, but received"
-                        f" a tensor with shape: {shape}"
-                    )
-        # For MULTI_HOT or COUNT, ensures the tensor is 2D
-        else:
-            if len(shape) == 1:
-                expand_dims_fn = (
-                    tf.sparse.expand_dims if isinstance(output, tf.SparseTensor) else tf.expand_dims
-                )
-                output = expand_dims_fn(output, 1)
-            else:
-                # Ensures that the shape is known to avoid error on graph mode
-                new_shape = (-1, self._2d_features_last_dim.get(feat_name, shape[-1]))
-                output = reshape_fn(output, new_shape)
-        return output
+                if not self.sparse and isinstance(outputs[name], tf.SparseTensor):
+                    outputs[name] = tf.sparse.to_dense(outputs[name])
+        return outputs
 
     def compute_output_shape(self, input_shapes):
         outputs = {}
@@ -567,7 +589,7 @@ class CategoryEncoding(TabularBlock):
                 outputs[key] = tf.TensorShape(input_shape[:1] + [self.cardinalities[key]])
 
                 if len(input_shape) == 2:
-                    self._2d_features_last_dim[key] = input_shape[-1]
+                    self.features_2d_last_dim[key] = input_shape[-1]
 
         return outputs
 
@@ -789,7 +811,7 @@ class PopularityLogitsCorrection(Block):
 @Block.registry.register("hashed_cross")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class HashedCross(TabularBlock):
-    """A transformation block which crosses categorical features using the "hasing trick".
+    """A transformation block which crosses categorical features using the "hashing trick".
     Conceptually, the transformation can be thought of as: hash(concatenation of features) %
     num_bins
     Example usage::
@@ -805,8 +827,8 @@ class HashedCross(TabularBlock):
         num_bins : int
             Number of hash bins.
         output_mode: string
-            Specification for the output of the layer. Defaults to "int".  Values can be "int", or
-            "one_hot", configuring the layer as follows:
+            Specification for the output of the layer. Defaults to "one_hot".  Values can be "int",
+            or "one_hot", configuring the layer as follows:
             - `"int"`: Return the integer bin indices directly.
             - `"one_hot"`: Encodes each individual element in the input into an array with the same
                 size as `num_bins`, containing a 1 at the input's bin index.
@@ -828,7 +850,7 @@ class HashedCross(TabularBlock):
         schema: Schema,
         num_bins: int = None,
         sparse: bool = False,
-        output_mode: str = "int",
+        output_mode: str = "one_hot",
         output_name: str = None,
         infer_num_bins: bool = False,
         max_num_bins: int = 100000,
@@ -844,14 +866,14 @@ class HashedCross(TabularBlock):
                 "mulplier of feature cardinalities, at the same time you can set the max_num_bins."
             )
 
-        if not (output_mode in ["int", "one_hot"]):
-            raise ValueError("output_mode must be 'int' or 'one_hot'")
+        if not (output_mode in ["int", "one_hot", "multi_hot"]):
+            raise ValueError("output_mode must be 'int', 'one_hot', or 'multi_hot'")
         self.schema = schema
         self.output_mode = output_mode
         self.sparse = sparse
         if not output_name:
             self.output_name = "cross"
-            for name in schema.column_names:
+            for name in sorted(schema.column_names):
                 self.output_name = self.output_name + "_" + name
         else:
             self.output_name = output_name
@@ -868,31 +890,40 @@ class HashedCross(TabularBlock):
                 )
             self.num_bins = int(min(max_num_bins, inferred_num_bins_from_cardinalities_multiplier))
 
+        # Used to enforce the shape of 2D tensors depending on the output_mode, when in graph mode
+        self.features_2d_last_dim = dict()
+
     def call(self, inputs):
         self._check_at_least_two_inputs()
+
         _inputs = {}
         for name in self.schema.column_names:
-            _inputs[name] = inputs[name]
-            rank = _inputs[name].shape.rank
-            if rank < 2:
-                _inputs[name] = tf.expand_dims(_inputs[name], -1)
-            if rank < 1:
-                _inputs[name] = tf.expand_dims(_inputs[name], -1)
+
+            assertion_min_rank = tf.Assert(
+                tf.logical_and(
+                    tf.greater_equal(tf.rank(inputs[name]), 1),
+                    tf.less_equal(tf.rank(inputs[name]), 2),
+                ),
+                [
+                    "`HashedCross` only accepts 1D or 2D-shaped inputs, but got "
+                    f"different rank for {name}"
+                ],
+            )
+
+            with tf.control_dependencies([assertion_min_rank]):
+                _inputs[name] = reshape_categorical_input_tensor_for_encoding(
+                    inputs[name],
+                    name,
+                    self.features_2d_last_dim,
+                    self.output_mode,
+                    ensure_1d_for_one_hot_mode=False,
+                )
 
         # Perform the cross and convert to dense
         output = tf.sparse.cross_hashed(list(_inputs.values()), self.num_bins)
-        output = tf.sparse.to_dense(output)
 
-        # Fix output shape and downrank to match input rank.
-        if rank == 2:
-            # tf.sparse.cross_hashed output shape will always be None on the last
-            # dimension. Given our input shape restrictions, we want to force shape 1
-            # instead.
-            output = tf.reshape(output, [-1, 1])
-        elif rank == 1:
-            output = tf.reshape(output, [-1])
-        elif rank == 0:
-            output = tf.reshape(output, [])
+        if self.output_mode == ONE_HOT:
+            output = tf.sparse.reshape(output, [-1])
 
         # Encode outputs.
         outputs = {}
@@ -902,15 +933,25 @@ class HashedCross(TabularBlock):
             depth=self.num_bins,
             sparse=self.sparse,
         )
+
+        if not self.sparse and isinstance(outputs[self.output_name], tf.SparseTensor):
+            outputs[self.output_name] = tf.sparse.to_dense(outputs[self.output_name])
         return outputs
 
     def compute_output_shape(self, input_shapes):
         self._check_at_least_two_inputs()
         self._check_input_shape_and_type(input_shapes)
+
+        # Save the last dim for 2D features so that we can reshape them in graph mode in call()
+        for key in self.schema.column_names:
+            input_shape = input_shapes[key]
+            if len(input_shape) == 2:
+                self.features_2d_last_dim[key] = input_shape[-1]
+
         output_shape = {}
-        one_input = list(input_shapes.values())[0]
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
         output_shape[self.output_name] = preprocessing_utils.compute_shape_for_encode_categorical(
-            shape=one_input, output_mode=self.output_mode, depth=self.num_bins
+            shape=[batch_size, 1], output_mode=self.output_mode, depth=self.num_bins
         )
         return output_shape
 
@@ -931,7 +972,7 @@ class HashedCross(TabularBlock):
     def _check_at_least_two_inputs(self):
         if len(self.schema) < 2:
             raise ValueError(
-                "`HashedCrossing` should be called on at least two features. "
+                "`HashedCross` should be called on at least two features. "
                 f"Received: {len(self.schema)} schemas"
             )
         for name, column_schema in self.schema.column_schemas.items():
@@ -944,17 +985,19 @@ class HashedCross(TabularBlock):
     def _check_input_shape_and_type(self, inputs_shapes) -> TabularData:
         _inputs_shapes = []
         for name in self.schema.column_names:
-            _inputs_shapes.append(inputs_shapes[name])
-        first_shape = _inputs_shapes[0].as_list()
-        rank = len(first_shape)
-        if rank > 2 or (rank == 2 and first_shape[-1] != 1):
+            shape = inputs_shapes[name]
+
+            if shape.rank not in [1, 2]:
+                raise ValueError(
+                    "All `HashedCross` inputs should have 1D or 2D shape. "
+                    f"Received: input {name} with shape={shape}"
+                )
+
+            _inputs_shapes.append(shape)
+
+        if len(set([shape[0] for shape in _inputs_shapes])) > 1:
             raise ValueError(
-                "All `HashedCrossing` inputs should have shape `[]`, `[batch_size]` "
-                f"or `[batch_size, 1]`. Received: input {name} with shape={first_shape}"
-            )
-        if not all(x.as_list() == first_shape for x in _inputs_shapes):
-            raise ValueError(
-                "All `HashedCrossing` inputs should have equal shape. "
+                "All `HashedCross` inputs should have equal first dim (batch size). "
                 f"Received: inputs={_inputs_shapes}"
             )
 
@@ -966,7 +1009,8 @@ def HashedCrossAll(
     max_num_bins: int = 100000,
     max_level: int = 2,
     sparse: bool = False,
-    output_mode: str = "int",
+    output_mode: str = "one_hot",
+    ignore_combinations: Sequence[Sequence[str]] = [],
 ) -> Block:
     """Parallel block consists of HashedCross blocks for all combinations of schema with all levels
         through level 2 to max_level.
@@ -994,7 +1038,7 @@ def HashedCrossAll(
         please use HashedCross to define each one with different num_bins.
     output_mode: string
         Specification for the output of the layer. Defaults to
-        `"int"`.  Values can be `"int"`, or `"one_hot"` configuring the layer as
+        `"one_hot"`.  Values can be `"int"`, or `"one_hot"` configuring the layer as
         follows:
         - `"int"`: Return the integer bin indices directly.
         - `"one_hot"`: Encodes each individual element in the input into an
@@ -1008,6 +1052,14 @@ def HashedCrossAll(
         if the multiplier is bigger than max_num_bins, then it would be cliped by max_num_bins
     max_num_bins: int
         Upper bound of num_bins for all hashed cross transformation blocks, by default 100000.
+
+    ignore_combinations :  Sequence[Sequence[str]]
+        If provided, ignore feature combinations from this list.
+        Useful to avoid interacting features whose combined value is always the same.
+        For example, interacting these features is not useful and one of the features
+        is dependent on the other :
+        [["item_id", "item_category"], ["user_id", "user_birth_city", "user_age"]]
+
 
     Example usage::
 
@@ -1029,10 +1081,21 @@ def HashedCrossAll(
 
     all_combinations = []
     for combination_tuple in combinations(schema.column_names, 2):
-        all_combinations.append(list(combination_tuple))
+        all_combinations.append(set(combination_tuple))
+
     if max_level == 3:
         for combination_tuple in combinations(schema.column_names, 3):
-            all_combinations.append(list(combination_tuple))
+            all_combinations.append(set(combination_tuple))
+
+    if ignore_combinations:
+        ignore_combinations_set = list([set(c) for c in ignore_combinations])
+        all_combinations = list(
+            [
+                combination
+                for combination in all_combinations
+                if (combination not in ignore_combinations_set)
+            ]
+        )
 
     hashed_crosses = []
     for schema_names in all_combinations:
