@@ -92,8 +92,20 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>inputs</strong> (<em>Union</em><em>[</em><em>tf.keras.layers.Layer</em><em>, </em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>tf.keras.layers.Layer</em><em>]</em><em>]</em>) – keras layers to merge into, this can also be one or multiple layers keyed by the
 name the module should have.</p></li>
+<li><p><strong>pre</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>TabularTransformation</em><em>, </em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em><em>, </em><em>List</em><em>[</em><em>TabularTransformation</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Transformations to apply on the inputs when the module is called (so <strong>before</strong> <cite>call</cite>).</p></li>
+<li><p><strong>post</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>TabularTransformation</em><em>, </em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em><em>, </em><em>List</em><em>[</em><em>TabularTransformation</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – Transformations to apply on the inputs after the module is called (so <strong>after</strong> <cite>call</cite>).</p></li>
+<li><p><strong>aggregation</strong> (<em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>TabularAggregation</em><em>]</em><em>, </em><em>optional</em>) – <p>Aggregation to apply after processing the <cite>call</cite>-method to output a single Tensor.</p>
+<p>Next to providing a class that extends TabularAggregation, it’s also possible to provide
+the name that the class is registered in the <cite>tabular_aggregation_registry</cite>. Out of the box
+this contains: “concat”, “stack”, “element-wise-sum” &amp;
+“element-wise-sum-item-multi”.</p>
+</p></li>
+<li><p><strong>schema</strong> (<em>Optional</em><em>[</em><em>DatasetSchema</em><em>]</em>) – DatasetSchema containing the columns used in this block.</p></li>
+<li><p><strong>name</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em>) – Name of the layer.</p></li>
 <li><p><strong>use_layer_name</strong> (<em>use the original name of layers provided in inputs as key-index of the</em>) – parallel branches.</p></li>
-<li><p><strong>{tabular_module_parameters}</strong> – </p></li>
+<li><p><strong>strict</strong> – If true, inputs must be a dictionary. Otherwise, an error will be raised.</p></li>
+<li><p><strong>automatic_pruning</strong> – If true, branches with no output will automatically be pruned.</p></li>
+<li><p><strong>**kwargs</strong> – Extra arguments to pass to TabularBlock.</p></li>
 </ul>
 </dd>
 </dl>
