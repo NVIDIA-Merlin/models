@@ -64,7 +64,7 @@ class InBatchNegatives(tf.keras.layers.Layer):
         """Extend batch of inputs and targets with negatives."""
 
         def get_tuple(x, y):
-            if training or testing:
+            if training or testing or y is None:
                 return Prediction(x, y)
             return (x, y)
 
