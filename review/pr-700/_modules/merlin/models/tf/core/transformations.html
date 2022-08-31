@@ -208,11 +208,10 @@
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">input_shape</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_length</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
                 <span class="n">outputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_length</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># TODO: What to do here?</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;max_seq_length must be specified&quot;</span><span class="p">)</span>
+                <span class="n">outputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">((</span><span class="n">batch_size</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">outputs</span></div>
 
@@ -484,6 +483,39 @@
         <span class="k">return</span> <span class="n">logits</span>
 
 
+<span class="k">def</span> <span class="nf">reshape_categorical_input_tensor_for_encoding</span><span class="p">(</span>
+    <span class="nb">input</span><span class="p">,</span> <span class="n">feat_name</span><span class="p">,</span> <span class="n">features_2d_last_dim</span><span class="p">,</span> <span class="n">output_mode</span><span class="p">,</span> <span class="n">ensure_1d_for_one_hot_mode</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">):</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="nb">input</span>
+    <span class="n">reshape_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">reshape</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span>
+    <span class="k">if</span> <span class="n">ensure_1d_for_one_hot_mode</span> <span class="ow">and</span> <span class="n">output_mode</span> <span class="o">==</span> <span class="n">ONE_HOT</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">features_2d_last_dim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feat_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">input</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">reshape_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">feat_name</span> <span class="ow">in</span> <span class="n">features_2d_last_dim</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="nb">input</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;One-hot accepts input tensors that are squeezable to 1D, but received&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot; a tensor with shape: </span><span class="si">{</span><span class="nb">input</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># if feat_name in features_2d_last_dim or len(input.get_shape()) == 2:</span>
+        <span class="k">if</span> <span class="n">feat_name</span> <span class="ow">in</span> <span class="n">features_2d_last_dim</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="nb">input</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="p">):</span>
+            <span class="c1"># Ensures that the shape is known to avoid error on graph mode</span>
+            <span class="n">new_shape</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">features_2d_last_dim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feat_name</span><span class="p">,</span> <span class="nb">input</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">reshape_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">expand_dims_fn</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">expand_dims</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span>
+            <span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">expand_dims_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">output</span>
+
+
 <span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register_with_multiple_names</span><span class="p">(</span><span class="s2">&quot;category_encoding&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin_models&quot;</span><span class="p">)</span>
 <span class="nd">@requires_schema</span>
@@ -536,6 +568,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">schema</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_schema</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sparse</span> <span class="o">=</span> <span class="n">sparse</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cardinalities</span> <span class="o">=</span> <span class="n">schema_utils</span><span class="o">.</span><span class="n">categorical_cardinalities</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
         <span class="c1"># &#39;output_mode&#39; must be one of (COUNT, ONE_HOT, MULTI_HOT)</span>
         <span class="n">layer_utils</span><span class="o">.</span><span class="n">validate_string_arg</span><span class="p">(</span>
@@ -557,7 +590,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">count_weights</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># Used to reshape 1D&lt;-&gt;2Dtensors depending on the output_mode, when in graph mode</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_2d_features_last_dim</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features_2d_last_dim</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">TabularData</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -569,9 +602,16 @@
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> with type of </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
-            <span class="n">shape</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`CategoryEncoding` only accepts 1D or 2D-shaped inputs&quot;</span><span class="p">)</span>
+            <span class="n">assertion_min_rank</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]),</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]),</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="p">),</span>
+                <span class="p">[</span>
+                    <span class="s2">&quot;`CategoryEncoding` only accepts 1D or 2D-shaped inputs, but got &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;different rank for </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">],</span>
+            <span class="p">)</span>
 
             <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">ensure_tensor</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
 
@@ -585,16 +625,21 @@
                 <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">depth</span><span class="p">,</span> <span class="n">max_value</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">max_value</span><span class="p">),</span>
                 <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">min_value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">min_value</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span>
             <span class="p">)</span>
-            <span class="n">assertion</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
+            <span class="n">assertion_valid_values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
                 <span class="n">condition</span><span class="p">,</span>
                 <span class="p">[</span>
                     <span class="s2">&quot;Input values must be in the range 0 &lt;= values &lt; num_tokens&quot;</span>
                     <span class="s2">&quot; with num_tokens=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">depth</span><span class="p">)</span>
                 <span class="p">],</span>
             <span class="p">)</span>
-            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">assertion</span><span class="p">]):</span>
-
-                <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_tensor_shape</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">assertion_min_rank</span><span class="p">,</span> <span class="n">assertion_valid_values</span><span class="p">]):</span>
+                <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">reshape_categorical_input_tensor_for_encoding</span><span class="p">(</span>
+                    <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">features_2d_last_dim</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span><span class="p">,</span>
+                    <span class="n">ensure_1d_for_one_hot_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
 
                 <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">encode_categorical_inputs</span><span class="p">(</span>
                     <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span>
@@ -604,33 +649,10 @@
                     <span class="n">sparse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sparse</span><span class="p">,</span>
                     <span class="n">count_weights</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">count_weights</span><span class="p">,</span>
                 <span class="p">)</span>
-        <span class="k">return</span> <span class="n">outputs</span>
 
-    <span class="k">def</span> <span class="nf">adjust_tensor_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">feat_name</span><span class="p">):</span>
-        <span class="n">shape</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="nb">input</span>
-        <span class="n">reshape_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">reshape</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span> <span class="o">==</span> <span class="n">ONE_HOT</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_2d_features_last_dim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feat_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
-                    <span class="n">output</span> <span class="o">=</span> <span class="n">reshape_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="s2">&quot;One-hot accepts input tensors that are squeezable to 1D, but received&quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot; a tensor with shape: </span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="p">)</span>
-        <span class="c1"># For MULTI_HOT or COUNT, ensures the tensor is 2D</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">expand_dims_fn</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">expand_dims</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span>
-                <span class="p">)</span>
-                <span class="n">output</span> <span class="o">=</span> <span class="n">expand_dims_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># Ensures that the shape is known to avoid error on graph mode</span>
-                <span class="n">new_shape</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_2d_features_last_dim</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">feat_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
-                <span class="n">output</span> <span class="o">=</span> <span class="n">reshape_fn</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">output</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sparse</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">):</span>
+                    <span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">outputs</span>
 
     <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -642,7 +664,7 @@
                 <span class="n">outputs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cardinalities</span><span class="p">[</span><span class="n">key</span><span class="p">]])</span>
 
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_2d_features_last_dim</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">features_2d_last_dim</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">outputs</span>
 
@@ -864,7 +886,7 @@
 <span class="nd">@Block</span><span class="o">.</span><span class="n">registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;hashed_cross&quot;</span><span class="p">)</span>
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">HashedCross</span><span class="p">(</span><span class="n">TabularBlock</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A transformation block which crosses categorical features using the &quot;hasing trick&quot;.</span>
+    <span class="sd">&quot;&quot;&quot;A transformation block which crosses categorical features using the &quot;hashing trick&quot;.</span>
 <span class="sd">    Conceptually, the transformation can be thought of as: hash(concatenation of features) %</span>
 <span class="sd">    num_bins</span>
 <span class="sd">    Example usage::</span>
@@ -880,8 +902,8 @@
 <span class="sd">        num_bins : int</span>
 <span class="sd">            Number of hash bins.</span>
 <span class="sd">        output_mode: string</span>
-<span class="sd">            Specification for the output of the layer. Defaults to &quot;int&quot;.  Values can be &quot;int&quot;, or</span>
-<span class="sd">            &quot;one_hot&quot;, configuring the layer as follows:</span>
+<span class="sd">            Specification for the output of the layer. Defaults to &quot;one_hot&quot;.  Values can be &quot;int&quot;,</span>
+<span class="sd">            or &quot;one_hot&quot;, configuring the layer as follows:</span>
 <span class="sd">            - `&quot;int&quot;`: Return the integer bin indices directly.</span>
 <span class="sd">            - `&quot;one_hot&quot;`: Encodes each individual element in the input into an array with the same</span>
 <span class="sd">                size as `num_bins`, containing a 1 at the input&#39;s bin index.</span>
@@ -903,7 +925,7 @@
         <span class="n">schema</span><span class="p">:</span> <span class="n">Schema</span><span class="p">,</span>
         <span class="n">num_bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sparse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">output_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;int&quot;</span><span class="p">,</span>
+        <span class="n">output_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;one_hot&quot;</span><span class="p">,</span>
         <span class="n">output_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">infer_num_bins</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">max_num_bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span>
@@ -919,14 +941,14 @@
                 <span class="s2">&quot;mulplier of feature cardinalities, at the same time you can set the max_num_bins.&quot;</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">output_mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="s2">&quot;one_hot&quot;</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;output_mode must be &#39;int&#39; or &#39;one_hot&#39;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">output_mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="s2">&quot;one_hot&quot;</span><span class="p">,</span> <span class="s2">&quot;multi_hot&quot;</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;output_mode must be &#39;int&#39;, &#39;one_hot&#39;, or &#39;multi_hot&#39;&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span> <span class="o">=</span> <span class="n">output_mode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sparse</span> <span class="o">=</span> <span class="n">sparse</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">output_name</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">=</span> <span class="s2">&quot;cross&quot;</span>
-            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">name</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">=</span> <span class="n">output_name</span>
@@ -943,31 +965,40 @@
                 <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">max_num_bins</span><span class="p">,</span> <span class="n">inferred_num_bins_from_cardinalities_multiplier</span><span class="p">))</span>
 
+        <span class="c1"># Used to enforce the shape of 2D tensors depending on the output_mode, when in graph mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features_2d_last_dim</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
     <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_at_least_two_inputs</span><span class="p">()</span>
+
         <span class="n">_inputs</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-            <span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
-            <span class="n">rank</span> <span class="o">=</span> <span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span>
-            <span class="k">if</span> <span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-                <span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">assertion_min_rank</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]),</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]),</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="p">),</span>
+                <span class="p">[</span>
+                    <span class="s2">&quot;`HashedCross` only accepts 1D or 2D-shaped inputs, but got &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;different rank for </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">],</span>
+            <span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">assertion_min_rank</span><span class="p">]):</span>
+                <span class="n">_inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">reshape_categorical_input_tensor_for_encoding</span><span class="p">(</span>
+                    <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">],</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">features_2d_last_dim</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span><span class="p">,</span>
+                    <span class="n">ensure_1d_for_one_hot_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
 
         <span class="c1"># Perform the cross and convert to dense</span>
         <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">cross_hashed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">_inputs</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span><span class="p">)</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
 
-        <span class="c1"># Fix output shape and downrank to match input rank.</span>
-        <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="c1"># tf.sparse.cross_hashed output shape will always be None on the last</span>
-            <span class="c1"># dimension. Given our input shape restrictions, we want to force shape 1</span>
-            <span class="c1"># instead.</span>
-            <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-        <span class="k">elif</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="k">elif</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span> <span class="o">==</span> <span class="n">ONE_HOT</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
         <span class="c1"># Encode outputs.</span>
         <span class="n">outputs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -977,15 +1008,25 @@
             <span class="n">depth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span><span class="p">,</span>
             <span class="n">sparse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sparse</span><span class="p">,</span>
         <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sparse</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_name</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">):</span>
+            <span class="n">outputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(</span><span class="n">outputs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_name</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">outputs</span>
 
     <span class="k">def</span> <span class="nf">compute_output_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_at_least_two_inputs</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_input_shape_and_type</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
+
+        <span class="c1"># Save the last dim for 2D features so that we can reshape them in graph mode in call()</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+            <span class="n">input_shape</span> <span class="o">=</span> <span class="n">input_shapes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">features_2d_last_dim</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
         <span class="n">output_shape</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">one_input</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_shapes</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_batch_size_from_input_shapes</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
         <span class="n">output_shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">preprocessing_utils</span><span class="o">.</span><span class="n">compute_shape_for_encode_categorical</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="n">one_input</span><span class="p">,</span> <span class="n">output_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">output_mode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_mode</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_bins</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">output_shape</span>
 
@@ -1006,7 +1047,7 @@
     <span class="k">def</span> <span class="nf">_check_at_least_two_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;`HashedCrossing` should be called on at least two features. &quot;</span>
+                <span class="s2">&quot;`HashedCross` should be called on at least two features. &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;Received: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span><span class="si">}</span><span class="s2"> schemas&quot;</span>
             <span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">column_schema</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_schemas</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1019,17 +1060,19 @@
     <span class="k">def</span> <span class="nf">_check_input_shape_and_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs_shapes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TabularData</span><span class="p">:</span>
         <span class="n">_inputs_shapes</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
-            <span class="n">_inputs_shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputs_shapes</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
-        <span class="n">first_shape</span> <span class="o">=</span> <span class="n">_inputs_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
-        <span class="n">rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">first_shape</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="p">(</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">first_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">inputs_shapes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;All `HashedCross` inputs should have 1D or 2D shape. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Received: input </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> with shape=</span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">_inputs_shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">_inputs_shapes</span><span class="p">]))</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;All `HashedCrossing` inputs should have shape `[]`, `[batch_size]` &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;or `[batch_size, 1]`. Received: input </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> with shape=</span><span class="si">{</span><span class="n">first_shape</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span> <span class="o">==</span> <span class="n">first_shape</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">_inputs_shapes</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;All `HashedCrossing` inputs should have equal shape. &quot;</span>
+                <span class="s2">&quot;All `HashedCross` inputs should have equal first dim (batch size). &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;Received: inputs=</span><span class="si">{</span><span class="n">_inputs_shapes</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
@@ -1041,7 +1084,8 @@
     <span class="n">max_num_bins</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">,</span>
     <span class="n">max_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
     <span class="n">sparse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">output_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;int&quot;</span><span class="p">,</span>
+    <span class="n">output_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;one_hot&quot;</span><span class="p">,</span>
+    <span class="n">ignore_combinations</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Block</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Parallel block consists of HashedCross blocks for all combinations of schema with all levels</span>
 <span class="sd">        through level 2 to max_level.</span>
@@ -1069,7 +1113,7 @@
 <span class="sd">        please use HashedCross to define each one with different num_bins.</span>
 <span class="sd">    output_mode: string</span>
 <span class="sd">        Specification for the output of the layer. Defaults to</span>
-<span class="sd">        `&quot;int&quot;`.  Values can be `&quot;int&quot;`, or `&quot;one_hot&quot;` configuring the layer as</span>
+<span class="sd">        `&quot;one_hot&quot;`.  Values can be `&quot;int&quot;`, or `&quot;one_hot&quot;` configuring the layer as</span>
 <span class="sd">        follows:</span>
 <span class="sd">        - `&quot;int&quot;`: Return the integer bin indices directly.</span>
 <span class="sd">        - `&quot;one_hot&quot;`: Encodes each individual element in the input into an</span>
@@ -1083,6 +1127,14 @@
 <span class="sd">        if the multiplier is bigger than max_num_bins, then it would be cliped by max_num_bins</span>
 <span class="sd">    max_num_bins: int</span>
 <span class="sd">        Upper bound of num_bins for all hashed cross transformation blocks, by default 100000.</span>
+
+<span class="sd">    ignore_combinations :  Sequence[Sequence[str]]</span>
+<span class="sd">        If provided, ignore feature combinations from this list.</span>
+<span class="sd">        Useful to avoid interacting features whose combined value is always the same.</span>
+<span class="sd">        For example, interacting these features is not useful and one of the features</span>
+<span class="sd">        is dependent on the other :</span>
+<span class="sd">        [[&quot;item_id&quot;, &quot;item_category&quot;], [&quot;user_id&quot;, &quot;user_birth_city&quot;, &quot;user_age&quot;]]</span>
+
 
 <span class="sd">    Example usage::</span>
 
@@ -1104,10 +1156,21 @@
 
     <span class="n">all_combinations</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">combination_tuple</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
-        <span class="n">all_combinations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">combination_tuple</span><span class="p">))</span>
+        <span class="n">all_combinations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">combination_tuple</span><span class="p">))</span>
+
     <span class="k">if</span> <span class="n">max_level</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">combination_tuple</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
-            <span class="n">all_combinations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">combination_tuple</span><span class="p">))</span>
+            <span class="n">all_combinations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">combination_tuple</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">ignore_combinations</span><span class="p">:</span>
+        <span class="n">ignore_combinations_set</span> <span class="o">=</span> <span class="nb">list</span><span class="p">([</span><span class="nb">set</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">ignore_combinations</span><span class="p">])</span>
+        <span class="n">all_combinations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">combination</span>
+                <span class="k">for</span> <span class="n">combination</span> <span class="ow">in</span> <span class="n">all_combinations</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">combination</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ignore_combinations_set</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
 
     <span class="n">hashed_crosses</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">schema_names</span> <span class="ow">in</span> <span class="n">all_combinations</span><span class="p">:</span>

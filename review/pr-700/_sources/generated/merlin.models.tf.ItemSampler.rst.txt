@@ -20,7 +20,6 @@
       ~ItemSampler.add_update
       ~ItemSampler.add_variable
       ~ItemSampler.add_weight
-      ~ItemSampler.apply
       ~ItemSampler.build
       ~ItemSampler.call
       ~ItemSampler.compute_mask
@@ -33,11 +32,9 @@
       ~ItemSampler.get_input_at
       ~ItemSampler.get_input_mask_at
       ~ItemSampler.get_input_shape_at
-      ~ItemSampler.get_losses_for
       ~ItemSampler.get_output_at
       ~ItemSampler.get_output_mask_at
       ~ItemSampler.get_output_shape_at
-      ~ItemSampler.get_updates_for
       ~ItemSampler.get_weights
       ~ItemSampler.sample
       ~ItemSampler.set_max_num_samples
