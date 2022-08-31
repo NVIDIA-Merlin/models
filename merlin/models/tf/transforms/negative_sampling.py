@@ -40,10 +40,6 @@ class InBatchNegatives(tf.keras.layers.Layer):
         The random seed, by default None
     run_when_testing : bool, optional
         Whether the negative sampling should happen when testing=True, by default True
-    return_tuple : bool, optional
-        Whether to return a Prediction or a tuple. The tuple option should be used
-        when using UniformNegativeSampling with Loader.map()
-        which accepts a tuple with length 2 or 3 (x,y,sample_weight), by default False
     """
 
     def __init__(
@@ -52,7 +48,6 @@ class InBatchNegatives(tf.keras.layers.Layer):
         n_per_positive: int,
         seed: Optional[int] = None,
         run_when_testing: bool = True,
-        return_tuple: bool = False,
         **kwargs
     ):
 
@@ -62,7 +57,6 @@ class InBatchNegatives(tf.keras.layers.Layer):
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
         self.run_when_testing = run_when_testing
-        self.return_tuple = return_tuple
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
@@ -159,7 +153,6 @@ class InBatchNegatives(tf.keras.layers.Layer):
         config["n_per_positive"] = self.n_per_positive
         config["seed"] = self.seed
         config["run_when_testing"] = self.run_when_testing
-        config["return_tuple"] = self.return_tuple
         return config
 
     @classmethod
@@ -167,12 +160,11 @@ class InBatchNegatives(tf.keras.layers.Layer):
         """Creates layer from its config. Returning the instance."""
         schema = schema_utils.tensorflow_metadata_json_to_schema(config.pop("schema"))
         n_per_positive = config.pop("n_per_positive")
-        return_tuple = config.pop("return_tuple")
         seed = None
         if "seed" in config:
             seed = config.pop("seed")
         kwargs = config
-        return cls(schema, n_per_positive, seed=seed, return_tuple=return_tuple, **kwargs)
+        return cls(schema, n_per_positive, seed=seed, **kwargs)
 
     def compute_output_shape(self, input_shape):
         """Computes the output shape of the layer."""
