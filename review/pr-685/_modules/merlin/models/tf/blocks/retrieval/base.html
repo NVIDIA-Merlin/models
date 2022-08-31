@@ -97,7 +97,7 @@
 <span class="kn">from</span> <span class="nn">merlin.models.tf.blocks.sampling.base</span> <span class="kn">import</span> <span class="n">ItemSampler</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.base</span> <span class="kn">import</span> <span class="n">Block</span><span class="p">,</span> <span class="n">BlockType</span><span class="p">,</span> <span class="n">EmbeddingWithMetadata</span><span class="p">,</span> <span class="n">PredictionOutput</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.combinators</span> <span class="kn">import</span> <span class="n">ParallelBlock</span>
-<span class="kn">from</span> <span class="nn">merlin.models.tf.core.tabular</span> <span class="kn">import</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">TabularAggregationType</span>
+<span class="kn">from</span> <span class="nn">merlin.models.tf.core.tabular</span> <span class="kn">import</span> <span class="n">TabularAggregationType</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.core.transformations</span> <span class="kn">import</span> <span class="n">L2Norm</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.models.base</span> <span class="kn">import</span> <span class="n">ModelBlock</span>
 <span class="kn">from</span> <span class="nn">merlin.models.tf.typing</span> <span class="kn">import</span> <span class="n">TabularData</span>
@@ -175,10 +175,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_query_block</span> <span class="o">=</span> <span class="n">TowerBlock</span><span class="p">(</span><span class="n">query_block</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_item_block</span> <span class="o">=</span> <span class="n">TowerBlock</span><span class="p">(</span><span class="n">item_block</span><span class="p">)</span>
 
-        <span class="n">branches</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;query&quot;</span><span class="p">:</span> <span class="n">Filter</span><span class="p">(</span><span class="n">query_block</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_query_block</span><span class="p">),</span>
-            <span class="s2">&quot;item&quot;</span><span class="p">:</span> <span class="n">Filter</span><span class="p">(</span><span class="n">item_block</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_item_block</span><span class="p">),</span>
-        <span class="p">}</span>
+        <span class="n">branches</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;query&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_block</span><span class="p">,</span> <span class="s2">&quot;item&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_item_block</span><span class="p">}</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">branches</span><span class="p">,</span>
