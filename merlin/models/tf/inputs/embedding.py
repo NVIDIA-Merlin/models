@@ -288,9 +288,9 @@ class EmbeddingTable(EmbeddingTableBase):
         """
         if isinstance(inputs, dict):
             out = {}
-            for col_name in [self.col_schema.name]:
-                if col_name in inputs:
-                    out[col_name] = self._call_table(inputs[col_name], **kwargs)
+            for feature_name in self.feature_names:
+                if feature_name in inputs:
+                    out[feature_name] = self._call_table(inputs[feature_name], **kwargs)
         else:
             out = self._call_table(inputs, **kwargs)
 
@@ -336,8 +336,10 @@ class EmbeddingTable(EmbeddingTableBase):
     ) -> Union[tf.TensorShape, Dict[str, tf.TensorShape]]:
         if isinstance(input_shape, dict):
             output_shapes = {}
-            for col_name in [self.col_schema.name]:
-                output_shapes[col_name] = self._compute_output_shape_table(input_shape[col_name])
+            for feature_name in self.feature_names:
+                output_shapes[feature_name] = self._compute_output_shape_table(
+                    input_shape[feature_name]
+                )
         else:
             output_shapes = self._compute_output_shape_table(input_shape)
 
