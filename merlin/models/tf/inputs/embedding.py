@@ -342,9 +342,10 @@ class EmbeddingTable(EmbeddingTableBase):
         if isinstance(input_shape, dict):
             output_shapes = {}
             for feature_name in self.feature_names:
-                output_shapes[feature_name] = self._compute_output_shape_table(
-                    input_shape[feature_name]
-                )
+                if feature_name in input_shape:
+                    output_shapes[feature_name] = self._compute_output_shape_table(
+                        input_shape[feature_name]
+                    )
         else:
             output_shapes = self._compute_output_shape_table(input_shape)
 
