@@ -126,7 +126,6 @@ def test_parallel_block_select_by_tags(music_streaming_data):
         "user_id",
     ]
 
-    print(parallel_block.schema)
     item_tags = parallel_block.select_by_tag(Tags.ITEM)
     assert sorted(item_tags.schema.column_names) == [
         "item_category",
