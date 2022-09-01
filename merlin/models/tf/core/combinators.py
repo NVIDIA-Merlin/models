@@ -15,10 +15,16 @@ from merlin.models.tf.core.base import (
     is_input_block,
     right_shift_layer,
 )
-from merlin.models.tf.core.tabular import Filter, TabularAggregationType, TabularBlock
+from merlin.models.tf.core.tabular import (
+    TABULAR_MODULE_PARAMS_DOCSTRING,
+    Filter,
+    TabularAggregationType,
+    TabularBlock,
+)
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer
 from merlin.models.utils import schema_utils
+from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema, Tags
 
 
@@ -239,9 +245,9 @@ class SequentialBlock(Block):
         Returns
         -------
         bool
-            True if all layer within SequentialBlock are trainable, otherwise False
+            True if any layer within SequentialBlock are trainable, otherwise False
         """
-        return all(layer.trainable for layer in self.layers)
+        return any(layer.trainable for layer in self.layers)
 
     @trainable.setter
     def trainable(self, value):
@@ -329,16 +335,25 @@ class SequentialBlock(Block):
         return right_shift_layer(other, self)
 
 
+@docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ParallelBlock(TabularBlock):
     """Merge multiple layers or TabularModule's into a single output of TabularData.
 
     Parameters
     ----------
-    blocks_to_merge: Union[TabularModule, Dict[str, TabularBlock]]
-        TabularBlocks to merge into, this can also be one or multiple dictionaries keyed by the
+    inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]]
+        keras layers to merge into, this can also be one or multiple layers keyed by the
         name the module should have.
     {tabular_module_parameters}
+    use_layer_name: use the original name of layers provided in inputs as key-index of the
+        parallel branches.
+    strict:
+        If true, inputs must be a dictionary. Otherwise, an error will be raised.
+    automatic_pruning:
+        If true, branches with no output will automatically be pruned.
+    **kwargs:
+        Extra arguments to pass to TabularBlock.
     """
 
     def __init__(
@@ -351,6 +366,7 @@ class ParallelBlock(TabularBlock):
         name: Optional[str] = None,
         strict: bool = False,
         automatic_pruning: bool = True,
+        use_layer_name: bool = True,
         **kwargs,
     ):
         super().__init__(
@@ -370,10 +386,13 @@ class ParallelBlock(TabularBlock):
                 parsed_to_merge[key] = val
             self.parallel_layers = parsed_to_merge
         elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
-            parsed: List[TabularBlock] = []
-            for i, inp in enumerate(inputs):
-                parsed.append(inp)  # type: ignore
-            self.parallel_layers = parsed
+            if use_layer_name:
+                self.parallel_layers = {layer.name: layer for layer in inputs}
+            else:
+                parsed: List[TabularBlock] = []
+                for i, inp in enumerate(inputs):
+                    parsed.append(inp)  # type: ignore
+                self.parallel_layers = parsed
         else:
             raise ValueError(
                 "Please provide one or multiple layer's to merge or "
@@ -423,6 +442,22 @@ class ParallelBlock(TabularBlock):
         """
         return self.parallel_dict.get(name)
 
+    def select_by_names(self, names: List[str]) -> Optional[List[Block]]:
+        """Select a list of parallel blocks by names
+
+        Returns
+        -------
+        List[Block]
+            The blocks corresponding to the names
+        """
+        blocks = []
+        for name in names:
+            if name in self.parallel_dict:
+                blocks.append(self.parallel_dict.get(name))
+            else:
+                raise ValueError(f"Given name {name} is not in ParallelBlock {self.name}")
+        return blocks
+
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]
 
@@ -456,20 +491,13 @@ class ParallelBlock(TabularBlock):
             assert isinstance(inputs, dict), "Inputs needs to be a dict"
 
         outputs = {}
-        if isinstance(inputs, dict) and all(
-            name in inputs for name in list(self.parallel_dict.keys())
-        ):
-            for name, block in self.parallel_dict.items():
-                out = call_layer(block, inputs[name], **kwargs)
-                if not isinstance(out, dict):
-                    out = {name: out}
-                outputs.update(out)
-        else:
-            for name, layer in self.parallel_dict.items():
-                out = call_layer(layer, inputs, **kwargs)
-                if not isinstance(out, dict):
-                    out = {name: out}
-                outputs.update(out)
+
+        for name, layer in self.parallel_dict.items():
+            layer_inputs = self._maybe_filter_layer_inputs_using_schema(name, layer, inputs)
+            out = call_layer(layer, layer_inputs, **kwargs)
+            if not isinstance(out, dict):
+                out = {name: out}
+            outputs.update(out)
 
         return outputs
 
@@ -477,12 +505,10 @@ class ParallelBlock(TabularBlock):
         output_shapes = {}
 
         for name, layer in self.parallel_dict.items():
-            if isinstance(input_shape, dict) and all(
-                key in input_shape for key in list(self.parallel_dict.keys())
-            ):
-                out = layer.compute_output_shape(input_shape[name])
-            else:
-                out = layer.compute_output_shape(input_shape)
+            layer_input_shape = self._maybe_filter_layer_inputs_using_schema(
+                name, layer, input_shape
+            )
+            out = layer.compute_output_shape(layer_input_shape)
             if isinstance(out, dict):
                 output_shapes.update(out)
             else:
@@ -492,23 +518,34 @@ class ParallelBlock(TabularBlock):
 
     def build(self, input_shape):
         to_prune = []
-        propagate_all_inputs = True
-        if isinstance(input_shape, dict) and all(
-            name in input_shape for name in list(self.parallel_dict.keys())
-        ):
-            propagate_all_inputs = False
 
-        for key, branch in self.parallel_dict.items():
-            branch_shape = input_shape[key] if not propagate_all_inputs else input_shape
-            branch.build(branch_shape)
-            branch_out_shape = branch.compute_output_shape(branch_shape)
-            if self.automatic_pruning and branch_out_shape == {}:
-                to_prune.append(key)
+        for name, layer in self.parallel_dict.items():
+            layer_input_shape = self._maybe_filter_layer_inputs_using_schema(
+                name, layer, input_shape
+            )
+            layer.build(layer_input_shape)
+            layer_out_shape = layer.compute_output_shape(layer_input_shape)
+            if self.automatic_pruning and layer_out_shape == {}:
+                to_prune.append(name)
 
         for p in to_prune:
             self.parallel_layers.pop(p)
 
         return super().build(input_shape)
+
+    def _maybe_filter_layer_inputs_using_schema(self, name, layer, inputs):
+        has_schema = getattr(layer, "has_schema", False)
+        if has_schema and isinstance(inputs, dict):
+            layer_inputs = {k: v for k, v in inputs.items() if k in layer.schema.column_names}
+        else:
+            layer_inputs = inputs
+
+        if isinstance(layer_inputs, dict) and all(
+            name in layer_inputs for name in self.parallel_dict
+        ):
+            layer_inputs = layer_inputs[name]
+
+        return layer_inputs
 
     def get_config(self):
         config = super(ParallelBlock, self).get_config()

@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import numpy as np
 import pytest
 
 from merlin.datasets.synthetic import generate_data, generate_user_item_interactions
 from merlin.io import Dataset
 from merlin.models.utils.schema_utils import filter_dict_by_schema
-from merlin.schema import Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 def test_synthetic_sequence_testing_data():
@@ -52,11 +53,36 @@ def test_tf_tensors_generation_cpu():
         assert len(val) == 2
 
 
+def test_generate_user_item_interactions_dtypes():
+    schema = Schema(
+        [
+            ColumnSchema(
+                "item_id",
+                dtype=np.int32,
+                tags=[Tags.ITEM_ID],
+                properties={"domain": {"min": 0, "max": 10}},
+            ),
+            ColumnSchema("f32", dtype=np.float32),
+            ColumnSchema("f64", dtype=np.float64),
+            ColumnSchema("i16", dtype=np.int16),
+            ColumnSchema("i32", dtype=np.int32),
+            ColumnSchema("i64", dtype=np.int64),
+            ColumnSchema("bool", dtype=np.dtype("bool")),
+        ]
+    )
+    data = generate_user_item_interactions(schema, num_interactions=5)
+    assert data["f32"].dtype == np.float32
+    assert data["f64"].dtype == np.float64
+    assert data["i16"].dtype == np.int16
+    assert data["i32"].dtype == np.int32
+    assert data["i64"].dtype == np.int64
+    assert data["bool"].dtype == np.dtype("bool")
+
+
 def test_generate_item_interactions_cpu(testing_data: Dataset):
     pd = pytest.importorskip("pandas")
-    data = generate_user_item_interactions(
-        testing_data.schema.without("event_timestamp"), num_interactions=500
-    )
+    schema = testing_data.schema.without("event_timestamp")
+    data = generate_user_item_interactions(schema, num_interactions=500)
 
     assert isinstance(data, pd.DataFrame)
     assert len(data) == 500

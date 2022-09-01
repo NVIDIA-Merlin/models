@@ -22,7 +22,7 @@ from tensorflow.python.ops import embedding_ops
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.core.base import Block, BlockType, EmbeddingWithMetadata, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock
-from merlin.models.tf.core.tabular import Filter, TabularAggregationType
+from merlin.models.tf.core.tabular import TabularAggregationType
 from merlin.models.tf.core.transformations import L2Norm
 from merlin.models.tf.models.base import ModelBlock
 from merlin.models.tf.typing import TabularData
@@ -100,10 +100,7 @@ class DualEncoderBlock(ParallelBlock):
         self._query_block = TowerBlock(query_block)
         self._item_block = TowerBlock(item_block)
 
-        branches = {
-            "query": Filter(query_block.schema).connect(self._query_block),
-            "item": Filter(item_block.schema).connect(self._item_block),
-        }
+        branches = {"query": self._query_block, "item": self._item_block}
 
         super().__init__(
             branches,
@@ -288,7 +285,7 @@ class ItemRetrievalScorer(Block):
         if self.sampled_softmax_mode or isinstance(targets, tf.Tensor):
             positive_item_ids = targets
         else:
-            positive_item_ids = features[self.item_id_feature_name]
+            positive_item_ids = tf.squeeze(features[self.item_id_feature_name])
 
         neg_items_ids = None
         if training or testing:
@@ -303,9 +300,14 @@ class ItemRetrievalScorer(Block):
                 )
 
             batch_items_embeddings = predictions[self.item_name]
-            batch_items_metadata = {
-                feat_name: features[feat_name] for feat_name in self._required_features
-            }
+
+            if self.sampled_softmax_mode:
+                batch_items_metadata = {self.item_id_feature_name: positive_item_ids}
+            else:
+                batch_items_metadata = {
+                    feat_name: tf.squeeze(features[feat_name])
+                    for feat_name in self._required_features
+                }
 
             positive_scores = tf.reduce_sum(
                 tf.multiply(predictions[self.query_name], predictions[self.item_name]),
@@ -349,7 +351,7 @@ class ItemRetrievalScorer(Block):
                 if isinstance(targets, tf.Tensor):
                     positive_item_ids = targets
                 else:
-                    positive_item_ids = features[self.item_id_feature_name]
+                    positive_item_ids = tf.squeeze(features[self.item_id_feature_name])
 
                 if len(neg_items_ids_list) == 1:
                     neg_items_ids = neg_items_ids_list[0]
@@ -438,6 +440,12 @@ class ItemRetrievalScorer(Block):
         config["sampling_downscore_false_negatives"] = self.downscore_false_negatives
         config["sampling_downscore_false_negatives_value"] = self.false_negatives_score
         config["item_id_feature_name"] = self.item_id_feature_name
+        config["item_domain"] = self.item_domain
+        config["query_name"] = self.query_name
+        config["item_name"] = self.item_name
+        config["cache_query"] = self.cache_query
+        config["sampled_softmax_mode"] = self.sampled_softmax_mode
+        config["store_negative_ids"] = self.store_negative_ids
 
         return config
 
