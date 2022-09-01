@@ -62,16 +62,20 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
 
 
 class EmbeddingTableBase(Block):
-    def __init__(self, dim: int, col_schema: ColumnSchema, *, trainable=True, **kwargs):
+    def __init__(self, dim: int, *col_schemas: ColumnSchema, trainable=True, **kwargs):
         super(EmbeddingTableBase, self).__init__(trainable=trainable, **kwargs)
         self.dim = dim
+        self.features = {}
+        if len(col_schemas) == 0:
+            raise ValueError("At least one col_schema must be provided to the embedding table.")
 
-        if not col_schema.int_domain:
-            raise ValueError("`col_schema` needs to have a int-domain")
+        self.col_schema = col_schemas[0]
+        for col_schema in col_schemas:
+            self.add_feature(col_schema)
 
-        self.col_schema = col_schema
-
-        self.feature_names = [col_schema.name]
+    @property
+    def _schema(self):
+        return Schema([col_schema for col_schema in self.features.values()])
 
     @classmethod
     def from_pretrained(
@@ -92,6 +96,17 @@ class EmbeddingTableBase(Block):
         return self.col_schema.int_domain.name or self.col_schema.name
 
     def add_feature(self, col_schema: ColumnSchema) -> None:
+        """Add a feature to the table.
+
+        Adding more than one feature enables the table to lookup and return embeddings
+        for more than one feature when called with tabular data (Dict[str, TensorLike]).
+
+        Additional column schemas must have an int domain that matches the existing ones.
+
+        Parameters
+        ----------
+        col_schema : ColumnSchema
+        """
         if not col_schema.int_domain:
             raise ValueError("`col_schema` needs to have an int-domain")
 
@@ -111,7 +126,7 @@ class EmbeddingTableBase(Block):
                 f"{col_schema.int_domain.max} != {self.col_schema.int_domain.max} "
             )
 
-        self.feature_names += col_schema.name
+        self.features[col_schema.name] = col_schema
 
     def get_config(self):
         config = super().get_config()
@@ -183,8 +198,7 @@ class EmbeddingTable(EmbeddingTableBase):
     def __init__(
         self,
         dim: int,
-        col_schema: ColumnSchema,
-        *,
+        *col_schemas: ColumnSchema,
         embeddings_initializer="uniform",
         embeddings_regularizer=None,
         activity_regularizer=None,
@@ -200,9 +214,14 @@ class EmbeddingTable(EmbeddingTableBase):
         **kwargs,
     ):
         """Create an EmbeddingTable."""
-        name = name or col_schema.name
         super(EmbeddingTable, self).__init__(
-            dim, col_schema, trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs
+            dim,
+            *col_schemas,
+            trainable=trainable,
+            name=name,
+            dtype=dtype,
+            dynamic=dynamic,
+            **kwargs,
         )
         if table is not None:
             self.table = table
@@ -293,7 +312,7 @@ class EmbeddingTable(EmbeddingTableBase):
         """
         if isinstance(inputs, dict):
             out = {}
-            for feature_name in self.feature_names:
+            for feature_name in self.schema.column_names:
                 if feature_name in inputs:
                     out[feature_name] = self._call_table(inputs[feature_name], **kwargs)
         else:
@@ -341,7 +360,7 @@ class EmbeddingTable(EmbeddingTableBase):
     ) -> Union[tf.TensorShape, Dict[str, tf.TensorShape]]:
         if isinstance(input_shape, dict):
             output_shapes = {}
-            for feature_name in self.feature_names:
+            for feature_name in self.schema.column_names:
                 if feature_name in input_shape:
                     output_shapes[feature_name] = self._compute_output_shape_table(
                         input_shape[feature_name]

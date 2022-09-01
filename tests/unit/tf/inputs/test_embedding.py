@@ -24,7 +24,7 @@ import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.models.tf.utils.testing_utils import model_test
-from merlin.schema import ColumnSchema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 def test_embedding_features(tf_cat_features):
@@ -240,15 +240,38 @@ class TestEmbeddingTable:
         col_schema_b = ColumnSchema(
             "b", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}
         )
-        embedding_table = mm.EmbeddingTable(dim, col_schema_a)
-        embedding_table.add_feature(col_schema_b)
+        col_schema_c = ColumnSchema(
+            "c", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}
+        )
+
+        embedding_table = mm.EmbeddingTable(dim, col_schema_a, col_schema_b)
+        embedding_table.add_feature(col_schema_c)
+
+        assert embedding_table.schema == Schema([col_schema_a, col_schema_b, col_schema_c])
+
         result = embedding_table(
             {
                 "a": tf.constant([[1]]),
                 "b": tf.ragged.constant([[1]]),
+                "c": tf.constant([1]),
             }
         )
+
+        assert set(result.keys()) == {"a", "b", "c"}
         np.testing.assert_array_equal(result["a"].numpy(), result["b"].numpy()[0])
+
+    def test_incompatible_features(self):
+        dim = 4
+        col_schema_a = ColumnSchema(
+            "a", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}
+        )
+        col_schema_b = ColumnSchema(
+            "b", dtype=np.int32, properties={"domain": {"min": 0, "max": 20}}
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            mm.EmbeddingTable(dim, col_schema_a, col_schema_b)
+        assert "does not match existing input dim" in str(exc_info.value)
 
 
 @pytest.mark.parametrize("trainable", [True, False])
