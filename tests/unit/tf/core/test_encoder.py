@@ -10,14 +10,17 @@ def test_encoder_block(music_streaming_data: Dataset):
 
     schema = music_streaming_data.schema
     user_schema = schema.select_by_name(["user_id", "user_genres"])
-    user_encoder = mm.EncoderBlock(user_schema, mm.MLPBlock([4]))
+    user_encoder = mm.EncoderBlock(user_schema, mm.MLPBlock([4]), name="query")
     item_schema = schema.select_by_name(["item_id"])
-    item_encoder = mm.EncoderBlock(item_schema, mm.MLPBlock([4]))
+    item_encoder = mm.EncoderBlock(item_schema, mm.MLPBlock([4]), name="item")
 
     model = mm.Model(
-        mm.ParallelBlock(dict(query=user_encoder, item=item_encoder)),
+        mm.ParallelBlock(user_encoder, item_encoder),
         mm.DotProductCategoricalPrediction(schema),
     )
+
+    assert model.blocks[0]["query"] == user_encoder
+    assert model.blocks[0]["item"] == item_encoder
 
     # testing_utils.model_test(model, music_streaming_data)
     model.compile(run_eagerly=True, optimizer="adam")

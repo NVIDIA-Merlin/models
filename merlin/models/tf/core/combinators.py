@@ -5,7 +5,6 @@ from typing import Dict, List, Optional, Union
 
 import six
 import tensorflow as tf
-import tensorflow.keras
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.base import (

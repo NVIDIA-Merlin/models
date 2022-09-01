@@ -21,7 +21,7 @@ class EncoderBlock(tf.keras.Model):
         post: Optional[tf.keras.layers.Layer] = None,
         **kwargs,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
         if isinstance(inputs, Schema):
             input_block = InputBlockV2(inputs)
             self._schema = inputs
