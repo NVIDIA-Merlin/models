@@ -20,6 +20,7 @@
       ~DualEncoderBlock.add_update
       ~DualEncoderBlock.add_variable
       ~DualEncoderBlock.add_weight
+      ~DualEncoderBlock.apply
       ~DualEncoderBlock.apply_to_all
       ~DualEncoderBlock.apply_to_branch
       ~DualEncoderBlock.as_tabular
@@ -49,10 +50,12 @@
       ~DualEncoderBlock.get_input_mask_at
       ~DualEncoderBlock.get_input_shape_at
       ~DualEncoderBlock.get_item_ids_from_inputs
+      ~DualEncoderBlock.get_losses_for
       ~DualEncoderBlock.get_output_at
       ~DualEncoderBlock.get_output_mask_at
       ~DualEncoderBlock.get_output_shape_at
       ~DualEncoderBlock.get_padding_mask_from_item_id
+      ~DualEncoderBlock.get_updates_for
       ~DualEncoderBlock.get_weights
       ~DualEncoderBlock.item_block
       ~DualEncoderBlock.parse
