@@ -126,6 +126,7 @@ def test_parallel_block_select_by_tags(music_streaming_data):
         "user_id",
     ]
 
+    print(parallel_block.schema)
     item_tags = parallel_block.select_by_tag(Tags.ITEM)
     assert sorted(item_tags.schema.column_names) == [
         "item_category",
@@ -133,7 +134,7 @@ def test_parallel_block_select_by_tags(music_streaming_data):
         "item_id",
         "item_recency",
     ]
-    user_tags = parallel_block.select_by_tag([Tags.ITEM, Tags.USER])
+    user_tags = parallel_block.select_by_tag([Tags.ITEM, Tags.USER, Tags.USER_ID])
     assert sorted(user_tags.schema.column_names) == [
         "country",
         "item_category",
@@ -142,6 +143,7 @@ def test_parallel_block_select_by_tags(music_streaming_data):
         "item_recency",
         "user_age",
         "user_genres",
+        "user_id",
     ]
 
     with pytest.raises(ValueError) as exc_info:
