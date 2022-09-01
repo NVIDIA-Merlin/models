@@ -14,9 +14,7 @@ def test_parallel_block_pruning(music_streaming_data: Dataset, name_branches: bo
     music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.CONTINUOUS)
 
     continuous_block = mm.Filter(music_streaming_data.schema.select_by_tag(Tags.CONTINUOUS))
-    embedding_block = mm.Embeddings(
-        music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
-    )
+    embedding_block = mm.Embeddings(music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL))
 
     if name_branches:
         branches = {"continuous": continuous_block, "embedding": embedding_block}
@@ -54,9 +52,7 @@ def test_parallel_block_serialization(music_streaming_data: Dataset):
 @pytest.mark.parametrize("name_branches", [True, False])
 def test_parallel_block_schema_propagation(music_streaming_data, name_branches: bool):
     continuous_block = mm.Filter(Tags.CONTINUOUS)
-    embedding_block = mm.Embeddings(
-        music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
-    )
+    embedding_block = mm.Embeddings(music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL))
 
     if name_branches:
         branches = {"continuous": continuous_block, "embedding": embedding_block}
@@ -105,9 +101,7 @@ def test_parallel_block_select_from_names():
 
 def test_parallel_block_select_by_tags(music_streaming_data):
     continuous_block = mm.Filter(Tags.CONTINUOUS)
-    embedding_block = mm.Embeddings(
-        music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
-    )
+    embedding_block = mm.Embeddings(music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL))
     branches = {"continuous": continuous_block, "embedding": embedding_block}
     parallel_block = mm.ParallelBlock(branches, schema=music_streaming_data.schema)
 
