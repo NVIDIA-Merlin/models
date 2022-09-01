@@ -36,9 +36,6 @@ class EncoderBlock(tf.keras.Model):
         self.post = post
 
     def call(self, inputs, **kwargs):
-        if "features" not in kwargs:
-            kwargs["features"] = inputs
-
         return combinators.call_sequentially(list(self.to_call), inputs=inputs, **kwargs)
 
     def build(self, input_shape):
@@ -49,13 +46,16 @@ class EncoderBlock(tf.keras.Model):
     def compute_output_shape(self, input_shape):
         return combinators.compute_output_shape_sequentially(list(self.to_call), input_shape)
 
-    def _set_save_spec(self, inputs, args=None, kwargs=None):
-        # We need to overwrite this in order to fix a Keras-bug in TF<2.9
+    def __call__(self, inputs, **kwargs):
         if "features" in kwargs:
             kwargs.pop("features")
 
+        return super().__call__(inputs, **kwargs)
+
+    def _set_save_spec(self, inputs, args=None, kwargs=None):
         super()._set_save_spec(inputs, args, kwargs)
 
+        # We need to overwrite this in order to fix a Keras-bug in TF<2.9
         if version.parse(tf.__version__) < version.parse("2.9.0"):
             # Keras will interpret kwargs like `features` & `targets` as
             # required args, which is wrong. This is a workaround.

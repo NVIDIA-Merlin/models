@@ -10,11 +10,7 @@ def test_encoder_block(music_streaming_data: Dataset):
 
     schema = music_streaming_data.schema
     user_schema = schema.select_by_name(["user_id", "user_genres"])
-
-    # input_v1 = mm.InputBlock(user_schema)
-    input_v2 = mm.InputBlockV2(user_schema)
-
-    user_encoder = mm.EncoderBlock(input_v2, mm.MLPBlock([4]))
+    user_encoder = mm.EncoderBlock(user_schema, mm.MLPBlock([4]))
     item_schema = schema.select_by_name(["item_id"])
     item_encoder = mm.EncoderBlock(item_schema, mm.MLPBlock([4]))
 
