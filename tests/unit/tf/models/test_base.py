@@ -463,37 +463,6 @@ def test_freeze_sequential_block(ecommerce_data):
     )
 
 
-@pytest.mark.parametrize("run_eagerly", [True])
-def test_wide_deep_model(ecommerce_data, run_eagerly):
-    wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
-    deep_schema = ecommerce_data.schema
-    deep_input_block = ml.InputBlockV2(
-        deep_schema,
-    )
-    deep_block = ml.MLPBlock([63], name="MLPBlock_deep_block")
-    deep_body = deep_input_block.connect(deep_block).connect(
-        ml.MLPBlock([0], no_activation_last_layer=True)
-    )
-
-    wide_preprocess = ml.HashedCross(wide_schema, num_bins=100)
-    wide_input_block = ml.ParallelBlock(
-        ml.TabularBlock.from_schema(schema=wide_schema, pre=wide_preprocess),
-        is_input=True,
-        aggregation="concat",
-        name="Parallelblock_wide_input",
-    )
-    wide_body = wide_input_block.connect(ml.MLPBlock([0], no_activation_last_layer=True))
-
-    branches = {"wide": wide_body, "deep": deep_body}
-    wide_and_deep_body = ml.ParallelBlock(branches, aggregation="element-wise-sum")
-    model = ml.Model(wide_and_deep_body, ml.BinaryClassificationTask("click"))
-    model.compile(run_eagerly=True, optimizer="adam")
-    model.fit(ecommerce_data, batch_size=128, epochs=1)
-
-    model.freeze_blocks([wide_body])
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
-
-
 def test_freeze_unfreeze(ecommerce_data):
     schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
     input_block = ml.InputBlockV2(schema)

@@ -372,8 +372,8 @@ class LogisticLoss(PairwiseLoss):
 @LossRegistryMixin.registry.register("hinge")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class HingeLoss(PairwiseLoss):
-    """Pairwise hinge loss, as described in [1]_: `max(0, 1 + r_uj - r_ui))`, where r_ui is the score
-    of the positive item and r_uj the score of negative items.
+    """Pairwise hinge loss, as described in [1]_: `max(0, 1 + r_uj - r_ui))`, where r_ui is
+    the score of the positive item and r_uj the score of negative items.
 
     References
     ----------
