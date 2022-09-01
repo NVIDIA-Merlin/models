@@ -19,6 +19,7 @@
       ~AsTabular.add_update
       ~AsTabular.add_variable
       ~AsTabular.add_weight
+      ~AsTabular.apply
       ~AsTabular.build
       ~AsTabular.call
       ~AsTabular.compute_mask
@@ -31,9 +32,11 @@
       ~AsTabular.get_input_at
       ~AsTabular.get_input_mask_at
       ~AsTabular.get_input_shape_at
+      ~AsTabular.get_losses_for
       ~AsTabular.get_output_at
       ~AsTabular.get_output_mask_at
       ~AsTabular.get_output_shape_at
+      ~AsTabular.get_updates_for
       ~AsTabular.get_weights
       ~AsTabular.set_weights
       ~AsTabular.with_name_scope
