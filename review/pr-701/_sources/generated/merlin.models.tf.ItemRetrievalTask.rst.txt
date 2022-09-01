@@ -19,7 +19,6 @@
       ~ItemRetrievalTask.add_update
       ~ItemRetrievalTask.add_variable
       ~ItemRetrievalTask.add_weight
-      ~ItemRetrievalTask.apply
       ~ItemRetrievalTask.build
       ~ItemRetrievalTask.build_task
       ~ItemRetrievalTask.call
@@ -36,11 +35,9 @@
       ~ItemRetrievalTask.get_input_at
       ~ItemRetrievalTask.get_input_mask_at
       ~ItemRetrievalTask.get_input_shape_at
-      ~ItemRetrievalTask.get_losses_for
       ~ItemRetrievalTask.get_output_at
       ~ItemRetrievalTask.get_output_mask_at
       ~ItemRetrievalTask.get_output_shape_at
-      ~ItemRetrievalTask.get_updates_for
       ~ItemRetrievalTask.get_weights
       ~ItemRetrievalTask.pre_call
       ~ItemRetrievalTask.pre_loss

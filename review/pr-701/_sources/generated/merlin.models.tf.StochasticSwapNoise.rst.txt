@@ -19,7 +19,6 @@
       ~StochasticSwapNoise.add_update
       ~StochasticSwapNoise.add_variable
       ~StochasticSwapNoise.add_weight
-      ~StochasticSwapNoise.apply
       ~StochasticSwapNoise.apply_to_all
       ~StochasticSwapNoise.as_tabular
       ~StochasticSwapNoise.augment
@@ -49,12 +48,10 @@
       ~StochasticSwapNoise.get_input_mask_at
       ~StochasticSwapNoise.get_input_shape_at
       ~StochasticSwapNoise.get_item_ids_from_inputs
-      ~StochasticSwapNoise.get_losses_for
       ~StochasticSwapNoise.get_output_at
       ~StochasticSwapNoise.get_output_mask_at
       ~StochasticSwapNoise.get_output_shape_at
       ~StochasticSwapNoise.get_padding_mask_from_item_id
-      ~StochasticSwapNoise.get_updates_for
       ~StochasticSwapNoise.get_weights
       ~StochasticSwapNoise.parse
       ~StochasticSwapNoise.parse_block
