@@ -22,9 +22,7 @@ def test_encoder_block(music_streaming_data: Dataset):
     assert model.blocks[0]["query"] == user_encoder
     assert model.blocks[0]["item"] == item_encoder
 
-    # testing_utils.model_test(model, music_streaming_data)
-    model.compile(run_eagerly=True, optimizer="adam")
-    model.fit(music_streaming_data, batch_size=50, epochs=1, steps_per_epoch=1)
+    testing_utils.model_test(model, music_streaming_data)
 
     user_features = testing_utils.get_model_inputs(user_schema, ["user_genres"])
     testing_utils.test_model_signature(user_encoder, user_features, ["output_1"])
