@@ -44,6 +44,7 @@ KNOWN_DATASETS: Dict[str, Path] = {
     "criteo": HERE / "advertising/criteo/transformed",
     "aliccp": HERE / "ecommerce/aliccp/transformed",
     "aliccp-raw": HERE / "ecommerce/aliccp/raw",
+    "dressipi2022-preprocessed": HERE / "ecommerce/dressipi/preprocessed/",
 }
 
 
@@ -70,6 +71,7 @@ def generate_data(
     - criteo
     - aliccp
     - aliccp-raw
+    - dressipi
 
 
     Parameters
@@ -277,7 +279,9 @@ def generate_user_item_interactions(
             domain = feature.float_domain
             min_value, max_value = (domain.min, domain.max) if domain else (0.0, 1.0)
 
-            data[feature.name] = _array.random.uniform(min_value, max_value, num_interactions)
+            data[feature.name] = _array.random.uniform(
+                min_value, max_value, num_interactions
+            ).astype(str(feature.dtype))
 
     return data
 

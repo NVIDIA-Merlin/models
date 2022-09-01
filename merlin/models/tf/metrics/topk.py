@@ -15,7 +15,7 @@
 #
 
 # Adapted from source code: https://github.com/karlhigley/ranking-metrics-torch
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
 from keras.utils import losses_utils, metrics_utils
@@ -195,14 +195,17 @@ class TopkMetricWithLabelRelevantCountsMixin:
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
-    def __init__(self, fn, k=5, pre_sorted=True, name=None, dtype=None, **kwargs):
+    def __init__(self, fn, k=5, pre_sorted=True, name=None, log_base=None, **kwargs):
+        self.name_orig = name
         if name is not None:
             name = f"{name}_{k}"
-        super().__init__(name=name, dtype=dtype)
+        super().__init__(name=name, **kwargs)
         self._fn = fn
         self.k = k
         self._pre_sorted = pre_sorted
-        self._fn_kwargs = kwargs
+        self._fn_kwargs = {}
+        if log_base is not None:
+            self._fn_kwargs["log_base"] = log_base
         self.label_relevant_counts = None
 
     @property
@@ -254,7 +257,9 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
 
     def _maybe_sort_top_k(self, y_pred, y_true, label_relevant_counts: tf.Tensor = None):
         if not self.pre_sorted:
-            y_pred, y_true, label_relevant_counts = extract_topk(self.k, y_pred, y_true)
+            y_pred, y_true, label_relevant_counts = extract_topk(
+                self.k, y_pred, y_true, shuffle_ties=True
+            )
         else:
             if label_relevant_counts is None:
                 raise Exception(
@@ -276,61 +281,68 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         return tf.cast(labels, self._dtype), tf.cast(predictions, self._dtype)
 
     def get_config(self):
-        config = {}
+        config = {
+            "name": self.name_orig,
+            "k": self.k,
+            "pre_sorted": self._pre_sorted,
+        }
 
         if type(self) is TopkMetric:
-            # Only include function argument when the object is of a subclass.
+            # Only include function argument when the object is a TopkMetric and not a subclass.
             config["fn"] = self._fn
-            config["k"] = self.k
-            config["pre_sorted"] = self.pre_sorted
 
             for k, v in self._fn_kwargs.items():
                 config[k] = backend.eval(v) if tf.is_tensor(v) or isinstance(v, tf.Variable) else v
-            base_config = super(TopkMetric, self).get_config()
-            return dict(list(base_config.items()) + list(config.items()))
 
-        return {}
+        base_config = super(TopkMetric, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
     @classmethod
     def from_config(cls, config):
-        fn = config.pop("fn", None)
-        k = config.pop("k", None)
-        pre_sorted = config.pop("pre_sorted", None)
         if cls is TopkMetric:
+            fn = config.pop("fn", None)
+            k = config.pop("k", None)
+            pre_sorted = config.pop("pre_sorted", None)
             return cls(get_metric(fn), k=k, pre_sorted=pre_sorted, **config)
         return super(TopkMetric, cls).from_config(config)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("recall_at", "recall")
 class RecallAt(TopkMetric):
-    def __init__(self, k=10, pre_sorted=False, name="recall_at"):
-        super().__init__(recall_at, k=k, pre_sorted=pre_sorted, name=name)
+    def __init__(self, k=10, pre_sorted=False, name="recall_at", **kwargs):
+        super().__init__(recall_at, k=k, pre_sorted=pre_sorted, name=name, **kwargs)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("precision_at", "precision")
 class PrecisionAt(TopkMetric):
-    def __init__(self, k=10, pre_sorted=False, name="precision_at"):
-        super().__init__(precision_at, k=k, pre_sorted=pre_sorted, name=name)
+    def __init__(self, k=10, pre_sorted=False, name="precision_at", **kwargs):
+        super().__init__(precision_at, k=k, pre_sorted=pre_sorted, name=name, **kwargs)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("map_at", "map")
 class AvgPrecisionAt(TopkMetric):
-    def __init__(self, k=10, pre_sorted=False, name="map_at"):
-        super().__init__(average_precision_at, k=k, pre_sorted=pre_sorted, name=name)
+    def __init__(self, k=10, pre_sorted=False, name="map_at", **kwargs):
+        super().__init__(average_precision_at, k=k, pre_sorted=pre_sorted, name=name, **kwargs)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("mrr_at", "mrr")
 class MRRAt(TopkMetric):
-    def __init__(self, k=10, pre_sorted=False, name="mrr_at"):
-        super().__init__(mrr_at, k=k, pre_sorted=pre_sorted, name=name)
+    def __init__(self, k=10, pre_sorted=False, name="mrr_at", **kwargs):
+        super().__init__(mrr_at, k=k, pre_sorted=pre_sorted, name=name, **kwargs)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 @metrics_registry.register_with_multiple_names("ndcg_at", "ndcg")
 class NDCGAt(TopkMetric):
-    def __init__(self, k=10, pre_sorted=False, name="ndcg_at"):
-        super().__init__(ndcg_at, k=k, pre_sorted=pre_sorted, name=name)
+    def __init__(self, k=10, pre_sorted=False, name="ndcg_at", **kwargs):
+        super().__init__(ndcg_at, k=k, pre_sorted=pre_sorted, name=name, **kwargs)
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
     """Aggregator for top-k metrics (TopkMetric) that is optimized
     to sort top-k predictions only once for all metrics.
@@ -339,8 +351,8 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
         Multiple arguments with TopkMetric instances
     """
 
-    def __init__(self, *topk_metrics: TopkMetric):
-        super(TopKMetricsAggregator, self).__init__()
+    def __init__(self, *topk_metrics: TopkMetric, **kwargs):
+        super(TopKMetricsAggregator, self).__init__(**kwargs)
         assert len(topk_metrics) > 0, "At least one topk_metrics should be provided"
         assert all(
             isinstance(m, TopkMetric) for m in topk_metrics
@@ -359,10 +371,12 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
     def update_state(
         self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: Optional[tf.Tensor] = None
     ):
-        # Extractubg sorted top-k prediction scores and labels only ONCE
+        # Extracting sorted top-k prediction scores and labels only ONCE
         # so that sorting does not need to happen for each individual metric
         # (as the top-k metrics have been set with pre_sorted=True in this constructor
-        y_pred, y_true, label_relevant_counts_from_targets = extract_topk(self.k, y_pred, y_true)
+        y_pred, y_true, label_relevant_counts_from_targets = extract_topk(
+            self.k, y_pred, y_true, shuffle_ties=True
+        )
 
         # If label_relevant_counts is not set by a block (e.g. TopKIndexBlock) that
         # has already extracted the top-k predictions, it is assumed that
@@ -409,6 +423,19 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
         aggregator = cls(*metrics)
         return [aggregator]
 
+    def get_config(self):
+        config = super(TopKMetricsAggregator, self).get_config()
+        config["topk_metrics"] = [tf.keras.layers.serialize(metric) for metric in self.topk_metrics]
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        topk_metrics = config.pop("topk_metrics")
+        topk_metrics = [
+            tf.keras.layers.deserialize(metric_config) for metric_config in topk_metrics
+        ]
+        return cls(*topk_metrics, **config)
+
 
 def filter_topk_metrics(
     metrics: Sequence[Metric],
@@ -433,3 +460,30 @@ def filter_topk_metrics(
         ]
     )
     return topk_metrics
+
+
+def split_metrics(
+    metrics: Sequence[Metric],
+    return_other_metrics: bool = False,
+) -> Tuple[TopkMetric, TopKMetricsAggregator, Metric]:
+    """Split the list of metrics into top-k metrics, top-k aggregators and others
+
+    Parameters
+    ----------
+    metrics : List[Metric]
+        List of metrics
+
+    Returns
+    -------
+    List[TopkMetric, TopKMetricsAggregator, Metric]
+        List with the top-k metrics in the list of input metrics
+    """
+    topk_metrics, topk_aggregators, other_metrics = [], [], []
+    for metric in metrics:
+        if isinstance(metric, TopkMetric):
+            topk_metrics.append(metric)
+        elif isinstance(metric, TopKMetricsAggregator):
+            topk_aggregators.append(metric)
+        else:
+            other_metrics.append(metric)
+    return topk_metrics, topk_aggregators, other_metrics

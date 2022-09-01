@@ -86,9 +86,9 @@ class LightFM:
             self.lightfm_model, test, self.train_data, k=k, num_threads=self.num_threads
         ).mean()
         auc = lightfm.evaluation.auc_score(
-            self.lightfm_model, test, self.train_data, k=k, num_threads=self.num_threads
+            self.lightfm_model, test, self.train_data, num_threads=self.num_threads
         ).mean()
-        return {f"precisions@{k}": precision, f"auc@{k}": auc}
+        return {f"precisions@{k}": precision, "auc": auc}
 
     def predict(self, dataset: Dataset, k=10):
         """Generate predictions from the dataset

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 import tensorflow as tf
 
@@ -66,6 +68,23 @@ def test_two_tower_model(music_streaming_data: Dataset, run_eagerly, num_epochs=
         music_streaming_data.schema.select_by_tag(Tags.ITEM),
     )
     testing_utils.test_model_signature(model.first.item_block(), item_features, ["output_1"])
+
+
+def test_two_tower_model_save(tmpdir, ecommerce_data: Dataset):
+    dataset = ecommerce_data
+    schema = dataset.schema
+    model = mm.TwoTowerModel(
+        schema,
+        query_tower=mm.MLPBlock([4], no_activation_last_layer=True),
+        samplers=[mm.InBatchSampler()],
+        embedding_options=mm.EmbeddingOptions(infer_embedding_sizes=True),
+    )
+
+    testing_utils.model_test(model, dataset, reload_model=False)
+
+    query_tower = model.retrieval_block.query_block()
+    query_tower_path = Path(tmpdir) / "query_tower"
+    query_tower.save(query_tower_path)
 
 
 def test_two_tower_model_l2_reg(testing_data: Dataset):

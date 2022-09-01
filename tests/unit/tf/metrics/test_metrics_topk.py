@@ -50,7 +50,9 @@ def topk_metrics_test_data():
 @pytest.fixture
 def topk_metrics_test_data_pre_sorted(topk_metrics_test_data):
     labels, predictions, _ = topk_metrics_test_data
-    predictions, labels, label_relevant_counts = extract_topk(5, predictions, labels)
+    predictions, labels, label_relevant_counts = extract_topk(
+        5, predictions, labels, shuffle_ties=True
+    )
     return labels, predictions, label_relevant_counts
 
 
@@ -179,7 +181,7 @@ def test_topk_metrics_classes_pre_or_not_sorted_matches(
     labels, predictions, label_relevant_counts = topk_metrics_test_data
     # Pre-sorting predictions and labels
     predictions_sorted, labels_sorted, label_relevant_counts_sorted = extract_topk(
-        4, predictions, labels
+        4, predictions, labels, shuffle_ties=True
     )
 
     metric1 = metric_class(k=4, pre_sorted=True)
@@ -193,3 +195,25 @@ def test_topk_metrics_classes_pre_or_not_sorted_matches(
     result2 = metric2.result()
 
     tf.assert_equal(result1, result2)
+
+
+@pytest.mark.parametrize(
+    "metric_class",
+    [RecallAt, PrecisionAt, AvgPrecisionAt, MRRAt, NDCGAt],
+)
+def test_topk_reload(topk_metrics_test_data, metric_class):
+    labels, predictions, label_relevant_counts = topk_metrics_test_data
+
+    metric = metric_class(k=3, pre_sorted=False)
+    metric.label_relevant_counts = label_relevant_counts
+    metric.update_state(labels, predictions)
+    result = metric.result()
+
+    serialized = tf.keras.layers.serialize(metric)
+
+    reloaded_metric = tf.keras.layers.deserialize(serialized)
+    reloaded_metric.label_relevant_counts = label_relevant_counts
+    reloaded_metric.update_state(labels, predictions)
+    reloaded_result = reloaded_metric.result()
+
+    tf.assert_equal(result, reloaded_result)
