@@ -65,7 +65,7 @@ class TestEmbeddingTable:
         column_schema = ColumnSchema("item_id")
         with pytest.raises(ValueError) as exc_info:
             mm.EmbeddingTable(16, column_schema)
-        assert "needs to have a int-domain" in str(exc_info.value)
+        assert "needs to have an int-domain" in str(exc_info.value)
 
     @pytest.mark.parametrize(
         ["dim", "kwargs", "inputs", "expected_output_shape"],
