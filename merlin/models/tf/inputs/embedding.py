@@ -62,14 +62,20 @@ EMBEDDING_FEATURES_PARAMS_DOCSTRING = """
 
 
 class EmbeddingTableBase(Block):
-    def __init__(self, dim: int, col_schema: ColumnSchema, trainable=True, **kwargs):
+    def __init__(self, dim: int, *col_schemas: ColumnSchema, trainable=True, **kwargs):
         super(EmbeddingTableBase, self).__init__(trainable=trainable, **kwargs)
         self.dim = dim
+        self.features = {}
+        if len(col_schemas) == 0:
+            raise ValueError("At least one col_schema must be provided to the embedding table.")
 
-        if not col_schema.int_domain:
-            raise ValueError("`col_schema` needs to have a int-domain")
+        self.col_schema = col_schemas[0]
+        for col_schema in col_schemas:
+            self.add_feature(col_schema)
 
-        self.col_schema = col_schema
+    @property
+    def _schema(self):
+        return Schema([col_schema for col_schema in self.features.values()])
 
     @classmethod
     def from_pretrained(
@@ -85,21 +91,58 @@ class EmbeddingTableBase(Block):
     def input_dim(self):
         return self.col_schema.int_domain.max + 1
 
+    @property
+    def table_name(self):
+        return self.col_schema.int_domain.name or self.col_schema.name
+
+    def add_feature(self, col_schema: ColumnSchema) -> None:
+        """Add a feature to the table.
+
+        Adding more than one feature enables the table to lookup and return embeddings
+        for more than one feature when called with tabular data (Dict[str, TensorLike]).
+
+        Additional column schemas must have an int domain that matches the existing ones.
+
+        Parameters
+        ----------
+        col_schema : ColumnSchema
+        """
+        if not col_schema.int_domain:
+            raise ValueError("`col_schema` needs to have an int-domain")
+
+        if (
+            col_schema.int_domain.name
+            and self.col_schema.int_domain.name
+            and col_schema.int_domain.name != self.col_schema.int_domain.name
+        ):
+            raise ValueError(
+                "`col_schema` int-domain name does not match table domain name. "
+                f"{col_schema.int_domain.name} != {self.col_schema.int_domain.name} "
+            )
+
+        if col_schema.int_domain.max != self.col_schema.int_domain.max:
+            raise ValueError(
+                "`col_schema.int_domain.max` does not match existing input dim."
+                f"{col_schema.int_domain.max} != {self.col_schema.int_domain.max} "
+            )
+
+        self.features[col_schema.name] = col_schema
+
     def get_config(self):
         config = super().get_config()
         config["dim"] = self.dim
 
-        schema = schema_to_tensorflow_metadata_json(Schema([self.col_schema]))
+        schema = schema_to_tensorflow_metadata_json(self.schema)
         config["schema"] = schema
 
         return config
 
     @classmethod
     def from_config(cls, config):
+        dim = config.pop("dim")
         schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
-        col_schema = schema.first
 
-        return cls(col_schema=col_schema, **config)
+        return cls(dim, *schema, **config)
 
 
 CombinerType = Union[str, tf.keras.layers.Layer]
@@ -155,7 +198,7 @@ class EmbeddingTable(EmbeddingTableBase):
     def __init__(
         self,
         dim: int,
-        col_schema: ColumnSchema,
+        *col_schemas: ColumnSchema,
         embeddings_initializer="uniform",
         embeddings_regularizer=None,
         activity_regularizer=None,
@@ -171,9 +214,14 @@ class EmbeddingTable(EmbeddingTableBase):
         **kwargs,
     ):
         """Create an EmbeddingTable."""
-        name = name or col_schema.name
         super(EmbeddingTable, self).__init__(
-            dim, col_schema, trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs
+            dim,
+            *col_schemas,
+            trainable=trainable,
+            name=name,
+            dtype=dtype,
+            dynamic=dynamic,
+            **kwargs,
         )
         if table is not None:
             self.table = table
@@ -190,7 +238,7 @@ class EmbeddingTable(EmbeddingTableBase):
             self.table = tf.keras.layers.Embedding(
                 input_dim=self.input_dim,
                 output_dim=self.dim,
-                name=self.col_schema.name,
+                name=self.table_name,
                 **table_kwargs,
             )
         self.sequence_combiner = sequence_combiner
@@ -247,36 +295,38 @@ class EmbeddingTable(EmbeddingTableBase):
     def build(self, input_shapes):
         if not self.table.built:
             self.table.build(input_shapes)
-        # if isinstance(self.combiner, tf.keras.layers.Layer):
-        #    self.combiner.build(self.table.compute_output_shape(input_shapes))
         return super(EmbeddingTable, self).build(input_shapes)
 
-    def call(self, inputs: Union[tf.Tensor, TabularData], **kwargs) -> tf.Tensor:
+    def call(
+        self, inputs: Union[tf.Tensor, TabularData], **kwargs
+    ) -> Union[tf.Tensor, TabularData]:
         """
         Parameters
         ----------
         inputs : Union[tf.Tensor, tf.RaggedTensor, tf.SparseTensor]
-            Tensors representing the input batch
+            Tensors or dictionary of tensors representing the input batch.
 
         Returns
         -------
-        A tensor corresponding to the embeddings for inputs
+        A tensor or dict of tensors corresponding to the embeddings for inputs
         """
         if isinstance(inputs, dict):
-            inputs = inputs[self.col_schema.name]
+            out = {}
+            for feature_name in self.schema.column_names:
+                if feature_name in inputs:
+                    out[feature_name] = self._call_table(inputs[feature_name], **kwargs)
+        else:
+            out = self._call_table(inputs, **kwargs)
 
+        return out
+
+    def _call_table(self, inputs, **kwargs):
         if isinstance(inputs, tuple) and len(inputs) == 2:
             inputs = list_col_to_ragged(inputs)
 
         # Eliminating the last dim==1 of dense tensors before embedding lookup
         if isinstance(inputs, tf.Tensor):
             inputs = tf.squeeze(inputs, axis=-1)
-
-        """
-        dtype = backend.dtype(inputs)
-        if dtype != "int32" and dtype != "int64":
-            inputs = tf.cast(inputs, "int32")
-        """
 
         if isinstance(inputs, (tf.RaggedTensor, tf.SparseTensor)):
             if self.sequence_combiner and isinstance(self.sequence_combiner, str):
@@ -307,10 +357,22 @@ class EmbeddingTable(EmbeddingTableBase):
 
     def compute_output_shape(
         self, input_shape: Union[tf.TensorShape, Dict[str, tf.TensorShape]]
-    ) -> tf.Tensor:
+    ) -> Union[tf.TensorShape, Dict[str, tf.TensorShape]]:
         if isinstance(input_shape, dict):
-            input_shape = input_shape[self.col_schema.name]
+            output_shapes = {}
+            for feature_name in self.schema.column_names:
+                if feature_name in input_shape:
+                    output_shapes[feature_name] = self._compute_output_shape_table(
+                        input_shape[feature_name]
+                    )
+        else:
+            output_shapes = self._compute_output_shape_table(input_shape)
 
+        return output_shapes
+
+    def _compute_output_shape_table(
+        self, input_shape: Union[tf.TensorShape, tuple]
+    ) -> tf.TensorShape:
         if isinstance(input_shape, tuple) and isinstance(input_shape[1], tf.TensorShape):
             input_shape = tf.TensorShape([input_shape[1][0], None])
 
@@ -318,6 +380,7 @@ class EmbeddingTable(EmbeddingTableBase):
         if (self.sequence_combiner is not None) or (input_shape.rank > 1 and input_shape[-1] == 1):
             first_dims = input_shape[:-1]
         output_shapes = tf.TensorShape(first_dims + [self.dim])
+
         return output_shapes
 
     def compute_call_output_shape(self, input_shapes):
@@ -420,7 +483,13 @@ def Embeddings(
 
     for col in schema:
         table_kwargs = _forward_kwargs_to_table(col, table_cls, kwargs)
-        tables[col.name] = table_cls(_get_dim(col, dim, infer_dim_fn), col, **table_kwargs)
+        table_name = col.int_domain.name or col.name
+        if table_name in tables:
+            tables[table_name].add_feature(col)
+        else:
+            tables[table_name] = table_cls(
+                _get_dim(col, dim, infer_dim_fn), col, name=table_name, **table_kwargs
+            )
 
     return ParallelBlock(
         tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=schema
@@ -429,10 +498,13 @@ def Embeddings(
 
 def _forward_kwargs_to_table(col, table_cls, kwargs):
     arg_spec = inspect.getfullargspec(table_cls.__init__)
-    table_kwargs = dict(zip(arg_spec.args[-len(arg_spec.defaults) :], arg_spec.defaults))
+    supported_kwargs = arg_spec.kwonlyargs
+    if arg_spec.defaults:
+        supported_kwargs += arg_spec.args[-len(arg_spec.defaults) :]
 
+    table_kwargs = {}
     for key, val in kwargs.items():
-        if key in table_kwargs:
+        if key in supported_kwargs:
             if isinstance(val, dict):
                 if col.name in val:
                     table_kwargs[key] = val[col.name]
