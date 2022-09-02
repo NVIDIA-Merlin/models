@@ -125,7 +125,7 @@ class TestEmbeddingTable:
         dim = np.random.randint(1, high=32)
         testing_utils.layer_test(
             mm.EmbeddingTable,
-            kwargs={"dim": dim, "col_schema": col_schema},
+            args=[dim, col_schema],
             input_data=tf.constant([[1], [2], [3]], dtype=tf.int32),
             expected_output_shape=tf.TensorShape([None, dim]),
             expected_output_dtype=tf.float32,
