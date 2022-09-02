@@ -85,7 +85,7 @@ from merlin.models.tf.inputs.embedding import (
     SequenceEmbeddingFeatures,
     TableConfig,
 )
-from merlin.models.tf.loader import KerasSequenceValidater, Loader
+from merlin.models.tf.loader import KerasSequenceValidater, Loader, sample_batch
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
