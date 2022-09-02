@@ -483,7 +483,13 @@ def Embeddings(
 
     for col in schema:
         table_kwargs = _forward_kwargs_to_table(col, table_cls, kwargs)
-        tables[col.name] = table_cls(_get_dim(col, dim, infer_dim_fn), col, **table_kwargs)
+        table_name = col.int_domain.name or col.name
+        if table_name in tables:
+            tables[table_name].add_feature(col)
+        else:
+            tables[table_name] = table_cls(
+                _get_dim(col, dim, infer_dim_fn), col, name=table_name, **table_kwargs
+            )
 
     return ParallelBlock(
         tables, pre=pre, post=post, aggregation=aggregation, name=block_name, schema=schema

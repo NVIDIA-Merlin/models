@@ -625,3 +625,41 @@ def test_shared_embeddings(music_streaming_data: Dataset):
     embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)
 
     assert embeddings.table_config("item_genres") == embeddings.table_config("user_genres")
+
+
+class TestEmbeddings:
+    def test_shared_domain(self):
+        schema = Schema(
+            [
+                ColumnSchema(
+                    "item_id",
+                    dtype=np.int32,
+                    properties={"domain": {"min": 0, "max": 10, "name": "item_id_embedding"}},
+                ),
+                ColumnSchema(
+                    "user_item_history",
+                    dtype=np.int32,
+                    properties={"domain": {"min": 0, "max": 10, "name": "item_id_embedding"}},
+                ),
+                ColumnSchema(
+                    "item_feature_a", dtype=np.int32, properties={"domain": {"min": 0, "max": 20}}
+                ),
+            ]
+        )
+        embeddings = mm.Embeddings(schema)
+        assert {layer.name for layer in embeddings.layers} == {
+            "item_id_embedding",
+            "item_feature_a",
+        }
+        assert set(embeddings.parallel_layers.keys()) == {"item_id_embedding", "item_feature_a"}
+
+        outputs = embeddings(
+            {
+                "item_id": tf.constant([1]),
+                "user_item_history": tf.ragged.constant([[1], [2, 3]]),
+                "item_feature_a": tf.constant([2]),
+            }
+        )
+
+        assert set(outputs.keys()) == {"item_id", "user_item_history", "item_feature_a"}
+        np.testing.assert_array_equal(outputs["item_id"], outputs["user_item_history"][0])
