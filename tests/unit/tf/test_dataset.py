@@ -24,7 +24,6 @@ import tensorflow as tf
 from sklearn.metrics import roc_auc_score
 
 import merlin.models.tf as mm
-import merlin.models.tf.dataset as tf_dataloader
 from merlin.core.dispatch import make_df
 from merlin.io.dataset import Dataset
 from merlin.models.utils.schema_utils import create_categorical_column
@@ -36,7 +35,7 @@ def test_lazy_dataset_map():
     data_df = pd.DataFrame({"feature": np.random.randint(100, size=dataset_size)})
     schema = Schema([ColumnSchema("feature", tags=[Tags.CATEGORICAL])])
     dataset = Dataset(data_df, schema=schema)
-    batched_dataset = tf_dataloader.BatchedDataset(dataset, batch_size=10)
+    loader = mm.Loader(dataset, batch_size=10)
 
     sleep_time_seconds = 0.5
 
@@ -44,9 +43,9 @@ def test_lazy_dataset_map():
         time.sleep(sleep_time_seconds)
         return (x, y)
 
-    batched_dataset = batched_dataset.map(identity)
+    loader = loader.map(identity)
 
-    elapsed_time_seconds = timeit.timeit(lambda: next(batched_dataset), number=1)
+    elapsed_time_seconds = timeit.timeit(lambda: next(loader), number=1)
 
     assert elapsed_time_seconds < 1
 
@@ -65,7 +64,7 @@ def test_nested_list():
         }
     )
 
-    train_dataset = tf_dataloader.BatchedDataset(
+    train_dataset = mm.Loader(
         Dataset(df),
         cont_names=["data", "data2"],
         label_names=["label"],
@@ -100,7 +99,7 @@ def test_shuffling():
 
     df = pd.DataFrame({"a": np.asarray(range(num_rows)), "b": np.asarray([0] * num_rows)})
 
-    train_dataset = tf_dataloader.BatchedDataset(
+    train_dataset = mm.Loader(
         Dataset(df), cont_names=["a"], label_names=["b"], batch_size=batch_size, shuffle=True
     )
 
@@ -134,7 +133,7 @@ def test_tf_drp_reset(tmpdir, batch_size, drop_last, num_rows):
     cont_names = ["cont3", "cont2", "cont1"]
     label_name = ["label"]
 
-    data_itr = tf_dataloader.BatchedDataset(
+    data_itr = mm.Loader(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -180,7 +179,7 @@ def test_tf_catname_ordering(tmpdir):
     cont_names = ["cont3", "cont2", "cont1"]
     label_name = ["label"]
 
-    data_itr = tf_dataloader.BatchedDataset(
+    data_itr = mm.Loader(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -221,7 +220,7 @@ def test_tf_map(tmpdir):
 
         return features, labels, sample_weight
 
-    data_itr = tf_dataloader.BatchedDataset(
+    data_itr = mm.Loader(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -247,7 +246,7 @@ def test_validater(batch_size):
 
     gdf = make_df({"a": rand.randn(n_samples), "label": rand.randint(2, size=n_samples)})
 
-    dataloader = tf_dataloader.BatchedDataset(
+    dataloader = mm.Loader(
         Dataset(gdf),
         batch_size=batch_size,
         cat_names=[],
@@ -263,7 +262,7 @@ def test_validater(batch_size):
     model = tf.keras.Model(inputs=input_, outputs=x)
     model.compile("sgd", "binary_crossentropy", metrics=["accuracy", tf.keras.metrics.AUC()])
 
-    validater = tf_dataloader.DatasetValidator(dataloader)
+    validater = mm.KerasSequenceValidater(dataloader)
     model.fit(dataloader, epochs=2, verbose=0, callbacks=[validater])
 
     predictions, labels = [], []
@@ -299,7 +298,7 @@ def test_block_with_sparse_inputs(music_streaming_data: Dataset):
             "user_id": np.random.randint(0, 10, (32,)).tolist(),
         }
     )
-    train_dataset = tf_dataloader.BatchedDataset(
+    train_dataset = mm.Loader(
         Dataset(df),
         cat_names=["user_id", "item_genres"],
         batch_size=3,

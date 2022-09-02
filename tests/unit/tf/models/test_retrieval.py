@@ -5,7 +5,6 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
     MRRAt,
@@ -362,7 +361,7 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 
         return inputs, targets
 
-    dataloader = BatchedDataset(sequence_testing_data, batch_size=50)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
     dataloader = dataloader.map(last_interaction_as_target)
 
     losses = model.fit(dataloader, epochs=1)

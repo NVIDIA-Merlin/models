@@ -133,7 +133,7 @@ def _get_schema(dataset):
     return None
 
 
-class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
+class Loader(tf.keras.utils.Sequence, DataLoader):
     """
     Override class to customize data loading for backward compatibility with
     older NVTabular releases.
@@ -321,7 +321,7 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         """
         return DataLoader.__next__(self)
 
-    def map(self, fn) -> "BatchedDataset":
+    def map(self, fn) -> "Loader":
         """
         Applying a function to each batch.
 
@@ -331,7 +331,7 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
 
         return self
 
-    def map_features(self, fn) -> "BatchedDataset":
+    def map_features(self, fn) -> "Loader":
         def wrapped_fn(*inputs):
             features = fn(inputs[0])
 
@@ -339,7 +339,7 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
 
         return self.map(wrapped_fn)
 
-    def map_targets(self, fn) -> "BatchedDataset":
+    def map_targets(self, fn) -> "Loader":
         def wrapped_fn(*inputs):
             targets = fn(inputs[1])
 
@@ -493,7 +493,7 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         return to_return
 
 
-class DatasetValidator(tf.keras.callbacks.Callback):
+class KerasSequenceValidater(tf.keras.callbacks.Callback):
     # TODO: document
     _supports_tf_logs = True
 
@@ -554,8 +554,8 @@ def sample_batch(
 
     from merlin.models.tf.transforms.tensor import ListToDense, ListToRagged
 
-    if not isinstance(data, BatchedDataset):
-        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)
+    if not isinstance(data, Loader):
+        data = Loader(data, batch_size=batch_size, shuffle=shuffle)
 
     batch = next(iter(data))
     # batch could be of type Prediction, so we can't unpack directly
