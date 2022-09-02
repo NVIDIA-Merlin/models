@@ -13,14 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from merlin.io import Dataset
+import numpy as np
+
+from merlin.datasets.synthetic import generate_data
 from merlin.models.lightfm import LightFM
 from merlin.schema import Tags
 
 
-def test_warp(music_streaming_data: Dataset):
-    music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.TARGET)
-    model = LightFM(learning_rate=0.05, loss="warp", epochs=10)
-    model.fit(music_streaming_data)
+def test_warp():
+    np.random.seed(0)
+    train, valid = generate_data("music-streaming", 100, (0.95, 0.05))
+    train.schema = train.schema.remove_by_tag(Tags.TARGET)
+    valid.schema = valid.schema.remove_by_tag(Tags.TARGET)
 
-    model.predict(music_streaming_data)
+    model = LightFM(learning_rate=0.05, loss="warp", epochs=10)
+    model.fit(train)
+
+    model.predict(train)
+
+    metrics = model.evaluate(valid, k=10)
+    assert metrics["auc"] > 0.01

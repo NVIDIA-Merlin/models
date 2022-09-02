@@ -1,4 +1,22 @@
+#
+# Copyright (c) 2022, NVIDIA CORPORATION.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import json
+import os
 import warnings
+from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import distributed
@@ -7,6 +25,10 @@ import xgboost as xgb
 
 from merlin.core.utils import global_dask_client
 from merlin.io import Dataset
+from merlin.models.utils.schema_utils import (
+    schema_to_tensorflow_metadata_json,
+    tensorflow_metadata_json_to_schema,
+)
 from merlin.schema import Schema, Tags
 
 
@@ -61,14 +83,17 @@ class XGBoost:
         self.params = {**params, "objective": objective}
 
         target_tag = get_target_tag(objective)
+        if isinstance(target_columns, str):
+            target_columns = [target_columns]
         self.target_columns = target_columns or get_targets(schema, target_tag)
-        self.feature_columns = get_features(schema)
+        self.feature_columns = get_features(schema, self.target_columns)
 
         if objective.startswith("rank") and qid_column is None:
             qid_column = schema.select_by_tag(Tags.USER_ID).column_names[0]
         self.qid_column = qid_column
         self.evals_result = {}
         self.booster = booster
+        self.schema = schema
 
     @property
     def dask_client(self) -> Optional[distributed.Client]:
@@ -175,17 +200,15 @@ class XGBoost:
         if self.booster is None:
             raise ValueError("The fit method must be called before evaluate.")
 
-        X, _, qid = dataset_to_xy(
+        X, y, qid = dataset_to_xy(
             dataset, self.feature_columns, self.target_columns, self.qid_column
         )
-        data = xgb.dask.DaskDMatrix(self.dask_client, X, qid=qid)
-        preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs)
 
         # convert to DMatrix
         # (eval doesn't have dask support currently)
         if qid is not None:
             qid = qid.compute()
-        eval_data = xgb.DMatrix(X.compute(), label=preds.compute(), qid=qid)
+        eval_data = xgb.DMatrix(X.compute(), label=y.compute(), qid=qid)
 
         metrics_str = self.booster.eval(eval_data)
         metrics = {}
@@ -213,13 +236,59 @@ class XGBoost:
         if self.booster is None:
             raise ValueError("The fit method must be called before predict.")
 
-        X, _, qid = dataset_to_xy(
-            dataset, self.feature_columns, self.target_columns, self.qid_column
-        )
+        X, _, qid = dataset_to_xy(dataset, self.feature_columns, [], self.qid_column)
         data = xgb.dask.DaskDMatrix(self.dask_client, X, qid=qid)
         preds = xgb.dask.predict(self.dask_client, self.booster, data, **predict_kwargs).compute()
 
         return preds
+
+    def save(self, path: Union[str, os.PathLike]) -> None:
+        """Save the model to a directory.
+
+        Parameters
+        ----------
+        path : Union[str, os.PathLike]
+            Directory where the model will be saved.
+        """
+        export_dir = Path(path)
+        export_dir.mkdir(parents=True)
+        self.booster.save_model(export_dir / "model.json")
+        schema_to_tensorflow_metadata_json(self.schema, export_dir / "schema.json")
+        with open(export_dir / "params.json", "w") as f:
+            json.dump(self.params, f, indent=4)
+        with open(export_dir / "config.json", "w") as f:
+            json.dump(
+                dict(qid_column=self.qid_column, target_columns=self.target_columns), f, indent=4
+            )
+
+    @classmethod
+    def load(cls, path: Union[str, os.PathLike]) -> "XGBoost":
+        """Load the model from a directory where a model has been saved.
+
+        Parameters
+        ----------
+        path : Union[str, os.PathLike]
+            Path where a Merlin XGBoost model has been saved.
+
+        Returns
+        -------
+        XGBoost model instance
+        """
+        load_dir = Path(path)
+        booster = xgb.Booster()
+        booster.load_model(load_dir / "model.json")
+        schema = tensorflow_metadata_json_to_schema(load_dir / "schema.json")
+        with open(load_dir / "params.json", "r") as f:
+            params = json.load(f)
+        with open(load_dir / "config.json", "r") as f:
+            config = json.load(f)
+        return cls(
+            schema,
+            target_columns=config.get("target_columns"),
+            qid_column=config.get("qid_column"),
+            booster=booster,
+            **params,
+        )
 
 
 OBJECTIVES = {
@@ -252,10 +321,10 @@ def get_targets(schema: Schema, target_tag: Tags) -> List[str]:
     )
 
 
-def get_features(schema: Schema):
+def get_features(schema: Schema, target_columns: List[str]):
     """Find feature columns from schema. Returns all non-list column names from the schema
     that are not tagged as targets."""
-    all_target_columns = schema.select_by_tag(Tags.TARGET).column_names
+    all_target_columns = schema.select_by_tag(Tags.TARGET).column_names + target_columns
 
     # Ignore list-like columns from schema
     list_column_names = [
@@ -265,7 +334,9 @@ def get_features(schema: Schema):
     if list_column_names:
         warnings.warn(f"Ignoring list columns as inputs to XGBoost model: {list_column_names}.")
 
-    feature_columns = schema.excluding_by_name(list_column_names + all_target_columns).column_names
+    feature_columns = schema.excluding_by_name(
+        set(list_column_names + all_target_columns)
+    ).column_names
     if len(feature_columns) == 0:
         raise ValueError("No feature columns found in schema.")
 
@@ -275,7 +346,7 @@ def get_features(schema: Schema):
 def dataset_to_xy(
     dataset: Dataset,
     feature_columns: List[str],
-    target_columns: Union[str, list],
+    target_columns: List[str],
     qid_column: Optional[str],
 ):
     """Convert Merlin Dataset to XGBoost DMatrix"""

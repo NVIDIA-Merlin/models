@@ -13,10 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from pathlib import Path
 from unittest.mock import patch
 
+import numpy as np
 import pandas as pd
 import pytest
+import sklearn.datasets
 import xgboost
 
 from merlin.core.dispatch import HAS_GPU
@@ -204,3 +207,63 @@ def test_dataset_to_xy_does_not_modify_column_order():
         qid_column=None,
     )
     assert X.columns.tolist() == feature_columns
+
+
+def test_predict_without_target(dask_client):
+    rows = 200
+    num_features = 16
+    X, y = sklearn.datasets.make_regression(
+        n_samples=rows,
+        n_features=num_features,
+        n_informative=num_features // 3,
+        random_state=0,
+    )
+
+    feature_names = [str(i) for i in range(num_features)]
+    df = pd.DataFrame(
+        np.hstack((X, y.reshape(-1, 1))), columns=feature_names + ["target"], dtype=np.float32
+    )
+    train_ds = Dataset(df.iloc[:160])
+    valid_ds = Dataset(df.iloc[40:])
+    test_ds = Dataset(df.iloc[40:].drop(columns="target"))
+
+    model = XGBoost(schema=train_ds.schema, target_columns="target")
+    model.fit(train_ds, evals=[(valid_ds, "validation_set")])
+    model.predict(test_ds)
+
+
+def test_reload(dask_client, tmpdir):
+    train, valid = generate_data("social", num_rows=40, set_sizes=(0.5, 0.5))
+
+    schema = train.schema
+    xgb_booster_params = {
+        "objective": "rank:pairwise",
+    }
+
+    xgb_train_params = {
+        "num_boost_round": 1,
+        "verbose_eval": 1,
+        "early_stopping_rounds": 1,
+    }
+
+    model = XGBoost(schema, target_columns=["click"], qid_column="user_id", **xgb_booster_params)
+    model.fit(
+        train,
+        evals=[
+            (valid, "validation_set"),
+        ],
+        **xgb_train_params
+    )
+    _ = model.evaluate(valid)
+
+    model_dir = Path(tmpdir) / "xgb_model"
+
+    model.save(model_dir)
+    reloaded = XGBoost.load(model_dir)
+
+    np.testing.assert_array_almost_equal(model.predict(valid), reloaded.predict(valid))
+
+    assert reloaded.schema == model.schema
+    assert reloaded.target_columns == model.target_columns
+    assert reloaded.feature_columns == model.feature_columns
+    assert reloaded.qid_column == model.qid_column
