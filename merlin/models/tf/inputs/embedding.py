@@ -132,17 +132,17 @@ class EmbeddingTableBase(Block):
         config = super().get_config()
         config["dim"] = self.dim
 
-        schema = schema_to_tensorflow_metadata_json(Schema([self.col_schema]))
+        schema = schema_to_tensorflow_metadata_json(self.schema)
         config["schema"] = schema
 
         return config
 
     @classmethod
     def from_config(cls, config):
+        dim = config.pop("dim")
         schema = tensorflow_metadata_json_to_schema(config.pop("schema"))
-        col_schema = schema.first
 
-        return cls(col_schema=col_schema, **config)
+        return cls(dim, *schema, **config)
 
 
 CombinerType = Union[str, tf.keras.layers.Layer]
