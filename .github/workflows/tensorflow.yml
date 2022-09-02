@@ -55,17 +55,6 @@ jobs:
         with:
           name: dist
           path: dist
-      # Build the documentation, TODO: SPHINXOPTS="-W -q"
-      - name: Make HTML
-        run: |
-          make -C docs html
-      - name: Upload HTML
-        uses: actions/upload-artifact@v2
-        with:
-          name: html-build-artifact
-          path: docs/build/html
-          if-no-files-found: error
-          retention-days: 1
       - name: Store PR information
         run: |
           mkdir ./pr
