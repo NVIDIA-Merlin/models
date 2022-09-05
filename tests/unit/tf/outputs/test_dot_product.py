@@ -3,11 +3,11 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.predictions.dot_product import (
+from merlin.models.tf.outputs.dot_product import (
     ContrastiveDotProduct,
     DotProductCategoricalPrediction,
 )
-from merlin.models.tf.predictions.sampling.in_batch import InBatchSamplerV2
+from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.utils import testing_utils
 
 

@@ -27,7 +27,6 @@ from merlin.models.tf.core.base import name_fn
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
-from merlin.models.tf.utils.tf_utils import call_layer
 
 MetricsFn = Callable[[], Sequence[tf.keras.metrics.Metric]]
 
@@ -38,8 +37,8 @@ class ModelOutput(Layer):
 
     Parameters
     ----------
-    prediction : Layer
-        The prediction layer
+    call : Layer
+        The layer to call in the forward-pass of the model
     default_loss: Union[str, tf.keras.losses.Loss]
         Default loss to set if the user does not specify one
     get_default_metrics: Callable
@@ -62,9 +61,10 @@ class ModelOutput(Layer):
 
     def __init__(
         self,
-        prediction: Layer,
+        to_call: Layer,
         default_loss: Union[str, tf.keras.losses.Loss],
         default_metrics_fn: MetricsFn,
+        to_call_train_test: Optional[Layer] = None,
         name: Optional[str] = None,
         target: Optional[str] = None,
         pre: Optional[Layer] = None,
@@ -78,7 +78,8 @@ class ModelOutput(Layer):
         self.full_name = name_fn(self.target, base_name) if self.target else base_name
 
         super().__init__(name=name or self.full_name, **kwargs)
-        self.prediction = prediction
+        self.to_call = to_call
+        self.to_call_train_test = to_call_train_test
         self.default_loss = default_loss
         self.default_metrics_fn = default_metrics_fn
         self.pre = pre
@@ -103,22 +104,26 @@ class ModelOutput(Layer):
             self.pre.build(input_shape)
             input_shape = self.pre.compute_output_shape(input_shape)
 
-        input_shape = self.prediction.compute_output_shape(input_shape)
+        input_shape = self.to_call.compute_output_shape(input_shape)
 
         if self.post is not None:
             self.post.build(input_shape)
 
         self.built = True
 
-    def call(self, inputs, **kwargs):
-        return tf_utils.call_layer(self.prediction, inputs, **kwargs)
+    def call(self, inputs, training=False, testing=False, **kwargs):
+        to_call = self.to_call
+        if self.to_call_train_test and (training or testing):
+            to_call = self.to_call_train_test
+
+        return tf_utils.call_layer(to_call, inputs, **kwargs)
 
     def compute_output_shape(self, input_shape):
         output_shape = input_shape
         if self.pre is not None:
             output_shape = self.pre.compute_output_shape(output_shape)
 
-        output_shape = self.prediction.compute_output_shape(output_shape)
+        output_shape = self.to_call.compute_output_shape(output_shape)
 
         if self.post is not None:
             output_shape = self.post.compute_output_shape(output_shape)
@@ -227,7 +232,8 @@ class ModelOutput(Layer):
         )
 
         objects = [
-            "prediction",
+            "to_call",
+            "to_call_train_test",
             "pre",
             "post",
             "logits_scaler",
@@ -252,99 +258,11 @@ class ModelOutput(Layer):
             config,
             {
                 "default_loss": tf.keras.losses.deserialize,
-                "prediction": tf.keras.layers.deserialize,
+                "to_call": tf.keras.layers.deserialize,
+                "to_call_train_test": tf.keras.layers.deserialize,
                 "pre": tf.keras.layers.deserialize,
                 "post": tf.keras.layers.deserialize,
                 "logits_scaler": tf.keras.layers.deserialize,
-            },
-        )
-
-        return super().from_config(config)
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ContrastivePredictionBlock(ModelOutput):
-    """Base-class for prediction blocks that uses contrastive loss.
-
-    Parameters
-    ----------
-    prediction : Layer
-        The prediction layer
-    prediction_with_negatives : Layer
-        The prediction layer that includes negative sampling
-    default_loss: Union[str, tf.keras.losses.Loss]
-        Default loss to set if the user does not specify one
-    get_default_metrics: Callable
-        A function returning the list of default metrics to set
-        if the user does not specify any
-    name: Optional[Text], optional
-        Task name, by default None
-    target: Optional[str], optional
-        Label name, by default None
-    pre: Optional[Block], optional
-        Optional block to transform predictions before applying the prediction layer,
-        by default None
-    post: Optional[Block], optional
-        Optional block to transform predictions after applying the prediction layer,
-        by default None
-    logits_temperature: float, optional
-        Parameter used to reduce model overconfidence, so that logits / T.
-        by default 1.
-    """
-
-    def __init__(
-        self,
-        prediction: Layer,
-        prediction_with_negatives: Layer,
-        default_loss: Union[str, tf.keras.losses.Loss],
-        default_metrics_fn: MetricsFn,
-        name: Optional[str] = None,
-        target: Optional[str] = None,
-        pre: Optional[Layer] = None,
-        post: Optional[Layer] = None,
-        logits_temperature: float = 1.0,
-        **kwargs,
-    ):
-
-        super(ContrastivePredictionBlock, self).__init__(
-            prediction,
-            default_loss=default_loss,
-            default_metrics_fn=default_metrics_fn,
-            target=target,
-            pre=pre,
-            post=post,
-            logits_temperature=logits_temperature,
-            name=name,
-            **kwargs,
-        )
-        self.prediction_with_negatives = prediction_with_negatives
-
-    def call(self, inputs, training=False, testing=False, **kwargs):
-        to_call = self.prediction
-
-        if self.prediction_with_negatives.has_negative_samplers and (training or testing):
-            to_call = self.prediction_with_negatives
-
-        return call_layer(to_call, inputs, training=training, testing=testing, **kwargs)
-
-    def get_config(self):
-        config = super(ContrastivePredictionBlock, self).get_config()
-        config.update(
-            {
-                "prediction_with_negatives": tf.keras.utils.serialize_keras_object(
-                    self.prediction_with_negatives
-                ),
-            }
-        )
-
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        config = tf_utils.maybe_deserialize_keras_objects(
-            config,
-            {
-                "prediction_with_negatives": tf.keras.layers.deserialize,
             },
         )
 

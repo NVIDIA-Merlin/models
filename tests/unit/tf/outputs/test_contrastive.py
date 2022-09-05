@@ -19,41 +19,28 @@ import tensorflow as tf
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.dataset import BatchedDataset
-from merlin.models.tf.outputs.classification import CategoricalTarget, EmbeddingTablePrediction
+from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_binary_output(ecommerce_data: Dataset, run_eagerly):
-    model = mm.Model(
-        mm.InputBlock(ecommerce_data.schema),
-        mm.MLPBlock([8]),
-        mm.BinaryOutput("click"),
+def test_contrastive_output(ecommerce_data: Dataset, run_eagerly):
+    schema = ecommerce_data.schema
+    schema["item_category"] = schema["item_category"].with_tags(
+        schema["item_category"].tags + "target"
     )
-
-    _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
-
-    assert set(history.history.keys()) == {
-        "loss",
-        "precision",
-        "recall",
-        "binary_accuracy",
-        "auc",
-        "regularization_loss",
-    }
-
-
-@pytest.mark.parametrize("run_eagerly", [True, False])
-def test_categorical_output(sequence_testing_data: Dataset, run_eagerly):
-    dataloader, schema = _next_item_loader(sequence_testing_data)
+    ecommerce_data.schema = schema
     model = mm.Model(
         mm.InputBlock(schema),
         mm.MLPBlock([8]),
-        mm.CategoricalOutput(schema["item_id_seq"]),
+        mm.ContrastiveOutput(
+            schema["item_category"],
+            negative_samplers=PopularityBasedSamplerV2(max_id=100, max_num_samples=20),
+        ),
     )
 
-    _, history = testing_utils.model_test(model, dataloader, run_eagerly=run_eagerly)
+    _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
     assert set(history.history.keys()) == {
         "loss",
@@ -66,29 +53,31 @@ def test_categorical_output(sequence_testing_data: Dataset, run_eagerly):
     }
 
 
-@pytest.mark.parametrize("run_eagerly", [True, False])
-def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
+def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
     dataloader, schema = _next_item_loader(sequence_testing_data)
-    embeddings = mm.Embeddings(
-        schema,
-        sequence_combiner=tf.keras.layers.Lambda(lambda x: tf.reduce_mean(x, axis=1)),
+    model = mm.Model(
+        mm.InputBlockV2(schema),
+        mm.MLPBlock([32]),
+        mm.ContrastiveOutput(prediction=schema["item_id_seq"]),
+    )
+    batch = next(iter(dataloader))
+    output = model(batch[0], batch[1], training=True)
+    assert output.shape == (batch[1].shape[0], 51997)
+
+    model.compile(
+        optimizer="adam",
+        negative_sampling=[PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
     )
 
-    predictions = [
-        schema.select_by_name("item_id_seq"),
-        schema["item_id_seq"],
-        CategoricalTarget(schema["item_id_seq"]),
-        embeddings["item_id_seq"],
-        EmbeddingTablePrediction(embeddings["item_id_seq"]),
-    ]
+    output = model(batch[0], batch[1], training=True)
+    assert output.outputs.shape == (batch[1].shape[0], 21)
 
-    for target in predictions:
-        model = mm.Model(
-            mm.InputBlockV2(schema, embeddings=embeddings),
-            mm.MLPBlock([32]),
-            mm.CategoricalOutput(target),
-        )
-        testing_utils.model_test(model, dataloader, run_eagerly=run_eagerly)
+    model.compile(
+        optimizer="adam",
+        negative_sampling=["in-batch", PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
+    )
+    output = model(batch[0], batch[1], training=True)
+    assert output.outputs.shape == (batch[1].shape[0], 71)
 
 
 def _next_item_loader(sequence_testing_data: Dataset):

@@ -43,9 +43,9 @@ class RegressionOutput(ModelOutput):
         ),
         **kwargs,
     ):
-        prediction = kwargs.pop("prediction", None)
+        to_call = kwargs.pop("to_call", None)
         super().__init__(
-            prediction=prediction or tf.keras.layers.Dense(1, activation="linear"),
+            to_call=to_call or tf.keras.layers.Dense(1, activation="linear"),
             default_loss=default_loss,
             default_metrics_fn=default_metrics_fn,
             target=target,
