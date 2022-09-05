@@ -125,6 +125,7 @@ from merlin.models.tf.transforms.features import (
     ToOneHot,
 )
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
+from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.tf.transforms.tensor import ExpandDims, ToDense, ToRagged, ToSparse
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
@@ -218,6 +219,7 @@ __all__ = [
     "PredictionTasks",
     "StochasticSwapNoise",
     "ExpandDims",
+    "L2Norm",
     "NoOp",
     "ItemSampler",
     "EmbeddingWithMetadata",
