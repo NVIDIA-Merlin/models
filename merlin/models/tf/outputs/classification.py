@@ -23,12 +23,8 @@ from tensorflow.python.ops import embedding_ops
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.embedding import EmbeddingTable
 from merlin.models.tf.metrics.topk import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
-from merlin.models.tf.predictions.base import ContrastivePredictionBlock, MetricsFn, PredictionBlock
-from merlin.models.tf.predictions.sampling.base import (
-    Items,
-    ItemSamplersType,
-    parse_negative_samplers,
-)
+from merlin.models.tf.outputs.base import ContrastivePredictionBlock, MetricsFn, ModelOutput
+from merlin.models.tf.outputs.sampling.base import Items, ItemSamplersType, parse_negative_samplers
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
     call_layer,
@@ -62,7 +58,7 @@ def default_categorical_prediction_metrics(k=10):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class BinaryPrediction(PredictionBlock):
+class BinaryOutput(ModelOutput):
     """
     Binary-classification prediction block.
 

@@ -33,7 +33,7 @@ MetricsFn = Callable[[], Sequence[tf.keras.metrics.Metric]]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class PredictionBlock(Layer):
+class ModelOutput(Layer):
     """Base-class for prediction blocks.
 
     Parameters
@@ -131,7 +131,7 @@ class PredictionBlock(Layer):
             inputs = tf_utils.call_layer(self.pre, inputs, **kwargs)
 
         # super call
-        outputs = super(PredictionBlock, self).__call__(inputs, *args, **kwargs)
+        outputs = super(ModelOutput, self).__call__(inputs, *args, **kwargs)
 
         if self.post:
             outputs = tf_utils.call_layer(self.post, outputs, **kwargs)
@@ -215,7 +215,7 @@ class PredictionBlock(Layer):
         return function
 
     def get_config(self):
-        config = super(PredictionBlock, self).get_config()
+        config = super(ModelOutput, self).get_config()
         function_config = self._serialize_function_to_config(self.default_metrics_fn)
         config.update(
             {
@@ -263,7 +263,7 @@ class PredictionBlock(Layer):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ContrastivePredictionBlock(PredictionBlock):
+class ContrastivePredictionBlock(ModelOutput):
     """Base-class for prediction blocks that uses contrastive loss.
 
     Parameters

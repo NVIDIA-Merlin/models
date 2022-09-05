@@ -113,6 +113,12 @@ from merlin.models.tf.models.retrieval import (
     TwoTowerModel,
     YoutubeDNNRetrievalModel,
 )
+from merlin.models.tf.outputs.base import ModelOutput
+from merlin.models.tf.outputs.classification import BinaryOutput, CategoricalPrediction
+from merlin.models.tf.outputs.regression import RegressionOutput
+from merlin.models.tf.outputs.sampling.base import Items, ItemSamplerV2
+from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
+from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.classification import (
     BinaryClassificationTask,
@@ -122,12 +128,6 @@ from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
-from merlin.models.tf.predictions.base import PredictionBlock
-from merlin.models.tf.predictions.classification import BinaryPrediction, CategoricalPrediction
-from merlin.models.tf.predictions.regression import RegressionPrediction
-from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
-from merlin.models.tf.predictions.sampling.in_batch import InBatchSamplerV2
-from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
 
@@ -189,9 +189,9 @@ __all__ = [
     "DotProductInteraction",
     "FMPairwiseInteraction",
     "LabelToOneHot",
-    "PredictionBlock",
-    "BinaryPrediction",
-    "RegressionPrediction",
+    "ModelOutput",
+    "BinaryOutput",
+    "RegressionOutput",
     "CategoricalPrediction",
     "PredictionTask",
     "BinaryClassificationTask",

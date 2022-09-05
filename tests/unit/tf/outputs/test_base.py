@@ -85,7 +85,7 @@ def test_parallel_prediction_blocks(ecommerce_data: Dataset, run_eagerly):
 
 
 def _BinaryPrediction(name, **kwargs):
-    return mm.PredictionBlock(
+    return mm.ModelOutput(
         tf.keras.layers.Dense(1, activation="sigmoid"),
         default_loss="binary_crossentropy",
         default_metrics_fn=lambda: (tf.keras.metrics.Precision(name="precision"),),
