@@ -552,7 +552,7 @@ def sample_batch(
             "Sparse values cannot be converted to both ragged tensors and dense tensors"
         )
 
-    from merlin.models.tf.transforms.tensor import AsDenseFeatures, AsRaggedFeatures
+    from merlin.models.tf.transforms.tensor import ToDense, ToRagged
 
     if not isinstance(data, BatchedDataset):
         data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)
@@ -562,9 +562,9 @@ def sample_batch(
     inputs, targets = batch[0], batch[1]
 
     if to_ragged:
-        inputs = AsRaggedFeatures()(inputs)
+        inputs = ToRagged()(inputs)
     elif to_dense:
-        inputs = AsDenseFeatures()(inputs)
+        inputs = ToDense()(inputs)
     if not include_targets:
         return inputs
     return inputs, targets
