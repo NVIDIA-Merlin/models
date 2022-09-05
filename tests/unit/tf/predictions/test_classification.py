@@ -136,7 +136,7 @@ def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
 
 def _next_item_loader(sequence_testing_data: Dataset):
     def _last_interaction_as_target(inputs, targets):
-        inputs = mm.AsRaggedFeatures()(inputs)
+        inputs = mm.ToRagged()(inputs)
         items = inputs["item_id_seq"]
         _items = items[:, :-1]
         targets = items[:, -1:].flat_values

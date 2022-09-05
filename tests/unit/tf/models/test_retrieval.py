@@ -350,7 +350,7 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     )
     model.compile(optimizer="adam", run_eagerly=False)
 
-    as_ragged = mm.AsRaggedFeatures()
+    as_ragged = mm.ToRagged()
 
     def last_interaction_as_target(inputs, targets):
         inputs = as_ragged(inputs)
