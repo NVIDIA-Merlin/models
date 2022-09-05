@@ -17,7 +17,7 @@ from typing import Optional
 
 import tensorflow as tf
 
-from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
+from merlin.models.tf.outputs.sampling.base import Items, ItemSamplerV2
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
