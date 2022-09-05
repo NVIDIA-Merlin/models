@@ -17,7 +17,11 @@ from typing import Optional
 
 import tensorflow as tf
 
+<<<<<<< HEAD
 from merlin.models.tf.outputs.sampling.base import Candidate, CandidateSampler
+=======
+from merlin.models.tf.outputs.sampling.base import Items, ItemSamplerV2
+>>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
 
 
 @CandidateSampler.registry.register("in-batch")

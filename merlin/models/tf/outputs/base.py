@@ -37,7 +37,11 @@ class ModelOutput(Layer):
 
     Parameters
     ----------
+<<<<<<< HEAD
     to_call : Layer
+=======
+    call : Layer
+>>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
         The layer to call in the forward-pass of the model
     default_loss: Union[str, tf.keras.losses.Loss]
         Default loss to set if the user does not specify one
@@ -64,6 +68,7 @@ class ModelOutput(Layer):
         to_call: Layer,
         default_loss: Union[str, tf.keras.losses.Loss],
         default_metrics_fn: MetricsFn,
+        to_call_train_test: Optional[Layer] = None,
         name: Optional[str] = None,
         target: Optional[str] = None,
         pre: Optional[Layer] = None,
@@ -78,6 +83,10 @@ class ModelOutput(Layer):
 
         super().__init__(name=name or self.full_name, **kwargs)
         self.to_call = to_call
+<<<<<<< HEAD
+=======
+        self.to_call_train_test = to_call_train_test
+>>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
         self.default_loss = default_loss
         self.default_metrics_fn = default_metrics_fn
         self.pre = pre
@@ -102,7 +111,10 @@ class ModelOutput(Layer):
             self.pre.build(input_shape)
             input_shape = self.pre.compute_output_shape(input_shape)
 
+<<<<<<< HEAD
         self.to_call.build(input_shape)
+=======
+>>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
         input_shape = self.to_call.compute_output_shape(input_shape)
 
         if self.post is not None:
@@ -111,9 +123,17 @@ class ModelOutput(Layer):
         self.built = True
 
     def call(self, inputs, training=False, testing=False, **kwargs):
+<<<<<<< HEAD
         return tf_utils.call_layer(
             self.to_call, inputs, training=training, testing=testing, **kwargs
         )
+=======
+        to_call = self.to_call
+        if self.to_call_train_test and (training or testing):
+            to_call = self.to_call_train_test
+
+        return tf_utils.call_layer(to_call, inputs, **kwargs)
+>>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
 
     def compute_output_shape(self, input_shape):
         output_shape = input_shape
@@ -227,6 +247,10 @@ class ModelOutput(Layer):
 
         objects = [
             "to_call",
+<<<<<<< HEAD
+=======
+            "to_call_train_test",
+>>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
             "pre",
             "post",
             "logits_scaler",
@@ -252,6 +276,10 @@ class ModelOutput(Layer):
             {
                 "default_loss": tf.keras.losses.deserialize,
                 "to_call": tf.keras.layers.deserialize,
+<<<<<<< HEAD
+=======
+                "to_call_train_test": tf.keras.layers.deserialize,
+>>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
                 "pre": tf.keras.layers.deserialize,
                 "post": tf.keras.layers.deserialize,
                 "logits_scaler": tf.keras.layers.deserialize,
@@ -259,6 +287,7 @@ class ModelOutput(Layer):
         )
 
         return super().from_config(config)
+<<<<<<< HEAD
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -293,3 +322,5 @@ class DotProduct(Layer):
             "query_name": self.query_name,
             "item_name": self.item_name,
         }
+=======
+>>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
