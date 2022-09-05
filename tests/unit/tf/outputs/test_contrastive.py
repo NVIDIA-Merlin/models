@@ -20,15 +20,11 @@ import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
-<<<<<<< HEAD
 from merlin.models.tf.transforms.features import Rename
-=======
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
-<<<<<<< HEAD
 def test_contrastive_mf(ecommerce_data: Dataset):
     schema = ecommerce_data.schema
     user_id = schema.select_by_tag(Tags.USER_ID)
@@ -74,8 +70,6 @@ def test_two_tower_constrastive(ecommerce_data: Dataset):
     testing_utils.model_test(model, ecommerce_data)
 
 
-=======
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_contrastive_output(ecommerce_data: Dataset, run_eagerly):
     schema = ecommerce_data.schema
@@ -106,7 +100,6 @@ def test_contrastive_output(ecommerce_data: Dataset, run_eagerly):
 
 
 def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
-<<<<<<< HEAD
     dataloader, schema = _next_item_loader(sequence_testing_data, to_one_hot=False)
     model_out = mm.ContrastiveOutput(schema["item_id_seq"], "in-batch")
     model = mm.Model(mm.InputBlockV2(schema), mm.MLPBlock([32]), model_out)
@@ -118,40 +111,18 @@ def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
 
     model_out.set_negative_samplers(
         [PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
-=======
-    dataloader, schema = _next_item_loader(sequence_testing_data)
-    model = mm.Model(
-        mm.InputBlockV2(schema),
-        mm.MLPBlock([32]),
-        mm.ContrastiveOutput(prediction=schema["item_id_seq"]),
-    )
-    batch = next(iter(dataloader))
-    output = model(batch[0], batch[1], training=True)
-    assert output.shape == (batch[1].shape[0], 51997)
-
-    model.compile(
-        optimizer="adam",
-        negative_sampling=[PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
     )
 
     output = model(batch[0], batch[1], training=True)
     assert output.outputs.shape == (batch[1].shape[0], 21)
 
-<<<<<<< HEAD
     model_out.set_negative_samplers(
         ["in-batch", PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
-=======
-    model.compile(
-        optimizer="adam",
-        negative_sampling=["in-batch", PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
     )
     output = model(batch[0], batch[1], training=True)
     assert output.outputs.shape == (batch[1].shape[0], 71)
 
 
-<<<<<<< HEAD
 def test_contrastive_output_without_sampler(ecommerce_data: Dataset):
     with pytest.raises(Exception) as excinfo:
         inputs, features = _retrieval_inputs_(batch_size=10)
@@ -238,14 +209,6 @@ def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
         targets = items[:, -1:].flat_values
         if to_one_hot:
             targets = tf.one_hot(targets, 51997)
-=======
-def _next_item_loader(sequence_testing_data: Dataset):
-    def _last_interaction_as_target(inputs, targets):
-        inputs = mm.AsRaggedFeatures()(inputs)
-        items = inputs["item_id_seq"]
-        _items = items[:, :-1]
-        targets = tf.one_hot(items[:, -1:].flat_values, 51997)
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
         inputs["item_id_seq"] = _items
         return inputs, targets
 

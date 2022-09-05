@@ -24,6 +24,7 @@ from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.outputs.base import ModelOutput
+from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
@@ -311,7 +312,19 @@ class BaseModel(tf.keras.Model):
         if num_v1_blocks > 0:
             self.output_names = [task.task_name for task in self.prediction_tasks]
         else:
+<<<<<<< HEAD
             self.output_names = [block.full_name for block in self.model_outputs]
+=======
+            self.output_names = [block.full_name for block in self.prediction_blocks]
+            negative_sampling = kwargs.pop("negative_sampling", None)
+            if negative_sampling:
+                if not isinstance(self.prediction_blocks[0], ContrastiveOutput):
+                    raise ValueError(
+                        "Negative sampling strategy can be used only with a"
+                        " `ContrastivePredictionBlock` prediction block"
+                    )
+                self.prediction_blocks[0].compile(negative_sampling=negative_sampling)
+>>>>>>> Fix wrong import in models/base.py
 
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)

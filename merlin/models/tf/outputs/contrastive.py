@@ -21,17 +21,12 @@ from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.embedding import EmbeddingTable
-<<<<<<< HEAD
 from merlin.models.tf.outputs.base import DotProduct, MetricsFn, ModelOutput
-=======
-from merlin.models.tf.outputs.base import MetricsFn, ModelOutput
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
 from merlin.models.tf.outputs.classification import (
     CategoricalTarget,
     EmbeddingTablePrediction,
     default_categorical_prediction_metrics,
 )
-<<<<<<< HEAD
 from merlin.models.tf.outputs.sampling.base import (
     Candidate,
     ItemSamplersType,
@@ -40,16 +35,6 @@ from merlin.models.tf.outputs.sampling.base import (
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
-=======
-from merlin.models.tf.outputs.sampling.base import Items, ItemSamplersType, parse_negative_samplers
-from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import (
-    call_layer,
-    maybe_deserialize_keras_objects,
-    maybe_serialize_keras_objects,
-    rescore_false_negatives,
-)
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
 from merlin.models.utils.constants import MIN_FLOAT
 from merlin.schema import ColumnSchema, Schema
 
@@ -100,7 +85,6 @@ class ContrastiveOutput(ModelOutput):
     def __init__(
         self,
         to_call: Union[
-<<<<<<< HEAD
             Schema,
             ColumnSchema,
             EmbeddingTable,
@@ -109,11 +93,6 @@ class ContrastiveOutput(ModelOutput):
             DotProduct,
         ],
         negative_samplers: ItemSamplersType,
-=======
-            Schema, ColumnSchema, EmbeddingTable, "CategoricalTarget", "EmbeddingTablePrediction"
-        ],
-        negative_samplers: ItemSamplersType = None,
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
         target_name: str = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
@@ -121,7 +100,6 @@ class ContrastiveOutput(ModelOutput):
         name: Optional[str] = None,
         default_loss: Union[str, tf.keras.losses.Loss] = "categorical_crossentropy",
         default_metrics_fn: MetricsFn = default_categorical_prediction_metrics,
-<<<<<<< HEAD
         downscore_false_negatives=True,
         false_negative_score: float = MIN_FLOAT,
         query_name: str = "query",
@@ -140,23 +118,10 @@ class ContrastiveOutput(ModelOutput):
 
                 self.col_schema = to_call
                 _to_call = CategoricalTarget(to_call)
-=======
-        **kwargs,
-    ):
-        self.max_num_samples = kwargs.pop("max_num_samples", None)
-        _to_call = kwargs.pop("to_call", None)
-
-        if to_call is not None:
-            if isinstance(to_call, (Schema, ColumnSchema)):
-                _to_call = CategoricalTarget(to_call)
-                if isinstance(to_call, Schema):
-                    to_call = to_call.first
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
                 target_name = target_name or to_call.name
             elif isinstance(to_call, EmbeddingTable):
                 _to_call = EmbeddingTablePrediction(to_call)
                 target_name = _to_call.table.col_schema.name
-<<<<<<< HEAD
                 self.col_schema = _to_call.table.col_schema
             else:
                 _to_call = to_call
@@ -174,28 +139,10 @@ class ContrastiveOutput(ModelOutput):
         self.false_negative_score = false_negative_score
         self.query_name = query_name
         self.candidate_name = candidate_name
-=======
-            else:
-                _to_call = to_call
-
-        to_call_train_test = kwargs.pop(
-            "to_call_train_test",
-            SampledLookUps(
-                prediction=_to_call,
-                negative_samplers=negative_samplers,
-                feature_name=target_name,
-                max_num_samples=self.max_num_samples,
-            ),
-        )
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
 
         self.target_name = kwargs.pop("target", target_name)
         super().__init__(
             to_call=_to_call,
-<<<<<<< HEAD
-=======
-            to_call_train_test=to_call_train_test,
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
             default_loss=default_loss,
             default_metrics_fn=default_metrics_fn,
             name=name,
@@ -206,7 +153,6 @@ class ContrastiveOutput(ModelOutput):
             **kwargs,
         )
 
-<<<<<<< HEAD
     def build(self, input_shape):
         if (
             isinstance(input_shape, dict)
@@ -267,117 +213,6 @@ class ContrastiveOutput(ModelOutput):
         if self.downscore_false_negatives:
             negative_scores, _ = tf_utils.rescore_false_negatives(
                 positive.id, negative.id, negative_scores, self.false_negative_score
-=======
-    def compile(self, negative_sampling=None, downscore_false_negatives=False):
-        if negative_sampling is not None:
-            negative_sampling = parse_negative_samplers(negative_sampling)
-        self.to_call_train_test.negative_samplers = negative_sampling
-        self.to_call_train_test.downscore_false_negatives = downscore_false_negatives
-
-    def get_config(self):
-        config = super().get_config()
-        config["max_num_samples"] = self.max_num_samples
-        config["target_name"] = self.target_name
-        return config
-
-
-@runtime_checkable
-class LookUpProtocol(Protocol):
-    def embedding_lookup(self, inputs, **kwargs):
-        pass
-
-    def __call__(self, *args, **kwargs):
-        pass
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class SampledLookUps(Layer):
-    """Contrastive layer for sampled logits.
-
-    This layer can be used to compute the output scores of a multi-classification
-    task only on a subset of sampled classes.
-
-    For example, we could use this class to define the sampled softmax task [1] where
-    negatives are defined using a popularity-based sampler.
-
-    Parameters
-    ----------
-    prediction : LookUpProtocol
-        The prediction layer used for computing the logits scores. It should be an
-        instance of `LookUpProtocol`, i.e. it includes the method `embedding_lookup`
-        that indexes the output weights.
-    negative_samplers : ItemSamplersType
-        List of samplers for negative sampling,
-    feature_name : str, optional
-        The name of the target feature, by default None
-    downscore_false_negatives : bool, optional
-        Identify false negatives (sampled item ids equal to the positive item and downscore them
-        to the `sampling_downscore_false_negatives_value`),
-        by default False
-    false_negative_score : float, optional
-        Value to be used to downscore false negatives when
-        `sampling_downscore_false_negatives=True`,
-        by default `np.finfo(np.float32).min / 100.0`
-
-    References:
-    -----------
-    [1] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
-       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
-       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
-    """
-
-    def __init__(
-        self,
-        prediction: LookUpProtocol,
-        negative_samplers: ItemSamplersType,
-        feature_name: str = None,
-        downscore_false_negatives=True,
-        false_negative_score: float = MIN_FLOAT,
-        **kwargs,
-    ):
-        self.prediction = prediction
-        self.downscore_false_negatives = downscore_false_negatives
-        self.false_negative_score = false_negative_score
-        self.feature_name = feature_name
-
-        if negative_samplers is not None:
-            self.negative_samplers = parse_negative_samplers(negative_samplers)
-        else:
-            self.negative_samplers = negative_samplers
-
-        super().__init__()
-
-    def build(self, input_shape):
-        super().build(input_shape)
-
-    def call(self, inputs, features, targets, training=False, testing=False):
-        if isinstance(targets, dict):
-            if self.feature_name is None:
-                raise ValueError(
-                    "When training with multi-task, you should specify the "
-                    "`target_name` for the sampled softmax task"
-                )
-            targets = targets[self.feature_name]
-        # Get positive weights
-        pos_item_id = tf.squeeze(targets)
-        positive_weights = self.prediction.embedding_lookup(pos_item_id)
-
-        # Sample negative items
-        neg_items = self.sample_negatives(
-            Items(pos_item_id, {}), features, training=training, testing=testing
-        )
-        negative_weights = self.prediction.embedding_lookup(neg_items.id)
-
-        # Apply dot-product
-        negative_scores = tf.linalg.matmul(inputs, negative_weights, transpose_b=True)
-        positive_scores = tf.reduce_sum(
-            tf.multiply(inputs, positive_weights), keepdims=True, axis=-1
-        )
-
-        if self.downscore_false_negatives:
-            negative_scores, _ = rescore_false_negatives(
-                pos_item_id, neg_items.id, negative_scores, self.false_negative_score
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
             )
 
         outputs = tf.concat([positive_scores, negative_scores], axis=-1)
@@ -402,19 +237,11 @@ class SampledLookUps(Layer):
 
     def sample_negatives(
         self,
-<<<<<<< HEAD
         positive: Candidate,
         features: TabularData,
         training=False,
         testing=False,
     ) -> Candidate:
-=======
-        positive_items: Items,
-        features: TabularData,
-        training=False,
-        testing=False,
-    ) -> Items:
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
         """Method to sample negatives from `self.negative_samplers`
 
         Parameters
@@ -433,32 +260,20 @@ class SampledLookUps(Layer):
         Items
             Class containing the sampled negative ids
         """
-<<<<<<< HEAD
         candidates: List[Candidate] = []
-=======
-        negative_items: List[Items] = []
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
         sampling_kwargs = {"training": training, "testing": testing, "features": features}
 
         # sample a number of negative ids from self.negative_samplers
         for sampler in self.negative_samplers:
-<<<<<<< HEAD
             sampled: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
 
             if tf.shape(sampled.id)[0] > 0:
                 candidates.append(sampled)
-=======
-            sampler_items: Items = call_layer(sampler, positive_items, **sampling_kwargs)
-
-            if tf.shape(sampler_items.id)[0] > 0:
-                negative_items.append(sampler_items)
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
             else:
                 LOG.warn(
                     f"The sampler {type(sampler).__name__} returned no samples for this batch."
                 )
 
-<<<<<<< HEAD
         if len(candidates) == 0:
             raise Exception(
                 f"No negative items where sampled from samplers {self.negative_samplers}"
@@ -467,19 +282,10 @@ class SampledLookUps(Layer):
         negatives = candidates[0]
         if len(candidates) > 1:
             for neg in candidates[1:]:
-=======
-        if len(negative_items) == 0:
-            raise Exception(f"No negative items where sampled from samplers {self.samplers}")
-
-        negatives = negative_items[0]
-        if len(negative_items) > 1:
-            for neg in negative_items[1:]:
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
                 negatives += neg
 
         return negatives
 
-<<<<<<< HEAD
     def embedding_lookup(self, ids: tf.Tensor):
         return self.to_call.embedding_lookup(tf.squeeze(ids))
 
@@ -514,27 +320,10 @@ class SampledLookUps(Layer):
             Schema([self.col_schema])
         )
 
-=======
-    @property
-    def has_negative_samplers(self) -> bool:
-        return self.negative_samplers is not None and len(self.negative_samplers) > 0
-
-    def get_config(self):
-        config = maybe_serialize_keras_objects(
-            self,
-            {
-                **super().get_config(),
-                "downscore_false_negatives": self.downscore_false_negatives,
-                "false_negative_score": self.false_negative_score,
-            },
-            ["negative_samplers", "prediction"],
-        )
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
         return config
 
     @classmethod
     def from_config(cls, config):
-<<<<<<< HEAD
         config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
 
         config = tf_utils.maybe_deserialize_keras_objects(config, ["negative_samplers"])
@@ -551,7 +340,3 @@ class LookUpProtocol(Protocol):
 
     def __call__(self, *args, **kwargs):
         pass
-=======
-        config = maybe_deserialize_keras_objects(config, ["negative_samplers", "prediction"])
-        return super().from_config(config)
->>>>>>> Splitting up CategoricalOutput & ContrastiveOutput
