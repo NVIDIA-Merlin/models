@@ -19,8 +19,8 @@ import tensorflow as tf
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.dataset import BatchedDataset
-from merlin.models.tf.predictions.classification import CategoricalTarget, EmbeddingTablePrediction
-from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSamplerV2
+from merlin.models.tf.outputs.classification import CategoricalTarget, EmbeddingTablePrediction
+from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -30,7 +30,7 @@ def test_binary_prediction_block(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
         mm.MLPBlock([8]),
-        mm.BinaryPrediction("click"),
+        mm.BinaryOutput("click"),
     )
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)

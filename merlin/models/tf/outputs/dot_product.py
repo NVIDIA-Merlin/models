@@ -21,13 +21,9 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.prediction import Prediction
-from merlin.models.tf.predictions.base import ContrastivePredictionBlock
-from merlin.models.tf.predictions.classification import default_categorical_prediction_metrics
-from merlin.models.tf.predictions.sampling.base import (
-    Items,
-    ItemSamplersType,
-    parse_negative_samplers,
-)
+from merlin.models.tf.outputs.base import ContrastivePredictionBlock
+from merlin.models.tf.outputs.classification import default_categorical_prediction_metrics
+from merlin.models.tf.outputs.sampling.base import Items, ItemSamplersType, parse_negative_samplers
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer, rescore_false_negatives

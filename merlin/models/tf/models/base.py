@@ -23,6 +23,7 @@ from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
+from merlin.models.tf.outputs.base import ContrastivePredictionBlock, ModelOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
 from merlin.models.tf.transforms.tensor import ListToRagged
@@ -454,15 +455,15 @@ class BaseModel(tf.keras.Model):
         return outputs
 
     @property
-    def prediction_blocks(self) -> List[PredictionBlock]:
-        results = find_all_instances_in_layers(self, PredictionBlock)
+    def prediction_blocks(self) -> List[ModelOutput]:
+        results = find_all_instances_in_layers(self, ModelOutput)
 
         return results
 
-    def predictions_by_name(self) -> Dict[str, PredictionBlock]:
+    def predictions_by_name(self) -> Dict[str, ModelOutput]:
         return {task.full_name: task for task in self.prediction_blocks}
 
-    def predictions_by_target(self) -> Dict[str, List[PredictionBlock]]:
+    def predictions_by_target(self) -> Dict[str, List[ModelOutput]]:
         """Method to index the model's prediction blocks by target names.
 
         Returns
@@ -470,7 +471,7 @@ class BaseModel(tf.keras.Model):
         Dict[str, List[PredictionBlock]]
             List of prediction blocks.
         """
-        outputs: Dict[str, List[PredictionBlock]] = {}
+        outputs: Dict[str, List[ModelOutput]] = {}
         for task in self.prediction_blocks:
             if task.target in outputs:
                 if isinstance(outputs[task.target], list):

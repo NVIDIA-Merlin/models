@@ -25,7 +25,7 @@ def test_regression_block(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
         mm.MLPBlock([8]),
-        mm.RegressionPrediction("click"),
+        mm.RegressionOutput("click"),
     )
 
     _, history = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)

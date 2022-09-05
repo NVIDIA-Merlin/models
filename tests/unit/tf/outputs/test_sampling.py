@@ -18,7 +18,7 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
-from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSamplerV2
+from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 
 
 def test_inbatch_sampler():
