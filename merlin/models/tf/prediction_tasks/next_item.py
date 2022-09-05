@@ -22,17 +22,13 @@ from tensorflow.keras.layers import Layer
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.transformations import (
-    ItemsPredictionWeightTying,
-    L2Norm,
-    LabelToOneHot,
-    LogitsTemperatureScaler,
-    PopularityLogitsCorrection,
-)
 from merlin.models.tf.prediction_tasks.classification import (
     CategFeaturePrediction,
     MultiClassClassificationTask,
 )
+from merlin.models.tf.transforms.bias import LogitsTemperatureScaler, PopularityLogitsCorrection
+from merlin.models.tf.transforms.features import ToOneHot
+from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.utils.schema_utils import categorical_cardinalities, categorical_domains
 from merlin.schema import Schema, Tags
 
@@ -63,7 +59,6 @@ def ItemsPredictionPopSampled(
     That implementation does not require the actual item frequencies/probabilities
     if the item ids are sorted by frequency. The PopularityBasedSampler
     approximates the item probabilities using the log_uniform (zipfian) distribution.
-
     Parameters:
     -----------
         schema: Schema
@@ -77,22 +72,18 @@ def ItemsPredictionPopSampled(
         ignore_false_negatives: bool
             Ignore sampled items that are equal to the target classes
             Defaults to True
-
     Returns:
     -------
         A SequenceBlock that performs popularity-based sampling of negatives, scores
         the items and applies the logQ correction for sampled softmax
-
     References
     ----------
     .. [1] Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic
        Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial
        Intelligence and Statistics (AISTATS).
-
     .. [2 Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
        Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
        2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
-
     .. [3] Jean, Sébastien, et al. "On using very large target vocabulary for neural
         machine translation." arXiv preprint arXiv:1412.2007 (2014).
     """
@@ -187,13 +178,9 @@ def NextItemPredictionTask(
         )
 
     else:
-        if weight_tying:
-            prediction_call = ItemsPredictionWeightTying(schema)
+        prediction_call = ItemsPrediction(schema)
 
-        else:
-            prediction_call = ItemsPrediction(schema)
-
-        prediction_call = prediction_call.connect(LabelToOneHot())
+        prediction_call = prediction_call.connect(ToOneHot())
 
     if post_logits is not None:
         prediction_call = prediction_call.connect(post_logits)

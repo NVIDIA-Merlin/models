@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
+from typing import Dict, Optional, Union
 
 import tensorflow as tf
 from keras.layers.preprocessing import preprocessing_utils as utils
@@ -28,7 +28,7 @@ MULTI_HOT = utils.MULTI_HOT
 COUNT = utils.COUNT
 
 
-@Block.registry.register("as-ragged")
+@Block.registry.register("to-ragged")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ToRagged(TabularBlock):
     """Convert all list (multi-hot/sequential) features to tf.RaggedTensor"""
@@ -58,7 +58,7 @@ class ToRagged(TabularBlock):
         return self.compute_output_shape(input_shapes)
 
 
-@Block.registry.register("as-sparse")
+@Block.registry.register("to-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ToSparse(TabularBlock):
     """Convert all list-inputs to sparse-tensors.
@@ -83,7 +83,7 @@ class ToSparse(TabularBlock):
         return input_shape
 
 
-@Block.registry.register("as-dense")
+@Block.registry.register("to-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ToDense(TabularBlock):
     """Convert all list-inputs to dense-tensors.
@@ -133,3 +133,52 @@ class ToDense(TabularBlock):
         config.update({"max_seq_length": self.max_seq_length})
 
         return config
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ExpandDims(TabularBlock):
+    """
+    Expand dims of selected input tensors.
+    Example::
+        inputs = {
+            "cont_feat1": tf.random.uniform((NUM_ROWS,)),
+            "cont_feat2": tf.random.uniform((NUM_ROWS,)),
+            "multi_hot_categ_feat": tf.random.uniform(
+                (NUM_ROWS, 4), minval=1, maxval=100, dtype=tf.int32
+            ),
+        }
+        expand_dims_op = tr.ExpandDims(expand_dims={"cont_feat2": 0, "multi_hot_categ_feat": 1})
+        expanded_inputs = expand_dims_op(inputs)
+    """
+
+    def __init__(self, expand_dims: Union[int, Dict[str, int]] = -1, **kwargs):
+        """Instantiates the `ExpandDims` transformation, which allows to expand dims
+        of the input tensors
+        Parameters
+        ----------
+        expand_dims : Union[int, Dict[str, int]], optional, by default -1
+            Defines which dimensions should be expanded. If an `int` is provided, all input tensors
+            will have the same dimension expanded. If a `dict` is passed, only features matching
+            the dict keys will be expanded, in the dimension specified as the dict values.
+        """
+        super().__init__(**kwargs)
+        self.inputs_expand_dims = expand_dims
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+
+        for k, v in inputs.items():
+            if isinstance(self.inputs_expand_dims, int):
+                outputs[k] = tf.expand_dims(v, self.inputs_expand_dims)
+            elif isinstance(self.inputs_expand_dims, dict) and k in self.inputs_expand_dims:
+                expand_dim = self.inputs_expand_dims[k]
+                outputs[k] = tf.expand_dims(v, expand_dim)
+            elif self.inputs_expand_dims:
+                outputs[k] = v
+            else:
+                raise ValueError("The expand_dims argument is not valid")
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return input_shape

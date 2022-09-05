@@ -18,7 +18,7 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.core.transformations import LogitsTemperatureScaler
+from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
 from merlin.models.tf.utils import testing_utils
 
 
