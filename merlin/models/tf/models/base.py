@@ -23,7 +23,8 @@ from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
-from merlin.models.tf.outputs.base import ContrastivePredictionBlock, ModelOutput
+from merlin.models.tf.outputs.base import ModelOutput
+from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
 from merlin.models.tf.transforms.tensor import ListToRagged
@@ -315,7 +316,7 @@ class BaseModel(tf.keras.Model):
             self.output_names = [block.full_name for block in self.prediction_blocks]
             negative_sampling = kwargs.pop("negative_sampling", None)
             if negative_sampling:
-                if not isinstance(self.prediction_blocks[0], ContrastivePredictionBlock):
+                if not isinstance(self.prediction_blocks[0], ContrastiveOutput):
                     raise ValueError(
                         "Negative sampling strategy can be used only with a"
                         " `ContrastivePredictionBlock` prediction block"
