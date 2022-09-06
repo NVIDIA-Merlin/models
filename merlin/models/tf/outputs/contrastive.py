@@ -21,20 +21,20 @@ from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.embedding import EmbeddingTable
-from merlin.models.tf.outputs.base import MetricsFn, ModelOutput
+from merlin.models.tf.outputs.base import DotProduct, MetricsFn, ModelOutput
 from merlin.models.tf.outputs.classification import (
     CategoricalTarget,
     EmbeddingTablePrediction,
     default_categorical_prediction_metrics,
 )
-from merlin.models.tf.outputs.sampling.base import Items, ItemSamplersType, parse_negative_samplers
-from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import (
-    call_layer,
-    maybe_deserialize_keras_objects,
-    maybe_serialize_keras_objects,
-    rescore_false_negatives,
+from merlin.models.tf.outputs.sampling.base import (
+    Candidate,
+    ItemSamplersType,
+    parse_negative_samplers,
 )
+from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils import tf_utils
+from merlin.models.utils import schema_utils
 from merlin.models.utils.constants import MIN_FLOAT
 from merlin.schema import ColumnSchema, Schema
 
@@ -85,7 +85,12 @@ class ContrastiveOutput(ModelOutput):
     def __init__(
         self,
         to_call: Union[
-            Schema, ColumnSchema, EmbeddingTable, "CategoricalTarget", "EmbeddingTablePrediction"
+            Schema,
+            ColumnSchema,
+            EmbeddingTable,
+            CategoricalTarget,
+            EmbeddingTablePrediction,
+            DotProduct,
         ],
         negative_samplers: ItemSamplersType = None,
         target_name: str = None,
@@ -95,37 +100,48 @@ class ContrastiveOutput(ModelOutput):
         name: Optional[str] = None,
         default_loss: Union[str, tf.keras.losses.Loss] = "categorical_crossentropy",
         default_metrics_fn: MetricsFn = default_categorical_prediction_metrics,
+        downscore_false_negatives=True,
+        false_negative_score: float = MIN_FLOAT,
+        query_name: str = "query",
+        candidate_name: str = "candidate",
         **kwargs,
     ):
-        self.max_num_samples = kwargs.pop("max_num_samples", None)
         _to_call = kwargs.pop("to_call", None)
-
+        self.col_schema = None
         if to_call is not None:
             if isinstance(to_call, (Schema, ColumnSchema)):
-                _to_call = CategoricalTarget(to_call)
-                if isinstance(to_call, Schema):
+                if isinstance(to_call, Schema) and len(to_call) == 1:
                     to_call = to_call.first
+                else:
+                    raise ValueError("to_call must be a single column schema")
+
+                self.col_schema = to_call
+                _to_call = CategoricalTarget(to_call)
                 target_name = target_name or to_call.name
             elif isinstance(to_call, EmbeddingTable):
                 _to_call = EmbeddingTablePrediction(to_call)
                 target_name = _to_call.table.col_schema.name
+                self.col_schema = _to_call.table.col_schema
             else:
                 _to_call = to_call
 
-        to_call_train_test = kwargs.pop(
-            "to_call_train_test",
-            SampledLookUps(
-                prediction=_to_call,
-                negative_samplers=negative_samplers,
-                feature_name=target_name,
-                max_num_samples=self.max_num_samples,
-            ),
-        )
+        if "schema" in kwargs:
+            self.col_schema = kwargs.pop("schema").first
+
+        if not self.col_schema:
+            raise ValueError(
+                "schema of target couldn't be inferred, please provide ", "`schema=...`"
+            )
+
+        self.negative_samplers = parse_negative_samplers(negative_samplers)
+        self.downscore_false_negatives = downscore_false_negatives
+        self.false_negative_score = false_negative_score
+        self.query_name = query_name
+        self.candidate_name = candidate_name
 
         self.target_name = kwargs.pop("target", target_name)
         super().__init__(
             to_call=_to_call,
-            to_call_train_test=to_call_train_test,
             default_loss=default_loss,
             default_metrics_fn=default_metrics_fn,
             name=name,
@@ -136,115 +152,64 @@ class ContrastiveOutput(ModelOutput):
             **kwargs,
         )
 
-    def compile(self, negative_sampling=None, downscore_false_negatives=False):
-        if negative_sampling is not None:
-            negative_sampling = parse_negative_samplers(negative_sampling)
-        self.to_call_train_test.negative_samplers = negative_sampling
-        self.to_call_train_test.downscore_false_negatives = downscore_false_negatives
-
-    def get_config(self):
-        config = super().get_config()
-        config["max_num_samples"] = self.max_num_samples
-        config["target_name"] = self.target_name
-        return config
-
-
-@runtime_checkable
-class LookUpProtocol(Protocol):
-    def embedding_lookup(self, inputs, **kwargs):
-        pass
-
-    def __call__(self, *args, **kwargs):
-        pass
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class SampledLookUps(Layer):
-    """Contrastive layer for sampled logits.
-
-    This layer can be used to compute the output scores of a multi-classification
-    task only on a subset of sampled classes.
-
-    For example, we could use this class to define the sampled softmax task [1] where
-    negatives are defined using a popularity-based sampler.
-
-    Parameters
-    ----------
-    prediction : LookUpProtocol
-        The prediction layer used for computing the logits scores. It should be an
-        instance of `LookUpProtocol`, i.e. it includes the method `embedding_lookup`
-        that indexes the output weights.
-    negative_samplers : ItemSamplersType
-        List of samplers for negative sampling,
-    feature_name : str, optional
-        The name of the target feature, by default None
-    downscore_false_negatives : bool, optional
-        Identify false negatives (sampled item ids equal to the positive item and downscore them
-        to the `sampling_downscore_false_negatives_value`),
-        by default False
-    false_negative_score : float, optional
-        Value to be used to downscore false negatives when
-        `sampling_downscore_false_negatives=True`,
-        by default `np.finfo(np.float32).min / 100.0`
-
-    References:
-    -----------
-    [1] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
-       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
-       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
-    """
-
-    def __init__(
-        self,
-        prediction: LookUpProtocol,
-        negative_samplers: ItemSamplersType,
-        feature_name: str = None,
-        downscore_false_negatives=True,
-        false_negative_score: float = MIN_FLOAT,
-        **kwargs,
-    ):
-        self.prediction = prediction
-        self.downscore_false_negatives = downscore_false_negatives
-        self.false_negative_score = false_negative_score
-        self.feature_name = feature_name
-
-        if negative_samplers is not None:
-            self.negative_samplers = parse_negative_samplers(negative_samplers)
-        else:
-            self.negative_samplers = negative_samplers
-
-        super().__init__()
-
     def build(self, input_shape):
+        if (
+            isinstance(input_shape, dict)
+            and all(key in input_shape for key in self.keys)
+            and not isinstance(self.to_call, DotProduct)
+        ):
+            self.to_call = DotProduct(*self.keys)
+
         super().build(input_shape)
 
-    def call(self, inputs, features, targets, training=False, testing=False):
-        if isinstance(targets, dict):
-            if self.feature_name is None:
-                raise ValueError(
-                    "When training with multi-task, you should specify the "
-                    "`target_name` for the sampled softmax task"
-                )
-            targets = targets[self.feature_name]
-        # Get positive weights
-        pos_item_id = tf.squeeze(targets)
-        positive_weights = self.prediction.embedding_lookup(pos_item_id)
+    def call(self, inputs, training=False, testing=False, **kwargs):
+        if training or testing:
+            return self.call_contrastive(inputs, training=training, testing=testing, **kwargs)
 
-        # Sample negative items
-        neg_items = self.sample_negatives(
-            Items(pos_item_id, {}), features, training=training, testing=testing
-        )
-        negative_weights = self.prediction.embedding_lookup(neg_items.id)
+        return tf_utils.call_layer(self.to_call, inputs, **kwargs)
+
+    def call_contrastive(self, inputs, features, targets=None, **kwargs):
+        if isinstance(inputs, dict) and self.query_name in inputs:
+            query_embedding = inputs[self.query_name]
+        elif isinstance(inputs, tf.Tensor):
+            query_embedding = inputs
+        else:
+            raise ValueError("Couldn't infer query embedding")
+
+        if self.has_candidate_weights:
+            positive_id = targets
+            if isinstance(targets, dict):
+                positive_id = targets[self.col_schema.name]
+            positive_embedding = self.embedding_lookup(positive_id)
+        else:
+            positive_id = features[self.col_schema.name]
+            positive_embedding = inputs[self.candidate_name]
+
+        positive = Candidate(positive_id, features).with_embedding(positive_embedding)
+        negative = self.sample_negatives(positive, features)
+        if self.has_candidate_weights and positive != negative:
+            negative = negative.with_embedding(self.embedding_lookup(negative.id))
+
+        return self.outputs(query_embedding, positive, negative)
+
+    def outputs(
+        self, query_embedding: tf.Tensor, positive: Candidate, negative: Candidate
+    ) -> Prediction:
+        if not positive.has_embedding:
+            raise ValueError("Positive candidate must have an embedding")
+        if not negative.has_embedding:
+            raise ValueError("Negative candidate must have an embedding")
 
         # Apply dot-product
-        negative_scores = tf.linalg.matmul(inputs, negative_weights, transpose_b=True)
+        negative_scores = tf.linalg.matmul(query_embedding, negative.embedding, transpose_b=True)
+
         positive_scores = tf.reduce_sum(
-            tf.multiply(inputs, positive_weights), keepdims=True, axis=-1
+            tf.multiply(query_embedding, positive.embedding), keepdims=True, axis=-1
         )
 
         if self.downscore_false_negatives:
-            negative_scores, _ = rescore_false_negatives(
-                pos_item_id, neg_items.id, negative_scores, self.false_negative_score
+            negative_scores, _ = tf_utils.rescore_false_negatives(
+                positive.id, negative.id, negative_scores, self.false_negative_score
             )
 
         outputs = tf.concat([positive_scores, negative_scores], axis=-1)
@@ -269,11 +234,11 @@ class SampledLookUps(Layer):
 
     def sample_negatives(
         self,
-        positive_items: Items,
+        positive: Candidate,
         features: TabularData,
         training=False,
         testing=False,
-    ) -> Items:
+    ) -> Candidate:
         """Method to sample negatives from `self.negative_samplers`
 
         Parameters
@@ -292,12 +257,12 @@ class SampledLookUps(Layer):
         Items
             Class containing the sampled negative ids
         """
-        negative_items: List[Items] = []
+        negative_items: List[Candidate] = []
         sampling_kwargs = {"training": training, "testing": testing, "features": features}
 
         # sample a number of negative ids from self.negative_samplers
         for sampler in self.negative_samplers:
-            sampler_items: Items = call_layer(sampler, positive_items, **sampling_kwargs)
+            sampler_items: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
 
             if tf.shape(sampler_items.id)[0] > 0:
                 negative_items.append(sampler_items)
@@ -316,23 +281,61 @@ class SampledLookUps(Layer):
 
         return negatives
 
+    def embedding_lookup(self, ids: tf.Tensor):
+        query = ids
+
+        if len(ids.shape) == 2 and ids.shape[-1] == 1:
+            query = tf.squeeze(ids)
+
+        return self.to_call.embedding_lookup(query)
+
     @property
-    def has_negative_samplers(self) -> bool:
-        return self.negative_samplers is not None and len(self.negative_samplers) > 0
+    def has_candidate_weights(self) -> bool:
+        if isinstance(self.to_call, DotProduct):
+            return False
+
+        return isinstance(self.to_call, LookUpProtocol)
+
+    @property
+    def keys(self) -> List[str]:
+        return [self.query_name, self.candidate_name]
+
+    def compile(self, negative_sampling=None, downscore_false_negatives=False):
+        if negative_sampling is not None:
+            negative_sampling = parse_negative_samplers(negative_sampling)
+        self.negative_samplers = negative_sampling
+        self.downscore_false_negatives = downscore_false_negatives
 
     def get_config(self):
-        config = maybe_serialize_keras_objects(
-            self,
-            {
-                **super().get_config(),
-                "downscore_false_negatives": self.downscore_false_negatives,
-                "false_negative_score": self.false_negative_score,
-            },
-            ["negative_samplers", "prediction"],
+        config = super().get_config()
+
+        config = tf_utils.maybe_serialize_keras_objects(self, config, ["negative_samplers"])
+
+        config["target"] = self.target_name
+        config["downscore_false_negatives"] = self.downscore_false_negatives
+        config["false_negative_score"] = self.false_negative_score
+        config["query_name"] = self.query_name
+        config["candidate_name"] = self.candidate_name
+
+        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(
+            Schema([self.col_schema])
         )
+
         return config
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["negative_samplers", "prediction"])
+        config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
+
+        config = tf_utils.maybe_deserialize_keras_objects(config, ["negative_samplers"])
+
         return super().from_config(config)
+
+
+@runtime_checkable
+class LookUpProtocol(Protocol):
+    def embedding_lookup(self, inputs, **kwargs):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        pass

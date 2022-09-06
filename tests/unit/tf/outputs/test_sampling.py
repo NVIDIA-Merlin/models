@@ -27,7 +27,7 @@ def test_inbatch_sampler():
 
     inbatch_sampler = ml.InBatchSamplerV2()
 
-    input_data = ml.Items(item_ids, {"item_ids": item_ids}).with_embedding(item_embeddings)
+    input_data = ml.Candidate(item_ids, {"item_ids": item_ids}).with_embedding(item_embeddings)
     output_data = inbatch_sampler(input_data)
 
     tf.assert_equal(input_data.embedding(), output_data.embedding())
@@ -40,7 +40,7 @@ def test_inbatch_sampler_no_metadata_features():
 
     inbatch_sampler = ml.InBatchSamplerV2()
 
-    input_data = ml.Items(item_ids, {})
+    input_data = ml.Candidate(item_ids, {})
     output_data = inbatch_sampler(input_data)
 
     tf.assert_equal(input_data.id, output_data.id)
@@ -57,7 +57,7 @@ def test_popularity_sampler():
         max_num_samples=num_sampled, max_id=num_classes - 1, min_id=min_id
     )
 
-    input_data = ml.Items(item_ids, {})
+    input_data = ml.Candidate(item_ids, {})
     output_data = popularity_sampler(input_data)
 
     assert len(tf.unique_with_counts(output_data.id)[0]) == num_sampled

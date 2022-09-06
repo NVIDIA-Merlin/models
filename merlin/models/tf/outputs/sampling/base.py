@@ -20,11 +20,11 @@ import tensorflow as tf
 
 from merlin.models.utils.registry import Registry, RegistryMixin
 
-ITEM_EMBEDDING_KEY = "__item_embedding__"
+EMBEDDING_KEY = "__embedding__"
 
 
-class Items(NamedTuple):
-    """Storea item ids and their metadata
+class Candidate(NamedTuple):
+    """Store candidate id and their metadata
 
     Parameters
     ----------
@@ -38,20 +38,21 @@ class Items(NamedTuple):
     id: tf.Tensor
     metadata: Dict[str, tf.Tensor]
 
+    @property
     def embedding(self) -> tf.Tensor:
-        return self.metadata[ITEM_EMBEDDING_KEY]
+        return self.metadata[EMBEDDING_KEY]
 
     @property
     def has_embedding(self) -> bool:
-        return ITEM_EMBEDDING_KEY in self.metadata
+        return EMBEDDING_KEY in self.metadata
 
-    def with_embedding(self, embedding: tf.Tensor) -> "Items":
-        self.metadata[ITEM_EMBEDDING_KEY] = embedding
+    def with_embedding(self, embedding: tf.Tensor) -> "Candidate":
+        self.metadata[EMBEDDING_KEY] = embedding
 
         return self
 
     def __add__(self, other):
-        return Items(
+        return Candidate(
             id=_list_to_tensor([self.id, other.id]),
             metadata={
                 key: _list_to_tensor([self.metadata[key], other.metadata[key]])
@@ -60,8 +61,8 @@ class Items(NamedTuple):
         )
 
     @property
-    def shape(self) -> "Items":
-        return Items(self.id.shape, {key: val.shape for key, val in self.metadata.items()})
+    def shape(self) -> "Candidate":
+        return Candidate(self.id.shape, {key: val.shape for key, val in self.metadata.items()})
 
     def __repr__(self):
         metadata = {key: str(val) for key, val in self.metadata.items()}
@@ -72,6 +73,9 @@ class Items(NamedTuple):
         metadata = {key: str(val) for key, val in self.metadata.items()}
 
         return f"Items({self.id}, {metadata})"
+
+    def __eq__(self, other) -> bool:
+        return self.id.ref() == other.id.ref()
 
     def get_config(self):
         return {
@@ -90,7 +94,7 @@ class Items(NamedTuple):
 negative_sampling_registry: Registry = Registry.class_registry("tf.negative_sampling")
 
 
-class ItemSamplerV2(tf.keras.layers.Layer, RegistryMixin["ItemSampler"], abc.ABC):
+class CandidateSampler(tf.keras.layers.Layer, RegistryMixin["CandidateSampler"], abc.ABC):
     """Base-class for negative sampling
 
     Parameters
@@ -111,12 +115,12 @@ class ItemSamplerV2(tf.keras.layers.Layer, RegistryMixin["ItemSampler"], abc.ABC
         max_num_samples: Optional[int] = None,
         **kwargs,
     ):
-        super(ItemSamplerV2, self).__init__(**kwargs)
+        super(CandidateSampler, self).__init__(**kwargs)
         self.set_max_num_samples(max_num_samples)
 
     def call(
-        self, items: Items, features=None, targets=None, training=False, testing=False
-    ) -> Items:
+        self, items: Candidate, features=None, targets=None, training=False, testing=False
+    ) -> Candidate:
         if training:
             self.add(items)
         items = self.sample()
@@ -124,11 +128,11 @@ class ItemSamplerV2(tf.keras.layers.Layer, RegistryMixin["ItemSampler"], abc.ABC
         return items
 
     @abc.abstractmethod
-    def add(self, items: Items):
+    def add(self, items: Candidate):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def sample(self) -> Items:
+    def sample(self) -> Candidate:
         raise NotImplementedError()
 
     @property
@@ -150,7 +154,7 @@ def _list_to_tensor(input_list: List[tf.Tensor]) -> tf.Tensor:
     return output
 
 
-ItemSamplersType = Union[ItemSamplerV2, Sequence[Union[ItemSamplerV2, str]], str]
+ItemSamplersType = Union[CandidateSampler, Sequence[Union[CandidateSampler, str]], str]
 
 
 def parse_negative_samplers(negative_sampling: ItemSamplersType):
@@ -160,5 +164,5 @@ def parse_negative_samplers(negative_sampling: ItemSamplersType):
     """
     if not isinstance(negative_sampling, (list, tuple)):
         negative_sampling = [negative_sampling]
-    negative_sampling = [ItemSamplerV2.parse(s) for s in list(negative_sampling)]
+    negative_sampling = [CandidateSampler.parse(s) for s in list(negative_sampling)]
     return negative_sampling

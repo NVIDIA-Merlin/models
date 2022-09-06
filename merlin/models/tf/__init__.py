@@ -107,7 +107,7 @@ from merlin.models.tf.outputs.base import ModelOutput
 from merlin.models.tf.outputs.classification import BinaryOutput, CategoricalOutput
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.outputs.regression import RegressionOutput
-from merlin.models.tf.outputs.sampling.base import Items, ItemSamplerV2
+from merlin.models.tf.outputs.sampling.base import Candidate, CandidateSampler
 from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask

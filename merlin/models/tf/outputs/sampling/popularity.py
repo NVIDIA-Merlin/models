@@ -17,11 +17,11 @@ from typing import Optional
 
 import tensorflow as tf
 
-from merlin.models.tf.outputs.sampling.base import Items, ItemSamplerV2
+from merlin.models.tf.outputs.sampling.base import Candidate, CandidateSampler
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class PopularityBasedSamplerV2(ItemSamplerV2):
+class PopularityBasedSamplerV2(CandidateSampler):
     """
     Provides a popularity-based negative sampling for the softmax layer
     to ensure training efficiency when the catalog of items is very large.
@@ -61,20 +61,20 @@ class PopularityBasedSamplerV2(ItemSamplerV2):
         ), f"Number of items to sample `{self.max_num_samples}`"
         f"should be less than total number of ids `{self.max_id}`"
 
-    def add(self, items: Items):
+    def add(self, items: Candidate):
         pass
 
     def call(
         self,
-        positive_items: Items = None,
+        positive_items: Candidate = None,
         features=None,
         targets=None,
         training=False,
         testing=False,
-    ) -> Items:
+    ) -> Candidate:
         return self.sample()
 
-    def sample(self) -> Items:
+    def sample(self) -> Candidate:
         """
         Method to sample `max_num_samples` unique negatives.
         This implementation does not require the actual item frequencies/probabilities
@@ -103,7 +103,7 @@ class PopularityBasedSamplerV2(ItemSamplerV2):
         # Shifting the sampled ids to ignore the first ids (usually reserved for nulls, OOV)
         sampled_ids += self.min_id
 
-        return Items(sampled_ids, {})
+        return Candidate(sampled_ids, {})
 
     def get_config(self):
         config = super().get_config()

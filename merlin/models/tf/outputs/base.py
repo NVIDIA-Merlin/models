@@ -64,7 +64,6 @@ class ModelOutput(Layer):
         to_call: Layer,
         default_loss: Union[str, tf.keras.losses.Loss],
         default_metrics_fn: MetricsFn,
-        to_call_train_test: Optional[Layer] = None,
         name: Optional[str] = None,
         target: Optional[str] = None,
         pre: Optional[Layer] = None,
@@ -79,7 +78,6 @@ class ModelOutput(Layer):
 
         super().__init__(name=name or self.full_name, **kwargs)
         self.to_call = to_call
-        self.to_call_train_test = to_call_train_test
         self.default_loss = default_loss
         self.default_metrics_fn = default_metrics_fn
         self.pre = pre
@@ -104,6 +102,7 @@ class ModelOutput(Layer):
             self.pre.build(input_shape)
             input_shape = self.pre.compute_output_shape(input_shape)
 
+        self.to_call.build(input_shape)
         input_shape = self.to_call.compute_output_shape(input_shape)
 
         if self.post is not None:
@@ -112,11 +111,9 @@ class ModelOutput(Layer):
         self.built = True
 
     def call(self, inputs, training=False, testing=False, **kwargs):
-        to_call = self.to_call
-        if self.to_call_train_test and (training or testing):
-            to_call = self.to_call_train_test
-
-        return tf_utils.call_layer(to_call, inputs, **kwargs)
+        return tf_utils.call_layer(
+            self.to_call, inputs, training=training, testing=testing, **kwargs
+        )
 
     def compute_output_shape(self, input_shape):
         output_shape = input_shape
@@ -233,7 +230,6 @@ class ModelOutput(Layer):
 
         objects = [
             "to_call",
-            "to_call_train_test",
             "pre",
             "post",
             "logits_scaler",
@@ -259,7 +255,6 @@ class ModelOutput(Layer):
             {
                 "default_loss": tf.keras.losses.deserialize,
                 "to_call": tf.keras.layers.deserialize,
-                "to_call_train_test": tf.keras.layers.deserialize,
                 "pre": tf.keras.layers.deserialize,
                 "post": tf.keras.layers.deserialize,
                 "logits_scaler": tf.keras.layers.deserialize,
@@ -267,3 +262,37 @@ class ModelOutput(Layer):
         )
 
         return super().from_config(config)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class DotProduct(Layer):
+    """Dot-product between queries & items.
+    Parameters:
+    -----------
+    query_name : str, optional
+        Identify query tower for query/user embeddings, by default 'query'
+    item_name : str, optional
+        Identify item tower for item embeddings, by default 'item'
+    """
+
+    def __init__(self, query_name: str = "query", item_name: str = "item", **kwargs):
+        super().__init__(**kwargs)
+        self.query_name = query_name
+        self.item_name = item_name
+
+    def call(self, inputs, **kwargs):
+        return tf.reduce_sum(
+            tf.multiply(inputs[self.query_name], inputs[self.item_name]), keepdims=True, axis=-1
+        )
+
+    def compute_output_shape(self, input_shape):
+        batch_size = tf_utils.calculate_batch_size_from_input_shapes(input_shape)
+
+        return batch_size, 1
+
+    def get_config(self):
+        return {
+            **super(DotProduct, self).get_config(),
+            "query_name": self.query_name,
+            "item_name": self.item_name,
+        }

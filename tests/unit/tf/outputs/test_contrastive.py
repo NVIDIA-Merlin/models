@@ -18,10 +18,56 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf.core.transformations import RenameFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
+
+
+def test_contrastive_mf(ecommerce_data: Dataset):
+    schema = ecommerce_data.schema
+    user_id = schema.select_by_tag(Tags.USER_ID)
+    item_id = schema.select_by_tag(Tags.ITEM_ID)
+
+    # TODO: Change this for new RetrievalModel
+    encoders = mm.SequentialBlock(
+        mm.ParallelBlock(
+            mm.EmbeddingTable(64, user_id.first), mm.EmbeddingTable(64, item_id.first)
+        ),
+        RenameFeatures(dict(user_id="query", item_id="candidate")),
+    )
+
+    mf = mm.Model(encoders, mm.ContrastiveOutput(item_id, "in-batch"))
+
+    testing_utils.model_test(mf, ecommerce_data, run_eagerly=True)
+
+
+def test_constrastive_mf_weights_in_output(ecommerce_data: Dataset):
+    schema = ecommerce_data.schema
+    schema["item_id"] = schema["item_id"].with_tags([Tags.TARGET])
+    user_id = schema.select_by_tag(Tags.USER_ID)
+    item_id = schema.select_by_tag(Tags.ITEM_ID)
+
+    # TODO: Change this for new RetrievalModel
+    encoder = mm.TabularBlock(mm.EmbeddingTable(64, user_id.first), aggregation="concat")
+
+    mf = mm.Model(encoder, mm.ContrastiveOutput(item_id, "in-batch"))
+
+    testing_utils.model_test(mf, ecommerce_data, run_eagerly=True)
+
+
+def test_two_tower_constrastive(ecommerce_data: Dataset):
+    model = mm.RetrievalModel(
+        mm.TwoTowerBlock(ecommerce_data.schema, query_tower=mm.MLPBlock([8])),
+        mm.ContrastiveOutput(
+            ecommerce_data.schema.select_by_tag(Tags.ITEM_ID),
+            negative_samplers="in-batch",
+            candidate_name="item",
+        ),
+    )
+
+    testing_utils.model_test(model, ecommerce_data)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
