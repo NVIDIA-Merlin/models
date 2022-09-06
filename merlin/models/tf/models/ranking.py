@@ -9,7 +9,12 @@ from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
+from merlin.models.tf.core.combinators import (
+    MapValues,
+    ParallelBlock,
+    SequentialBlock,
+    TabularBlock,
+)
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
@@ -207,9 +212,13 @@ def DeepFMModel(
     pairwise_block = FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1))
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
 
+    dense_to_sparse = MapValues(
+        tf.keras.layers.Lambda(lambda x: tf.sparse.from_dense(x) if isinstance(x, tf.Tensor) else x)
+    )
+
     branches = {
-        "categorical": CategoryEncoding(schema),
-        "continuous": ContinuousFeatures.from_schema(schema),
+        "categorical": CategoryEncoding(schema, output_mode="one_hot", sparse=True),
+        "continuous": SequentialBlock(ContinuousFeatures.from_schema(schema), dense_to_sparse),
     }
     first_order_block = ParallelBlock(branches, aggregation="concat").connect(
         tf.keras.layers.Dense(units=1, activation=None, use_bias=True)
