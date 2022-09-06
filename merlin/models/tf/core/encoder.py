@@ -52,6 +52,20 @@ class EncoderBlock(tf.keras.Model):
 
         return super().__call__(inputs, **kwargs)
 
+    def train_step(self, data):
+        """Train step"""
+        raise NotImplementedError(
+            "This block is not meant to be trained by itself. ",
+            "It can only be trained as part of a model.",
+        )
+
+    def fit(self, *args, **kwargs):
+        """Fit model"""
+        raise NotImplementedError(
+            "This block is not meant to be trained by itself. ",
+            "It can only be trained as part of a model.",
+        )
+
     def _set_save_spec(self, inputs, args=None, kwargs=None):
         super()._set_save_spec(inputs, args, kwargs)
 

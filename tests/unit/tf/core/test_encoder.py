@@ -1,3 +1,5 @@
+import pytest
+
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
@@ -23,6 +25,12 @@ def test_encoder_block(music_streaming_data: Dataset):
     assert model.blocks[0]["item"] == item_encoder
 
     testing_utils.model_test(model, music_streaming_data)
+
+    with pytest.raises(Exception) as excinfo:
+        user_encoder.compile("adam")
+        user_encoder.fit(music_streaming_data)
+
+    assert "This block is not meant to be trained by itself" in str(excinfo.value)
 
     user_features = testing_utils.get_model_inputs(user_schema, ["user_genres"])
     testing_utils.test_model_signature(user_encoder, user_features, ["output_1"])
