@@ -64,7 +64,6 @@ class ModelOutput(Layer):
         to_call: Layer,
         default_loss: Union[str, tf.keras.losses.Loss],
         default_metrics_fn: MetricsFn,
-        to_call_train_test: Optional[Layer] = None,
         name: Optional[str] = None,
         target: Optional[str] = None,
         pre: Optional[Layer] = None,

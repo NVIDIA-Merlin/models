@@ -82,6 +82,9 @@ class Candidate(NamedTuple):
 
         return self.id.ref() == other.id.ref()
 
+    def __eq__(self, other) -> bool:
+        return self.id.ref() == other.id.ref()
+
     def get_config(self):
         return {
             "ids": self.id.as_list() if self.id else None,
@@ -172,5 +175,4 @@ def parse_negative_samplers(negative_sampling: ItemSamplersType):
     if not isinstance(negative_sampling, (list, tuple)):
         negative_sampling = [negative_sampling]
     negative_sampling = [CandidateSampler.parse(s) for s in list(negative_sampling)]
-
     return negative_sampling

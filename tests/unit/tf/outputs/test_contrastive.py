@@ -18,6 +18,7 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf.core.transformations import RenameFeatures
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.transforms.features import Rename
@@ -35,7 +36,11 @@ def test_contrastive_mf(ecommerce_data: Dataset):
         mm.ParallelBlock(
             mm.EmbeddingTable(64, user_id.first), mm.EmbeddingTable(64, item_id.first)
         ),
+<<<<<<< HEAD
         Rename(dict(user_id="query", item_id="candidate")),
+=======
+        RenameFeatures(dict(user_id="query", item_id="candidate")),
+>>>>>>> Adding some tests for ContrastiveOutput
     )
 
     mf = mm.Model(encoders, mm.ContrastiveOutput(item_id, "in-batch"))
