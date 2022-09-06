@@ -202,14 +202,6 @@ class FMPairwiseInteraction(Block):
     Conference on Data Mining, 2010. https://ieeexplore.ieee.org/document/5694074
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def build(self, input_shapes):
-        if len(input_shapes) != 3:
-            raise ValueError("Found shape {} without 3 dimensions".format(input_shapes))
-        super(FMPairwiseInteraction, self).build(input_shapes)
-
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         """
         Parameters
@@ -234,4 +226,6 @@ class FMPairwiseInteraction(Block):
         return 0.5 * tf.subtract(summed_square, squared_sum)
 
     def compute_output_shape(self, input_shapes):
+        if len(input_shapes) != 3:
+            raise ValueError("Found shape {} without 3 dimensions".format(input_shapes))
         return (input_shapes[0], input_shapes[2])

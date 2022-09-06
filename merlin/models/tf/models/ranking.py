@@ -10,7 +10,7 @@ from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
-from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
+from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
@@ -90,12 +90,6 @@ def DCNModel(
     deep_block: Block = MLPBlock([512, 256]),
     stacked=True,
     input_block: Optional[Block] = None,
-    embedding_options: EmbeddingOptions = EmbeddingOptions(
-        embedding_dims=None,
-        embedding_dim_default=64,
-        infer_embedding_sizes=False,
-        infer_embedding_sizes_multiplier=2.0,
-    ),
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
@@ -127,18 +121,11 @@ def DCNModel(
     stacked : bool
         Whether to use the stacked version of the model or the parallel version.
     input_block : Block, optional
-        The `Block` to use as the input layer, by default None
-    embedding_options : EmbeddingOptions
-        Options for the input embeddings.
-        - embedding_dims: Optional[Dict[str, int]] - The dimension of the
-        embedding table for each feature (key), by default {}
-        - embedding_dim_default: int - Default dimension of the embedding
-        table, when the feature is not found in ``embedding_dims``, by default 64
-        - infer_embedding_sizes : bool, Automatically defines the embedding
-        dimension from the feature cardinality in the schema, by default False
-        - infer_embedding_sizes_multiplier: int. Multiplier used by the heuristic
-        to infer the embedding dimension from its cardinality. Generally
-        reasonable values range between 2.0 and 10.0. By default 2.0.
+        The `Block` to use as the input layer. If None, a default `InputBlockV2` object
+        is instantiated, that creates the embedding tables for the categorical features
+        based on the schema. The embedding dimensions are inferred from the features
+        cardinality. For a custom representation of input data you can instantiate
+        and provide an `InputBlockV2` instance.
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
 
@@ -153,10 +140,7 @@ def DCNModel(
         Number of cross layers (depth) should be positive
     """
 
-    aggregation = kwargs.pop("aggregation", "concat")
-    input_block = input_block or InputBlock(
-        schema, aggregation=aggregation, embedding_options=embedding_options, **kwargs
-    )
+    input_block = input_block or InputBlockV2(schema, **kwargs)
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     if stacked:
         dcn_body = input_block.connect(CrossBlock(depth), deep_block)
@@ -168,26 +152,22 @@ def DCNModel(
     return model
 
 
-def YoutubeDNNRankingModel(schema: Schema) -> Model:
-    raise NotImplementedError()
-
-
 def DeepFMModel(
     schema: Schema,
     embedding_dim: int,
     deep_block: Optional[Block] = MLPBlock([64, 128]),
+    input_block: Optional[Block] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    embedding_option_kwargs: dict = {},
     **kwargs,
 ) -> Model:
     """DeepFM-model architecture.
 
     Example Usage::
-        depp_fm = DeepFMModel(schema, embedding_dim=64, deep_block=MLPBlock([256, 64]))
-        depp_fm.compile(optimizer="adam")
-        depp_fm.fit(train_data, epochs=10)
+        deep_fm = DeepFMModel(schema, embedding_dim=64, deep_block=MLPBlock([256, 64]))
+        deep_fm.compile(optimizer="adam")
+        deep_fm.fit(train_data, epochs=10)
 
     References
     ----------
@@ -204,25 +184,25 @@ def DeepFMModel(
     deep_block : Optional[Block]
         The `Block` that learns high-ordeer feature interactions
         Defaults to MLPBlock([64, 128])
+    input_block : Block, optional
+        The `Block` to use as the input layer. If None, a default `InputBlockV2` object
+        is instantiated, that creates the embedding tables for the categorical features
+        based on the schema, with the specified embedding_dim.
+        For a custom representation of input data you can instantiate
+        and provide an `InputBlockV2` instance.
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
         Defaults to None
-    embedding_option_kwargs: Optional[dict]
-        Additional arguments to provide to `EmbeddingOptions` object
-        for embeddings tables setting.
-        Defaults to {}
     Returns
     -------
     Model
 
     """
-    input_block = InputBlock(
-        schema,
-        embedding_options=EmbeddingOptions(
-            embedding_dim_default=embedding_dim, **embedding_option_kwargs
-        ),
-        **kwargs,
-    )
+    input_block = input_block or InputBlockV2(schema, dim=embedding_dim, aggregation=None, **kwargs)
+
+    # TODO: Identify why we need to set the schema manually for `InputBlockV2`
+    # to avoid an error of ParallelBlock without schema?
+    input_block.set_schema(schema)
 
     pairwise_block = FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1))
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
@@ -482,10 +462,7 @@ def WideAndDeepModel(
 
     if not deep_input_block:
         if deep_schema is not None and len(deep_schema) > 0:
-            deep_input_block = InputBlockV2(
-                deep_schema,
-                **kwargs,
-            )
+            deep_input_block = InputBlockV2(deep_schema, **kwargs,)
     if deep_input_block:
         deep_body = deep_input_block.connect(deep_block).connect(
             MLPBlock(
