@@ -1,4 +1,5 @@
 import abc
+import collections
 import copy
 from typing import Dict, List, Optional, Sequence, Union, overload
 
@@ -139,6 +140,10 @@ class TabularBlock(Block):
 
         if schema:
             self.set_schema(schema)
+
+    def select_by_tag(self, tags: Tags) -> Optional["TabularBlock"]:
+        schema = self.schema.select_by_tag(tags)
+        return TabularBlock(schema=schema)
 
     @property
     def is_input(self) -> bool:
@@ -541,7 +546,11 @@ class Filter(TabularBlock):
         self.pop = pop
         self.add_to_context = add_to_context
 
+        if isinstance(inputs, Schema):
+            self.set_schema(schema=inputs)
+
     def set_schema(self, schema=None):
+
         out = super().set_schema(schema)
 
         if isinstance(self.feature_names, Tags):
@@ -596,6 +605,17 @@ class Filter(TabularBlock):
         config["pop"] = self.pop
 
         return config
+
+    def select_by_tag(self, tags: Tags) -> Optional["Filter"]:
+        if isinstance(self.feature_names, Tags):
+            schema = self.schema.select_by_tag(self.feature_names).select_by_tag(tags)
+        elif isinstance(self.feature_names, collections.Sequence):
+            schema = self.schema.select_by_name(self.feature_names).select_by_tag(tags)
+        else:
+            schema = self.schema.select_by_tag(tags)
+        if schema:
+            return Filter(schema)
+        return None
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

@@ -471,7 +471,12 @@ class Block(SchemaMixin, ContextMixin, Layer):
     def select_by_name(self, name: str) -> Optional["Block"]:
         if name == self.name:
             return self
+        return None
 
+    def select_by_tag(self, tags: Tags) -> Optional["Block"]:
+        selected_schema = self.schema.select_by_tag(tags)
+        if selected_schema:
+            return self
         return None
 
     def copy(self):

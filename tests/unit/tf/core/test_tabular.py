@@ -1,5 +1,5 @@
 import merlin.models.tf as mm
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 def test_filter_features(tf_con_features):
@@ -20,6 +20,24 @@ def test_filter_call(tf_con_features):
 
     assert mm.Filter(Tags.CONTINUOUS)({}) == {}
     assert mm.Filter(Tags.CONTINUOUS).set_schema(Schema(["unknown"]))(tf_con_features) == {}
+
+
+def test_filter_select_by_tag(tf_con_features):
+    a_schema = ColumnSchema("a", tags=[Tags.CONTINUOUS])
+    b_schema = ColumnSchema("b", tags=[Tags.CONTINUOUS])
+    c_schema = ColumnSchema("c", tags=[Tags.CATEGORICAL])
+    schema = Schema([a_schema, b_schema, c_schema])
+
+    no_filter = mm.Filter(list("abc"))
+    no_filter.set_schema(schema)
+
+    no_filter_out = no_filter(tf_con_features)
+    assert sorted(no_filter_out.keys()) == ["a", "b", "c"]
+
+    continuous = no_filter.select_by_tag(Tags.CONTINUOUS)
+    continuous_out = continuous(tf_con_features)
+    assert isinstance(continuous, mm.Filter)
+    assert sorted(continuous_out.keys()) == ["a", "b"]
 
 
 def test_as_tabular(tf_con_features):

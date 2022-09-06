@@ -458,8 +458,26 @@ class ParallelBlock(TabularBlock):
                 raise ValueError(f"Given name {name} is not in ParallelBlock {self.name}")
         return blocks
 
-    def select_by_tag(self, tags: Union[str, Tags, List[Union[str, Tags]]]) -> "ParallelBlock":
-        """Select a list of parallel blocks by tags
+    def select_by_tag(
+        self,
+        tags: Union[str, Tags, List[Union[str, Tags]]],
+    ) -> Optional["ParallelBlock"]:
+        """Select layers of parallel blocks by tags.
+
+        This method will return a ParallelBlock instance with all the branches that
+        have at least one feature that matches any of the tags provided.
+
+        For example, this method can be useful when a ParallelBlock has both item and
+        user features in a two-tower model or DLRM, and we want to select only the item
+        or user features.
+
+        >>> all_inputs = InputBlockV2(schema)  # InputBlock is also a ParallelBlock
+        >>> item_inputs = all_inputs.select_by_tag(Tags.ITEM)
+        ['continuous', 'embeddings']
+        >>> item_inputs.schema["continuous"].column_names
+        ['item_recency']
+        >>> item_inputs.schema["embeddings"].column_names
+        ['item_id', 'item_category', 'item_genres']
 
         Parameters
         ----------
@@ -474,31 +492,22 @@ class ParallelBlock(TabularBlock):
             tags = [tags]
 
         selected_branches = {}
-        selected_schemas = {}
 
         for name, branch in self.parallel_dict.items():
             branch_has_schema = getattr(branch, "has_schema", False)
             if not branch_has_schema:
                 continue
-            for column in branch.schema.column_names:
-                if any(tag in branch.schema[column].tags for tag in tags):
-                    selected_branches[name] = branch
-                    if (
-                        column in selected_schemas
-                        and selected_schemas[column] is not branch.schema[column]
-                    ):
-                        raise ValueError(
-                            f"Duplicate columns {column} found with different " "schema."
-                        )
-                    selected_schemas[column] = branch.schema[column]
+            selected_branch = branch.select_by_tag(tags)
+            if not selected_branch:
+                continue
+            selected_branches[name] = selected_branch
 
-        if not selected_branches or not selected_schemas:
-            raise ValueError(
-                f"None of the tags {[t.name for t in tags]} were found in "
-                f"ParallelBlock '{self.name}'."
+        if selected_branches:
+            selected_schemas = Schema(
+                {name: branch.schema for name, branch in selected_branches.items()}
             )
-
-        return ParallelBlock(selected_branches, schema=Schema(selected_schemas))
+            return ParallelBlock(selected_branches, schema=selected_schemas)
+        return None
 
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]

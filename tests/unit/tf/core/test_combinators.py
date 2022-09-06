@@ -17,7 +17,7 @@ def test_parallel_block_pruning(music_streaming_data: Dataset, name_branches: bo
     embedding_block = mm.Embeddings(music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL))
 
     if name_branches:
-        branches = {"continuous": continuous_block, "embedding": embedding_block}
+        branches = {"continuous": continuous_block, "embeddings": embedding_block}
     else:
         branches = [continuous_block, embedding_block]
 
@@ -55,7 +55,7 @@ def test_parallel_block_schema_propagation(music_streaming_data, name_branches: 
     embedding_block = mm.Embeddings(music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL))
 
     if name_branches:
-        branches = {"continuous": continuous_block, "embedding": embedding_block}
+        branches = {"continuous": continuous_block, "embeddings": embedding_block}
     else:
         branches = [continuous_block, embedding_block]
 
@@ -101,16 +101,24 @@ def test_parallel_block_select_from_names():
 
 def test_parallel_block_select_by_tags(music_streaming_data):
     continuous_block = mm.Filter(Tags.CONTINUOUS)
-    embedding_block = mm.Embeddings(music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL))
-    branches = {"continuous": continuous_block, "embedding": embedding_block}
+    embedding_block = mm.Embeddings(
+        schema=music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
+    )
+    branches = {"continuous": continuous_block, "embeddings": embedding_block}
     parallel_block = mm.ParallelBlock(branches, schema=music_streaming_data.schema)
 
     continuous_tags = parallel_block.select_by_tag(Tags.CONTINUOUS)
     assert isinstance(continuous_tags, mm.ParallelBlock)
-    assert sorted(continuous_tags.schema.column_names) == ["item_recency", "position", "user_age"]
+    assert "embeddings" not in continuous_tags.schema
+    assert sorted(continuous_tags.schema["continuous"].column_names) == [
+        "item_recency",
+        "position",
+        "user_age",
+    ]
 
     categorical_tags = parallel_block.select_by_tag(Tags.CATEGORICAL)
-    assert sorted(categorical_tags.schema.column_names) == [
+    assert "continuous" not in categorical_tags.schema
+    assert sorted(categorical_tags.schema["embeddings"].column_names) == [
         "country",
         "item_category",
         "item_genres",
@@ -120,30 +128,38 @@ def test_parallel_block_select_by_tags(music_streaming_data):
         "user_id",
     ]
 
-    item_tags = parallel_block.select_by_tag(Tags.ITEM)
-    assert sorted(item_tags.schema.column_names) == [
-        "item_category",
-        "item_genres",
-        "item_id",
+    batch = mm.sample_batch(music_streaming_data, batch_size=10, include_targets=False)
+    continuous_outputs = continuous_tags(batch)
+    continuous_features = [column for column in continuous_tags.schema["continuous"].column_names]
+    assert sorted(continuous_outputs.keys()) == sorted(continuous_features)
+
+    categorical_outputs = categorical_tags(batch)
+    categorical_features = [column for column in categorical_tags.schema["embeddings"].column_names]
+    assert sorted(categorical_outputs.keys()) == sorted(categorical_features)
+
+    assert parallel_block.select_by_tag([Tags.SEQUENCE, Tags.TIME]) is None
+
+    input_block = mm.InputBlockV2(music_streaming_data.schema)
+
+    item_inputs = input_block.select_by_tag(Tags.ITEM)
+    assert sorted(item_inputs.schema.column_names) == ["continuous", "embeddings"]
+    assert sorted(item_inputs.schema["continuous"].column_names) == [
         "item_recency",
     ]
-    user_tags = parallel_block.select_by_tag([Tags.ITEM, Tags.USER, Tags.USER_ID])
-    assert sorted(user_tags.schema.column_names) == [
-        "country",
+    assert sorted(item_inputs.schema["embeddings"].column_names) == [
         "item_category",
         "item_genres",
         "item_id",
-        "item_recency",
-        "user_age",
-        "user_genres",
-        "user_id",
     ]
 
-    with pytest.raises(ValueError) as exc_info:
-        parallel_block.select_by_tag([Tags.SEQUENCE, Tags.TIME])
-        assert (
-            "None of the tags ['SEQUENCE', 'TIME'] were found in ParallelBlock 'parallel_block'."
-        ) in exc_info
+    batch = mm.sample_batch(music_streaming_data, batch_size=10, include_targets=False)
+    outputs = item_inputs(batch)
+    inputs_features = [
+        column
+        for branch in ["continuous", "embeddings"]
+        for column in item_inputs.schema[branch].column_names
+    ]
+    assert sorted(outputs.keys()) == sorted(inputs_features)
 
 
 class TestCond:

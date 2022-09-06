@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import collections
 import inspect
 from copy import copy, deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Type, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
@@ -195,6 +196,13 @@ class EmbeddingTable(EmbeddingTableBase):
             )
         self.sequence_combiner = sequence_combiner
         self.supports_masking = True
+
+    def select_by_tag(self, tags: Union[Tags, Sequence[Tags]]) -> Optional["EmbeddingTable"]:
+        if not isinstance(tags, collections.Sequence):
+            tags = [tags]
+        if any(tag in self.col_schema.tags for tag in tags):
+            return self
+        return None
 
     @classmethod
     def from_pretrained(

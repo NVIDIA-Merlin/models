@@ -216,6 +216,13 @@ class TestEmbeddingTable:
         else:
             np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
 
+    def test_select_by_tag(self):
+        dim = 16
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(dim, column_schema)
+        assert layer.select_by_tag(Tags.CATEGORICAL) is layer
+        assert layer.select_by_tag(Tags.CONTINUOUS) is None
+
 
 @pytest.mark.parametrize("trainable", [True, False])
 def test_pretrained_from_InputBlockV2(trainable, music_streaming_data: Dataset):
