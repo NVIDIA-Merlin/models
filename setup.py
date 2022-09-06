@@ -39,7 +39,9 @@ def read_requirements(filename):
 
 
 _dev = read_requirements("requirements/dev.txt")
+_docs = read_requirements("requirements/docs.txt")
 _nvt = read_requirements("requirements/nvtabular.txt")
+
 requirements = {
     "base": read_requirements("requirements/base.txt"),
     "tensorflow": read_requirements("requirements/tensorflow.txt"),
@@ -49,6 +51,7 @@ requirements = {
     "xgboost": read_requirements("requirements/xgboost.txt"),
     "nvtabular": _nvt,
     "dev": _dev,
+    "docs": _docs,
 }
 dev_requirements = {
     "tensorflow-dev": requirements["tensorflow"] + _dev + _nvt,

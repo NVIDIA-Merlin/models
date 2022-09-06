@@ -24,7 +24,7 @@ import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 from merlin.models.tf.utils.testing_utils import model_test
-from merlin.schema import ColumnSchema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 def test_embedding_features(tf_cat_features):
@@ -65,7 +65,7 @@ class TestEmbeddingTable:
         column_schema = ColumnSchema("item_id")
         with pytest.raises(ValueError) as exc_info:
             mm.EmbeddingTable(16, column_schema)
-        assert "needs to have a int-domain" in str(exc_info.value)
+        assert "needs to have an int-domain" in str(exc_info.value)
 
     @pytest.mark.parametrize(
         ["dim", "kwargs", "inputs", "expected_output_shape"],
@@ -79,7 +79,7 @@ class TestEmbeddingTable:
                 tf.sparse.from_dense(tf.constant([[1, 2, 3]])),
                 [1, 16],
             ),
-            (12, {}, {"item_id": tf.constant([[1]])}, [1, 12]),
+            (12, {}, {"item_id": tf.constant([[1]])}, {"item_id": [1, 12]}),
         ],
     )
     def test_layer(self, dim, kwargs, inputs, expected_output_shape):
@@ -87,12 +87,12 @@ class TestEmbeddingTable:
         layer = mm.EmbeddingTable(dim, column_schema, **kwargs)
 
         output = layer(inputs)
-        assert list(output.shape) == expected_output_shape
+        self._assert_output_shape(output, expected_output_shape)
 
         if "sequence_combiner" in kwargs:
             assert isinstance(output, tf.Tensor)
         elif isinstance(inputs, dict):
-            assert type(inputs[column_schema.name]) is type(output)
+            assert isinstance(inputs[column_schema.name], type(output[column_schema.name]))
         else:
             assert type(inputs) is type(output)
 
@@ -102,14 +102,30 @@ class TestEmbeddingTable:
         assert copied_layer.input_dim == layer.input_dim
 
         output = copied_layer(inputs)
-        assert list(output.shape) == expected_output_shape
+        self._assert_output_shape(output, expected_output_shape)
+
+    def _get_shape(self, tensor_or_shape) -> tf.TensorShape:
+        if hasattr(tensor_or_shape, "shape"):
+            output_shape = tensor_or_shape.shape
+        else:
+            output_shape = tensor_or_shape
+        return output_shape
+
+    def _assert_output_shape(self, output, expected_output_shape):
+        if isinstance(expected_output_shape, dict):
+            for key in expected_output_shape.keys():
+                output_shape = self._get_shape(output[key])
+                assert list(output_shape) == list(expected_output_shape[key])
+        else:
+            output_shape = self._get_shape(output)
+            assert list(output_shape) == list(expected_output_shape)
 
     def test_layer_simple(self):
         col_schema = self.sample_column_schema
         dim = np.random.randint(1, high=32)
         testing_utils.layer_test(
             mm.EmbeddingTable,
-            kwargs={"dim": dim, "col_schema": col_schema},
+            args=[dim, col_schema],
             input_data=tf.constant([[1], [2], [3]], dtype=tf.int32),
             expected_output_shape=tf.TensorShape([None, dim]),
             expected_output_dtype=tf.float32,
@@ -123,14 +139,14 @@ class TestEmbeddingTable:
             (tf.TensorShape([1, 3]), tf.TensorShape([1, 3, 10]), {}),
             (tf.TensorShape([2, None]), tf.TensorShape([2, None, 10]), {}),
             (tf.TensorShape([2, None]), tf.TensorShape([2, 10]), {"sequence_combiner": "mean"}),
-            ({"item_id": tf.TensorShape([1, 1])}, tf.TensorShape([1, 10]), {}),
+            ({"item_id": tf.TensorShape([1, 1])}, {"item_id": tf.TensorShape([1, 10])}, {}),
         ],
     )
     def test_compute_output_shape(self, input_shape, expected_output_shape, kwargs):
         column_schema = self.sample_column_schema
         layer = mm.EmbeddingTable(10, column_schema, **kwargs)
         output_shape = layer.compute_output_shape(input_shape)
-        assert list(output_shape) == list(expected_output_shape)
+        self._assert_output_shape(output_shape, expected_output_shape)
 
     def test_dense_with_combiner(self):
         dim = 16
@@ -215,6 +231,47 @@ class TestEmbeddingTable:
             )
         else:
             np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
+
+    def test_multiple_features(self):
+        dim = 4
+        col_schema_a = ColumnSchema(
+            "a", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}
+        )
+        col_schema_b = ColumnSchema(
+            "b", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}
+        )
+        col_schema_c = ColumnSchema(
+            "c", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}
+        )
+
+        embedding_table = mm.EmbeddingTable(dim, col_schema_a, col_schema_b)
+        embedding_table.add_feature(col_schema_c)
+
+        assert embedding_table.schema == Schema([col_schema_a, col_schema_b, col_schema_c])
+
+        result = embedding_table(
+            {
+                "a": tf.constant([[1]]),
+                "b": tf.ragged.constant([[1]]),
+                "c": tf.constant([1]),
+            }
+        )
+
+        assert set(result.keys()) == {"a", "b", "c"}
+        np.testing.assert_array_equal(result["a"].numpy(), result["b"].numpy()[0])
+
+    def test_incompatible_features(self):
+        dim = 4
+        col_schema_a = ColumnSchema(
+            "a", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}
+        )
+        col_schema_b = ColumnSchema(
+            "b", dtype=np.int32, properties={"domain": {"min": 0, "max": 20}}
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            mm.EmbeddingTable(dim, col_schema_a, col_schema_b)
+        assert "does not match existing input dim" in str(exc_info.value)
 
     def test_select_by_tag(self):
         dim = 16
@@ -575,3 +632,41 @@ def test_shared_embeddings(music_streaming_data: Dataset):
     embeddings = inputs.select_by_name(Tags.CATEGORICAL.value)
 
     assert embeddings.table_config("item_genres") == embeddings.table_config("user_genres")
+
+
+class TestEmbeddings:
+    def test_shared_domain(self):
+        schema = Schema(
+            [
+                ColumnSchema(
+                    "item_id",
+                    dtype=np.int32,
+                    properties={"domain": {"min": 0, "max": 10, "name": "item_id_embedding"}},
+                ),
+                ColumnSchema(
+                    "user_item_history",
+                    dtype=np.int32,
+                    properties={"domain": {"min": 0, "max": 10, "name": "item_id_embedding"}},
+                ),
+                ColumnSchema(
+                    "item_feature_a", dtype=np.int32, properties={"domain": {"min": 0, "max": 20}}
+                ),
+            ]
+        )
+        embeddings = mm.Embeddings(schema)
+        assert {layer.name for layer in embeddings.layers} == {
+            "item_id_embedding",
+            "item_feature_a",
+        }
+        assert set(embeddings.parallel_layers.keys()) == {"item_id_embedding", "item_feature_a"}
+
+        outputs = embeddings(
+            {
+                "item_id": tf.constant([1]),
+                "user_item_history": tf.ragged.constant([[1], [2, 3]]),
+                "item_feature_a": tf.constant([2]),
+            }
+        )
+
+        assert set(outputs.keys()) == {"item_id", "user_item_history", "item_feature_a"}
+        np.testing.assert_array_equal(outputs["item_id"], outputs["user_item_history"][0])
