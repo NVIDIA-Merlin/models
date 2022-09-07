@@ -42,6 +42,8 @@ if TYPE_CHECKING:
 
 
 class PredictionOutput(NamedTuple):
+    "class to hold PredictionOutput"
+
     predictions: Union[TabularData, tf.Tensor]
     targets: Union[TabularData, tf.Tensor]
     positive_item_ids: Optional[tf.Tensor] = None
