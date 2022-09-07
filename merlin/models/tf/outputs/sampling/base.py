@@ -75,14 +75,20 @@ class Candidate(NamedTuple):
         metadata = {key: str(val) for key, val in self.metadata.items()}
 
         return f"Candidate({self.id}, {metadata})"
+<<<<<<< HEAD
 
     def __eq__(self, other) -> bool:
         if self.id.shape != other.id.shape:
             return False
 
         return self.id.ref() == other.id.ref()
+=======
+>>>>>>> Fixing test_setting_negative_sampling_strategy
 
     def __eq__(self, other) -> bool:
+        if self.id.shape != other.id.shape:
+            return False
+
         return self.id.ref() == other.id.ref()
 
     def get_config(self):
@@ -175,4 +181,5 @@ def parse_negative_samplers(negative_sampling: ItemSamplersType):
     if not isinstance(negative_sampling, (list, tuple)):
         negative_sampling = [negative_sampling]
     negative_sampling = [CandidateSampler.parse(s) for s in list(negative_sampling)]
+
     return negative_sampling

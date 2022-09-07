@@ -121,11 +121,19 @@ class ContrastiveOutput(ModelOutput):
         self.col_schema = None
         if to_call is not None:
             if isinstance(to_call, (Schema, ColumnSchema)):
+<<<<<<< HEAD
                 if isinstance(to_call, Schema) and len(to_call) == 1:
                     to_call = to_call.first
                 else:
                     raise ValueError("to_call must be a single column schema")
 >>>>>>> Adding some tests for ContrastiveOutput
+=======
+                if isinstance(to_call, Schema):
+                    if len(to_call) == 1:
+                        to_call = to_call.first
+                    else:
+                        raise ValueError("to_call must be a single column schema")
+>>>>>>> Fixing test_setting_negative_sampling_strategy
 
                 self.col_schema = to_call
                 _to_call = CategoricalTarget(to_call)
@@ -232,8 +240,14 @@ class ContrastiveOutput(ModelOutput):
 
         positive = Candidate(positive_id, features).with_embedding(positive_embedding)
         negative = self.sample_negatives(positive, features)
+<<<<<<< HEAD
         if self.has_candidate_weights and positive != negative:
 >>>>>>> Adding some tests for ContrastiveOutput
+=======
+        if self.has_candidate_weights and (
+            positive.id.shape != negative.id.shape or positive != negative
+        ):
+>>>>>>> Fixing test_setting_negative_sampling_strategy
             negative = negative.with_embedding(self.embedding_lookup(negative.id))
 
         return self.outputs(query_embedding, positive, negative)
@@ -304,19 +318,27 @@ class ContrastiveOutput(ModelOutput):
             Class containing the sampled negative ids
         """
 <<<<<<< HEAD
+<<<<<<< HEAD
         candidates: List[Candidate] = []
 =======
         negative_items: List[Candidate] = []
 >>>>>>> Adding some tests for ContrastiveOutput
+=======
+        candidates: List[Candidate] = []
+>>>>>>> Fixing test_setting_negative_sampling_strategy
         sampling_kwargs = {"training": training, "testing": testing, "features": features}
 
         # sample a number of negative ids from self.negative_samplers
         for sampler in self.negative_samplers:
 <<<<<<< HEAD
+<<<<<<< HEAD
             sampled: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
 =======
             sampler_items: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
 >>>>>>> Adding some tests for ContrastiveOutput
+=======
+            sampled: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
+>>>>>>> Fixing test_setting_negative_sampling_strategy
 
             if tf.shape(sampled.id)[0] > 0:
                 candidates.append(sampled)
