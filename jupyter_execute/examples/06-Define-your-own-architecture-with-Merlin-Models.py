@@ -20,6 +20,8 @@
 # ================================
 
 
+# <img src="https://developer.download.nvidia.com/notebooks/dlsw-notebooks/merlin_models_06-define-your-own-architecture-with-merlin-models/nvidia_logo.png" style="width: 90px; float: right;">
+# 
 # # Taking the Next Step with Merlin Models: Define Your Own Architecture
 # 
 # This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. 
