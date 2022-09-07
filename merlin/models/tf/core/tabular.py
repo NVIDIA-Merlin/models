@@ -613,9 +613,9 @@ class Filter(TabularBlock):
             schema = self.schema.select_by_name(self.feature_names).select_by_tag(tags)
         else:
             schema = self.schema.select_by_tag(tags)
-        if schema:
-            return Filter(schema)
-        return None
+        if not schema:
+            return
+        return Filter(schema)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

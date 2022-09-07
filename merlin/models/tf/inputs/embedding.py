@@ -246,11 +246,36 @@ class EmbeddingTable(EmbeddingTableBase):
         self.supports_masking = True
 
     def select_by_tag(self, tags: Union[Tags, Sequence[Tags]]) -> Optional["EmbeddingTable"]:
+        """Select features in EmbeddingTable by tags.
+
+        Since an EmbeddingTable can be a shared-embedding table, this method filters
+        the schema for features that match the tags.
+
+        If none of the features match the tags, it will return None.
+
+        Parameters
+        ----------
+        tags: Union[Tags, Sequence[Tags]]
+            A list of tags.
+
+        Returns
+        -------
+        An EmbeddingTable if the tags match. If no features match, it returns None.
+        """
         if not isinstance(tags, collections.Sequence):
             tags = [tags]
-        if any(tag in self.col_schema.tags for tag in tags):
-            return self
-        return None
+
+        config = self.get_config()
+        schema = config.pop("schema", None)
+        if not schema:
+            return
+        if not isinstance(schema, Schema):
+            schema = schema_utils.tensorflow_metadata_json_to_schema(schema)
+        selected_schema = schema.select_by_tag(tags)
+        if not selected_schema:
+            return
+        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(selected_schema)
+        return EmbeddingTable.from_config(config)
 
     @classmethod
     def from_pretrained(

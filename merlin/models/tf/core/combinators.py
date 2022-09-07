@@ -492,6 +492,7 @@ class ParallelBlock(TabularBlock):
             tags = [tags]
 
         selected_branches = {}
+        selected_schemas = Schema()
 
         for name, branch in self.parallel_dict.items():
             branch_has_schema = getattr(branch, "has_schema", False)
@@ -501,13 +502,11 @@ class ParallelBlock(TabularBlock):
             if not selected_branch:
                 continue
             selected_branches[name] = selected_branch
+            selected_schemas += selected_branch.schema
 
-        if selected_branches:
-            selected_schemas = Schema(
-                {name: branch.schema for name, branch in selected_branches.items()}
-            )
-            return ParallelBlock(selected_branches, schema=selected_schemas)
-        return None
+        if not selected_branches:
+            return
+        return ParallelBlock(selected_branches, schema=selected_schemas)
 
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]

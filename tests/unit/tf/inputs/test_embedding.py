@@ -274,11 +274,42 @@ class TestEmbeddingTable:
         assert "does not match existing input dim" in str(exc_info.value)
 
     def test_select_by_tag(self):
-        dim = 16
-        column_schema = self.sample_column_schema
-        layer = mm.EmbeddingTable(dim, column_schema)
-        assert layer.select_by_tag(Tags.CATEGORICAL) is layer
-        assert layer.select_by_tag(Tags.CONTINUOUS) is None
+        dim = 4
+
+        col_schema_a = ColumnSchema(
+            "a",
+            dtype=np.int32,
+            properties={"domain": {"min": 0, "max": 10}},
+            tags=[Tags.USER, Tags.CONTINUOUS],
+        )
+        col_schema_b = ColumnSchema(
+            "b",
+            dtype=np.int32,
+            properties={"domain": {"min": 0, "max": 10}},
+            tags=[Tags.USER, Tags.CONTINUOUS],
+        )
+        col_schema_c = ColumnSchema(
+            "c",
+            dtype=np.int32,
+            properties={"domain": {"min": 0, "max": 10}},
+            tags=[Tags.ITEM, Tags.CONTINUOUS],
+        )
+
+        embedding_table = mm.EmbeddingTable(dim, col_schema_a, col_schema_b, col_schema_c)
+
+        continuous = embedding_table.select_by_tag(Tags.CONTINUOUS)
+        assert isinstance(continuous, mm.EmbeddingTable)
+        assert sorted(continuous.features) == ["a", "b", "c"]
+
+        assert embedding_table.select_by_tag(Tags.CATEGORICAL) is None
+
+        user = embedding_table.select_by_tag(Tags.USER)
+        assert isinstance(user, mm.EmbeddingTable)
+        assert sorted(user.features) == ["a", "b"]
+
+        item = embedding_table.select_by_tag(Tags.ITEM)
+        assert isinstance(item, mm.EmbeddingTable)
+        assert sorted(item.features) == ["c"]
 
 
 @pytest.mark.parametrize("trainable", [True, False])
