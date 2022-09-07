@@ -33,7 +33,7 @@ from merlin.models.tf.inputs.embedding import (
     Embeddings,
     SequenceEmbeddingFeatures,
 )
-from merlin.models.tf.transforms.tensor import ToDense
+from merlin.models.tf.transforms.tensor import ListToDense
 from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin-models")
@@ -180,7 +180,7 @@ def InputBlock(
     ):
         pre = None
         if max_seq_length and seq:
-            pre = ToDense(max_seq_length)
+            pre = ListToDense(max_seq_length)
         branches["continuous"] = ContinuousFeatures.from_schema(  # type: ignore
             schema,
             tags=continuous_tags,

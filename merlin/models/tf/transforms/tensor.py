@@ -28,9 +28,9 @@ MULTI_HOT = utils.MULTI_HOT
 COUNT = utils.COUNT
 
 
-@Block.registry.register("to-ragged")
+@Block.registry.register("list-to-ragged")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ToRagged(TabularBlock):
+class ListToRagged(TabularBlock):
     """Convert all list (multi-hot/sequential) features to tf.RaggedTensor"""
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
@@ -58,9 +58,9 @@ class ToRagged(TabularBlock):
         return self.compute_output_shape(input_shapes)
 
 
-@Block.registry.register("to-sparse")
+@Block.registry.register("list-to-sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ToSparse(TabularBlock):
+class ListToSparse(TabularBlock):
     """Convert all list-inputs to sparse-tensors.
 
     By default, the dataloader will represent list-columns as a tuple of values & row-lengths.
@@ -83,9 +83,9 @@ class ToSparse(TabularBlock):
         return input_shape
 
 
-@Block.registry.register("to-dense")
+@Block.registry.register("list-to-dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ToDense(TabularBlock):
+class ListToDense(TabularBlock):
     """Convert all list-inputs to dense-tensors.
 
     By default, the dataloader will represent list-columns as a tuple of values & row-lengths.

@@ -25,7 +25,7 @@ from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_met
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
-from merlin.models.tf.transforms.tensor import ToRagged
+from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -862,7 +862,7 @@ class Model(BaseModel):
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
-            _ragged_inputs = ToRagged()(inputs)
+            _ragged_inputs = ListToRagged()(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
@@ -909,7 +909,7 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            ToRagged()(inputs),
+            ListToRagged()(inputs),
             targets=targets,
             training=training,
             testing=testing,
