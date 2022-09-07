@@ -322,7 +322,8 @@ class ItemRetrievalScorer(Block):
             for sampler in self.samplers:
                 input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
                 sampling_kwargs = {"training": training}
-                if "item_weights" in sampler._call_fn_args:
+                _call_fn_args = getattr(sampler, "_call_fn_args", None)
+                if _call_fn_args and "item_weights" in _call_fn_args:
                     sampling_kwargs["item_weights"] = self.context.get_embedding(self.item_domain)
                 neg_items = sampler(input_data.__dict__, **sampling_kwargs)
 
