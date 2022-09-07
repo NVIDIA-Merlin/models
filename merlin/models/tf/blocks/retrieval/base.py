@@ -23,8 +23,8 @@ from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.core.base import Block, BlockType, EmbeddingWithMetadata, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.core.tabular import TabularAggregationType
+from merlin.models.tf.core.transformations import L2Norm
 from merlin.models.tf.models.base import ModelBlock
-from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
