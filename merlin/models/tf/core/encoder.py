@@ -11,7 +11,21 @@ from merlin.schema import Schema
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EncoderBlock(tf.keras.Model):
-    """Block that can be used for prediction but not for train/test"""
+    """Block that can be used for prediction & evaluation but not for training
+
+    Parameters
+    ----------
+    inputs: Union[Schema, tf.keras.layers.Layer]
+        The input block or schema.
+        When a schema is provided, a default input block will be created.
+    *blocks: tf.keras.layers.Layer
+        The blocks to use for encoding.
+    pre: Optional[tf.keras.layers.Layer]
+        A block to use before the main blocks
+    post: Optional[tf.keras.layers.Layer]
+        A block to use after the main blocks
+
+    """
 
     def __init__(
         self,
@@ -36,6 +50,9 @@ class EncoderBlock(tf.keras.Model):
         self.post = post
 
     def call(self, inputs, **kwargs):
+        if "features" not in kwargs:
+            kwargs["features"] = inputs
+
         return combinators.call_sequentially(list(self.to_call), inputs=inputs, **kwargs)
 
     def build(self, input_shape):
@@ -47,6 +64,8 @@ class EncoderBlock(tf.keras.Model):
         return combinators.compute_output_shape_sequentially(list(self.to_call), input_shape)
 
     def __call__(self, inputs, **kwargs):
+        # We remove features here since we don't expect them at inference time
+        # Inside the `call` method, we will add them back by assuming inputs=features
         if "features" in kwargs:
             kwargs.pop("features")
 
