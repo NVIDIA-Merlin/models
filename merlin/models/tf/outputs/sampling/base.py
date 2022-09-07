@@ -52,12 +52,14 @@ class Candidate(NamedTuple):
         return self
 
     def __add__(self, other):
+        metadata = {}
+        for key in self.metadata:
+            if key in other.metadata:
+                metadata[key] = _list_to_tensor([self.metadata[key], other.metadata[key]])
+
         return Candidate(
             id=_list_to_tensor([self.id, other.id]),
-            metadata={
-                key: _list_to_tensor([self.metadata[key], other.metadata[key]])
-                for key, val in self.metadata.items()
-            },
+            metadata=metadata,
         )
 
     @property
@@ -67,14 +69,17 @@ class Candidate(NamedTuple):
     def __repr__(self):
         metadata = {key: str(val) for key, val in self.metadata.items()}
 
-        return f"Items({self.id}, {metadata})"
+        return f"Candidate({self.id}, {metadata})"
 
     def __str__(self):
         metadata = {key: str(val) for key, val in self.metadata.items()}
 
-        return f"Items({self.id}, {metadata})"
+        return f"Candidate({self.id}, {metadata})"
 
     def __eq__(self, other) -> bool:
+        if self.id.shape != other.id.shape:
+            return False
+
         return self.id.ref() == other.id.ref()
 
     def get_config(self):
@@ -162,7 +167,10 @@ def parse_negative_samplers(negative_sampling: ItemSamplersType):
     Parse the negative sampling strategies and returns
     the corresponding list of samplers.
     """
+    if negative_sampling is None:
+        negative_sampling = []
     if not isinstance(negative_sampling, (list, tuple)):
         negative_sampling = [negative_sampling]
     negative_sampling = [CandidateSampler.parse(s) for s in list(negative_sampling)]
+
     return negative_sampling

@@ -92,7 +92,7 @@ class ContrastiveOutput(ModelOutput):
             EmbeddingTablePrediction,
             DotProduct,
         ],
-        negative_samplers: ItemSamplersType = None,
+        negative_samplers: ItemSamplersType,
         target_name: str = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
@@ -110,10 +110,11 @@ class ContrastiveOutput(ModelOutput):
         self.col_schema = None
         if to_call is not None:
             if isinstance(to_call, (Schema, ColumnSchema)):
-                if isinstance(to_call, Schema) and len(to_call) == 1:
-                    to_call = to_call.first
-                else:
-                    raise ValueError("to_call must be a single column schema")
+                if isinstance(to_call, Schema):
+                    if len(to_call) == 1:
+                        to_call = to_call.first
+                    else:
+                        raise ValueError("to_call must be a single column schema")
 
                 self.col_schema = to_call
                 _to_call = CategoricalTarget(to_call)
@@ -187,7 +188,9 @@ class ContrastiveOutput(ModelOutput):
 
         positive = Candidate(positive_id, features).with_embedding(positive_embedding)
         negative = self.sample_negatives(positive, features)
-        if self.has_candidate_weights and positive != negative:
+        if self.has_candidate_weights and (
+            positive.id.shape != negative.id.shape or positive != negative
+        ):
             negative = negative.with_embedding(self.embedding_lookup(negative.id))
 
         return self.outputs(query_embedding, positive, negative)
@@ -257,26 +260,28 @@ class ContrastiveOutput(ModelOutput):
         Items
             Class containing the sampled negative ids
         """
-        negative_items: List[Candidate] = []
+        candidates: List[Candidate] = []
         sampling_kwargs = {"training": training, "testing": testing, "features": features}
 
         # sample a number of negative ids from self.negative_samplers
         for sampler in self.negative_samplers:
-            sampler_items: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
+            sampled: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
 
-            if tf.shape(sampler_items.id)[0] > 0:
-                negative_items.append(sampler_items)
+            if tf.shape(sampled.id)[0] > 0:
+                candidates.append(sampled)
             else:
                 LOG.warn(
                     f"The sampler {type(sampler).__name__} returned no samples for this batch."
                 )
 
-        if len(negative_items) == 0:
-            raise Exception(f"No negative items where sampled from samplers {self.samplers}")
+        if len(candidates) == 0:
+            raise Exception(
+                f"No negative items where sampled from samplers {self.negative_samplers}"
+            )
 
-        negatives = negative_items[0]
-        if len(negative_items) > 1:
-            for neg in negative_items[1:]:
+        negatives = candidates[0]
+        if len(candidates) > 1:
+            for neg in candidates[1:]:
                 negatives += neg
 
         return negatives

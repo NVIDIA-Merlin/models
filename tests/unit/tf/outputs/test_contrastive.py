@@ -102,26 +102,23 @@ def test_contrastive_output(ecommerce_data: Dataset, run_eagerly):
 
 
 def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
-    dataloader, schema = _next_item_loader(sequence_testing_data)
-    model = mm.Model(
-        mm.InputBlockV2(schema),
-        mm.MLPBlock([32]),
-        mm.ContrastiveOutput(prediction=schema["item_id_seq"]),
-    )
+    dataloader, schema = _next_item_loader(sequence_testing_data, to_one_hot=False)
+    model_out = mm.ContrastiveOutput(schema["item_id_seq"], "in-batch")
+    model = mm.Model(mm.InputBlockV2(schema), mm.MLPBlock([32]), model_out)
+    model.compile(optimizer="adam")
+
     batch = next(iter(dataloader))
     output = model(batch[0], batch[1], training=True)
-    assert output.shape == (batch[1].shape[0], 51997)
+    assert output[1].shape == (batch[1].shape[0], 51)
 
-    model.compile(
-        optimizer="adam",
+    model_out.compile(
         negative_sampling=[PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
     )
 
     output = model(batch[0], batch[1], training=True)
     assert output.outputs.shape == (batch[1].shape[0], 21)
 
-    model.compile(
-        optimizer="adam",
+    model.model_outputs[0].compile(
         negative_sampling=["in-batch", PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
     )
     output = model(batch[0], batch[1], training=True)
@@ -222,12 +219,15 @@ def _retrieval_inputs_(batch_size):
     return inputs, features
 
 
-def _next_item_loader(sequence_testing_data: Dataset):
+def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
     def _last_interaction_as_target(inputs, targets):
         inputs = mm.AsRaggedFeatures()(inputs)
         items = inputs["item_id_seq"]
         _items = items[:, :-1]
-        targets = tf.one_hot(items[:, -1:].flat_values, 51997)
+
+        targets = items[:, -1:].flat_values
+        if to_one_hot:
+            targets = tf.one_hot(targets, 51997)
         inputs["item_id_seq"] = _items
         return inputs, targets
 
