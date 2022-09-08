@@ -142,7 +142,7 @@ class SchemaAwareTransform(Protocol):
         ...
 
 
-class Loader(tf.keras.utils.Sequence, DataLoader):
+class Loader(DataLoader):
     """
     Override class to customize data loading for backward compatibility with
     older NVTabular releases.
@@ -314,27 +314,6 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
         )
         self._transforms = [("all", transform)] if transform else []
         self.multi_label_as_dict = multi_label_as_dict
-
-    def __len__(self):
-        """
-        recreating since otherwise Keras yells at you
-        """
-        # TODO: what's a better way to do this inheritance
-        # of the appropriate methods? A Metaclass?
-        DataLoader.stop(self)
-        return DataLoader.__len__(self)
-
-    def on_epoch_end(self):
-        """Method to call at the end of every epoch."""
-        DataLoader.stop(self)
-
-    def __getitem__(self, idx):
-        """
-        implemented exclusively for consistency
-        with Keras model.fit. Does not leverage
-        passed idx in any way
-        """
-        return DataLoader.__next__(self)
 
     def map(self, fn) -> "Loader":
         """
