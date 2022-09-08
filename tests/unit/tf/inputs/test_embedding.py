@@ -300,16 +300,19 @@ class TestEmbeddingTable:
         continuous = embedding_table.select_by_tag(Tags.CONTINUOUS)
         assert isinstance(continuous, mm.EmbeddingTable)
         assert sorted(continuous.features) == ["a", "b", "c"]
+        assert continuous.table is embedding_table.table
 
         assert embedding_table.select_by_tag(Tags.CATEGORICAL) is None
 
         user = embedding_table.select_by_tag(Tags.USER)
         assert isinstance(user, mm.EmbeddingTable)
         assert sorted(user.features) == ["a", "b"]
+        assert user.table is embedding_table.table
 
         item = embedding_table.select_by_tag(Tags.ITEM)
         assert isinstance(item, mm.EmbeddingTable)
         assert sorted(item.features) == ["c"]
+        assert item.table is embedding_table.table
 
 
 @pytest.mark.parametrize("trainable", [True, False])

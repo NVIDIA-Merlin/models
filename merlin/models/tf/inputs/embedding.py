@@ -275,7 +275,9 @@ class EmbeddingTable(EmbeddingTableBase):
         if not selected_schema:
             return
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(selected_schema)
-        return EmbeddingTable.from_config(config)
+        embedding_table = EmbeddingTable.from_config(config)
+        embedding_table.table = self.table
+        return embedding_table
 
     @classmethod
     def from_pretrained(
@@ -434,7 +436,6 @@ class EmbeddingTable(EmbeddingTableBase):
             config["combiner-layer"] = tf.keras.layers.serialize(self.sequence_combiner)
         else:
             config["sequence_combiner"] = self.sequence_combiner
-
         return config
 
 
