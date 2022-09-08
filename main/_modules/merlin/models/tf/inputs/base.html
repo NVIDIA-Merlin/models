@@ -327,6 +327,7 @@
 <span class="sd">        continuous and embeddings</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">embeddings</span> <span class="o">=</span> <span class="n">embeddings</span> <span class="ow">or</span> <span class="n">Embeddings</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">))</span>
+    <span class="n">branches</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">embeddings</span><span class="o">=</span><span class="n">embeddings</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">continuous_column_selector</span><span class="p">,</span> <span class="n">Schema</span><span class="p">):</span>
         <span class="n">con_schema</span> <span class="o">=</span> <span class="n">continuous_column_selector</span>
@@ -341,8 +342,11 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">continuous</span> <span class="o">=</span> <span class="n">TabularBlock</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="n">con_schema</span><span class="p">,</span> <span class="n">pre</span><span class="o">=</span><span class="n">con_filter</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">con_schema</span><span class="p">:</span>
+        <span class="n">branches</span><span class="p">[</span><span class="s2">&quot;continuous&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">continuous</span>
+
     <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
-        <span class="nb">dict</span><span class="p">(</span><span class="n">continuous</span><span class="o">=</span><span class="n">continuous</span><span class="p">,</span> <span class="n">embeddings</span><span class="o">=</span><span class="n">embeddings</span><span class="p">),</span>
+        <span class="n">branches</span><span class="p">,</span>
         <span class="n">pre</span><span class="o">=</span><span class="n">pre</span><span class="p">,</span>
         <span class="n">post</span><span class="o">=</span><span class="n">post</span><span class="p">,</span>
         <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">,</span>
