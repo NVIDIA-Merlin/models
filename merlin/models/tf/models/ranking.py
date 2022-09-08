@@ -207,10 +207,6 @@ def DeepFMModel(
         schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim, aggregation=None, **kwargs
     )
 
-    # TODO: Identify why we need to set the schema manually for `InputBlockV2`
-    # to avoid an error of ParallelBlock without schema?
-    input_block.set_schema(schema)
-
     pairwise_block = FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1))
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
     deep_pairwise = input_block.connect_branch(pairwise_block, deep_block, aggregation="concat")
