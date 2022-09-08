@@ -1,23 +1,19 @@
 import warnings
 from typing import List, Optional, Union
 
-import tensorflow as tf
-
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
-from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
+from merlin.models.tf.blocks.interaction import FMBlock
 from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
-from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
+from merlin.models.tf.core.aggregation import ConcatFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
 from merlin.models.tf.core.tabular import Filter
-from merlin.models.tf.core.transformations import ToSparseFeatures
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.transforms.features import CategoryEncoding
 from merlin.schema import Schema, Tags
 
 
@@ -155,15 +151,16 @@ def DCNModel(
 
 def DeepFMModel(
     schema: Schema,
-    embedding_dim: int,
-    deep_block: Optional[Block] = MLPBlock([64, 128]),
+    embedding_dim: Optional[int] = None,
+    deep_block: Optional[Block] = None,
     input_block: Optional[Block] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
     **kwargs,
 ) -> Model:
-    """DeepFM-model architecture.
+    """DeepFM-model architecture, which is the sum of the 1-dim output
+    of a Factorization Machine [2] and a Deep Neural Network
 
     Example Usage::
         deep_fm = DeepFMModel(schema, embedding_dim=64, deep_block=MLPBlock([256, 64]))
@@ -175,6 +172,8 @@ def DeepFMModel(
     [1] Huifeng, Guo, et al.
         "DeepFM: A Factorization-Machine based Neural Network for CTR Prediction"
         arXiv:1703.04247  (2017).
+    [2] Steffen, Rendle, "Factorization Machines" IEEE International
+    Conference on Data Mining, 2010. https://ieeexplore.ieee.org/document/5694074
 
     Parameters
     ----------
@@ -183,8 +182,10 @@ def DeepFMModel(
     embedding_dim : int
         Dimension of the embeddings
     deep_block : Optional[Block]
-        The `Block` that learns high-order feature interactions
-        Defaults to MLPBlock([64, 128])
+        The `Block` that learns high-order feature interactions.
+        On top of this Block, an MLPBlock([1]) is added to output
+        a 1-dim logit.
+        Defaults to MLPBlock([64])
     input_block : Block, optional
         The `Block` to use as the input layer for the FM and Deep components.
         If None, a default `InputBlockV2` object
@@ -200,31 +201,21 @@ def DeepFMModel(
     Model
 
     """
-    input_block = input_block or InputBlockV2(
-        schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim, aggregation=None, **kwargs
+
+    input_block = input_block or InputBlockV2(schema, dim=embedding_dim, aggregation=None, **kwargs)
+
+    fm_tower = FMBlock(
+        schema, fm_input_block=SequentialBlock(input_block, Filter(Tags.CATEGORICAL))
     )
 
-    pairwise_block = FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1))
+    if deep_block is None:
+        deep_block = MLPBlock([64])
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
-    deep_pairwise = input_block.connect_branch(pairwise_block, deep_block, aggregation="concat")
-
-    first_order_input_block = ParallelBlock(
-        {
-            "categorical": CategoryEncoding(schema, output_mode="one_hot", sparse=True),
-            "continuous": SequentialBlock(
-                Filter(schema.select_by_tag(Tags.CONTINUOUS)), ToSparseFeatures()
-            ),
-        },
-        aggregation="concat",
+    deep_tower = input_block.connect(deep_block).connect(
+        MLPBlock([1], activation="linear", use_bias=True, **kwargs)
     )
 
-    first_order_block = first_order_input_block.connect(
-        tf.keras.layers.Dense(units=1, activation=None, use_bias=True)
-    )
-
-    deep_fm = ParallelBlock(
-        {"deep_pairwise": deep_pairwise, "first_order": first_order_block}, aggregation="concat"
-    )
+    deep_fm = ParallelBlock({"fm": fm_tower, "deep": deep_tower}, aggregation="element-wise-sum")
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     model = Model(deep_fm, prediction_tasks)

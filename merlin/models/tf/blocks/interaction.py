@@ -14,9 +14,18 @@
 # limitations under the License.
 #
 
+from typing import Optional
+
 import tensorflow as tf
 
+from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block
+from merlin.models.tf.core.combinators import MapValues, ParallelBlock, SequentialBlock
+from merlin.models.tf.core.tabular import Filter
+from merlin.models.tf.core.transformations import CategoryEncoding, ToSparseFeatures
+from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.schema import Schema, Tags
 
 _INTERACTION_TYPES = (None, "field_all", "field_each", "field_interaction")
 
@@ -229,3 +238,71 @@ class FMPairwiseInteraction(Block):
         if len(input_shapes) != 3:
             raise ValueError("Found shape {} without 3 dimensions".format(input_shapes))
         return (input_shapes[0], input_shapes[2])
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+def FMBlock(
+    schema: Schema,
+    fm_input_block: Optional[Block] = None,
+    factors_dim: Optional[int] = None,
+    **kwargs,
+) -> tf.Tensor:
+    """Implements the Factorization Machine, as introduced in [1].
+    It consists in the sum of a wide component that weights each
+    feature individually and a 2nd-level feature interaction using
+    factors.
+
+    References
+    ----------
+    [1] Steffen, Rendle, "Factorization Machines" IEEE International
+    Conference on Data Mining, 2010. https://ieeexplore.ieee.org/document/5694074
+
+    Parameters
+    ----------
+    schema : Schema
+        The schema of input features
+    fm_input_block : Optional[Block], by default None
+        The input block for the 2nd-order feature interaction in Factorization Machine.
+        Only categorical features will be used by this block, as it computes
+        dot product between all paired combinations of embedding values.
+        If not provided, an InputBlockV2 is instantiated based on schema.
+        Note: All features (including continuous) are considered in the
+        1st-order (wide) part which uses another input block.
+    factors_dim : Optional[int], optional
+        If fm_input_block is not provided, the factors_dim is used to define the
+        embeddings dim to instantiate InputBlockV2, by default None
+    Returns
+    -------
+    tf.Tensor
+        Returns a 2D tensor (batch size, 1) with the sum of the wide component
+        and 2nd-order interaction component of FM
+    """
+
+    cat_schema = schema.select_by_tag(Tags.CATEGORICAL)
+    cont_schema = schema.select_by_tag(Tags.CONTINUOUS)
+
+    first_order_inputs = ParallelBlock(
+        {
+            "categorical": CategoryEncoding(cat_schema, output_mode="one_hot", sparse=True),
+            "continuous": SequentialBlock(Filter(cont_schema), ToSparseFeatures()),
+        },
+        aggregation="concat",
+    )
+
+    first_order = first_order_inputs.connect(
+        MLPBlock([1], activation="linear", use_bias=True, **kwargs)
+    )
+
+    fm_input_block = fm_input_block or InputBlockV2(
+        cat_schema, dim=factors_dim, aggregation=None, **kwargs
+    )
+    pairwise_interaction = SequentialBlock(
+        Filter(cat_schema),
+        fm_input_block,
+        FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1)),
+        MapValues(tf.keras.layers.Lambda(lambda x: tf.reduce_sum(x, axis=1, keepdims=True))),
+    )
+
+    fm_block = ParallelBlock([first_order, pairwise_interaction], aggregation="element-wise-sum")
+
+    return fm_block

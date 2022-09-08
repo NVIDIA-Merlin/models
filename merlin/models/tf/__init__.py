@@ -33,7 +33,11 @@ from merlin.models.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
-from merlin.models.tf.blocks.interaction import DotProductInteraction, FMPairwiseInteraction
+from merlin.models.tf.blocks.interaction import (
+    DotProductInteraction,
+    FMBlock,
+    FMPairwiseInteraction,
+)
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
 from merlin.models.tf.blocks.optimizer import (
     LazyAdam,
