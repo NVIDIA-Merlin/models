@@ -252,6 +252,7 @@ def InputBlockV2(
         continuous and embeddings
     """
     embeddings = embeddings or Embeddings(schema.select_by_tag(Tags.CATEGORICAL))
+    branches = dict(embeddings=embeddings)
 
     if isinstance(continuous_column_selector, Schema):
         con_schema = continuous_column_selector
@@ -266,8 +267,11 @@ def InputBlockV2(
     else:
         continuous = TabularBlock(schema=con_schema, pre=con_filter)
 
+    if con_schema:
+        branches["continuous"] = continuous
+
     return ParallelBlock(
-        dict(continuous=continuous, embeddings=embeddings),
+        branches,
         pre=pre,
         post=post,
         aggregation=aggregation,
