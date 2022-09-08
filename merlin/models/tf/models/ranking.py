@@ -16,13 +16,12 @@ from merlin.models.tf.core.combinators import (
     TabularBlock,
 )
 from merlin.models.tf.inputs.base import InputBlockV2
-from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.features import CategoryEncoding
-from merlin.schema import Schema
+from merlin.schema import Schema, Tags
 
 
 def DLRMModel(
@@ -187,10 +186,11 @@ def DeepFMModel(
     embedding_dim : int
         Dimension of the embeddings
     deep_block : Optional[Block]
-        The `Block` that learns high-ordeer feature interactions
+        The `Block` that learns high-order feature interactions
         Defaults to MLPBlock([64, 128])
     input_block : Block, optional
-        The `Block` to use as the input layer. If None, a default `InputBlockV2` object
+        The `Block` to use as the input layer for the FM and Deep components.
+        If None, a default `InputBlockV2` object
         is instantiated, that creates the embedding tables for the categorical features
         based on the schema, with the specified embedding_dim.
         For a custom representation of input data you can instantiate
@@ -203,7 +203,9 @@ def DeepFMModel(
     Model
 
     """
-    input_block = input_block or InputBlockV2(schema, dim=embedding_dim, aggregation=None, **kwargs)
+    input_block = input_block or InputBlockV2(
+        schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim, aggregation=None, **kwargs
+    )
 
     # TODO: Identify why we need to set the schema manually for `InputBlockV2`
     # to avoid an error of ParallelBlock without schema?
@@ -211,20 +213,18 @@ def DeepFMModel(
 
     pairwise_block = FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1))
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
+    deep_pairwise = input_block.connect_branch(pairwise_block, deep_block, aggregation="concat")
 
-    dense_to_sparse = MapValues(
-        tf.keras.layers.Lambda(lambda x: tf.sparse.from_dense(x) if isinstance(x, tf.Tensor) else x)
+    # TODO: Update InputBlockV2 replacing the `embeddings` arg to `categorical_encoding`
+    # so that it is more generic, as not always you want to embed categ features
+    first_order_input_block = InputBlockV2(
+        schema, embeddings=CategoryEncoding(schema, output_mode="one_hot")
     )
 
-    branches = {
-        "categorical": CategoryEncoding(schema, output_mode="one_hot", sparse=True),
-        "continuous": SequentialBlock(ContinuousFeatures.from_schema(schema), dense_to_sparse),
-    }
-    first_order_block = ParallelBlock(branches, aggregation="concat").connect(
+    first_order_block = first_order_input_block.connect(
         tf.keras.layers.Dense(units=1, activation=None, use_bias=True)
     )
 
-    deep_pairwise = input_block.connect_branch(pairwise_block, deep_block, aggregation="concat")
     deep_fm = ParallelBlock(
         {"deep_pairwise": deep_pairwise, "first_order": first_order_block}, aggregation="concat"
     )

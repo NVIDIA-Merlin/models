@@ -157,9 +157,24 @@ def test_dcn_model(music_streaming_data, stacked, run_eagerly):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_deepfm_model(music_streaming_data, run_eagerly):
+def test_deepfm_model_only_categ_feats(music_streaming_data, run_eagerly):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "item_category", "user_id", "click"]
+    )
+    model = ml.DeepFMModel(
+        music_streaming_data.schema,
+        embedding_dim=16,
+        deep_block=ml.MLPBlock([16]),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_deepfm_model_categ_and_continuous_feats(music_streaming_data, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "item_category", "user_id", "user_age", "click"]
     )
     model = ml.DeepFMModel(
         music_streaming_data.schema,
