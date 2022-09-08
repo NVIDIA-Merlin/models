@@ -313,6 +313,10 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         DataLoader.stop(self)
         return DataLoader.__len__(self)
 
+    def on_epoch_end(self):
+        """Method to call at the end of every epoch."""
+        DataLoader.stop(self)
+
     def __getitem__(self, idx):
         """
         implemented exclusively for consistency
