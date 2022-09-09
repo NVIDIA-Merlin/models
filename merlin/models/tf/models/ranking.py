@@ -459,7 +459,10 @@ def WideAndDeepModel(
 
     if not deep_input_block:
         if deep_schema is not None and len(deep_schema) > 0:
-            deep_input_block = InputBlockV2(deep_schema, **kwargs,)
+            deep_input_block = InputBlockV2(
+                deep_schema,
+                **kwargs,
+            )
     if deep_input_block:
         deep_body = deep_input_block.connect(deep_block).connect(
             MLPBlock(
@@ -498,8 +501,8 @@ def WideAndDeepModel(
 
     if len(branches) == 0:
         raise ValueError(
-            "At least the deep part (deep_schema/deep_input_block) "
-            "or wide part (wide_schema/wide_input_block) must be provided."
+            "At least the deep part (deep_schema/deep_input_block)"
+            " or wide part (wide_schema/wide_input_block) must be provided."
         )
 
     wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
