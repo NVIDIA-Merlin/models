@@ -237,4 +237,5 @@ __all__ = [
     "LossType",
     "sample_batch",
     "TensorInitializer",
+    "BroadcastToSequence",
 ]
