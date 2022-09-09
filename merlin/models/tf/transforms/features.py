@@ -645,3 +645,53 @@ def reshape_categorical_input_tensor_for_encoding(
             output = expand_dims_fn(output, 1)
 
     return output
+
+
+class BroadcastToSequence(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def call(self, inputs: TabularData) -> TabularData:
+        inputs = self._broadcast(inputs, inputs)
+        return inputs
+
+    def _get_seq_features_shapes(self, inputs: TabularData):
+        inputs_sizes = {k: v.shape for k, v in inputs.items()}
+
+        seq_features_shapes = dict()
+        for fname, fshape in inputs_sizes.items():
+            # Saves the shapes of sequential features
+            if len(fshape) >= 3:
+                seq_features_shapes[fname] = tuple(fshape[:2])
+
+        sequence_length = 0
+        if len(seq_features_shapes) > 0:
+            if len(set(seq_features_shapes.values())) > 1:
+                raise ValueError(
+                    "All sequential features must share the same shape in the first two dims "
+                    "(batch_size, seq_length): {}".format(seq_features_shapes)
+                )
+
+            sequence_length = list(seq_features_shapes.values())[0][1]
+
+        return seq_features_shapes, sequence_length
+
+    def _broadcast(self, inputs, target):
+        seq_features_shapes, sequence_length = self._get_seq_features_shapes(inputs)
+        if len(seq_features_shapes) > 0:
+            non_seq_features = set(inputs.keys()).difference(set(seq_features_shapes.keys()))
+            non_seq_target = {}
+            for fname in non_seq_features:
+                # Including the 2nd dim and repeating for the sequence length
+                shape = target[fname].shape
+                target_shape = shape[:1] + sequence_length + shape[1:]
+                non_seq_target[fname] = tf.broadcast_to(
+                    tf.expand_dims(target[fname], 1), target_shape
+                )
+            target = {**target, **non_seq_target}
+
+        return target
+
+    def compute_mask(self, inputs: TabularData, mask: Optional[TabularData] = None):
+        mask = self._broadcast(inputs, mask)
+        return mask

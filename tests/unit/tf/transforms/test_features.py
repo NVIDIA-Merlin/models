@@ -20,10 +20,11 @@ from tensorflow.test import TestCase
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.transforms.features import ContinuousPowers
+from merlin.models.tf.transforms.features import ContinuousPowers, BroadcastToSequence
+
 from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.schema_utils import create_categorical_column
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -694,3 +695,85 @@ def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(body, mm.BinaryClassificationTask("click"))
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+
+class TestBroadcastToSequence:
+    def test_only_values(self):
+        layer = BroadcastToSequence()
+        batch_size = 2
+        inputs = {
+            "v1": tf.random.uniform((batch_size, 1)),
+        }
+        outputs = layer(inputs)
+        assert list(outputs["v1"].shape) == [batch_size, 1]
+
+    def test_only_sequential(self):
+        layer = BroadcastToSequence()
+        batch_size = 2
+        sequence_length = 6
+        inputs = {
+            "s1": tf.random.uniform((batch_size, sequence_length, 1)),
+        }
+        outputs = layer(inputs)
+        assert list(outputs["s1"].shape) == [batch_size, sequence_length, 1]
+
+    def test_broadcast(self):
+        layer = BroadcastToSequence()
+        inputs = {
+            "v1": tf.constant([[1], [2]]),
+            "s1": tf.constant([[[1, 2], [3, 4], [5, 6]], [[6, 3], [2, 3], [7, 3]]]),
+        }
+        outputs = layer(inputs)
+        np.testing.assert_array_equal(
+            outputs["v1"].numpy(),
+            tf.constant(
+                [
+                    [
+                        [1],
+                        [1],
+                        [1],
+                    ],
+                    [
+                        [2],
+                        [2],
+                        [2],
+                    ],
+                ]
+            ).numpy(),
+        )
+        np.testing.assert_array_equal(inputs["s1"].numpy(), outputs["s1"].numpy())
+
+    def test_different_sequence_lengths(self):
+        with pytest.raises(ValueError) as exc_info:
+            layer = BroadcastToSequence()
+            inputs = {
+                "v1": tf.constant([[1], [2]]),
+                "s1": tf.constant([[[1, 2], [3, 4], [5, 6]], [[6, 3], [2, 3], [7, 3]]]),
+                "s2": tf.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
+            }
+            layer(inputs)
+        assert "All sequential features must share the same shape in the first two dims" in str(
+            exc_info.value
+        )
+
+    def test_mask_propagation(self):
+        inputs = {
+            "a": tf.constant([[1], [0]]),
+            "b": tf.constant([[1, 0], [3, 4]]),
+        }
+        schema = Schema(
+            [
+                ColumnSchema("a", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}),
+                ColumnSchema("b", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}),
+            ]
+        )
+        embedding_layer = ml.Embeddings(schema, mask_zero=True, sequence_combiner=None)
+        embeddings = embedding_layer(inputs)
+        broadcast_layer = BroadcastToSequence()
+        outputs = broadcast_layer(embeddings)
+        np.testing.assert_array_equal(
+            outputs["a"]._keras_mask.numpy(), np.array([[True, True], [False, False]])
+        )
+        np.testing.assert_array_equal(
+            outputs["b"]._keras_mask.numpy(), np.array([[True, False], [True, True]])
+        )
