@@ -693,5 +693,8 @@ class BroadcastToSequence(tf.keras.layers.Layer):
         return target
 
     def compute_mask(self, inputs: TabularData, mask: Optional[TabularData] = None):
+        if mask is None:
+            return None
+
         mask = self._broadcast(inputs, mask)
         return mask
