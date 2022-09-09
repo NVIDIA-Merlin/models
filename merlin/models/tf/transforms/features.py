@@ -330,16 +330,14 @@ class CategoryEncoding(TabularBlock):
         return outputs
 
     def compute_output_shape(self, input_shapes):
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
         outputs = {}
         for key in self.schema.column_names:
-            input_shape = input_shapes[key]
-            if not input_shape:
-                outputs[key] = tf.TensorShape([self.cardinalities[key]])
-            else:
-                outputs[key] = tf.TensorShape(input_shape[:1] + [self.cardinalities[key]])
+            outputs[key] = tf.TensorShape([batch_size, self.cardinalities[key]])
 
-                if len(input_shape) == 2:
-                    self.features_2d_last_dim[key] = input_shape[-1]
+            input_shape = input_shapes[key]
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
+                self.features_2d_last_dim[key] = input_shape[-1]
 
         return outputs
 
@@ -542,7 +540,8 @@ class HashedCross(TabularBlock):
         # Save the last dim for 2D features so that we can reshape them in graph mode in call()
         for key in self.schema.column_names:
             input_shape = input_shapes[key]
-            if len(input_shape) == 2:
+
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
                 self.features_2d_last_dim[key] = input_shape[-1]
 
         output_shape = {}

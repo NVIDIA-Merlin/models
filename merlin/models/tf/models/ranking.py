@@ -154,6 +154,7 @@ def DeepFMModel(
     embedding_dim: Optional[int] = None,
     deep_block: Optional[Block] = None,
     input_block: Optional[Block] = None,
+    wide_input_block: Optional[Block] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
@@ -193,6 +194,10 @@ def DeepFMModel(
         based on the schema, with the specified embedding_dim.
         For a custom representation of input data you can instantiate
         and provide an `InputBlockV2` instance.
+    wide_input_block: Optional[Block], by default None
+        The input for the wide block. If not provided,
+        creates a default block that encodes categorical features
+        with one-hot / multi-hot representation and also includes the continuous features.
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
         Defaults to None
@@ -205,7 +210,9 @@ def DeepFMModel(
     input_block = input_block or InputBlockV2(schema, dim=embedding_dim, aggregation=None, **kwargs)
 
     fm_tower = FMBlock(
-        schema, fm_input_block=SequentialBlock(input_block, Filter(Tags.CATEGORICAL))
+        schema,
+        fm_input_block=SequentialBlock(input_block, Filter(Tags.CATEGORICAL)),
+        wide_input_block=wide_input_block,
     )
 
     if deep_block is None:

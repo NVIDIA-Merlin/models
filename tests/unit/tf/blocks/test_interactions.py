@@ -16,7 +16,9 @@
 
 import tensorflow as tf
 
-import merlin.models.tf as ml
+import merlin.models.tf as mm
+from merlin.io import Dataset
+from merlin.schema import Tags
 
 
 def test_fm_pairwise_interaction():
@@ -26,7 +28,66 @@ def test_fm_pairwise_interaction():
 
     inputs = tf.random.uniform((NUM_ROWS, NUM_FEATS, EMBED_DIM))
 
-    pairwise_interaction = ml.FMPairwiseInteraction()
+    pairwise_interaction = mm.FMPairwiseInteraction()
     outputs = pairwise_interaction(inputs)
 
     assert list(outputs.shape) == [NUM_ROWS, EMBED_DIM]
+
+
+def test_fm_block(ecommerce_data: Dataset):
+    schema = ecommerce_data.schema
+
+    fm_block = mm.FMBlock(
+        schema,
+        factors_dim=32,
+    )
+
+    batch = mm.sample_batch(ecommerce_data, batch_size=16, include_targets=False)
+    output = fm_block(batch)
+    output.shape.as_list() == [16, 1]
+
+
+def test_fm_block_with_multi_hot_categ_features(testing_data: Dataset):
+    schema = testing_data.schema
+    cat_schema = schema.select_by_tag(Tags.CATEGORICAL)
+    cat_schema_onehot = cat_schema.remove_by_tag(Tags.LIST)
+    cat_schema_multihot = cat_schema.select_by_tag(Tags.LIST)
+
+    input_block = mm.InputBlockV2(
+        schema,
+        embeddings=mm.Embeddings(
+            cat_schema,
+            dim=32,
+            sequence_combiner="mean",
+        ),
+        aggregation=None,
+    )
+
+    wide_input_block = mm.ParallelBlock(
+        {
+            "categorical_ohe": mm.SequentialBlock(
+                mm.Filter(cat_schema_onehot),
+                mm.CategoryEncoding(cat_schema_onehot, sparse=True, output_mode="one_hot"),
+            ),
+            "categorical_mhe": mm.SequentialBlock(
+                mm.Filter(cat_schema_multihot),
+                mm.AsDenseFeatures(max_seq_length=cat_schema_multihot["categories"].int_domain.max),
+                mm.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
+            ),
+            "continuous": mm.SequentialBlock(
+                mm.Filter(schema.select_by_tag(Tags.CONTINUOUS)), mm.ToSparseFeatures()
+            ),
+        },
+        aggregation="concat",
+    )
+
+    fm_block = mm.FMBlock(
+        schema,
+        fm_input_block=input_block,
+        wide_input_block=wide_input_block,
+        factors_dim=32,
+    )
+    batch = mm.sample_batch(testing_data, batch_size=16, include_targets=False)
+
+    output = fm_block(batch)
+    output.shape.as_list() == [16, 1]

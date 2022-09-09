@@ -243,6 +243,7 @@ class FMPairwiseInteraction(Block):
 def FMBlock(
     schema: Schema,
     fm_input_block: Optional[Block] = None,
+    wide_input_block: Optional[Block] = None,
     factors_dim: Optional[int] = None,
     **kwargs,
 ) -> tf.Tensor:
@@ -267,6 +268,10 @@ def FMBlock(
         If not provided, an InputBlockV2 is instantiated based on schema.
         Note: All features (including continuous) are considered in the
         1st-order (wide) part which uses another input block.
+    wide_input_block: Optional[Block], by default None
+        The input for the wide block. If not provided,
+        creates a default block that encodes categorical features
+        with one-hot / multi-hot representation and also includes the continuous features.
     factors_dim : Optional[int], optional
         If fm_input_block is not provided, the factors_dim is used to define the
         embeddings dim to instantiate InputBlockV2, by default None
@@ -280,15 +285,15 @@ def FMBlock(
     cat_schema = schema.select_by_tag(Tags.CATEGORICAL)
     cont_schema = schema.select_by_tag(Tags.CONTINUOUS)
 
-    first_order_inputs = ParallelBlock(
+    wide_input_block = wide_input_block or ParallelBlock(
         {
-            "categorical": CategoryEncoding(cat_schema, output_mode="one_hot", sparse=True),
+            "categorical": CategoryEncoding(cat_schema, output_mode="multi_hot", sparse=True),
             "continuous": SequentialBlock(Filter(cont_schema), ToSparseFeatures()),
         },
         aggregation="concat",
     )
 
-    first_order = first_order_inputs.connect(
+    first_order = wide_input_block.connect(
         MLPBlock([1], activation="linear", use_bias=True, **kwargs)
     )
 

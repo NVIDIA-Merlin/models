@@ -126,7 +126,9 @@ from merlin.models.tf.transforms.features import (
     CategoryEncoding,
     HashedCross,
     HashedCrossAll,
+    ToDenseFeatures,
     ToOneHot,
+    ToSparseFeatures,
 )
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
@@ -182,6 +184,8 @@ __all__ = [
     "ListToDense",
     "ListToRagged",
     "ListToSparse",
+    "ToSparseFeatures",
+    "ToDenseFeatures",
     "CategoryEncoding",
     "HashedCross",
     "HashedCrossAll",
