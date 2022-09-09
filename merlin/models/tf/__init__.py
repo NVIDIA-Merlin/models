@@ -194,6 +194,7 @@ __all__ = [
     "StackFeatures",
     "DotProductInteraction",
     "FMPairwiseInteraction",
+    "FMBlock",
     "ToOneHot",
     "ModelOutput",
     "BinaryOutput",

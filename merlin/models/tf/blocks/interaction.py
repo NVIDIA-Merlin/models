@@ -240,7 +240,6 @@ class FMPairwiseInteraction(Block):
         return (input_shapes[0], input_shapes[2])
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
 def FMBlock(
     schema: Schema,
     fm_input_block: Optional[Block] = None,
