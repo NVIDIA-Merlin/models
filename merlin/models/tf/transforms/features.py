@@ -647,6 +647,7 @@ def reshape_categorical_input_tensor_for_encoding(
     return output
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BroadcastToSequence(tf.keras.layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
