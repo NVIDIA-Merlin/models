@@ -35,6 +35,105 @@ COUNT = p_utils.COUNT
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
+class FeaturesTensorTypeConversion(TabularBlock):
+    """Base class to convert the tensor type of features provided in the schema
+
+    Parameters
+        ----------
+        schema : Optional[Schema], optional
+            The schema with the columns that will be transformed, by default None
+    """
+
+    def __init__(self, schema: Optional[Schema] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.column_names = None
+        if schema is not None:
+            self.column_names = schema.column_names
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
+            if isinstance(val, tuple):
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                outputs[name] = val.to_sparse()
+            elif isinstance(val, tf.Tensor):
+                outputs[name] = tf.sparse.from_dense(val)
+
+        return outputs
+
+    def compute_output_shape(self, input_shapes):
+        output_shapes = {}
+        for k, v in input_shapes.items():
+            # If it is a list/sparse feature (in tuple representation), uses the offset as shape
+            if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
+                output_shapes[k] = tf.TensorShape([v[1][0], None])
+            else:
+                output_shapes[k] = v
+
+        return output_shapes
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
+
+
+@Block.registry.register("to_sparse")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ToSparseFeatures(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to sparse tensors.
+    The other features are kept unchanged.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
+            if isinstance(val, tuple):
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                outputs[name] = val.to_sparse()
+            elif isinstance(val, tf.Tensor):
+                outputs[name] = tf.sparse.from_dense(val)
+
+        return outputs
+
+
+@Block.registry.register("to_dense")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ToDenseFeatures(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to dense tensors.
+    The other features are kept unchanged.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
+            if isinstance(val, tuple):
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                val = val.to_sparse()
+            if isinstance(val, tf.SparseTensor):
+                outputs[name] = tf.sparse.to_dense(val)
+
+        return outputs
+
+
+@Block.registry.register("as-ragged")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Rename(TabularBlock):
     """Rename input features
 
@@ -429,10 +528,7 @@ class HashedCross(TabularBlock):
         # Encode outputs.
         outputs = {}
         outputs[self.output_name] = p_utils.encode_categorical_inputs(
-            output,
-            output_mode=self.output_mode,
-            depth=self.num_bins,
-            sparse=self.sparse,
+            output, output_mode=self.output_mode, depth=self.num_bins, sparse=self.sparse,
         )
 
         if not self.sparse and isinstance(outputs[self.output_name], tf.SparseTensor):

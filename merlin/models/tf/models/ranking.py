@@ -9,12 +9,9 @@ from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.combinators import (
-    MapValues,
-    ParallelBlock,
-    SequentialBlock,
-    TabularBlock,
-)
+from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
+from merlin.models.tf.core.tabular import Filter
+from merlin.models.tf.core.transformations import ToSparseFeatures
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model
@@ -211,10 +208,14 @@ def DeepFMModel(
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
     deep_pairwise = input_block.connect_branch(pairwise_block, deep_block, aggregation="concat")
 
-    # TODO: Update InputBlockV2 replacing the `embeddings` arg to `categorical_encoding`
-    # so that it is more generic, as not always you want to embed categ features
-    first_order_input_block = InputBlockV2(
-        schema, embeddings=CategoryEncoding(schema, output_mode="one_hot")
+    first_order_input_block = ParallelBlock(
+        {
+            "categorical": CategoryEncoding(schema, output_mode="one_hot", sparse=True),
+            "continuous": SequentialBlock(
+                Filter(schema.select_by_tag(Tags.CONTINUOUS)), ToSparseFeatures()
+            ),
+        },
+        aggregation="concat",
     )
 
     first_order_block = first_order_input_block.connect(
