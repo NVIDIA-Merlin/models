@@ -275,8 +275,7 @@ class EmbeddingTable(EmbeddingTableBase):
         if not selected_schema:
             return
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(selected_schema)
-        embedding_table = EmbeddingTable.from_config(config)
-        embedding_table.table = self.table
+        embedding_table = EmbeddingTable.from_config(config, table=self.table)
         return embedding_table
 
     @classmethod
@@ -422,8 +421,11 @@ class EmbeddingTable(EmbeddingTableBase):
         return self.compute_output_shape(input_shapes)
 
     @classmethod
-    def from_config(cls, config):
-        config["table"] = tf.keras.layers.deserialize(config["table"])
+    def from_config(cls, config, table=None):
+        if table:
+            config["table"] = table
+        else:
+            config["table"] = tf.keras.layers.deserialize(config["table"])
         if "combiner-layer" in config:
             config["sequence_combiner"] = tf.keras.layers.deserialize(config.pop("combiner-layer"))
 
