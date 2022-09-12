@@ -28,13 +28,6 @@ def test_layer_transform():
     train = Dataset(train_df[train_df["rating_binary"] == 1])
     train.schema = input_schema
 
-    # for col_name, col_schema in input_schema.column_schemas.items():
-    #     data_dtype = train.to_ddf().compute()[col_name].dtype
-    #     schema_dtype = col_schema.dtype
-    #     assert (
-    #         data_dtype == schema_dtype
-    #     ), f"{col_name} dtypes don't match: {data_dtype} vs {schema_dtype}"
-
     # sampling transform to create negatives from a batch with only positives
     # for the purposes of this example it could be any function that accepts two arguments (x, y)
     # and returns a tuple (x, y)
@@ -56,13 +49,6 @@ def test_layer_transform():
     input_schema["userId_count"] = input_schema["userId_count"].with_dtype(np.float64)
     x_schema = input_schema.without(["rating_binary", "title"])
     y_schema = input_schema.select_by_name("rating_binary")
-
-    # for col_name, col_schema in x_schema.column_schemas.items():
-    #     data_dtype = x_dtypes[col_name]
-    #     schema_dtype = col_schema.dtype
-    #     assert (
-    #         data_dtype == schema_dtype
-    #     ), f"{col_name} dtypes don't match: {data_dtype} vs {schema_dtype}"
 
     y = {"y": example_batch[1]}
     y = DataFrameLike(
