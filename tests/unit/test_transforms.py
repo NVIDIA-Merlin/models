@@ -1,6 +1,6 @@
 import numpy as np
 
-from merlin.dag import BaseOperator, Graph
+from merlin.dag import BaseOperator
 from merlin.dag.executors import DataFrameLike, LocalExecutor
 from merlin.datasets.entertainment import get_movielens
 
@@ -64,12 +64,11 @@ def test_layer_transform():
             transformed = self.layer(data)
             return transformed.outputs
 
-    node = [] >> LayerTransform(sampling_layer)
-    graph = Graph(node)
+    output_node = [] >> LayerTransform(sampling_layer)
 
     executor = LocalExecutor()
     executor.transform_multi(
         (x, y),
         (x_schema, y_schema),
-        [graph.output_node],
+        [output_node],
     )
