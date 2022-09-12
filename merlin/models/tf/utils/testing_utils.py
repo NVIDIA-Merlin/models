@@ -161,6 +161,7 @@ def numeric_test(actual, expected):
 @disable_cudnn_autotune
 def layer_test(
     layer_cls,
+    args=None,
     kwargs=None,
     input_shape=None,
     input_dtype=None,
@@ -234,8 +235,9 @@ def layer_test(
             assert_equal = numeric_test
 
     # instantiation
+    args = args or []
     kwargs = kwargs or {}
-    layer = layer_cls(**kwargs)
+    layer = layer_cls(*args, **kwargs)
 
     if supports_masking is not None and layer.supports_masking != supports_masking:
         raise AssertionError(
@@ -260,7 +262,7 @@ def layer_test(
     # test and instantiation from weights
     if "weights" in tf_inspect.getargspec(layer_cls.__init__):
         kwargs["weights"] = weights
-        layer = layer_cls(**kwargs)
+        layer = layer_cls(*args, **kwargs)
 
     # test in functional API
     x = tf.keras.layers.Input(shape=input_shape[1:], dtype=input_dtype)

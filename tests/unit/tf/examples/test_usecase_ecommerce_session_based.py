@@ -1,10 +1,14 @@
+# Test is currently breaks in TF 2.10
+
 from testbook import testbook
 
 from tests.conftest import REPO_ROOT
 
+p = "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.ipynb"
+
 
 @testbook(
-    REPO_ROOT / "examples/usecases/ecommerce-session-based-next-item-prediction-for-fashion.ipynb",
+    REPO_ROOT / p,
     timeout=180,
     execute=False,
 )
