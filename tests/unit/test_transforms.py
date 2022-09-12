@@ -50,7 +50,7 @@ def test_layer_transform():
     x_schema = input_schema.without(["rating_binary", "title"])
     y_schema = input_schema.select_by_name("rating_binary")
 
-    y = {"y": example_batch[1]}
+    y = {"rating_binary": example_batch[1]}
     y = DataFrameLike(
         y,
         dtypes={col: value.numpy().dtype for col, value in y.items()},
@@ -64,11 +64,14 @@ def test_layer_transform():
             transformed = self.layer(data)
             return transformed.outputs
 
-    output_node = [] >> LayerTransform(sampling_layer)
+    output_node = "*" >> LayerTransform(sampling_layer)
 
     executor = LocalExecutor()
-    executor.transform_multi(
+    results = executor.transform_multi(
         (x, y),
         (x_schema, y_schema),
         [output_node],
     )
+
+    assert results[0].columns == x_schema.column_names
+    assert results[1].columns == y_schema.column_names
