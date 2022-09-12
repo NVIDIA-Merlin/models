@@ -70,31 +70,54 @@ class RegressionTask(PredictionTask):
         else:
             target_name = target if target else kwargs.pop("target_name", None)
 
-        logit = kwargs.pop("logit", None)
+        output_layer = kwargs.pop("output_layer", None)
         super().__init__(
             target_name=target_name,
             task_name=task_name,
             task_block=task_block,
             **kwargs,
         )
-        self.logit = logit or tf.keras.layers.Dense(1, name=self.child_name("logit"))
+        self.output_layer = output_layer or tf.keras.layers.Dense(
+            1, name=self.child_name("output_layer")
+        )
         # To ensure that the output is always fp32, avoiding numerical
         # instabilities with mixed_float16 policy
         self.output_activation = tf.keras.layers.Activation(
             "linear", dtype="float32", name="prediction"
         )
 
-    def call(self, inputs, training=False, **kwargs):
-        return self.output_activation(self.logit(inputs))
+    def call(self, inputs: tf.Tensor, training=False, **kwargs) -> tf.Tensor:
+        """Projects the input with the output layer to a single logit
+
+        Parameters
+        ----------
+        inputs : tf.Tensor
+            Input tensor
+        training : bool, optional
+            Flag that indicates whether it is training or not, by default False
+
+        Returns
+        -------
+        tf.Tensor
+            Tensor with the regression logit
+        """
+        return self.output_activation(self.output_layer(inputs))
+
+    def compute_output_shape(self, input_shape):
+        return self.output_layer.compute_output_shape(input_shape)
 
     def get_config(self):
         config = super().get_config()
-        config = maybe_serialize_keras_objects(self, config, {"logit": tf.keras.layers.serialize})
+        config = maybe_serialize_keras_objects(
+            self, config, {"output_layer": tf.keras.layers.serialize}
+        )
 
         return config
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["logit"], tf.keras.layers.deserialize)
+        config = maybe_deserialize_keras_objects(
+            config, ["output_layer"], tf.keras.layers.deserialize
+        )
 
         return super().from_config(config)
