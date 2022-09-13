@@ -614,7 +614,9 @@ class Filter(TabularBlock):
         elif isinstance(self.feature_names, collections.Sequence):
             schema = self.schema.select_by_name(self.feature_names).select_by_tag(tags)
         else:
-            raise RuntimeError(f"Unexpected type {type(self.feature_names)} encountered in 'Filter.feature_names'.")
+            raise RuntimeError(
+                f"Unexpected type {type(self.feature_names)} encountered in 'Filter.feature_names'."
+            )
         if not schema:
             return
         return Filter(schema)

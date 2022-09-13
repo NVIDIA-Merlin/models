@@ -311,8 +311,7 @@ class TestEmbeddingTable:
         _ = embedding_table(inputs)
 
         assert np.allclose(
-            categorical.table.embeddings.numpy(),
-            embedding_table.table.embeddings.numpy()
+            categorical.table.embeddings.numpy(), embedding_table.table.embeddings.numpy()
         )
         assert categorical.table is embedding_table.table
 
@@ -324,8 +323,7 @@ class TestEmbeddingTable:
 
         _ = user(inputs)
         assert np.allclose(
-            categorical.table.embeddings.numpy(),
-            embedding_table.table.embeddings.numpy()
+            categorical.table.embeddings.numpy(), embedding_table.table.embeddings.numpy()
         )
         assert user.table is embedding_table.table
 

@@ -74,6 +74,10 @@ def test_tabular_block_select_by_tag(tf_con_features):
     schema = Schema([a_schema, b_schema, c_schema])
 
     tabular_block = mm.TabularBlock(schema=schema)
-    assert sorted(tabular_block.select_by_tag([Tags.ITEM, Tags.USER]).schema.column_names) == ["a", "b", "c"]
+    assert sorted(tabular_block.select_by_tag([Tags.ITEM, Tags.USER]).schema.column_names) == [
+        "a",
+        "b",
+        "c",
+    ]
     assert sorted(tabular_block.select_by_tag(Tags.USER).schema.column_names) == ["a"]
     assert sorted(tabular_block.select_by_tag(Tags.ITEM).schema.column_names) == ["b", "c"]
