@@ -39,6 +39,7 @@ from merlin.models.tf.blocks.interaction import (
     FMPairwiseInteraction,
 )
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
+from merlin.models.tf.blocks.transformer import TransformerBlock
 from merlin.models.tf.blocks.optimizer import (
     LazyAdam,
     MultiOptimizer,
