@@ -265,15 +265,10 @@ class EmbeddingTable(EmbeddingTableBase):
         if not isinstance(tags, collections.Sequence):
             tags = [tags]
 
-        config = self.get_config()
-        schema = config.pop("schema", None)
-        if not schema:
-            return
-        if not isinstance(schema, Schema):
-            schema = schema_utils.tensorflow_metadata_json_to_schema(schema)
-        selected_schema = schema.select_by_tag(tags)
+        selected_schema = self.schema.select_by_tag(tags)
         if not selected_schema:
             return
+        config = self.get_config()
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(selected_schema)
         embedding_table = EmbeddingTable.from_config(config, table=self.table)
         return embedding_table

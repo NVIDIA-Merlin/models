@@ -280,33 +280,53 @@ class TestEmbeddingTable:
             "a",
             dtype=np.int32,
             properties={"domain": {"min": 0, "max": 10}},
-            tags=[Tags.USER, Tags.CONTINUOUS],
+            tags=[Tags.USER, Tags.CATEGORICAL],
         )
         col_schema_b = ColumnSchema(
             "b",
             dtype=np.int32,
             properties={"domain": {"min": 0, "max": 10}},
-            tags=[Tags.USER, Tags.CONTINUOUS],
+            tags=[Tags.USER, Tags.CATEGORICAL],
         )
         col_schema_c = ColumnSchema(
             "c",
             dtype=np.int32,
             properties={"domain": {"min": 0, "max": 10}},
-            tags=[Tags.ITEM, Tags.CONTINUOUS],
+            tags=[Tags.ITEM, Tags.CATEGORICAL],
         )
 
         embedding_table = mm.EmbeddingTable(dim, col_schema_a, col_schema_b, col_schema_c)
 
-        continuous = embedding_table.select_by_tag(Tags.CONTINUOUS)
-        assert isinstance(continuous, mm.EmbeddingTable)
-        assert sorted(continuous.features) == ["a", "b", "c"]
-        assert continuous.table is embedding_table.table
+        categorical = embedding_table.select_by_tag(Tags.CATEGORICAL)
+        assert isinstance(categorical, mm.EmbeddingTable)
+        assert sorted(categorical.features) == ["a", "b", "c"]
 
-        assert embedding_table.select_by_tag(Tags.CATEGORICAL) is None
+        inputs = {
+            "a": tf.constant([[0], [1], [2]]),
+            "b": tf.constant([[3], [4], [5]]),
+            "c": tf.constant([[6], [7], [8]]),
+        }
+
+        _ = categorical(inputs)
+        _ = embedding_table(inputs)
+
+        assert np.allclose(
+            categorical.table.embeddings.numpy(),
+            embedding_table.table.embeddings.numpy()
+        )
+        assert categorical.table is embedding_table.table
+
+        assert embedding_table.select_by_tag(Tags.CONTINUOUS) is None
 
         user = embedding_table.select_by_tag(Tags.USER)
         assert isinstance(user, mm.EmbeddingTable)
         assert sorted(user.features) == ["a", "b"]
+
+        _ = user(inputs)
+        assert np.allclose(
+            categorical.table.embeddings.numpy(),
+            embedding_table.table.embeddings.numpy()
+        )
         assert user.table is embedding_table.table
 
         item = embedding_table.select_by_tag(Tags.ITEM)

@@ -63,3 +63,17 @@ def test_tabular_block(tf_con_features):
     tab_b = ["b"] >> _DummyTabular()
 
     assert tab_a(tf_con_features, merge_with=tab_b, aggregation="stack").shape[1] == 1
+
+
+def test_tabular_block_select_by_tag(tf_con_features):
+    tabular_block = mm.TabularBlock()
+
+    a_schema = ColumnSchema("a", tags=[Tags.CONTINUOUS, Tags.USER])
+    b_schema = ColumnSchema("b", tags=[Tags.CONTINUOUS, Tags.ITEM])
+    c_schema = ColumnSchema("c", tags=[Tags.CONTINUOUS, Tags.ITEM])
+    schema = Schema([a_schema, b_schema, c_schema])
+
+    tabular_block = mm.TabularBlock(schema=schema)
+    assert sorted(tabular_block.select_by_tag([Tags.ITEM, Tags.USER]).schema.column_names) == ["a", "b", "c"]
+    assert sorted(tabular_block.select_by_tag(Tags.USER).schema.column_names) == ["a"]
+    assert sorted(tabular_block.select_by_tag(Tags.ITEM).schema.column_names) == ["b", "c"]

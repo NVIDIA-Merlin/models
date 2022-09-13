@@ -142,8 +142,10 @@ class TabularBlock(Block):
             self.set_schema(schema)
 
     def select_by_tag(self, tags: Tags) -> Optional["TabularBlock"]:
-        schema = self.schema.select_by_tag(tags)
-        return TabularBlock(schema=schema)
+        selected_schema = self.schema.select_by_tag(tags)
+        if selected_schema:
+            return TabularBlock(schema=selected_schema)
+        return None
 
     @property
     def is_input(self) -> bool:
@@ -612,7 +614,7 @@ class Filter(TabularBlock):
         elif isinstance(self.feature_names, collections.Sequence):
             schema = self.schema.select_by_name(self.feature_names).select_by_tag(tags)
         else:
-            schema = self.schema.select_by_tag(tags)
+            raise RuntimeError(f"Unexpected type {type(self.feature_names)} encountered in 'Filter.feature_names'.")
         if not schema:
             return
         return Filter(schema)
