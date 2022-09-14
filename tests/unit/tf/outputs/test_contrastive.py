@@ -23,9 +23,13 @@ from merlin.models.tf.dataset import BatchedDataset
 # from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 <<<<<<< HEAD
+<<<<<<< HEAD
 from merlin.models.tf.transforms.features import Rename
 =======
 from merlin.models.tf.transforms.features import RenameFeatures
+>>>>>>> Fix wrong import in test_contrastive
+=======
+from merlin.models.tf.transforms.features import Rename
 >>>>>>> Fix wrong import in test_contrastive
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
@@ -42,10 +46,14 @@ def test_contrastive_mf(ecommerce_data: Dataset):
             mm.EmbeddingTable(64, user_id.first), mm.EmbeddingTable(64, item_id.first)
         ),
 <<<<<<< HEAD
+<<<<<<< HEAD
         Rename(dict(user_id="query", item_id="candidate")),
 =======
         RenameFeatures(dict(user_id="query", item_id="candidate")),
 >>>>>>> Adding some tests for ContrastiveOutput
+=======
+        Rename(dict(user_id="query", item_id="candidate")),
+>>>>>>> Fix wrong import in test_contrastive
     )
 
     mf = mm.Model(encoders, mm.ContrastiveOutput(item_id, "in-batch"))
