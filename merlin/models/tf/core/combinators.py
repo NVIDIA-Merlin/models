@@ -493,6 +493,13 @@ class ParallelBlock(TabularBlock):
             branch_has_schema = getattr(branch, "has_schema", False)
             if not branch_has_schema:
                 continue
+            if not hasattr(branch, "select_by_tag"):
+                raise AttributeError(
+                    f"This ParallelBlock does not support select_by_tag because "
+                    f"{branch.__class__} does not support select_by_tag. Consider "
+                    "implementing a select_by_tag in an extension of "
+                    f"{branch.__class__}."
+                )
             selected_branch = branch.select_by_tag(tags)
             if not selected_branch:
                 continue
