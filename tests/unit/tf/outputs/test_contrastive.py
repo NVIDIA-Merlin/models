@@ -22,7 +22,7 @@ from merlin.models.tf.dataset import BatchedDataset
 
 # from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
-from merlin.models.tf.transforms.features import RenameFeatures
+from merlin.models.tf.transforms.features import Rename
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -37,7 +37,7 @@ def test_contrastive_mf(ecommerce_data: Dataset):
         mm.ParallelBlock(
             mm.EmbeddingTable(64, user_id.first), mm.EmbeddingTable(64, item_id.first)
         ),
-        RenameFeatures(dict(user_id="query", item_id="candidate")),
+        Rename(dict(user_id="query", item_id="candidate")),
     )
 
     mf = mm.Model(encoders, mm.ContrastiveOutput(item_id, "in-batch"))
