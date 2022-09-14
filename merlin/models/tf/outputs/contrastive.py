@@ -365,7 +365,7 @@ class ContrastiveOutput(ModelOutput):
 =======
         query = ids
 
-        if len(ids.shape) == 2 and ids.shape[-1] == 1:
+        if len(ids.shape) > 1 and ids.shape[-1] == 1:
             query = tf.squeeze(ids)
 
         return self.to_call.embedding_lookup(query)
@@ -424,10 +424,15 @@ class ContrastiveOutput(ModelOutput):
 @runtime_checkable
 class LookUpProtocol(Protocol):
 <<<<<<< HEAD
+<<<<<<< HEAD
     """Protocol for embedding lookup layers"""
 
 =======
 >>>>>>> Adding some tests for ContrastiveOutput
+=======
+    """Protocol for embedding lookup layers"""
+
+>>>>>>> Small fix
     def embedding_lookup(self, inputs, **kwargs):
         pass
 
