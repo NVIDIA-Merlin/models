@@ -14,15 +14,15 @@ def test_encoder_block(music_streaming_data: Dataset):
     user_schema = schema.select_by_name(["user_id", "user_genres"])
     user_encoder = mm.EncoderBlock(user_schema, mm.MLPBlock([4]), name="query")
     item_schema = schema.select_by_name(["item_id"])
-    item_encoder = mm.EncoderBlock(item_schema, mm.MLPBlock([4]), name="item")
+    item_encoder = mm.EncoderBlock(item_schema, mm.MLPBlock([4]), name="candidate")
 
     model = mm.Model(
         mm.ParallelBlock(user_encoder, item_encoder),
-        mm.DotProductCategoricalPrediction(schema),
+        mm.ContrastiveOutput(item_schema, "in-batch"),
     )
 
     assert model.blocks[0]["query"] == user_encoder
-    assert model.blocks[0]["item"] == item_encoder
+    assert model.blocks[0]["candidate"] == item_encoder
 
     testing_utils.model_test(model, music_streaming_data)
 
