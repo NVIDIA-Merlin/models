@@ -120,7 +120,7 @@ def test_two_tower_model_with_custom_options(
 ):
     from tensorflow.keras import regularizers
 
-    from merlin.models.tf.core.transformations import PopularityLogitsCorrection
+    from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
     from merlin.models.utils import schema_utils
 
     data = ecommerce_data
@@ -350,7 +350,7 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     )
     model.compile(optimizer="adam", run_eagerly=False)
 
-    as_ragged = mm.AsRaggedFeatures()
+    as_ragged = mm.ListToRagged()
 
     def last_interaction_as_target(inputs, targets):
         inputs = as_ragged(inputs)
