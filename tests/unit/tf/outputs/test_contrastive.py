@@ -18,12 +18,15 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.core.transformations import RenameFeatures
 from merlin.models.tf.dataset import BatchedDataset
 
 # from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
+<<<<<<< HEAD
 from merlin.models.tf.transforms.features import Rename
+=======
+from merlin.models.tf.transforms.features import RenameFeatures
+>>>>>>> Fix wrong import in test_contrastive
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
