@@ -28,7 +28,7 @@ from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
-from merlin.models.tf.core.transformations import PopularityLogitsCorrection
+from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
 from merlin.models.utils import schema_utils
 from merlin.schema.tags import Tags
 
