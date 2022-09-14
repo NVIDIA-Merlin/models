@@ -267,6 +267,8 @@ class ContrastiveOutput(ModelOutput):
             tf.multiply(query_embedding, positive.embedding), keepdims=True, axis=-1
         )
 
+        # negative_scores = tf.squeeze(negative_scores, axis=-1)
+
         if self.downscore_false_negatives:
             negative_scores, _ = tf_utils.rescore_false_negatives(
                 positive.id, negative.id, negative_scores, self.false_negative_score
@@ -361,6 +363,7 @@ class ContrastiveOutput(ModelOutput):
 
     def embedding_lookup(self, ids: tf.Tensor):
 <<<<<<< HEAD
+<<<<<<< HEAD
         return self.to_call.embedding_lookup(tf.squeeze(ids))
 =======
         query = ids
@@ -370,6 +373,9 @@ class ContrastiveOutput(ModelOutput):
 
         return self.to_call.embedding_lookup(query)
 >>>>>>> Adding some tests for ContrastiveOutput
+=======
+        return self.to_call.embedding_lookup(tf.squeeze(ids))
+>>>>>>> Trying to fix failing tests
 
     @property
     def has_candidate_weights(self) -> bool:
