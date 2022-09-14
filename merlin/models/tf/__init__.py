@@ -122,6 +122,7 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.transformation.sequence import PredictNext
 from merlin.models.tf.transforms.features import (
     CategoryEncoding,
     HashedCross,
@@ -252,4 +253,5 @@ __all__ = [
     "BroadcastToSequence",
     "Loader",
     "KerasSequenceValidator",
+    "PredictNext",
 ]
