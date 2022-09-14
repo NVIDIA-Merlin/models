@@ -30,7 +30,7 @@ def test_inbatch_sampler():
     input_data = ml.Candidate(item_ids, {"item_ids": item_ids}).with_embedding(item_embeddings)
     output_data = inbatch_sampler(input_data)
 
-    tf.assert_equal(input_data.embedding(), output_data.embedding())
+    tf.assert_equal(input_data.embedding, output_data.embedding)
     for feat_name in output_data.metadata:
         tf.assert_equal(input_data.metadata[feat_name], output_data.metadata[feat_name])
 

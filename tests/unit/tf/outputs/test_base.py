@@ -76,10 +76,10 @@ def test_parallel_prediction_blocks(ecommerce_data: Dataset, run_eagerly):
 
     assert list(history.history.keys()) == [
         "loss",
-        "click/prediction_block_loss",
-        "conversion/prediction_block_loss",
-        "click/prediction_block/precision",
-        "conversion/prediction_block/precision",
+        "click/model_output_loss",
+        "conversion/model_output_loss",
+        "click/model_output/precision",
+        "conversion/model_output/precision",
         "regularization_loss",
     ]
 
