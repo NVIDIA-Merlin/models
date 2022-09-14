@@ -22,9 +22,9 @@ from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.transformations import LogitsTemperatureScaler
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator
 from merlin.models.tf.prediction_tasks.classification import MultiClassClassificationTask
+from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 

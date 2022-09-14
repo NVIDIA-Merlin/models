@@ -15,14 +15,29 @@
 #
 import pytest
 
-import merlin.models.tf as ml
+import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_regression_head(ecommerce_data: Dataset, run_eagerly):
-    body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
-    model = ml.Model(body, ml.RegressionTask("click"))
+def test_regression_head(ecommerce_data: Dataset, run_eagerly: bool):
+    body = mm.InputBlock(ecommerce_data.schema).connect(mm.MLPBlock([64]))
+    model = mm.Model(body, mm.RegressionTask("click"))
 
-    testing_utils.model_test(model, ecommerce_data)
+    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_regression_head_schema(music_streaming_data: Dataset, run_eagerly: bool):
+    body = mm.InputBlock(music_streaming_data.schema).connect(mm.MLPBlock([64]))
+    model = mm.Model(body, mm.RegressionTask(music_streaming_data.schema))
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+def test_regression_head_serialization(music_streaming_data: Dataset):
+    regression_task = mm.RegressionTask("click")
+    assert isinstance(
+        regression_task.from_config(regression_task.get_config()), type(regression_task)
+    )

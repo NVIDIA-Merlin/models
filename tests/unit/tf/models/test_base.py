@@ -15,6 +15,8 @@
 #
 import copy
 
+import numpy as np
+import pandas as pd
 import pytest
 import tensorflow as tf
 from tensorflow.test import TestCase
@@ -22,8 +24,9 @@ from tensorflow.test import TestCase
 import merlin.models.tf as ml
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
+from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.utils import testing_utils, tf_utils
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 @pytest.mark.parametrize("run_eagerly", [False])
@@ -38,6 +41,25 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
 
     features = ecommerce_data.schema.remove_by_tag(Tags.TARGET).column_names
     testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
+
+
+def test_fit_twice():
+    dataset = Dataset(pd.DataFrame({"feature": [1, 2, 3, 4, 5, 6], "target": [1, 0, 0, 1, 1, 0]}))
+    dataset.schema = Schema(
+        [
+            ColumnSchema("feature", dtype=np.int32, tags=[Tags.CONTINUOUS]),
+            ColumnSchema("target", dtype=np.int32, tags=[Tags.BINARY_CLASSIFICATION]),
+        ]
+    )
+    batched_dataset = BatchedDataset(dataset, batch_size=2, shuffle=False)
+    model = ml.Model(
+        tf.keras.layers.Lambda(lambda x: x["feature"]),
+        tf.keras.layers.Dense(1),
+        ml.BinaryClassificationTask("target"),
+    )
+    model.compile(run_eagerly=True, optimizer="adam")
+    model.fit(batched_dataset, epochs=2)
+    model.fit(batched_dataset, epochs=2)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])

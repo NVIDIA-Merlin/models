@@ -25,7 +25,7 @@ from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.base import name_fn
 from merlin.models.tf.core.prediction import Prediction
-from merlin.models.tf.core.transformations import LogitsTemperatureScaler
+from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import call_layer
 
