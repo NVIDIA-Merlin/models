@@ -945,7 +945,10 @@ class Model(BaseModel):
         if isinstance(outputs, Prediction):
             targets = outputs.targets if outputs.targets is not None else context.targets
             features = outputs.features if outputs.features is not None else context.features
-            if not isinstance(child, ModelOutput) and (context.training or context.testing):
+            if isinstance(child, ModelOutput):
+                if not (context.training or context.testing):
+                    outputs = outputs[0]
+            else:
                 outputs = outputs[0]
             context = context.with_updates(targets=targets, features=features)
 
