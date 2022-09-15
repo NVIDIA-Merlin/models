@@ -962,12 +962,18 @@ class Model(BaseModel):
             targets = outputs.targets if outputs.targets is not None else context.targets
             features = outputs.features if outputs.features is not None else context.features
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Fixing failing tests
             if isinstance(child, ModelOutput):
                 if not (context.training or context.testing):
                     outputs = outputs[0]
             else:
+<<<<<<< HEAD
 =======
             if not isinstance(child, ModelOutput) and (context.training or context.testing):
+>>>>>>> Fixing failing tests
+=======
 >>>>>>> Fixing failing tests
                 outputs = outputs[0]
             context = context.with_updates(targets=targets, features=features)
