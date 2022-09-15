@@ -35,7 +35,6 @@ from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
 from merlin.models.tf.blocks.interaction import DotProductInteraction, FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
-from merlin.models.tf.blocks.transformer import TransformerBlock
 from merlin.models.tf.blocks.optimizer import (
     LazyAdam,
     MultiOptimizer,
@@ -52,6 +51,14 @@ from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.blocks.sampling.queue import FIFOQueue
+from merlin.models.tf.blocks.transformer import (
+    AlbertBlock,
+    BertBlock,
+    GPT2Block,
+    RobertaBlock,
+    TransformerBlock,
+    XLNetBlock,
+)
 from merlin.models.tf.core.aggregation import (
     ConcatFeatures,
     ElementwiseSum,

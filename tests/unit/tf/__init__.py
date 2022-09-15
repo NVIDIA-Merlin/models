@@ -16,3 +16,4 @@
 import pytest
 
 pytest.importorskip("tensorflow")
+pytest.importorskip("transformers")
