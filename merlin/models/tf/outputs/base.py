@@ -139,14 +139,11 @@ class ModelOutput(Layer):
             outputs = tf_utils.call_layer(self.post, outputs, **kwargs)
 
         if getattr(self, "logits_scaler", None):
-            outputs = self.logits_scaler(outputs)
-
-        if kwargs.get("training", False) or kwargs.get("testing", False):
-            targets = kwargs.get("targets", {})
-            if isinstance(targets, dict) and self.target:
-                targets = targets.get(self.target, targets)
-
-            return Prediction(outputs, targets)
+            if isinstance(outputs, Prediction):
+                scaled_outputs = self.logits_scaler(outputs.outputs)
+                outputs = Prediction(scaled_outputs, outputs.targets)
+            else:
+                outputs = self.logits_scaler(outputs)
 
         return outputs
 
