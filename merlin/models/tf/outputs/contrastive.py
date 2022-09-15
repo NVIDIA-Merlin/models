@@ -106,8 +106,8 @@ class ContrastiveOutput(ModelOutput):
         candidate_name: str = "candidate",
         **kwargs,
     ):
-        _to_call = kwargs.pop("to_call", None)
         self.col_schema = None
+        _to_call = None
         if to_call is not None:
             if isinstance(to_call, (Schema, ColumnSchema)):
                 if isinstance(to_call, Schema):
