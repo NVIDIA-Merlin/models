@@ -107,6 +107,7 @@ class ContrastiveOutput(ModelOutput):
         **kwargs,
     ):
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.col_schema = None
         _to_call = None
         if to_call is not None:
@@ -118,7 +119,10 @@ class ContrastiveOutput(ModelOutput):
                         raise ValueError("to_call must be a single column schema")
 =======
         _to_call = kwargs.pop("to_call", None)
+=======
+>>>>>>> Small fix according to PR comment
         self.col_schema = None
+        _to_call = None
         if to_call is not None:
             if isinstance(to_call, (Schema, ColumnSchema)):
 <<<<<<< HEAD
