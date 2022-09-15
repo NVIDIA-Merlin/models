@@ -104,7 +104,7 @@ class TransformerBlock(Block):
 
         self.prepare_module = None
         if prepare_module:
-            self.prepare_module = prepare_module(transformer)
+            self.prepare_module = prepare_module(self.transformer)
 
     def get_config(self):
         config = super().get_config()
