@@ -91,11 +91,12 @@ def test_tranformer_with_prepare_module(sequence_testing_data):
     EMBED_DIM = 128
     inputs = tf.random.uniform((NUM_ROWS, SEQ_LENGTH, EMBED_DIM))
 
-    from merlin.models.tf.blocks.transformer import TransformerBlock
+    from merlin.models.tf.blocks.transformer import TransformerPrepare
 
-    class DummyPrepare(TransformerBlock):
+    class DummyPrepare(TransformerPrepare):
         def call(self, inputs, features=None):
-            bs, seq_len = tf.shape(inputs)[:2]
+            bs = tf.shape(inputs)[0]
+            seq_len = self.transformer.config.max_position_embeddings
             attention_mask = tf.ones((bs, seq_len))
             return {"attention_mask": attention_mask}
 
@@ -103,7 +104,7 @@ def test_tranformer_with_prepare_module(sequence_testing_data):
         d_model=EMBED_DIM,
         n_head=8,
         n_layer=2,
-        max_seq_length=4,
+        max_seq_length=SEQ_LENGTH,
         prepare_module=DummyPrepare,
     )
 
