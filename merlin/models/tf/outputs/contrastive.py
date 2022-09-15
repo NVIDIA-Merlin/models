@@ -267,8 +267,6 @@ class ContrastiveOutput(ModelOutput):
             tf.multiply(query_embedding, positive.embedding), keepdims=True, axis=-1
         )
 
-        # negative_scores = tf.squeeze(negative_scores, axis=-1)
-
         if self.downscore_false_negatives:
             negative_scores, _ = tf_utils.rescore_false_negatives(
                 positive.id, negative.id, negative_scores, self.false_negative_score

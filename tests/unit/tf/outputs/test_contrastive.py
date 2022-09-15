@@ -19,8 +19,6 @@ import tensorflow as tf
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.dataset import BatchedDataset
-
-# from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -152,6 +150,9 @@ def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> Re-adding & adopting old tests
 def test_contrastive_output_without_sampler(ecommerce_data: Dataset):
     with pytest.raises(Exception) as excinfo:
         inputs, features = _retrieval_inputs_(batch_size=10)
@@ -216,6 +217,7 @@ def test_contrastive_only_positive_when_not_training(ecommerce_data: Dataset):
     tf.assert_equal(
         (int(tf.shape(output_scores)[0]), int(tf.shape(output_scores)[1])), (batch_size, 1)
     )
+<<<<<<< HEAD
 =======
 # def test_contrastive_dot_product(ecommerce_data: Dataset):
 #     batch_size = 10
@@ -299,6 +301,8 @@ def test_contrastive_only_positive_when_not_training(ecommerce_data: Dataset):
 #         (int(tf.shape(output_scores)[0]), int(tf.shape(output_scores)[1])), (batch_size, 1)
 #     )
 >>>>>>> Deleting test_dot_product
+=======
+>>>>>>> Re-adding & adopting old tests
 
 
 def _retrieval_inputs_(batch_size):
@@ -307,6 +311,7 @@ def _retrieval_inputs_(batch_size):
     positive_items = tf.random.uniform(
         shape=(batch_size,), minval=1, maxval=1000000, dtype=tf.int32
     )
+<<<<<<< HEAD
 <<<<<<< HEAD
     inputs = {"query": users_embeddings, "candidate": items_embeddings}
     features = {"item_id": positive_items, "user_id": None}
@@ -317,6 +322,10 @@ def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
 =======
     inputs = {"query": users_embeddings, "item": items_embeddings, "item_id": positive_items}
     features = {"product_id": positive_items, "user_id": None}
+=======
+    inputs = {"query": users_embeddings, "candidate": items_embeddings}
+    features = {"item_id": positive_items, "user_id": None}
+>>>>>>> Re-adding & adopting old tests
     return inputs, features
 
 
