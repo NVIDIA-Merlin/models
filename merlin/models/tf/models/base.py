@@ -15,7 +15,8 @@ from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
-from merlin.models.tf.core.combinators import SequentialBlock
+from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
+from merlin.models.tf.core.encoder import EncoderBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
 from merlin.models.tf.dataset import BatchedDataset
@@ -24,6 +25,7 @@ from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.outputs.base import ModelOutput
+from merlin.models.tf.outputs.contrastive import ContrastiveOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
@@ -1417,6 +1419,77 @@ class RetrievalModel(Model):
         recommender = ModelBlock(recommender_block)
         recommender.built = True
         return recommender
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class RetrievalModelV2(Model):
+    def __init__(
+        self,
+        *,
+        query: tf.keras.layers.Layer,
+        output: Union[ModelOutput, tf.keras.layers.Layer],
+        candidate: Optional[tf.keras.layers.Layer] = None,
+        query_name="query",
+        candidate_name="candidate",
+        **kwargs,
+    ):
+        if isinstance(output, ContrastiveOutput):
+            query_name = output.query_name
+            candidate_name = output.candidate_name
+        self._query_name = query_name
+        self._candidate_name = candidate_name
+
+        if query and candidate:
+
+            self._encoder = ParallelBlock(
+                {self._query_name: query, self._candidate_name: candidate}
+            )
+        else:
+            self._encoder = query
+
+        super().__init__(self._encoder, output, **kwargs)
+
+    @property
+    def encoder(self):
+        return self._encoder
+
+    @property
+    def has_candidate_encoder(self):
+        return (
+            isinstance(self.encoder, ParallelBlock)
+            and self._candidate_name in self.encoder.parallel_dict
+        )
+
+    @property
+    def query_encoder(self) -> EncoderBlock:
+        if self.has_candidate_encoder:
+            output = self.encoder[self._query_name]
+        else:
+            output = self.encoder
+
+        output = self._check_encoder(output)
+
+        return output
+
+    @property
+    def candidate_encoder(self) -> EncoderBlock:
+        output = None
+        if self.has_candidate_encoder:
+            output = self.encoder[self._candidate_name]
+        if output:
+            return self._check_encoder(output)
+
+        raise ValueError("No candidate encoder found.")
+
+    def _check_encoder(self, maybe_encoder):
+        output = maybe_encoder
+        if isinstance(output, SequentialBlock):
+            output = EncoderBlock(*maybe_encoder.layers)
+
+        if not isinstance(output, EncoderBlock):
+            raise ValueError(f"Query encoder should be an EncoderBlock, got {type(output)}")
+
+        return output
 
 
 def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
