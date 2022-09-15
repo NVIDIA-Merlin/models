@@ -12,5 +12,6 @@ sklearn
 tensorflow-metadata
 tensorflow-ranking>=0.4
 testbook
+transformers
 fiddle
 wandb
