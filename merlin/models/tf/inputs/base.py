@@ -22,8 +22,8 @@ from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import (
     Filter,
     ParallelBlock,
+    SequentialBlock,
     TabularAggregationType,
-    TabularBlock,
 )
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
@@ -212,12 +212,14 @@ def InputBlock(
 
 def InputBlockV2(
     schema: Schema,
-    embeddings: Optional[Block] = None,
+    categorical: Optional[Block] = None,
     continuous_projection: Optional[Block] = None,
     continuous_column_selector: Union[Tags, Schema] = Tags.CONTINUOUS,
+    categorical_column_selector: Union[Tags, Schema] = Tags.CATEGORICAL,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = "concat",
+    **branches,
 ) -> ParallelBlock:
     """The entry block of the model to process input features from a schema.
     This is the 2nd version of InputBlock, which is more flexible for accepting
@@ -229,7 +231,7 @@ def InputBlockV2(
         Schema of the input data. This Schema object will be automatically generated using
         [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
         Next to this, it's also possible to construct it manually.
-    embeddings : Optional[Block], optional
+    categorical : Optional[Block], optional
         An embeddings block defined externally. If None, the `EmbeddingsFromSchema`
         function is used to infer the embedding tables from the schema
     continuous_projection : Optional[Block], optional
@@ -251,24 +253,26 @@ def InputBlockV2(
         Returns a ParallelBlock with a Dict with two branches:
         continuous and embeddings
     """
-    embeddings = embeddings or Embeddings(schema.select_by_tag(Tags.CATEGORICAL))
-    branches = dict(embeddings=embeddings)
+    if "categorical" not in branches:
+        if not categorical:
+            cat_schema = _parse_column_selector(schema, categorical_column_selector)
+            if len(cat_schema) > 0:
+                branches["categorical"] = Embeddings(cat_schema)
+        else:
+            branches["categorical"] = categorical
 
-    if isinstance(continuous_column_selector, Schema):
-        con_schema = continuous_column_selector
-    else:
-        con_schema = schema.select_by_tag(continuous_column_selector)
-    # TODO: Should we automatically add a Filter in TabularBlock
-    #  to filter out just the schema columns?
-    con_filter = Filter(con_schema)
-    if continuous_projection:
-        continuous = TabularBlock(schema=con_schema, aggregation="concat", pre=con_filter)
-        continuous = continuous.connect(continuous_projection)
-    else:
-        continuous = TabularBlock(schema=con_schema, pre=con_filter)
+    if "continuous" not in branches:
+        con_schema = _parse_column_selector(schema, continuous_column_selector)
+        if con_schema:
+            if continuous_projection:
+                branches["continuous"] = SequentialBlock(
+                    Filter(con_schema, aggregation="concat"), continuous_projection
+                )
+            else:
+                branches["continuous"] = Filter(con_schema)
 
-    if con_schema:
-        branches["continuous"] = continuous
+    if not branches:
+        raise ValueError("No columns selected for the input block")
 
     return ParallelBlock(
         branches,
@@ -276,3 +280,15 @@ def InputBlockV2(
         post=post,
         aggregation=aggregation,
     )
+
+
+def _parse_column_selector(
+    schema: Schema,
+    column_selector: Union[Tags, Schema],
+) -> Schema:
+    if isinstance(column_selector, Schema):
+        schema = column_selector
+    else:
+        schema = schema.select_by_tag(column_selector)
+
+    return schema
