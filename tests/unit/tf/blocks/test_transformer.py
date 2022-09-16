@@ -96,7 +96,7 @@ def test_tranformer_with_prepare_module(sequence_testing_data):
         def call(self, inputs, features=None):
             bs = tf.shape(inputs["inputs_embeds"])[0]
             seq_len = self.transformer.config.max_position_embeddings
-            attention_mask = tf.ones((bs, seq_len))
+            attention_mask = tf.ones((bs, seq_len - 1))
             inputs.update({"attention_mask": attention_mask})
             return inputs
 

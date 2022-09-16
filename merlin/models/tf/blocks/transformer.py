@@ -152,7 +152,6 @@ class TransformerBlock(Block):
         else:
             self.transformer = transformer
 
-        # Build the post block : select output + post-process if specified
         if isinstance(post, str):
             post = HFOutput[post].value
         self.post = post
@@ -225,7 +224,7 @@ class BertBlock(TransformerBlock):
             hidden_size=d_model,
             num_attention_heads=n_head,
             num_hidden_layers=n_layer,
-            max_position_embeddings=max_seq_length,
+            max_position_embeddings=max_seq_length + 1,
             hidden_act=hidden_act,
             intermediate_size=d_model * 4,
             hidden_dropout_prob=dropout,
@@ -272,7 +271,7 @@ class AlbertBlock(TransformerBlock):
             intermediate_size=d_model * 4,
             hidden_dropout_prob=dropout,
             attention_probs_dropout_prob=dropout,
-            max_position_embeddings=max_seq_length,
+            max_position_embeddings=max_seq_length + 1,
             initializer_range=initializer_range,
             layer_norm_eps=layer_norm_eps,
             output_attentions=log_attention_weights,
@@ -311,7 +310,7 @@ class RobertaBlock(TransformerBlock):
             hidden_size=d_model,
             num_hidden_layers=n_layer,
             num_attention_heads=n_head,
-            max_position_embeddings=max_seq_length,
+            max_position_embeddings=max_seq_length + 1,
             hidden_act=hidden_act,
             initializer_range=initializer_range,
             layer_norm_eps=layer_norm_eps,
@@ -337,7 +336,7 @@ class XLNetBlock(TransformerBlock):
         d_model,
         n_head,
         n_layer,
-        max_seq_length,
+        max_seq_length=None,
         total_seq_length=None,
         attn_type="bi",
         hidden_act="gelu",
@@ -407,8 +406,8 @@ class GPT2Block(TransformerBlock):
             resid_pdrop=dropout,
             embd_pdrop=dropout,
             attn_pdrop=dropout,
-            n_positions=max_seq_length,
-            n_ctx=max_seq_length,
+            n_positions=max_seq_length + 1,
+            n_ctx=max_seq_length + 1,
             output_attentions=log_attention_weights,
             vocab_size=1,
             **kwargs,
