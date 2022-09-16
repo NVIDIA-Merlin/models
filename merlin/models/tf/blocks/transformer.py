@@ -14,7 +14,8 @@
 # limitations under the License.
 #
 
-from typing import Union
+from enum import Enum
+from typing import Optional, Union
 
 import tensorflow as tf
 import transformers
@@ -28,6 +29,7 @@ from transformers import (
     XLNetConfig,
 )
 
+from merlin.models.tf.core import combinators
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
@@ -36,6 +38,36 @@ from merlin.models.tf.utils.tf_utils import (
 )
 
 TransformerBody = Union[TFPreTrainedModel, PretrainedConfig, tf.keras.layers.Layer]
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class SelectHFOutput(tf.keras.layers.Layer):
+    """Select outputs from the HF dataclass object
+        `TFBaseModelOutputWithPoolingAndCrossAttentions`
+    Parameters
+    ----------
+    output_fn: Callable
+        A function to select the desirable outputs
+    """
+
+    def __init__(self, output_fn, **kwargs):
+        super().__init__(**kwargs)
+        self.output_fn = output_fn
+
+    def call(self, inputs):
+        return self.output_fn(inputs)
+
+
+class HFOutput(Enum):
+    """Enumerate different options for post-processing the TransformerBlock output"""
+
+    last_hidden_state = SelectHFOutput(output_fn=lambda x: x.last_hidden_state)
+    pooler_output = SelectHFOutput(output_fn=lambda x: x.pooler_output)
+    hidden_state = SelectHFOutput(output_fn=lambda x: x.hidden_states)
+    attentions = SelectHFOutput(output_fn=lambda x: x.attentions)
+    last_state_and_attention = SelectHFOutput(
+        output_fn=lambda x: (x.last_hidden_state, x.attentions)
+    )
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -52,7 +84,8 @@ class TransformerPrepare(tf.keras.layers.Layer):
         super().__init__(**kwargs)
         self.transformer = transformer
 
-    def call(self, inputs, features=None, **kwargs) -> TabularData:
+    def call(self, inputs: TabularData, mask=None, features=None, **kwargs) -> TabularData:
+        """Update the input embeddings with additional tensors"""
         raise NotImplementedError()
 
 
@@ -75,19 +108,17 @@ class TransformerBlock(Block):
     transformer: TransformerBody
         The T4RecConfig, The pre-trained HF model or the custom keras layer TF*MainLayer,
         related to specific transformer architecture.
-    output_fn:
-        A function to select the desirable outputs from the HF dataclass object
-        `TFBaseModelOutputWithPoolingAndCrossAttentions`, by default select `last_hidden_state`
-    prepare_module: TransformerPrepare
-        A layer to prepare additional inputs to the transformer layer, such as `attention_mask`
-        or `head_mask`, by default None
+    pre: Optional[TransformerPrepare]
+        A block to use before the main transformer layer, by default None
+    post: Optional[Union[str, tf.keras.layers.Layer]]
+        A block to use after the main transformer layer, by default 'last_hidden_state'
     """
 
     def __init__(
         self,
         transformer: TransformerBody,
-        output_fn=lambda model_outputs: model_outputs.last_hidden_state,
-        prepare_module: TransformerPrepare = None,
+        post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
+        pre: Optional[TransformerPrepare] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -100,11 +131,14 @@ class TransformerBlock(Block):
         else:
             self.transformer = transformer
 
-        self.output_fn = output_fn
+        # Build the post block : select output + post-process if specified
+        if isinstance(post, str):
+            post = HFOutput[post].value
+        self.post = post
 
-        self.prepare_module = None
-        if prepare_module:
-            self.prepare_module = prepare_module(self.transformer)
+        self.pre = pre
+        if pre and issubclass(pre, TransformerPrepare):
+            self.pre = self.pre(self.transformer)
 
     def get_config(self):
         config = super().get_config()
@@ -124,22 +158,22 @@ class TransformerBlock(Block):
         inputs: tf.Tensor
             The 3D tensor of the sequence of interactions embeddings.
         """
-        # prepare additional inputs based on the inputs and raw features
-        transformer_kwargs = {}
-        if self.prepare_module:
-            features = kwargs.pop("features", None)
-            transformer_kwargs = self.prepare_module(inputs, features)
-
         if isinstance(inputs, tf.RaggedTensor):
             # convert to a dense tensor as HF transformers do not support ragged tensors
             inputs = inputs.to_tensor()
-        transformer_kwargs.update({"inputs_embeds": inputs})
+        inputs = {"inputs_embeds": inputs}
 
-        # In HF the call accept inputs as a dictionary containing all needed tensors
-        model_outputs = self.transformer(transformer_kwargs)
-        outputs = self.output_fn(model_outputs)
+        return combinators.call_sequentially(list(self.to_call), inputs=inputs, **kwargs)
 
-        return outputs
+    @property
+    def to_call(self):
+        if self.pre:
+            yield self.pre
+
+        yield self.transformer
+
+        if self.post:
+            yield self.post
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -155,14 +189,14 @@ class BertBlock(TransformerBlock):
         n_head,
         n_layer,
         max_seq_length,
-        output_fn=lambda model_outputs: model_outputs.last_hidden_state,
         hidden_act="gelu",
         initializer_range=0.01,
         layer_norm_eps=0.03,
         dropout=0.3,
         pad_token=0,
         log_attention_weights=False,
-        prepare_module: TransformerPrepare = None,
+        post="last_hidden_state",
+        pre: TransformerPrepare = None,
         **kwargs,
     ):
 
@@ -182,7 +216,7 @@ class BertBlock(TransformerBlock):
             **kwargs,
         )
 
-        return cls(transformer=transformer, output_fn=output_fn, prepare_module=prepare_module)
+        return cls(transformer=transformer, post=post, pre=pre)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -198,14 +232,14 @@ class AlbertBlock(TransformerBlock):
         n_head,
         n_layer,
         max_seq_length,
-        output_fn=lambda model_outputs: model_outputs.last_hidden_state,
         hidden_act="gelu",
         initializer_range=0.01,
         layer_norm_eps=0.03,
         dropout=0.3,
         pad_token=0,
         log_attention_weights=False,
-        prepare_module: TransformerPrepare = None,
+        post="last_hidden_state",
+        pre: TransformerPrepare = None,
         **kwargs,
     ):
 
@@ -225,7 +259,7 @@ class AlbertBlock(TransformerBlock):
             **kwargs,
         )
 
-        return cls(transformer=transformer, output_fn=output_fn, prepare_module=prepare_module)
+        return cls(transformer=transformer, post=post, pre=pre)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -241,13 +275,14 @@ class RobertaBlock(TransformerBlock):
         n_head,
         n_layer,
         max_seq_length,
-        output_fn=lambda model_outputs: model_outputs.last_hidden_state,
         hidden_act="gelu",
         initializer_range=0.01,
         layer_norm_eps=0.03,
         dropout=0.3,
         pad_token=0,
         log_attention_weights=False,
+        post="last_hidden_state",
+        pre: TransformerPrepare = None,
         **kwargs,
     ):
 
@@ -266,7 +301,7 @@ class RobertaBlock(TransformerBlock):
             **kwargs,
         )
 
-        return cls(transformer=transformer, output_fn=output_fn)
+        return cls(transformer=transformer, post=post, pre=pre)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -282,7 +317,6 @@ class XLNetBlock(TransformerBlock):
         n_head,
         n_layer,
         max_seq_length,
-        output_fn=lambda model_outputs: model_outputs.last_hidden_state,
         total_seq_length=None,
         attn_type="bi",
         hidden_act="gelu",
@@ -292,6 +326,8 @@ class XLNetBlock(TransformerBlock):
         pad_token=0,
         log_attention_weights=False,
         mem_len=1,
+        post="last_hidden_state",
+        pre: TransformerPrepare = None,
         **kwargs,
     ):
 
@@ -312,7 +348,7 @@ class XLNetBlock(TransformerBlock):
             **kwargs,
         )
 
-        return cls(transformer=transformer, output_fn=output_fn)
+        return cls(transformer=transformer, post=post, pre=pre)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -334,8 +370,8 @@ class GPT2Block(TransformerBlock):
         dropout=0.3,
         pad_token=0,
         log_attention_weights=False,
-        output_fn=lambda model_outputs: model_outputs.last_hidden_state,
-        prepare_module: TransformerPrepare = None,
+        post="last_hidden_state",
+        pre: TransformerPrepare = None,
         **kwargs,
     ):
 
@@ -357,4 +393,4 @@ class GPT2Block(TransformerBlock):
             **kwargs,
         )
 
-        return cls(transformer=transformer, output_fn=output_fn, prepare_module=prepare_module)
+        return cls(transformer=transformer, post=post, pre=pre)

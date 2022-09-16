@@ -36,8 +36,7 @@ def test_transformer_encoder_with_pooling():
 
     inputs = tf.random.uniform((NUM_ROWS, SEQ_LENGTH, EMBED_DIM))
     transformer_encod = mm.TransformerBlock(
-        transformer=BertConfig(hidden_size=EMBED_DIM, num_attention_heads=16),
-        output_fn=lambda x: x.pooler_output,
+        transformer=BertConfig(hidden_size=EMBED_DIM, num_attention_heads=16), post="pooler_output"
     )
     outputs = transformer_encod(inputs)
 
@@ -51,7 +50,7 @@ def test_hf_tranformers_blocks(encoder):
     EMBED_DIM = 128
     inputs = tf.random.uniform((NUM_ROWS, SEQ_LENGTH, EMBED_DIM))
     transformer_encod = encoder.build_transformer_layer(
-        d_model=EMBED_DIM, n_head=8, n_layer=2, max_seq_length=4
+        d_model=EMBED_DIM, n_head=8, n_layer=2, max_seq_length=SEQ_LENGTH
     )
     outputs = transformer_encod(inputs)
     assert list(outputs.shape) == [NUM_ROWS, SEQ_LENGTH, EMBED_DIM]
@@ -72,7 +71,7 @@ def test_transformer_as_classfication_model(sequence_testing_data: Dataset, run_
             n_head=8,
             n_layer=2,
             max_seq_length=4,
-            output_fn=lambda x: x.pooler_output,
+            post="pooler_output",
         ),
         mm.CategoricalPrediction(
             prediction=schema["user_country"],
@@ -95,17 +94,18 @@ def test_tranformer_with_prepare_module(sequence_testing_data):
 
     class DummyPrepare(TransformerPrepare):
         def call(self, inputs, features=None):
-            bs = tf.shape(inputs)[0]
+            bs = tf.shape(inputs["inputs_embeds"])[0]
             seq_len = self.transformer.config.max_position_embeddings
             attention_mask = tf.ones((bs, seq_len))
-            return {"attention_mask": attention_mask}
+            inputs.update({"attention_mask": attention_mask})
+            return inputs
 
     transformer_encod = BertBlock.build_transformer_layer(
         d_model=EMBED_DIM,
         n_head=8,
         n_layer=2,
         max_seq_length=SEQ_LENGTH,
-        prepare_module=DummyPrepare,
+        pre=DummyPrepare,
     )
 
     outputs = transformer_encod(inputs)
