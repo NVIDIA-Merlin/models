@@ -17,10 +17,13 @@
 import logging
 from typing import Dict, Optional, Tuple, Type, Union
 
+import tensorflow as tf
+
 from merlin.models.tf.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import (
     Filter,
+    ParallelBase,
     ParallelBlock,
     TabularAggregationType,
     TabularBlock,
@@ -210,15 +213,8 @@ def InputBlock(
     return ParallelBlock(branches, aggregation=aggregation, post=post, is_input=True, **kwargs)
 
 
-def InputBlockV2(
-    schema: Schema,
-    embeddings: Optional[Block] = None,
-    continuous_projection: Optional[Block] = None,
-    continuous_column_selector: Union[Tags, Schema] = Tags.CONTINUOUS,
-    pre: Optional[BlockType] = None,
-    post: Optional[BlockType] = None,
-    aggregation: Optional[TabularAggregationType] = "concat",
-) -> ParallelBlock:
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class InputBlockV2(ParallelBase):
     """The entry block of the model to process input features from a schema.
     This is the 2nd version of InputBlock, which is more flexible for accepting
     the external definition of `embeddings` block.
@@ -244,35 +240,40 @@ def InputBlockV2(
         Transformation block to apply after the embeddings lookup, by default None
     aggregation : Optional[TabularAggregationType], optional
         Transformation block to apply for aggregating the inputs, by default "concat"
-
-    Returns
-    -------
-    ParallelBlock
-        Returns a ParallelBlock with a Dict with two branches:
-        continuous and embeddings
     """
-    embeddings = embeddings or Embeddings(schema.select_by_tag(Tags.CATEGORICAL))
-    branches = dict(embeddings=embeddings)
 
-    if isinstance(continuous_column_selector, Schema):
-        con_schema = continuous_column_selector
-    else:
-        con_schema = schema.select_by_tag(continuous_column_selector)
-    # TODO: Should we automatically add a Filter in TabularBlock
-    #  to filter out just the schema columns?
-    con_filter = Filter(con_schema)
-    if continuous_projection:
-        continuous = TabularBlock(schema=con_schema, aggregation="concat", pre=con_filter)
-        continuous = continuous.connect(continuous_projection)
-    else:
-        continuous = TabularBlock(schema=con_schema, pre=con_filter)
+    def __init__(
+        self,
+        schema: Schema,
+        embeddings: Optional[Block] = None,
+        continuous_projection: Optional[Block] = None,
+        continuous_column_selector: Union[Tags, Schema] = Tags.CONTINUOUS,
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = "concat",
+    ):
+        embeddings = embeddings or Embeddings(schema.select_by_tag(Tags.CATEGORICAL))
+        branches = dict(embeddings=embeddings)
 
-    if con_schema:
-        branches["continuous"] = continuous
+        if isinstance(continuous_column_selector, Schema):
+            con_schema = continuous_column_selector
+        else:
+            con_schema = schema.select_by_tag(continuous_column_selector)
+        # TODO: Should we automatically add a Filter in TabularBlock
+        #  to filter out just the schema columns?
+        con_filter = Filter(con_schema)
+        if continuous_projection:
+            continuous = TabularBlock(schema=con_schema, aggregation="concat", pre=con_filter)
+            continuous = continuous.connect(continuous_projection)
+        else:
+            continuous = TabularBlock(schema=con_schema, pre=con_filter)
 
-    return ParallelBlock(
-        branches,
-        pre=pre,
-        post=post,
-        aggregation=aggregation,
-    )
+        if con_schema:
+            branches["continuous"] = continuous
+
+        return super().__init__(
+            branches,
+            pre=pre,
+            post=post,
+            aggregation=aggregation,
+        )

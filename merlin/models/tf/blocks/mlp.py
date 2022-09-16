@@ -19,7 +19,7 @@ from typing import List, Optional, Union
 import tensorflow as tf
 
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.combinators import ResidualBlock, SequentialBlock
+from merlin.models.tf.core.combinators import ResidualBlock, SequentialBase, SequentialBlock
 from merlin.models.tf.core.tabular import Filter, tabular_aggregation_registry
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -32,22 +32,8 @@ InitializerType = Union[str, tf.keras.initializers.Initializer]
 RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
 
 
-def MLPBlock(
-    dimensions: List[int],
-    activation: Union[str, List[str]] = "relu",
-    use_bias: bool = True,
-    kernel_initializer: InitializerType = "glorot_uniform",
-    bias_initializer: InitializerType = "zeros",
-    kernel_regularizer: Optional[RegularizerType] = None,
-    bias_regularizer: Optional[RegularizerType] = None,
-    activity_regularizer: Optional[RegularizerType] = None,
-    dropout: Optional[float] = None,
-    normalization: Optional[Union[str, tf.keras.layers.Layer]] = None,
-    filter: Optional[Union[Schema, Tags, List[str], "Filter"]] = None,
-    no_activation_last_layer: bool = False,
-    block_name: str = "MLPBlock",
-    **kwargs,
-) -> SequentialBlock:
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class MLPBlock(SequentialBase):
     """
     A block that applies a multi-layer perceptron to the input.
 
@@ -86,52 +72,71 @@ def MLPBlock(
         The name of the block.
     """
 
-    if isinstance(activation, list) and len(activation) != len(dimensions):
-        raise ValueError(
-            f"Activation and Dimensions length mismatch. \
-        Activation length: {len(activation)}, Dimensions length: {len(dimensions)}"
-        )
-
-    block_layers = []
-
-    for idx, dim in enumerate(dimensions):
-        dropout_layer = None
-        activation_idx = activation if isinstance(activation, str) else activation[idx]
-        if no_activation_last_layer and idx == len(dimensions) - 1:
-            activation_idx = "linear"
-        else:
-            if dropout:
-                if activation_idx in ["selu", tf.keras.activations.selu]:
-                    # Best practice for SeLU. It is also recommended
-                    # kernel_initializer="lecun_normal"
-                    dropout_layer = tf.keras.layers.AlphaDropout(dropout)
-                else:
-                    dropout_layer = tf.keras.layers.Dropout(dropout)
-
-        block_layers.append(
-            _Dense(
-                dim,
-                activation=activation_idx,
-                use_bias=use_bias,
-                kernel_initializer=kernel_initializer,
-                bias_initializer=bias_initializer,
-                kernel_regularizer=kernel_regularizer,
-                bias_regularizer=bias_regularizer,
-                activity_regularizer=activity_regularizer,
+    def __init__(
+        self,
+        dimensions: List[int],
+        activation: Union[str, List[str]] = "relu",
+        use_bias: bool = True,
+        kernel_initializer: InitializerType = "glorot_uniform",
+        bias_initializer: InitializerType = "zeros",
+        kernel_regularizer: Optional[RegularizerType] = None,
+        bias_regularizer: Optional[RegularizerType] = None,
+        activity_regularizer: Optional[RegularizerType] = None,
+        dropout: Optional[float] = None,
+        normalization: Optional[Union[str, tf.keras.layers.Layer]] = None,
+        filter: Optional[Union[Schema, Tags, List[str], "Filter"]] = None,
+        no_activation_last_layer: bool = False,
+        block_name: str = "MLPBlock",
+        **kwargs,
+    ) -> SequentialBlock:
+        if isinstance(activation, list) and len(activation) != len(dimensions):
+            raise ValueError(
+                f"Activation and Dimensions length mismatch. \
+            Activation length: {len(activation)}, Dimensions length: {len(dimensions)}"
             )
-        )
-        if dropout_layer:
-            block_layers.append(dropout_layer)
 
-        if normalization:
-            if normalization == "batch_norm":
-                block_layers.append(tf.keras.layers.BatchNormalization())
-            elif isinstance(normalization, tf.keras.layers.Layer):
-                block_layers.append(normalization)
+        block_layers = []
+
+        for idx, dim in enumerate(dimensions):
+            dropout_layer = None
+            activation_idx = activation if isinstance(activation, str) else activation[idx]
+            if no_activation_last_layer and idx == len(dimensions) - 1:
+                activation_idx = "linear"
             else:
-                raise ValueError("Normalization needs to be an instance `Layer` or " "`batch_norm`")
+                if dropout:
+                    if activation_idx in ["selu", tf.keras.activations.selu]:
+                        # Best practice for SeLU. It is also recommended
+                        # kernel_initializer="lecun_normal"
+                        dropout_layer = tf.keras.layers.AlphaDropout(dropout)
+                    else:
+                        dropout_layer = tf.keras.layers.Dropout(dropout)
 
-    return SequentialBlock(block_layers, filter=filter, block_name=block_name, **kwargs)
+            block_layers.append(
+                _Dense(
+                    dim,
+                    activation=activation_idx,
+                    use_bias=use_bias,
+                    kernel_initializer=kernel_initializer,
+                    bias_initializer=bias_initializer,
+                    kernel_regularizer=kernel_regularizer,
+                    bias_regularizer=bias_regularizer,
+                    activity_regularizer=activity_regularizer,
+                )
+            )
+            if dropout_layer:
+                block_layers.append(dropout_layer)
+
+            if normalization:
+                if normalization == "batch_norm":
+                    block_layers.append(tf.keras.layers.BatchNormalization())
+                elif isinstance(normalization, tf.keras.layers.Layer):
+                    block_layers.append(normalization)
+                else:
+                    raise ValueError(
+                        "Normalization needs to be an instance `Layer` or " "`batch_norm`"
+                    )
+
+        super().__init__(block_layers, filter=filter, block_name=block_name, **kwargs)
 
 
 def DenseResidualBlock(

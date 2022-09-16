@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Union
 import six
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
+from typing_extensions import Self
 
 from merlin.models.tf.core.base import (
     Block,
@@ -28,15 +29,12 @@ from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema, Tags
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class SequentialBlock(Block):
+class SequentialBase(Block):
     """The SequentialLayer represents a sequence of Keras layers.
     It is a Keras Layer that can be used instead of tf.keras.layers.Sequential,
     which is actually a Keras Model.  In contrast to keras Sequential, this
     layer can be used as a pure Layer in tf.functions and when exporting
-    SavedModels, without having to pre-declare input and output shapes.  In turn,
-    this layer is usable as a preprocessing layer for TF Agents Networks, and
-    can be exported via PolicySaver.
+    SavedModels, without having to pre-declare input and output shapes.
     Usage::
 
         c = SequentialLayer([layer1, layer2, layer3])
@@ -82,7 +80,7 @@ class SequentialBlock(Block):
                     )
                 )
 
-        super(SequentialBlock, self).__init__(**kwargs)
+        super(SequentialBase, self).__init__(**kwargs)
 
         if getattr(layers[0], "has_schema", None):
             super().set_schema(layers[0].schema)
@@ -148,7 +146,7 @@ class SequentialBlock(Block):
             The input block
         """
         first = list(self)[0]
-        if isinstance(first, SequentialBlock):
+        if isinstance(first, SequentialBase):
             return first.inputs
         if is_input_block(first):
             return first
@@ -179,7 +177,7 @@ class SequentialBlock(Block):
     def filter_features(self) -> List[str]:
         if isinstance(self.layers[0], Filter):
             return self.layers[0].feature_names
-        elif isinstance(self.layers[0], SequentialBlock):
+        elif isinstance(self.layers[0], SequentialBase):
             return self.layers[0].filter_features
 
         return []
@@ -303,7 +301,11 @@ class SequentialBlock(Block):
             for conf in config.values()
         ]
 
-        return SequentialBlock(layers)
+        output = SequentialBase(layers)
+        # Typically this class gets overwritten so we want to return the super-class
+        output.__class__ = cls
+
+        return output
 
     def __rrshift__(self, other):
         return right_shift_layer(self, other)
@@ -313,9 +315,13 @@ class SequentialBlock(Block):
         return right_shift_layer(other, self)
 
 
-@docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ParallelBlock(TabularBlock):
+class SequentialBlock(SequentialBase):
+    ...
+
+
+@docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
+class ParallelBase(TabularBlock):
     """Merge multiple layers or TabularModule's into a single output of TabularData.
 
     Parameters
@@ -459,7 +465,7 @@ class ParallelBlock(TabularBlock):
     def __setitem__(self, key: str, item: "Block"):
         self.parallel_dict[key] = item
 
-    def add_branch(self, name: str, block: "Block") -> "ParallelBlock":
+    def add_branch(self, name: str, block: "Block") -> Self:
         if isinstance(self.parallel_layers, dict):
             self.parallel_layers[name] = block
 
@@ -543,7 +549,7 @@ class ParallelBlock(TabularBlock):
         return layer_inputs
 
     def get_config(self):
-        config = super(ParallelBlock, self).get_config()
+        config = super(ParallelBase, self).get_config()
         config.update({"automatic_pruning": self.automatic_pruning})
 
         return tf_utils.maybe_serialize_keras_objects(self, config, ["parallel_layers"])
@@ -574,7 +580,15 @@ class ParallelBlock(TabularBlock):
     def from_config(cls, config, custom_objects=None):
         inputs, config = cls.parse_config(config, custom_objects)
 
-        return cls(inputs, **config)
+        output = ParallelBase(inputs, **config)
+        output.__class__ = cls
+
+        return output
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ParallelBlock(ParallelBase):
+    ...
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

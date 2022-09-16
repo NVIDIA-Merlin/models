@@ -9,7 +9,7 @@ from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
+from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
@@ -395,16 +395,18 @@ def WideAndDeepModel(
                 **kwargs,
             )
     if deep_input_block:
-        deep_body = deep_input_block.connect(deep_block).connect(
+        branches["deep"] = SequentialBlock(
+            deep_input_block,
+            deep_block,
             MLPBlock(
                 [1],
                 no_activation_last_layer=True,
                 kernel_regularizer=deep_regularizer,
                 bias_regularizer=deep_regularizer,
                 dropout=deep_dropout,
-            )
+            ),
+            name="deep",
         )
-        branches["deep"] = deep_body
 
     if not wide_input_block:
         if wide_schema is not None and len(wide_schema) > 0:
@@ -415,16 +417,17 @@ def WideAndDeepModel(
             )
 
     if wide_input_block:
-        wide_body = wide_input_block.connect(
+        branches["wide"] = SequentialBlock(
+            wide_input_block,
             MLPBlock(
                 [1],
                 no_activation_last_layer=True,
                 kernel_regularizer=wide_regularizer,
                 bias_regularizer=wide_regularizer,
                 dropout=wide_dropout,
-            )
+            ),
+            name="wide",
         )
-        branches["wide"] = wide_body
 
     if len(branches) == 0:
         raise ValueError(
@@ -432,7 +435,9 @@ def WideAndDeepModel(
             "or wide part (wide_schema/wide_input_block) must be provided."
         )
 
-    wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")
+    wide_and_deep_body = ParallelBlock(
+        branches, aggregation="element-wise-sum", name="wide_and_deep"
+    )
     model = Model(wide_and_deep_body, prediction_tasks)
 
     return model
