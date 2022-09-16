@@ -373,6 +373,8 @@ class BaseModel(tf.keras.Model):
                 if len(self.prediction_blocks) > 1:
                     for metric in out[prediction_name]:
                         metric._name = "/".join([prediction_block.full_name, metric.name])
+        else:
+            out = metrics
 
         return out
 
@@ -590,6 +592,7 @@ class BaseModel(tf.keras.Model):
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
         metrics = self.compute_metrics(outputs, training=True)
+
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -607,7 +610,9 @@ class BaseModel(tf.keras.Model):
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
         self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
+
         metrics = self.compute_metrics(outputs, training=False)
+
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -639,7 +644,6 @@ class BaseModel(tf.keras.Model):
 
         should_compute_metrics = self._should_compute_train_metrics_for_batch or not training
         if should_compute_metrics:
-
             # This ensures that compiled metrics are built
             # to make self.compiled_metrics.metrics available
             if not self.compiled_metrics.built:
