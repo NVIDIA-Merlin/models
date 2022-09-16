@@ -52,10 +52,21 @@ class SelectHFOutput(tf.keras.layers.Layer):
 
     def __init__(self, output_fn, **kwargs):
         super().__init__(**kwargs)
-        self.output_fn = output_fn
+        self.output_fn = tf.keras.layers.Lambda(output_fn)
 
     def call(self, inputs):
         return self.output_fn(inputs)
+
+    def get_config(self):
+        config = super().get_config()
+        config["output_fn"] = tf.keras.layers.serialize(self.output_fn)
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config["output_fn"] = tf.keras.layers.deserialize(config["output_fn"])
+
+        return super().from_config(config)
 
 
 class HFOutput(Enum):
@@ -87,6 +98,16 @@ class TransformerPrepare(tf.keras.layers.Layer):
     def call(self, inputs: TabularData, mask=None, features=None, **kwargs) -> TabularData:
         """Update the input embeddings with additional tensors"""
         raise NotImplementedError()
+
+    def get_config(self):
+        config = super().get_config()
+        config = maybe_serialize_keras_objects(self, config, ["transformer"])
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        config = maybe_deserialize_keras_objects(config, ["transformer"])
+        return super().from_config(config)
 
 
 def get_tf_main_layer(hf_model):
@@ -142,12 +163,12 @@ class TransformerBlock(Block):
 
     def get_config(self):
         config = super().get_config()
-        config = maybe_serialize_keras_objects(self, config, ["transformer", "prepare_module"])
+        config = maybe_serialize_keras_objects(self, config, ["transformer", "pre", "post"])
         return config
 
     @classmethod
     def from_config(cls, config):
-        config = maybe_deserialize_keras_objects(config, ["transformer", "prepare_module"])
+        config = maybe_deserialize_keras_objects(config, ["transformer", "pre", "post"])
 
         return super().from_config(config)
 
