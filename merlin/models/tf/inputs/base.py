@@ -15,16 +15,13 @@
 #
 
 import logging
-from typing import Dict, Optional, Tuple, Type, Union
+from typing import Callable, Dict, Optional, Tuple, Type, Union
+
+from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.core.base import Block, BlockType
-from merlin.models.tf.core.combinators import (
-    Filter,
-    ParallelBlock,
-    SequentialBlock,
-    TabularAggregationType,
-)
+from merlin.models.tf.core.combinators import Filter, ParallelBlock, TabularAggregationType
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
@@ -211,11 +208,9 @@ def InputBlock(
 
 
 def InputBlockV2(
-    schema: Schema,
-    categorical: Optional[Block] = None,
-    continuous_projection: Optional[Block] = None,
-    continuous_column_selector: Union[Tags, Schema] = Tags.CONTINUOUS,
-    categorical_column_selector: Union[Tags, Schema] = Tags.CATEGORICAL,
+    schema: Optional[Schema] = None,
+    categorical: Union[Tags, Schema, Layer] = Tags.CATEGORICAL,
+    continuous: Union[Tags, Schema, Layer] = Tags.CONTINUOUS,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = "concat",
@@ -255,21 +250,14 @@ def InputBlockV2(
     """
     if "categorical" not in branches:
         if not categorical:
-            cat_schema = _parse_column_selector(schema, categorical_column_selector)
-            if len(cat_schema) > 0:
-                branches["categorical"] = Embeddings(cat_schema)
-        else:
-            branches["categorical"] = categorical
+            cat_branch = parse_branch(categorical, Embeddings, schema)
+            if cat_branch:
+                branches["categorical"] = cat_branch
 
     if "continuous" not in branches:
-        con_schema = _parse_column_selector(schema, continuous_column_selector)
-        if con_schema:
-            if continuous_projection:
-                branches["continuous"] = SequentialBlock(
-                    Filter(con_schema, aggregation="concat"), continuous_projection
-                )
-            else:
-                branches["continuous"] = Filter(con_schema)
+        con_branch = parse_branch(continuous, lambda x: Filter(x, name="continuous"), schema)
+        if con_branch:
+            branches["continuous"] = con_branch
 
     if not branches:
         raise ValueError("No columns selected for the input block")
@@ -282,13 +270,19 @@ def InputBlockV2(
     )
 
 
-def _parse_column_selector(
-    schema: Schema,
-    column_selector: Union[Tags, Schema],
-) -> Schema:
-    if isinstance(column_selector, Schema):
-        schema = column_selector
-    else:
-        schema = schema.select_by_tag(column_selector)
+def parse_branch(
+    branch: Optional[Union[Tags, Schema, Layer]],
+    default: Callable[[Schema], Layer],
+    schema: Optional[Schema] = None,
+) -> Optional[Layer]:
+    if isinstance(branch, Layer) or branch is None:
+        return branch
 
-    return schema
+    if isinstance(branch, Schema):
+        schema = branch
+    else:
+        if not schema:
+            raise ValueError("Schema is required to parse the branch ", f"with default {default}")
+        schema = schema.select_by_tag(branch)
+
+    return default(schema)
