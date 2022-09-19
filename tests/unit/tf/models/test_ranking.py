@@ -294,13 +294,13 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
         # Multi-hot features
         ml.SequentialBlock(
             ml.Filter(cat_schema_multihot),
-            ml.AsDenseFeatures(max_seq_length=6),
+            ml.ListToDense(max_seq_length=6),
             ml.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
         ),
         # 2nd level feature interactions of one-hot features
         ml.SequentialBlock(
             ml.Filter(cat_schema),
-            ml.AsDenseFeatures(max_seq_length=6),
+            ml.ListToDense(max_seq_length=6),
             ml.HashedCrossAll(
                 cat_schema,
                 num_bins=100,

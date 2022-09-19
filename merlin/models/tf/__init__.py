@@ -20,16 +20,6 @@
 from merlin.models.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
 from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
-from merlin.models.tf.core.transformations import (
-    AsDenseFeatures,
-    AsRaggedFeatures,
-    AsSparseFeatures,
-    CategoryEncoding,
-    ExpandDims,
-    HashedCross,
-    HashedCrossAll,
-    LabelToOneHot,
-)
 
 configure_tensorflow()
 
@@ -81,7 +71,7 @@ from merlin.models.tf.core.combinators import (
     ResidualBlock,
     SequentialBlock,
 )
-from merlin.models.tf.data_augmentation.noise import StochasticSwapNoise
+from merlin.models.tf.core.encoder import EncoderBlock
 from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
@@ -119,15 +109,24 @@ from merlin.models.tf.prediction_tasks.classification import (
     MultiClassClassificationTask,
 )
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
-from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.tf.predictions.base import PredictionBlock
 from merlin.models.tf.predictions.classification import BinaryPrediction, CategoricalPrediction
+from merlin.models.tf.predictions.dot_product import DotProductCategoricalPrediction
 from merlin.models.tf.predictions.regression import RegressionPrediction
 from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
 from merlin.models.tf.predictions.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSamplerV2
+from merlin.models.tf.transforms.features import (
+    CategoryEncoding,
+    HashedCross,
+    HashedCrossAll,
+    ToOneHot,
+)
+from merlin.models.tf.transforms.noise import StochasticSwapNoise
+from merlin.models.tf.transforms.regularization import L2Norm
+from merlin.models.tf.transforms.tensor import ExpandDims, ListToDense, ListToRagged, ListToSparse
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
 
@@ -149,6 +148,7 @@ __all__ = [
     "SequentialBlock",
     "ResidualBlock",
     "DualEncoderBlock",
+    "EncoderBlock",
     "CrossBlock",
     "DLRMBlock",
     "MLPBlock",
@@ -173,9 +173,9 @@ __all__ = [
     "TwoTowerBlock",
     "MatrixFactorizationBlock",
     "QueryItemIdsEmbeddingsBlock",
-    "AsDenseFeatures",
-    "AsRaggedFeatures",
-    "AsSparseFeatures",
+    "ListToDense",
+    "ListToRagged",
+    "ListToSparse",
     "CategoryEncoding",
     "HashedCross",
     "HashedCrossAll",
@@ -188,11 +188,12 @@ __all__ = [
     "StackFeatures",
     "DotProductInteraction",
     "FMPairwiseInteraction",
-    "LabelToOneHot",
+    "ToOneHot",
     "PredictionBlock",
     "BinaryPrediction",
     "RegressionPrediction",
     "CategoricalPrediction",
+    "DotProductCategoricalPrediction",
     "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
@@ -204,7 +205,6 @@ __all__ = [
     "OptimizerBlocks",
     "ItemRetrievalTask",
     "ItemRetrievalScorer",
-    "NextItemPredictionTask",
     "NDCGAt",
     "PrecisionAt",
     "MRRAt",
@@ -219,6 +219,7 @@ __all__ = [
     "PredictionTasks",
     "StochasticSwapNoise",
     "ExpandDims",
+    "L2Norm",
     "NoOp",
     "ItemSampler",
     "EmbeddingWithMetadata",
