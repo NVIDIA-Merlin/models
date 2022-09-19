@@ -19,7 +19,7 @@ from typing import List, Optional, Union
 import tensorflow as tf
 
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.combinators import ResidualBlock, SequentialBase, SequentialBlock
+from merlin.models.tf.core.combinators import ResidualBlock, SequentialBlock
 from merlin.models.tf.core.tabular import Filter, tabular_aggregation_registry
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -33,7 +33,7 @@ RegularizerType = Union[str, tf.keras.regularizers.Regularizer]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class MLPBlock(SequentialBase):
+class MLPBlock(SequentialBlock):
     """
     A block that applies a multi-layer perceptron to the input.
 

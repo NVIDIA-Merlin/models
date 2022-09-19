@@ -23,7 +23,6 @@ from merlin.models.tf.core.aggregation import SequenceAggregation, SequenceAggre
 from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import (
     Filter,
-    ParallelBase,
     ParallelBlock,
     TabularAggregationType,
     TabularBlock,
@@ -214,7 +213,7 @@ def InputBlock(
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class InputBlockV2(ParallelBase):
+class InputBlockV2(ParallelBlock):
     """The entry block of the model to process input features from a schema.
     This is the 2nd version of InputBlock, which is more flexible for accepting
     the external definition of `embeddings` block.

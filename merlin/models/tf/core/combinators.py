@@ -29,7 +29,8 @@ from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema, Tags
 
 
-class SequentialBase(Block):
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class SequentialBlock(Block):
     """The SequentialLayer represents a sequence of Keras layers.
     It is a Keras Layer that can be used instead of tf.keras.layers.Sequential,
     which is actually a Keras Model.  In contrast to keras Sequential, this
@@ -80,7 +81,7 @@ class SequentialBase(Block):
                     )
                 )
 
-        super(SequentialBase, self).__init__(**kwargs)
+        super(SequentialBlock, self).__init__(**kwargs)
 
         if getattr(layers[0], "has_schema", None):
             super().set_schema(layers[0].schema)
@@ -146,7 +147,7 @@ class SequentialBase(Block):
             The input block
         """
         first = list(self)[0]
-        if isinstance(first, SequentialBase):
+        if isinstance(first, SequentialBlock):
             return first.inputs
         if is_input_block(first):
             return first
@@ -177,7 +178,7 @@ class SequentialBase(Block):
     def filter_features(self) -> List[str]:
         if isinstance(self.layers[0], Filter):
             return self.layers[0].feature_names
-        elif isinstance(self.layers[0], SequentialBase):
+        elif isinstance(self.layers[0], SequentialBlock):
             return self.layers[0].filter_features
 
         return []
@@ -301,7 +302,7 @@ class SequentialBase(Block):
             for conf in config.values()
         ]
 
-        output = SequentialBase(layers)
+        output = SequentialBlock(layers)
         # Typically this class gets overwritten so we want to return the super-class
         output.__class__ = cls
 
@@ -316,12 +317,8 @@ class SequentialBase(Block):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class SequentialBlock(SequentialBase):
-    ...
-
-
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
-class ParallelBase(TabularBlock):
+class ParallelBlock(TabularBlock):
     """Merge multiple layers or TabularModule's into a single output of TabularData.
 
     Parameters
@@ -549,7 +546,7 @@ class ParallelBase(TabularBlock):
         return layer_inputs
 
     def get_config(self):
-        config = super(ParallelBase, self).get_config()
+        config = super(ParallelBlock, self).get_config()
         config.update({"automatic_pruning": self.automatic_pruning})
 
         return tf_utils.maybe_serialize_keras_objects(self, config, ["parallel_layers"])
@@ -580,15 +577,10 @@ class ParallelBase(TabularBlock):
     def from_config(cls, config, custom_objects=None):
         inputs, config = cls.parse_config(config, custom_objects)
 
-        output = ParallelBase(inputs, **config)
+        output = ParallelBlock(inputs, **config)
         output.__class__ = cls
 
         return output
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ParallelBlock(ParallelBase):
-    ...
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
