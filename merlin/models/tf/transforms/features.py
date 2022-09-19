@@ -649,8 +649,10 @@ def reshape_categorical_input_tensor_for_encoding(
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BroadcastToSequence(tf.keras.layers.Layer):
-    def __init__(self, **kwargs):
+    def __init__(self, context_schema, sequence_schema, **kwargs):
         super().__init__(**kwargs)
+        self.context_schema = context_schema
+        self.sequence_schema = sequence_schema
 
     def call(self, inputs: TabularData) -> TabularData:
         inputs = self._broadcast(inputs, inputs)
@@ -699,3 +701,23 @@ class BroadcastToSequence(tf.keras.layers.Layer):
 
         mask = self._broadcast(inputs, mask)
         return mask
+
+    def get_config(self):
+        config = super().get_config()
+        config["context_schema"] = schema_utils.schema_to_tensorflow_metadata_json(
+            self.context_schema
+        )
+        config["sequence_schema"] = schema_utils.schema_to_tensorflow_metadata_json(
+            self.sequence_schema
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        context_schema = schema_utils.tensorflow_metadata_json_to_schema(
+            config.pop("context_schema")
+        )
+        sequence_schema = schema_utils.tensorflow_metadata_json_to_schema(
+            config.pop("sequence_schema")
+        )
+        return cls(context_schema, sequence_schema, **config)
