@@ -3,11 +3,11 @@ from typing import Optional
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
-from merlin.models.tf.predictions.base import MetricsFn, PredictionBlock
+from merlin.models.tf.outputs.base import MetricsFn, ModelOutput
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class RegressionPrediction(PredictionBlock):
+class RegressionOutput(ModelOutput):
     """Regression prediction block
 
     Parameters
@@ -43,9 +43,9 @@ class RegressionPrediction(PredictionBlock):
         ),
         **kwargs,
     ):
-        prediction = kwargs.pop("prediction", None)
+        to_call = kwargs.pop("to_call", None)
         super().__init__(
-            prediction=prediction or tf.keras.layers.Dense(1, activation="linear"),
+            to_call=to_call or tf.keras.layers.Dense(1, activation="linear"),
             default_loss=default_loss,
             default_metrics_fn=default_metrics_fn,
             target=target,
