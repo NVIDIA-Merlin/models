@@ -220,7 +220,8 @@ class TabularBlock(Block):
         )
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        return inputs
+        outputs = self._maybe_filter_inputs_using_schema(inputs)
+        return outputs
 
     def post_call(
         self,
@@ -292,14 +293,25 @@ class TabularBlock(Block):
 
         return inputs
 
+    def _maybe_filter_inputs_using_schema(self, inputs):
+        maybe_schema = getattr(self, "_schema", None)
+        if maybe_schema and isinstance(inputs, dict):
+            filtered_inputs = {k: v for k, v in inputs.items() if k in maybe_schema.column_names}
+        else:
+            filtered_inputs = inputs
+
+        return filtered_inputs
+
     def compute_call_output_shape(self, input_shapes):
-        return input_shapes
+        output_shapes = self._maybe_filter_inputs_using_schema(input_shapes)
+        return output_shapes
 
     def compute_output_shape(self, input_shapes):
         if self.pre:
             input_shapes = self.pre.compute_output_shape(input_shapes)
 
-        output_shapes = self._check_post_output_size(self.compute_call_output_shape(input_shapes))
+        output_shapes = self._maybe_filter_inputs_using_schema(input_shapes)
+        output_shapes = self._check_post_output_size(self.compute_call_output_shape(output_shapes))
 
         return output_shapes
 

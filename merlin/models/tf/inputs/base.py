@@ -19,12 +19,7 @@ from typing import Dict, Optional, Tuple, Type, Union
 
 from merlin.models.tf.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.core.base import Block, BlockType
-from merlin.models.tf.core.combinators import (
-    Filter,
-    ParallelBlock,
-    TabularAggregationType,
-    TabularBlock,
-)
+from merlin.models.tf.core.combinators import ParallelBlock, TabularAggregationType, TabularBlock
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
@@ -258,14 +253,11 @@ def InputBlockV2(
         con_schema = continuous_column_selector
     else:
         con_schema = schema.select_by_tag(continuous_column_selector)
-    # TODO: Should we automatically add a Filter in TabularBlock
-    #  to filter out just the schema columns?
-    con_filter = Filter(con_schema)
     if continuous_projection:
-        continuous = TabularBlock(schema=con_schema, aggregation="concat", pre=con_filter)
+        continuous = TabularBlock(schema=con_schema, aggregation="concat")
         continuous = continuous.connect(continuous_projection)
     else:
-        continuous = TabularBlock(schema=con_schema, pre=con_filter)
+        continuous = TabularBlock(schema=con_schema)
 
     if con_schema:
         branches["continuous"] = continuous
