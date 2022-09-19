@@ -249,10 +249,9 @@ def InputBlockV2(
         continuous and embeddings
     """
     if "categorical" not in branches:
-        if not categorical:
-            cat_branch = parse_branch(categorical, Embeddings, schema)
-            if cat_branch:
-                branches["categorical"] = cat_branch
+        cat_branch = parse_branch(categorical, Embeddings, schema)
+        if cat_branch:
+            branches["categorical"] = cat_branch
 
     if "continuous" not in branches:
         con_branch = parse_branch(continuous, lambda x: Filter(x, name="continuous"), schema)
