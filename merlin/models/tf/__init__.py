@@ -103,6 +103,13 @@ from merlin.models.tf.models.retrieval import (
     TwoTowerModel,
     YoutubeDNNRetrievalModel,
 )
+from merlin.models.tf.outputs.base import ModelOutput
+from merlin.models.tf.outputs.classification import BinaryOutput, CategoricalOutput
+from merlin.models.tf.outputs.contrastive import ContrastiveOutput
+from merlin.models.tf.outputs.regression import RegressionOutput
+from merlin.models.tf.outputs.sampling.base import Candidate, CandidateSampler
+from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
+from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.classification import (
     BinaryClassificationTask,
@@ -111,13 +118,6 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
-from merlin.models.tf.predictions.base import PredictionBlock
-from merlin.models.tf.predictions.classification import BinaryPrediction, CategoricalPrediction
-from merlin.models.tf.predictions.dot_product import DotProductCategoricalPrediction
-from merlin.models.tf.predictions.regression import RegressionPrediction
-from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
-from merlin.models.tf.predictions.sampling.in_batch import InBatchSamplerV2
-from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.transforms.features import (
     CategoryEncoding,
     HashedCross,
@@ -189,11 +189,11 @@ __all__ = [
     "DotProductInteraction",
     "FMPairwiseInteraction",
     "ToOneHot",
-    "PredictionBlock",
-    "BinaryPrediction",
-    "RegressionPrediction",
-    "CategoricalPrediction",
-    "DotProductCategoricalPrediction",
+    "ModelOutput",
+    "BinaryOutput",
+    "RegressionOutput",
+    "CategoricalOutput",
+    "ContrastiveOutput",
     "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
