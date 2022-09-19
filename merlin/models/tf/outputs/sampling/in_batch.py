@@ -17,12 +17,12 @@ from typing import Optional
 
 import tensorflow as tf
 
-from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
+from merlin.models.tf.outputs.sampling.base import Candidate, CandidateSampler
 
 
-@ItemSamplerV2.registry.register("in-batch")
+@CandidateSampler.registry.register("in-batch")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class InBatchSamplerV2(ItemSamplerV2):
+class InBatchSamplerV2(CandidateSampler):
     """Provides in-batch sampling [1]_ for two-tower item retrieval
     models. The implementation is very simple, as it
     just returns the current item embeddings and metadata, but it is necessary to have
@@ -47,7 +47,7 @@ class InBatchSamplerV2(ItemSamplerV2):
 
     def __init__(self, batch_size: Optional[int] = None, **kwargs):
         super().__init__(max_num_samples=batch_size, **kwargs)
-        self._last_batch: Optional[Items] = None  # type: ignore
+        self._last_batch: Optional[Candidate] = None  # type: ignore
         self.set_batch_size(batch_size)
 
     @property
@@ -59,18 +59,21 @@ class InBatchSamplerV2(ItemSamplerV2):
         if value is not None:
             self.set_max_num_samples(value)
 
-    def build(self, items: Items) -> None:
+    def build(self, items: Candidate) -> None:
         if isinstance(items, dict):
-            items = Items.from_config(items)
+            items = Candidate.from_config(items)
         if self._batch_size is None:
-            self.set_batch_size(items.id[0])
+            if isinstance(items, Candidate):
+                self.set_batch_size(items.id[0])
+            else:
+                self.set_batch_size(items[0])
 
-    def add(self, items: Items):
+    def add(self, items: Candidate):
         self._last_batch = items
 
     def call(
-        self, items: Items, features=None, targets=None, training=False, testing=False
-    ) -> Items:
+        self, items: Candidate, features=None, targets=None, training=False, testing=False
+    ) -> Candidate:
         """Returns the item embeddings and item ids from
         the current batch.
 
@@ -97,7 +100,7 @@ class InBatchSamplerV2(ItemSamplerV2):
 
         return items
 
-    def sample(self) -> Items:
+    def sample(self) -> Candidate:
         return self._last_batch
 
     def get_config(self):
