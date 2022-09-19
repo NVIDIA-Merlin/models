@@ -109,15 +109,15 @@ def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
     output = model(batch[0], batch[1], training=True)
     assert output[1].shape == (batch[1].shape[0], 51)
 
-    model_out.compile(
-        negative_sampling=[PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
+    model_out.set_negative_samplers(
+        [PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
     )
 
     output = model(batch[0], batch[1], training=True)
     assert output.outputs.shape == (batch[1].shape[0], 21)
 
-    model.model_outputs[0].compile(
-        negative_sampling=["in-batch", PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
+    model_out.set_negative_samplers(
+        ["in-batch", PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
     )
     output = model(batch[0], batch[1], training=True)
     assert output.outputs.shape == (batch[1].shape[0], 71)

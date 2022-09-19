@@ -37,7 +37,7 @@ class ModelOutput(Layer):
 
     Parameters
     ----------
-    call : Layer
+    to_call : Layer
         The layer to call in the forward-pass of the model
     default_loss: Union[str, tf.keras.losses.Loss]
         Default loss to set if the user does not specify one

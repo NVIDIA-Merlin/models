@@ -300,11 +300,10 @@ class ContrastiveOutput(ModelOutput):
     def keys(self) -> List[str]:
         return [self.query_name, self.candidate_name]
 
-    def compile(self, negative_sampling=None, downscore_false_negatives=False):
-        if negative_sampling is not None:
-            negative_sampling = parse_negative_samplers(negative_sampling)
-        self.negative_samplers = negative_sampling
-        self.downscore_false_negatives = downscore_false_negatives
+    def set_negative_samplers(self, negative_samplers: ItemSamplersType):
+        if negative_samplers is not None:
+            negative_samplers = parse_negative_samplers(negative_samplers)
+        self.negative_samplers = negative_samplers
 
     def get_config(self):
         config = super().get_config()
