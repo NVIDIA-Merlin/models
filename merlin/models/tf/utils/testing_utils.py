@@ -16,7 +16,7 @@
 import pathlib
 import platform
 import tempfile
-from typing import Any, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence, Tuple, TypeVar, Union
 
 import numpy as np
 import pytest
@@ -74,15 +74,18 @@ def assert_model_is_retrainable(
     return loaded_model
 
 
+ModelType = TypeVar("ModelType", bound=Model)
+
+
 def model_test(
-    model: Model,
+    model: ModelType,
     dataset: Union[merlin.io.Dataset, BatchedDataset],
     run_eagerly: bool = True,
     optimizer="adam",
     epochs: int = 1,
     reload_model: bool = False,
     **kwargs,
-) -> Tuple[Model, Any]:
+) -> Tuple[ModelType, Any]:
     """Generic model test. It will compile & fit the model and make sure it can be re-trained."""
 
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)

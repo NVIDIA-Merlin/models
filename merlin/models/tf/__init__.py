@@ -71,7 +71,7 @@ from merlin.models.tf.core.combinators import (
     ResidualBlock,
     SequentialBlock,
 )
-from merlin.models.tf.core.encoder import EncoderBlock
+from merlin.models.tf.core.encoder import EmbeddingEncoder, Encoder
 from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import ContinuousFeatures
@@ -148,7 +148,8 @@ __all__ = [
     "SequentialBlock",
     "ResidualBlock",
     "DualEncoderBlock",
-    "EncoderBlock",
+    "Encoder",
+    "EmbeddingEncoder",
     "CrossBlock",
     "DLRMBlock",
     "MLPBlock",

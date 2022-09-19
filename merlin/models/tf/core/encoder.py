@@ -3,14 +3,16 @@ from typing import Optional, Union
 import tensorflow as tf
 from packaging import version
 
+import merlin.io
 from merlin.models.tf.core import combinators
 from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
 from merlin.models.tf.utils import tf_utils
-from merlin.schema import Schema
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class EncoderBlock(tf.keras.Model):
+class Encoder(tf.keras.Model):
     """Block that can be used for prediction & evaluation but not for training
 
     Parameters
@@ -48,6 +50,23 @@ class EncoderBlock(tf.keras.Model):
         self.blocks = [input_block] + list(blocks) if blocks else [input_block]
         self.pre = pre
         self.post = post
+
+    def encode(
+        self,
+        dataset: merlin.io.Dataset,
+        id_col: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        **kwargs,
+    ) -> merlin.io.Dataset:
+        raise NotImplementedError("")
+
+    def batch_predict(
+        self,
+        dataset: merlin.io.Dataset,
+        output_schema: Optional[Schema] = None,
+        **kwargs,
+    ) -> merlin.io.Dataset:
+        """Batch predict"""
+        raise NotImplementedError("")
 
     def call(self, inputs, **kwargs):
         if "features" not in kwargs:
@@ -129,7 +148,10 @@ class EncoderBlock(tf.keras.Model):
         if post is not None:
             post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
 
-        return cls(*layers, pre=pre, post=post)
+        output = Encoder(*layers, pre=pre, post=post)
+        output.__class__ = cls
+
+        return output
 
     def get_config(self):
         config = tf_utils.maybe_serialize_keras_objects(self, {}, ["pre", "post"])
@@ -137,3 +159,40 @@ class EncoderBlock(tf.keras.Model):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
 
         return config
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class EmbeddingEncoder(Encoder):
+    def __init__(
+        self,
+        schema: Union[ColumnSchema, Schema],
+        dim: int,
+        embeddings_initializer="uniform",
+        embeddings_regularizer=None,
+        activity_regularizer=None,
+        embeddings_constraint=None,
+        mask_zero=False,
+        input_length=None,
+        sequence_combiner: Optional[CombinerType] = None,
+        trainable=True,
+        name=None,
+        dtype=None,
+        dynamic=False,
+    ):
+        table = EmbeddingTable(
+            dim,
+            schema if isinstance(schema, ColumnSchema) else schema.first,
+            embeddings_initializer=embeddings_initializer,
+            embeddings_regularizer=embeddings_regularizer,
+            activity_regularizer=activity_regularizer,
+            embeddings_constraint=embeddings_constraint,
+            mask_zero=mask_zero,
+            input_length=input_length,
+            sequence_combiner=sequence_combiner,
+            trainable=trainable,
+            name=name,
+            dtype=dtype,
+            dynamic=dynamic,
+        )
+
+        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[table.table_name]))

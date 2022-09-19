@@ -16,7 +16,7 @@ from tensorflow.keras.utils import unpack_x_y_sample_weight
 import merlin.io
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
-from merlin.models.tf.core.encoder import EncoderBlock
+from merlin.models.tf.core.encoder import Encoder
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
 from merlin.models.tf.dataset import BatchedDataset
@@ -36,7 +36,7 @@ from merlin.models.tf.utils.tf_utils import (
     maybe_serialize_keras_objects,
 )
 from merlin.models.utils.dataset import unique_rows_by_features
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 if TYPE_CHECKING:
     from merlin.models.tf.core.index import TopKIndexBlock
@@ -1043,7 +1043,10 @@ class Model(BaseModel):
         if post is not None:
             post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
 
-        return cls(*layers, pre=pre, post=post)
+        output = Model(*layers, pre=pre, post=post)
+        output.__class__ = cls
+
+        return output
 
     def get_config(self):
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
@@ -1426,28 +1429,63 @@ class RetrievalModelV2(Model):
     def __init__(
         self,
         *,
-        query: tf.keras.layers.Layer,
+        query: Union[Encoder, tf.keras.layers.Layer],
         output: Union[ModelOutput, tf.keras.layers.Layer],
-        candidate: Optional[tf.keras.layers.Layer] = None,
+        candidate: Optional[Union[Encoder, tf.keras.layers.Layer]] = None,
         query_name="query",
         candidate_name="candidate",
+        pre: Optional[tf.keras.layers.Layer] = None,
+        post: Optional[tf.keras.layers.Layer] = None,
         **kwargs,
     ):
         if isinstance(output, ContrastiveOutput):
             query_name = output.query_name
             candidate_name = output.candidate_name
-        self._query_name = query_name
-        self._candidate_name = candidate_name
 
         if query and candidate:
-
-            self._encoder = ParallelBlock(
-                {self._query_name: query, self._candidate_name: candidate}
-            )
+            encoder = ParallelBlock({query_name: query, candidate_name: candidate})
         else:
-            self._encoder = query
+            encoder = query
 
-        super().__init__(self._encoder, output, **kwargs)
+        super().__init__(encoder, output, pre=pre, post=post, **kwargs)
+
+        self._query_name = query_name
+        self._candidate_name = candidate_name
+        self._encoder = encoder
+        self._output = output
+
+    def query_embeddings(
+        self,
+        dataset: Optional[merlin.io.Dataset] = None,
+        id_col: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        **kwargs,
+    ) -> merlin.io.Dataset:
+        if self.has_bi_encoder:
+            query = self.encoder.query
+            if hasattr(query, "to_dataset"):
+                return query.to_dataset()
+
+            return query.encode(dataset, id_col=id_col, **kwargs)
+
+        return self.encoder.encode(dataset, **kwargs)
+
+    def candidate_embeddings(
+        self,
+        dataset: Optional[merlin.io.Dataset] = None,
+        id_col: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        **kwargs,
+    ) -> merlin.io.Dataset:
+        if self.has_bi_encoder:
+            candidate = self.encoder.candidate
+            if hasattr(candidate, "to_dataset"):
+                return candidate.to_dataset()
+
+            return candidate.encode(dataset, id_col=id_col, **kwargs)
+
+        if isinstance(self.last, ContrastiveOutput):
+            return self.last.to_dataset()
+
+        raise Exception(...)
 
     @property
     def encoder(self):
@@ -1461,7 +1499,7 @@ class RetrievalModelV2(Model):
         )
 
     @property
-    def query_encoder(self) -> EncoderBlock:
+    def query_encoder(self) -> Encoder:
         if self.has_candidate_encoder:
             output = self.encoder[self._query_name]
         else:
@@ -1472,7 +1510,7 @@ class RetrievalModelV2(Model):
         return output
 
     @property
-    def candidate_encoder(self) -> EncoderBlock:
+    def candidate_encoder(self) -> Encoder:
         output = None
         if self.has_candidate_encoder:
             output = self.encoder[self._candidate_name]
@@ -1484,12 +1522,40 @@ class RetrievalModelV2(Model):
     def _check_encoder(self, maybe_encoder):
         output = maybe_encoder
         if isinstance(output, SequentialBlock):
-            output = EncoderBlock(*maybe_encoder.layers)
+            output = Encoder(*maybe_encoder.layers)
 
-        if not isinstance(output, EncoderBlock):
-            raise ValueError(f"Query encoder should be an EncoderBlock, got {type(output)}")
+        if not isinstance(output, Encoder):
+            raise ValueError(f"Query encoder should be an Encoder, got {type(output)}")
 
         return output
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        pre = config.pop("pre", None)
+        if pre is not None:
+            pre = tf.keras.layers.deserialize(pre, custom_objects=custom_objects)
+
+        post = config.pop("post", None)
+        if post is not None:
+            post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
+
+        encoder = config.pop("_encoder", None)
+        if encoder is not None:
+            encoder = tf.keras.layers.deserialize(encoder, custom_objects=custom_objects)
+
+        output = config.pop("_output", None)
+        if output is not None:
+            output = tf.keras.layers.deserialize(output, custom_objects=custom_objects)
+
+        output = RetrievalModelV2(query=encoder, output=output, pre=pre, post=post)
+        output.__class__ = cls
+
+        return output
+
+    def get_config(self):
+        config = maybe_serialize_keras_objects(self, {}, ["pre", "post", "_encoder", "_output"])
+
+        return config
 
 
 def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):

@@ -645,3 +645,37 @@ def test_unfreeze_all_blocks(ecommerce_data):
 
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
+
+
+def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
+    from merlin.models.tf.models.base import RetrievalModelV2
+
+    # TODO: move item-id to target
+    query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
+    candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
+    model = RetrievalModelV2(
+        query=ml.EmbeddingEncoder(query, dim=8),
+        output=ml.ContrastiveOutput(candidate, "in-batch"),
+    )
+
+    model, _ = testing_utils.model_test(model, ecommerce_data)
+
+    assert isinstance(model.query_encoder, ml.EmbeddingEncoder)
+    assert isinstance(model.candidate_encoder, ml.EmbeddingEncoder)
+
+
+def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=True):
+    from merlin.models.tf.models.base import RetrievalModelV2
+
+    query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
+    candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
+    model = RetrievalModelV2(
+        query=ml.EmbeddingEncoder(query, dim=8),
+        candidate=ml.EmbeddingEncoder(candidate, dim=8),
+        output=ml.ContrastiveOutput(candidate, "in-batch"),
+    )
+
+    model, _ = testing_utils.model_test(model, ecommerce_data)
+
+    assert isinstance(model.query_encoder, ml.EmbeddingEncoder)
+    assert isinstance(model.candidate_encoder, ml.EmbeddingEncoder)
