@@ -51,6 +51,9 @@ class FeaturesTensorTypeConversion(TabularBlock):
         if schema is not None:
             self.column_names = schema.column_names
 
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        raise NotImplementedError("The call method need to be implemented by child clases")
+
     def compute_output_shape(self, input_shapes):
         output_shapes = {}
         for k, v in input_shapes.items():

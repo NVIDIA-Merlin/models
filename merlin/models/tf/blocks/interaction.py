@@ -24,6 +24,7 @@ from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import MapValues, ParallelBlock, SequentialBlock
 from merlin.models.tf.core.tabular import Filter
 from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.models.tf.inputs.embedding import Embeddings
 from merlin.models.tf.transforms.features import CategoryEncoding, ToSparse
 from merlin.schema import Schema, Tags
 
@@ -244,8 +245,9 @@ def FMBlock(
     schema: Schema,
     fm_input_block: Optional[Block] = None,
     wide_input_block: Optional[Block] = None,
+    wide_logit_block: Optional[Block] = None,
     factors_dim: Optional[int] = None,
-    **wide_output_kwargs,
+    **kwargs,
 ) -> tf.Tensor:
     """Implements the Factorization Machine, as introduced in [1].
     It consists in the sum of a wide component that weights each
@@ -272,6 +274,10 @@ def FMBlock(
         The input for the wide block. If not provided,
         creates a default block that encodes categorical features
         with one-hot / multi-hot representation and also includes the continuous features.
+    wide_logit_block: Optional[Block], by default None
+        The output layer of the wide input. The last dimension needs to be 1.
+        You might want to provide your own output logit block if you want to add
+        dropout or kernel regularization to the wide block.
     factors_dim : Optional[int], optional
         If fm_input_block is not provided, the factors_dim is used to define the
         embeddings dim to instantiate InputBlockV2, by default None
@@ -288,16 +294,19 @@ def FMBlock(
     wide_input_block = wide_input_block or ParallelBlock(
         {
             "categorical": CategoryEncoding(cat_schema, output_mode="multi_hot", sparse=True),
-            "continuous": SequentialBlock(Filter(cont_schema), ToSparse()),
+            "continuous": Filter(cont_schema, post=ToSparse()),
         },
         aggregation="concat",
     )
 
-    first_order = wide_input_block.connect(
-        MLPBlock([1], activation="linear", use_bias=True, **wide_output_kwargs)
-    )
+    wide_logit_block = wide_logit_block or MLPBlock([1], activation="linear", use_bias=True)
+    first_order = wide_input_block.connect(wide_logit_block)
 
-    fm_input_block = fm_input_block or InputBlockV2(cat_schema, dim=factors_dim, aggregation=None)
+    fm_input_block = fm_input_block or InputBlockV2(
+        cat_schema,
+        embeddings=Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=factors_dim),
+        aggregation=None,
+    )
     pairwise_interaction = SequentialBlock(
         Filter(cat_schema),
         fm_input_block,
