@@ -74,7 +74,7 @@ from merlin.models.tf.core.combinators import (
 from merlin.models.tf.core.encoder import EncoderBlock
 from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
-from merlin.models.tf.inputs.continuous import ContinuousFeatures
+from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
     AverageEmbeddingsByWeightFeature,
     ContinuousEmbedding,
@@ -161,6 +161,8 @@ __all__ = [
     "DenseResidualBlock",
     "TabularBlock",
     "ContinuousFeatures",
+    "Continuous",
+    "ContinuousProjection",
     "EmbeddingFeatures",
     "SequenceEmbeddingFeatures",
     "EmbeddingOptions",
