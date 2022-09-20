@@ -352,7 +352,7 @@ def test_pretrained_from_InputBlockV2(trainable, music_streaming_data: Dataset):
         trainable={"item_id": trainable},
         dim=embed_dims,
     )
-    input_block = mm.InputBlockV2(music_streaming_data.schema, embeddings=embeddings_block)
+    input_block = mm.InputBlockV2(music_streaming_data.schema, categorical=embeddings_block)
 
     model = mm.DCNModel(
         music_streaming_data.schema,

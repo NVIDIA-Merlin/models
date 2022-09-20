@@ -580,8 +580,18 @@ class ParallelBlock(TabularBlock):
             if self.automatic_pruning and layer_out_shape == {}:
                 to_prune.append(name)
 
-        for p in to_prune:
-            self.parallel_layers.pop(p)
+        if isinstance(self.parallel_layers, dict):
+            pruned = {}
+            for name, layer in self.parallel_layers.items():
+                if name not in to_prune:
+                    pruned[name] = layer
+            self.parallel_layers = pruned
+        else:
+            pruned = []
+            for layer in self.parallel_layers:
+                if layer not in to_prune:
+                    pruned.append(layer)
+            self.parallel_layers = pruned
 
         return super().build(input_shape)
 
