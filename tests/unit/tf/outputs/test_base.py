@@ -62,7 +62,7 @@ def test_logits_scaler(ecommerce_data: Dataset):
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
-def test_parallel_prediction_blocks(ecommerce_data: Dataset, run_eagerly):
+def test_parallel_outputs(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
         mm.MLPBlock([8]),
@@ -76,16 +76,16 @@ def test_parallel_prediction_blocks(ecommerce_data: Dataset, run_eagerly):
 
     assert list(history.history.keys()) == [
         "loss",
-        "click/prediction_block_loss",
-        "conversion/prediction_block_loss",
-        "click/prediction_block/precision",
-        "conversion/prediction_block/precision",
+        "click/model_output_loss",
+        "conversion/model_output_loss",
+        "click/model_output/precision",
+        "conversion/model_output/precision",
         "regularization_loss",
     ]
 
 
 def _BinaryPrediction(name, **kwargs):
-    return mm.PredictionBlock(
+    return mm.ModelOutput(
         tf.keras.layers.Dense(1, activation="sigmoid"),
         default_loss="binary_crossentropy",
         default_metrics_fn=lambda: (tf.keras.metrics.Precision(name="precision"),),
