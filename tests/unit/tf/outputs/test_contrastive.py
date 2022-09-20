@@ -20,15 +20,7 @@ import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
-<<<<<<< HEAD
-<<<<<<< HEAD
 from merlin.models.tf.transforms.features import Rename
-=======
-from merlin.models.tf.transforms.features import RenameFeatures
->>>>>>> Fix wrong import in test_contrastive
-=======
-from merlin.models.tf.transforms.features import Rename
->>>>>>> Fix wrong import in test_contrastive
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -43,15 +35,7 @@ def test_contrastive_mf(ecommerce_data: Dataset):
         mm.ParallelBlock(
             mm.EmbeddingTable(64, user_id.first), mm.EmbeddingTable(64, item_id.first)
         ),
-<<<<<<< HEAD
-<<<<<<< HEAD
         Rename(dict(user_id="query", item_id="candidate")),
-=======
-        RenameFeatures(dict(user_id="query", item_id="candidate")),
->>>>>>> Adding some tests for ContrastiveOutput
-=======
-        Rename(dict(user_id="query", item_id="candidate")),
->>>>>>> Fix wrong import in test_contrastive
     )
 
     mf = mm.Model(encoders, mm.ContrastiveOutput(item_id, "in-batch"))
@@ -125,34 +109,20 @@ def test_setting_negative_sampling_strategy(sequence_testing_data: Dataset):
     output = model(batch[0], batch[1], training=True)
     assert output[1].shape == (batch[1].shape[0], 51)
 
-<<<<<<< HEAD
     model_out.set_negative_samplers(
         [PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
-=======
-    model_out.compile(
-        negative_sampling=[PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
->>>>>>> Fixing test_setting_negative_sampling_strategy
     )
 
     output = model(batch[0], batch[1], training=True)
     assert output.outputs.shape == (batch[1].shape[0], 21)
 
-<<<<<<< HEAD
     model_out.set_negative_samplers(
         ["in-batch", PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
-=======
-    model.model_outputs[0].compile(
-        negative_sampling=["in-batch", PopularityBasedSamplerV2(max_id=51996, max_num_samples=20)],
->>>>>>> Fixing test_setting_negative_sampling_strategy
     )
     output = model(batch[0], batch[1], training=True)
     assert output.outputs.shape == (batch[1].shape[0], 71)
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Re-adding & adopting old tests
 def test_contrastive_output_without_sampler(ecommerce_data: Dataset):
     with pytest.raises(Exception) as excinfo:
         inputs, features = _retrieval_inputs_(batch_size=10)
@@ -217,92 +187,6 @@ def test_contrastive_only_positive_when_not_training(ecommerce_data: Dataset):
     tf.assert_equal(
         (int(tf.shape(output_scores)[0]), int(tf.shape(output_scores)[1])), (batch_size, 1)
     )
-<<<<<<< HEAD
-=======
-# def test_contrastive_dot_product(ecommerce_data: Dataset):
-#     batch_size = 10
-#     inbatch_sampler = InBatchSamplerV2()
-
-#     retrieval_scorer = ContrastiveDotProduct(
-#         schema=ecommerce_data.schema,
-#         negative_samplers=[inbatch_sampler],
-#         downscore_false_negatives=False,
-#     )
-#     inputs, features = _retrieval_inputs_(batch_size=batch_size)
-#     output = retrieval_scorer(inputs, features=features)
-
-#     expected_num_samples_inbatch = batch_size + 1
-#     tf.assert_equal(tf.shape(output.predictions)[0], batch_size)
-#     # Number of negatives plus one positive
-#     tf.assert_equal(tf.shape(output.predictions)[1], expected_num_samples_inbatch)
-
-
-# def test_item_retrieval_scorer_no_sampler(ecommerce_data: Dataset):
-#     with pytest.raises(Exception) as excinfo:
-#         inputs, features = _retrieval_inputs_(batch_size=10)
-#         retrieval_scorer = ContrastiveDotProduct(
-#             schema=ecommerce_data.schema, negative_samplers=[], downscore_false_negatives=False
-#         )
-#         _ = retrieval_scorer(inputs, features=features, training=True)
-# assert "At least one sampler is required by ContrastiveDotProduct for negative sampling" in str(
-#         excinfo.value
-#     )
-
-
-# def test_item_retrieval_scorer_downscore_false_negatives(ecommerce_data: Dataset):
-#     batch_size = 10
-
-#     inbatch_sampler = InBatchSamplerV2()
-#     inputs, features = _retrieval_inputs_(batch_size=batch_size)
-
-#     FALSE_NEGATIVE_SCORE = -100_000_000.0
-#     item_retrieval_scorer = ContrastiveDotProduct(
-#         schema=ecommerce_data.schema,
-#         negative_samplers=[inbatch_sampler],
-#         downscore_false_negatives=True,
-#         false_negative_score=FALSE_NEGATIVE_SCORE,
-#     )
-
-#     outputs = item_retrieval_scorer(
-#         inputs,
-#         training=True,
-#         features=features,
-#     )
-#     output_scores = outputs.predictions
-
-#     output_neg_scores = output_scores[:, 1:]
-
-#     diag_mask = tf.eye(tf.shape(output_neg_scores)[0], dtype=tf.bool)
-#     tf.assert_equal(output_neg_scores[diag_mask], FALSE_NEGATIVE_SCORE)
-#     tf.assert_equal(
-#         tf.reduce_all(
-#             tf.not_equal(
-#                 output_neg_scores[tf.math.logical_not(diag_mask)],
-#                 tf.constant(FALSE_NEGATIVE_SCORE, dtype=output_neg_scores.dtype),
-#             )
-#         ),
-#         True,
-#     )
-
-
-# def test_retrieval_prediction_only_positive_when_not_training(ecommerce_data: Dataset):
-#     batch_size = 10
-
-#     inbatch_sampler = InBatchSamplerV2()
-#     item_retrieval_prediction = DotProductCategoricalPrediction(
-#         schema=ecommerce_data.schema,
-#         negative_samplers=[inbatch_sampler],
-#         downscore_false_negatives=False,
-#     )
-
-#     inputs, features = _retrieval_inputs_(batch_size=batch_size)
-#     output_scores = item_retrieval_prediction(inputs)
-#     tf.assert_equal(
-#         (int(tf.shape(output_scores)[0]), int(tf.shape(output_scores)[1])), (batch_size, 1)
-#     )
->>>>>>> Deleting test_dot_product
-=======
->>>>>>> Re-adding & adopting old tests
 
 
 def _retrieval_inputs_(batch_size):
@@ -311,30 +195,12 @@ def _retrieval_inputs_(batch_size):
     positive_items = tf.random.uniform(
         shape=(batch_size,), minval=1, maxval=1000000, dtype=tf.int32
     )
-<<<<<<< HEAD
-<<<<<<< HEAD
     inputs = {"query": users_embeddings, "candidate": items_embeddings}
     features = {"item_id": positive_items, "user_id": None}
     return inputs, features
 
 
 def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
-=======
-    inputs = {"query": users_embeddings, "item": items_embeddings, "item_id": positive_items}
-    features = {"product_id": positive_items, "user_id": None}
-=======
-    inputs = {"query": users_embeddings, "candidate": items_embeddings}
-    features = {"item_id": positive_items, "user_id": None}
->>>>>>> Re-adding & adopting old tests
-    return inputs, features
-
-
-<<<<<<< HEAD
-def _next_item_loader(sequence_testing_data: Dataset):
->>>>>>> Deleting test_dot_product
-=======
-def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
->>>>>>> Fixing test_setting_negative_sampling_strategy
     def _last_interaction_as_target(inputs, targets):
         inputs = mm.ListToRagged()(inputs)
         items = inputs["item_id_seq"]

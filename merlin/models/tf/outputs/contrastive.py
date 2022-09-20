@@ -44,7 +44,6 @@ LOG = logging.getLogger("merlin_models")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ContrastiveOutput(ModelOutput):
     """Categorical output
-
     Parameters
     ----------
     prediction: Union[Schema, ColumnSchema,
@@ -73,13 +72,11 @@ class ContrastiveOutput(ModelOutput):
     get_default_metrics: Callable, optional
         A function returning the list of default metrics
         to use for categorical-classification
-
     References:
     ----------
     [1] Hakan Inan, Khashayar Khosravi, and Richard Socher. 2016. Tying word vectors
     and word classifiers: A loss framework for language modeling. arXiv preprint
     arXiv:1611.01462 (2016).
-
     """
 
     def __init__(
@@ -106,8 +103,6 @@ class ContrastiveOutput(ModelOutput):
         candidate_name: str = "candidate",
         **kwargs,
     ):
-<<<<<<< HEAD
-<<<<<<< HEAD
         self.col_schema = None
         _to_call = None
         if to_call is not None:
@@ -117,27 +112,6 @@ class ContrastiveOutput(ModelOutput):
                         to_call = to_call.first
                     else:
                         raise ValueError("to_call must be a single column schema")
-=======
-        _to_call = kwargs.pop("to_call", None)
-=======
->>>>>>> Small fix according to PR comment
-        self.col_schema = None
-        _to_call = None
-        if to_call is not None:
-            if isinstance(to_call, (Schema, ColumnSchema)):
-<<<<<<< HEAD
-                if isinstance(to_call, Schema) and len(to_call) == 1:
-                    to_call = to_call.first
-                else:
-                    raise ValueError("to_call must be a single column schema")
->>>>>>> Adding some tests for ContrastiveOutput
-=======
-                if isinstance(to_call, Schema):
-                    if len(to_call) == 1:
-                        to_call = to_call.first
-                    else:
-                        raise ValueError("to_call must be a single column schema")
->>>>>>> Fixing test_setting_negative_sampling_strategy
 
                 self.col_schema = to_call
                 _to_call = CategoricalTarget(to_call)
@@ -183,7 +157,6 @@ class ContrastiveOutput(ModelOutput):
             and not isinstance(self.to_call, DotProduct)
         ):
             self.to_call = DotProduct(*self.keys)
-<<<<<<< HEAD
 
         super().build(input_shape)
 
@@ -215,43 +188,6 @@ class ContrastiveOutput(ModelOutput):
         if self.has_candidate_weights and (
             positive.id.shape != negative.id.shape or positive != negative
         ):
-=======
-
-        super().build(input_shape)
-
-    def call(self, inputs, training=False, testing=False, **kwargs):
-        if training or testing:
-            return self.call_contrastive(inputs, training=training, testing=testing, **kwargs)
-
-        return tf_utils.call_layer(self.to_call, inputs, **kwargs)
-
-    def call_contrastive(self, inputs, features, targets=None, **kwargs):
-        if isinstance(inputs, dict) and self.query_name in inputs:
-            query_embedding = inputs[self.query_name]
-        elif isinstance(inputs, tf.Tensor):
-            query_embedding = inputs
-        else:
-            raise ValueError("Couldn't infer query embedding")
-
-        if self.has_candidate_weights:
-            positive_id = targets
-            if isinstance(targets, dict):
-                positive_id = targets[self.col_schema.name]
-            positive_embedding = self.embedding_lookup(positive_id)
-        else:
-            positive_id = features[self.col_schema.name]
-            positive_embedding = inputs[self.candidate_name]
-
-        positive = Candidate(positive_id, features).with_embedding(positive_embedding)
-        negative = self.sample_negatives(positive, features)
-<<<<<<< HEAD
-        if self.has_candidate_weights and positive != negative:
->>>>>>> Adding some tests for ContrastiveOutput
-=======
-        if self.has_candidate_weights and (
-            positive.id.shape != negative.id.shape or positive != negative
-        ):
->>>>>>> Fixing test_setting_negative_sampling_strategy
             negative = negative.with_embedding(self.embedding_lookup(negative.id))
 
         return self.outputs(query_embedding, positive, negative)
@@ -304,7 +240,6 @@ class ContrastiveOutput(ModelOutput):
         testing=False,
     ) -> Candidate:
         """Method to sample negatives from `self.negative_samplers`
-
         Parameters
         ----------
         positive_items : Items
@@ -315,34 +250,17 @@ class ContrastiveOutput(ModelOutput):
             Flag for train mode, by default False
         testing : bool, optional
             Flag for test mode, by default False
-
         Returns
         -------
         Items
             Class containing the sampled negative ids
         """
-<<<<<<< HEAD
-<<<<<<< HEAD
         candidates: List[Candidate] = []
-=======
-        negative_items: List[Candidate] = []
->>>>>>> Adding some tests for ContrastiveOutput
-=======
-        candidates: List[Candidate] = []
->>>>>>> Fixing test_setting_negative_sampling_strategy
         sampling_kwargs = {"training": training, "testing": testing, "features": features}
 
         # sample a number of negative ids from self.negative_samplers
         for sampler in self.negative_samplers:
-<<<<<<< HEAD
-<<<<<<< HEAD
             sampled: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
-=======
-            sampler_items: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
->>>>>>> Adding some tests for ContrastiveOutput
-=======
-            sampled: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
->>>>>>> Fixing test_setting_negative_sampling_strategy
 
             if tf.shape(sampled.id)[0] > 0:
                 candidates.append(sampled)
@@ -364,20 +282,7 @@ class ContrastiveOutput(ModelOutput):
         return negatives
 
     def embedding_lookup(self, ids: tf.Tensor):
-<<<<<<< HEAD
-<<<<<<< HEAD
         return self.to_call.embedding_lookup(tf.squeeze(ids))
-=======
-        query = ids
-
-        if len(ids.shape) > 1 and ids.shape[-1] == 1:
-            query = tf.squeeze(ids)
-
-        return self.to_call.embedding_lookup(query)
->>>>>>> Adding some tests for ContrastiveOutput
-=======
-        return self.to_call.embedding_lookup(tf.squeeze(ids))
->>>>>>> Trying to fix failing tests
 
     @property
     def has_candidate_weights(self) -> bool:
@@ -390,18 +295,10 @@ class ContrastiveOutput(ModelOutput):
     def keys(self) -> List[str]:
         return [self.query_name, self.candidate_name]
 
-<<<<<<< HEAD
     def set_negative_samplers(self, negative_samplers: ItemSamplersType):
         if negative_samplers is not None:
             negative_samplers = parse_negative_samplers(negative_samplers)
         self.negative_samplers = negative_samplers
-=======
-    def compile(self, negative_sampling=None, downscore_false_negatives=False):
-        if negative_sampling is not None:
-            negative_sampling = parse_negative_samplers(negative_sampling)
-        self.negative_samplers = negative_sampling
-        self.downscore_false_negatives = downscore_false_negatives
->>>>>>> Adding some tests for ContrastiveOutput
 
     def get_config(self):
         config = super().get_config()
@@ -431,16 +328,8 @@ class ContrastiveOutput(ModelOutput):
 
 @runtime_checkable
 class LookUpProtocol(Protocol):
-<<<<<<< HEAD
-<<<<<<< HEAD
     """Protocol for embedding lookup layers"""
 
-=======
->>>>>>> Adding some tests for ContrastiveOutput
-=======
-    """Protocol for embedding lookup layers"""
-
->>>>>>> Small fix
     def embedding_lookup(self, inputs, **kwargs):
         pass
 
