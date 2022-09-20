@@ -671,10 +671,10 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     assert isinstance(model.query_encoder, ml.EmbeddingEncoder)
     assert isinstance(model.candidate_encoder, ml.EmbeddingEncoder)
 
-    queries = model.query_embeddings()
+    queries = model.query_embeddings(gpu=False)
     assert isinstance(queries, merlin.io.Dataset)
 
-    candidates = model.candidate_embeddings()
+    candidates = model.candidate_embeddings(gpu=False)
     assert isinstance(candidates, merlin.io.Dataset)
 
 
