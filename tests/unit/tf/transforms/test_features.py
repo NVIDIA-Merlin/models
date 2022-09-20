@@ -20,8 +20,7 @@ from tensorflow.test import TestCase
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.transforms.features import ContinuousPowers, BroadcastToSequence
-
+from merlin.models.tf.transforms.features import BroadcastToSequence, ContinuousPowers
 from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.schema_utils import create_categorical_column
 from merlin.schema import ColumnSchema, Schema, Tags
@@ -754,23 +753,18 @@ class TestBroadcastToSequence:
         )
 
     def test_mask_propagation(self):
-        inputs = {
-            "a": tf.constant([[1], [0]]),
-            "b": tf.constant([[1, 0], [3, 4]]),
+        masking_layer = tf.keras.layers.Masking(mask_value=0)
+        partially_masked_inputs = {
+            "a": tf.constant([[1], [2]]),
+            "b": masking_layer(tf.constant([[[1], [0]], [[0], [1]]])),
         }
-        schema = Schema(
-            [
-                ColumnSchema("a", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}),
-                ColumnSchema("b", dtype=np.int32, properties={"domain": {"min": 0, "max": 10}}),
-            ]
-        )
-        embedding_layer = ml.Embeddings(schema, mask_zero=True, sequence_combiner=None)
-        embeddings = embedding_layer(inputs)
-        broadcast_layer = BroadcastToSequence()
-        outputs = broadcast_layer(embeddings)
+        context_schema = Schema([ColumnSchema("a")])
+        sequence_schema = Schema([ColumnSchema("b")])
+        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        outputs = broadcast_layer(partially_masked_inputs)
         np.testing.assert_array_equal(
-            outputs["a"]._keras_mask.numpy(), np.array([[True, True], [False, False]])
+            outputs["a"]._keras_mask.numpy(), np.array([[True, False], [False, True]])
         )
         np.testing.assert_array_equal(
-            outputs["b"]._keras_mask.numpy(), np.array([[True, False], [True, True]])
+            outputs["b"]._keras_mask.numpy(), np.array([[True, False], [False, True]])
         )

@@ -700,7 +700,8 @@ class BroadcastToSequence(tf.keras.layers.Layer):
             non_seq_target = {}
             for fname in non_seq_features:
                 if fname in self.context_schema.column_names:
-                    # Including the 2nd dim and repeating for the sequence length
+                    if target[fname] is None:
+                        continue
                     shape = target[fname].shape
                     target_shape = shape[:1] + sequence_length + shape[1:]
                     non_seq_target[fname] = tf.broadcast_to(
@@ -714,8 +715,27 @@ class BroadcastToSequence(tf.keras.layers.Layer):
         if mask is None:
             return None
 
-        mask = self._broadcast(inputs, mask)
-        return mask
+        # find the sequence mask
+        sequence_mask = None
+        for k in mask:
+            if mask[k] is not None and k in self.sequence_schema.column_names:
+                sequence_mask = mask[k]
+
+        # no sequence mask found
+        if sequence_mask is None:
+            return mask
+
+        # set the mask value for those that are none
+        masks_context = {}
+        for k in mask:
+            if mask[k] is None and k in self.context_schema.column_names:
+                masks_context[k] = sequence_mask
+
+        masks_other = self._broadcast(inputs, mask)
+
+        new_mask = {**masks_other, **masks_context}
+
+        return new_mask
 
     def get_config(self):
         config = super().get_config()
