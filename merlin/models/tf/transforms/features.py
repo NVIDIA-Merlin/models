@@ -664,7 +664,7 @@ class BroadcastToSequence(tf.keras.layers.Layer):
         seq_features_shapes = dict()
         for fname, fshape in inputs_sizes.items():
             # Saves the shapes of sequential features
-            if len(fshape) >= 3:
+            if fname in self.sequence_schema.column_names:
                 seq_features_shapes[fname] = tuple(fshape[:2])
 
         sequence_length = 0
@@ -685,12 +685,13 @@ class BroadcastToSequence(tf.keras.layers.Layer):
             non_seq_features = set(inputs.keys()).difference(set(seq_features_shapes.keys()))
             non_seq_target = {}
             for fname in non_seq_features:
-                # Including the 2nd dim and repeating for the sequence length
-                shape = target[fname].shape
-                target_shape = shape[:1] + sequence_length + shape[1:]
-                non_seq_target[fname] = tf.broadcast_to(
-                    tf.expand_dims(target[fname], 1), target_shape
-                )
+                if fname in self.context_schema.column_names:
+                    # Including the 2nd dim and repeating for the sequence length
+                    shape = target[fname].shape
+                    target_shape = shape[:1] + sequence_length + shape[1:]
+                    non_seq_target[fname] = tf.broadcast_to(
+                        tf.expand_dims(target[fname], 1), target_shape
+                    )
             target = {**target, **non_seq_target}
 
         return target

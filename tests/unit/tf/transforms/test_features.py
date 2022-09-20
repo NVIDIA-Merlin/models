@@ -698,17 +698,10 @@ def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
 
 
 class TestBroadcastToSequence:
-    def test_only_values(self):
-        layer = BroadcastToSequence()
-        batch_size = 2
-        inputs = {
-            "v1": tf.random.uniform((batch_size, 1)),
-        }
-        outputs = layer(inputs)
-        assert list(outputs["v1"].shape) == [batch_size, 1]
-
     def test_only_sequential(self):
-        layer = BroadcastToSequence()
+        context_schema = Schema()
+        sequence_schema = Schema([ColumnSchema("s1", tags=[Tags.SEQUENCE])])
+        layer = BroadcastToSequence(context_schema, sequence_schema)
         batch_size = 2
         sequence_length = 6
         inputs = {
@@ -718,14 +711,16 @@ class TestBroadcastToSequence:
         assert list(outputs["s1"].shape) == [batch_size, sequence_length, 1]
 
     def test_broadcast(self):
-        layer = BroadcastToSequence()
+        context_schema = Schema([ColumnSchema("c1")])
+        sequence_schema = Schema([ColumnSchema("s1")])
+        layer = BroadcastToSequence(context_schema, sequence_schema)
         inputs = {
-            "v1": tf.constant([[1], [2]]),
+            "c1": tf.constant([[1], [2]]),
             "s1": tf.constant([[[1, 2], [3, 4], [5, 6]], [[6, 3], [2, 3], [7, 3]]]),
         }
         outputs = layer(inputs)
         np.testing.assert_array_equal(
-            outputs["v1"].numpy(),
+            outputs["c1"].numpy(),
             tf.constant(
                 [
                     [
@@ -744,10 +739,12 @@ class TestBroadcastToSequence:
         np.testing.assert_array_equal(inputs["s1"].numpy(), outputs["s1"].numpy())
 
     def test_different_sequence_lengths(self):
+        context_schema = Schema([ColumnSchema("c1")])
+        sequence_schema = Schema([ColumnSchema("s1"), ColumnSchema("s2")])
         with pytest.raises(ValueError) as exc_info:
-            layer = BroadcastToSequence()
+            layer = BroadcastToSequence(context_schema, sequence_schema)
             inputs = {
-                "v1": tf.constant([[1], [2]]),
+                "c1": tf.constant([[1], [2]]),
                 "s1": tf.constant([[[1, 2], [3, 4], [5, 6]], [[6, 3], [2, 3], [7, 3]]]),
                 "s2": tf.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
             }
