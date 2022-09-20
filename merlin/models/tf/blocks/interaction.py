@@ -23,8 +23,8 @@ from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import MapValues, ParallelBlock, SequentialBlock
 from merlin.models.tf.core.tabular import Filter
-from merlin.models.tf.core.transformations import CategoryEncoding, ToSparseFeatures
 from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.models.tf.transforms.features import CategoryEncoding, ToSparseFeatures
 from merlin.schema import Schema, Tags
 
 _INTERACTION_TYPES = (None, "field_all", "field_each", "field_interaction")

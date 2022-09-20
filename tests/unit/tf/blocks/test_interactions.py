@@ -71,7 +71,7 @@ def test_fm_block_with_multi_hot_categ_features(testing_data: Dataset):
             ),
             "categorical_mhe": mm.SequentialBlock(
                 mm.Filter(cat_schema_multihot),
-                mm.AsDenseFeatures(max_seq_length=cat_schema_multihot["categories"].int_domain.max),
+                mm.ListToDense(max_seq_length=cat_schema_multihot["categories"].int_domain.max),
                 mm.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
             ),
             "continuous": mm.SequentialBlock(
