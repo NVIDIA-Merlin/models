@@ -592,7 +592,7 @@ def test_lazy_adam_for_large_embeddings(ecommerce_data, run_eagerly):
     schema = ecommerce_data.schema
     embeddings = ml.Embeddings(schema.select_by_tag(Tags.CATEGORICAL))
     large_embeddings, small_embeddings = ml.split_embeddings_on_size(embeddings, threshold=1000)
-    input = ml.InputBlockV2(schema, embeddings=embeddings)
+    input = ml.InputBlockV2(schema, categorical=embeddings)
     mlp = ml.MLPBlock([64])
     model = ml.Model(input.connect(mlp), ml.BinaryClassificationTask("click"))
     multi_optimizers = ml.MultiOptimizer(
