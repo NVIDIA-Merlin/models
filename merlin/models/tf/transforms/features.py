@@ -26,6 +26,7 @@ from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
@@ -34,6 +35,91 @@ MULTI_HOT = p_utils.MULTI_HOT
 COUNT = p_utils.COUNT
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class FeaturesTensorTypeConversion(TabularBlock):
+    """Base class to convert the tensor type of features provided in the schema
+
+    Parameters
+        ----------
+        schema : Optional[Schema], optional
+            The schema with the columns that will be transformed, by default None
+    """
+
+    def __init__(self, schema: Optional[Schema] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.column_names = None
+        if schema is not None:
+            self.column_names = schema.column_names
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        raise NotImplementedError("The call method need to be implemented by child clases")
+
+    def compute_output_shape(self, input_shapes):
+        output_shapes = {}
+        for k, v in input_shapes.items():
+            # If it is a list/sparse feature (in tuple representation), uses the offset as shape
+            if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
+                output_shapes[k] = tf.TensorShape([v[1][0], None])
+            else:
+                output_shapes[k] = v
+
+        return output_shapes
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
+
+
+@Block.registry.register("to_sparse")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ToSparse(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to sparse tensors.
+    The other features are kept unchanged.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
+            if isinstance(val, tuple):
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                outputs[name] = val.to_sparse()
+            elif isinstance(val, tf.Tensor):
+                outputs[name] = tf.sparse.from_dense(val)
+
+        return outputs
+
+
+@Block.registry.register("to_dense")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ToDense(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to dense tensors.
+    The other features are kept unchanged.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
+            if isinstance(val, tuple):
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                val = val.to_sparse()
+            if isinstance(val, tf.SparseTensor):
+                outputs[name] = tf.sparse.to_dense(val)
+
+        return outputs
+
+
+@Block.registry.register("as-ragged")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Rename(TabularBlock):
     """Rename input features
@@ -231,16 +317,14 @@ class CategoryEncoding(TabularBlock):
         return outputs
 
     def compute_output_shape(self, input_shapes):
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
         outputs = {}
         for key in self.schema.column_names:
-            input_shape = input_shapes[key]
-            if not input_shape:
-                outputs[key] = tf.TensorShape([self.cardinalities[key]])
-            else:
-                outputs[key] = tf.TensorShape(input_shape[:1] + [self.cardinalities[key]])
+            outputs[key] = tf.TensorShape([batch_size, self.cardinalities[key]])
 
-                if len(input_shape) == 2:
-                    self.features_2d_last_dim[key] = input_shape[-1]
+            input_shape = input_shapes[key]
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
+                self.features_2d_last_dim[key] = input_shape[-1]
 
         return outputs
 
@@ -446,7 +530,8 @@ class HashedCross(TabularBlock):
         # Save the last dim for 2D features so that we can reshape them in graph mode in call()
         for key in self.schema.column_names:
             input_shape = input_shapes[key]
-            if len(input_shape) == 2:
+
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
                 self.features_2d_last_dim[key] = input_shape[-1]
 
         output_shape = {}

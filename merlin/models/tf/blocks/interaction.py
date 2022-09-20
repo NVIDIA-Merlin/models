@@ -14,9 +14,19 @@
 # limitations under the License.
 #
 
+from typing import Optional
+
 import tensorflow as tf
 
+from merlin.models.tf.blocks.mlp import MLPBlock
+from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block
+from merlin.models.tf.core.combinators import MapValues, ParallelBlock, SequentialBlock
+from merlin.models.tf.core.tabular import Filter
+from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.models.tf.inputs.embedding import Embeddings
+from merlin.models.tf.transforms.features import CategoryEncoding, ToSparse
+from merlin.schema import Schema, Tags
 
 _INTERACTION_TYPES = (None, "field_all", "field_each", "field_interaction")
 
@@ -202,14 +212,6 @@ class FMPairwiseInteraction(Block):
     Conference on Data Mining, 2010. https://ieeexplore.ieee.org/document/5694074
     """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def build(self, input_shapes):
-        if len(input_shapes) != 3:
-            raise ValueError("Found shape {} without 3 dimensions".format(input_shapes))
-        super(FMPairwiseInteraction, self).build(input_shapes)
-
     def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
         """
         Parameters
@@ -234,4 +236,84 @@ class FMPairwiseInteraction(Block):
         return 0.5 * tf.subtract(summed_square, squared_sum)
 
     def compute_output_shape(self, input_shapes):
+        if len(input_shapes) != 3:
+            raise ValueError("Found shape {} without 3 dimensions".format(input_shapes))
         return (input_shapes[0], input_shapes[2])
+
+
+def FMBlock(
+    schema: Schema,
+    fm_input_block: Optional[Block] = None,
+    wide_input_block: Optional[Block] = None,
+    wide_logit_block: Optional[Block] = None,
+    factors_dim: Optional[int] = None,
+    **kwargs,
+) -> tf.Tensor:
+    """Implements the Factorization Machine, as introduced in [1].
+    It consists in the sum of a wide component that weights each
+    feature individually and a 2nd-level feature interaction using
+    factors.
+
+    References
+    ----------
+    [1] Steffen, Rendle, "Factorization Machines" IEEE International
+    Conference on Data Mining, 2010. https://ieeexplore.ieee.org/document/5694074
+
+    Parameters
+    ----------
+    schema : Schema
+        The schema of input features
+    fm_input_block : Optional[Block], by default None
+        The input block for the 2nd-order feature interaction in Factorization Machine.
+        Only categorical features will be used by this block, as it computes
+        dot product between all paired combinations of embedding values.
+        If not provided, an InputBlockV2 is instantiated based on schema.
+        Note: All features (including continuous) are considered in the
+        1st-order (wide) part which uses another input block.
+    wide_input_block: Optional[Block], by default None
+        The input for the wide block. If not provided,
+        creates a default block that encodes categorical features
+        with one-hot / multi-hot representation and also includes the continuous features.
+    wide_logit_block: Optional[Block], by default None
+        The output layer of the wide input. The last dimension needs to be 1.
+        You might want to provide your own output logit block if you want to add
+        dropout or kernel regularization to the wide block.
+    factors_dim : Optional[int], optional
+        If fm_input_block is not provided, the factors_dim is used to define the
+        embeddings dim to instantiate InputBlockV2, by default None
+    Returns
+    -------
+    tf.Tensor
+        Returns a 2D tensor (batch size, 1) with the sum of the wide component
+        and 2nd-order interaction component of FM
+    """
+
+    cat_schema = schema.select_by_tag(Tags.CATEGORICAL)
+    cont_schema = schema.select_by_tag(Tags.CONTINUOUS)
+
+    wide_input_block = wide_input_block or ParallelBlock(
+        {
+            "categorical": CategoryEncoding(cat_schema, output_mode="multi_hot", sparse=True),
+            "continuous": Filter(cont_schema).connect(ToSparse()),
+        },
+        aggregation="concat",
+    )
+
+    wide_logit_block = wide_logit_block or MLPBlock([1], activation="linear", use_bias=True)
+    first_order = wide_input_block.connect(wide_logit_block)
+
+    fm_input_block = fm_input_block or InputBlockV2(
+        cat_schema,
+        categorical=Embeddings(cat_schema, dim=factors_dim),
+        aggregation=None,
+    )
+    pairwise_interaction = SequentialBlock(
+        Filter(cat_schema),
+        fm_input_block,
+        FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1)),
+        MapValues(tf.keras.layers.Lambda(lambda x: tf.reduce_sum(x, axis=1, keepdims=True))),
+    )
+
+    fm_block = ParallelBlock([first_order, pairwise_interaction], aggregation="element-wise-sum")
+
+    return fm_block

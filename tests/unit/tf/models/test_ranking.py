@@ -150,12 +150,36 @@ def test_dcn_model(music_streaming_data, stacked, run_eagerly):
         depth=1,
         deep_block=ml.MLPBlock([2]),
         stacked=stacked,
-        embedding_options=ml.EmbeddingOptions(
-            embedding_dims=None,
-            embedding_dim_default=2,
-            infer_embedding_sizes=True,
-            infer_embedding_sizes_multiplier=0.2,
-        ),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_deepfm_model_only_categ_feats(music_streaming_data, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "item_category", "user_id", "click"]
+    )
+    model = ml.DeepFMModel(
+        music_streaming_data.schema,
+        embedding_dim=16,
+        deep_block=ml.MLPBlock([16]),
+        prediction_tasks=ml.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_deepfm_model_categ_and_continuous_feats(music_streaming_data, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "item_category", "user_id", "user_age", "click"]
+    )
+    model = ml.DeepFMModel(
+        music_streaming_data.schema,
+        embedding_dim=16,
+        deep_block=ml.MLPBlock([16]),
         prediction_tasks=ml.BinaryClassificationTask("click"),
     )
 
@@ -255,7 +279,7 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
 
     model = ml.WideAndDeepModel(
         schema,
-        deep_input_block=ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
+        deep_input_block=ml.InputBlockV2(schema=schema, categorical=deep_embedding),
         wide_schema=wide_schema,
         wide_preprocess=ml.HashedCross(wide_schema, 1000, sparse=True),
         deep_block=ml.MLPBlock([32, 16]),
