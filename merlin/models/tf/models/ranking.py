@@ -155,10 +155,12 @@ def DeepFMModel(
     deep_block: Optional[Block] = None,
     input_block: Optional[Block] = None,
     wide_input_block: Optional[Block] = None,
+    wide_logit_block: Optional[Block] = None,
+    deep_logit_block: Optional[Block] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    **deep_tower_kwargs,
+    **kwargs,
 ) -> Model:
     """DeepFM-model architecture, which is the sum of the 1-dim output
     of a Factorization Machine [2] and a Deep Neural Network
@@ -198,6 +200,15 @@ def DeepFMModel(
         The input for the wide block. If not provided,
         creates a default block that encodes categorical features
         with one-hot / multi-hot representation and also includes the continuous features.
+    wide_logit_block: Optional[Block], by default None
+        The output layer of the wide input. The last dimension needs to be 1.
+        You might want to provide your own output logit block if you want to add
+        dropout or kernel regularization to the wide block.
+    deep_logit_block: Optional[Block], by default MLPBlock([1], activation="linear", use_bias=True)
+        The output layer of the deep block. The last dimension needs to be 1.
+        You might want to provide your own output logit block if you want to add
+        dropout or kernel regularization to the wide block.
+
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
         Defaults to None
@@ -217,14 +228,15 @@ def DeepFMModel(
         schema,
         fm_input_block=input_block,
         wide_input_block=wide_input_block,
+        wide_logit_block=wide_logit_block,
     )
 
     if deep_block is None:
         deep_block = MLPBlock([64])
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
-    deep_tower = input_block.connect(deep_block).connect(
-        MLPBlock([1], activation="linear", use_bias=True, **deep_tower_kwargs)
-    )
+
+    deep_logit_block = deep_logit_block or MLPBlock([1], activation="linear", use_bias=True)
+    deep_tower = input_block.connect(deep_block).connect(deep_logit_block)
 
     deep_fm = ParallelBlock({"fm": fm_tower, "deep": deep_tower}, aggregation="element-wise-sum")
 
