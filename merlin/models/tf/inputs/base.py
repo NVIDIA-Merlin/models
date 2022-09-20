@@ -179,7 +179,9 @@ def InputBlock(
         if max_seq_length and seq:
             pre = ListToDense(max_seq_length)
         branches["continuous"] = ContinuousFeatures.from_schema(  # type: ignore
-            schema, tags=continuous_tags, pre=pre,
+            schema,
+            tags=continuous_tags,
+            pre=pre,
         )
     if (
         add_embedding_branch
@@ -282,7 +284,6 @@ def InputBlockV2(
     **branches : dict
         Extra branches to add to the input block.
 
-
     Returns
     -------
     ParallelBlock
@@ -309,5 +310,9 @@ def InputBlockV2(
     if not parsed:
         raise ValueError("No columns selected for the input block")
 
-    return ParallelBlock(parsed, pre=pre, post=post, aggregation=aggregation,)
-
+    return ParallelBlock(
+        parsed,
+        pre=pre,
+        post=post,
+        aggregation=aggregation,
+    )
