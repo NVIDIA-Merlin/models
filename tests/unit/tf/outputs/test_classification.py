@@ -84,7 +84,7 @@ def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
 
     for target in predictions:
         model = mm.Model(
-            mm.InputBlockV2(schema, embeddings=embeddings),
+            mm.InputBlockV2(schema, categorical=embeddings),
             mm.MLPBlock([32]),
             mm.CategoricalOutput(target),
         )
