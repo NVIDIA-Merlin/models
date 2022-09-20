@@ -78,13 +78,14 @@ def test_tabular_features_yoochoose_model(
 def test_tabular_features_yoochoose_model_inputblockv2(
     music_streaming_data: Dataset, run_eagerly, continuous_projection
 ):
+    kwargs = {}
     if continuous_projection:
-        continuous_projection = ml.MLPBlock([continuous_projection])
-    inputs = ml.InputBlockV2(
-        music_streaming_data.schema,
-        continuous_projection=continuous_projection,
-        aggregation="concat",
-    )
+        kwargs["continuous"] = ml.ContinuousProjection(
+            music_streaming_data.schema.select_by_tag(Tags.CONTINUOUS),
+            ml.MLPBlock([continuous_projection]),
+        )
+
+    inputs = ml.InputBlockV2(music_streaming_data.schema, aggregation="concat", **kwargs)
 
     body = ml.SequentialBlock([inputs, ml.MLPBlock([64])])
     model = ml.Model(body, ml.BinaryClassificationTask("click"))
@@ -127,7 +128,7 @@ def test_tabular_seq_features_ragged_emb_combiner(sequence_testing_data: Dataset
             sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL),
             sequence_combiner=seq_combiner,
         ),
-        continuous_column_selector=con2d,
+        continuous=con2d,
         aggregation=None,
     )
 

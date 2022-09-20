@@ -21,8 +21,8 @@ from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.aggregation import SequenceAggregation, SequenceAggregator
 from merlin.models.tf.core.base import Block, BlockType
-from merlin.models.tf.core.combinators import Filter, ParallelBlock, TabularAggregationType
-from merlin.models.tf.inputs.continuous import ContinuousFeatures
+from merlin.models.tf.core.combinators import ParallelBlock, TabularAggregationType
+from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures
 from merlin.models.tf.inputs.embedding import (
     ContinuousEmbedding,
     EmbeddingFeatures,
@@ -254,7 +254,7 @@ def InputBlockV2(
             branches["categorical"] = cat_branch
 
     if "continuous" not in branches:
-        con_branch = parse_branch(continuous, lambda x: Filter(x, name="continuous"), schema)
+        con_branch = parse_branch(continuous, Continuous, schema)
         if con_branch:
             branches["continuous"] = con_branch
 

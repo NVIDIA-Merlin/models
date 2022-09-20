@@ -19,6 +19,7 @@ from typing import List, Optional
 import tensorflow as tf
 
 from merlin.models.tf.core.base import BlockType
+from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.core.tabular import (
     TABULAR_MODULE_PARAMS_DOCSTRING,
     Filter,
@@ -27,6 +28,18 @@ from merlin.models.tf.core.tabular import (
 )
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.schema import Schema
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class Continuous(Filter):
+    ...
+
+
+def ContinuousProjection(
+    schema: Schema,
+    projection: tf.keras.layers.Layer,
+) -> SequentialBlock:
+    return SequentialBlock(Continuous(schema, aggregation="concat"), projection)
 
 
 @docstring_parameter(tabular_module_parameters=TABULAR_MODULE_PARAMS_DOCSTRING)
