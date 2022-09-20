@@ -263,7 +263,15 @@ def WideAndDeepModel(
     ] = None,
     **kwargs,
 ) -> Model:
-    """Wide-and-Deep-model architecture [1].
+    """
+    The Wide&Deep architecture [1] was proposed by Google
+    in 2016 to balance between the ability of neural networks to generalize and capacity
+    of linear models to memorize relevant feature interactions. The deep part is an MLP
+    model, with categorical features represented as embeddings, which are concatenated
+    with continuous features and fed through multiple MLP layers. The wide part is a
+    linear model takes a sparse representation of categorical features (i.e. one-hot
+    or multi-hot representation). Both wide and deep sub-models output a logit,
+    which is summed and followed by sigmoid for binary classification loss.
 
     Example Usage::
 
@@ -314,12 +322,94 @@ def WideAndDeepModel(
         )
         ```
 
-        On Wide&Deep paper [1] they proposed usage of separate optimizers for dense (AdaGrad) and
+        4. Wide preprocess with multi-hot categorical features and hashed 2nd-level multi-hot
+            feature interactions
+        ```python
+
+        one_hot_schema = schema.select_by_name(['categ_1', 'categ_2'])
+        multi_hot_schema = schema.select_by_name(['categ_multi_hot_3'])
+        wide_schema = one_hot_schema + multi_hot_schema
+
+        # One-hot features
+        one_hot_encoding = mm.SequentialBlock(
+                   mm.Filter(one_hot_schema),
+                   mm.CategoryEncoding(one_hot_schema, sparse=True, output_mode="one_hot"),
+        )
+        ```
+
+        If your dataset contains multi-hot categorical features, i.e. features that may contain
+        multiple categorical values for a data sample, you can instantiate the `AsDenseFeatures`
+        block that converts the sparse representation of multi-hot features into a dense one
+        (with maximum size defined) where the missing values are padded with zeros, as in the
+        following example.
+
+        ```python
+        # Multi-hot features
+        multi_hot_encoding = mm.SequentialBlock(
+                mm.Filter(multi_hot_schema),
+                # Assuming max size of multi-hot features is 5
+                ml.AsDenseFeatures(max_seq_length=5),
+                mm.CategoryEncoding(multi_hot_schema, sparse=True, output_mode="multi_hot")
+        )
+        ```
+        Linear models are not able to compute feature interaction (like MLPs).
+        So to give the wide part more power we perform paired feature interactions
+        as a preprocessing step, so that every possible combination of the values of
+        two categorical features is mapped to a single id. That way, the model is be
+        able to pick paired feature relationships, e.g., a pattern between the a category
+        of a product and the city of a user.
+        Although, this approach leads to very high-cardinality resulting feature (product
+        between the two features cardinalities). So typically we apply the hashing trick
+        to limit the resulting cardinality. Below you can see how easily you can compute
+        crossed features with Merlin Models.
+
+        Note: some feature combinations might not add information to the model, for example
+        the feature cross between the item id and item category, as every item only maps to a
+        single item category. You can explicitly ignore those combinations to reduce a bit
+        the feature space.
+
+        ```python
+        # 2nd-level features interaction
+        features_crossing = mm.SequentialBlock(
+                    mm.Filter(wide_schema),
+                    # Assuming max size of multi-hot features is 5
+                    ml.AsDenseFeatures(max_seq_length=5),
+                    mm.HashedCrossAll(
+                        wide_schema,
+                        # The crossed features will be hashed to this number of bins
+                        num_bins=100,
+                        # Performs 2nd feature interactions, typically max is 3rd level
+                        max_level=2,
+                        output_mode="multi_hot",
+                        sparse=True,
+                        ignore_combinations=[["item_id", "item_category"],
+                                            ["item_id", "item_brand"]]
+                    ),
+                )
+
+        model = ml.WideAndDeepModel(
+            schema,
+            wide_schema=wide_schema,
+            deep_schema=deep_schema,
+            wide_preprocess=ml.ParallelBlock(
+                [
+                    one_hot_encoding,
+                    multi_hot_encoding,
+                    features_crossing
+                ],
+                aggregation="concat",
+            ),
+            deep_block=ml.MLPBlock([32, 16]),
+            prediction_tasks=ml.BinaryClassificationTask("click"),
+        )
+        ```
+
+        5. On Wide&Deep paper [1] they proposed usage of separate optimizers for dense (AdaGrad) and
         sparse embeddings parameters (FTRL). You can implement that by using `MultiOptimizer` class.
         For example:
         ```python
-            wide_model = model.get_blocks_by_name("sequential_block_6")
-            deep_model = model.get_blocks_by_name("sequential_block_3")
+            wide_model = model.blocks[0].parallel_layers["wide"]
+            deep_model = model.blocks[0].parallel_layers["deep"]
 
             multi_optimizer = ml.MultiOptimizer(
                 default_optimizer="adagrad",
@@ -350,14 +440,16 @@ def WideAndDeepModel(
         The 'Schema' of input features for deep model, by default all features would be sent to
         deep model. deep_schema and wide_schema could contain the same features
     wide_preprocess : Optional[Block]
-        Transformation block for preprocess data in wide model. Such as CategoryEncoding,
-        HashedCross, and HashedCrossAll, please note the schema of transformation
-        block should be the same as the wide_schema. See example usage. By default None.
+        Transformation block for preprocess data in wide model, such as CategoryEncoding,
+        HashedCross, and HashedCrossAll. Please note the schema of transformation
+        block should be the same as the wide_schema. See example usages.
+        If wide_schema is provided and wide_preprocess, the CategoryEncoding transformation
+        is used by default for one-hot encoding.
     deep_input_block : Optional[Block]
-        The input block to be used by the deep part. It fnot provided, it is created internally
+        The input block to be used by the deep part. It not provided, it is created internally
         by using the deep_schema. Defaults to None.
     wide_input_block : Optional[Block]
-        The input block to be used by the wide part. It fnot provided, it is created internally
+        The input block to be used by the wide part. It not provided, it is created internally
         by using the wide_schema. Defaults to None.
     deep_regularizer : Optional[RegularizerType]
         Regularizer function applied to the last layer kernel weights matrix and biases of
@@ -408,6 +500,10 @@ def WideAndDeepModel(
 
     if not wide_input_block:
         if wide_schema is not None and len(wide_schema) > 0:
+            if wide_preprocess is None:
+                wide_preprocess = (
+                    CategoryEncoding(wide_schema, sparse=True, output_mode="one_hot"),
+                )
             wide_input_block = ParallelBlock(
                 TabularBlock.from_schema(schema=wide_schema, pre=wide_preprocess),
                 is_input=True,
