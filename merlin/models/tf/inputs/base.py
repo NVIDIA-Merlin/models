@@ -207,13 +207,20 @@ def InputBlock(
     return ParallelBlock(branches, aggregation=aggregation, post=post, is_input=True, **kwargs)
 
 
+INPUT_TAG_TO_BLOCK: Dict[Tags, Callable[[Schema], Layer]] = {
+    Tags.CONTINUOUS: Continuous,
+    Tags.CATEGORICAL: Embeddings,
+}
+
+
 def InputBlockV2(
     schema: Optional[Schema] = None,
-    categorical: Union[Tags, Schema, Layer] = Tags.CATEGORICAL,
-    continuous: Union[Tags, Schema, Layer] = Tags.CONTINUOUS,
+    categorical: Union[Tags, Layer] = Tags.CATEGORICAL,
+    continuous: Union[Tags, Layer] = Tags.CONTINUOUS,
     pre: Optional[BlockType] = None,
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = "concat",
+    tag_to_block=INPUT_TAG_TO_BLOCK,
     **branches,
 ) -> ParallelBlock:
     """The entry block of the model to process input features from a schema.
@@ -270,6 +277,10 @@ def InputBlockV2(
         Transformation block to apply after the embeddings lookup, by default None
     aggregation : Optional[TabularAggregationType], optional
         Transformation block to apply for aggregating the inputs, by default "concat"
+    tag_to_block : Dict[str, Callable[[Schema], Layer]], optional
+        Mapping from tag to block-type, by default:
+            Tags.CONTINUOUS -> Continuous
+            Tags.CATEGORICAL -> Embeddings
     **branches : dict
         Extra branches to add to the input block.
 
@@ -280,40 +291,29 @@ def InputBlockV2(
         Returns a ParallelBlock with a Dict with two branches:
         continuous and embeddings
     """
-    if "categorical" not in branches:
-        cat_branch = parse_branch(categorical, Embeddings, schema)
-        if cat_branch:
-            branches["categorical"] = cat_branch
 
-    if "continuous" not in branches:
-        con_branch = parse_branch(continuous, Continuous, schema)
-        if con_branch:
-            branches["continuous"] = con_branch
+    unparsed = {"categorical": categorical, "continuous": continuous, **branches}
+    parsed = {}
+    for name, branch in unparsed.items():
+        if isinstance(branch, Layer):
+            parsed[name] = branch
+        else:
+            if not isinstance(schema, Schema):
+                raise ValueError(
+                    "If you pass a column-selector as a branch, "
+                    "you must also pass a `schema` argument."
+                )
+            if branch not in tag_to_block:
+                raise ValueError(f"No default-block provided for {branch}")
+            branch_schema: Schema = schema.select_by_tag(branch)
+            parsed[name] = tag_to_block[branch](branch_schema)
 
-    if not branches:
+    if not parsed:
         raise ValueError("No columns selected for the input block")
 
     return ParallelBlock(
-        branches,
+        parsed,
         pre=pre,
         post=post,
         aggregation=aggregation,
     )
-
-
-def parse_branch(
-    branch: Optional[Union[Tags, Schema, Layer]],
-    default: Callable[[Schema], Layer],
-    schema: Optional[Schema] = None,
-) -> Optional[Layer]:
-    if isinstance(branch, Layer) or branch is None:
-        return branch
-
-    if isinstance(branch, Schema):
-        schema = branch
-    else:
-        if not schema:
-            raise ValueError("Schema is required to parse the branch ", f"with default {default}")
-        schema = schema.select_by_tag(branch)
-
-    return default(schema)

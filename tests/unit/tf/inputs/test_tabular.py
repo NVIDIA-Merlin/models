@@ -128,7 +128,7 @@ def test_tabular_seq_features_ragged_emb_combiner(sequence_testing_data: Dataset
             sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL),
             sequence_combiner=seq_combiner,
         ),
-        continuous=con2d,
+        continuous=ml.Continuous(con2d),
         aggregation=None,
     )
 
