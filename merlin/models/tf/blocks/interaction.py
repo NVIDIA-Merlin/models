@@ -304,7 +304,7 @@ def FMBlock(
 
     fm_input_block = fm_input_block or InputBlockV2(
         cat_schema,
-        embeddings=Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=factors_dim),
+        embeddings=Embeddings(schema, dim=factors_dim),
         aggregation=None,
     )
     pairwise_interaction = SequentialBlock(
