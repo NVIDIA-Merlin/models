@@ -72,8 +72,14 @@ class TestEmbeddingTable:
         [
             (32, {}, tf.constant([[1]]), [1, 32]),
             (16, {}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, None, 16]),
-            (16, {"combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
-            (16, {"combiner": "mean"}, tf.sparse.from_dense(tf.constant([[1, 2, 3]])), [1, 16]),
+            (16, {"sequence_combiner": "mean"}, tf.ragged.constant([[1, 2, 3], [4, 5]]), [2, 16]),
+            (
+                16,
+                {"sequence_combiner": "mean"},
+                tf.sparse.from_dense(tf.constant([[1, 2, 3]])),
+                [1, 16],
+            ),
+            (12, {}, {"item_id": tf.constant([[1]])}, [1, 12]),
         ],
     )
     def test_layer(self, dim, kwargs, inputs, expected_output_shape):
@@ -83,8 +89,10 @@ class TestEmbeddingTable:
         output = layer(inputs)
         assert list(output.shape) == expected_output_shape
 
-        if "combiner" in kwargs:
+        if "sequence_combiner" in kwargs:
             assert isinstance(output, tf.Tensor)
+        elif isinstance(inputs, dict):
+            assert type(inputs[column_schema.name]) is type(output)
         else:
             assert type(inputs) is type(output)
 
@@ -96,16 +104,43 @@ class TestEmbeddingTable:
         output = copied_layer(inputs)
         assert list(output.shape) == expected_output_shape
 
+    def test_layer_simple(self):
+        col_schema = self.sample_column_schema
+        dim = np.random.randint(1, high=32)
+        testing_utils.layer_test(
+            mm.EmbeddingTable,
+            kwargs={"dim": dim, "col_schema": col_schema},
+            input_data=tf.constant([[1], [2], [3]], dtype=tf.int32),
+            expected_output_shape=tf.TensorShape([None, dim]),
+            expected_output_dtype=tf.float32,
+            supports_masking=True,
+        )
+
+    @pytest.mark.parametrize(
+        ["input_shape", "expected_output_shape", "kwargs"],
+        [
+            (tf.TensorShape([1, 1]), tf.TensorShape([1, 10]), {}),
+            (tf.TensorShape([1, 3]), tf.TensorShape([1, 3, 10]), {}),
+            (tf.TensorShape([2, None]), tf.TensorShape([2, None, 10]), {}),
+            (tf.TensorShape([2, None]), tf.TensorShape([2, 10]), {"sequence_combiner": "mean"}),
+            ({"item_id": tf.TensorShape([1, 1])}, tf.TensorShape([1, 10]), {}),
+        ],
+    )
+    def test_compute_output_shape(self, input_shape, expected_output_shape, kwargs):
+        column_schema = self.sample_column_schema
+        layer = mm.EmbeddingTable(10, column_schema, **kwargs)
+        output_shape = layer.compute_output_shape(input_shape)
+        assert list(output_shape) == list(expected_output_shape)
+
     def test_dense_with_combiner(self):
         dim = 16
         column_schema = self.sample_column_schema
-        layer = mm.EmbeddingTable(dim, column_schema, combiner="mean")
+        layer = mm.EmbeddingTable(dim, column_schema, sequence_combiner="mean")
 
         inputs = tf.constant([1])
-        with pytest.raises(ValueError) as exc_info:
-            layer(inputs)
+        outputs = layer(inputs)
 
-        assert "only supported for RaggedTensor and SparseTensor." in str(exc_info.value)
+        assert outputs.shape == tf.TensorShape([dim])
 
     def test_sparse_without_combiner(self):
         dim = 16
@@ -116,9 +151,7 @@ class TestEmbeddingTable:
         with pytest.raises(ValueError) as exc_info:
             layer(inputs)
 
-        assert "EmbeddingTable supports only RaggedTensor and Tensor input types." in str(
-            exc_info.value
-        )
+        assert "Sparse tensors are not supported without sequence_combiner" in str(exc_info.value)
 
     def test_embedding_in_model(self, music_streaming_data: Dataset):
         dim = 16
@@ -166,14 +199,6 @@ class TestEmbeddingTable:
             pre_trained_weights_df, name="item_id", trainable=trainable
         )
 
-        assert embedding_table.input_dim == vocab_size
-
-        inputs = tf.constant([[1]])
-        output = embedding_table(inputs)
-
-        assert list(output.shape) == [1, embedding_dim]
-        np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
-
         model = mm.Model(
             tf.keras.layers.Lambda(lambda inputs: inputs["item_id"]),
             embedding_table,
@@ -190,6 +215,50 @@ class TestEmbeddingTable:
             )
         else:
             np.testing.assert_array_almost_equal(weights, embedding_table.table.embeddings)
+
+
+@pytest.mark.parametrize("trainable", [True, False])
+def test_pretrained_from_InputBlockV2(trainable, music_streaming_data: Dataset):
+    vocab_size = music_streaming_data.schema.column_schemas["item_id"].int_domain.max + 1
+    embedding_dim = 32
+    weights = np.random.rand(vocab_size, embedding_dim)
+    pre_trained_weights_df = pd.DataFrame(weights)
+
+    embed_dims = {}
+    embed_dims["item_id"] = pre_trained_weights_df.shape[1]
+    embeddings_init = {
+        "item_id": mm.TensorInitializer(weights),
+    }
+
+    embeddings_block = mm.Embeddings(
+        music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL),
+        embeddings_initializer=embeddings_init,
+        trainable={"item_id": trainable},
+        dim=embed_dims,
+    )
+    input_block = mm.InputBlockV2(music_streaming_data.schema, embeddings=embeddings_block)
+
+    model = mm.DCNModel(
+        music_streaming_data.schema,
+        depth=2,
+        input_block=input_block,
+        deep_block=mm.MLPBlock([64, 32]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
+    )
+    model_test(model, music_streaming_data)
+
+    if trainable:
+        np.testing.assert_raises(
+            AssertionError,
+            np.testing.assert_array_almost_equal,
+            weights,
+            embeddings_block["item_id"].table.embeddings,
+        )
+    else:
+        np.testing.assert_array_almost_equal(
+            weights,
+            embeddings_block["item_id"].table.embeddings,
+        )
 
 
 def test_embedding_features_yoochoose(testing_data: Dataset):
