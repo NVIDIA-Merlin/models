@@ -429,6 +429,22 @@ class ParallelBlock(TabularBlock):
         """
         return self.parallel_dict.get(name)
 
+    def select_by_names(self, names: List[str]) -> Optional[List[Block]]:
+        """Select a list of parallel blocks by names
+
+        Returns
+        -------
+        List[Block]
+            The blocks corresponding to the names
+        """
+        blocks = []
+        for name in names:
+            if name in self.parallel_dict:
+                blocks.append(self.parallel_dict.get(name))
+            else:
+                raise ValueError(f"Given name {name} is not in ParallelBlock {self.name}")
+        return blocks
+
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]
 
@@ -550,6 +566,252 @@ class ParallelBlock(TabularBlock):
 
         return cls(inputs, **config)
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ParallelBlockV2(TabularBlock):
+    """Merge multiple layers or TabularModule's into a single output of TabularData.
+
+    Parameters
+    ----------
+    inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]]
+        keras layers to merge into, this can also be one or multiple layers keyed by the
+        name the module should have.
+    use_layer_name: use the original name of layers provided in inputs as key-index of the
+        parallel branches.
+    {tabular_module_parameters}
+    """
+
+    def __init__(
+        self,
+        *inputs: Union[tf.keras.layers.Layer, Dict[str, tf.keras.layers.Layer]],
+        pre: Optional[BlockType] = None,
+        post: Optional[BlockType] = None,
+        aggregation: Optional[TabularAggregationType] = None,
+        schema: Optional[Schema] = None,
+        name: Optional[str] = None,
+        strict: bool = False,
+        automatic_pruning: bool = True,
+        use_layer_name: bool = True,
+        expert_reg: Optional[float] = 1e-2,
+        **kwargs,
+    ):
+        super().__init__(
+            pre=pre, post=post, aggregation=aggregation, schema=schema, name=name, **kwargs
+        )
+        self.expert_reg = expert_reg
+        self.strict = strict
+        self.automatic_pruning = automatic_pruning
+        self.parallel_layers: Union[List[TabularBlock], Dict[str, TabularBlock]]
+        if isinstance(inputs, tuple) and len(inputs) == 1 and isinstance(inputs[0], (list, tuple)):
+            inputs = inputs[0]
+        if all(isinstance(x, dict) for x in inputs):
+            to_merge: Dict[str, tf.keras.layers.Layer] = reduce(
+                lambda a, b: dict(a, **b), inputs
+            )  # type: ignore
+            parsed_to_merge: Dict[str, TabularBlock] = {}
+            for key, val in to_merge.items():
+                parsed_to_merge[key] = val
+            self.parallel_layers = parsed_to_merge
+        elif all(isinstance(x, tf.keras.layers.Layer) for x in inputs):
+            if use_layer_name:
+                self.parallel_layers = {layer.name: layer for layer in inputs}
+            else:
+                parsed: List[TabularBlock] = []
+                for i, inp in enumerate(inputs):
+                    parsed.append(inp)  # type: ignore
+                self.parallel_layers = parsed
+        else:
+            raise ValueError(
+                "Please provide one or multiple layer's to merge or "
+                f"dictionaries of layer. got: {inputs}"
+            )
+
+        if schema:
+            for branch in self.parallel_values:
+                if not getattr(branch, "has_schema", True):
+                    branch.set_schema(schema)
+
+        # Merge schemas if necessary.
+        if not schema and all(getattr(m, "_schema", False) for m in self.parallel_values):
+            if len(self.parallel_values) == 1:
+                self.set_schema(self.parallel_values[0].schema)
+            else:
+                s = reduce(
+                    lambda a, b: a + b, [m.schema for m in self.parallel_values]
+                )  # type: ignore
+                self.set_schema(s)
+
+    @property
+    def parallel_values(self) -> List[tf.keras.layers.Layer]:
+        if isinstance(self.parallel_layers, dict):
+            return list(self.parallel_layers.values())
+
+        return self.parallel_layers
+
+    @property
+    def parallel_dict(self) -> Dict[Union[str, int], tf.keras.layers.Layer]:
+        if isinstance(self.parallel_layers, dict):
+            return self.parallel_layers
+
+        return {i: m for i, m in enumerate(self.parallel_layers)}
+
+    @property
+    def layers(self) -> List[tf.keras.layers.Layer]:
+        return self.parallel_values
+
+    def select_by_name(self, name: str) -> Optional["Block"]:
+        """Select a parallel block by name
+
+        Returns
+        -------
+        Block
+            The block corresponding to the name
+        """
+        return self.parallel_dict.get(name)
+
+    def select_by_names(self, names: List[str]) -> Optional[List[Block]]:
+        """Select a list of parallel blocks by names
+
+        Returns
+        -------
+        List[Block]
+            The blocks corresponding to the names
+        """
+        blocks = []
+        for name in names:
+            if name in self.parallel_dict:
+                blocks.append(self.parallel_dict.get(name))
+            else:
+                raise ValueError(f"Given name {name} is not in ParallelBlock {self.name}")
+        return blocks
+
+    def __getitem__(self, key) -> "Block":
+        return self.parallel_dict[key]
+
+    def __setitem__(self, key: str, item: "Block"):
+        self.parallel_dict[key] = item
+
+    def add_branch(self, name: str, block: "Block") -> "ParallelBlock":
+        if isinstance(self.parallel_layers, dict):
+            self.parallel_layers[name] = block
+
+        return self
+
+    def apply_to_branch(self, branch_name: str, *block: "Block"):
+        if isinstance(self.parallel_layers, dict):
+            self.parallel_layers[branch_name] = self.parallel_layers[branch_name].apply(*block)
+
+    def call(self, inputs, **kwargs):
+        """The call method for ParallelBlock
+
+        Parameters
+        ----------
+        inputs : TabularData
+            The inputs for the Parallel Block
+
+        Returns
+        -------
+        TabularData
+            Outputs of the ParallelBlock
+        """
+        if self.strict:
+            assert isinstance(inputs, dict), "Inputs needs to be a dict"
+
+        outputs = {}
+        def to_corr(cov):
+            d_inv = tf.linalg.diag(1/tf.sqrt(tf.abs(tf.linalg.diag_part(cov))))
+            corr = d_inv @ cov @ d_inv
+            return corr
+        if isinstance(inputs, dict) and all(
+            name in inputs for name in list(self.parallel_dict.keys())
+        ):
+            for name, block in self.parallel_dict.items():
+                out = call_layer(block, inputs[name], **kwargs)
+                if not isinstance(out, dict):
+                    out = {name: out}
+                outputs.update(out)
+        else:
+            for name, layer in self.parallel_dict.items():
+                out = call_layer(layer, inputs, **kwargs)
+                if not isinstance(out, dict):
+                    out = {name: out}
+                outputs.update(out)
+            tensors = []
+            for name in sorted(outputs.keys()):
+                tensors.append(tf.cast(outputs[name], tf.float32))
+            tensors = tf.stack(tensors, axis=1)
+        self.add_loss(self.expert_reg * tf.reduce_sum(tf.square((tf.matmul(tensors, tf.transpose(tensors, perm=[0, 2, 1]))) - tf.eye(tensors.shape[1]))))
+        return outputs
+
+    def compute_call_output_shape(self, input_shape):
+        output_shapes = {}
+
+        for name, layer in self.parallel_dict.items():
+            if isinstance(input_shape, dict) and all(
+                key in input_shape for key in list(self.parallel_dict.keys())
+            ):
+                out = layer.compute_output_shape(input_shape[name])
+            else:
+                out = layer.compute_output_shape(input_shape)
+            if isinstance(out, dict):
+                output_shapes.update(out)
+            else:
+                output_shapes[name] = out
+
+        return output_shapes
+
+    def build(self, input_shape):
+        to_prune = []
+        propagate_all_inputs = True
+        if isinstance(input_shape, dict) and all(
+            name in input_shape for name in list(self.parallel_dict.keys())
+        ):
+            propagate_all_inputs = False
+
+        for key, branch in self.parallel_dict.items():
+            branch_shape = input_shape[key] if not propagate_all_inputs else input_shape
+            branch.build(branch_shape)
+            branch_out_shape = branch.compute_output_shape(branch_shape)
+            if self.automatic_pruning and branch_out_shape == {}:
+                to_prune.append(key)
+
+        for p in to_prune:
+            self.parallel_layers.pop(p)
+
+        return super().build(input_shape)
+
+    def get_config(self):
+        config = super(ParallelBlock, self).get_config()
+        config.update({"automatic_pruning": self.automatic_pruning})
+
+        return tf_utils.maybe_serialize_keras_objects(self, config, ["parallel_layers"])
+
+    @classmethod
+    def parse_config(cls, config, custom_objects=None):
+        config = tf_utils.maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
+        if "schema" in config:
+            config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
+
+        parallel_layers = config.pop("parallel_layers")
+        if isinstance(parallel_layers, dict):
+            inputs = {
+                name: tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+                for name, conf in parallel_layers.items()
+            }
+        elif isinstance(parallel_layers, (list, tuple)):
+            inputs = [
+                tf.keras.layers.deserialize(conf, custom_objects=custom_objects)
+                for conf in parallel_layers
+            ]
+        else:
+            raise ValueError("Parallel layers need to be a list or a dict")
+
+        return inputs, config
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        inputs, config = cls.parse_config(config, custom_objects)
+
+        return cls(inputs, **config)
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class WithShortcut(ParallelBlock):

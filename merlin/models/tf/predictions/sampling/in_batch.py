@@ -17,12 +17,12 @@ from typing import Optional
 
 import tensorflow as tf
 
-from merlin.models.tf.blocks.sampling.base import EmbeddingWithMetadata, ItemSampler
-from merlin.models.tf.typing import TabularData
+from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
 
 
+@ItemSamplerV2.registry.register("in-batch")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class InBatchSampler(ItemSampler):
+class InBatchSamplerV2(ItemSamplerV2):
     """Provides in-batch sampling [1]_ for two-tower item retrieval
     models. The implementation is very simple, as it
     just returns the current item embeddings and metadata, but it is necessary to have
@@ -35,12 +35,10 @@ class InBatchSampler(ItemSampler):
     in training batches.
     P.s. Ignoring the false negatives (negative items equal to the positive ones) is
     managed by `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`
-
     References
     ----------
     .. [1] Yi, Xinyang, et al. "Sampling-bias-corrected neural modeling for large corpus item
        recommendations." Proceedings of the 13th ACM Conference on Recommender Systems. 2019.
-
     Parameters
     ----------
     batch_size : int, optional
@@ -49,8 +47,7 @@ class InBatchSampler(ItemSampler):
 
     def __init__(self, batch_size: Optional[int] = None, **kwargs):
         super().__init__(max_num_samples=batch_size, **kwargs)
-        self._last_batch_items_embeddings: tf.Tensor = None  # type: ignore
-        self._last_batch_items_metadata: TabularData = {}
+        self._last_batch: Optional[Items] = None  # type: ignore
         self.set_batch_size(batch_size)
 
     @property
@@ -62,52 +59,52 @@ class InBatchSampler(ItemSampler):
         if value is not None:
             self.set_max_num_samples(value)
 
-    def build(self, input_shapes: TabularData) -> None:
+    def build(self, items: Items) -> None:
+        if isinstance(items, dict):
+            items = Items.from_config(items)
         if self._batch_size is None:
-            self.set_batch_size(input_shapes["embeddings"][0])
+            self.set_batch_size(items.id[0])
 
-    def call(self, inputs: TabularData, training=True) -> EmbeddingWithMetadata:
-        """Returns the item embeddings and item metadata from
+    def add(self, items: Items):
+        self._last_batch = items
+
+    def call(
+        self, items: Items, features=None, targets=None, training=False, testing=False
+    ) -> Items:
+        """Returns the item embeddings and item ids from
         the current batch.
-        The implementation is very simple, as it just returns the current
-        item embeddings and metadata, but it is necessary to have
-        `InBatchSampler` under the same interface of other more advanced samplers
-        (e.g. `CachedCrossBatchSampler`).
 
         Parameters
         ----------
-        inputs : TabularData
-            Dict with two keys:
-              "items_embeddings": Items embeddings tensor
-              "items_metadata": Dict like `{"<feature name>": "<feature tensor>"}` which contains
-              features that might be relevant for the sampler.
-              The `InBatchSampler` does not use metadata features
-              specifically, but "item_id" is required when using in combination with
-              `ItemRetrievalScorer(..., sampling_downscore_false_negatives=True)`, so that
-              false negatives are identified and downscored.
+        items : Items
+            The items ids and their embeddings from the current batch
+        features : optional
+            The metadata with raw input features, by default None
+        targets : _type_, optional
+            The tensor of targets, by default None
         training : bool, optional
-            Flag indicating if on training mode, by default True
+            Flag indicating if on training mode, by default False
+        testing : bool, optional
+             Flag indicating if on evaluation mode, by default False
 
         Returns
         -------
-        EmbeddingWithMetadata
-            Value object with the sampled item embeddings and item metadata
+        Items
+            NamedTuple with the sampled item ids and item metadata
         """
-        self.add(inputs, training)
-        items_embeddings = self.sample()
-        return items_embeddings
+        self.add(items)
+        items = self.sample()
 
-    def add(self, inputs: TabularData, training=True) -> None:  # type: ignore
-        self._check_inputs_batch_sizes(inputs)
-        self._last_batch_items_embeddings = inputs["embeddings"]
-        self._last_batch_items_metadata = inputs["metadata"]
+        return items
 
-    def sample(self) -> EmbeddingWithMetadata:
-        return EmbeddingWithMetadata(
-            self._last_batch_items_embeddings, self._last_batch_items_metadata
-        )
+    def sample(self) -> Items:
+        return self._last_batch
 
     def get_config(self):
-        config = super(InBatchSampler, self).get_config()
-        config["batch_size"] = self.batch_size
+        config = super().get_config()
+        config["batch_size"] = self._batch_size
+
+        # TODO: This is a side-effect, could this lead to problems?
+        self._last_batch = None
+
         return config

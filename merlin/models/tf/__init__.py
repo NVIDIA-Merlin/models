@@ -27,6 +27,7 @@ from merlin.models.tf.core.transformations import (
     CategoricalOneHot,
     ExpandDims,
     HashedCross,
+    HashedCrossAll,
     LabelToOneHot,
 )
 
@@ -40,11 +41,16 @@ from tensorflow.python.training.tracking.data_structures import ListWrapper, _Di
 
 from merlin.models.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.blocks.cross import CrossBlock
-from merlin.models.tf.blocks.dlrm import DLRMBlock, DLRMBlockV2
-from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate, MMOEBlockV2, CGCBlockV2
+from merlin.models.tf.blocks.dlrm import DLRMBlock
+from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
 from merlin.models.tf.blocks.interaction import DotProductInteraction, FMPairwiseInteraction
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
-from merlin.models.tf.blocks.multi_optimizers import MultiOptimizer, OptimizerBlocks
+from merlin.models.tf.blocks.optimizer import (
+    LazyAdam,
+    MultiOptimizer,
+    OptimizerBlocks,
+    split_embeddings_on_size,
+)
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, ItemRetrievalScorer
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
@@ -72,6 +78,7 @@ from merlin.models.tf.core.combinators import (
     Cond,
     MapValues,
     ParallelBlock,
+    ParallelBlockV2,
     ResidualBlock,
     SequentialBlock,
 )
@@ -101,7 +108,7 @@ from merlin.models.tf.metrics.topk import (
 )
 from merlin.models.tf.models import benchmark
 from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel
-from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, DLRMModelV2, MLPModel
+from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, WideAndDeepModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
     TwoTowerModel,
@@ -117,8 +124,11 @@ from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.tf.predictions.base import PredictionBlock
-from merlin.models.tf.predictions.classification import BinaryPrediction
+from merlin.models.tf.predictions.classification import BinaryPrediction, CategoricalPrediction
 from merlin.models.tf.predictions.regression import RegressionPrediction
+from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
+from merlin.models.tf.predictions.sampling.in_batch import InBatchSamplerV2
+from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
 
@@ -169,6 +179,7 @@ __all__ = [
     "AsSparseFeatures",
     "CategoricalOneHot",
     "HashedCross",
+    "HashedCrossAll",
     "ElementwiseSum",
     "ElementwiseSumItemMulti",
     "AsTabular",
@@ -182,11 +193,15 @@ __all__ = [
     "PredictionBlock",
     "BinaryPrediction",
     "RegressionPrediction",
+    "CategoricalPrediction",
     "PredictionTask",
     "BinaryClassificationTask",
     "MultiClassClassificationTask",
     "RegressionTask",
     "MultiOptimizer",
+    "LazyAdam",
+    "OptimizerBlocks",
+    "split_embeddings_on_size",
     "OptimizerBlocks",
     "ItemRetrievalTask",
     "ItemRetrievalScorer",
@@ -217,6 +232,7 @@ __all__ = [
     "DLRMModel",
     "DCNModel",
     "DeepFMModel",
+    "WideAndDeepModel",
     "losses",
     "LossType",
     "sample_batch",
