@@ -76,7 +76,6 @@ class Encoder(tf.keras.Model):
             dataset,
             batch_size=batch_size,
             output_schema=output_schema,
-            # output_concat_func=get_lib().concat,
             output_concat_func=np.concatenate,
             **kwargs,
         )
@@ -234,9 +233,13 @@ class EmbeddingEncoder(Encoder):
         dtype=None,
         dynamic=False,
     ):
+        if isinstance(schema, ColumnSchema):
+            col = schema
+        else:
+            col = schema.first
         table = EmbeddingTable(
             dim,
-            schema if isinstance(schema, ColumnSchema) else schema.first,
+            col,
             embeddings_initializer=embeddings_initializer,
             embeddings_regularizer=embeddings_regularizer,
             activity_regularizer=activity_regularizer,
@@ -250,4 +253,4 @@ class EmbeddingEncoder(Encoder):
             dynamic=dynamic,
         )
 
-        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[table.table_name]))
+        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col.name]))
