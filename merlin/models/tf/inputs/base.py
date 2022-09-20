@@ -217,8 +217,38 @@ def InputBlockV2(
     **branches,
 ) -> ParallelBlock:
     """The entry block of the model to process input features from a schema.
-    This is the 2nd version of InputBlock, which is more flexible for accepting
-    the external definition of `embeddings` block.
+
+    This is a new version of InputBlock, which is more flexible for accepting
+    the external definition of `embeddings` block. After `22.10` this will become the default.
+
+    Simple Usage::
+        inputs = InputBlockV2(schema)
+
+    Custom Embeddings::
+        inputs = InputBlockV2(
+            schema,
+            categorical=Embeddings(schema, dim=32)
+        )
+
+    Sparse outputs for one-hot::
+        inputs = InputBlockV2(
+            schema,
+            categorical=CategoryEncoding(schema, sparse=True),
+            post=ToSparse()
+        )
+
+    Add continuous projection::
+        inputs = InputBlockV2(
+            schema,
+            continuous=ContinuousProjection(continuos_schema, MLPBlock([32])),
+        )
+
+    Merge 2D and 3D (for session-based)::
+        inputs = InputBlockV2(
+            schema,
+            post=BroadcastToSequence(context_schema, sequence_schema)
+        )
+
 
     Parameters
     ----------
@@ -226,21 +256,23 @@ def InputBlockV2(
         Schema of the input data. This Schema object will be automatically generated using
         [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
         Next to this, it's also possible to construct it manually.
-    categorical : Optional[Block], optional
-        An embeddings block defined externally. If None, the `EmbeddingsFromSchema`
-        function is used to infer the embedding tables from the schema
-    continuous_projection : Optional[Block], optional
-        If set, concatenate all numerical features and projet using the
-        specified Block. Defaults to None
-    continuous_column_selector : Union[Tags, Schema], optional
-        Continuous columns are selected by either a Schema or
-        Tag to filter the schema, by default Tags.CONTINUOUS
+    categorical : Union[Tags, Schema, Layer], defaults to `Tags.CATEGORICAL`
+        A block or column-selector to use for categorical-features.
+        If a column-selector is provided (either a schema or tags), the selector
+        will be passed to `Embeddings` to infer the embedding tables from the column-selector.
+    continuous : Union[Tags, Schema, Layer], defaults to `Tags.CONTINUOUS`
+        A block to use for continuous-features.
+        If a column-selector is provided (either a schema or tags), the selector
+        will be passed to `Continuous` to infer the features from the column-selector.
     pre : Optional[BlockType], optional
         Transformation block to apply before the embeddings lookup, by default None
     post : Optional[BlockType], optional
         Transformation block to apply after the embeddings lookup, by default None
     aggregation : Optional[TabularAggregationType], optional
         Transformation block to apply for aggregating the inputs, by default "concat"
+    **branches : dict
+        Extra branches to add to the input block.
+
 
     Returns
     -------
