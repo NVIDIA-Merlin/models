@@ -5,16 +5,16 @@ from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
 
 
-def test_encoder_block(music_streaming_data: Dataset):
+def test_encoder(music_streaming_data: Dataset):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["user_id", "item_id", "user_genres"]
     )
 
     schema = music_streaming_data.schema
     user_schema = schema.select_by_name(["user_id", "user_genres"])
-    user_encoder = mm.EncoderBlock(user_schema, mm.MLPBlock([4]), name="query")
+    user_encoder = mm.Encoder(user_schema, mm.MLPBlock([4]), name="query")
     item_schema = schema.select_by_name(["item_id"])
-    item_encoder = mm.EncoderBlock(item_schema, mm.MLPBlock([4]), name="candidate")
+    item_encoder = mm.Encoder(item_schema, mm.MLPBlock([4]), name="candidate")
 
     model = mm.Model(
         mm.ParallelBlock(user_encoder, item_encoder),
