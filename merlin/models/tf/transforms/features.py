@@ -690,6 +690,11 @@ class BroadcastToSequence(tf.keras.layers.Layer):
                 )
 
             sequence_length = list(seq_features_shapes.values())[0][1]
+            if sequence_length is None:
+                for k, v in inputs.items():
+                    if k in self.sequence_schema.column_names:
+                        if isinstance(v, tf.RaggedTensor):
+                            sequence_length = v.row_lengths()
 
         return seq_features_shapes, sequence_length
 
@@ -702,11 +707,21 @@ class BroadcastToSequence(tf.keras.layers.Layer):
                 if fname in self.context_schema.column_names:
                     if target[fname] is None:
                         continue
-                    shape = target[fname].shape
-                    target_shape = shape[:1] + sequence_length + shape[1:]
-                    non_seq_target[fname] = tf.broadcast_to(
-                        tf.expand_dims(target[fname], 1), target_shape
-                    )
+                    if isinstance(sequence_length, tf.Tensor):
+                        rows = []
+                        for row, row_sequence_length in zip(target[fname], sequence_length):
+                            rows.append(
+                                tf.RaggedTensor.from_tensor(
+                                    tf.repeat(tf.expand_dims(row, 1), row_sequence_length, axis=0)
+                                )
+                            )
+                        non_seq_target[fname] = tf.stack(rows)
+                    else:
+                        shape = target[fname].shape
+                        target_shape = shape[:1] + sequence_length + shape[1:]
+                        non_seq_target[fname] = tf.broadcast_to(
+                            tf.expand_dims(target[fname], 1), target_shape
+                        )
             target = {**target, **non_seq_target}
 
         return target

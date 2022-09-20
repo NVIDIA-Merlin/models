@@ -696,7 +696,7 @@ def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
 
-class TestBroadcastToSequence:
+class TestBroadcastToSequence(tf.test.TestCase):
     def test_only_sequential(self):
         context_schema = Schema()
         sequence_schema = Schema([ColumnSchema("s1", tags=[Tags.SEQUENCE])])
@@ -718,8 +718,8 @@ class TestBroadcastToSequence:
             "s1": tf.constant([[[1, 2], [3, 4], [5, 6]], [[6, 3], [2, 3], [7, 3]]]),
         }
         outputs = layer(inputs)
-        np.testing.assert_array_equal(
-            outputs["c1"].numpy(),
+        self.assertAllEqual(
+            outputs["c1"],
             tf.constant(
                 [
                     [
@@ -733,9 +733,9 @@ class TestBroadcastToSequence:
                         [2],
                     ],
                 ]
-            ).numpy(),
+            ),
         )
-        np.testing.assert_array_equal(inputs["s1"].numpy(), outputs["s1"].numpy())
+        self.assertAllEqual(inputs["s1"], outputs["s1"])
 
     def test_different_sequence_lengths(self):
         context_schema = Schema([ColumnSchema("c1")])
@@ -762,9 +762,18 @@ class TestBroadcastToSequence:
         sequence_schema = Schema([ColumnSchema("b")])
         broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
         outputs = broadcast_layer(partially_masked_inputs)
-        np.testing.assert_array_equal(
-            outputs["a"]._keras_mask.numpy(), np.array([[True, False], [False, True]])
-        )
-        np.testing.assert_array_equal(
-            outputs["b"]._keras_mask.numpy(), np.array([[True, False], [False, True]])
-        )
+        self.assertAllEqual(outputs["a"]._keras_mask, tf.constant([[True, False], [False, True]]))
+        self.assertAllEqual(outputs["b"]._keras_mask, tf.constant([[True, False], [False, True]]))
+
+    def test_mask_propagation_ragged(self):
+        masking_layer = tf.keras.layers.Masking(mask_value=0)
+        partially_masked_inputs = {
+            "a": tf.constant([[1], [2]]),
+            "b": masking_layer(tf.ragged.constant([[[1]], [[0], [1]]])),
+        }
+        context_schema = Schema([ColumnSchema("a")])
+        sequence_schema = Schema([ColumnSchema("b")])
+        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        outputs = broadcast_layer(partially_masked_inputs)
+        self.assertAllEqual(outputs["a"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
+        self.assertAllEqual(outputs["b"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
