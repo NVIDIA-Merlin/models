@@ -663,7 +663,7 @@ class BroadcastToSequence(tf.keras.layers.Layer):
 
     """
 
-    def __init__(self, context_schema, sequence_schema, **kwargs):
+    def __init__(self, context_schema: Schema, sequence_schema: Schema, **kwargs):
         super().__init__(**kwargs)
         self.context_schema = context_schema
         self.sequence_schema = sequence_schema
