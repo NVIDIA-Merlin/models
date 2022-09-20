@@ -649,6 +649,20 @@ def reshape_categorical_input_tensor_for_encoding(
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BroadcastToSequence(tf.keras.layers.Layer):
+    """Broadcast context features to match the timesteps of sequence features.
+
+    This layer supports mask propagation. If the sequence features have a mask. The
+    context features being broadcast will inherit the mask.
+
+    Parameters
+    ----------
+    context_schema : Schema
+        The schema representing contextual features to be broadcast
+    sequence_schema : Schema
+        The schema representing sequence features
+
+    """
+
     def __init__(self, context_schema, sequence_schema, **kwargs):
         super().__init__(**kwargs)
         self.context_schema = context_schema
