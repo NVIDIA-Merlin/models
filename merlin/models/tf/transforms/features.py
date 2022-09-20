@@ -26,6 +26,7 @@ from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.models.utils import schema_utils
 from merlin.schema import Schema, Tags
 
@@ -50,23 +51,6 @@ class FeaturesTensorTypeConversion(TabularBlock):
         if schema is not None:
             self.column_names = schema.column_names
 
-    def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        outputs = {}
-        for name, val in inputs.items():
-            outputs[name] = val
-
-            if self.column_names is not None and name not in self.column_names:
-                continue
-
-            if isinstance(val, tuple):
-                val = list_col_to_ragged(val)
-            if isinstance(val, tf.RaggedTensor):
-                outputs[name] = val.to_sparse()
-            elif isinstance(val, tf.Tensor):
-                outputs[name] = tf.sparse.from_dense(val)
-
-        return outputs
-
     def compute_output_shape(self, input_shapes):
         output_shapes = {}
         for k, v in input_shapes.items():
@@ -84,7 +68,7 @@ class FeaturesTensorTypeConversion(TabularBlock):
 
 @Block.registry.register("to_sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ToSparseFeatures(FeaturesTensorTypeConversion):
+class ToSparse(FeaturesTensorTypeConversion):
     """Convert the features provided in the schema to sparse tensors.
     The other features are kept unchanged.
     """
@@ -109,7 +93,7 @@ class ToSparseFeatures(FeaturesTensorTypeConversion):
 
 @Block.registry.register("to_dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ToDenseFeatures(FeaturesTensorTypeConversion):
+class ToDense(FeaturesTensorTypeConversion):
     """Convert the features provided in the schema to dense tensors.
     The other features are kept unchanged.
     """
@@ -526,7 +510,10 @@ class HashedCross(TabularBlock):
         # Encode outputs.
         outputs = {}
         outputs[self.output_name] = p_utils.encode_categorical_inputs(
-            output, output_mode=self.output_mode, depth=self.num_bins, sparse=self.sparse,
+            output,
+            output_mode=self.output_mode,
+            depth=self.num_bins,
+            sparse=self.sparse,
         )
 
         if not self.sparse and isinstance(outputs[self.output_name], tf.SparseTensor):

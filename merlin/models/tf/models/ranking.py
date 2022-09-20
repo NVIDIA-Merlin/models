@@ -10,7 +10,7 @@ from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
 from merlin.models.tf.core.tabular import Filter
 from merlin.models.tf.inputs.base import InputBlockV2
-from merlin.models.tf.inputs.embedding import EmbeddingOptions
+from merlin.models.tf.inputs.embedding import EmbeddingOptions, Embeddings
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
@@ -158,7 +158,7 @@ def DeepFMModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    **kwargs,
+    **deep_tower_kwargs,
 ) -> Model:
     """DeepFM-model architecture, which is the sum of the 1-dim output
     of a Factorization Machine [2] and a Deep Neural Network
@@ -207,7 +207,11 @@ def DeepFMModel(
 
     """
 
-    input_block = input_block or InputBlockV2(schema, dim=embedding_dim, aggregation=None, **kwargs)
+    input_block = input_block or InputBlockV2(
+        schema,
+        aggregation=None,
+        embeddings=Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
+    )
 
     fm_tower = FMBlock(
         schema,
@@ -219,7 +223,7 @@ def DeepFMModel(
         deep_block = MLPBlock([64])
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
     deep_tower = input_block.connect(deep_block).connect(
-        MLPBlock([1], activation="linear", use_bias=True, **kwargs)
+        MLPBlock([1], activation="linear", use_bias=True, **deep_tower_kwargs)
     )
 
     deep_fm = ParallelBlock({"fm": fm_tower, "deep": deep_tower}, aggregation="element-wise-sum")
@@ -245,7 +249,7 @@ def WideAndDeepModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    **kwargs,
+    **wide_body_kwargs,
 ) -> Model:
     """
     The Wide&Deep architecture [1] was proposed by Google
@@ -466,10 +470,7 @@ def WideAndDeepModel(
 
     if not deep_input_block:
         if deep_schema is not None and len(deep_schema) > 0:
-            deep_input_block = InputBlockV2(
-                deep_schema,
-                **kwargs,
-            )
+            deep_input_block = InputBlockV2(deep_schema)
     if deep_input_block:
         deep_body = deep_input_block.connect(deep_block).connect(
             MLPBlock(
@@ -502,6 +503,7 @@ def WideAndDeepModel(
                 kernel_regularizer=wide_regularizer,
                 bias_regularizer=wide_regularizer,
                 dropout=wide_dropout,
+                **wide_body_kwargs,
             )
         )
         branches["wide"] = wide_body

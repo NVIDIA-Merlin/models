@@ -24,7 +24,7 @@ from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import MapValues, ParallelBlock, SequentialBlock
 from merlin.models.tf.core.tabular import Filter
 from merlin.models.tf.inputs.base import InputBlockV2
-from merlin.models.tf.transforms.features import CategoryEncoding, ToSparseFeatures
+from merlin.models.tf.transforms.features import CategoryEncoding, ToSparse
 from merlin.schema import Schema, Tags
 
 _INTERACTION_TYPES = (None, "field_all", "field_each", "field_interaction")
@@ -245,7 +245,7 @@ def FMBlock(
     fm_input_block: Optional[Block] = None,
     wide_input_block: Optional[Block] = None,
     factors_dim: Optional[int] = None,
-    **kwargs,
+    **wide_output_kwargs,
 ) -> tf.Tensor:
     """Implements the Factorization Machine, as introduced in [1].
     It consists in the sum of a wide component that weights each
@@ -288,18 +288,16 @@ def FMBlock(
     wide_input_block = wide_input_block or ParallelBlock(
         {
             "categorical": CategoryEncoding(cat_schema, output_mode="multi_hot", sparse=True),
-            "continuous": SequentialBlock(Filter(cont_schema), ToSparseFeatures()),
+            "continuous": SequentialBlock(Filter(cont_schema), ToSparse()),
         },
         aggregation="concat",
     )
 
     first_order = wide_input_block.connect(
-        MLPBlock([1], activation="linear", use_bias=True, **kwargs)
+        MLPBlock([1], activation="linear", use_bias=True, **wide_output_kwargs)
     )
 
-    fm_input_block = fm_input_block or InputBlockV2(
-        cat_schema, dim=factors_dim, aggregation=None, **kwargs
-    )
+    fm_input_block = fm_input_block or InputBlockV2(cat_schema, dim=factors_dim, aggregation=None)
     pairwise_interaction = SequentialBlock(
         Filter(cat_schema),
         fm_input_block,

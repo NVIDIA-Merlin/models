@@ -75,7 +75,7 @@ def test_fm_block_with_multi_hot_categ_features(testing_data: Dataset):
                 mm.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
             ),
             "continuous": mm.SequentialBlock(
-                mm.Filter(schema.select_by_tag(Tags.CONTINUOUS)), mm.ToSparseFeatures()
+                mm.Filter(schema.select_by_tag(Tags.CONTINUOUS)), mm.ToSparse()
             ),
         },
         aggregation="concat",
