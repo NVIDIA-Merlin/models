@@ -294,7 +294,7 @@ def FMBlock(
     wide_input_block = wide_input_block or ParallelBlock(
         {
             "categorical": CategoryEncoding(cat_schema, output_mode="multi_hot", sparse=True),
-            "continuous": Filter(cont_schema, post=ToSparse()),
+            "continuous": Filter(cont_schema).connect(ToSparse()),
         },
         aggregation="concat",
     )
@@ -304,7 +304,7 @@ def FMBlock(
 
     fm_input_block = fm_input_block or InputBlockV2(
         cat_schema,
-        categorical=Embeddings(schema, dim=factors_dim),
+        categorical=Embeddings(cat_schema, dim=factors_dim),
         aggregation=None,
     )
     pairwise_interaction = SequentialBlock(

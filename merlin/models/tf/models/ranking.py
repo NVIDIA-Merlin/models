@@ -8,7 +8,6 @@ from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
-from merlin.models.tf.core.tabular import Filter
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions, Embeddings
 from merlin.models.tf.models.base import Model
@@ -216,7 +215,7 @@ def DeepFMModel(
 
     fm_tower = FMBlock(
         schema,
-        fm_input_block=input_block.connect(Filter(Tags.CATEGORICAL)),
+        fm_input_block=input_block,
         wide_input_block=wide_input_block,
     )
 
