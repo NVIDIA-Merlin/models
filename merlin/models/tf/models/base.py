@@ -1460,8 +1460,8 @@ class RetrievalModelV2(Model):
         id_col: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
-        if self.has_bi_encoder:
-            query = self.encoder.query
+        if self.has_candidate_encoder:
+            query = self.query_encoder
             if hasattr(query, "to_dataset"):
                 return query.to_dataset()
 
@@ -1475,7 +1475,7 @@ class RetrievalModelV2(Model):
         id_col: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
-        if self.has_bi_encoder:
+        if self.has_candidate_encoder:
             candidate = self.encoder.candidate
             if hasattr(candidate, "to_dataset"):
                 return candidate.to_dataset()

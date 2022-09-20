@@ -21,10 +21,12 @@ import pytest
 import tensorflow as tf
 from tensorflow.test import TestCase
 
+import merlin.io
 import merlin.models.tf as ml
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
 from merlin.models.tf.dataset import BatchedDataset
+from merlin.models.tf.models.base import RetrievalModelV2
 from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -647,26 +649,22 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
 
-def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
-    from merlin.models.tf.models.base import RetrievalModelV2
+# def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
+#     # TODO: move item-id to target
+#     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
+#     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
+#     model = RetrievalModelV2(
+#         query=ml.EmbeddingEncoder(query, dim=8),
+#         output=ml.ContrastiveOutput(candidate, "in-batch"),
+#     )
 
-    # TODO: move item-id to target
-    query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
-    candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
-    model = RetrievalModelV2(
-        query=ml.EmbeddingEncoder(query, dim=8),
-        output=ml.ContrastiveOutput(candidate, "in-batch"),
-    )
+#     model, _ = testing_utils.model_test(model, ecommerce_data)
 
-    model, _ = testing_utils.model_test(model, ecommerce_data)
-
-    assert isinstance(model.query_encoder, ml.EmbeddingEncoder)
-    assert isinstance(model.candidate_encoder, ml.EmbeddingEncoder)
+#     assert isinstance(model.query_encoder, ml.EmbeddingEncoder)
+#     assert isinstance(model.candidate_encoder, ml.EmbeddingEncoder)
 
 
 def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=True):
-    from merlin.models.tf.models.base import RetrievalModelV2
-
     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
     model = RetrievalModelV2(
@@ -679,3 +677,6 @@ def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=Tr
 
     assert isinstance(model.query_encoder, ml.EmbeddingEncoder)
     assert isinstance(model.candidate_encoder, ml.EmbeddingEncoder)
+
+    queries = model.query_embeddings(ecommerce_data, batch_size=10, id_col=Tags.USER_ID)
+    assert isinstance(queries, merlin.io.Dataset)
