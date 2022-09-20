@@ -254,3 +254,6 @@ class EmbeddingEncoder(Encoder):
         )
 
         super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col.name]))
+
+    def to_dataset(self, gpu=True) -> merlin.io.Dataset:
+        return self.blocks[0].to_dataset(gpu=gpu)

@@ -1409,14 +1409,12 @@ class RetrievalModelV2(Model):
         id_col: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
-        if self.has_candidate_encoder:
-            query = self.query_encoder
-            if hasattr(query, "to_dataset"):
-                return query.to_dataset()
+        query = self.query_encoder if self.has_candidate_encoder else self.encoder
 
-            return query.encode(dataset, id_col=id_col, **kwargs)
+        if hasattr(query, "to_dataset"):
+            return query.to_dataset()
 
-        return self.encoder.encode(dataset, **kwargs)
+        return query.encode(dataset, id_col=id_col, **kwargs)
 
     def candidate_embeddings(
         self,
@@ -1425,7 +1423,7 @@ class RetrievalModelV2(Model):
         **kwargs,
     ) -> merlin.io.Dataset:
         if self.has_candidate_encoder:
-            candidate = self.encoder.candidate
+            candidate = self.candidate_encoder
             if hasattr(candidate, "to_dataset"):
                 return candidate.to_dataset()
 

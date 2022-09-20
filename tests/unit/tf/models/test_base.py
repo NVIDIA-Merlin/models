@@ -671,6 +671,12 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     assert isinstance(model.query_encoder, ml.EmbeddingEncoder)
     assert isinstance(model.candidate_encoder, ml.EmbeddingEncoder)
 
+    queries = model.query_embeddings()
+    assert isinstance(queries, merlin.io.Dataset)
+
+    candidates = model.candidate_embeddings()
+    assert isinstance(candidates, merlin.io.Dataset)
+
 
 def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=True):
     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
@@ -688,3 +694,6 @@ def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=Tr
 
     queries = model.query_embeddings(ecommerce_data, batch_size=10, id_col=Tags.USER_ID)
     assert isinstance(queries, merlin.io.Dataset)
+
+    candidates = model.candidate_embeddings(ecommerce_data, batch_size=10, id_col=candidate)
+    assert isinstance(candidates, merlin.io.Dataset)
