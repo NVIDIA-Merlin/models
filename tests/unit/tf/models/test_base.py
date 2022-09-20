@@ -649,19 +649,27 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
 
-# def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
-#     # TODO: move item-id to target
-#     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
-#     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
-#     model = RetrievalModelV2(
-#         query=ml.EmbeddingEncoder(query, dim=8),
-#         output=ml.ContrastiveOutput(candidate, "in-batch"),
-#     )
+def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
+    query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
+    candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
 
-#     model, _ = testing_utils.model_test(model, ecommerce_data)
+    def item_id_as_target(features, targets):
+        targets[candidate.first.name] = features.pop(candidate.first.name)
 
-#     assert isinstance(model.query_encoder, ml.EmbeddingEncoder)
-#     assert isinstance(model.candidate_encoder, ml.EmbeddingEncoder)
+        return features, targets
+
+    loader = BatchedDataset(ecommerce_data, batch_size=50)
+    loader = loader.map(item_id_as_target)
+
+    model = RetrievalModelV2(
+        query=ml.EmbeddingEncoder(query, dim=8),
+        output=ml.ContrastiveOutput(candidate, "in-batch"),
+    )
+
+    model, _ = testing_utils.model_test(model, loader)
+
+    assert isinstance(model.query_encoder, ml.EmbeddingEncoder)
+    assert isinstance(model.candidate_encoder, ml.EmbeddingEncoder)
 
 
 def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=True):
