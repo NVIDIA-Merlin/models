@@ -114,6 +114,14 @@ class EncoderBlock(tf.keras.Model):
     def schema(self) -> Schema:
         return self._schema
 
+    @property
+    def first(self):
+        return self.blocks[0]
+
+    @property
+    def last(self):
+        return self.blocks[-1]
+
     @classmethod
     def from_config(cls, config, custom_objects=None):
         pre = config.pop("pre", None)
