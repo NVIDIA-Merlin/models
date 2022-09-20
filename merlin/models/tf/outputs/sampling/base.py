@@ -25,7 +25,6 @@ EMBEDDING_KEY = "__embedding__"
 
 class Candidate(NamedTuple):
     """Store candidate id and their metadata
-
     Parameters
     ----------
     id : tf.Tensor
@@ -75,15 +74,6 @@ class Candidate(NamedTuple):
         metadata = {key: str(val) for key, val in self.metadata.items()}
 
         return f"Candidate({self.id}, {metadata})"
-<<<<<<< HEAD
-
-    def __eq__(self, other) -> bool:
-        if self.id.shape != other.id.shape:
-            return False
-
-        return self.id.ref() == other.id.ref()
-=======
->>>>>>> Fixing test_setting_negative_sampling_strategy
 
     def __eq__(self, other) -> bool:
         if self.id.shape != other.id.shape:
@@ -110,12 +100,10 @@ negative_sampling_registry: Registry = Registry.class_registry("tf.negative_samp
 
 class CandidateSampler(tf.keras.layers.Layer, RegistryMixin["CandidateSampler"], abc.ABC):
     """Base-class for negative sampling
-
     Parameters
     ----------
     max_num_samples : int
         The number of maximum samples to store
-
     Returns
     -------
     Items

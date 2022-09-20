@@ -313,23 +313,7 @@ class BaseModel(tf.keras.Model):
         if num_v1_blocks > 0:
             self.output_names = [task.task_name for task in self.prediction_tasks]
         else:
-<<<<<<< HEAD
-<<<<<<< HEAD
             self.output_names = [block.full_name for block in self.model_outputs]
-=======
-            self.output_names = [block.full_name for block in self.prediction_blocks]
-            negative_sampling = kwargs.pop("negative_sampling", None)
-            if negative_sampling:
-                if not isinstance(self.prediction_blocks[0], ContrastiveOutput):
-                    raise ValueError(
-                        "Negative sampling strategy can be used only with a"
-                        " `ContrastivePredictionBlock` prediction block"
-                    )
-                self.prediction_blocks[0].compile(negative_sampling=negative_sampling)
->>>>>>> Fix wrong import in models/base.py
-=======
-            self.output_names = [block.full_name for block in self.model_outputs]
->>>>>>> Fixing test_setting_negative_sampling_strategy
 
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
@@ -446,7 +430,6 @@ class BaseModel(tf.keras.Model):
 
     def prediction_tasks_by_target(self) -> Dict[str, List[PredictionTask]]:
         """Method to index the model's prediction tasks by target names.
-
         Returns
         -------
         Dict[str, List[PredictionTask]]
@@ -474,7 +457,6 @@ class BaseModel(tf.keras.Model):
 
     def outputs_by_target(self) -> Dict[str, List[ModelOutput]]:
         """Method to index the model's prediction blocks by target names.
-
         Returns
         -------
         Dict[str, List[PredictionBlock]]
@@ -502,7 +484,6 @@ class BaseModel(tf.keras.Model):
     ) -> Union[Prediction, PredictionOutput]:
         """Apply the model's call method during Train or Test modes and prepare
         Prediction (v2) or PredictionOutput (v1 - depreciated) objects
-
         Parameters
         ----------
         x : TabularData
@@ -515,7 +496,6 @@ class BaseModel(tf.keras.Model):
             Sample weights to be used by the loss and by weighted_metrics
         testing : bool, optional
             Flag for test mode, by default False
-
         Returns
         -------
         Union[Prediction, PredictionOutput]
@@ -632,7 +612,6 @@ class BaseModel(tf.keras.Model):
         """Overrides Model.compute_metrics() for some custom behaviour
            like compute metrics each N steps during training
            and allowing to feed additional information required by specific metrics
-
         Parameters
         ----------
         prediction_outputs : PredictionOutput
@@ -640,7 +619,6 @@ class BaseModel(tf.keras.Model):
         training : bool
             Flag that indicates if metrics are being computed during
             training or evaluation
-
         Returns
         -------
         Dict[str, tf.Tensor]
@@ -676,7 +654,6 @@ class BaseModel(tf.keras.Model):
     def metrics_results(self) -> Dict[str, tf.Tensor]:
         """Logic to consolidate metrics results
         extracted from standard Keras Model.compute_metrics()
-
         Returns
         -------
         Dict[str, tf.Tensor]
@@ -886,7 +863,6 @@ class Model(BaseModel):
 
     def build(self, input_shape=None):
         """Builds the model
-
         Parameters
         ----------
         input_shape : tf.TensorShape, optional
@@ -963,20 +939,10 @@ class Model(BaseModel):
         if isinstance(outputs, Prediction):
             targets = outputs.targets if outputs.targets is not None else context.targets
             features = outputs.features if outputs.features is not None else context.features
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Fixing failing tests
             if isinstance(child, ModelOutput):
                 if not (context.training or context.testing):
                     outputs = outputs[0]
             else:
-<<<<<<< HEAD
-=======
-            if not isinstance(child, ModelOutput) and (context.training or context.testing):
->>>>>>> Fixing failing tests
-=======
->>>>>>> Fixing failing tests
                 outputs = outputs[0]
             context = context.with_updates(targets=targets, features=features)
 
@@ -1003,7 +969,6 @@ class Model(BaseModel):
         **kwargs,
     ) -> "Model":
         """Create a model from a `block`
-
         Parameters
         ----------
         block: Block
@@ -1043,10 +1008,7 @@ class Model(BaseModel):
         if post is not None:
             post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
 
-        output = Model(*layers, pre=pre, post=post)
-        output.__class__ = cls
-
-        return output
+        return cls(*layers, pre=pre, post=post)
 
     def get_config(self):
         config = maybe_serialize_keras_objects(self, {}, ["pre", "post"])
@@ -1072,12 +1034,10 @@ class Model(BaseModel):
         not include those blocks frozen in other methods, for example, if you create the embedding
         and set the `trainable` as False, it would not be tracked by this property, but you can also
         call unfreeze_blocks on those blocks.
-
         Please note that sub-block of self._frozen_blocks is also frozen, but not recorded by this
         variable, because if you want to unfreeze the whole model, you only need to unfreeze blocks
         you froze before (called freeze_blocks before), this function would unfreeze all sub-blocks
         recursively and automatically.
-
         If you want to get all frozen blocks and sub-blocks of the model:
             `get_sub_blocks(model.frozen_blocks)`
         """
@@ -1089,21 +1049,17 @@ class Model(BaseModel):
     ):
         """Freeze all sub-blocks of given blocks recursively. Please make sure to compile the model
         after freezing.
-
         Important note about layer-freezing: Calling `compile()` on a model is meant to "save" the
         behavior of that model, which means that whether the layer is frozen or not would be
         preserved for the model, so if you want to freeze any layer of the model, please make sure
         to compile it again.
-
         TODO: Make it work for graph mode. Now if model compile and fit for multiple times with
         graph mode (run_eagerly=True) could raise TensorFlow error. Please find example in
         test_freeze_parallel_block.
-
         Parameters
         ----------
         blocks : Union[Sequence[Block], Sequence[str]]
             Blocks or names of blocks to be frozen
-
         Example :
             ```python
             input_block = ml.InputBlockV2(schema)
@@ -1112,22 +1068,17 @@ class Model(BaseModel):
             two_layer = ml.SequentialBlock([layer_1, layer_2], name="two_layers")
             body = input_block.connect(two_layer)
             model = ml.Model(body, ml.BinaryClassificationTask("click"))
-
             # Compile(Make sure set run_eagerly mode) and fit -> model.freeze_blocks -> compile and
             # fit Set run_eagerly=True in order to avoid error: "Called a function referencing
             # variables which have been deleted". Model needs to be built by fit or build.
-
             model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
             model.fit(ecommerce_data, batch_size=128, epochs=1)
-
             model.freeze_blocks(["user_categories", "layer_2"])
             # From the result of model.summary(), you can find which block is frozen (trainable: N)
             print(model.summary(expand_nested=True, show_trainable=True, line_length=80))
-
             model.compile(run_eagerly=False, optimizer="adam")
             model.fit(ecommerce_data, batch_size=128, epochs=10)
             ```
-
         """
         if not isinstance(blocks, (list, tuple)):
             blocks = [blocks]
@@ -1145,7 +1096,6 @@ class Model(BaseModel):
     ):
         """
         Unfreeze all sub-blocks of given blocks recursively
-
         Important note about layer-freezing: Calling `compile()` on a model is meant to "save" the
         behavior of that model, which means that whether the layer is frozen or not would be
         preserved for the model, so if you want to freeze any layer of the model, please make sure
@@ -1170,7 +1120,6 @@ class Model(BaseModel):
     def unfreeze_all_frozen_blocks(self):
         """
         Unfreeze all blocks (including blocks and sub-blocks) of this model recursively
-
         Important note about layer-freezing: Calling `compile()` on a model is meant to "save" the
         behavior of that model, which means that whether the layer is frozen or not would be
         preserved for the model, so if you want to freeze any layer of the model, please make sure
