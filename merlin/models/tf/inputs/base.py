@@ -240,7 +240,7 @@ def InputBlockV2(
     Add continuous projection::
         inputs = InputBlockV2(
             schema,
-            continuous=ContinuousProjection(continuos_schema, MLPBlock([32])),
+            continuous=ContinuousProjection(continuous_schema, MLPBlock([32])),
         )
 
     Merge 2D and 3D (for session-based)::
