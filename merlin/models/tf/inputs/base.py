@@ -263,11 +263,11 @@ def InputBlockV2(
         Schema of the input data. This Schema object will be automatically generated using
         [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
         Next to this, it's also possible to construct it manually.
-    categorical : Union[Tags, Schema, Layer], defaults to `Tags.CATEGORICAL`
+    categorical : Union[Tags, Layer], defaults to `Tags.CATEGORICAL`
         A block or column-selector to use for categorical-features.
         If a column-selector is provided (either a schema or tags), the selector
         will be passed to `Embeddings` to infer the embedding tables from the column-selector.
-    continuous : Union[Tags, Schema, Layer], defaults to `Tags.CONTINUOUS`
+    continuous : Union[Tags, Layer], defaults to `Tags.CONTINUOUS`
         A block to use for continuous-features.
         If a column-selector is provided (either a schema or tags), the selector
         will be passed to `Continuous` to infer the features from the column-selector.
