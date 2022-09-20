@@ -55,7 +55,7 @@ def test_fm_block_with_multi_hot_categ_features(testing_data: Dataset):
 
     input_block = mm.InputBlockV2(
         schema,
-        embeddings=mm.Embeddings(
+        categorical=mm.Embeddings(
             cat_schema,
             dim=32,
             sequence_combiner="mean",
@@ -65,8 +65,7 @@ def test_fm_block_with_multi_hot_categ_features(testing_data: Dataset):
 
     wide_input_block = mm.ParallelBlock(
         {
-            "categorical_ohe": mm.SequentialBlock(
-                mm.Filter(cat_schema_onehot),
+            "categorical_ohe": mm.Filter(cat_schema_onehot).connect(
                 mm.CategoryEncoding(cat_schema_onehot, sparse=True, output_mode="one_hot"),
             ),
             "categorical_mhe": mm.SequentialBlock(

@@ -211,7 +211,7 @@ def DeepFMModel(
     input_block = input_block or InputBlockV2(
         schema,
         aggregation=None,
-        embeddings=Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
+        categorical=Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
     )
 
     fm_tower = FMBlock(
@@ -282,7 +282,7 @@ def WideAndDeepModel(
         deep_embedding = ml.Embeddings(schema, embedding_dim_default=8, infer_embedding_sizes=False)
         model = ml.WideAndDeepModel(
             schema,
-            deep_input_block = ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
+            deep_input_block = ml.InputBlockV2(schema=schema, categorical=deep_embedding),
             wide_schema=wide_schema,
             wide_preprocess=ml.CategoryEncoding(wide_schema, output_mode="multi_hot", sparse=True),
             deep_block=ml.MLPBlock([32, 16]),

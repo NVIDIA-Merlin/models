@@ -279,7 +279,7 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
 
     model = ml.WideAndDeepModel(
         schema,
-        deep_input_block=ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
+        deep_input_block=ml.InputBlockV2(schema=schema, categorical=deep_embedding),
         wide_schema=wide_schema,
         wide_preprocess=ml.HashedCross(wide_schema, 1000, sparse=True),
         deep_block=ml.MLPBlock([32, 16]),
