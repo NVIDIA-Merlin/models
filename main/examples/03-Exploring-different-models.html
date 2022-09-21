@@ -108,13 +108,13 @@
 <div class="tex2jax_ignore mathjax_ignore section" id="iterating-over-deep-learning-models-using-merlin-models">
 <h1>Iterating over Deep Learning Models using Merlin Models<a class="headerlink" href="#iterating-over-deep-learning-models-using-merlin-models" title="Permalink to this headline"></a></h1>
 <p>This notebook is created using the latest stable <a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags">merlin-tensorflow</a> container.</p>
-<p>In this example, we’ll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.</p>
-<p>In this example notebook, we use synthetic dataset that is mimicking the Ali-CCP: Alibaba Click and Conversion Prediction dataset to build our recommender system models. ALI-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. You can curate the raw dataset via this <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43">get_aliccp() function</a> and generated the parquet files to be used in this example.</p>
+<p>In this example, we’ll demonstrate how to build and train several popular deep learning-based ranking model architectures. Merlin Models provides a high-level API to define those architectures, but allows for customization  as they are composed by reusable building blocks.</p>
+<p>In this example notebook, we use for training and evaluation synthetic data that mimics the schema (features and cardinalities) of <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">Ali-CCP dataset</a>: Alibaba Click and Conversion Prediction dataset. The Ali-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit <a class="reference external" href="https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1">tianchi.aliyun.com</a>. You can get the raw dataset via this <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43">get_aliccp() function</a> and generate the parquet files from it to be used in this example.</p>
 <div class="section" id="learning-objectives">
 <h2>Learning objectives<a class="headerlink" href="#learning-objectives" title="Permalink to this headline"></a></h2>
 <ul class="simple">
 <li><p>Preparing the data with NVTabular</p></li>
-<li><p>Training different deep learning-based recommender models with Merlin Models</p></li>
+<li><p>Training different deep learning-based ranking models with Merlin Models</p></li>
 </ul>
 </div>
 <div class="section" id="importing-libraries">
@@ -152,6 +152,7 @@
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
 
 <span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;/workspace/data/&quot;</span><span class="p">)</span>
+
 <span class="n">NUM_ROWS</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NUM_ROWS&quot;</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
 <span class="n">SYNTHETIC_DATA</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SYNTHETIC_DATA&quot;</span><span class="p">,</span> <span class="s2">&quot;True&quot;</span><span class="p">))</span>
 
@@ -174,7 +175,7 @@
 </div>
 </div>
 <p>Our dataset has only categorical features. Below, we create continuous features using target encoding (TE) technique. Target Encoding calculates the statistics from a target variable grouped by the unique values of one or more categorical features. For example, in a binary classification problem, TE calculates the conditional probability that the target is true for each category value- a simple mean. To learn more about TE, visit this <a class="reference external" href="https://medium.com/rapids-ai/target-encoding-with-rapids-cuml-do-more-with-your-categorical-data-8c762c79e784">medium blog</a>.</p>
-<p>Note that the <code class="docutils literal notranslate"><span class="pre">Ali-CCP</span></code> dataset has <code class="docutils literal notranslate"><span class="pre">click</span></code> and <code class="docutils literal notranslate"><span class="pre">conversion</span></code> target columns but we only focus on building different ranking models with binary target column <code class="docutils literal notranslate"><span class="pre">click</span></code>.</p>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">Ali-CCP</span></code> dataset has <code class="docutils literal notranslate"><span class="pre">click</span></code> and <code class="docutils literal notranslate"><span class="pre">conversion</span></code> target columns (which could be used for Multi-Task Learning) but we only focus on building different ranking models with binary target column <code class="docutils literal notranslate"><span class="pre">click</span></code>.</p>
 <p>We use a utility function, <code class="docutils literal notranslate"><span class="pre">workflow_fit_transform</span></code> perform to fit and transform steps on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, and also save our workflow model. After fit and transform, the processed parquet files are saved to <code class="docutils literal notranslate"><span class="pre">output_path</span></code>.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -213,7 +214,7 @@
 </div>
 <div class="section" id="training-recommender-models">
 <h2>Training Recommender Models<a class="headerlink" href="#training-recommender-models" title="Permalink to this headline"></a></h2>
-<p>NVTabular exported the schema file of our processed dataset. The <code class="docutils literal notranslate"><span class="pre">schema.pbtxt</span></code> is a protobuf text file contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to automatically build all necessary input and output layers.</p>
+<p>NVTabular exported the schema file of our processed dataset. The <code class="docutils literal notranslate"><span class="pre">schema.pbtxt</span></code> is a protobuf text file that contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to automatically build all necessary input and output layers.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">train</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;*.parquet&quot;</span><span class="p">),</span> <span class="n">part_size</span><span class="o">=</span><span class="s2">&quot;500MB&quot;</span><span class="p">)</span>
@@ -245,6 +246,17 @@
 <h3>Initialize Dataloaders<a class="headerlink" href="#initialize-dataloaders" title="Permalink to this headline"></a></h3>
 <p>We’re ready to start training, for that, we create our dataset objects, and under the hood we use Merlin <code class="docutils literal notranslate"><span class="pre">BatchedDataset</span></code> class for reading chunks of parquet files. <code class="docutils literal notranslate"><span class="pre">BatchedDataset</span></code> asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. To read more about Merlin optimized dataloaders visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141">here</a>.</p>
 </div>
+<div class="section" id="configures-training-for-all-models">
+<h3>Configures training for all models<a class="headerlink" href="#configures-training-for-all-models" title="Permalink to this headline"></a></h3>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="mi">1024</span>
+<span class="n">LR</span> <span class="o">=</span> <span class="mf">0.03</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
 <div class="section" id="ncf-model">
 <h3>NCF Model<a class="headerlink" href="#ncf-model" title="Permalink to this headline"></a></h3>
 <p>We will first build and train a Neural Collaborative Filtering (NCF) model. Neural Collaborative Filtering <a class="reference external" href="https://arxiv.org/pdf/1708.05031.pdf">(NCF)</a> Model  architecture explores neural network architectures for collaborative filtering, in other words explores the use of deep neural networks for learning the interaction function from data.</p>
@@ -267,9 +279,6 @@
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
-<span class="n">batch_size</span> <span class="o">=</span> <span class="mi">16</span> <span class="o">*</span> <span class="mi">1024</span>
-<span class="n">LR</span> <span class="o">=</span> <span class="mf">0.03</span>
-
 <span class="n">opt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adagrad</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="n">LR</span><span class="p">)</span>
 <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">opt</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
 <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
@@ -346,6 +355,112 @@
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_mlp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">metrics_mlp</span>
 </pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="wide-deep-model">
+<h3>Wide&amp;Deep model<a class="headerlink" href="#wide-deep-model" title="Permalink to this headline"></a></h3>
+<p>The <a class="reference external" href="https://arxiv.org/abs/1606.07792">Wide&amp;Deep architecture</a> was proposed by Google in 2016 to balance between the ability of neural networks to generalize and capacity of linear models to memorize relevant feature interactions. The deep part is an MLP model, with categorical features represented as embeddings, which are concatenated with continuous features and fed through multiple MLP layers. The wide part is a linear model takes a sparse representation of categorical features (i.e. one-hot or multi-hot representation). Both wide and deep sub-models output a logit, which is summed and followed by sigmoid for binary classification loss.</p>
+<a class="reference internal image-reference" href="../_images/wide_and_deep.png"><img alt="../_images/wide_and_deep.png" src="../_images/wide_and_deep.png" style="width: 30%;" /></a>
+<div class="section" id="wide-part">
+<h4>Wide part<a class="headerlink" href="#wide-part" title="Permalink to this headline"></a></h4>
+<p>Typically we feed only categorical features to the wide part. So we filter only categorical features from the schema for the wide part. The categorical features are encoded with one_hot representation, like commonly done for linear models.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cat_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">CATEGORICAL</span><span class="p">)</span>
+
+<span class="n">one_hot_encoding</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">CategoryEncoding</span><span class="p">(</span><span class="n">cat_schema</span><span class="p">,</span> <span class="n">sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">output_mode</span><span class="o">=</span><span class="s2">&quot;one_hot&quot;</span><span class="p">)</span> <span class="c1"># One-hot encoding</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Linear models are not able to compute feature interaction (like MLPs). So to give the wide part more power we perform feature interactions as a preprocessing step for wide part, so that every possible combination of the values of two categorical features is mapped to a single id. That way, the model is be able to pick paired feature relationships, e.g., a pattern between the a category of a product and the city of a user.<br />
+Although, this approach leads to very high-cardinality resulting feature (product between the two features cardinalities). So typically we apply the <em>hashing trick</em> to limit the resulting cardinality.
+In below example you can see how easily can compute crossed features with Merlin Models. We use <code class="docutils literal notranslate"><span class="pre">max_level=2</span></code> here for paired feature interactions. Typically maximum <code class="docutils literal notranslate"><span class="pre">max_level=3</span></code> (3rd level), as the higher the level the greater the combinatorial explosion.</p>
+<p><em>Note</em>: some feature combinations might not add information to the model, for example, the feature cross between the item id and item category, as every item only maps to a single item category. You can explicitly ignore those combinations to reduce a bit the feature space.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">features_crossing</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">HashedCrossAll</span><span class="p">(</span>
+        <span class="n">cat_schema</span><span class="p">,</span>
+        <span class="n">num_bins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="c1"># The crossed features will be hashed to this number of bins</span>
+        <span class="n">max_level</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">output_mode</span><span class="o">=</span><span class="s2">&quot;one_hot&quot;</span><span class="p">,</span>
+        <span class="n">sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">ignore_combinations</span><span class="o">=</span><span class="p">[[</span><span class="s2">&quot;item_id&quot;</span><span class="p">,</span> <span class="s2">&quot;item_category&quot;</span><span class="p">],</span> 
+                             <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">,</span> <span class="s2">&quot;item_brand&quot;</span><span class="p">]]</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>You might have noticed that we set output of the one-hot and crossed features to be a sparse tensor (<code class="docutils literal notranslate"><span class="pre">sparse=True</span></code>), as only a few values are 1s and the large majority of values are 0s. This saves a lot of memory and also speeds up the computation of the wide part.<br />
+<em>Note</em>: If you have categorical features which have multiple values (multi-hot) for the same data sample, you can set <code class="docutils literal notranslate"><span class="pre">output_mode=&quot;multi_hot&quot;</span></code> for both <code class="docutils literal notranslate"><span class="pre">CategoryEncoding()</span></code> and <code class="docutils literal notranslate"><span class="pre">HashedCrossAll()</span></code>.</p>
+<p>Below, we create a list with the preprocessing transformations for the wide part, where we concatenate all sparse outputs to be used by the linear model.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">wide_preprocessing_blocks</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">ParallelBlock</span><span class="p">([</span>
+                                              <span class="n">one_hot_encoding</span><span class="p">,</span> 
+                                              <span class="n">features_crossing</span>
+                                             <span class="p">],</span>
+                                             <span class="n">aggregation</span><span class="o">=</span><span class="s2">&quot;concat&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="deep-part">
+<h4>Deep part<a class="headerlink" href="#deep-part" title="Permalink to this headline"></a></h4>
+<p>The deep block is just an MLP model, which expects dense representation.
+The input continuous features are used as they are loaded, but categorical features need to be embedded. The embedding tables are created automatically based on the <code class="docutils literal notranslate"><span class="pre">deep_schema</span></code>, and optionally you can provide the <code class="docutils literal notranslate"><span class="pre">deep_input_block</span></code> for custom representation of input features.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">deep_part</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">MLPBlock</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="putting-it-all-together">
+<h4>Putting it all together<a class="headerlink" href="#putting-it-all-together" title="Permalink to this headline"></a></h4>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">WideAndDeepModel</span><span class="p">(</span>
+        <span class="n">schema</span><span class="p">,</span>
+        <span class="n">wide_schema</span><span class="o">=</span><span class="n">cat_schema</span><span class="p">,</span>
+        <span class="n">deep_schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+        <span class="n">wide_preprocess</span><span class="o">=</span><span class="n">wide_preprocessing_blocks</span><span class="p">,</span>
+        <span class="n">deep_block</span><span class="o">=</span><span class="n">deep_part</span><span class="p">,</span>
+        <span class="n">prediction_tasks</span><span class="o">=</span><span class="n">mm</span><span class="o">.</span><span class="n">BinaryClassificationTask</span><span class="p">(</span><span class="n">target_column</span><span class="p">),</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adagrad</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="n">LR</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">opt</span><span class="p">,</span> <span class="n">run_eagerly</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">validation_data</span><span class="o">=</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p><em>Note</em>: Here we use a single optimizer (Adagrad), but in the <a class="reference external" href="https://arxiv.org/abs/1606.07792">Wide&amp;Deep paper</a> the  authors describe to have used the Adagrad optimizer for the deep part and the FTRL optimizer for the wide part, which worked better with sparse inputs according to their experiments. With Merlin Models wou can use multiple optimizers for different sets of parameters, check the API documentation of <code class="docutils literal notranslate"><span class="pre">MultiOptimizer()</span></code> for more details.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;Wide&amp;Deep&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_wide_n_deep</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">metrics_wide_n_deep</span>
+</pre></div>
+</div>
 </div>
 </div>
 </div>
@@ -486,13 +601,10 @@
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">models_name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;NCF&quot;</span><span class="p">,</span> <span class="s2">&quot;MLP&quot;</span><span class="p">,</span> <span class="s2">&quot;DLRM&quot;</span><span class="p">,</span> <span class="s2">&quot;DCN&quot;</span><span class="p">]</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">models_name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;NCF&quot;</span><span class="p">,</span> <span class="s2">&quot;MLP&quot;</span><span class="p">,</span> <span class="s2">&quot;Wide&amp;Deep&quot;</span><span class="p">,</span> <span class="s2">&quot;DLRM&quot;</span><span class="p">,</span> <span class="s2">&quot;DCN&quot;</span><span class="p">]</span>
 <span class="n">create_bar_chart</span><span class="p">(</span><span class="s2">&quot;results.txt&quot;</span><span class="p">,</span> <span class="n">models_name</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="cell_output docutils container">
-<img alt="../_images/03-Exploring-different-models_55_0.png" src="../_images/03-Exploring-different-models_55_0.png" />
 </div>
 </div>
 <p>Let’s remove the results file.</p>

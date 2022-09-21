@@ -598,8 +598,18 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">automatic_pruning</span> <span class="ow">and</span> <span class="n">layer_out_shape</span> <span class="o">==</span> <span class="p">{}:</span>
                 <span class="n">to_prune</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">to_prune</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parallel_layers</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parallel_layers</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">pruned</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_layers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_prune</span><span class="p">:</span>
+                    <span class="n">pruned</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">layer</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parallel_layers</span> <span class="o">=</span> <span class="n">pruned</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pruned</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_layers</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">layer</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_prune</span><span class="p">:</span>
+                    <span class="n">pruned</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parallel_layers</span> <span class="o">=</span> <span class="n">pruned</span>
 
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span></div>
 
