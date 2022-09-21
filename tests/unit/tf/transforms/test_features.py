@@ -774,10 +774,44 @@ class TestBroadcastToSequence(tf.test.TestCase):
         }
         context_schema = Schema([ColumnSchema("a")])
         sequence_schema = Schema([ColumnSchema("b")])
+
         broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
         outputs = broadcast_layer(partially_masked_inputs)
+
         self.assertAllEqual(outputs["a"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
         self.assertAllEqual(outputs["b"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
+
+    def test_in_model(self):
+        masking_layer = tf.keras.layers.Masking(mask_value=0)
+        partially_masked_inputs = {
+            "a": tf.constant([[1], [2]]),
+            "b": masking_layer(tf.ragged.constant([[[1]], [[0], [1]]])),
+        }
+        context_schema = Schema([ColumnSchema("a")])
+        sequence_schema = Schema([ColumnSchema("b")])
+
+        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        model = mm.Model(broadcast_layer)
+        outputs = model(partially_masked_inputs)
+
+        self.assertAllEqual(outputs["a"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
+        self.assertAllEqual(outputs["b"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
+
+    def test_compute_output_shape(self):
+        masking_layer = tf.keras.layers.Masking(mask_value=0)
+        partially_masked_inputs = {
+            "a": tf.constant([[1], [2]]),
+            "b": masking_layer(tf.ragged.constant([[[1]], [[0], [1]]])),
+        }
+        context_schema = Schema([ColumnSchema("a")])
+        sequence_schema = Schema([ColumnSchema("b")])
+
+        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        input_shape = {k: v.shape for k, v in partially_masked_inputs.items()}
+        output_shape = broadcast_layer.compute_output_shape(input_shape)
+
+        self.assertAllEqual(output_shape["a"], tf.TensorShape([2, None, None]))
+        self.assertAllEqual(output_shape["b"], tf.TensorShape([2, None, None]))
 
 
 @pytest.mark.parametrize(
