@@ -194,9 +194,7 @@ class TestAddRandomNegativesToBatch:
         preds = model.predict(features)
         assert preds.shape[0] == batch_size
 
-        testing_utils.model_test(
-            model, dataset, run_eagerly=run_eagerly, reload_model=True, to_ragged=True
-        )
+        testing_utils.model_test(model, dataset, run_eagerly=run_eagerly, reload_model=True)
 
     def test_model_with_dataloader(self, music_streaming_data: Dataset, tf_random_seed: int):
         dataset = music_streaming_data
