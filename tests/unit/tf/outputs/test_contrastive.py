@@ -18,7 +18,6 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.transforms.features import Rename
 from merlin.models.tf.utils import testing_utils
@@ -214,6 +213,6 @@ def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
 
     schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     sequence_testing_data.schema = schema
-    dataloader = BatchedDataset(sequence_testing_data, batch_size=50)
-    dataloader = dataloader.map(_last_interaction_as_target)
-    return dataloader, schema
+    loader = mm.Loader(sequence_testing_data, batch_size=50)
+    loader = loader.map(_last_interaction_as_target)
+    return loader, schema
