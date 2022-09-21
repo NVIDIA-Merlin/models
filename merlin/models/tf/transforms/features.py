@@ -710,7 +710,7 @@ class ToTarget(Block):
     def __init__(
         self,
         schema: Schema,
-        *target: Union[ColumnSchema, Schema, str],
+        *target: Union[ColumnSchema, Schema, str, Tags],
         one_hot: bool = False,
         **kwargs,
     ):
@@ -726,9 +726,12 @@ class ToTarget(Block):
                 target_columns[t] = self.schema.select_by_name(t).first
             elif isinstance(t, ColumnSchema):
                 target_columns[t.name] = t
-            elif isinstance(t, Schema):
-                selected_schema = t.select_by_tag(Tags.TARGET)
+            elif isinstance(t, Tags):
+                selected_schema = self.schema.select_by_tag(t)
                 for col_name, col_schema in selected_schema.column_schemas.items():
+                    target_columns[col_name] = col_schema
+            elif isinstance(t, Schema):
+                for col_name, col_schema in t.column_schemas.items():
                     target_columns[col_name] = col_schema
             else:
                 raise ValueError(f"Unsupported target type {type(t)}")
