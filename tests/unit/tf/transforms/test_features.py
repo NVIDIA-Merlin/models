@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 import numpy as np
+import pandas as pd
 import pytest
 import tensorflow as tf
 from tensorflow.test import TestCase
@@ -23,7 +24,7 @@ from merlin.io import Dataset
 from merlin.models.tf.transforms.features import ContinuousPowers
 from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.schema_utils import create_categorical_column
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -784,3 +785,42 @@ def test_to_sparse(only_selected_in_schema):
         tf.debugging.assert_equal(output["feature2"], feature2_dense)
     else:
         tf.debugging.assert_equal(tf.sparse.to_dense(output["feature2"]), feature2_dense)
+
+
+def test_to_target_loader():
+    schema = Schema(
+        [
+            ColumnSchema("a", tags=[Tags.ITEM, Tags.CATEGORICAL]),
+            ColumnSchema("b", tags=[Tags.USER, Tags.CATEGORICAL]),
+            ColumnSchema("c", tags=[Tags.CATEGORICAL]),
+        ]
+    )
+
+    input_df = pd.DataFrame(
+        [
+            {"a": 1, "b": 2, "c": 3},
+            {"a": 4, "b": 5, "c": 6},
+        ]
+    )
+    input_df = input_df[sorted(input_df.columns)]
+    dataset = Dataset(input_df, schema=schema)
+    loader = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, "c"))
+    batch = next(iter(loader))
+
+    assert sorted(batch.predictions.keys()) == ["a", "b"]
+    assert sorted(batch.targets.keys()) == ["c"]
+    assert batch.targets["c"].numpy().tolist() == [[3], [6]]
+    assert loader.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
+
+
+def test_to_target_compute_output_schema():
+    schema = Schema(
+        [
+            ColumnSchema("a", tags=[Tags.ITEM, Tags.CATEGORICAL]),
+            ColumnSchema("b", tags=[Tags.USER, Tags.CATEGORICAL]),
+            ColumnSchema("label", tags=[Tags.CATEGORICAL]),
+        ]
+    )
+    to_target = mm.ToTarget(schema, "label")
+    output_schema = to_target.compute_output_schema(schema)
+    assert "label" in output_schema.select_by_tag(Tags.TARGET).column_names

@@ -28,7 +28,7 @@ from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.models.utils import schema_utils
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 ONE_HOT = p_utils.ONE_HOT
 MULTI_HOT = p_utils.MULTI_HOT
@@ -67,6 +67,9 @@ class FeaturesTensorTypeConversion(TabularBlock):
 
     def compute_call_output_shape(self, input_shapes):
         return self.compute_output_shape(input_shapes)
+
+    def compute_output_schema(self, input_schema: Schema) -> Schema:
+        return input_schema
 
 
 @Block.registry.register("to_sparse")
@@ -697,6 +700,75 @@ def HashedCrossAll(
         )
 
     return ParallelBlock(hashed_crosses)
+
+
+@Block.registry.register_with_multiple_names("to_target")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ToTarget(Block):
+    """Transform columns to targets"""
+
+    def __init__(
+        self,
+        schema: Schema,
+        *target: Union[ColumnSchema, Schema, str],
+        one_hot: bool = False,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.schema = schema
+        self.target = target
+        self.one_hot = one_hot
+
+    def _target_column_schemas(self):
+        target_columns = {}
+        for t in self.target:
+            if isinstance(t, str):
+                target_columns[t] = self.schema.select_by_name(t).first
+            elif isinstance(t, ColumnSchema):
+                target_columns[t.name] = t
+            elif isinstance(t, Schema):
+                selected_schema = t.select_by_tag(Tags.TARGET)
+                for col_name, col_schema in selected_schema.column_schemas.items():
+                    target_columns[col_name] = col_schema
+            else:
+                raise ValueError(f"Unsupported target type {type(t)}")
+        return target_columns
+
+    def call(
+        self, inputs: TabularData, targets=None, testing=False, **kwargs
+    ) -> "PredictionOutput":
+        if testing:
+            return PredictionOutput(predictions=inputs, targets=targets)
+
+        if targets is None:
+            targets = {}
+
+        target_columns = self._target_column_schemas()
+
+        outputs = {}
+        for name, val in inputs.items():
+            if name not in target_columns:
+                outputs[name] = inputs[name]
+                continue
+            if isinstance(targets, dict):
+                targets[name] = targets.get(name, inputs[name])
+            else:
+                targets = inputs[name]
+
+        return PredictionOutput(predictions=outputs, targets=targets or None)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def compute_output_schema(self, input_schema: Schema) -> Schema:
+        target_columns = self._target_column_schemas()
+        output_column_schemas = {}
+        for col_name, col_schema in input_schema.column_schemas.items():
+            if col_name in target_columns:
+                output_column_schemas[col_name] = col_schema.with_tags(Tags.TARGET)
+            else:
+                output_column_schemas[col_name] = col_schema
+        return Schema(column_schemas=output_column_schemas)
 
 
 def reshape_categorical_input_tensor_for_encoding(
