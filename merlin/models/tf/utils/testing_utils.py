@@ -25,7 +25,7 @@ from keras.utils import tf_inspect
 from tensorflow.python.framework.test_util import disable_cudnn_autotune
 
 import merlin.io
-from merlin.models.tf.dataset import BatchedDataset, sample_batch
+from merlin.models.tf.loader import Loader, sample_batch
 from merlin.models.tf.models.base import Model
 from merlin.schema import Schema
 
@@ -76,7 +76,7 @@ def assert_model_is_retrainable(
 
 def model_test(
     model: Model,
-    dataset: Union[merlin.io.Dataset, BatchedDataset],
+    dataset: Union[merlin.io.Dataset, Loader],
     run_eagerly: bool = True,
     optimizer="adam",
     epochs: int = 1,

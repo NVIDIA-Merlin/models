@@ -76,7 +76,6 @@ from merlin.models.tf.core.combinators import (
     SequentialBlock,
 )
 from merlin.models.tf.core.encoder import EncoderBlock
-from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
@@ -90,6 +89,7 @@ from merlin.models.tf.inputs.embedding import (
     SequenceEmbeddingFeatures,
     TableConfig,
 )
+from merlin.models.tf.loader import KerasSequenceValidator, Loader, sample_batch
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
@@ -248,4 +248,6 @@ __all__ = [
     "LossType",
     "sample_batch",
     "TensorInitializer",
+    "Loader",
+    "KerasSequenceValidator",
 ]

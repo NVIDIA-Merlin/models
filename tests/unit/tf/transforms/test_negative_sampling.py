@@ -21,7 +21,6 @@ import tensorflow as tf
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.core.prediction import Prediction
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.transforms.negative_sampling import InBatchNegatives
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import ColumnSchema, Schema, Tags
@@ -68,9 +67,9 @@ class TestAddRandomNegativesToBatch:
         )
         input_df = input_df[sorted(input_df.columns)]
         dataset = Dataset(input_df, schema=schema)
-        batched_dataset = BatchedDataset(dataset, batch_size=10)
-        batched_dataset = batched_dataset.map(sampler)
-        first_batch_outputs = next(iter(batched_dataset))
+        loader = mm.Loader(dataset, batch_size=10)
+        loader = loader.map(sampler)
+        first_batch_outputs = next(iter(loader))
 
         outputs = first_batch_outputs.outputs
         targets = first_batch_outputs.targets
@@ -211,10 +210,10 @@ class TestAddRandomNegativesToBatch:
         )
 
         batch_size, n_per_positive = 10, 5
-        dataset = BatchedDataset(music_streaming_data, batch_size=batch_size)
-        dataset = dataset.map(add_negatives)
+        loader = mm.Loader(music_streaming_data, batch_size=batch_size)
+        loader = loader.map(add_negatives)
 
-        batch_output = next(iter(dataset))
+        batch_output = next(iter(loader))
         features, targets = batch_output
 
         expected_batch_size = batch_size + batch_size * n_per_positive
@@ -236,4 +235,4 @@ class TestAddRandomNegativesToBatch:
         assert model(features).shape[0] > batch_size
         assert model(features).shape[0] <= expected_batch_size
 
-        testing_utils.model_test(model, dataset)
+        testing_utils.model_test(model, loader)
