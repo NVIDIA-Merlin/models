@@ -81,6 +81,7 @@ def model_test(
     optimizer="adam",
     epochs: int = 1,
     reload_model: bool = False,
+    to_ragged=False,
     **kwargs,
 ) -> Tuple[Model, Any]:
     """Generic model test. It will compile & fit the model and make sure it can be re-trained."""
@@ -88,7 +89,7 @@ def model_test(
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
     losses = model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1)
 
-    batch = sample_batch(dataset, batch_size=50, to_ragged=True)
+    batch = sample_batch(dataset, batch_size=50, to_ragged=to_ragged)
 
     if reload_model:
         with tempfile.TemporaryDirectory() as tmpdir:
