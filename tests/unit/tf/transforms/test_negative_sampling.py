@@ -207,7 +207,7 @@ class TestAddRandomNegativesToBatch:
         batch_size, n_per_positive = 10, 5
         loader = mm.Loader(dataset, batch_size=batch_size, transform=add_negatives)
 
-        features, targets = next(iter(dataset))
+        features, targets = next(iter(loader))
 
         expected_batch_size = batch_size + batch_size * n_per_positive
 
