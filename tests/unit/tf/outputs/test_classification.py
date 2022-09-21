@@ -18,7 +18,6 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.outputs.classification import CategoricalTarget, EmbeddingTablePrediction
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
@@ -84,7 +83,7 @@ def test_next_item_prediction(sequence_testing_data: Dataset, run_eagerly):
 
     for target in predictions:
         model = mm.Model(
-            mm.InputBlockV2(schema, embeddings=embeddings),
+            mm.InputBlockV2(schema, categorical=embeddings),
             mm.MLPBlock([32]),
             mm.CategoricalOutput(target),
         )
@@ -102,6 +101,6 @@ def _next_item_loader(sequence_testing_data: Dataset):
 
     schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     sequence_testing_data.schema = schema
-    dataloader = BatchedDataset(sequence_testing_data, batch_size=50)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
     dataloader = dataloader.map(_last_interaction_as_target)
     return dataloader, schema

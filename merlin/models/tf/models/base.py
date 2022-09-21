@@ -18,8 +18,8 @@ from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is
 from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.loader import Loader
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
@@ -704,7 +704,7 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
         # Bind schema from dataset to model in case we can't infer it from the inputs
-        if isinstance(x, BatchedDataset):
+        if isinstance(x, Loader):
             self.schema = x.schema
 
         validation_data = _maybe_convert_merlin_dataset(
@@ -1403,7 +1403,7 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
         if not batch_size:
             raise ValueError("batch_size must be specified when using merlin-dataset.")
 
-        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle, **kwargs)
+        data = Loader(data, batch_size=batch_size, shuffle=shuffle, **kwargs)
 
         if not shuffle:
             kwargs.pop("shuffle", None)
