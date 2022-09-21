@@ -20,12 +20,14 @@ import tensorflow as tf
 from tensorflow.keras.layers import Layer
 from tensorflow.python.ops import embedding_ops
 
+import merlin.io
 from merlin.models.tf.inputs.embedding import EmbeddingTable
 from merlin.models.tf.metrics.topk import AvgPrecisionAt, MRRAt, NDCGAt, PrecisionAt, RecallAt
 from merlin.models.tf.outputs.base import MetricsFn, ModelOutput
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
+    tensor_to_df,
 )
 from merlin.schema import ColumnSchema, Schema
 
@@ -189,6 +191,9 @@ class CategoricalOutput(ModelOutput):
             **kwargs,
         )
 
+    def to_dataset(self, gpu=True) -> merlin.io.Dataset:
+        return merlin.io.Dataset(tensor_to_df(self.to_call.embeddings, gpu=gpu))
+
     def get_config(self):
         config = super().get_config()
         config["max_num_samples"] = self.max_num_samples
@@ -281,7 +286,18 @@ class CategoricalTarget(tf.keras.layers.Dense):
         tf.Tensor
             Tensor of hidden representation vectors.
         """
-        return embedding_ops.embedding_lookup(tf.transpose(self.kernel), inputs, **kwargs)
+        return embedding_ops.embedding_lookup(self.embeddings, inputs, **kwargs)
+
+    @property
+    def embeddings(self):
+        return tf.transpose(self.kernel)
+
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        output = tf.keras.layers.Dense.from_config(config, custom_objects=custom_objects)
+        output.__class__ = cls
+
+        return output
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
@@ -322,6 +338,10 @@ class EmbeddingTablePrediction(Layer):
         logits = tf.nn.bias_add(logits, self.bias)
 
         return logits
+
+    @property
+    def embeddings(self):
+        return self.table.table.embeddings
 
     def embedding_lookup(self, inputs, **kwargs):
         return self.table.table(inputs, **kwargs)

@@ -21,6 +21,7 @@ import pytest
 import tensorflow as tf
 from tensorflow.test import TestCase
 
+import merlin.io
 import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
@@ -669,3 +670,52 @@ def test_unfreeze_all_blocks(ecommerce_data):
 
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
+
+
+def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
+    query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
+    candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
+
+    def item_id_as_target(features, targets):
+        targets[candidate.first.name] = features.pop(candidate.first.name)
+
+        return features, targets
+
+    loader = mm.Loader(ecommerce_data, batch_size=50, transform=item_id_as_target)
+
+    model = mm.RetrievalModelV2(
+        query=mm.EmbeddingEncoder(query, dim=8),
+        output=mm.ContrastiveOutput(candidate, "in-batch"),
+    )
+
+    model, _ = testing_utils.model_test(model, loader)
+
+    assert isinstance(model.query_encoder, mm.EmbeddingEncoder)
+    assert isinstance(model.candidate_encoder, mm.EmbeddingEncoder)
+
+    queries = model.query_embeddings(gpu=False)
+    assert isinstance(queries, merlin.io.Dataset)
+
+    candidates = model.candidate_embeddings(gpu=False)
+    assert isinstance(candidates, merlin.io.Dataset)
+
+
+def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=True):
+    query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
+    candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
+    model = mm.RetrievalModelV2(
+        query=mm.EmbeddingEncoder(query, dim=8),
+        candidate=mm.EmbeddingEncoder(candidate, dim=8),
+        output=mm.ContrastiveOutput(candidate, "in-batch"),
+    )
+
+    reloaded_model, _ = testing_utils.model_test(model, ecommerce_data, reload_model=True)
+
+    assert isinstance(reloaded_model.query_encoder, mm.EmbeddingEncoder)
+    assert isinstance(reloaded_model.candidate_encoder, mm.EmbeddingEncoder)
+
+    queries = model.query_embeddings(ecommerce_data, batch_size=10, id_col=Tags.USER_ID)
+    assert isinstance(queries, merlin.io.Dataset)
+
+    candidates = model.candidate_embeddings(ecommerce_data, batch_size=10, id_col=candidate)
+    assert isinstance(candidates, merlin.io.Dataset)

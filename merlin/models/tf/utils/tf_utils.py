@@ -20,6 +20,7 @@ import numpy as np
 import tensorflow as tf
 from keras.utils.tf_inspect import getfullargspec
 from packaging import version
+from tensorflow.python import to_dlpack
 
 from merlin.core.dispatch import DataFrameType
 from merlin.io import Dataset
@@ -272,6 +273,30 @@ def df_to_tensor(gdf, dtype=None):
         return tf.cast(x, dtype)
 
     return x
+
+
+def tensor_to_df(tensor, gpu=True):
+    if gpu:
+        import cudf
+        import cupy
+
+        # Note: It is not possible to convert Tensorflow tensors to the cudf dataframe
+        # directly using dlPack (as the example commented below) because cudf.from_dlpack()
+        # expects the 2D tensor to be in Fortran order (column-major), which is not
+        # supported by TF (https://github.com/rapidsai/cudf/issues/10754).
+        # df = cudf.from_dlpack(to_dlpack(tf.convert_to_tensor(embeddings)))
+        tensor_cupy = cupy.fromDlpack(to_dlpack(tf.convert_to_tensor(tensor)))
+        df = cudf.DataFrame(tensor_cupy)
+        df.columns = [str(col) for col in list(df.columns)]
+        df.set_index(cudf.RangeIndex(0, tensor.shape[0]))
+    else:
+        import pandas as pd
+
+        df = pd.DataFrame(tensor.numpy())
+        df.columns = [str(col) for col in list(df.columns)]
+        df.set_index(pd.RangeIndex(0, tensor.shape[0]))
+
+    return df
 
 
 def add_epsilon_to_zeros(tensor: tf.Tensor, epsilon: float = 1e-24) -> tf.Tensor:

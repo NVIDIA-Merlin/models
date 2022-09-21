@@ -42,7 +42,12 @@ from merlin.models.tf.transforms.tensor import ListToDense, ListToSparse
 # https://github.com/PyCQA/pylint/issues/3613
 # pylint: disable=no-value-for-parameter, unexpected-keyword-arg
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import call_layer, df_to_tensor, list_col_to_ragged
+from merlin.models.tf.utils.tf_utils import (
+    call_layer,
+    df_to_tensor,
+    list_col_to_ragged,
+    tensor_to_df,
+)
 from merlin.models.utils import schema_utils
 from merlin.models.utils.doc_utils import docstring_parameter
 from merlin.models.utils.schema_utils import (
@@ -281,9 +286,8 @@ class EmbeddingTable(EmbeddingTableBase):
         name=None,
         col_schema=None,
         **kwargs,
-    ):
+    ) -> "EmbeddingTable":
         """Create From pre-trained embeddings from a Dataset or DataFrame.
-
         Parameters
         ----------
         data : Union[Dataset, DataFrameType]
@@ -312,6 +316,35 @@ class EmbeddingTable(EmbeddingTableBase):
             trainable=trainable,
             **kwargs,
         )
+
+    @classmethod
+    def from_dataset(
+        cls,
+        data: Union[Dataset, DataFrameType],
+        trainable=True,
+        name=None,
+        col_schema=None,
+        **kwargs,
+    ) -> "EmbeddingTable":
+        """Create From pre-trained embeddings from a Dataset or DataFrame.
+        Parameters
+        ----------
+        data : Union[Dataset, DataFrameType]
+            A dataset containing the pre-trained embedding weights
+        trainable : bool
+            Whether the layer should be trained or not.
+        name : str
+            The name of the layer.
+        """
+        return cls.from_pretrained(
+            data, trainable=trainable, name=name, col_schema=col_schema, **kwargs
+        )
+
+    def to_dataset(self, gpu=True) -> merlin.io.Dataset:
+        return merlin.io.Dataset(self.to_df(gpu=gpu))
+
+    def to_df(self, gpu=True):
+        return tensor_to_df(self.table.embeddings, gpu=gpu)
 
     def _maybe_build(self, inputs):
         """Creates state between layer instantiation and layer call.
