@@ -315,4 +315,6 @@ def InputBlockV2(
         pre=pre,
         post=post,
         aggregation=aggregation,
+        is_input=True,
+        schema=schema,
     )
