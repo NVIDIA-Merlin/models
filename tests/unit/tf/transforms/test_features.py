@@ -694,3 +694,93 @@ def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(body, mm.BinaryClassificationTask("click"))
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize(
+    "only_selected_in_schema",
+    [False, True],
+)
+def test_to_dense(only_selected_in_schema):
+    test_case = TestCase()
+
+    if only_selected_in_schema:
+        schema = Schema(
+            [
+                create_categorical_column("feature1", tags=[Tags.CATEGORICAL], num_items=5),
+                create_categorical_column("feature2", tags=[Tags.CATEGORICAL], num_items=5),
+            ]
+        )
+        to_dense = mm.ToDense(schema.select_by_name("feature1"))
+    else:
+        # Converts all features to dense
+        to_dense = mm.ToDense()
+
+    feature1_dense = np.array([[1, 2, 3, 0], [0, 3, 1, 0]])
+    feature2_dense = np.array([[2, 3, 4, 0], [2, 0, 1, 0]])
+
+    data = {
+        "feature1": tf.sparse.from_dense(feature1_dense),
+        "feature2": tf.sparse.from_dense(feature2_dense),
+    }
+
+    output = to_dense(data)
+
+    assert output["feature1"].shape == data["feature1"].shape
+    assert output["feature2"].shape == data["feature2"].shape
+
+    assert isinstance(output["feature1"], tf.Tensor)
+    if only_selected_in_schema:
+        assert isinstance(output["feature2"], tf.SparseTensor)
+    else:
+        assert isinstance(output["feature2"], tf.Tensor)
+
+    # tf.convert_to_tensor(
+    test_case.assertAllClose(output["feature1"], feature1_dense)
+    if only_selected_in_schema:
+        test_case.assertAllClose(tf.sparse.to_dense(output["feature2"]), feature2_dense)
+    else:
+        test_case.assertAllClose(output["feature2"], feature2_dense)
+
+
+@pytest.mark.parametrize(
+    "only_selected_in_schema",
+    [False, True],
+)
+def test_to_sparse(only_selected_in_schema):
+    if only_selected_in_schema:
+        schema = Schema(
+            [
+                create_categorical_column("feature1", tags=[Tags.CATEGORICAL], num_items=5),
+                create_categorical_column("feature2", tags=[Tags.CATEGORICAL], num_items=5),
+            ]
+        )
+        to_sparse = mm.ToSparse(schema.select_by_name("feature1"))
+    else:
+        # Converts all features to dense
+        to_sparse = mm.ToSparse()
+
+    feature1_dense = np.array([[1, 2, 3, 0], [0, 3, 1, 0]])
+    feature2_dense = np.array([[2, 3, 4, 0], [2, 0, 1, 0]])
+
+    data = {
+        "feature1": feature1_dense,
+        "feature2": feature2_dense,
+    }
+
+    output = to_sparse(data)
+
+    assert output["feature1"].shape == data["feature1"].shape
+    assert output["feature2"].shape == data["feature2"].shape
+
+    assert isinstance(output["feature1"], tf.SparseTensor)
+    if only_selected_in_schema:
+        assert isinstance(output["feature2"], tf.Tensor)
+    else:
+        assert isinstance(output["feature2"], tf.SparseTensor)
+
+    # tf.convert_to_tensor(
+    tf.debugging.assert_equal(tf.sparse.to_dense(output["feature1"]), feature1_dense)
+    if only_selected_in_schema:
+        tf.debugging.assert_equal(output["feature2"], feature2_dense)
+    else:
+        tf.debugging.assert_equal(tf.sparse.to_dense(output["feature2"]), feature2_dense)
