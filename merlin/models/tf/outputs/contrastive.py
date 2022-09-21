@@ -163,13 +163,18 @@ class ContrastiveOutput(ModelOutput):
 
         super().build(input_shape)
 
-    def call(self, inputs, training=False, testing=False, **kwargs):
+    def call(self, inputs, features=None, targets=None, training=False, testing=False):
+        call_kwargs = dict(features=features, targets=targets, training=training, testing=testing)
+
         if training or testing:
-            return self.call_contrastive(inputs, training=training, testing=testing, **kwargs)
+            if self.has_candidate_weights and targets is None:
+                return tf_utils.call_layer(self.to_call, inputs, **call_kwargs)
 
-        return tf_utils.call_layer(self.to_call, inputs, **kwargs)
+            return self.call_contrastive(inputs, **call_kwargs)
 
-    def call_contrastive(self, inputs, features, targets=None, **kwargs):
+        return tf_utils.call_layer(self.to_call, inputs, **call_kwargs)
+
+    def call_contrastive(self, inputs, features, targets, training=False, testing=False):
         if isinstance(inputs, dict) and self.query_name in inputs:
             query_embedding = inputs[self.query_name]
         elif isinstance(inputs, tf.Tensor):
@@ -186,8 +191,8 @@ class ContrastiveOutput(ModelOutput):
             positive_id = features[self.col_schema.name]
             positive_embedding = inputs[self.candidate_name]
 
-        positive = Candidate(positive_id, features).with_embedding(positive_embedding)
-        negative = self.sample_negatives(positive, features)
+        positive = Candidate(positive_id, {**features}).with_embedding(positive_embedding)
+        negative = self.sample_negatives(positive, features, training=training, testing=testing)
         if self.has_candidate_weights and (
             positive.id.shape != negative.id.shape or positive != negative
         ):
@@ -260,14 +265,12 @@ class ContrastiveOutput(ModelOutput):
         Items
             Class containing the sampled negative ids
         """
-        candidates: List[Candidate] = []
         sampling_kwargs = {"training": training, "testing": testing, "features": features}
-
-        # sample a number of negative ids from self.negative_samplers
+        candidates: List[Candidate] = []
         for sampler in self.negative_samplers:
             sampled: Candidate = tf_utils.call_layer(sampler, positive, **sampling_kwargs)
 
-            if tf.shape(sampled.id)[0] > 0:
+            if sampled.id is not None:
                 candidates.append(sampled)
             else:
                 LOG.warn(
