@@ -55,7 +55,7 @@ def test_dlrm_model(music_streaming_data, run_eagerly):
     )
 
     features = testing_utils.get_model_inputs(
-        music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+        music_streaming_data.schema.remove_by_tag(Tags.TARGET), ["item_genres"]
     )
     testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
 
