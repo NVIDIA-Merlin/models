@@ -41,7 +41,7 @@ def test_mf_model_single_binary_task(ecommerce_data, run_eagerly):
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_dlrm_model(music_streaming_data, run_eagerly):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
-        ["item_id", "user_age", "click"]
+        ["item_id", "user_age", "click", "item_genres"]
     )
     model = mm.DLRMModel(
         music_streaming_data.schema,
@@ -50,10 +50,12 @@ def test_dlrm_model(music_streaming_data, run_eagerly):
         prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
-    loaded_model, _ = testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+    loaded_model, _ = testing_utils.model_test(
+        model, music_streaming_data, run_eagerly=run_eagerly, reload_model=True
+    )
 
     features = testing_utils.get_model_inputs(
-        music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+        music_streaming_data.schema.remove_by_tag(Tags.TARGET), ["item_genres"]
     )
     testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
 
