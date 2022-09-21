@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import collections
 import inspect
 from copy import copy, deepcopy
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Type, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Type, Union
 
 import tensorflow as tf
 from tensorflow.keras import backend
@@ -244,6 +245,34 @@ class EmbeddingTable(EmbeddingTableBase):
         self.sequence_combiner = sequence_combiner
         self.supports_masking = True
 
+    def select_by_tag(self, tags: Union[Tags, Sequence[Tags]]) -> Optional["EmbeddingTable"]:
+        """Select features in EmbeddingTable by tags.
+
+        Since an EmbeddingTable can be a shared-embedding table, this method filters
+        the schema for features that match the tags.
+
+        If none of the features match the tags, it will return None.
+
+        Parameters
+        ----------
+        tags: Union[Tags, Sequence[Tags]]
+            A list of tags.
+
+        Returns
+        -------
+        An EmbeddingTable if the tags match. If no features match, it returns None.
+        """
+        if not isinstance(tags, collections.Sequence):
+            tags = [tags]
+
+        selected_schema = self.schema.select_by_tag(tags)
+        if not selected_schema:
+            return
+        config = self.get_config()
+        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(selected_schema)
+        embedding_table = EmbeddingTable.from_config(config, table=self.table)
+        return embedding_table
+
     @classmethod
     def from_pretrained(
         cls,
@@ -387,8 +416,11 @@ class EmbeddingTable(EmbeddingTableBase):
         return self.compute_output_shape(input_shapes)
 
     @classmethod
-    def from_config(cls, config):
-        config["table"] = tf.keras.layers.deserialize(config["table"])
+    def from_config(cls, config, table=None):
+        if table:
+            config["table"] = table
+        else:
+            config["table"] = tf.keras.layers.deserialize(config["table"])
         if "combiner-layer" in config:
             config["sequence_combiner"] = tf.keras.layers.deserialize(config.pop("combiner-layer"))
 
@@ -401,7 +433,6 @@ class EmbeddingTable(EmbeddingTableBase):
             config["combiner-layer"] = tf.keras.layers.serialize(self.sequence_combiner)
         else:
             config["sequence_combiner"] = self.sequence_combiner
-
         return config
 
 
