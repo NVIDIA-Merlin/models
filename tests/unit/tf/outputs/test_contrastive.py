@@ -24,7 +24,8 @@ from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
-def test_contrastive_mf(ecommerce_data: Dataset):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_contrastive_mf(ecommerce_data: Dataset, run_eagerly: bool):
     schema = ecommerce_data.schema
     user_id = schema.select_by_tag(Tags.USER_ID)
     item_id = schema.select_by_tag(Tags.ITEM_ID)
@@ -39,10 +40,11 @@ def test_contrastive_mf(ecommerce_data: Dataset):
 
     mf = mm.Model(encoders, mm.ContrastiveOutput(item_id, "in-batch"))
 
-    testing_utils.model_test(mf, ecommerce_data, run_eagerly=True)
+    testing_utils.model_test(mf, ecommerce_data, run_eagerly=run_eagerly, reload_model=True)
 
 
-def test_constrastive_mf_weights_in_output(ecommerce_data: Dataset):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_constrastive_mf_weights_in_output(ecommerce_data: Dataset, run_eagerly: bool):
     schema = ecommerce_data.schema
     schema["item_id"] = schema["item_id"].with_tags([Tags.TARGET])
     user_id = schema.select_by_tag(Tags.USER_ID)
@@ -53,7 +55,7 @@ def test_constrastive_mf_weights_in_output(ecommerce_data: Dataset):
 
     mf = mm.Model(encoder, mm.ContrastiveOutput(item_id, "in-batch"))
 
-    testing_utils.model_test(mf, ecommerce_data, run_eagerly=True)
+    testing_utils.model_test(mf, ecommerce_data, run_eagerly=run_eagerly, reload_model=True)
 
 
 def test_two_tower_constrastive(ecommerce_data: Dataset):
