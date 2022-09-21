@@ -88,7 +88,7 @@ def model_test(
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
     losses = model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1)
 
-    batch = sample_batch(dataset, batch_size=50)
+    batch = sample_batch(dataset, batch_size=50, to_ragged=reload_model)
 
     if reload_model:
         with tempfile.TemporaryDirectory() as tmpdir:

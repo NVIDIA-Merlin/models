@@ -802,3 +802,153 @@ def reshape_categorical_input_tensor_for_encoding(
             output = expand_dims_fn(output, 1)
 
     return output
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class BroadcastToSequence(tf.keras.layers.Layer):
+    """Broadcast context features to match the timesteps of sequence features.
+
+    This layer supports mask propagation. If the sequence features have a mask. The
+    context features being broadcast will inherit the mask.
+
+    Parameters
+    ----------
+    context_schema : Schema
+        The schema representing contextual features to be broadcast
+    sequence_schema : Schema
+        The schema representing sequence features
+
+    """
+
+    def __init__(self, context_schema: Schema, sequence_schema: Schema, **kwargs):
+        super().__init__(**kwargs)
+        self.context_schema = context_schema
+        self.sequence_schema = sequence_schema
+
+    def call(self, inputs: TabularData) -> TabularData:
+        inputs = self._broadcast(inputs, inputs)
+        return inputs
+
+    def _get_seq_features_shapes(self, inputs: TabularData):
+        inputs_sizes = {k: v.shape for k, v in inputs.items()}
+
+        seq_features_shapes = dict()
+        for fname, fshape in inputs_sizes.items():
+            # Saves the shapes of sequential features
+            if fname in self.sequence_schema.column_names:
+                seq_features_shapes[fname] = tuple(fshape[:2])
+
+        sequence_length = 0
+        if len(seq_features_shapes) > 0:
+            if len(set(seq_features_shapes.values())) > 1:
+                raise ValueError(
+                    "All sequential features must share the same shape in the first two dims "
+                    "(batch_size, seq_length): {}".format(seq_features_shapes)
+                )
+
+            sequence_length = list(seq_features_shapes.values())[0][1]
+            if sequence_length is None:
+                for k, v in inputs.items():
+                    if k in self.sequence_schema.column_names:
+                        if isinstance(v, tf.RaggedTensor):
+                            sequence_length = v.row_lengths()
+
+        return seq_features_shapes, sequence_length
+
+    def _broadcast(self, inputs, target):
+        seq_features_shapes, sequence_length = self._get_seq_features_shapes(inputs)
+        if len(seq_features_shapes) > 0:
+            non_seq_features = set(inputs.keys()).difference(set(seq_features_shapes.keys()))
+            non_seq_target = {}
+            for fname in non_seq_features:
+                if fname in self.context_schema.column_names:
+                    if target[fname] is None:
+                        continue
+                    if isinstance(sequence_length, tf.Tensor):
+                        rows = []
+                        for row, row_sequence_length in zip(target[fname], sequence_length):
+                            rows.append(
+                                tf.RaggedTensor.from_tensor(
+                                    tf.repeat(tf.expand_dims(row, 1), row_sequence_length, axis=0)
+                                )
+                            )
+                        non_seq_target[fname] = tf.stack(rows)
+                    else:
+                        shape = target[fname].shape
+                        target_shape = shape[:1] + sequence_length + shape[1:]
+                        non_seq_target[fname] = tf.broadcast_to(
+                            tf.expand_dims(target[fname], 1), target_shape
+                        )
+            target = {**target, **non_seq_target}
+
+        return target
+
+    def compute_output_shape(
+        self, input_shape: Dict[str, tf.TensorShape]
+    ) -> Dict[str, tf.TensorShape]:
+        sequence_length = None
+        for k in input_shape:
+            if k in self.sequence_schema.column_names:
+                sequence_length = input_shape[k][1]
+
+        context_shapes = {}
+        for k in input_shape:
+            if k in self.context_schema.column_names:
+                rest_shape = input_shape[k][1:]
+                # If sequence length is None, we have ragged tensors.
+                # non-batch dims become ragged (None) during transform.
+                if sequence_length is None:
+                    rest_shape = [None] * len(rest_shape)
+                context_shapes[k] = (
+                    input_shape[k][:1] + tf.TensorShape([sequence_length]) + rest_shape
+                )
+
+        output_shape = {**input_shape, **context_shapes}
+
+        return output_shape
+
+    def compute_mask(self, inputs: TabularData, mask: Optional[TabularData] = None):
+        if mask is None:
+            return None
+
+        # find the sequence mask
+        sequence_mask = None
+        for k in mask:
+            if mask[k] is not None and k in self.sequence_schema.column_names:
+                sequence_mask = mask[k]
+
+        # no sequence mask found
+        if sequence_mask is None:
+            return mask
+
+        # set the mask value for those that are none
+        masks_context = {}
+        for k in mask:
+            if mask[k] is None and k in self.context_schema.column_names:
+                masks_context[k] = sequence_mask
+
+        masks_other = self._broadcast(inputs, mask)
+
+        new_mask = {**masks_other, **masks_context}
+
+        return new_mask
+
+    def get_config(self):
+        config = super().get_config()
+        config["context_schema"] = schema_utils.schema_to_tensorflow_metadata_json(
+            self.context_schema
+        )
+        config["sequence_schema"] = schema_utils.schema_to_tensorflow_metadata_json(
+            self.sequence_schema
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        context_schema = schema_utils.tensorflow_metadata_json_to_schema(
+            config.pop("context_schema")
+        )
+        sequence_schema = schema_utils.tensorflow_metadata_json_to_schema(
+            config.pop("sequence_schema")
+        )
+        return cls(context_schema, sequence_schema, **config)

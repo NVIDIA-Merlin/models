@@ -21,7 +21,7 @@ from tensorflow.test import TestCase
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.transforms.features import ContinuousPowers
+from merlin.models.tf.transforms.features import BroadcastToSequence, ContinuousPowers
 from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.schema_utils import create_categorical_column
 from merlin.schema import ColumnSchema, Schema, Tags
@@ -695,6 +695,123 @@ def test_hashedcrossall_in_model(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(body, mm.BinaryClassificationTask("click"))
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
+
+
+class TestBroadcastToSequence(tf.test.TestCase):
+    def test_only_sequential(self):
+        context_schema = Schema()
+        sequence_schema = Schema([ColumnSchema("s1", tags=[Tags.SEQUENCE])])
+        layer = BroadcastToSequence(context_schema, sequence_schema)
+        batch_size = 2
+        sequence_length = 6
+        inputs = {
+            "s1": tf.random.uniform((batch_size, sequence_length, 1)),
+        }
+        outputs = layer(inputs)
+        assert list(outputs["s1"].shape) == [batch_size, sequence_length, 1]
+
+    def test_broadcast(self):
+        context_schema = Schema([ColumnSchema("c1")])
+        sequence_schema = Schema([ColumnSchema("s1")])
+        layer = BroadcastToSequence(context_schema, sequence_schema)
+        inputs = {
+            "c1": tf.constant([[1], [2]]),
+            "s1": tf.constant([[[1, 2], [3, 4], [5, 6]], [[6, 3], [2, 3], [7, 3]]]),
+        }
+        outputs = layer(inputs)
+        self.assertAllEqual(
+            outputs["c1"],
+            tf.constant(
+                [
+                    [
+                        [1],
+                        [1],
+                        [1],
+                    ],
+                    [
+                        [2],
+                        [2],
+                        [2],
+                    ],
+                ]
+            ),
+        )
+        self.assertAllEqual(inputs["s1"], outputs["s1"])
+
+    def test_different_sequence_lengths(self):
+        context_schema = Schema([ColumnSchema("c1")])
+        sequence_schema = Schema([ColumnSchema("s1"), ColumnSchema("s2")])
+        with pytest.raises(ValueError) as exc_info:
+            layer = BroadcastToSequence(context_schema, sequence_schema)
+            inputs = {
+                "c1": tf.constant([[1], [2]]),
+                "s1": tf.constant([[[1, 2], [3, 4], [5, 6]], [[6, 3], [2, 3], [7, 3]]]),
+                "s2": tf.constant([[[1, 2], [3, 4]], [[6, 3], [2, 3]]]),
+            }
+            layer(inputs)
+        assert "All sequential features must share the same shape in the first two dims" in str(
+            exc_info.value
+        )
+
+    def test_mask_propagation(self):
+        masking_layer = tf.keras.layers.Masking(mask_value=0)
+        partially_masked_inputs = {
+            "a": tf.constant([[1], [2]]),
+            "b": masking_layer(tf.constant([[[1], [0]], [[0], [1]]])),
+        }
+        context_schema = Schema([ColumnSchema("a")])
+        sequence_schema = Schema([ColumnSchema("b")])
+        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        outputs = broadcast_layer(partially_masked_inputs)
+        self.assertAllEqual(outputs["a"]._keras_mask, tf.constant([[True, False], [False, True]]))
+        self.assertAllEqual(outputs["b"]._keras_mask, tf.constant([[True, False], [False, True]]))
+
+    def test_mask_propagation_ragged(self):
+        masking_layer = tf.keras.layers.Masking(mask_value=0)
+        partially_masked_inputs = {
+            "a": tf.constant([[1], [2]]),
+            "b": masking_layer(tf.ragged.constant([[[1]], [[0], [1]]])),
+        }
+        context_schema = Schema([ColumnSchema("a")])
+        sequence_schema = Schema([ColumnSchema("b")])
+
+        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        outputs = broadcast_layer(partially_masked_inputs)
+
+        self.assertAllEqual(outputs["a"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
+        self.assertAllEqual(outputs["b"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
+
+    def test_in_model(self):
+        masking_layer = tf.keras.layers.Masking(mask_value=0)
+        partially_masked_inputs = {
+            "a": tf.constant([[1], [2]]),
+            "b": masking_layer(tf.ragged.constant([[[1]], [[0], [1]]])),
+        }
+        context_schema = Schema([ColumnSchema("a")])
+        sequence_schema = Schema([ColumnSchema("b")])
+
+        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        model = mm.Model(broadcast_layer)
+        outputs = model(partially_masked_inputs)
+
+        self.assertAllEqual(outputs["a"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
+        self.assertAllEqual(outputs["b"]._keras_mask, tf.ragged.constant([[True], [False, True]]))
+
+    def test_compute_output_shape(self):
+        masking_layer = tf.keras.layers.Masking(mask_value=0)
+        partially_masked_inputs = {
+            "a": tf.constant([[1], [2]]),
+            "b": masking_layer(tf.ragged.constant([[[1]], [[0], [1]]])),
+        }
+        context_schema = Schema([ColumnSchema("a")])
+        sequence_schema = Schema([ColumnSchema("b")])
+
+        broadcast_layer = BroadcastToSequence(context_schema, sequence_schema)
+        input_shape = {k: v.shape for k, v in partially_masked_inputs.items()}
+        output_shape = broadcast_layer.compute_output_shape(input_shape)
+
+        self.assertAllEqual(output_shape["a"], tf.TensorShape([2, None, None]))
+        self.assertAllEqual(output_shape["b"], tf.TensorShape([2, None, None]))
 
 
 @pytest.mark.parametrize(
