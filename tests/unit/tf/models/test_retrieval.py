@@ -361,8 +361,9 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 
         return inputs, targets
 
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
-    dataloader = dataloader.map(last_interaction_as_target)
+    dataloader = mm.Loader(
+        sequence_testing_data, batch_size=50, transform=last_interaction_as_target
+    )
 
     losses = model.fit(dataloader, epochs=1)
 

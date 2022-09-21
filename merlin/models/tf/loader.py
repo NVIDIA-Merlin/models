@@ -312,7 +312,7 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
             sparse_max=sparse_max,
             sparse_as_dense=sparse_as_dense,
         )
-        self._transforms = [transform] if transform else []
+        self._transforms = [("all", transform)] if transform else []
         self.multi_label_as_dict = multi_label_as_dict
 
     def __len__(self):

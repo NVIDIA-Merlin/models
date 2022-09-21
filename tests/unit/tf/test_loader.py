@@ -35,7 +35,6 @@ def test_lazy_dataset_map():
     data_df = pd.DataFrame({"feature": np.random.randint(100, size=dataset_size)})
     schema = Schema([ColumnSchema("feature", tags=[Tags.CATEGORICAL])])
     dataset = Dataset(data_df, schema=schema)
-    loader = mm.Loader(dataset, batch_size=10)
 
     sleep_time_seconds = 0.5
 
@@ -43,7 +42,7 @@ def test_lazy_dataset_map():
         time.sleep(sleep_time_seconds)
         return (x, y)
 
-    loader = loader.map(identity)
+    loader = mm.Loader(dataset, batch_size=10, transform=identity)
 
     elapsed_time_seconds = timeit.timeit(lambda: next(loader), number=1)
 
@@ -227,7 +226,8 @@ def test_tf_map(tmpdir):
         batch_size=10,
         label_names=label_name,
         shuffle=False,
-    ).map(add_sample_weight)
+        transform=add_sample_weight,
+    )
 
     for X, y, sample_weight in loader:
         assert list(X["cat1"].numpy()) == [1] * 10

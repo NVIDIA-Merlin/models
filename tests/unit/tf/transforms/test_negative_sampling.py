@@ -67,8 +67,7 @@ class TestAddRandomNegativesToBatch:
         )
         input_df = input_df[sorted(input_df.columns)]
         dataset = Dataset(input_df, schema=schema)
-        loader = mm.Loader(dataset, batch_size=10)
-        loader = loader.map(sampler)
+        loader = mm.Loader(dataset, batch_size=10, transform=sampler)
         first_batch_outputs = next(iter(loader))
 
         outputs = first_batch_outputs.outputs
@@ -210,8 +209,7 @@ class TestAddRandomNegativesToBatch:
         )
 
         batch_size, n_per_positive = 10, 5
-        loader = mm.Loader(music_streaming_data, batch_size=batch_size)
-        loader = loader.map(add_negatives)
+        loader = mm.Loader(music_streaming_data, batch_size=batch_size, transform=add_negatives)
 
         batch_output = next(iter(loader))
         features, targets = batch_output

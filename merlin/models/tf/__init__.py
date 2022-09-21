@@ -129,6 +129,7 @@ from merlin.models.tf.transforms.features import (
     ToDense,
     ToOneHot,
     ToSparse,
+    ToTarget,
 )
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
