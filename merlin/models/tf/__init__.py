@@ -33,7 +33,11 @@ from merlin.models.loader.tf_utils import configure_tensorflow
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
 from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
-from merlin.models.tf.blocks.interaction import DotProductInteraction, FMPairwiseInteraction
+from merlin.models.tf.blocks.interaction import (
+    DotProductInteraction,
+    FMBlock,
+    FMPairwiseInteraction,
+)
 from merlin.models.tf.blocks.mlp import DenseResidualBlock, MLPBlock
 from merlin.models.tf.blocks.optimizer import (
     LazyAdam,
@@ -72,7 +76,6 @@ from merlin.models.tf.core.combinators import (
     SequentialBlock,
 )
 from merlin.models.tf.core.encoder import EncoderBlock
-from merlin.models.tf.dataset import sample_batch
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
@@ -86,6 +89,7 @@ from merlin.models.tf.inputs.embedding import (
     SequenceEmbeddingFeatures,
     TableConfig,
 )
+from merlin.models.tf.loader import KerasSequenceValidator, Loader, sample_batch
 from merlin.models.tf.losses import LossType
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
@@ -122,7 +126,10 @@ from merlin.models.tf.transforms.features import (
     CategoryEncoding,
     HashedCross,
     HashedCrossAll,
+    ToDense,
     ToOneHot,
+    ToSparse,
+    ToTarget,
 )
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
@@ -178,6 +185,8 @@ __all__ = [
     "ListToDense",
     "ListToRagged",
     "ListToSparse",
+    "ToSparse",
+    "ToDense",
     "CategoryEncoding",
     "HashedCross",
     "HashedCrossAll",
@@ -190,6 +199,7 @@ __all__ = [
     "StackFeatures",
     "DotProductInteraction",
     "FMPairwiseInteraction",
+    "FMBlock",
     "ToOneHot",
     "ModelOutput",
     "BinaryOutput",
@@ -240,4 +250,6 @@ __all__ = [
     "sample_batch",
     "TensorInitializer",
     "BroadcastToSequence",
+    "Loader",
+    "KerasSequenceValidator",
 ]

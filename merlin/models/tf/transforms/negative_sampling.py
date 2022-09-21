@@ -42,7 +42,7 @@ class InBatchNegatives(tf.keras.layers.Layer):
         Whether the negative sampling should happen when testing=True, by default True
     return_tuple : bool, optional
         Whether to return a Prediction or a tuple. The tuple option should be used
-        when using UniformNegativeSampling with BatchedDataset.map()
+        when using UniformNegativeSampling with Loader.map()
         which accepts a tuple with length 2 or 3 (x,y,sample_weight), by default False
     """
 

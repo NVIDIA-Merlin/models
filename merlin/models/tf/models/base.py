@@ -18,8 +18,8 @@ from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is
 from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.loader import Loader
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
@@ -365,6 +365,8 @@ class BaseModel(tf.keras.Model):
                 if len(self.model_outputs) > 1:
                     for metric in out[prediction_name]:
                         metric._name = "/".join([prediction_block.full_name, metric.name])
+        else:
+            out = metrics
 
         return out
 
@@ -582,6 +584,7 @@ class BaseModel(tf.keras.Model):
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
         metrics = self.compute_metrics(outputs, training=True)
+
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -599,7 +602,9 @@ class BaseModel(tf.keras.Model):
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
         self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
+
         metrics = self.compute_metrics(outputs, training=False)
+
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -631,7 +636,6 @@ class BaseModel(tf.keras.Model):
 
         should_compute_metrics = self._should_compute_train_metrics_for_batch or not training
         if should_compute_metrics:
-
             # This ensures that compiled metrics are built
             # to make self.compiled_metrics.metrics available
             if not self.compiled_metrics.built:
@@ -700,7 +704,7 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
         # Bind schema from dataset to model in case we can't infer it from the inputs
-        if isinstance(x, BatchedDataset):
+        if isinstance(x, Loader):
             self.schema = x.schema
 
         validation_data = _maybe_convert_merlin_dataset(
@@ -1399,7 +1403,7 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
         if not batch_size:
             raise ValueError("batch_size must be specified when using merlin-dataset.")
 
-        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle, **kwargs)
+        data = Loader(data, batch_size=batch_size, shuffle=shuffle, **kwargs)
 
         if not shuffle:
             kwargs.pop("shuffle", None)

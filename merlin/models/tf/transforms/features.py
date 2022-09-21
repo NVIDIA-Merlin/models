@@ -26,14 +26,103 @@ from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.models.utils import schema_utils
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 ONE_HOT = p_utils.ONE_HOT
 MULTI_HOT = p_utils.MULTI_HOT
 COUNT = p_utils.COUNT
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class FeaturesTensorTypeConversion(TabularBlock):
+    """Base class to convert the tensor type of features provided in the schema
+
+    Parameters
+        ----------
+        schema : Optional[Schema], optional
+            The schema with the columns that will be transformed, by default None
+    """
+
+    def __init__(self, schema: Optional[Schema] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.column_names = None
+        if schema is not None:
+            self.column_names = schema.column_names
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        raise NotImplementedError("The call method need to be implemented by child clases")
+
+    def compute_output_shape(self, input_shapes):
+        output_shapes = {}
+        for k, v in input_shapes.items():
+            # If it is a list/sparse feature (in tuple representation), uses the offset as shape
+            if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
+                output_shapes[k] = tf.TensorShape([v[1][0], None])
+            else:
+                output_shapes[k] = v
+
+        return output_shapes
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
+
+    def compute_output_schema(self, input_schema: Schema) -> Schema:
+        return input_schema
+
+
+@Block.registry.register("to_sparse")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ToSparse(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to sparse tensors.
+    The other features are kept unchanged.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
+            if isinstance(val, tuple):
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                outputs[name] = val.to_sparse()
+            elif isinstance(val, tf.Tensor):
+                outputs[name] = tf.sparse.from_dense(val)
+
+        return outputs
+
+
+@Block.registry.register("to_dense")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ToDense(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to dense tensors.
+    The other features are kept unchanged.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
+            if isinstance(val, tuple):
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                val = val.to_sparse()
+            if isinstance(val, tf.SparseTensor):
+                outputs[name] = tf.sparse.to_dense(val)
+
+        return outputs
+
+
+@Block.registry.register("as-ragged")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Rename(TabularBlock):
     """Rename input features
@@ -231,16 +320,14 @@ class CategoryEncoding(TabularBlock):
         return outputs
 
     def compute_output_shape(self, input_shapes):
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
         outputs = {}
         for key in self.schema.column_names:
-            input_shape = input_shapes[key]
-            if not input_shape:
-                outputs[key] = tf.TensorShape([self.cardinalities[key]])
-            else:
-                outputs[key] = tf.TensorShape(input_shape[:1] + [self.cardinalities[key]])
+            outputs[key] = tf.TensorShape([batch_size, self.cardinalities[key]])
 
-                if len(input_shape) == 2:
-                    self.features_2d_last_dim[key] = input_shape[-1]
+            input_shape = input_shapes[key]
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
+                self.features_2d_last_dim[key] = input_shape[-1]
 
         return outputs
 
@@ -446,7 +533,8 @@ class HashedCross(TabularBlock):
         # Save the last dim for 2D features so that we can reshape them in graph mode in call()
         for key in self.schema.column_names:
             input_shape = input_shapes[key]
-            if len(input_shape) == 2:
+
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
                 self.features_2d_last_dim[key] = input_shape[-1]
 
         output_shape = {}
@@ -612,6 +700,75 @@ def HashedCrossAll(
         )
 
     return ParallelBlock(hashed_crosses)
+
+
+@Block.registry.register_with_multiple_names("to_target")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ToTarget(Block):
+    """Transform columns to targets"""
+
+    def __init__(
+        self,
+        schema: Schema,
+        *target: Union[ColumnSchema, Schema, str],
+        one_hot: bool = False,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.schema = schema
+        self.target = target
+        self.one_hot = one_hot
+
+    def _target_column_schemas(self):
+        target_columns = {}
+        for t in self.target:
+            if isinstance(t, str):
+                target_columns[t] = self.schema.select_by_name(t).first
+            elif isinstance(t, ColumnSchema):
+                target_columns[t.name] = t
+            elif isinstance(t, Schema):
+                selected_schema = t.select_by_tag(Tags.TARGET)
+                for col_name, col_schema in selected_schema.column_schemas.items():
+                    target_columns[col_name] = col_schema
+            else:
+                raise ValueError(f"Unsupported target type {type(t)}")
+        return target_columns
+
+    def call(
+        self, inputs: TabularData, targets=None, testing=False, **kwargs
+    ) -> "PredictionOutput":
+        if testing:
+            return PredictionOutput(predictions=inputs, targets=targets)
+
+        if targets is None:
+            targets = {}
+
+        target_columns = self._target_column_schemas()
+
+        outputs = {}
+        for name, val in inputs.items():
+            if name not in target_columns:
+                outputs[name] = inputs[name]
+                continue
+            if isinstance(targets, dict):
+                targets[name] = targets.get(name, inputs[name])
+            else:
+                targets = inputs[name]
+
+        return PredictionOutput(predictions=outputs, targets=targets or None)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def compute_output_schema(self, input_schema: Schema) -> Schema:
+        target_columns = self._target_column_schemas()
+        output_column_schemas = {}
+        for col_name, col_schema in input_schema.column_schemas.items():
+            if col_name in target_columns:
+                output_column_schemas[col_name] = col_schema.with_tags(Tags.TARGET)
+            else:
+                output_column_schemas[col_name] = col_schema
+        return Schema(column_schemas=output_column_schemas)
 
 
 def reshape_categorical_input_tensor_for_encoding(
