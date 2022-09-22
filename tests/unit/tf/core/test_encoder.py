@@ -15,9 +15,9 @@ def test_encoder_block(music_streaming_data: Dataset):
 
     schema = music_streaming_data.schema
     user_schema = schema.select_by_name(["user_id", "user_genres"])
-    user_encoder = mm.EncoderBlock(user_schema, mm.MLPBlock([4]), name="query")
+    user_encoder = mm.Encoder(user_schema, mm.MLPBlock([4]), name="query")
     item_schema = schema.select_by_name(["item_id"])
-    item_encoder = mm.EncoderBlock(item_schema, mm.MLPBlock([4]), name="candidate")
+    item_encoder = mm.Encoder(item_schema, mm.MLPBlock([4]), name="candidate")
 
     model = mm.Model(
         mm.ParallelBlock(user_encoder, item_encoder),
@@ -27,7 +27,7 @@ def test_encoder_block(music_streaming_data: Dataset):
     assert model.blocks[0]["query"] == user_encoder
     assert model.blocks[0]["candidate"] == item_encoder
 
-    testing_utils.model_test(model, music_streaming_data)
+    testing_utils.model_test(model, music_streaming_data, reload_model=True)
 
     with pytest.raises(Exception) as excinfo:
         user_encoder.compile("adam")

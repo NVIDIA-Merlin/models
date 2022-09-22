@@ -292,13 +292,6 @@ class CategoricalTarget(tf.keras.layers.Dense):
     def embeddings(self):
         return tf.transpose(self.kernel)
 
-    @classmethod
-    def from_config(cls, config, custom_objects=None):
-        output = tf.keras.layers.Dense.from_config(config, custom_objects=custom_objects)
-        output.__class__ = cls
-
-        return output
-
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingTablePrediction(Layer):

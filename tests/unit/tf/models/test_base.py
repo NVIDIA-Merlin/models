@@ -688,7 +688,7 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
         output=mm.ContrastiveOutput(candidate, "in-batch"),
     )
 
-    model, _ = testing_utils.model_test(model, loader)
+    model, _ = testing_utils.model_test(model, loader, reload_model=True, run_eagerly=run_eagerly)
 
     assert isinstance(model.query_encoder, mm.EmbeddingEncoder)
     assert isinstance(model.candidate_encoder, mm.EmbeddingEncoder)
