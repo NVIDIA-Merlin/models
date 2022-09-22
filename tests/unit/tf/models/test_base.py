@@ -690,7 +690,7 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     model, _ = testing_utils.model_test(model, loader, reload_model=True, run_eagerly=run_eagerly)
 
     assert isinstance(model.query_encoder, mm.EmbeddingEncoder)
-    assert isinstance(model.candidate_encoder, mm.EmbeddingEncoder)
+    assert isinstance(model.last, mm.ContrastiveOutput)
 
     queries = model.query_embeddings().compute()
     _check_embeddings(queries, 1001)
