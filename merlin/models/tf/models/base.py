@@ -1491,9 +1491,10 @@ class RetrievalModelV2(Model):
 
     @property
     def candidate_encoder(self) -> Encoder:
-        output = self.encoder
+        output = None
         if self.has_candidate_encoder:
             output = self.encoder[self._candidate_name]
+
         if output:
             return self._check_encoder(output)
 
