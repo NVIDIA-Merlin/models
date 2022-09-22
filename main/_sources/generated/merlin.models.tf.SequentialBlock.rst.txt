@@ -55,6 +55,7 @@
       ~SequentialBlock.repeat
       ~SequentialBlock.repeat_in_parallel
       ~SequentialBlock.select_by_name
+      ~SequentialBlock.select_by_tag
       ~SequentialBlock.set_schema
       ~SequentialBlock.set_weights
       ~SequentialBlock.with_name_scope

@@ -69,6 +69,7 @@
       ~EmbeddingFeatures.repr_extra
       ~EmbeddingFeatures.repr_ignore
       ~EmbeddingFeatures.select_by_name
+      ~EmbeddingFeatures.select_by_tag
       ~EmbeddingFeatures.set_aggregation
       ~EmbeddingFeatures.set_post
       ~EmbeddingFeatures.set_pre

@@ -71,6 +71,7 @@
       ~ParallelPredictionBlock.repr_ignore
       ~ParallelPredictionBlock.select_by_name
       ~ParallelPredictionBlock.select_by_names
+      ~ParallelPredictionBlock.select_by_tag
       ~ParallelPredictionBlock.set_aggregation
       ~ParallelPredictionBlock.set_post
       ~ParallelPredictionBlock.set_pre

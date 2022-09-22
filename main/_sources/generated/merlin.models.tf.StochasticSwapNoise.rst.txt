@@ -65,6 +65,7 @@
       ~StochasticSwapNoise.repr_extra
       ~StochasticSwapNoise.repr_ignore
       ~StochasticSwapNoise.select_by_name
+      ~StochasticSwapNoise.select_by_tag
       ~StochasticSwapNoise.set_aggregation
       ~StochasticSwapNoise.set_post
       ~StochasticSwapNoise.set_pre

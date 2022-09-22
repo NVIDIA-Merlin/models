@@ -68,6 +68,7 @@
       ~CGCBlock.repr_ignore
       ~CGCBlock.select_by_name
       ~CGCBlock.select_by_names
+      ~CGCBlock.select_by_tag
       ~CGCBlock.set_aggregation
       ~CGCBlock.set_post
       ~CGCBlock.set_pre

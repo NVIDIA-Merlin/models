@@ -65,6 +65,7 @@
       ~Filter.repr_extra
       ~Filter.repr_ignore
       ~Filter.select_by_name
+      ~Filter.select_by_tag
       ~Filter.set_aggregation
       ~Filter.set_post
       ~Filter.set_pre

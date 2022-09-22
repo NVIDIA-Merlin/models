@@ -64,6 +64,7 @@
       ~TabularBlock.repr_extra
       ~TabularBlock.repr_ignore
       ~TabularBlock.select_by_name
+      ~TabularBlock.select_by_tag
       ~TabularBlock.set_aggregation
       ~TabularBlock.set_post
       ~TabularBlock.set_pre

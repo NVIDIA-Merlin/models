@@ -244,7 +244,7 @@
 </div>
 <div class="section" id="initialize-dataloaders">
 <h3>Initialize Dataloaders<a class="headerlink" href="#initialize-dataloaders" title="Permalink to this headline"></a></h3>
-<p>We’re ready to start training, for that, we create our dataset objects, and under the hood we use Merlin <code class="docutils literal notranslate"><span class="pre">BatchedDataset</span></code> class for reading chunks of parquet files. <code class="docutils literal notranslate"><span class="pre">BatchedDataset</span></code> asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. To read more about Merlin optimized dataloaders visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141">here</a>.</p>
+<p>We’re ready to start training, for that, we create our dataset objects, and under the hood we use Merlin <code class="docutils literal notranslate"><span class="pre">Loader</span></code> class for reading chunks of parquet files. <code class="docutils literal notranslate"><span class="pre">Loader</span></code> asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. To read more about Merlin optimized dataloaders visit <a class="reference external" href="https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141">here</a>.</p>
 </div>
 <div class="section" id="configures-training-for-all-models">
 <h3>Configures training for all models<a class="headerlink" href="#configures-training-for-all-models" title="Permalink to this headline"></a></h3>

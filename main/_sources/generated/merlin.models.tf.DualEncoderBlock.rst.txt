@@ -70,6 +70,7 @@
       ~DualEncoderBlock.repr_ignore
       ~DualEncoderBlock.select_by_name
       ~DualEncoderBlock.select_by_names
+      ~DualEncoderBlock.select_by_tag
       ~DualEncoderBlock.set_aggregation
       ~DualEncoderBlock.set_post
       ~DualEncoderBlock.set_pre

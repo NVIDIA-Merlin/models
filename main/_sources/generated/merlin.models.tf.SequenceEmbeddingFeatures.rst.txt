@@ -69,6 +69,7 @@
       ~SequenceEmbeddingFeatures.repr_extra
       ~SequenceEmbeddingFeatures.repr_ignore
       ~SequenceEmbeddingFeatures.select_by_name
+      ~SequenceEmbeddingFeatures.select_by_tag
       ~SequenceEmbeddingFeatures.set_aggregation
       ~SequenceEmbeddingFeatures.set_post
       ~SequenceEmbeddingFeatures.set_pre

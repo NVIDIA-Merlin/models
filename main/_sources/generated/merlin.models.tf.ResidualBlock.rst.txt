@@ -68,6 +68,7 @@
       ~ResidualBlock.repr_ignore
       ~ResidualBlock.select_by_name
       ~ResidualBlock.select_by_names
+      ~ResidualBlock.select_by_tag
       ~ResidualBlock.set_aggregation
       ~ResidualBlock.set_post
       ~ResidualBlock.set_pre

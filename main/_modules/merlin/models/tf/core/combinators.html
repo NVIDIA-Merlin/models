@@ -528,6 +528,63 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Given name </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is not in ParallelBlock </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">blocks</span></div>
 
+<div class="viewcode-block" id="ParallelBlock.select_by_tag"><a class="viewcode-back" href="../../../../../generated/merlin.models.tf.ParallelBlock.html#merlin.models.tf.ParallelBlock.select_by_tag">[docs]</a>    <span class="k">def</span> <span class="nf">select_by_tag</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tags</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tags</span><span class="p">]]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;ParallelBlock&quot;</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Select layers of parallel blocks by tags.</span>
+
+<span class="sd">        This method will return a ParallelBlock instance with all the branches that</span>
+<span class="sd">        have at least one feature that matches any of the tags provided.</span>
+
+<span class="sd">        For example, this method can be useful when a ParallelBlock has both item and</span>
+<span class="sd">        user features in a two-tower model or DLRM, and we want to select only the item</span>
+<span class="sd">        or user features.</span>
+
+<span class="sd">        &gt;&gt;&gt; all_inputs = InputBlockV2(schema)  # InputBlock is also a ParallelBlock</span>
+<span class="sd">        &gt;&gt;&gt; item_inputs = all_inputs.select_by_tag(Tags.ITEM)</span>
+<span class="sd">        [&#39;continuous&#39;, &#39;embeddings&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; item_inputs.schema[&quot;continuous&quot;].column_names</span>
+<span class="sd">        [&#39;item_recency&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; item_inputs.schema[&quot;embeddings&quot;].column_names</span>
+<span class="sd">        [&#39;item_id&#39;, &#39;item_category&#39;, &#39;item_genres&#39;]</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tags: str or Tags or List[Union[str, Tags]]</span>
+<span class="sd">             List of tags that describe which blocks to match</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ParallelBlock</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">tags</span> <span class="o">=</span> <span class="p">[</span><span class="n">tags</span><span class="p">]</span>
+
+        <span class="n">selected_branches</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">selected_schemas</span> <span class="o">=</span> <span class="n">Schema</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">branch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">branch_has_schema</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="s2">&quot;has_schema&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">branch_has_schema</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">branch</span><span class="p">,</span> <span class="s2">&quot;select_by_tag&quot;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;This ParallelBlock does not support select_by_tag because &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">branch</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s2"> does not support select_by_tag. Consider &quot;</span>
+                    <span class="s2">&quot;implementing a select_by_tag in an extension of &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">branch</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">selected_branch</span> <span class="o">=</span> <span class="n">branch</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_branch</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">selected_branches</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">selected_branch</span>
+            <span class="n">selected_schemas</span> <span class="o">+=</span> <span class="n">selected_branch</span><span class="o">.</span><span class="n">schema</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">selected_branches</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span><span class="n">selected_branches</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">selected_schemas</span><span class="p">)</span></div>
+
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Block&quot;</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parallel_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 

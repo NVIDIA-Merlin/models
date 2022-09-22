@@ -286,29 +286,32 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
 <tr class="row-odd"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.select_by_names" title="merlin.models.tf.ParallelBlock.select_by_names"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_names</span></code></a>(names)</p></td>
 <td><p>Select a list of parallel blocks by names</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_aggregation</span></code>(value)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock.select_by_tag" title="merlin.models.tf.ParallelBlock.select_by_tag"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_by_tag</span></code></a>(tags)</p></td>
+<td><p>Select layers of parallel blocks by tags.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_aggregation</span></code>(value)</p></td>
 <td><p><dl class="field-list simple">
 <dt class="field-odd">param value</dt>
 <dd class="field-odd"><p></p></dd>
 </dl>
 </p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_post</span></code>(value)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_post</span></code>(value)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_pre</span></code>(value)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_pre</span></code>(value)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_schema</span></code>([schema])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_schema</span></code>([schema])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_weights</span></code>(weights)</p></td>
 <td><p>Sets the weights of the layer, from NumPy arrays.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">super</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">super</span></code>()</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">with_name_scope</span></code>(method)</p></td>
 <td><p>Decorator to automatically enter the module name scope.</p></td>
 </tr>
 </tbody>
@@ -495,6 +498,37 @@ this contains: “concat”, “stack”, “element-wise-sum” &amp;
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>List[Block]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="merlin.models.tf.ParallelBlock.select_by_tag">
+<code class="sig-name descname"><span class="pre">select_by_tag</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tags</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.schema.tags.Tags</span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">merlin.schema.tags.Tags</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">merlin.models.tf.core.combinators.ParallelBlock</span><span class="p"><span class="pre">]</span></span><a class="reference internal" href="../_modules/merlin/models/tf/core/combinators.html#ParallelBlock.select_by_tag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#merlin.models.tf.ParallelBlock.select_by_tag" title="Permalink to this definition"></a></dt>
+<dd><p>Select layers of parallel blocks by tags.</p>
+<p>This method will return a ParallelBlock instance with all the branches that
+have at least one feature that matches any of the tags provided.</p>
+<p>For example, this method can be useful when a ParallelBlock has both item and
+user features in a two-tower model or DLRM, and we want to select only the item
+or user features.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">all_inputs</span> <span class="o">=</span> <span class="n">InputBlockV2</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>  <span class="c1"># InputBlock is also a ParallelBlock</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">item_inputs</span> <span class="o">=</span> <span class="n">all_inputs</span><span class="o">.</span><span class="n">select_by_tag</span><span class="p">(</span><span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">)</span>
+<span class="go">[&#39;continuous&#39;, &#39;embeddings&#39;]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">item_inputs</span><span class="o">.</span><span class="n">schema</span><span class="p">[</span><span class="s2">&quot;continuous&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">column_names</span>
+<span class="go">[&#39;item_recency&#39;]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">item_inputs</span><span class="o">.</span><span class="n">schema</span><span class="p">[</span><span class="s2">&quot;embeddings&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">column_names</span>
+<span class="go">[&#39;item_id&#39;, &#39;item_category&#39;, &#39;item_genres&#39;]</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tags</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> or </em><em>Tags</em><em> or </em><em>List</em><em>[</em><em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>Tags</em><em>]</em><em>]</em>) – List of tags that describe which blocks to match</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#merlin.models.tf.ParallelBlock" title="merlin.models.tf.ParallelBlock">ParallelBlock</a></p>
 </dd>
 </dl>
 </dd></dl>

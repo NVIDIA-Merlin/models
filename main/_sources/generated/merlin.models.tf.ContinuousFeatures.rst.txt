@@ -64,6 +64,7 @@
       ~ContinuousFeatures.repr_extra
       ~ContinuousFeatures.repr_ignore
       ~ContinuousFeatures.select_by_name
+      ~ContinuousFeatures.select_by_tag
       ~ContinuousFeatures.set_aggregation
       ~ContinuousFeatures.set_post
       ~ContinuousFeatures.set_pre

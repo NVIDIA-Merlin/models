@@ -64,6 +64,7 @@
       ~ExpandDims.repr_extra
       ~ExpandDims.repr_ignore
       ~ExpandDims.select_by_name
+      ~ExpandDims.select_by_tag
       ~ExpandDims.set_aggregation
       ~ExpandDims.set_post
       ~ExpandDims.set_pre
