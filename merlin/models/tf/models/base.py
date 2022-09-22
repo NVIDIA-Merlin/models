@@ -1432,35 +1432,35 @@ class RetrievalModelV2(Model):
     def query_embeddings(
         self,
         dataset: Optional[merlin.io.Dataset] = None,
-        id_col: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
         query = self.query_encoder if self.has_candidate_encoder else self.encoder
 
         if dataset is not None and hasattr(query, "encode"):
-            return query.encode(dataset, id_col=id_col, **kwargs)
+            return query.encode(dataset, index=index, **kwargs)
 
         if hasattr(query, "to_dataset"):
             return query.to_dataset(**kwargs)
 
-        return query.encode(dataset, id_col=id_col, **kwargs)
+        return query.encode(dataset, index=index, **kwargs)
 
     def candidate_embeddings(
         self,
         dataset: Optional[merlin.io.Dataset] = None,
-        id_col: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
         if self.has_candidate_encoder:
             candidate = self.candidate_encoder
 
             if dataset is not None and hasattr(candidate, "encode"):
-                return candidate.encode(dataset, id_col=id_col, **kwargs)
+                return candidate.encode(dataset, index=index, **kwargs)
 
             if hasattr(candidate, "to_dataset"):
                 return candidate.to_dataset(**kwargs)
 
-            return candidate.encode(dataset, id_col=id_col, **kwargs)
+            return candidate.encode(dataset, index=index, **kwargs)
 
         if isinstance(self.last, ContrastiveOutput):
             return self.last.to_dataset()

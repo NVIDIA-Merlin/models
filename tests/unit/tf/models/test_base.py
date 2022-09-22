@@ -21,7 +21,6 @@ import pytest
 import tensorflow as tf
 from tensorflow.test import TestCase
 
-import merlin.io
 import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
@@ -693,11 +692,11 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     assert isinstance(model.query_encoder, mm.EmbeddingEncoder)
     assert isinstance(model.candidate_encoder, mm.EmbeddingEncoder)
 
-    queries = model.query_embeddings()
-    assert isinstance(queries, merlin.io.Dataset)
+    queries = model.query_embeddings().compute()
+    _check_embeddings(queries, 1001)
 
-    candidates = model.candidate_embeddings()
-    assert isinstance(candidates, merlin.io.Dataset)
+    candidates = model.candidate_embeddings().compute()
+    _check_embeddings(candidates, 1001)
 
 
 def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=True):
@@ -714,8 +713,20 @@ def test_retrieval_model_query_candidate(ecommerce_data: Dataset, run_eagerly=Tr
     assert isinstance(reloaded_model.query_encoder, mm.EmbeddingEncoder)
     assert isinstance(reloaded_model.candidate_encoder, mm.EmbeddingEncoder)
 
-    queries = model.query_embeddings(ecommerce_data, batch_size=10, id_col=Tags.USER_ID)
-    assert isinstance(queries, merlin.io.Dataset)
+    queries = model.query_embeddings(ecommerce_data, batch_size=10, index=Tags.USER_ID).compute()
+    _check_embeddings(queries, 100, "user_id")
 
-    candidates = model.candidate_embeddings(ecommerce_data, batch_size=10, id_col=candidate)
-    assert isinstance(candidates, merlin.io.Dataset)
+    candidates = model.candidate_embeddings(
+        ecommerce_data, batch_size=10, index=candidate
+    ).compute()
+    _check_embeddings(candidates, 100, "item_id")
+
+
+def _check_embeddings(embeddings, extected_len, index_name=None):
+    if not isinstance(embeddings, pd.DataFrame):
+        embeddings = embeddings.to_pandas()
+
+    assert isinstance(embeddings, pd.DataFrame)
+    assert list(embeddings.columns) == [str(i) for i in range(8)]
+    assert len(embeddings.index) == extected_len
+    assert embeddings.index.name == index_name

@@ -58,27 +58,26 @@ class Encoder(tf.keras.Model):
     def encode(
         self,
         dataset: merlin.io.Dataset,
+        index: Union[str, ColumnSchema, Schema, Tags],
         batch_size: int,
-        id_col: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
-        output_schema = None
-        if id_col:
-            if isinstance(id_col, Schema):
-                output_schema = id_col
-            elif isinstance(id_col, ColumnSchema):
-                output_schema = Schema([id_col])
-            elif isinstance(id_col, str):
-                output_schema = Schema([self.schema[id_col]])
-            elif isinstance(id_col, Tags):
-                output_schema = self.schema.select_by_tag(id_col)
-            else:
-                raise ValueError(f"Invalid id_col: {id_col}")
+        if isinstance(index, Schema):
+            output_schema = index
+        elif isinstance(index, ColumnSchema):
+            output_schema = Schema([index])
+        elif isinstance(index, str):
+            output_schema = Schema([self.schema[index]])
+        elif isinstance(index, Tags):
+            output_schema = self.schema.select_by_tag(index)
+        else:
+            raise ValueError(f"Invalid index: {index}")
 
         return self.batch_predict(
             dataset,
             batch_size=batch_size,
             output_schema=output_schema,
+            index=index,
             output_concat_func=np.concatenate,
             **kwargs,
         )
@@ -88,6 +87,7 @@ class Encoder(tf.keras.Model):
         dataset: merlin.io.Dataset,
         batch_size: int,
         output_schema: Optional[Schema] = None,
+        index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
         """Batched prediction using Dask.
@@ -101,6 +101,21 @@ class Encoder(tf.keras.Model):
         -------
         merlin.io.Dataset
         """
+
+        if index:
+            if isinstance(index, ColumnSchema):
+                index = Schema([index])
+            elif isinstance(index, str):
+                index = Schema([self.schema[index]])
+            elif isinstance(index, Tags):
+                index = self.schema.select_by_tag(index)
+            elif not isinstance(index, Schema):
+                raise ValueError(f"Invalid index: {index}")
+
+            if len(index) != 1:
+                raise ValueError("Only one column can be used as index")
+            index = index.first.name
+
         if hasattr(dataset, "schema"):
             if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
                 raise ValueError(
@@ -119,6 +134,8 @@ class Encoder(tf.keras.Model):
         if output_schema:
             encode_kwargs["filter_input_columns"] = output_schema.column_names
         predictions = dataset.map_partitions(model_encode, **encode_kwargs)
+        if index:
+            predictions = predictions.set_index(index)
 
         return merlin.io.Dataset(predictions)
 
