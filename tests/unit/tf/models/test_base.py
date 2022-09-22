@@ -673,13 +673,6 @@ def test_unfreeze_all_blocks(ecommerce_data):
 
 
 def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
-    try:
-        import cudf  # noqa: F401
-
-        gpu = True
-    except ImportError:
-        gpu = False
-
     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
 
@@ -700,10 +693,10 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     assert isinstance(model.query_encoder, mm.EmbeddingEncoder)
     assert isinstance(model.candidate_encoder, mm.EmbeddingEncoder)
 
-    queries = model.query_embeddings(gpu=gpu)
+    queries = model.query_embeddings()
     assert isinstance(queries, merlin.io.Dataset)
 
-    candidates = model.candidate_embeddings(gpu=gpu)
+    candidates = model.candidate_embeddings()
     assert isinstance(candidates, merlin.io.Dataset)
 
 

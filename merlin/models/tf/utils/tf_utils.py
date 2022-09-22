@@ -275,11 +275,17 @@ def df_to_tensor(gdf, dtype=None):
     return x
 
 
-def tensor_to_df(tensor, gpu=True):
-    if gpu:
-        import cudf
-        import cupy
+def tensor_to_df(tensor, gpu=None):
+    if gpu is None:
+        try:
+            import cudf  # noqa: F401
+            import cupy
 
+            gpu = True
+        except ImportError:
+            gpu = False
+
+    if gpu:
         # Note: It is not possible to convert Tensorflow tensors to the cudf dataframe
         # directly using dlPack (as the example commented below) because cudf.from_dlpack()
         # expects the 2D tensor to be in Fortran order (column-major), which is not

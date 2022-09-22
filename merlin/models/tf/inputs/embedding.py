@@ -340,10 +340,10 @@ class EmbeddingTable(EmbeddingTableBase):
             data, trainable=trainable, name=name, col_schema=col_schema, **kwargs
         )
 
-    def to_dataset(self, gpu=True) -> merlin.io.Dataset:
+    def to_dataset(self, gpu=None) -> merlin.io.Dataset:
         return merlin.io.Dataset(self.to_df(gpu=gpu))
 
-    def to_df(self, gpu=True):
+    def to_df(self, gpu=None):
         return tensor_to_df(self.table.embeddings, gpu=gpu)
 
     def _maybe_build(self, inputs):

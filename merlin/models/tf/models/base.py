@@ -1441,7 +1441,7 @@ class RetrievalModelV2(Model):
             return query.encode(dataset, id_col=id_col, **kwargs)
 
         if hasattr(query, "to_dataset"):
-            return query.to_dataset()
+            return query.to_dataset(**kwargs)
 
         return query.encode(dataset, id_col=id_col, **kwargs)
 
@@ -1458,7 +1458,7 @@ class RetrievalModelV2(Model):
                 return candidate.encode(dataset, id_col=id_col, **kwargs)
 
             if hasattr(candidate, "to_dataset"):
-                return candidate.to_dataset()
+                return candidate.to_dataset(**kwargs)
 
             return candidate.encode(dataset, id_col=id_col, **kwargs)
 

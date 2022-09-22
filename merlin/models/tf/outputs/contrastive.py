@@ -293,7 +293,7 @@ class ContrastiveOutput(ModelOutput):
     def embedding_lookup(self, ids: tf.Tensor):
         return self.to_call.embedding_lookup(tf.squeeze(ids))
 
-    def to_dataset(self, gpu=True) -> merlin.io.Dataset:
+    def to_dataset(self, gpu=None) -> merlin.io.Dataset:
         return merlin.io.Dataset(tf_utils.tensor_to_df(self.to_call.embeddings, gpu=gpu))
 
     @property
