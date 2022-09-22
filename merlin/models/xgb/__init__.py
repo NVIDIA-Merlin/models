@@ -171,7 +171,10 @@ class XGBoost:
                 self.target_columns,
                 self.qid_column,
             )
-            d_eval = dmatrix_cls(self.dask_client, X, label=y, qid=qid)
+            # using the quantile DMatrix as part of evals results in a
+            # discrepancy between metrics reported in logs and result
+            # of evaluate
+            d_eval = xgb.dask.DaskDMatrix(self.dask_client, X, label=y, qid=qid)
             watchlist.append((d_eval, name))
 
         train_res = xgb.dask.train(

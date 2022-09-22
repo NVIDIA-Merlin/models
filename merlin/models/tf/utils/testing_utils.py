@@ -97,7 +97,7 @@ def model_test(
 
         assert isinstance(loaded_model, type(model))
 
-        np.array_equal(
+        np.testing.assert_array_almost_equal(
             model.predict(batch[0]),
             loaded_model.predict(batch[0]),
         )
