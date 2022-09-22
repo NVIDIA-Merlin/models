@@ -26,14 +26,103 @@ from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.models.utils import schema_utils
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 ONE_HOT = p_utils.ONE_HOT
 MULTI_HOT = p_utils.MULTI_HOT
 COUNT = p_utils.COUNT
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class FeaturesTensorTypeConversion(TabularBlock):
+    """Base class to convert the tensor type of features provided in the schema
+
+    Parameters
+        ----------
+        schema : Optional[Schema], optional
+            The schema with the columns that will be transformed, by default None
+    """
+
+    def __init__(self, schema: Optional[Schema] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.column_names = None
+        if schema is not None:
+            self.column_names = schema.column_names
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        raise NotImplementedError("The call method need to be implemented by child clases")
+
+    def compute_output_shape(self, input_shapes):
+        output_shapes = {}
+        for k, v in input_shapes.items():
+            # If it is a list/sparse feature (in tuple representation), uses the offset as shape
+            if isinstance(v, tuple) and isinstance(v[1], tf.TensorShape):
+                output_shapes[k] = tf.TensorShape([v[1][0], None])
+            else:
+                output_shapes[k] = v
+
+        return output_shapes
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
+
+    def compute_output_schema(self, input_schema: Schema) -> Schema:
+        return input_schema
+
+
+@Block.registry.register("to_sparse")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ToSparse(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to sparse tensors.
+    The other features are kept unchanged.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
+            if isinstance(val, tuple):
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                outputs[name] = val.to_sparse()
+            elif isinstance(val, tf.Tensor):
+                outputs[name] = tf.sparse.from_dense(val)
+
+        return outputs
+
+
+@Block.registry.register("to_dense")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ToDense(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to dense tensors.
+    The other features are kept unchanged.
+    """
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs = {}
+        for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
+            if isinstance(val, tuple):
+                val = list_col_to_ragged(val)
+            if isinstance(val, tf.RaggedTensor):
+                val = val.to_sparse()
+            if isinstance(val, tf.SparseTensor):
+                outputs[name] = tf.sparse.to_dense(val)
+
+        return outputs
+
+
+@Block.registry.register("as-ragged")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class Rename(TabularBlock):
     """Rename input features
@@ -231,16 +320,14 @@ class CategoryEncoding(TabularBlock):
         return outputs
 
     def compute_output_shape(self, input_shapes):
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
         outputs = {}
         for key in self.schema.column_names:
-            input_shape = input_shapes[key]
-            if not input_shape:
-                outputs[key] = tf.TensorShape([self.cardinalities[key]])
-            else:
-                outputs[key] = tf.TensorShape(input_shape[:1] + [self.cardinalities[key]])
+            outputs[key] = tf.TensorShape([batch_size, self.cardinalities[key]])
 
-                if len(input_shape) == 2:
-                    self.features_2d_last_dim[key] = input_shape[-1]
+            input_shape = input_shapes[key]
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
+                self.features_2d_last_dim[key] = input_shape[-1]
 
         return outputs
 
@@ -446,7 +533,8 @@ class HashedCross(TabularBlock):
         # Save the last dim for 2D features so that we can reshape them in graph mode in call()
         for key in self.schema.column_names:
             input_shape = input_shapes[key]
-            if len(input_shape) == 2:
+
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
                 self.features_2d_last_dim[key] = input_shape[-1]
 
         output_shape = {}
@@ -614,6 +702,75 @@ def HashedCrossAll(
     return ParallelBlock(hashed_crosses)
 
 
+@Block.registry.register_with_multiple_names("to_target")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ToTarget(Block):
+    """Transform columns to targets"""
+
+    def __init__(
+        self,
+        schema: Schema,
+        *target: Union[ColumnSchema, Schema, str],
+        one_hot: bool = False,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.schema = schema
+        self.target = target
+        self.one_hot = one_hot
+
+    def _target_column_schemas(self):
+        target_columns = {}
+        for t in self.target:
+            if isinstance(t, str):
+                target_columns[t] = self.schema.select_by_name(t).first
+            elif isinstance(t, ColumnSchema):
+                target_columns[t.name] = t
+            elif isinstance(t, Schema):
+                selected_schema = t.select_by_tag(Tags.TARGET)
+                for col_name, col_schema in selected_schema.column_schemas.items():
+                    target_columns[col_name] = col_schema
+            else:
+                raise ValueError(f"Unsupported target type {type(t)}")
+        return target_columns
+
+    def call(
+        self, inputs: TabularData, targets=None, testing=False, **kwargs
+    ) -> "PredictionOutput":
+        if testing:
+            return PredictionOutput(predictions=inputs, targets=targets)
+
+        if targets is None:
+            targets = {}
+
+        target_columns = self._target_column_schemas()
+
+        outputs = {}
+        for name, val in inputs.items():
+            if name not in target_columns:
+                outputs[name] = inputs[name]
+                continue
+            if isinstance(targets, dict):
+                targets[name] = targets.get(name, inputs[name])
+            else:
+                targets = inputs[name]
+
+        return PredictionOutput(predictions=outputs, targets=targets or None)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def compute_output_schema(self, input_schema: Schema) -> Schema:
+        target_columns = self._target_column_schemas()
+        output_column_schemas = {}
+        for col_name, col_schema in input_schema.column_schemas.items():
+            if col_name in target_columns:
+                output_column_schemas[col_name] = col_schema.with_tags(Tags.TARGET)
+            else:
+                output_column_schemas[col_name] = col_schema
+        return Schema(column_schemas=output_column_schemas)
+
+
 def reshape_categorical_input_tensor_for_encoding(
     input, feat_name, features_2d_last_dim, output_mode, ensure_1d_for_one_hot_mode=True
 ):
@@ -645,3 +802,153 @@ def reshape_categorical_input_tensor_for_encoding(
             output = expand_dims_fn(output, 1)
 
     return output
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class BroadcastToSequence(tf.keras.layers.Layer):
+    """Broadcast context features to match the timesteps of sequence features.
+
+    This layer supports mask propagation. If the sequence features have a mask. The
+    context features being broadcast will inherit the mask.
+
+    Parameters
+    ----------
+    context_schema : Schema
+        The schema representing contextual features to be broadcast
+    sequence_schema : Schema
+        The schema representing sequence features
+
+    """
+
+    def __init__(self, context_schema: Schema, sequence_schema: Schema, **kwargs):
+        super().__init__(**kwargs)
+        self.context_schema = context_schema
+        self.sequence_schema = sequence_schema
+
+    def call(self, inputs: TabularData) -> TabularData:
+        inputs = self._broadcast(inputs, inputs)
+        return inputs
+
+    def _get_seq_features_shapes(self, inputs: TabularData):
+        inputs_sizes = {k: v.shape for k, v in inputs.items()}
+
+        seq_features_shapes = dict()
+        for fname, fshape in inputs_sizes.items():
+            # Saves the shapes of sequential features
+            if fname in self.sequence_schema.column_names:
+                seq_features_shapes[fname] = tuple(fshape[:2])
+
+        sequence_length = 0
+        if len(seq_features_shapes) > 0:
+            if len(set(seq_features_shapes.values())) > 1:
+                raise ValueError(
+                    "All sequential features must share the same shape in the first two dims "
+                    "(batch_size, seq_length): {}".format(seq_features_shapes)
+                )
+
+            sequence_length = list(seq_features_shapes.values())[0][1]
+            if sequence_length is None:
+                for k, v in inputs.items():
+                    if k in self.sequence_schema.column_names:
+                        if isinstance(v, tf.RaggedTensor):
+                            sequence_length = v.row_lengths()
+
+        return seq_features_shapes, sequence_length
+
+    def _broadcast(self, inputs, target):
+        seq_features_shapes, sequence_length = self._get_seq_features_shapes(inputs)
+        if len(seq_features_shapes) > 0:
+            non_seq_features = set(inputs.keys()).difference(set(seq_features_shapes.keys()))
+            non_seq_target = {}
+            for fname in non_seq_features:
+                if fname in self.context_schema.column_names:
+                    if target[fname] is None:
+                        continue
+                    if isinstance(sequence_length, tf.Tensor):
+                        rows = []
+                        for row, row_sequence_length in zip(target[fname], sequence_length):
+                            rows.append(
+                                tf.RaggedTensor.from_tensor(
+                                    tf.repeat(tf.expand_dims(row, 1), row_sequence_length, axis=0)
+                                )
+                            )
+                        non_seq_target[fname] = tf.stack(rows)
+                    else:
+                        shape = target[fname].shape
+                        target_shape = shape[:1] + sequence_length + shape[1:]
+                        non_seq_target[fname] = tf.broadcast_to(
+                            tf.expand_dims(target[fname], 1), target_shape
+                        )
+            target = {**target, **non_seq_target}
+
+        return target
+
+    def compute_output_shape(
+        self, input_shape: Dict[str, tf.TensorShape]
+    ) -> Dict[str, tf.TensorShape]:
+        sequence_length = None
+        for k in input_shape:
+            if k in self.sequence_schema.column_names:
+                sequence_length = input_shape[k][1]
+
+        context_shapes = {}
+        for k in input_shape:
+            if k in self.context_schema.column_names:
+                rest_shape = input_shape[k][1:]
+                # If sequence length is None, we have ragged tensors.
+                # non-batch dims become ragged (None) during transform.
+                if sequence_length is None:
+                    rest_shape = [None] * len(rest_shape)
+                context_shapes[k] = (
+                    input_shape[k][:1] + tf.TensorShape([sequence_length]) + rest_shape
+                )
+
+        output_shape = {**input_shape, **context_shapes}
+
+        return output_shape
+
+    def compute_mask(self, inputs: TabularData, mask: Optional[TabularData] = None):
+        if mask is None:
+            return None
+
+        # find the sequence mask
+        sequence_mask = None
+        for k in mask:
+            if mask[k] is not None and k in self.sequence_schema.column_names:
+                sequence_mask = mask[k]
+
+        # no sequence mask found
+        if sequence_mask is None:
+            return mask
+
+        # set the mask value for those that are none
+        masks_context = {}
+        for k in mask:
+            if mask[k] is None and k in self.context_schema.column_names:
+                masks_context[k] = sequence_mask
+
+        masks_other = self._broadcast(inputs, mask)
+
+        new_mask = {**masks_other, **masks_context}
+
+        return new_mask
+
+    def get_config(self):
+        config = super().get_config()
+        config["context_schema"] = schema_utils.schema_to_tensorflow_metadata_json(
+            self.context_schema
+        )
+        config["sequence_schema"] = schema_utils.schema_to_tensorflow_metadata_json(
+            self.sequence_schema
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        context_schema = schema_utils.tensorflow_metadata_json_to_schema(
+            config.pop("context_schema")
+        )
+        sequence_schema = schema_utils.tensorflow_metadata_json_to_schema(
+            config.pop("sequence_schema")
+        )
+        return cls(context_schema, sequence_schema, **config)

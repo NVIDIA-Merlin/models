@@ -1,23 +1,20 @@
 import warnings
 from typing import List, Optional, Union
 
-import tensorflow as tf
-
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
-from merlin.models.tf.blocks.interaction import FMPairwiseInteraction
+from merlin.models.tf.blocks.interaction import FMBlock
 from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
-from merlin.models.tf.core.aggregation import ConcatFeatures, StackFeatures
+from merlin.models.tf.core.aggregation import ConcatFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
-from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
-from merlin.models.tf.inputs.continuous import ContinuousFeatures
-from merlin.models.tf.inputs.embedding import EmbeddingOptions
+from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.models.tf.inputs.embedding import EmbeddingOptions, Embeddings
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.features import CategoryEncoding
-from merlin.schema import Schema
+from merlin.schema import Schema, Tags
 
 
 def DLRMModel(
@@ -90,12 +87,6 @@ def DCNModel(
     deep_block: Block = MLPBlock([512, 256]),
     stacked=True,
     input_block: Optional[Block] = None,
-    embedding_options: EmbeddingOptions = EmbeddingOptions(
-        embedding_dims=None,
-        embedding_dim_default=64,
-        infer_embedding_sizes=False,
-        infer_embedding_sizes_multiplier=2.0,
-    ),
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
@@ -127,18 +118,11 @@ def DCNModel(
     stacked : bool
         Whether to use the stacked version of the model or the parallel version.
     input_block : Block, optional
-        The `Block` to use as the input layer, by default None
-    embedding_options : EmbeddingOptions
-        Options for the input embeddings.
-        - embedding_dims: Optional[Dict[str, int]] - The dimension of the
-        embedding table for each feature (key), by default {}
-        - embedding_dim_default: int - Default dimension of the embedding
-        table, when the feature is not found in ``embedding_dims``, by default 64
-        - infer_embedding_sizes : bool, Automatically defines the embedding
-        dimension from the feature cardinality in the schema, by default False
-        - infer_embedding_sizes_multiplier: int. Multiplier used by the heuristic
-        to infer the embedding dimension from its cardinality. Generally
-        reasonable values range between 2.0 and 10.0. By default 2.0.
+        The `Block` to use as the input layer. If None, a default `InputBlockV2` object
+        is instantiated, that creates the embedding tables for the categorical features
+        based on the schema. The embedding dimensions are inferred from the features
+        cardinality. For a custom representation of input data you can instantiate
+        and provide an `InputBlockV2` instance.
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
 
@@ -153,10 +137,7 @@ def DCNModel(
         Number of cross layers (depth) should be positive
     """
 
-    aggregation = kwargs.pop("aggregation", "concat")
-    input_block = input_block or InputBlock(
-        schema, aggregation=aggregation, embedding_options=embedding_options, **kwargs
-    )
+    input_block = input_block or InputBlockV2(schema, **kwargs)
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     if stacked:
         dcn_body = input_block.connect(CrossBlock(depth), deep_block)
@@ -168,32 +149,34 @@ def DCNModel(
     return model
 
 
-def YoutubeDNNRankingModel(schema: Schema) -> Model:
-    raise NotImplementedError()
-
-
 def DeepFMModel(
     schema: Schema,
-    embedding_dim: int,
-    deep_block: Optional[Block] = MLPBlock([64, 128]),
+    embedding_dim: Optional[int] = None,
+    deep_block: Optional[Block] = None,
+    input_block: Optional[Block] = None,
+    wide_input_block: Optional[Block] = None,
+    wide_logit_block: Optional[Block] = None,
+    deep_logit_block: Optional[Block] = None,
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    embedding_option_kwargs: dict = {},
     **kwargs,
 ) -> Model:
-    """DeepFM-model architecture.
+    """DeepFM-model architecture, which is the sum of the 1-dim output
+    of a Factorization Machine [2] and a Deep Neural Network
 
     Example Usage::
-        depp_fm = DeepFMModel(schema, embedding_dim=64, deep_block=MLPBlock([256, 64]))
-        depp_fm.compile(optimizer="adam")
-        depp_fm.fit(train_data, epochs=10)
+        deep_fm = DeepFMModel(schema, embedding_dim=64, deep_block=MLPBlock([256, 64]))
+        deep_fm.compile(optimizer="adam")
+        deep_fm.fit(train_data, epochs=10)
 
     References
     ----------
     [1] Huifeng, Guo, et al.
         "DeepFM: A Factorization-Machine based Neural Network for CTR Prediction"
         arXiv:1703.04247  (2017).
+    [2] Steffen, Rendle, "Factorization Machines" IEEE International
+    Conference on Data Mining, 2010. https://ieeexplore.ieee.org/document/5694074
 
     Parameters
     ----------
@@ -202,43 +185,60 @@ def DeepFMModel(
     embedding_dim : int
         Dimension of the embeddings
     deep_block : Optional[Block]
-        The `Block` that learns high-ordeer feature interactions
-        Defaults to MLPBlock([64, 128])
+        The `Block` that learns high-order feature interactions.
+        On top of this Block, an MLPBlock([1]) is added to output
+        a 1-dim logit.
+        Defaults to MLPBlock([64])
+    input_block : Block, optional
+        The `Block` to use as the input layer for the FM and Deep components.
+        If None, a default `InputBlockV2` object
+        is instantiated, that creates the embedding tables for the categorical features
+        based on the schema, with the specified embedding_dim.
+        For a custom representation of input data you can instantiate
+        and provide an `InputBlockV2` instance.
+    wide_input_block: Optional[Block], by default None
+        The input for the wide block. If not provided,
+        creates a default block that encodes categorical features
+        with one-hot / multi-hot representation and also includes the continuous features.
+    wide_logit_block: Optional[Block], by default None
+        The output layer of the wide input. The last dimension needs to be 1.
+        You might want to provide your own output logit block if you want to add
+        dropout or kernel regularization to the wide block.
+    deep_logit_block: Optional[Block], by default MLPBlock([1], activation="linear", use_bias=True)
+        The output layer of the deep block. The last dimension needs to be 1.
+        You might want to provide your own output logit block if you want to add
+        dropout or kernel regularization to the wide block.
+
     prediction_tasks: optional
         The prediction tasks to be used, by default this will be inferred from the Schema.
         Defaults to None
-    embedding_option_kwargs: Optional[dict]
-        Additional arguments to provide to `EmbeddingOptions` object
-        for embeddings tables setting.
-        Defaults to {}
     Returns
     -------
     Model
 
     """
-    input_block = InputBlock(
+
+    input_block = input_block or InputBlockV2(
         schema,
-        embedding_options=EmbeddingOptions(
-            embedding_dim_default=embedding_dim, **embedding_option_kwargs
-        ),
-        **kwargs,
+        aggregation=None,
+        categorical=Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
     )
 
-    pairwise_block = FMPairwiseInteraction().prepare(aggregation=StackFeatures(axis=-1))
+    fm_tower = FMBlock(
+        schema,
+        fm_input_block=input_block,
+        wide_input_block=wide_input_block,
+        wide_logit_block=wide_logit_block,
+    )
+
+    if deep_block is None:
+        deep_block = MLPBlock([64])
     deep_block = deep_block.prepare(aggregation=ConcatFeatures())
 
-    branches = {
-        "categorical": CategoryEncoding(schema),
-        "continuous": ContinuousFeatures.from_schema(schema),
-    }
-    first_order_block = ParallelBlock(branches, aggregation="concat").connect(
-        tf.keras.layers.Dense(units=1, activation=None, use_bias=True)
-    )
+    deep_logit_block = deep_logit_block or MLPBlock([1], activation="linear", use_bias=True)
+    deep_tower = input_block.connect(deep_block).connect(deep_logit_block)
 
-    deep_pairwise = input_block.connect_branch(pairwise_block, deep_block, aggregation="concat")
-    deep_fm = ParallelBlock(
-        {"deep_pairwise": deep_pairwise, "first_order": first_order_block}, aggregation="concat"
-    )
+    deep_fm = ParallelBlock({"fm": fm_tower, "deep": deep_tower}, aggregation="element-wise-sum")
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
     model = Model(deep_fm, prediction_tasks)
@@ -261,7 +261,7 @@ def WideAndDeepModel(
     prediction_tasks: Optional[
         Union[PredictionTask, List[PredictionTask], ParallelPredictionBlock]
     ] = None,
-    **kwargs,
+    **wide_body_kwargs,
 ) -> Model:
     """
     The Wide&Deep architecture [1] was proposed by Google
@@ -293,7 +293,7 @@ def WideAndDeepModel(
         deep_embedding = ml.Embeddings(schema, embedding_dim_default=8, infer_embedding_sizes=False)
         model = ml.WideAndDeepModel(
             schema,
-            deep_input_block = ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
+            deep_input_block = ml.InputBlockV2(schema=schema, categorical=deep_embedding),
             wide_schema=wide_schema,
             wide_preprocess=ml.CategoryEncoding(wide_schema, output_mode="multi_hot", sparse=True),
             deep_block=ml.MLPBlock([32, 16]),
@@ -482,10 +482,7 @@ def WideAndDeepModel(
 
     if not deep_input_block:
         if deep_schema is not None and len(deep_schema) > 0:
-            deep_input_block = InputBlockV2(
-                deep_schema,
-                **kwargs,
-            )
+            deep_input_block = InputBlockV2(deep_schema)
     if deep_input_block:
         deep_body = deep_input_block.connect(deep_block).connect(
             MLPBlock(
@@ -518,14 +515,15 @@ def WideAndDeepModel(
                 kernel_regularizer=wide_regularizer,
                 bias_regularizer=wide_regularizer,
                 dropout=wide_dropout,
+                **wide_body_kwargs,
             )
         )
         branches["wide"] = wide_body
 
     if len(branches) == 0:
         raise ValueError(
-            "At least the deep part (deep_schema/deep_input_block) "
-            "or wide part (wide_schema/wide_input_block) must be provided."
+            "At least the deep part (deep_schema/deep_input_block)"
+            " or wide part (wide_schema/wide_input_block) must be provided."
         )
 
     wide_and_deep_body = ParallelBlock(branches, aggregation="element-wise-sum")

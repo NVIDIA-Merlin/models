@@ -284,7 +284,6 @@ def InputBlockV2(
     **branches : dict
         Extra branches to add to the input block.
 
-
     Returns
     -------
     ParallelBlock
@@ -316,4 +315,6 @@ def InputBlockV2(
         pre=pre,
         post=post,
         aggregation=aggregation,
+        is_input=True,
+        schema=schema,
     )

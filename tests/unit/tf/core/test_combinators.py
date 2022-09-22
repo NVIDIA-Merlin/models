@@ -14,12 +14,10 @@ def test_parallel_block_pruning(music_streaming_data: Dataset, name_branches: bo
     music_streaming_data.schema = music_streaming_data.schema.remove_by_tag(Tags.CONTINUOUS)
 
     continuous_block = mm.Filter(music_streaming_data.schema.select_by_tag(Tags.CONTINUOUS))
-    embedding_block = mm.EmbeddingFeatures.from_schema(
-        music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
-    )
+    embedding_block = mm.Embeddings(music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL))
 
     if name_branches:
-        branches = {"continuous": continuous_block, "embedding": embedding_block}
+        branches = {"continuous": continuous_block, "embeddings": embedding_block}
     else:
         branches = [continuous_block, embedding_block]
 
@@ -54,12 +52,10 @@ def test_parallel_block_serialization(music_streaming_data: Dataset):
 @pytest.mark.parametrize("name_branches", [True, False])
 def test_parallel_block_schema_propagation(music_streaming_data, name_branches: bool):
     continuous_block = mm.Filter(Tags.CONTINUOUS)
-    embedding_block = mm.EmbeddingFeatures.from_schema(
-        music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
-    )
+    embedding_block = mm.Embeddings(music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL))
 
     if name_branches:
-        branches = {"continuous": continuous_block, "embedding": embedding_block}
+        branches = {"continuous": continuous_block, "embeddings": embedding_block}
     else:
         branches = [continuous_block, embedding_block]
 
@@ -101,6 +97,56 @@ def test_parallel_block_select_from_names():
     assert 2 == len(blocks.select_by_names(["1", "2"]))
     with test_case.assertRaisesRegex(ValueError, "is not in ParallelBlock"):
         blocks.select_by_names(["0", "2"])
+
+
+def test_parallel_block_select_by_tags(music_streaming_data):
+    continuous_block = mm.Filter(Tags.CONTINUOUS)
+    embedding_block = mm.Embeddings(
+        schema=music_streaming_data.schema.select_by_tag(Tags.CATEGORICAL)
+    )
+    branches = {"continuous": continuous_block, "embeddings": embedding_block}
+    parallel_block = mm.ParallelBlock(branches, schema=music_streaming_data.schema)
+
+    continuous_inputs = parallel_block.select_by_tag(Tags.CONTINUOUS)
+    assert isinstance(continuous_inputs, mm.ParallelBlock)
+    assert sorted(continuous_inputs.schema.column_names) == [
+        "item_recency",
+        "position",
+        "user_age",
+    ]
+
+    categorical_inputs = parallel_block.select_by_tag(Tags.CATEGORICAL)
+    assert sorted(categorical_inputs.schema.column_names) == [
+        "country",
+        "item_category",
+        "item_genres",
+        "item_id",
+        "session_id",
+        "user_genres",
+        "user_id",
+    ]
+
+    # Forward pass a batch and compare the input features to output features
+    batch = mm.sample_batch(music_streaming_data, batch_size=10, include_targets=False)
+    continuous_outputs = continuous_inputs(batch)
+    assert sorted(continuous_outputs.keys()) == sorted(continuous_inputs.schema.column_names)
+    categorical_outputs = categorical_inputs(batch)
+    assert sorted(categorical_outputs.keys()) == sorted(categorical_inputs.schema.column_names)
+
+    # There are no sequence or time features in the dataset.
+    assert parallel_block.select_by_tag([Tags.SEQUENCE, Tags.TIME]) is None
+
+    # InputBlock is also a ParallelBlock.
+    input_block = mm.InputBlockV2(music_streaming_data.schema)
+    item_inputs = input_block.select_by_tag(Tags.ITEM)
+    assert sorted(item_inputs.schema.column_names) == [
+        "item_category",
+        "item_genres",
+        "item_id",
+        "item_recency",
+    ]
+    outputs = item_inputs(batch)
+    assert sorted(outputs.keys()) == sorted(item_inputs.schema.column_names)
 
 
 class TestCond:

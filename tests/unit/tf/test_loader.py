@@ -24,7 +24,6 @@ import tensorflow as tf
 from sklearn.metrics import roc_auc_score
 
 import merlin.models.tf as mm
-import merlin.models.tf.dataset as tf_dataloader
 from merlin.core.dispatch import make_df
 from merlin.io.dataset import Dataset
 from merlin.models.utils.schema_utils import create_categorical_column
@@ -36,7 +35,6 @@ def test_lazy_dataset_map():
     data_df = pd.DataFrame({"feature": np.random.randint(100, size=dataset_size)})
     schema = Schema([ColumnSchema("feature", tags=[Tags.CATEGORICAL])])
     dataset = Dataset(data_df, schema=schema)
-    batched_dataset = tf_dataloader.BatchedDataset(dataset, batch_size=10)
 
     sleep_time_seconds = 0.5
 
@@ -44,9 +42,9 @@ def test_lazy_dataset_map():
         time.sleep(sleep_time_seconds)
         return (x, y)
 
-    batched_dataset = batched_dataset.map(identity)
+    loader = mm.Loader(dataset, batch_size=10, transform=identity)
 
-    elapsed_time_seconds = timeit.timeit(lambda: next(batched_dataset), number=1)
+    elapsed_time_seconds = timeit.timeit(lambda: next(loader), number=1)
 
     assert elapsed_time_seconds < 1
 
@@ -65,7 +63,7 @@ def test_nested_list():
         }
     )
 
-    train_dataset = tf_dataloader.BatchedDataset(
+    loader = mm.Loader(
         Dataset(df),
         cont_names=["data", "data2"],
         label_names=["label"],
@@ -73,7 +71,7 @@ def test_nested_list():
         shuffle=False,
     )
 
-    batch = next(iter(train_dataset))
+    batch = next(iter(loader))
     # [[1,2,3],[3,1],[...],[]]
     nested_data_col = tf.RaggedTensor.from_row_lengths(
         batch[0]["data"][0][:, 0], tf.cast(batch[0]["data"][1][:, 0], tf.int32)
@@ -100,11 +98,11 @@ def test_shuffling():
 
     df = pd.DataFrame({"a": np.asarray(range(num_rows)), "b": np.asarray([0] * num_rows)})
 
-    train_dataset = tf_dataloader.BatchedDataset(
+    loader = mm.Loader(
         Dataset(df), cont_names=["a"], label_names=["b"], batch_size=batch_size, shuffle=True
     )
 
-    batch = next(iter(train_dataset))
+    batch = next(iter(loader))
 
     first_batch = tf.reshape(tf.cast(batch[0]["a"].cpu(), tf.int32), (batch_size,))
     in_order = tf.range(0, batch_size, dtype=tf.int32)
@@ -134,7 +132,7 @@ def test_tf_drp_reset(tmpdir, batch_size, drop_last, num_rows):
     cont_names = ["cont3", "cont2", "cont1"]
     label_name = ["label"]
 
-    data_itr = tf_dataloader.BatchedDataset(
+    loader = mm.Loader(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -144,9 +142,9 @@ def test_tf_drp_reset(tmpdir, batch_size, drop_last, num_rows):
         drop_last=drop_last,
     )
 
-    all_len = len(data_itr) if drop_last else len(data_itr) - 1
+    all_len = len(loader) if drop_last else len(loader) - 1
     all_rows = 0
-    for idx, (X, y) in enumerate(data_itr):
+    for idx, (X, y) in enumerate(loader):
         all_rows += len(X["cat1"])
         if idx < all_len:
             assert list(X["cat1"].numpy()) == [1] * batch_size
@@ -180,7 +178,7 @@ def test_tf_catname_ordering(tmpdir):
     cont_names = ["cont3", "cont2", "cont1"]
     label_name = ["label"]
 
-    data_itr = tf_dataloader.BatchedDataset(
+    loader = mm.Loader(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -189,7 +187,7 @@ def test_tf_catname_ordering(tmpdir):
         shuffle=False,
     )
 
-    for X, y in data_itr:
+    for X, y in loader:
         assert list(X["cat1"].numpy()) == [1] * 10
         assert list(X["cat2"].numpy()) == [2] * 10
         assert list(X["cat3"].numpy()) == [3] * 10
@@ -221,16 +219,17 @@ def test_tf_map(tmpdir):
 
         return features, labels, sample_weight
 
-    data_itr = tf_dataloader.BatchedDataset(
+    loader = mm.Loader(
         path,
         cat_names=cat_names,
         cont_names=cont_names,
         batch_size=10,
         label_names=label_name,
         shuffle=False,
-    ).map(add_sample_weight)
+        transform=add_sample_weight,
+    )
 
-    for X, y, sample_weight in data_itr:
+    for X, y, sample_weight in loader:
         assert list(X["cat1"].numpy()) == [1] * 10
         assert list(X["cat2"].numpy()) == [2] * 10
         assert list(X["cat3"].numpy()) == [3] * 10
@@ -241,13 +240,13 @@ def test_tf_map(tmpdir):
 
 
 @pytest.mark.parametrize("batch_size", [1, 2, 4])
-def test_validater(batch_size):
+def test_validator(batch_size):
     n_samples = 9
     rand = np.random.RandomState(0)
 
     gdf = make_df({"a": rand.randn(n_samples), "label": rand.randint(2, size=n_samples)})
 
-    dataloader = tf_dataloader.BatchedDataset(
+    loader = mm.Loader(
         Dataset(gdf),
         batch_size=batch_size,
         cat_names=[],
@@ -263,11 +262,11 @@ def test_validater(batch_size):
     model = tf.keras.Model(inputs=input_, outputs=x)
     model.compile("sgd", "binary_crossentropy", metrics=["accuracy", tf.keras.metrics.AUC()])
 
-    validater = tf_dataloader.DatasetValidator(dataloader)
-    model.fit(dataloader, epochs=2, verbose=0, callbacks=[validater])
+    validator = mm.KerasSequenceValidator(loader)
+    model.fit(loader, epochs=2, verbose=0, callbacks=[validator])
 
     predictions, labels = [], []
-    for X, y_true in dataloader:
+    for X, y_true in loader:
         y_pred = model(X)
         labels.extend(y_true.numpy()[:, 0])
         predictions.extend(y_pred.numpy()[:, 0])
@@ -275,7 +274,7 @@ def test_validater(batch_size):
     labels = np.array(labels)
 
     logs = {}
-    validater.on_epoch_end(0, logs)
+    validator.on_epoch_end(0, logs)
     auc_key = [i for i in logs if i.startswith("val_auc")][0]
 
     true_accuracy = (labels == (predictions > 0.5)).mean()
@@ -299,14 +298,14 @@ def test_block_with_sparse_inputs(music_streaming_data: Dataset):
             "user_id": np.random.randint(0, 10, (32,)).tolist(),
         }
     )
-    train_dataset = tf_dataloader.BatchedDataset(
+    loader = mm.Loader(
         Dataset(df),
         cat_names=["user_id", "item_genres"],
         batch_size=3,
         shuffle=False,
     )
 
-    batch = next(iter(train_dataset))[0]
+    batch = next(iter(loader))[0]
     out = block(batch)
     assert out.shape[-1] == 64
 

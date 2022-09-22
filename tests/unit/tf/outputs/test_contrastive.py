@@ -18,14 +18,14 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.transforms.features import Rename
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
-def test_contrastive_mf(ecommerce_data: Dataset):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_contrastive_mf(ecommerce_data: Dataset, run_eagerly: bool):
     schema = ecommerce_data.schema
     user_id = schema.select_by_tag(Tags.USER_ID)
     item_id = schema.select_by_tag(Tags.ITEM_ID)
@@ -40,10 +40,11 @@ def test_contrastive_mf(ecommerce_data: Dataset):
 
     mf = mm.Model(encoders, mm.ContrastiveOutput(item_id, "in-batch"))
 
-    testing_utils.model_test(mf, ecommerce_data, run_eagerly=True)
+    testing_utils.model_test(mf, ecommerce_data, run_eagerly=run_eagerly, reload_model=True)
 
 
-def test_constrastive_mf_weights_in_output(ecommerce_data: Dataset):
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_constrastive_mf_weights_in_output(ecommerce_data: Dataset, run_eagerly: bool):
     schema = ecommerce_data.schema
     schema["item_id"] = schema["item_id"].with_tags([Tags.TARGET])
     user_id = schema.select_by_tag(Tags.USER_ID)
@@ -54,7 +55,7 @@ def test_constrastive_mf_weights_in_output(ecommerce_data: Dataset):
 
     mf = mm.Model(encoder, mm.ContrastiveOutput(item_id, "in-batch"))
 
-    testing_utils.model_test(mf, ecommerce_data, run_eagerly=True)
+    testing_utils.model_test(mf, ecommerce_data, run_eagerly=run_eagerly, reload_model=True)
 
 
 def test_two_tower_constrastive(ecommerce_data: Dataset):
@@ -214,6 +215,6 @@ def _next_item_loader(sequence_testing_data: Dataset, to_one_hot=True):
 
     schema = sequence_testing_data.schema.select_by_tag(Tags.CATEGORICAL)
     sequence_testing_data.schema = schema
-    dataloader = BatchedDataset(sequence_testing_data, batch_size=50)
-    dataloader = dataloader.map(_last_interaction_as_target)
-    return dataloader, schema
+    loader = mm.Loader(sequence_testing_data, batch_size=50)
+    loader = loader.map(_last_interaction_as_target)
+    return loader, schema

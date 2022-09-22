@@ -16,6 +16,7 @@
 import contextlib
 import logging
 import os
+from typing import Protocol
 
 import dask.dataframe as dd
 import numpy as np
@@ -27,7 +28,7 @@ from merlin.io import Dataset
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
 from merlin.models.utils.schema_utils import select_targets
-from merlin.schema import Tags
+from merlin.schema import Schema, Tags
 
 LOG = logging.getLogger("merlin.models")
 
@@ -133,7 +134,15 @@ def _get_schema(dataset):
     return None
 
 
-class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
+class SchemaAwareTransform(Protocol):
+    def __call__(self, *args, **kwargs):
+        ...
+
+    def compute_output_schema(self, schema: Schema):
+        ...
+
+
+class Loader(tf.keras.utils.Sequence, DataLoader):
     """
     Override class to customize data loading for backward compatibility with
     older NVTabular releases.
@@ -199,6 +208,8 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         `reader_kwargs` will be ignored
     batch_size: int
         Number of samples to yield at each iteration
+    transform: Union[Callable, SchemaAwareTransform], optional
+        Transformation to apply to each batch of data.
     label_names: list(str)
         Column name of the target variable in the dataframe specified by
         `paths_or_dataset`
@@ -251,6 +262,7 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         self,
         paths_or_dataset,
         batch_size,
+        transform=None,
         label_names=None,
         feature_columns=None,
         cat_names=None,
@@ -300,9 +312,8 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
             sparse_max=sparse_max,
             sparse_as_dense=sparse_as_dense,
         )
-        self._map_fns = []
-        if len(label_names) > 1 and multi_label_as_dict:
-            self._map_fns.append(lambda X, y: (X, dict(zip(label_names, y))))
+        self._transforms = [("all", transform)] if transform else []
+        self.multi_label_as_dict = multi_label_as_dict
 
     def __len__(self):
         """
@@ -325,25 +336,27 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
         """
         return DataLoader.__next__(self)
 
-    def map(self, fn) -> "BatchedDataset":
+    def map(self, fn) -> "Loader":
         """
         Applying a function to each batch.
 
         This can for instance be used to add `sample_weight` to the model.
         """
-        self._map_fns.append(fn)
+        self._transforms.append(("all", fn))
 
         return self
 
-    def map_features(self, fn) -> "BatchedDataset":
+    def map_features(self, fn) -> "Loader":
         def wrapped_fn(*inputs):
             features = fn(inputs[0])
 
             return features, *inputs[1:]
 
-        return self.map(wrapped_fn)
+        self._transforms.append(("features", wrapped_fn))
 
-    def map_targets(self, fn) -> "BatchedDataset":
+        return self
+
+    def map_targets(self, fn) -> "Loader":
         def wrapped_fn(*inputs):
             targets = fn(inputs[1])
 
@@ -352,7 +365,9 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
 
             return inputs[0], targets
 
-        return self.map(wrapped_fn)
+        self._transforms.append(("targets", wrapped_fn))
+
+        return self
 
     @contextlib.contextmanager
     def _get_device_ctx(self, dev):
@@ -491,13 +506,44 @@ class BatchedDataset(tf.keras.utils.Sequence, DataLoader):
     def _handle_tensors(self, cats, conts, labels):
         to_return = super()._handle_tensors(cats, conts, labels)
 
-        for map_fn in self._map_fns:
-            to_return = map_fn(*to_return)
+        if len(self.label_names) > 1 and self.multi_label_as_dict:
+            X, y = to_return
+            to_return = X, dict(zip(self.label_names, y))
+
+        for _, transform in self._transforms:
+            to_return = transform(*to_return)
 
         return to_return
 
+    @property
+    def input_schema(self) -> Schema:
+        return self.data.schema
 
-class DatasetValidator(tf.keras.callbacks.Callback):
+    @property
+    def output_schema(self) -> Schema:
+        schema = self.input_schema
+
+        for to, transform in self._transforms:
+            if hasattr(transform, "compute_output_schema"):
+                _schema = transform.compute_output_schema(schema)
+            else:
+                raise ValueError(f"Couldn't infer schema from transform {transform}")
+
+            if to == "all":
+                schema = _schema
+            elif to == "features":
+                targets_schema = schema.select_by_tag(Tags.Target)
+                schema = _schema + targets_schema
+            elif to == "targets":
+                features_schema = schema.remove_by_tag(Tags.Target)
+                schema = features_schema + _schema
+            else:
+                raise ValueError(f"Unknown schema target {to}")
+
+        return schema
+
+
+class KerasSequenceValidator(tf.keras.callbacks.Callback):
     # TODO: document
     _supports_tf_logs = True
 
@@ -558,8 +604,8 @@ def sample_batch(
 
     from merlin.models.tf.transforms.tensor import ListToDense, ListToRagged
 
-    if not isinstance(data, BatchedDataset):
-        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle)
+    if not isinstance(data, Loader):
+        data = Loader(data, batch_size=batch_size, shuffle=shuffle)
 
     batch = next(iter(data))
     # batch could be of type Prediction, so we can't unpack directly
