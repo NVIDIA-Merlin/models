@@ -275,7 +275,7 @@ def df_to_tensor(gdf, dtype=None):
     return x
 
 
-def tensor_to_df(tensor, gpu=None):
+def tensor_to_df(tensor, index=None, gpu=None):
     if gpu is None:
         try:
             import cudf  # noqa: F401
@@ -294,13 +294,17 @@ def tensor_to_df(tensor, gpu=None):
         tensor_cupy = cupy.fromDlpack(to_dlpack(tf.convert_to_tensor(tensor)))
         df = cudf.DataFrame(tensor_cupy)
         df.columns = [str(col) for col in list(df.columns)]
-        df.set_index(cudf.RangeIndex(0, tensor.shape[0]))
+        if not index:
+            index = cudf.RangeIndex(0, tensor.shape[0])
+        df.set_index(index)
     else:
         import pandas as pd
 
         df = pd.DataFrame(tensor.numpy())
         df.columns = [str(col) for col in list(df.columns)]
-        df.set_index(pd.RangeIndex(0, tensor.shape[0]))
+        if not index:
+            index = pd.RangeIndex(0, tensor.shape[0])
+        df.set_index(index)
 
     return df
 
