@@ -121,13 +121,14 @@ class TestXGBoost:
     ],
 )
 @patch("xgboost.dask.train", side_effect=xgboost.dask.train)
-def test_gpu_hist_dmatrix(mock_train, fit_kwargs, expected_dtrain_cls, dask_client):
-    train, valid = generate_data("music-streaming", num_rows=100, set_sizes=(0.5, 0.5))
-    schema = train.schema
+def test_gpu_hist_dmatrix(
+    mock_train, fit_kwargs, expected_dtrain_cls, dask_client, music_streaming_data: Dataset
+):
+    schema = music_streaming_data.schema
     model = XGBoost(schema, objective="reg:logistic", tree_method="gpu_hist")
-    model.fit(train, evals=[(valid, "valid")], **fit_kwargs)
-    model.predict(valid)
-    metrics = model.evaluate(valid)
+    model.fit(music_streaming_data, **fit_kwargs)
+    model.predict(music_streaming_data)
+    metrics = model.evaluate(music_streaming_data)
     assert "rmse" in metrics
 
     assert mock_train.called
@@ -135,12 +136,9 @@ def test_gpu_hist_dmatrix(mock_train, fit_kwargs, expected_dtrain_cls, dask_clie
 
     train_call = mock_train.call_args_list[0]
     client, params, dtrain = train_call.args
-    evals = train_call.kwargs["evals"]
     assert dask_client == client
     assert params["tree_method"] == "gpu_hist"
     assert params["objective"] == "reg:logistic"
-    # check that we don't use quantile dmatrix for non-training eval data
-    assert not isinstance(evals[0][0], xgboost.dask.DaskDeviceQuantileDMatrix)
     assert isinstance(dtrain, expected_dtrain_cls)
 
 
