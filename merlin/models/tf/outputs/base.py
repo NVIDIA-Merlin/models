@@ -25,21 +25,20 @@ from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.base import name_fn
 from merlin.models.tf.core.prediction import Prediction
-from merlin.models.tf.core.transformations import LogitsTemperatureScaler
+from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
-from merlin.models.tf.utils.tf_utils import call_layer
 
 MetricsFn = Callable[[], Sequence[tf.keras.metrics.Metric]]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class PredictionBlock(Layer):
+class ModelOutput(Layer):
     """Base-class for prediction blocks.
 
     Parameters
     ----------
-    prediction : Layer
-        The prediction layer
+    to_call : Layer
+        The layer to call in the forward-pass of the model
     default_loss: Union[str, tf.keras.losses.Loss]
         Default loss to set if the user does not specify one
     get_default_metrics: Callable
@@ -62,7 +61,7 @@ class PredictionBlock(Layer):
 
     def __init__(
         self,
-        prediction: Layer,
+        to_call: Layer,
         default_loss: Union[str, tf.keras.losses.Loss],
         default_metrics_fn: MetricsFn,
         name: Optional[str] = None,
@@ -78,7 +77,7 @@ class PredictionBlock(Layer):
         self.full_name = name_fn(self.target, base_name) if self.target else base_name
 
         super().__init__(name=name or self.full_name, **kwargs)
-        self.prediction = prediction
+        self.to_call = to_call
         self.default_loss = default_loss
         self.default_metrics_fn = default_metrics_fn
         self.pre = pre
@@ -103,22 +102,25 @@ class PredictionBlock(Layer):
             self.pre.build(input_shape)
             input_shape = self.pre.compute_output_shape(input_shape)
 
-        input_shape = self.prediction.compute_output_shape(input_shape)
+        self.to_call.build(input_shape)
+        input_shape = self.to_call.compute_output_shape(input_shape)
 
         if self.post is not None:
             self.post.build(input_shape)
 
         self.built = True
 
-    def call(self, inputs, **kwargs):
-        return tf_utils.call_layer(self.prediction, inputs, **kwargs)
+    def call(self, inputs, training=False, testing=False, **kwargs):
+        return tf_utils.call_layer(
+            self.to_call, inputs, training=training, testing=testing, **kwargs
+        )
 
     def compute_output_shape(self, input_shape):
         output_shape = input_shape
         if self.pre is not None:
             output_shape = self.pre.compute_output_shape(output_shape)
 
-        output_shape = self.prediction.compute_output_shape(output_shape)
+        output_shape = self.to_call.compute_output_shape(output_shape)
 
         if self.post is not None:
             output_shape = self.post.compute_output_shape(output_shape)
@@ -131,20 +133,17 @@ class PredictionBlock(Layer):
             inputs = tf_utils.call_layer(self.pre, inputs, **kwargs)
 
         # super call
-        outputs = super(PredictionBlock, self).__call__(inputs, *args, **kwargs)
+        outputs = super(ModelOutput, self).__call__(inputs, *args, **kwargs)
 
         if self.post:
             outputs = tf_utils.call_layer(self.post, outputs, **kwargs)
 
         if getattr(self, "logits_scaler", None):
-            outputs = self.logits_scaler(outputs)
-
-        if kwargs.get("training", False) or kwargs.get("testing", False):
-            targets = kwargs.get("targets", {})
-            if isinstance(targets, dict) and self.target:
-                targets = targets.get(self.target, targets)
-
-            return Prediction(outputs, targets)
+            if isinstance(outputs, Prediction):
+                scaled_outputs = self.logits_scaler(outputs.outputs)
+                outputs = Prediction(scaled_outputs, outputs.targets)
+            else:
+                outputs = self.logits_scaler(outputs)
 
         return outputs
 
@@ -215,7 +214,7 @@ class PredictionBlock(Layer):
         return function
 
     def get_config(self):
-        config = super(PredictionBlock, self).get_config()
+        config = super(ModelOutput, self).get_config()
         function_config = self._serialize_function_to_config(self.default_metrics_fn)
         config.update(
             {
@@ -227,7 +226,7 @@ class PredictionBlock(Layer):
         )
 
         objects = [
-            "prediction",
+            "to_call",
             "pre",
             "post",
             "logits_scaler",
@@ -252,7 +251,7 @@ class PredictionBlock(Layer):
             config,
             {
                 "default_loss": tf.keras.losses.deserialize,
-                "prediction": tf.keras.layers.deserialize,
+                "to_call": tf.keras.layers.deserialize,
                 "pre": tf.keras.layers.deserialize,
                 "post": tf.keras.layers.deserialize,
                 "logits_scaler": tf.keras.layers.deserialize,
@@ -262,90 +261,35 @@ class PredictionBlock(Layer):
         return super().from_config(config)
 
 
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ContrastivePredictionBlock(PredictionBlock):
-    """Base-class for prediction blocks that uses contrastive loss.
-
-    Parameters
-    ----------
-    prediction : Layer
-        The prediction layer
-    prediction_with_negatives : Layer
-        The prediction layer that includes negative sampling
-    default_loss: Union[str, tf.keras.losses.Loss]
-        Default loss to set if the user does not specify one
-    get_default_metrics: Callable
-        A function returning the list of default metrics to set
-        if the user does not specify any
-    name: Optional[Text], optional
-        Task name, by default None
-    target: Optional[str], optional
-        Label name, by default None
-    pre: Optional[Block], optional
-        Optional block to transform predictions before applying the prediction layer,
-        by default None
-    post: Optional[Block], optional
-        Optional block to transform predictions after applying the prediction layer,
-        by default None
-    logits_temperature: float, optional
-        Parameter used to reduce model overconfidence, so that logits / T.
-        by default 1.
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class DotProduct(Layer):
+    """Dot-product between queries & items.
+    Parameters:
+    -----------
+    query_name : str, optional
+        Identify query tower for query/user embeddings, by default 'query'
+    item_name : str, optional
+        Identify item tower for item embeddings, by default 'item'
     """
 
-    def __init__(
-        self,
-        prediction: Layer,
-        prediction_with_negatives: Layer,
-        default_loss: Union[str, tf.keras.losses.Loss],
-        default_metrics_fn: MetricsFn,
-        name: Optional[str] = None,
-        target: Optional[str] = None,
-        pre: Optional[Layer] = None,
-        post: Optional[Layer] = None,
-        logits_temperature: float = 1.0,
-        **kwargs,
-    ):
+    def __init__(self, query_name: str = "query", item_name: str = "item", **kwargs):
+        super().__init__(**kwargs)
+        self.query_name = query_name
+        self.item_name = item_name
 
-        super(ContrastivePredictionBlock, self).__init__(
-            prediction,
-            default_loss=default_loss,
-            default_metrics_fn=default_metrics_fn,
-            target=target,
-            pre=pre,
-            post=post,
-            logits_temperature=logits_temperature,
-            name=name,
-            **kwargs,
+    def call(self, inputs, **kwargs):
+        return tf.reduce_sum(
+            tf.multiply(inputs[self.query_name], inputs[self.item_name]), keepdims=True, axis=-1
         )
-        self.prediction_with_negatives = prediction_with_negatives
 
-    def call(self, inputs, training=False, testing=False, **kwargs):
-        to_call = self.prediction
+    def compute_output_shape(self, input_shape):
+        batch_size = tf_utils.calculate_batch_size_from_input_shapes(input_shape)
 
-        if self.prediction_with_negatives.has_negative_samplers and (training or testing):
-            to_call = self.prediction_with_negatives
-
-        return call_layer(to_call, inputs, training=training, testing=testing, **kwargs)
+        return batch_size, 1
 
     def get_config(self):
-        config = super(ContrastivePredictionBlock, self).get_config()
-        config.update(
-            {
-                "prediction_with_negatives": tf.keras.utils.serialize_keras_object(
-                    self.prediction_with_negatives
-                ),
-            }
-        )
-
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        config = tf_utils.maybe_deserialize_keras_objects(
-            config,
-            {
-                "prediction_with_negatives": tf.keras.layers.deserialize,
-            },
-        )
-
-        return super().from_config(config)
+        return {
+            **super(DotProduct, self).get_config(),
+            "query_name": self.query_name,
+            "item_name": self.item_name,
+        }

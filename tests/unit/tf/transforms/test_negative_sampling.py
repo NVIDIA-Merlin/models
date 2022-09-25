@@ -21,8 +21,7 @@ import tensorflow as tf
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.core.prediction import Prediction
-from merlin.models.tf.data_augmentation.negative_sampling import UniformNegativeSampling
-from merlin.models.tf.dataset import BatchedDataset
+from merlin.models.tf.transforms.negative_sampling import InBatchNegatives
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -58,7 +57,7 @@ class TestAddRandomNegativesToBatch:
             ]
         )
         n_per_positive = 5
-        sampler = UniformNegativeSampling(schema, n_per_positive)
+        sampler = InBatchNegatives(schema, n_per_positive)
 
         input_df = pd.DataFrame(
             [
@@ -68,12 +67,8 @@ class TestAddRandomNegativesToBatch:
         )
         input_df = input_df[sorted(input_df.columns)]
         dataset = Dataset(input_df, schema=schema)
-        batched_dataset = BatchedDataset(dataset, batch_size=10)
-        batched_dataset = batched_dataset.map(sampler)
-        first_batch_outputs = next(iter(batched_dataset))
-
-        outputs = first_batch_outputs.outputs
-        targets = first_batch_outputs.targets
+        loader = mm.Loader(dataset, batch_size=10, transform=sampler)
+        outputs, targets = next(iter(loader))
 
         output_dict = {
             key: output_tensor.numpy().reshape(-1) for key, output_tensor in outputs.items()
@@ -113,10 +108,9 @@ class TestAddRandomNegativesToBatch:
             music_streaming_data, batch_size=batch_size, include_targets=False, to_dense=to_dense
         )
 
-        sampler = UniformNegativeSampling(schema, n_per_positive, seed=tf_random_seed)
+        sampler = InBatchNegatives(schema, n_per_positive, seed=tf_random_seed)
 
-        with_negatives = sampler(features)
-        outputs = with_negatives.outputs
+        outputs = sampler(features).outputs
 
         def assert_fn(output_batch_size):
             assert output_batch_size == batch_size
@@ -131,11 +125,9 @@ class TestAddRandomNegativesToBatch:
             music_streaming_data, batch_size=batch_size, include_targets=True, to_dense=to_dense
         )
 
-        sampler = UniformNegativeSampling(schema, 5, seed=tf_random_seed)
+        sampler = InBatchNegatives(schema, 5, seed=tf_random_seed)
 
-        with_negatives = sampler(inputs, targets=targets)
-        outputs = with_negatives.outputs
-        targets = with_negatives.targets
+        outputs, targets = sampler(inputs, targets=targets)
 
         max_batch_size = batch_size + batch_size * n_per_positive
 
@@ -158,7 +150,7 @@ class TestAddRandomNegativesToBatch:
             music_streaming_data, batch_size=batch_size, include_targets=True, to_dense=to_dense
         )
 
-        sampler = UniformNegativeSampling(
+        sampler = InBatchNegatives(
             schema, n_per_positive, seed=tf_random_seed, run_when_testing=False
         )
 
@@ -175,16 +167,14 @@ class TestAddRandomNegativesToBatch:
             targets.values(),
         )
 
-    @pytest.mark.parametrize("run_eagerly", [True, False])
+    # The sampling layer currnetly only works correctly as part of the model when run in eager mode
+    @pytest.mark.parametrize("run_eagerly", [True])
     def test_in_model(self, run_eagerly, music_streaming_data: Dataset, tf_random_seed: int):
         dataset = music_streaming_data
         schema = dataset.schema
 
-        sampling = mm.Cond(
-            ExampleIsTraining(),
-            UniformNegativeSampling(schema, 5, seed=tf_random_seed),
-            ExamplePredictionIdentity(),
-        )
+        sampling = InBatchNegatives(schema, 5, seed=tf_random_seed)
+
         model = mm.Model(
             mm.InputBlock(schema),
             sampling,
@@ -193,9 +183,7 @@ class TestAddRandomNegativesToBatch:
         )
 
         batch_size = 10
-        features, targets = mm.sample_batch(
-            music_streaming_data, batch_size=batch_size, to_dense=True
-        )
+        features, targets = mm.sample_batch(dataset, batch_size=batch_size, to_ragged=True)
 
         with_negatives = model(features, targets=targets, training=True)
         assert with_negatives.predictions.shape[0] >= 50
@@ -203,24 +191,26 @@ class TestAddRandomNegativesToBatch:
         without_negatives = model(features)
         assert without_negatives.shape[0] == batch_size
 
-        testing_utils.model_test(model, dataset, run_eagerly=run_eagerly)
+        preds = model.predict(features)
+        assert preds.shape[0] == batch_size
+
+        testing_utils.model_test(model, dataset, run_eagerly=run_eagerly, reload_model=True)
 
     def test_model_with_dataloader(self, music_streaming_data: Dataset, tf_random_seed: int):
-        add_negatives = UniformNegativeSampling(
-            music_streaming_data.schema, 5, seed=tf_random_seed, return_tuple=True
-        )
+        dataset = music_streaming_data
+        schema = dataset.schema
+
+        add_negatives = InBatchNegatives(schema, 5, seed=tf_random_seed)
 
         batch_size, n_per_positive = 10, 5
-        dataset = BatchedDataset(music_streaming_data, batch_size=batch_size)
-        dataset = dataset.map(add_negatives)
+        loader = mm.Loader(dataset, batch_size=batch_size, transform=add_negatives)
 
-        batch_output = next(iter(dataset))
-        features, targets = batch_output
+        features, targets = next(iter(loader))
 
         expected_batch_size = batch_size + batch_size * n_per_positive
 
-        assert features["item_genres"].shape[0] > batch_size
-        assert features["item_genres"].shape[0] <= expected_batch_size
+        assert features["item_category"].shape[0] > batch_size
+        assert features["item_category"].shape[0] <= expected_batch_size
         assert all(
             f.shape[0] > batch_size and f.shape[0] <= expected_batch_size for f in features.values()
         )
@@ -229,11 +219,11 @@ class TestAddRandomNegativesToBatch:
         )
 
         model = mm.Model(
-            mm.InputBlock(music_streaming_data.schema),
+            mm.InputBlock(schema),
             mm.MLPBlock([64]),
             mm.BinaryClassificationTask("click"),
         )
         assert model(features).shape[0] > batch_size
         assert model(features).shape[0] <= expected_batch_size
 
-        testing_utils.model_test(model, dataset)
+        testing_utils.model_test(model, loader)

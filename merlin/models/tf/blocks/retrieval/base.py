@@ -17,14 +17,15 @@ import logging
 from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
+from keras.utils import tf_inspect
 from tensorflow.python.ops import embedding_ops
 
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.core.base import Block, BlockType, EmbeddingWithMetadata, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.core.tabular import TabularAggregationType
-from merlin.models.tf.core.transformations import L2Norm
 from merlin.models.tf.models.base import ModelBlock
+from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
@@ -322,7 +323,7 @@ class ItemRetrievalScorer(Block):
             for sampler in self.samplers:
                 input_data = EmbeddingWithMetadata(batch_items_embeddings, batch_items_metadata)
                 sampling_kwargs = {"training": training}
-                if "item_weights" in sampler._call_fn_args:
+                if "item_weights" in tf_inspect.getargspec(sampler.call).args:
                     sampling_kwargs["item_weights"] = self.context.get_embedding(self.item_domain)
                 neg_items = sampler(input_data.__dict__, **sampling_kwargs)
 

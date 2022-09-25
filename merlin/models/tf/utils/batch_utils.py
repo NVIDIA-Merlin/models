@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.dataset import BatchedDataset
+from merlin.models.tf.loader import Loader
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Schema, Tags
@@ -175,7 +175,7 @@ def data_iterator_func(schema, batch_size: int = 512):
     targets = select_targets(schema).column_names
 
     def data_iterator(dataset):
-        return BatchedDataset(
+        return Loader(
             merlin.io.dataset.Dataset(dataset),
             batch_size=batch_size,
             cat_names=cat_cols,

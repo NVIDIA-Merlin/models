@@ -18,42 +18,41 @@ from itertools import combinations
 from typing import Dict, Optional, Sequence, Union
 
 import tensorflow as tf
-from keras.layers.preprocessing import preprocessing_utils
-from keras.layers.preprocessing import preprocessing_utils as utils
+from keras.layers.preprocessing import preprocessing_utils as p_utils
 from keras.utils import layer_utils
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.typing import TabularData
-from merlin.models.tf.utils.tf_utils import (
-    df_to_tensor,
-    get_candidate_probs,
-    list_col_to_ragged,
-    transform_label_to_onehot,
-)
+from merlin.models.tf.utils import tf_utils
+from merlin.models.tf.utils.tf_utils import list_col_to_ragged
 from merlin.models.utils import schema_utils
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
-ONE_HOT = utils.ONE_HOT
-MULTI_HOT = utils.MULTI_HOT
-COUNT = utils.COUNT
+ONE_HOT = p_utils.ONE_HOT
+MULTI_HOT = p_utils.MULTI_HOT
+COUNT = p_utils.COUNT
 
 
-@Block.registry.register("as-ragged")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class AsRaggedFeatures(TabularBlock):
-    """Convert all list (multi-hot/sequential) features to tf.RaggedTensor"""
+class FeaturesTensorTypeConversion(TabularBlock):
+    """Base class to convert the tensor type of features provided in the schema
+
+    Parameters
+        ----------
+        schema : Optional[Schema], optional
+            The schema with the columns that will be transformed, by default None
+    """
+
+    def __init__(self, schema: Optional[Schema] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.column_names = None
+        if schema is not None:
+            self.column_names = schema.column_names
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        outputs = {}
-        for name, val in inputs.items():
-            if isinstance(val, tuple):
-                outputs[name] = list_col_to_ragged(val)
-            else:
-                outputs[name] = val
-
-        return outputs
+        raise NotImplementedError("The call method need to be implemented by child clases")
 
     def compute_output_shape(self, input_shapes):
         output_shapes = {}
@@ -69,86 +68,63 @@ class AsRaggedFeatures(TabularBlock):
     def compute_call_output_shape(self, input_shapes):
         return self.compute_output_shape(input_shapes)
 
+    def compute_output_schema(self, input_schema: Schema) -> Schema:
+        return input_schema
 
-@Block.registry.register("as-sparse")
+
+@Block.registry.register("to_sparse")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class AsSparseFeatures(TabularBlock):
-    """Convert all list-inputs to sparse-tensors.
-
-    By default, the dataloader will represent list-columns as a tuple of values & row-lengths.
-
+class ToSparse(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to sparse tensors.
+    The other features are kept unchanged.
     """
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
             if isinstance(val, tuple):
                 val = list_col_to_ragged(val)
             if isinstance(val, tf.RaggedTensor):
                 outputs[name] = val.to_sparse()
-            else:
-                outputs[name] = val
+            elif isinstance(val, tf.Tensor):
+                outputs[name] = tf.sparse.from_dense(val)
 
         return outputs
 
-    def compute_output_shape(self, input_shape):
-        return input_shape
 
-
-@Block.registry.register("as-dense")
+@Block.registry.register("to_dense")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class AsDenseFeatures(TabularBlock):
-    """Convert all list-inputs to dense-tensors.
-
-    By default, the dataloader will represent list-columns as a tuple of values & row-lengths.
-
-
-    Parameters
-    ----------
-    max_seq_length : int
-        The maximum length of multi-hot features.
+class ToDense(FeaturesTensorTypeConversion):
+    """Convert the features provided in the schema to dense tensors.
+    The other features are kept unchanged.
     """
-
-    def __init__(self, max_seq_length: Optional[int] = None, **kwargs):
-        super().__init__(**kwargs)
-        self.max_seq_length = max_seq_length
 
     def call(self, inputs: TabularData, **kwargs) -> TabularData:
         outputs = {}
         for name, val in inputs.items():
+            outputs[name] = val
+
+            if self.column_names is not None and name not in self.column_names:
+                continue
+
             if isinstance(val, tuple):
                 val = list_col_to_ragged(val)
             if isinstance(val, tf.RaggedTensor):
-                if self.max_seq_length:
-                    outputs[name] = val.to_tensor(shape=[None, self.max_seq_length])
-                else:
-                    outputs[name] = tf.squeeze(val.to_tensor())
-            else:
-                outputs[name] = tf.squeeze(val)
+                val = val.to_sparse()
+            if isinstance(val, tf.SparseTensor):
+                outputs[name] = tf.sparse.to_dense(val)
 
         return outputs
 
-    def compute_output_shape(self, input_shape):
-        batch_size = self.calculate_batch_size_from_input_shapes(input_shape)
-        outputs = {}
 
-        for key, val in input_shape.items():
-            if isinstance(val, tuple):
-                outputs[key] = tf.TensorShape((batch_size, self.max_seq_length))
-            else:
-                outputs[key] = tf.TensorShape((batch_size))
-
-        return outputs
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({"max_seq_length": self.max_seq_length})
-
-        return config
-
-
+@Block.registry.register("as-ragged")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class RenameFeatures(TabularBlock):
+class Rename(TabularBlock):
     """Rename input features
 
     Parameters
@@ -203,242 +179,6 @@ class RenameFeatures(TabularBlock):
         config.update({"renames": self.renames})
 
         return config
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ExpandDims(TabularBlock):
-    """
-    Expand dims of selected input tensors.
-    Example::
-
-        inputs = {
-            "cont_feat1": tf.random.uniform((NUM_ROWS,)),
-            "cont_feat2": tf.random.uniform((NUM_ROWS,)),
-            "multi_hot_categ_feat": tf.random.uniform(
-                (NUM_ROWS, 4), minval=1, maxval=100, dtype=tf.int32
-            ),
-        }
-
-        expand_dims_op = tr.ExpandDims(expand_dims={"cont_feat2": 0, "multi_hot_categ_feat": 1})
-        expanded_inputs = expand_dims_op(inputs)
-    """
-
-    def __init__(self, expand_dims: Union[int, Dict[str, int]] = -1, **kwargs):
-        """Instantiates the `ExpandDims` transformation, which allows to expand dims
-        of the input tensors
-
-        Parameters
-        ----------
-        expand_dims : Union[int, Dict[str, int]], optional, by default -1
-            Defines which dimensions should be expanded. If an `int` is provided, all input tensors
-            will have the same dimension expanded. If a `dict` is passed, only features matching
-            the dict keys will be expanded, in the dimension specified as the dict values.
-        """
-        super().__init__(**kwargs)
-        self.inputs_expand_dims = expand_dims
-
-    def call(self, inputs: TabularData, **kwargs) -> TabularData:
-        outputs = {}
-
-        for k, v in inputs.items():
-            if isinstance(self.inputs_expand_dims, int):
-                outputs[k] = tf.expand_dims(v, self.inputs_expand_dims)
-            elif isinstance(self.inputs_expand_dims, dict) and k in self.inputs_expand_dims:
-                expand_dim = self.inputs_expand_dims[k]
-                outputs[k] = tf.expand_dims(v, expand_dim)
-            elif self.inputs_expand_dims:
-                outputs[k] = v
-            else:
-                raise ValueError("The expand_dims argument is not valid")
-
-        return outputs
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-
-@Block.registry.register_with_multiple_names("l2-norm")
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class L2Norm(TabularBlock):
-    """Apply L2-normalization to input tensors along a given axis"""
-
-    def __init__(self, **kwargs):
-        super(L2Norm, self).__init__(**kwargs)
-
-    def call(self, inputs: Union[tf.Tensor, TabularData], axis: int = -1, **kwargs):
-        if isinstance(inputs, dict):
-            inputs = {key: tf.linalg.l2_normalize(inp, axis=axis) for key, inp in inputs.items()}
-        else:
-            inputs = tf.linalg.l2_normalize(inputs, axis=axis)
-
-        return inputs
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-
-@Block.registry.register_with_multiple_names("remove_pad_3d")
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class RemovePad3D(Block):
-    """
-    Flatten the sequence of labels and filter out non-targets positions
-
-    Parameters
-    ----------
-        padding_idx: int
-            The padding index value.
-            Defaults to 0.
-    Returns
-    -------
-        targets: tf.Tensor
-            The flattened vector of true targets positions
-        flatten_predictions: tf.Tensor
-            If the predictions are 3-D vectors (sequential task),
-            flatten the predictions vectors to keep only the ones related to target positions.
-    """
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.padding_idx = 0
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-    def call_outputs(
-        self, outputs: PredictionOutput, training=True, **kwargs
-    ) -> "PredictionOutput":
-        targets, predictions = outputs.targets, outputs.predictions
-        targets = tf.reshape(targets, (-1,))
-        non_pad_mask = targets != self.padding_idx
-        targets = tf.boolean_mask(targets, non_pad_mask)
-
-        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
-
-        if len(tuple(predictions.get_shape())) == 3:
-            predictions = tf.reshape(predictions, (-1, predictions.shape[-1]))
-            predictions = tf.boolean_mask(
-                predictions, tf.broadcast_to(tf.expand_dims(non_pad_mask, 1), tf.shape(predictions))
-            )
-
-        return outputs.copy_with_updates(predictions=predictions, targets=targets)
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class LogitsTemperatureScaler(Block):
-    """Scale the logits higher or lower,
-    this is often used to reduce the overconfidence of the model.
-
-    Parameters
-    ----------
-    temperature : float
-        Divide the logits by this scaler.
-    apply_on_call_outputs: bool
-        Whether to apply the transform (logits / temperature) on
-        `call()` or `call_outputs()`. By default True
-    """
-
-    def __init__(self, temperature: float, apply_on_call_outputs: bool = True, **kwargs):
-        super(LogitsTemperatureScaler, self).__init__(**kwargs)
-        self.temperature = temperature
-        self.apply_on_call_outputs = apply_on_call_outputs
-
-    def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
-        if not self.apply_on_call_outputs:
-            return self.apply_temperature(inputs)
-        else:
-            return inputs
-
-    def call_outputs(
-        self, outputs: PredictionOutput, training=True, **kwargs
-    ) -> "PredictionOutput":
-        targets, predictions = outputs.targets, outputs.predictions
-        predictions = self.apply_temperature(predictions)
-
-        return outputs.copy_with_updates(predictions=predictions, targets=targets)
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-    def apply_temperature(self, predictions):
-        assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
-        predictions = predictions / self.temperature
-        return predictions
-
-
-@Block.registry.register_with_multiple_names("weight-tying")
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-class ItemsPredictionWeightTying(Block):
-    """Tying the item embedding weights with the output projection layer matrix [1]
-    The output logits are obtained by multiplying the output vector by the item-ids embeddings.
-
-    Parameters
-    ----------
-        schema : Schema
-            The `Schema` with the input features
-        bias_initializer : str, optional
-            Initializer to use on the bias vector, by default "zeros"
-
-    References:
-    -----------
-    [1] Hakan, Inan et al.
-        "Tying word vectors and word classifiers: A loss framework for language modeling"
-        arXiv:1611.01462
-    """
-
-    def __init__(self, schema: Schema, bias_initializer="zeros", **kwargs):
-        super(ItemsPredictionWeightTying, self).__init__(**kwargs)
-        self.bias_initializer = bias_initializer
-        self.item_id_feature_name = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        self.num_classes = schema_utils.categorical_cardinalities(schema)[self.item_id_feature_name]
-        self.item_domain = schema_utils.categorical_domains(schema)[self.item_id_feature_name]
-
-    def build(self, input_shape):
-        self.bias = self.add_weight(
-            name="output_layer_bias",
-            shape=(self.num_classes,),
-            initializer=self.bias_initializer,
-        )
-        return super().build(input_shape)
-
-    def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
-        embedding_table = self.context.get_embedding(self.item_domain)
-        logits = tf.matmul(inputs, embedding_table, transpose_b=True)
-        logits = tf.nn.bias_add(logits, self.bias)
-
-        return logits
-
-
-def reshape_categorical_input_tensor_for_encoding(
-    input, feat_name, features_2d_last_dim, output_mode, ensure_1d_for_one_hot_mode=True
-):
-    output = input
-    reshape_fn = tf.sparse.reshape if isinstance(output, tf.SparseTensor) else tf.reshape
-    if ensure_1d_for_one_hot_mode and output_mode == ONE_HOT:
-        if features_2d_last_dim.get(feat_name, None) == 1 or input.get_shape()[-1] == 1:
-            output = reshape_fn(output, [-1])
-        elif feat_name in features_2d_last_dim or (
-            input.get_shape()[-1] is not None and len(input.get_shape()) == 2
-        ):
-            raise ValueError(
-                "One-hot accepts input tensors that are squeezable to 1D, but received"
-                f" a tensor with shape: {input.get_shape()}"
-            )
-
-    else:
-        # if feat_name in features_2d_last_dim or len(input.get_shape()) == 2:
-        if feat_name in features_2d_last_dim or (
-            input.get_shape()[-1] is not None and len(input.get_shape()) == 2
-        ):
-            # Ensures that the shape is known to avoid error on graph mode
-            new_shape = (-1, features_2d_last_dim.get(feat_name, input.get_shape()[-1]))
-            output = reshape_fn(output, new_shape)
-        else:
-            expand_dims_fn = (
-                tf.sparse.expand_dims if isinstance(output, tf.SparseTensor) else tf.expand_dims
-            )
-            output = expand_dims_fn(output, 1)
-
-    return output
 
 
 @Block.registry.register_with_multiple_names("category_encoding")
@@ -510,7 +250,7 @@ class CategoryEncoding(TabularBlock):
                     "`count_weights` is not used when `output_mode` is not "
                     "`'count'`. Received `count_weights={count_weights}`."
                 )
-            self.count_weights = utils.ensure_tensor(count_weights, self.compute_dtype)
+            self.count_weights = p_utils.ensure_tensor(count_weights, self.compute_dtype)
         else:
             self.count_weights = None
 
@@ -538,7 +278,7 @@ class CategoryEncoding(TabularBlock):
                 ],
             )
 
-            outputs[name] = utils.ensure_tensor(inputs[name])
+            outputs[name] = p_utils.ensure_tensor(inputs[name])
 
             if isinstance(outputs[name], tf.SparseTensor):
                 max_value = tf.reduce_max(outputs[name].values)
@@ -566,7 +306,7 @@ class CategoryEncoding(TabularBlock):
                     ensure_1d_for_one_hot_mode=True,
                 )
 
-                outputs[name] = utils.encode_categorical_inputs(
+                outputs[name] = p_utils.encode_categorical_inputs(
                     outputs[name],
                     output_mode=self.output_mode,
                     depth=depth,
@@ -580,16 +320,14 @@ class CategoryEncoding(TabularBlock):
         return outputs
 
     def compute_output_shape(self, input_shapes):
+        batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
         outputs = {}
         for key in self.schema.column_names:
-            input_shape = input_shapes[key]
-            if not input_shape:
-                outputs[key] = tf.TensorShape([self.cardinalities[key]])
-            else:
-                outputs[key] = tf.TensorShape(input_shape[:1] + [self.cardinalities[key]])
+            outputs[key] = tf.TensorShape([batch_size, self.cardinalities[key]])
 
-                if len(input_shape) == 2:
-                    self.features_2d_last_dim[key] = input_shape[-1]
+            input_shape = input_shapes[key]
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
+                self.features_2d_last_dim[key] = input_shape[-1]
 
         return outputs
 
@@ -607,9 +345,38 @@ class CategoryEncoding(TabularBlock):
         return config
 
 
+@Block.registry.register_with_multiple_names("continuous-powers")
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ContinuousPowers(TabularBlock):
+    """Trick from `Deep Neural Networks for YouTube Recommendations`"""
+
+    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+        outputs: TabularData = {}
+
+        for key, val in inputs.items():
+            outputs[key] = val
+            if len(val.shape) < 2 or (len(val.shape) == 2 and val.shape[1] == 1):
+                val_float = tf.cast(val, tf.float32)
+                outputs[f"{key}_sqrt"] = tf.sqrt(val_float)
+                outputs[f"{key}_pow"] = tf.pow(val_float, 2)
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        output_shape = {}
+
+        for key, val in input_shape.items():
+            output_shape[key] = val
+            if len(val) < 2 or (len(val) == 2 and val[1] == 1):
+                output_shape[f"{key}_sqrt"] = val
+                output_shape[f"{key}_squared"] = val
+
+        return output_shape
+
+
 @Block.registry.register_with_multiple_names("label_to_onehot")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class LabelToOneHot(Block):
+class ToOneHot(Block):
     """Transform the categorical encoded labels into a one-hot representation"""
 
     def __init__(self, **kwargs):
@@ -624,188 +391,9 @@ class LabelToOneHot(Block):
         targets, predictions = outputs.targets, outputs.predictions
 
         num_classes = tf.shape(predictions)[-1]
-        targets = transform_label_to_onehot(targets, num_classes)
+        targets = tf_utils.transform_label_to_onehot(targets, num_classes)
 
         return outputs.copy_with_updates(targets=targets)
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin_models")
-@requires_schema
-class PopularityLogitsCorrection(Block):
-    """Correct the predicted logit scores based on the item frequency,
-    using the logQ correction proposed in sampled softmax [1]_ [2]_.
-    The correction is done as `logits -= log(item_prob)`,
-    where `item_prob = item_freq_count / sum(item_freq_count)` is
-    a probability distribution of the item frequency. In a nutshell,
-    the logQ correction aims to increase the prediction scores (logits)
-    for infrequent items and decrease the ones for frequent items.
-
-    References
-    ----------
-    .. [1] Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic
-       Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial
-       Intelligence and Statistics (AISTATS).
-
-    .. [2] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
-       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
-       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
-
-    Parameters:
-    ----------
-    item_freq_probs : Union[tf.Tensor, Sequence]
-        A Tensor or list with item frequencies (if is_prob_distribution=False)
-        or with item probabilities (if is_prob_distribution=True)
-    is_prob_distribution: bool, optional
-        If True, the item_freq_probs should be a probability distribution of the items.
-        If False, the item frequencies is converted to probabilities
-    reg_factor: float
-        Factor to scale the logq correction, by default 1.0
-    schema: Schema, optional
-        The `Schema` with input features,
-        by default None
-    """
-
-    def __init__(
-        self,
-        item_freq_probs: Union[tf.Tensor, Sequence] = None,
-        is_prob_distribution: bool = False,
-        reg_factor: float = 1.0,
-        schema: Schema = None,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        if schema:
-            self.set_schema(schema)
-
-        self.reg_factor = reg_factor
-
-        if item_freq_probs is not None:
-            self._check_items_cardinality(item_freq_probs)
-            candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
-
-            self.candidate_probs = tf.Variable(
-                candidate_probs,
-                name="candidate_probs",
-                trainable=False,
-                dtype=tf.float32,
-                validate_shape=False,
-                shape=tf.shape(candidate_probs),
-            )
-
-    @classmethod
-    def from_parquet(
-        cls,
-        parquet_path: str,
-        frequencies_probs_col: str,
-        is_prob_distribution: bool = False,
-        gpu: bool = True,
-        schema: Schema = None,
-        **kwargs,
-    ):
-        """Load the item frequency table from a parquet file
-        (in the format automatically generated by NVTabular with workflow.fit()).
-        It supposed the parquet file has a single column with the item frequencies
-        and is indexed by item ids.
-
-        Parameters
-        ----------
-        parquet_path : str
-            Path to the parquet file
-        frequencies_probs_col : str
-            Column name containing the items frequencies / probabilities
-        is_prob_distribution: bool, optional
-            If True, the frequencies_probs_col should contain the probability
-            distribution of the items. If False, the frequencies_probs_col values
-            are frequencies and will be converted to probabilities
-        gpu : bool, optional
-            Whether to load data using cudf, by default True
-        schema: Schema, optional
-            The `Schema` with input features,
-            by default None
-
-        Returns
-        -------
-            An instance of PopularityLogitsCorrection
-        """
-        # TODO: Use the schema to infer the path to the item frequency parquet table
-        if gpu:
-            import cudf
-
-            df = cudf.read_parquet(parquet_path)
-            item_frequency = tf.squeeze(df_to_tensor(df[frequencies_probs_col]))
-        else:
-            import pandas as pd
-
-            df = pd.read_parquet(parquet_path)
-            item_frequency = tf.squeeze(tf.convert_to_tensor(df[frequencies_probs_col].values))
-        return cls(
-            item_freq_probs=item_frequency,
-            is_prob_distribution=is_prob_distribution,
-            schema=schema,
-            **kwargs,
-        )
-
-    def get_candidate_probs(self):
-        return self.candidate_probs.value()
-
-    def update(
-        self, item_freq_probs: Union[tf.Tensor, Sequence], is_prob_distribution: bool = False
-    ):
-        """Updates the item frequencies / probabilities
-
-        Parameters:
-        ----------
-        item_freq_probs : Union[tf.Tensor, Sequence]
-            A Tensor or list with item frequencies (if is_prob_distribution=False)
-            or with item probabilities (if is_prob_distribution=True)
-        is_prob_distribution: bool, optional
-            If True, the item_freq_probs should be a probability distribution of the items.
-            If False, the item frequencies is converted to probabilities
-        """
-        self._check_items_cardinality(item_freq_probs)
-        candidate_probs = get_candidate_probs(item_freq_probs, is_prob_distribution)
-        self.candidate_probs.assign(candidate_probs)
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-    def call_outputs(
-        self, outputs: PredictionOutput, training=True, **kwargs
-    ) -> "PredictionOutput":
-        predictions = outputs.predictions
-        if training:
-            positive_item_ids, negative_item_ids = (
-                outputs.positive_item_ids,
-                outputs.negative_item_ids,
-            )
-            positive_probs = tf.gather(self.candidate_probs, positive_item_ids)
-
-            if negative_item_ids is not None:
-                negative_probs = tf.gather(self.candidate_probs, negative_item_ids)
-                # repeat negative scores for each positive item
-                negative_probs = tf.reshape(
-                    tf.tile(negative_probs, tf.shape(positive_item_ids)[0:1]),
-                    (-1, tf.shape(negative_item_ids)[0]),
-                )
-                positive_probs = tf.concat(
-                    [tf.expand_dims(positive_probs, -1), negative_probs], axis=1
-                )
-
-            # Applies the logQ correction
-            epsilon = 1e-16
-            predictions = predictions - (self.reg_factor * tf.math.log(positive_probs + epsilon))
-
-        return outputs.copy_with_updates(predictions=predictions)
-
-    def _check_items_cardinality(self, item_freq_probs):
-        cardinalities = schema_utils.categorical_cardinalities(self.schema)
-        item_id_feature_name = self.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-        if tf.shape(item_freq_probs)[0] != cardinalities[item_id_feature_name]:
-            raise ValueError(
-                "The item frequency table length does not match the item ids cardinality"
-                f"(expected {cardinalities[item_id_feature_name]}"
-                f", got {tf.shape(item_freq_probs)[0]})"
-            )
 
 
 @Block.registry.register("hashed_cross")
@@ -927,7 +515,7 @@ class HashedCross(TabularBlock):
 
         # Encode outputs.
         outputs = {}
-        outputs[self.output_name] = preprocessing_utils.encode_categorical_inputs(
+        outputs[self.output_name] = p_utils.encode_categorical_inputs(
             output,
             output_mode=self.output_mode,
             depth=self.num_bins,
@@ -945,12 +533,13 @@ class HashedCross(TabularBlock):
         # Save the last dim for 2D features so that we can reshape them in graph mode in call()
         for key in self.schema.column_names:
             input_shape = input_shapes[key]
-            if len(input_shape) == 2:
+
+            if not isinstance(input_shape, tuple) and len(input_shape) == 2:
                 self.features_2d_last_dim[key] = input_shape[-1]
 
         output_shape = {}
         batch_size = self.calculate_batch_size_from_input_shapes(input_shapes)
-        output_shape[self.output_name] = preprocessing_utils.compute_shape_for_encode_categorical(
+        output_shape[self.output_name] = p_utils.compute_shape_for_encode_categorical(
             shape=[batch_size, 1], output_mode=self.output_mode, depth=self.num_bins
         )
         return output_shape
@@ -1011,7 +600,7 @@ def HashedCrossAll(
     sparse: bool = False,
     output_mode: str = "one_hot",
     ignore_combinations: Sequence[Sequence[str]] = [],
-) -> Block:
+) -> ParallelBlock:
     """Parallel block consists of HashedCross blocks for all combinations of schema with all levels
         through level 2 to max_level.
 
@@ -1111,3 +700,255 @@ def HashedCrossAll(
         )
 
     return ParallelBlock(hashed_crosses)
+
+
+@Block.registry.register_with_multiple_names("to_target")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class ToTarget(Block):
+    """Transform columns to targets"""
+
+    def __init__(
+        self,
+        schema: Schema,
+        *target: Union[ColumnSchema, Schema, str],
+        one_hot: bool = False,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.schema = schema
+        self.target = target
+        self.one_hot = one_hot
+
+    def _target_column_schemas(self):
+        target_columns = {}
+        for t in self.target:
+            if isinstance(t, str):
+                target_columns[t] = self.schema.select_by_name(t).first
+            elif isinstance(t, ColumnSchema):
+                target_columns[t.name] = t
+            elif isinstance(t, Schema):
+                selected_schema = t.select_by_tag(Tags.TARGET)
+                for col_name, col_schema in selected_schema.column_schemas.items():
+                    target_columns[col_name] = col_schema
+            else:
+                raise ValueError(f"Unsupported target type {type(t)}")
+        return target_columns
+
+    def call(
+        self, inputs: TabularData, targets=None, testing=False, **kwargs
+    ) -> "PredictionOutput":
+        if testing:
+            return PredictionOutput(predictions=inputs, targets=targets)
+
+        if targets is None:
+            targets = {}
+
+        target_columns = self._target_column_schemas()
+
+        outputs = {}
+        for name, val in inputs.items():
+            if name not in target_columns:
+                outputs[name] = inputs[name]
+                continue
+            if isinstance(targets, dict):
+                targets[name] = targets.get(name, inputs[name])
+            else:
+                targets = inputs[name]
+
+        return PredictionOutput(predictions=outputs, targets=targets or None)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+    def compute_output_schema(self, input_schema: Schema) -> Schema:
+        target_columns = self._target_column_schemas()
+        output_column_schemas = {}
+        for col_name, col_schema in input_schema.column_schemas.items():
+            if col_name in target_columns:
+                output_column_schemas[col_name] = col_schema.with_tags(Tags.TARGET)
+            else:
+                output_column_schemas[col_name] = col_schema
+        return Schema(column_schemas=output_column_schemas)
+
+
+def reshape_categorical_input_tensor_for_encoding(
+    input, feat_name, features_2d_last_dim, output_mode, ensure_1d_for_one_hot_mode=True
+):
+    output = input
+    reshape_fn = tf.sparse.reshape if isinstance(output, tf.SparseTensor) else tf.reshape
+    if ensure_1d_for_one_hot_mode and output_mode == ONE_HOT:
+        if features_2d_last_dim.get(feat_name, None) == 1 or input.get_shape()[-1] == 1:
+            output = reshape_fn(output, [-1])
+        elif feat_name in features_2d_last_dim or (
+            input.get_shape()[-1] is not None and len(input.get_shape()) == 2
+        ):
+            raise ValueError(
+                "One-hot accepts input tensors that are squeezable to 1D, but received"
+                f" a tensor with shape: {input.get_shape()}"
+            )
+
+    else:
+        # if feat_name in features_2d_last_dim or len(input.get_shape()) == 2:
+        if feat_name in features_2d_last_dim or (
+            input.get_shape()[-1] is not None and len(input.get_shape()) == 2
+        ):
+            # Ensures that the shape is known to avoid error on graph mode
+            new_shape = (-1, features_2d_last_dim.get(feat_name, input.get_shape()[-1]))
+            output = reshape_fn(output, new_shape)
+        else:
+            expand_dims_fn = (
+                tf.sparse.expand_dims if isinstance(output, tf.SparseTensor) else tf.expand_dims
+            )
+            output = expand_dims_fn(output, 1)
+
+    return output
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class BroadcastToSequence(tf.keras.layers.Layer):
+    """Broadcast context features to match the timesteps of sequence features.
+
+    This layer supports mask propagation. If the sequence features have a mask. The
+    context features being broadcast will inherit the mask.
+
+    Parameters
+    ----------
+    context_schema : Schema
+        The schema representing contextual features to be broadcast
+    sequence_schema : Schema
+        The schema representing sequence features
+
+    """
+
+    def __init__(self, context_schema: Schema, sequence_schema: Schema, **kwargs):
+        super().__init__(**kwargs)
+        self.context_schema = context_schema
+        self.sequence_schema = sequence_schema
+
+    def call(self, inputs: TabularData) -> TabularData:
+        inputs = self._broadcast(inputs, inputs)
+        return inputs
+
+    def _get_seq_features_shapes(self, inputs: TabularData):
+        inputs_sizes = {k: v.shape for k, v in inputs.items()}
+
+        seq_features_shapes = dict()
+        for fname, fshape in inputs_sizes.items():
+            # Saves the shapes of sequential features
+            if fname in self.sequence_schema.column_names:
+                seq_features_shapes[fname] = tuple(fshape[:2])
+
+        sequence_length = 0
+        if len(seq_features_shapes) > 0:
+            if len(set(seq_features_shapes.values())) > 1:
+                raise ValueError(
+                    "All sequential features must share the same shape in the first two dims "
+                    "(batch_size, seq_length): {}".format(seq_features_shapes)
+                )
+
+            sequence_length = list(seq_features_shapes.values())[0][1]
+            if sequence_length is None:
+                for k, v in inputs.items():
+                    if k in self.sequence_schema.column_names:
+                        if isinstance(v, tf.RaggedTensor):
+                            sequence_length = v.row_lengths()
+
+        return seq_features_shapes, sequence_length
+
+    def _broadcast(self, inputs, target):
+        seq_features_shapes, sequence_length = self._get_seq_features_shapes(inputs)
+        if len(seq_features_shapes) > 0:
+            non_seq_features = set(inputs.keys()).difference(set(seq_features_shapes.keys()))
+            non_seq_target = {}
+            for fname in non_seq_features:
+                if fname in self.context_schema.column_names:
+                    if target[fname] is None:
+                        continue
+                    if isinstance(sequence_length, tf.Tensor):
+                        rows = []
+                        for row, row_sequence_length in zip(target[fname], sequence_length):
+                            rows.append(
+                                tf.RaggedTensor.from_tensor(
+                                    tf.repeat(tf.expand_dims(row, 1), row_sequence_length, axis=0)
+                                )
+                            )
+                        non_seq_target[fname] = tf.stack(rows)
+                    else:
+                        shape = target[fname].shape
+                        target_shape = shape[:1] + sequence_length + shape[1:]
+                        non_seq_target[fname] = tf.broadcast_to(
+                            tf.expand_dims(target[fname], 1), target_shape
+                        )
+            target = {**target, **non_seq_target}
+
+        return target
+
+    def compute_output_shape(
+        self, input_shape: Dict[str, tf.TensorShape]
+    ) -> Dict[str, tf.TensorShape]:
+        sequence_length = None
+        for k in input_shape:
+            if k in self.sequence_schema.column_names:
+                sequence_length = input_shape[k][1]
+
+        context_shapes = {}
+        for k in input_shape:
+            if k in self.context_schema.column_names:
+                rest_shape = input_shape[k][1:]
+                # If sequence length is None, we have ragged tensors.
+                # non-batch dims become ragged (None) during transform.
+                if sequence_length is None:
+                    rest_shape = [None] * len(rest_shape)
+                context_shapes[k] = (
+                    input_shape[k][:1] + tf.TensorShape([sequence_length]) + rest_shape
+                )
+
+        output_shape = {**input_shape, **context_shapes}
+
+        return output_shape
+
+    def compute_mask(self, inputs: TabularData, mask: Optional[TabularData] = None):
+        if mask is None:
+            return None
+
+        # find the sequence mask
+        sequence_mask = None
+        for k in mask:
+            if mask[k] is not None and k in self.sequence_schema.column_names:
+                sequence_mask = mask[k]
+
+        # no sequence mask found
+        if sequence_mask is None:
+            return mask
+
+        # set the mask value for those that are none
+        masks_context = {}
+        for k in mask:
+            if mask[k] is None and k in self.context_schema.column_names:
+                masks_context[k] = sequence_mask
+
+        masks_other = self._broadcast(inputs, mask)
+
+        new_mask = {**masks_other, **masks_context}
+
+        return new_mask
+
+    def get_config(self):
+        config = super().get_config()
+        config["context_schema"] = schema_utils.schema_to_tensorflow_metadata_json(
+            self.context_schema
+        )
+        config["sequence_schema"] = schema_utils.schema_to_tensorflow_metadata_json(
+            self.sequence_schema
+        )
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        context_schema = schema_utils.tensorflow_metadata_json_to_schema(
+            config.pop("context_schema")
+        )
+        sequence_schema = schema_utils.tensorflow_metadata_json_to_schema(
+            config.pop("sequence_schema")
+        )
+        return cls(context_schema, sequence_schema, **config)

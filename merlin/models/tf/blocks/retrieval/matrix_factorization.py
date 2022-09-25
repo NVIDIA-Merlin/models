@@ -20,8 +20,8 @@ import tensorflow as tf
 
 from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock
 from merlin.models.tf.core.aggregation import CosineSimilarity
-from merlin.models.tf.core.transformations import RenameFeatures
 from merlin.models.tf.inputs.embedding import EmbeddingFeatures, EmbeddingOptions
+from merlin.models.tf.transforms.features import Rename
 from merlin.schema import Schema, Tags, TagsType
 
 LOG = logging.getLogger("merlin_models")
@@ -72,9 +72,7 @@ class QueryItemIdsEmbeddingsBlock(DualEncoderBlock):
         if embeddings_initializers:
             embedding_options.embeddings_initializers = embeddings_initializers
 
-        rename_features = RenameFeatures(
-            {query_id_tag: "query", item_id_tag: "item"}, schema=schema
-        )
+        rename_features = Rename({query_id_tag: "query", item_id_tag: "item"}, schema=schema)
         post = kwargs.pop("post", None)
         if post:
             post = rename_features.connect(post)

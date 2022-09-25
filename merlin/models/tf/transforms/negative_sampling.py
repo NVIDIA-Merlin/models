@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional
+from typing import Optional, Tuple, Union
 
 import tensorflow as tf
 
@@ -25,7 +25,7 @@ from merlin.schema import Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class UniformNegativeSampling(tf.keras.layers.Layer):
+class InBatchNegatives(tf.keras.layers.Layer):
     """Random in-batch negative sampling.
 
     Only works with positive-only binary-target batches.
@@ -40,10 +40,6 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         The random seed, by default None
     run_when_testing : bool, optional
         Whether the negative sampling should happen when testing=True, by default True
-    return_tuple : bool, optional
-        Whether to return a Prediction or a tuple. The tuple option should be used
-        when using UniformNegativeSampling with BatchedDataset.map()
-        which accepts a tuple with length 2 or 3 (x,y,sample_weight), by default False
     """
 
     def __init__(
@@ -52,22 +48,28 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         n_per_positive: int,
         seed: Optional[int] = None,
         run_when_testing: bool = True,
-        return_tuple: bool = False,
         **kwargs
     ):
 
-        super(UniformNegativeSampling, self).__init__(**kwargs)
+        super(InBatchNegatives, self).__init__(**kwargs)
         self.n_per_positive = n_per_positive
         self.item_id_col = schema.select_by_tag(Tags.ITEM_ID).column_names[0]
         self.schema = schema.select_by_tag(Tags.ITEM)
         self.seed = seed
         self.run_when_testing = run_when_testing
-        self.return_tuple = return_tuple
 
-    def call(self, inputs: TabularData, targets=None, testing=False, **kwargs) -> Prediction:
+    def call(
+        self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
+    ) -> Union[Prediction, Tuple]:
         """Extend batch of inputs and targets with negatives."""
+
+        def get_tuple(x, y):
+            if training or testing or y is None:
+                return Prediction(x, y)
+            return (x, y)
+
         if targets is None or (testing and not self.run_when_testing):
-            return Prediction(inputs, targets)
+            return get_tuple(inputs, targets)
 
         # 1. Select item-features
         fist_input = list(inputs.values())[0]
@@ -76,7 +78,7 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         )
 
         if batch_size is None:
-            return Prediction(inputs, targets)
+            return get_tuple(inputs, targets)
 
         sampled_num_negatives = self.n_per_positive * batch_size
         # 2. Sample `n_per_positive * batch_size` items at random
@@ -142,10 +144,7 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         else:
             raise ValueError("Unsupported target type: {}".format(type(targets)))
 
-        if self.return_tuple:
-            return (outputs, targets)
-
-        return Prediction(outputs, targets)
+        return get_tuple(outputs, targets)
 
     def get_config(self):
         """Returns the config of the layer as a Python dictionary."""
@@ -154,7 +153,6 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         config["n_per_positive"] = self.n_per_positive
         config["seed"] = self.seed
         config["run_when_testing"] = self.run_when_testing
-        config["return_tuple"] = self.return_tuple
         return config
 
     @classmethod
@@ -162,12 +160,11 @@ class UniformNegativeSampling(tf.keras.layers.Layer):
         """Creates layer from its config. Returning the instance."""
         schema = schema_utils.tensorflow_metadata_json_to_schema(config.pop("schema"))
         n_per_positive = config.pop("n_per_positive")
-        return_tuple = config.pop("return_tuple")
         seed = None
         if "seed" in config:
             seed = config.pop("seed")
         kwargs = config
-        return cls(schema, n_per_positive, seed=seed, return_tuple=return_tuple, **kwargs)
+        return cls(schema, n_per_positive, seed=seed, **kwargs)
 
     def compute_output_shape(self, input_shape):
         """Computes the output shape of the layer."""
