@@ -273,6 +273,65 @@ class TestEmbeddingTable:
             mm.EmbeddingTable(dim, col_schema_a, col_schema_b)
         assert "does not match existing input dim" in str(exc_info.value)
 
+    def test_select_by_tag(self):
+        dim = 4
+
+        col_schema_a = ColumnSchema(
+            "a",
+            dtype=np.int32,
+            properties={"domain": {"min": 0, "max": 10}},
+            tags=[Tags.USER, Tags.CATEGORICAL],
+        )
+        col_schema_b = ColumnSchema(
+            "b",
+            dtype=np.int32,
+            properties={"domain": {"min": 0, "max": 10}},
+            tags=[Tags.USER, Tags.CATEGORICAL],
+        )
+        col_schema_c = ColumnSchema(
+            "c",
+            dtype=np.int32,
+            properties={"domain": {"min": 0, "max": 10}},
+            tags=[Tags.ITEM, Tags.CATEGORICAL],
+        )
+
+        embedding_table = mm.EmbeddingTable(dim, col_schema_a, col_schema_b, col_schema_c)
+
+        categorical = embedding_table.select_by_tag(Tags.CATEGORICAL)
+        assert isinstance(categorical, mm.EmbeddingTable)
+        assert sorted(categorical.features) == ["a", "b", "c"]
+
+        inputs = {
+            "a": tf.constant([[0], [1], [2]]),
+            "b": tf.constant([[3], [4], [5]]),
+            "c": tf.constant([[6], [7], [8]]),
+        }
+
+        _ = categorical(inputs)
+        _ = embedding_table(inputs)
+
+        assert np.allclose(
+            categorical.table.embeddings.numpy(), embedding_table.table.embeddings.numpy()
+        )
+        assert categorical.table is embedding_table.table
+
+        assert embedding_table.select_by_tag(Tags.CONTINUOUS) is None
+
+        user = embedding_table.select_by_tag(Tags.USER)
+        assert isinstance(user, mm.EmbeddingTable)
+        assert sorted(user.features) == ["a", "b"]
+
+        _ = user(inputs)
+        assert np.allclose(
+            categorical.table.embeddings.numpy(), embedding_table.table.embeddings.numpy()
+        )
+        assert user.table is embedding_table.table
+
+        item = embedding_table.select_by_tag(Tags.ITEM)
+        assert isinstance(item, mm.EmbeddingTable)
+        assert sorted(item.features) == ["c"]
+        assert item.table is embedding_table.table
+
 
 @pytest.mark.parametrize("trainable", [True, False])
 def test_pretrained_from_InputBlockV2(trainable, music_streaming_data: Dataset):
@@ -293,7 +352,7 @@ def test_pretrained_from_InputBlockV2(trainable, music_streaming_data: Dataset):
         trainable={"item_id": trainable},
         dim=embed_dims,
     )
-    input_block = mm.InputBlockV2(music_streaming_data.schema, embeddings=embeddings_block)
+    input_block = mm.InputBlockV2(music_streaming_data.schema, categorical=embeddings_block)
 
     model = mm.DCNModel(
         music_streaming_data.schema,

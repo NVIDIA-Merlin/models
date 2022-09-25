@@ -453,6 +453,63 @@ class ParallelBlock(TabularBlock):
                 raise ValueError(f"Given name {name} is not in ParallelBlock {self.name}")
         return blocks
 
+    def select_by_tag(
+        self,
+        tags: Union[str, Tags, List[Union[str, Tags]]],
+    ) -> Optional["ParallelBlock"]:
+        """Select layers of parallel blocks by tags.
+
+        This method will return a ParallelBlock instance with all the branches that
+        have at least one feature that matches any of the tags provided.
+
+        For example, this method can be useful when a ParallelBlock has both item and
+        user features in a two-tower model or DLRM, and we want to select only the item
+        or user features.
+
+        >>> all_inputs = InputBlockV2(schema)  # InputBlock is also a ParallelBlock
+        >>> item_inputs = all_inputs.select_by_tag(Tags.ITEM)
+        ['continuous', 'embeddings']
+        >>> item_inputs.schema["continuous"].column_names
+        ['item_recency']
+        >>> item_inputs.schema["embeddings"].column_names
+        ['item_id', 'item_category', 'item_genres']
+
+        Parameters
+        ----------
+        tags: str or Tags or List[Union[str, Tags]]
+             List of tags that describe which blocks to match
+
+        Returns
+        -------
+        ParallelBlock
+        """
+        if not isinstance(tags, (list, tuple)):
+            tags = [tags]
+
+        selected_branches = {}
+        selected_schemas = Schema()
+
+        for name, branch in self.parallel_dict.items():
+            branch_has_schema = getattr(branch, "has_schema", False)
+            if not branch_has_schema:
+                continue
+            if not hasattr(branch, "select_by_tag"):
+                raise AttributeError(
+                    f"This ParallelBlock does not support select_by_tag because "
+                    f"{branch.__class__} does not support select_by_tag. Consider "
+                    "implementing a select_by_tag in an extension of "
+                    f"{branch.__class__}."
+                )
+            selected_branch = branch.select_by_tag(tags)
+            if not selected_branch:
+                continue
+            selected_branches[name] = selected_branch
+            selected_schemas += selected_branch.schema
+
+        if not selected_branches:
+            return
+        return ParallelBlock(selected_branches, schema=selected_schemas)
+
     def __getitem__(self, key) -> "Block":
         return self.parallel_dict[key]
 
@@ -523,8 +580,18 @@ class ParallelBlock(TabularBlock):
             if self.automatic_pruning and layer_out_shape == {}:
                 to_prune.append(name)
 
-        for p in to_prune:
-            self.parallel_layers.pop(p)
+        if isinstance(self.parallel_layers, dict):
+            pruned = {}
+            for name, layer in self.parallel_layers.items():
+                if name not in to_prune:
+                    pruned[name] = layer
+            self.parallel_layers = pruned
+        else:
+            pruned = []
+            for layer in self.parallel_layers:
+                if layer not in to_prune:
+                    pruned.append(layer)
+            self.parallel_layers = pruned
 
         return super().build(input_shape)
 

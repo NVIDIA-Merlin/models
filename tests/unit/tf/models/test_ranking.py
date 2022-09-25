@@ -19,21 +19,20 @@ import pytest
 import tensorflow as tf
 from tensorflow.keras import regularizers
 
-import merlin.models.tf as ml
+import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_mf_model_single_binary_task(ecommerce_data, run_eagerly):
-    model = ml.MatrixFactorizationModel(
+    model = mm.MatrixFactorizationModel(
         ecommerce_data.schema,
         dim=4,
         aggregation="cosine",
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -42,19 +41,21 @@ def test_mf_model_single_binary_task(ecommerce_data, run_eagerly):
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_dlrm_model(music_streaming_data, run_eagerly):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
-        ["item_id", "user_age", "click"]
+        ["item_id", "user_age", "click", "item_genres"]
     )
-    model = ml.DLRMModel(
+    model = mm.DLRMModel(
         music_streaming_data.schema,
         embedding_dim=2,
-        bottom_block=ml.MLPBlock([2]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        bottom_block=mm.MLPBlock([2]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
-    loaded_model, _ = testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+    loaded_model, _ = testing_utils.model_test(
+        model, music_streaming_data, run_eagerly=run_eagerly, reload_model=True
+    )
 
     features = testing_utils.get_model_inputs(
-        music_streaming_data.schema.remove_by_tag(Tags.TARGET)
+        music_streaming_data.schema.remove_by_tag(Tags.TARGET), ["item_genres"]
     )
     testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
 
@@ -66,11 +67,11 @@ def test_dlrm_model_with_embeddings(music_streaming_data, run_eagerly):
     )
     schema = music_streaming_data.schema
     embedding_dim = 4
-    model = ml.DLRMModel(
+    model = mm.DLRMModel(
         schema,
-        embeddings=ml.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
-        bottom_block=ml.MLPBlock([embedding_dim]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        embeddings=mm.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
+        bottom_block=mm.MLPBlock([embedding_dim]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -86,15 +87,14 @@ def test_dlrm_model_with_sample_weights_and_weighted_metrics(music_streaming_dat
         sample_weight = tf.cast(features.pop(sample_weight_col_name), tf.float32)
         return features, labels, sample_weight
 
-    batched_ds = BatchedDataset(music_streaming_data, batch_size=10)
-    batched_ds = batched_ds.map(add_sample_weight)
-    batch = next(iter(batched_ds))
+    loader = mm.Loader(music_streaming_data, batch_size=10, transform=add_sample_weight)
+    batch = next(iter(loader))
 
-    model = ml.DLRMModel(
+    model = mm.DLRMModel(
         music_streaming_data.schema.select_by_name(["item_id", "click"]),
         embedding_dim=2,
-        bottom_block=ml.MLPBlock([2]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        bottom_block=mm.MLPBlock([2]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
     weighted_metrics = (
@@ -129,11 +129,11 @@ def test_dlrm_model_without_continuous_features(ecommerce_data, run_eagerly):
     ecommerce_data.schema = ecommerce_data.schema.select_by_name(
         ["user_categories", "item_category", "click"]
     )
-    model = ml.DLRMModel(
+    model = mm.DLRMModel(
         ecommerce_data.schema,
         embedding_dim=2,
-        top_block=ml.MLPBlock([2]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        top_block=mm.MLPBlock([2]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -145,18 +145,42 @@ def test_dcn_model(music_streaming_data, stacked, run_eagerly):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_age", "click"]
     )
-    model = ml.DCNModel(
+    model = mm.DCNModel(
         music_streaming_data.schema,
         depth=1,
-        deep_block=ml.MLPBlock([2]),
+        deep_block=mm.MLPBlock([2]),
         stacked=stacked,
-        embedding_options=ml.EmbeddingOptions(
-            embedding_dims=None,
-            embedding_dim_default=2,
-            infer_embedding_sizes=True,
-            infer_embedding_sizes_multiplier=0.2,
-        ),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_deepfm_model_only_categ_feats(music_streaming_data, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "item_category", "user_id", "click"]
+    )
+    model = mm.DeepFMModel(
+        music_streaming_data.schema,
+        embedding_dim=16,
+        deep_block=mm.MLPBlock([16]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
+    )
+
+    testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_deepfm_model_categ_and_continuous_feats(music_streaming_data, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["item_id", "item_category", "user_id", "user_age", "click"]
+    )
+    model = mm.DeepFMModel(
+        music_streaming_data.schema,
+        embedding_dim=16,
+        deep_block=mm.MLPBlock([16]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -167,25 +191,25 @@ def test_dlrm_model_multi_task(music_streaming_data, run_eagerly):
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_age", "click", "play_percentage"]
     )
-    tasks_blocks = dict(click=ml.MLPBlock([2]), play_percentage=ml.MLPBlock([2]))
-    model = ml.Model(
-        ml.DLRMBlock(
+    tasks_blocks = dict(click=mm.MLPBlock([2]), play_percentage=mm.MLPBlock([2]))
+    model = mm.Model(
+        mm.DLRMBlock(
             music_streaming_data.schema,
             embedding_dim=2,
-            bottom_block=ml.MLPBlock([2]),
-            top_block=ml.MLPBlock([2]),
+            bottom_block=mm.MLPBlock([2]),
+            top_block=mm.MLPBlock([2]),
         ),
-        ml.MLPBlock([2]),
-        ml.PredictionTasks(music_streaming_data.schema, task_blocks=tasks_blocks),
+        mm.MLPBlock([2]),
+        mm.PredictionTasks(music_streaming_data.schema, task_blocks=tasks_blocks),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
 
 
-@pytest.mark.parametrize("prediction_task", [ml.BinaryClassificationTask, ml.RegressionTask])
+@pytest.mark.parametrize("prediction_task", [mm.BinaryClassificationTask, mm.RegressionTask])
 def test_serialization_model(ecommerce_data: Dataset, prediction_task):
-    model = ml.Model(
-        ml.InputBlock(ecommerce_data.schema), ml.MLPBlock([2]), prediction_task("click")
+    model = mm.Model(
+        mm.InputBlock(ecommerce_data.schema), mm.MLPBlock([2]), prediction_task("click")
     )
 
     testing_utils.model_test(model, ecommerce_data, reload_model=True)
@@ -198,12 +222,12 @@ def test_wide_deep_model(music_streaming_data, run_eagerly):
     wide_schema = music_streaming_data.schema.select_by_name(["country"])
     deep_schema = music_streaming_data.schema.select_by_name(["country", "user_age"])
 
-    model = ml.WideAndDeepModel(
+    model = mm.WideAndDeepModel(
         music_streaming_data.schema,
         wide_schema=wide_schema,
         deep_schema=deep_schema,
-        deep_block=ml.MLPBlock([32, 16]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        deep_block=mm.MLPBlock([32, 16]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -215,13 +239,13 @@ def test_wide_deep_model_wide_categorical_one_hot(ecommerce_data, run_eagerly):
     wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
     deep_schema = ecommerce_data.schema
 
-    model = ml.WideAndDeepModel(
+    model = mm.WideAndDeepModel(
         ecommerce_data.schema,
         wide_schema=wide_schema,
         deep_schema=deep_schema,
-        wide_preprocess=ml.CategoryEncoding(wide_schema, sparse=True),
-        deep_block=ml.MLPBlock([32, 16]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        wide_preprocess=mm.CategoryEncoding(wide_schema, sparse=True),
+        deep_block=mm.MLPBlock([32, 16]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -233,13 +257,13 @@ def test_wide_deep_model_hashed_cross(ecommerce_data, run_eagerly):
     wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
     deep_schema = ecommerce_data.schema
 
-    model = ml.WideAndDeepModel(
+    model = mm.WideAndDeepModel(
         ecommerce_data.schema,
         wide_schema=wide_schema,
         deep_schema=deep_schema,
-        wide_preprocess=ml.HashedCross(wide_schema, 1000, sparse=True),
-        deep_block=ml.MLPBlock([32, 16]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        wide_preprocess=mm.HashedCross(wide_schema, 1000, sparse=True),
+        deep_block=mm.MLPBlock([32, 16]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -251,19 +275,19 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
     schema = music_streaming_data.schema
     # prepare wide_schema
     wide_schema = schema.select_by_name(["country", "user_age"])
-    deep_embedding = ml.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=16)
+    deep_embedding = mm.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=16)
 
-    model = ml.WideAndDeepModel(
+    model = mm.WideAndDeepModel(
         schema,
-        deep_input_block=ml.InputBlockV2(schema=schema, embeddings=deep_embedding),
+        deep_input_block=mm.InputBlockV2(schema=schema, categorical=deep_embedding),
         wide_schema=wide_schema,
-        wide_preprocess=ml.HashedCross(wide_schema, 1000, sparse=True),
-        deep_block=ml.MLPBlock([32, 16]),
+        wide_preprocess=mm.HashedCross(wide_schema, 1000, sparse=True),
+        deep_block=mm.MLPBlock([32, 16]),
         deep_regularizer=regularizers.l2(1e-5),
         wide_regularizer=regularizers.l2(1e-5),
         deep_dropout=0.1,
         wide_dropout=0.2,
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -287,21 +311,21 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
 
     wide_preprocessing_blocks = [
         # One-hot features
-        ml.SequentialBlock(
-            ml.Filter(cat_schema_onehot),
-            ml.CategoryEncoding(cat_schema_onehot, sparse=True, output_mode="one_hot"),
+        mm.SequentialBlock(
+            mm.Filter(cat_schema_onehot),
+            mm.CategoryEncoding(cat_schema_onehot, sparse=True, output_mode="one_hot"),
         ),
         # Multi-hot features
-        ml.SequentialBlock(
-            ml.Filter(cat_schema_multihot),
-            ml.ListToDense(max_seq_length=6),
-            ml.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
+        mm.SequentialBlock(
+            mm.Filter(cat_schema_multihot),
+            mm.ListToDense(max_seq_length=6),
+            mm.CategoryEncoding(cat_schema_multihot, sparse=True, output_mode="multi_hot"),
         ),
         # 2nd level feature interactions of one-hot features
-        ml.SequentialBlock(
-            ml.Filter(cat_schema),
-            ml.ListToDense(max_seq_length=6),
-            ml.HashedCrossAll(
+        mm.SequentialBlock(
+            mm.Filter(cat_schema),
+            mm.ListToDense(max_seq_length=6),
+            mm.HashedCrossAll(
                 cat_schema,
                 num_bins=100,
                 max_level=2,
@@ -312,9 +336,9 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
         ),
     ]
 
-    batch = ml.sample_batch(ml_dataset, batch_size=100, include_targets=False)
+    batch = mm.sample_batch(ml_dataset, batch_size=100, include_targets=False)
 
-    output_wide_features = ml.ParallelBlock(wide_preprocessing_blocks)(batch)
+    output_wide_features = mm.ParallelBlock(wide_preprocessing_blocks)(batch)
     assert set(output_wide_features.keys()) == set(
         [
             "userId",
@@ -368,16 +392,16 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
         np.max(np.sum(tf.sparse.to_dense(output_wide_features["genres"]).numpy(), axis=1)) > 1.0
     ), "'genres' should be multi-hot"
 
-    model = ml.WideAndDeepModel(
+    model = mm.WideAndDeepModel(
         cat_schema,
         wide_schema=cat_schema,
         deep_schema=cat_schema,
-        wide_preprocess=ml.ParallelBlock(
+        wide_preprocess=mm.ParallelBlock(
             wide_preprocessing_blocks,
             aggregation="concat",
         ),
-        deep_block=ml.MLPBlock([32, 16]),
-        prediction_tasks=ml.BinaryClassificationTask(target_col),
+        deep_block=mm.MLPBlock([32, 16]),
+        prediction_tasks=mm.BinaryClassificationTask(target_col),
     )
 
     testing_utils.model_test(model, ml_dataset, run_eagerly=run_eagerly)
@@ -393,91 +417,33 @@ def test_wide_deep_model_wide_feature_interaction_multi_optimizer(ecommerce_data
         names=["user_categories", "item_category", "user_brands", "item_brand"]
     )
 
-    model = ml.WideAndDeepModel(
+    model = mm.WideAndDeepModel(
         ecommerce_data.schema,
         wide_schema=wide_schema,
         deep_schema=deep_schema,
-        wide_preprocess=ml.ParallelBlock(
+        wide_preprocess=mm.ParallelBlock(
             [
                 # One-hot representations of categorical features
-                ml.CategoryEncoding(wide_schema, sparse=True),
+                mm.CategoryEncoding(wide_schema, sparse=True),
                 # One-hot representations of hashed 2nd-level feature interactions
-                ml.HashedCrossAll(wide_schema, num_bins=1000, max_level=2, sparse=True),
+                mm.HashedCrossAll(wide_schema, num_bins=1000, max_level=2, sparse=True),
             ],
             aggregation="concat",
         ),
-        deep_block=ml.MLPBlock([31, 16]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        deep_block=mm.MLPBlock([31, 16]),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
     )
-    # print(model.summary(expand_nested=True, show_trainable=True, line_length=80))
-    """
-     Layer (type)                       Output Shape                    Param #     Trainable
-    ===========================================================================================
-    parallel_block_2 (ParallelBlock)   multiple                        9186        Y
-    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
-    | sequential_block_6 (SequentialBloc  multiple                     2           Y          |
-    | k)                                                                                      |
-    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
-    || parallel_block_1 (ParallelBlock)  multiple                     0           Y          ||
-    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
-    ||| tabular_block_1 (TabularBlock)  multiple                     0           Y          |||
-    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
-    || sequential_block_5 (SequentialBloc  multiple                   2           Y          ||
-    || k)                                                                                    ||
-    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
-    ||| private__dense_3 (_Dense)    multiple                        2           Y          |||
-    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
-    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
-    | sequential_block_3 (SequentialBloc  multiple                     9184        Y          |
-    | k)                                                                                      |
-    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
-    || sequential_block_1 (SequentialBloc  multiple                   9167        Y          ||
-    || k)                                                                                    ||
-    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
-    ||| parallel_block (ParallelBlock)  multiple                     7632        Y          |||
-    ||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||
-    |||| embeddings (ParallelBlock)  multiple                       7632        Y          ||||
-    |||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||||
-    ||||| user_categories (EmbeddingTable)  multiple               4816        Y          |||||
-    |||||                                                                                 |||||
-    ||||| item_category (EmbeddingTable)  multiple                 808         Y          |||||
-    |||||                                                                                 |||||
-    ||||| item_brand (EmbeddingTable)  multiple                    2008        Y          |||||
-    ||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||
-    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
-    ||| sequential_block (SequentialBlock)  multiple                 1535        Y          |||
-    ||||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||||
-    |||| private__dense (_Dense)    multiple                        1023        Y          ||||
-    ||||                                                                                   ||||
-    |||| private__dense_1 (_Dense)  multiple                        512         Y          ||||
-    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
-    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
-    || sequential_block_2 (SequentialBloc  multiple                   17          Y          ||
-    || k)                                                                                    ||
-    |||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|||
-    ||| private__dense_2 (_Dense)    multiple                        17          Y          |||
-    ||¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯||
-    |¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯|
-    ¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-    click/binary_classification_task (  multiple                       2           Y
-    BinaryClassificationTask)
-
-    model_context (ModelContext)       multiple                        0           Y
-
-    ===========================================================================================
-    """
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=True)
 
-    # Get the names of wide model and deep model from model.summary()
-    wide_model = model.get_blocks_by_name("sequential_block_6")
-    deep_model = model.get_blocks_by_name("sequential_block_3")
+    wide_model = model.blocks[0].parallel_layers["wide"]
+    deep_model = model.blocks[0].parallel_layers["deep"]
 
-    multi_optimizer = ml.MultiOptimizer(
+    multi_optimizer = mm.MultiOptimizer(
         default_optimizer="adagrad",
         optimizers_and_blocks=[
-            ml.OptimizerBlocks("ftrl", wide_model),
-            ml.OptimizerBlocks("adagrad", deep_model),
+            mm.OptimizerBlocks("ftrl", wide_model),
+            mm.OptimizerBlocks("adagrad", deep_model),
         ],
     )
     testing_utils.model_test(
