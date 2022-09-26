@@ -104,3 +104,5 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.xgboost)
         if "/datasets/" in path:
             item.add_marker(pytest.mark.datasets)
+        if "/transformers/" in path:
+            item.add_marker(pytest.mark.transformers)
