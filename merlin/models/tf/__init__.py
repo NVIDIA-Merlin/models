@@ -55,14 +55,6 @@ from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.blocks.sampling.cross_batch import PopularityBasedSampler
 from merlin.models.tf.blocks.sampling.in_batch import InBatchSampler
 from merlin.models.tf.blocks.sampling.queue import FIFOQueue
-from merlin.models.tf.blocks.transformer import (
-    AlbertBlock,
-    BertBlock,
-    GPT2Block,
-    RobertaBlock,
-    TransformerBlock,
-    XLNetBlock,
-)
 from merlin.models.tf.core.aggregation import (
     ConcatFeatures,
     ElementwiseSum,
@@ -130,6 +122,27 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.predictions.base import PredictionBlock
+from merlin.models.tf.predictions.classification import BinaryPrediction, CategoricalPrediction
+from merlin.models.tf.predictions.dot_product import DotProductCategoricalPrediction
+from merlin.models.tf.predictions.regression import RegressionPrediction
+from merlin.models.tf.predictions.sampling.base import Items, ItemSamplerV2
+from merlin.models.tf.predictions.sampling.in_batch import InBatchSamplerV2
+from merlin.models.tf.predictions.sampling.popularity import PopularityBasedSamplerV2
+from merlin.models.tf.transformers.transformer import (
+    AlbertBlock,
+    BertBlock,
+    GPT2Block,
+    RobertaBlock,
+    TransformerBlock,
+    XLNetBlock,
+)
+from merlin.models.tf.transformers.transforms import (
+    AttentionWeights,
+    HiddenStates,
+    LastHiddenState,
+    LastHiddenStateAndAttention,
+)
 from merlin.models.tf.transforms.features import (
     CategoryEncoding,
     HashedCross,
