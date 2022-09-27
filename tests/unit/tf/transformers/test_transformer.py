@@ -4,7 +4,7 @@ from transformers import BertConfig
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.transformers.transformer_block import (
+from merlin.models.tf.transformers.block import (
     AlbertBlock,
     BertBlock,
     GPT2Block,

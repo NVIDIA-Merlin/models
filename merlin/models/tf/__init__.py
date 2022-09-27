@@ -122,7 +122,7 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
-from merlin.models.tf.transformers.transformer_block import (
+from merlin.models.tf.transformers.block import (
     AlbertBlock,
     BertBlock,
     GPT2Block,

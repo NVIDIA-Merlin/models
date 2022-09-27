@@ -15,7 +15,7 @@
 #
 
 import inspect
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import tensorflow as tf
 import transformers
@@ -31,6 +31,7 @@ from transformers import (
 
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.base import Block, block_registry
+from merlin.models.tf.transformers.transforms import PrepareTransformerInputs
 from merlin.models.tf.utils.tf_utils import (
     maybe_deserialize_keras_objects,
     maybe_serialize_keras_objects,
@@ -47,14 +48,6 @@ def get_tf_main_layer(hf_model):
         0
     ]
     return main_layer
-
-
-@tf.keras.utils.register_keras_serializable(package="merlin.models")
-class PrepareTransformerInputs(tf.keras.layers.Layer):
-    """Prepare the dictionary of inputs expected by the transformer layer"""
-
-    def call(self, inputs: tf.Tensor) -> Dict[str, tf.Tensor]:
-        return {"inputs_embeds": inputs}
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")

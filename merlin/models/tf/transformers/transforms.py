@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from typing import Dict
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -104,3 +105,11 @@ class LastHiddenStateAndAttention(Layer):
 
     def call(self, inputs: TFBaseModelOutputWithPoolingAndCrossAttentions):
         return (inputs.last_hidden_state, inputs.attentions[-1])
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class PrepareTransformerInputs(tf.keras.layers.Layer):
+    """Prepare the dictionary of inputs expected by the transformer layer"""
+
+    def call(self, inputs: tf.Tensor) -> Dict[str, tf.Tensor]:
+        return {"inputs_embeds": inputs}
