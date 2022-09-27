@@ -73,9 +73,8 @@ class RemovePad3D(Block):
         return outputs.copy_with_updates(predictions=predictions, targets=targets)
 
 
-@Block.registry.register_with_multiple_names("predict_next")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class PredictNext(TabularBlock):
+class SequenceTransform(TabularBlock):
     """Prepares sequential inputs and targets for next-item prediction.
     The target is extracted from the shifted sequence of item ids and
     the sequential input features are truncated in the last position.
@@ -100,9 +99,10 @@ class PredictNext(TabularBlock):
         pre: Optional[BlockType] = None,
         **kwargs,
     ):
-        if not pre:
-            pre = ListToRagged()
-        super().__init__(pre=pre, schema=schema, **kwargs)
+        _pre = ListToRagged()
+        if pre:
+            _pre = _pre.connect(pre)
+        super().__init__(pre=_pre, schema=schema, **kwargs)
 
         self.target = target
         self.target_name = self._get_target(target)
@@ -131,6 +131,9 @@ class PredictNext(TabularBlock):
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
     ) -> Union[Prediction, Tuple]:
+        raise NotImplementedError()
+
+    def _check_seq_inputs_targets(self, inputs: TabularData):
         target_shape = inputs[self.target_name].get_shape().as_list()
         if len(target_shape) != 2:
             raise ValueError(
@@ -153,26 +156,6 @@ class PredictNext(TabularBlock):
                 "The sequential inputs must have the same shape, but the shapes"
                 f"are different: {seq_inputs_shapes}"
             )
-
-        # Shifts the target column to be the next item of corresponding input column
-        new_target = inputs[self.target_name][:, 1:]
-        if targets is None:
-            targets = new_target
-        elif isinstance(targets, dict):
-            targets[self.target_name] = new_target
-        else:
-            targets = dict()
-            targets[self.target_name] = new_target
-
-        new_inputs = dict()
-        for k, v in inputs.items():
-            if k in self.schema.column_names:
-                # Removes the last item of the sequence, as it belongs to the target
-                new_inputs[k] = v[:, :-1]
-            else:
-                new_inputs[k] = v
-
-        return (new_inputs, targets)
 
     def compute_output_shape(self, input_shape):
         new_input_shapes = dict()
@@ -236,3 +219,162 @@ class PredictNext(TabularBlock):
         schema = config.pop("schema")
         target = config.pop("target")
         return cls(schema, target, **config)
+
+
+@Block.registry.register_with_multiple_names("seq_predict_next")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class SeqPredictNext(SequenceTransform):
+    """Prepares sequential inputs and targets for next-item prediction.
+    The target is extracted from the shifted sequence of item ids and
+    the sequential input features are truncated in the last position.
+
+    Parameters
+    ----------
+    schema : Schema
+        The schema with the sequential columns to be truncated
+    target : Union[str, Tags, ColumnSchema]
+        The sequential input column that will be used to extract the target
+    pre : Optional[BlockType], optional
+        A block that is called before this method call().
+        If not set, the ListToRagged() block is applied to convert
+        the tuple representation of sequential features to RaggedTensors,
+        so that the tensors sequences can be shifted/truncated
+    """
+
+    def call(
+        self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
+    ) -> Union[Prediction, Tuple]:
+        self._check_seq_inputs_targets(inputs)
+
+        # Shifts the target column to be the next item of corresponding input column
+        new_target = inputs[self.target_name][:, 1:]
+        if targets is None:
+            targets = new_target
+        elif isinstance(targets, dict):
+            targets[self.target_name] = new_target
+        else:
+            targets = dict()
+            targets[self.target_name] = new_target
+
+        new_inputs = dict()
+        for k, v in inputs.items():
+            if k in self.schema.column_names:
+                # Removes the last item of the sequence, as it belongs to the target
+                new_inputs[k] = v[:, :-1]
+            else:
+                new_inputs[k] = v
+
+        return (new_inputs, targets)
+
+
+@Block.registry.register_with_multiple_names("seq_predict_last")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class SeqPredictLast(SequenceTransform):
+    """Prepares sequential inputs and targets for last-item prediction.
+    The target is extracted from the last element of sequence of item ids and
+    the sequential input features are truncated before the last position.
+
+    Parameters
+    ----------
+    schema : Schema
+        The schema with the sequential columns to be truncated
+    target : Union[str, Tags, ColumnSchema]
+        The sequential input column that will be used to extract the target
+    pre : Optional[BlockType], optional
+        A block that is called before this method call().
+        If not set, the ListToRagged() block is applied to convert
+        the tuple representation of sequential features to RaggedTensors,
+        so that the tensors sequences can be processed
+    """
+
+    def call(
+        self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
+    ) -> Union[Prediction, Tuple]:
+        self._check_seq_inputs_targets(inputs)
+
+        # Shifts the target column to be the next item of corresponding input column
+        new_target = inputs[self.target_name][:, -1:]
+        new_target = tf.squeeze(tf.sparse.to_dense(new_target.to_sparse()), axis=1)
+        if targets is None:
+            targets = new_target
+        elif isinstance(targets, dict):
+            targets[self.target_name] = new_target
+        else:
+            targets = dict()
+            targets[self.target_name] = new_target
+
+        new_inputs = dict()
+        for k, v in inputs.items():
+            if k in self.schema.column_names:
+                # Removes the last item of the sequence, as it belongs to the target
+                new_inputs[k] = v[:, :-1]
+            else:
+                new_inputs[k] = v
+
+        return (new_inputs, targets)
+
+
+@Block.registry.register_with_multiple_names("seq_predict_random")
+@tf.keras.utils.register_keras_serializable(package="merlin_models")
+class SeqPredictRandom(SequenceTransform):
+    """Prepares sequential inputs and targets for random-item prediction.
+    A random element in the sequence (except the first one) is selected
+    as target and all elements before the selected target as used as
+    input features.
+
+    Parameters
+    ----------
+    schema : Schema
+        The schema with the sequential columns to be truncated
+    target : Union[str, Tags, ColumnSchema]
+        The sequential input column that will be used to extract the target
+    pre : Optional[BlockType], optional
+        A block that is called before this method call().
+        If not set, the ListToRagged() block is applied to convert
+        the tuple representation of sequential features to RaggedTensors,
+        so that the tensors sequences can be shifted/truncated
+    """
+
+    def call(
+        self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
+    ) -> Union[Prediction, Tuple]:
+        self._check_seq_inputs_targets(inputs)
+
+        batch_size = inputs[self.target_name].nrows()
+        seq_length = inputs[self.target_name].row_lengths(1)
+        max_length = tf.reduce_max(seq_length)
+        random_targets_indices = tf.expand_dims(
+            tf.cast(
+                tf.math.floor(
+                    (
+                        tf.random.uniform(shape=[8], minval=0.0, maxval=1.0, dtype=tf.float32)
+                        * tf.cast(seq_length - 1, tf.float32)
+                    )
+                    + 1
+                ),
+                tf.int32,
+            ),
+            1,
+        )
+
+        positions_matrix = tf.tile(tf.expand_dims(tf.range(0, max_length), 0), [batch_size, 1])
+        input_mask = positions_matrix < random_targets_indices
+        target_mask = positions_matrix == random_targets_indices
+
+        new_target = tf.squeeze(tf.ragged.boolean_mask(inputs[self.target_name], target_mask), 1)
+        if targets is None:
+            targets = new_target
+        elif isinstance(targets, dict):
+            targets[self.target_name] = new_target
+        else:
+            targets = dict()
+            targets[self.target_name] = new_target
+
+        new_inputs = dict()
+        for k, v in inputs.items():
+            if k in self.schema.column_names:
+                new_inputs[k] = tf.ragged.boolean_mask(v, input_mask)
+            else:
+                new_inputs[k] = v
+
+        return (new_inputs, targets)

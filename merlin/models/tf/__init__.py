@@ -133,7 +133,7 @@ from merlin.models.tf.transforms.features import (
 )
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
-from merlin.models.tf.transforms.sequence import PredictNext
+from merlin.models.tf.transforms.sequence import SeqPredictLast, SeqPredictNext, SeqPredictRandom
 from merlin.models.tf.transforms.tensor import ExpandDims, ListToDense, ListToRagged, ListToSparse
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
@@ -253,5 +253,7 @@ __all__ = [
     "BroadcastToSequence",
     "Loader",
     "KerasSequenceValidator",
-    "PredictNext",
+    "SeqPredictNext",
+    "SeqPredictLast",
+    "SeqPredictRandom",
 ]
