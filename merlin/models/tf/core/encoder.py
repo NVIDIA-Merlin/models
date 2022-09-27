@@ -209,10 +209,7 @@ class Encoder(tf.keras.Model):
             self._saved_model_arg_spec = ([_arg_spec[0][0]], _arg_spec[1])
 
     def save(
-        self,
-        export_path: Union[str, os.PathLike],
-        include_optimizer=True,
-        save_traces=True,
+        self, export_path: Union[str, os.PathLike], include_optimizer=True, save_traces=True,
     ) -> None:
         """Saves the model to export_path as a Tensorflow Saved Model.
         Along with merlin model metadata.

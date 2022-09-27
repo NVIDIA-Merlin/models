@@ -8,7 +8,7 @@ from merlin.models.tf.blocks.mlp import MLPBlock, RegularizerType
 from merlin.models.tf.core.aggregation import ConcatFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
-from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.models.tf.inputs.block import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions, Embeddings
 from merlin.models.tf.models.base import Model
 from merlin.models.tf.models.utils import parse_prediction_tasks

@@ -85,7 +85,7 @@ class BinaryOutput(ModelOutput):
 
     def __init__(
         self,
-        target: Optional[str] = None,
+        target: Optional[Union[str, ColumnSchema]] = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
         logits_temperature: float = 1.0,
@@ -94,6 +94,8 @@ class BinaryOutput(ModelOutput):
         default_metrics_fn: MetricsFn = default_binary_metrics,
         **kwargs,
     ):
+        if isinstance(target, ColumnSchema):
+            target = target.name
         to_call = kwargs.pop("to_call", None)
         super().__init__(
             to_call=to_call or tf.keras.layers.Dense(1, activation="sigmoid"),
