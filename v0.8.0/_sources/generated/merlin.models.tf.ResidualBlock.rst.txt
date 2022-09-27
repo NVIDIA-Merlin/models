@@ -1,0 +1,132 @@
+﻿merlin.models.tf.ResidualBlock
+==============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: ResidualBlock
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ResidualBlock.__init__
+      ~ResidualBlock.add_branch
+      ~ResidualBlock.add_loss
+      ~ResidualBlock.add_metric
+      ~ResidualBlock.add_update
+      ~ResidualBlock.add_variable
+      ~ResidualBlock.add_weight
+      ~ResidualBlock.apply_to_all
+      ~ResidualBlock.apply_to_branch
+      ~ResidualBlock.as_tabular
+      ~ResidualBlock.build
+      ~ResidualBlock.calculate_batch_size_from_input_shapes
+      ~ResidualBlock.call
+      ~ResidualBlock.call_outputs
+      ~ResidualBlock.check_schema
+      ~ResidualBlock.compute_call_output_shape
+      ~ResidualBlock.compute_mask
+      ~ResidualBlock.compute_output_shape
+      ~ResidualBlock.compute_output_signature
+      ~ResidualBlock.connect
+      ~ResidualBlock.connect_branch
+      ~ResidualBlock.connect_debug_block
+      ~ResidualBlock.connect_with_residual
+      ~ResidualBlock.connect_with_shortcut
+      ~ResidualBlock.copy
+      ~ResidualBlock.count_params
+      ~ResidualBlock.finalize_state
+      ~ResidualBlock.from_config
+      ~ResidualBlock.from_features
+      ~ResidualBlock.from_layer
+      ~ResidualBlock.from_schema
+      ~ResidualBlock.get_config
+      ~ResidualBlock.get_input_at
+      ~ResidualBlock.get_input_mask_at
+      ~ResidualBlock.get_input_shape_at
+      ~ResidualBlock.get_item_ids_from_inputs
+      ~ResidualBlock.get_output_at
+      ~ResidualBlock.get_output_mask_at
+      ~ResidualBlock.get_output_shape_at
+      ~ResidualBlock.get_padding_mask_from_item_id
+      ~ResidualBlock.get_weights
+      ~ResidualBlock.parse
+      ~ResidualBlock.parse_block
+      ~ResidualBlock.parse_config
+      ~ResidualBlock.post_call
+      ~ResidualBlock.pre_call
+      ~ResidualBlock.prepare
+      ~ResidualBlock.register_features
+      ~ResidualBlock.repeat
+      ~ResidualBlock.repeat_in_parallel
+      ~ResidualBlock.repr_add
+      ~ResidualBlock.repr_extra
+      ~ResidualBlock.repr_ignore
+      ~ResidualBlock.select_by_name
+      ~ResidualBlock.select_by_names
+      ~ResidualBlock.select_by_tag
+      ~ResidualBlock.set_aggregation
+      ~ResidualBlock.set_post
+      ~ResidualBlock.set_pre
+      ~ResidualBlock.set_schema
+      ~ResidualBlock.set_weights
+      ~ResidualBlock.super
+      ~ResidualBlock.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ResidualBlock.REQUIRES_SCHEMA
+      ~ResidualBlock.activity_regularizer
+      ~ResidualBlock.aggregation
+      ~ResidualBlock.compute_dtype
+      ~ResidualBlock.context
+      ~ResidualBlock.dtype
+      ~ResidualBlock.dtype_policy
+      ~ResidualBlock.dynamic
+      ~ResidualBlock.has_schema
+      ~ResidualBlock.inbound_nodes
+      ~ResidualBlock.input
+      ~ResidualBlock.input_mask
+      ~ResidualBlock.input_shape
+      ~ResidualBlock.input_spec
+      ~ResidualBlock.is_input
+      ~ResidualBlock.is_tabular
+      ~ResidualBlock.layers
+      ~ResidualBlock.losses
+      ~ResidualBlock.metrics
+      ~ResidualBlock.name
+      ~ResidualBlock.name_scope
+      ~ResidualBlock.non_trainable_variables
+      ~ResidualBlock.non_trainable_weights
+      ~ResidualBlock.outbound_nodes
+      ~ResidualBlock.output
+      ~ResidualBlock.output_mask
+      ~ResidualBlock.output_shape
+      ~ResidualBlock.parallel_dict
+      ~ResidualBlock.parallel_values
+      ~ResidualBlock.post
+      ~ResidualBlock.pre
+      ~ResidualBlock.registry
+      ~ResidualBlock.schema
+      ~ResidualBlock.stateful
+      ~ResidualBlock.submodules
+      ~ResidualBlock.supports_masking
+      ~ResidualBlock.trainable
+      ~ResidualBlock.trainable_variables
+      ~ResidualBlock.trainable_weights
+      ~ResidualBlock.updates
+      ~ResidualBlock.variable_dtype
+      ~ResidualBlock.variables
+      ~ResidualBlock.weights
+   
+   

@@ -54,7 +54,7 @@
 
 # They include various operators commonly used to transform tensors in various parts of the model, such as: 
 # 
-# - `AsDenseFeatures`: It takes a dictionary of raw input tensors and transforms the sparse tensors into dense tensors.
+# - `ToDense`: It takes a dictionary of raw input tensors and transforms the sparse tensors into dense tensors.
 # - `L2Norm`: It takes a single or a dictionary of hidden tensors and applies an L2-normalization along a given axis. 
 # - `LogitsTemperatureScaler`: It scales the output tensor of predicted logits to lower the model's confidence. 
 
@@ -249,7 +249,7 @@ deep_dlrm_interaction(batch)
 # In[ ]:
 
 
-from merlin.models.tf.core.transformations import LogitsTemperatureScaler
+from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
 
 binary_task = mm.BinaryClassificationTask(
     sub_schema,

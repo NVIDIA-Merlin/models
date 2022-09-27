@@ -1,0 +1,126 @@
+﻿merlin.models.tf.Filter
+=======================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: Filter
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Filter.__init__
+      ~Filter.add_loss
+      ~Filter.add_metric
+      ~Filter.add_update
+      ~Filter.add_variable
+      ~Filter.add_weight
+      ~Filter.apply_to_all
+      ~Filter.as_tabular
+      ~Filter.build
+      ~Filter.calculate_batch_size_from_input_shapes
+      ~Filter.call
+      ~Filter.call_outputs
+      ~Filter.check_feature
+      ~Filter.check_schema
+      ~Filter.compute_call_output_shape
+      ~Filter.compute_mask
+      ~Filter.compute_output_shape
+      ~Filter.compute_output_signature
+      ~Filter.connect
+      ~Filter.connect_branch
+      ~Filter.connect_debug_block
+      ~Filter.connect_with_residual
+      ~Filter.connect_with_shortcut
+      ~Filter.copy
+      ~Filter.count_params
+      ~Filter.finalize_state
+      ~Filter.from_config
+      ~Filter.from_features
+      ~Filter.from_layer
+      ~Filter.from_schema
+      ~Filter.get_config
+      ~Filter.get_input_at
+      ~Filter.get_input_mask_at
+      ~Filter.get_input_shape_at
+      ~Filter.get_item_ids_from_inputs
+      ~Filter.get_output_at
+      ~Filter.get_output_mask_at
+      ~Filter.get_output_shape_at
+      ~Filter.get_padding_mask_from_item_id
+      ~Filter.get_weights
+      ~Filter.parse
+      ~Filter.parse_block
+      ~Filter.post_call
+      ~Filter.pre_call
+      ~Filter.prepare
+      ~Filter.register_features
+      ~Filter.repeat
+      ~Filter.repeat_in_parallel
+      ~Filter.repr_add
+      ~Filter.repr_extra
+      ~Filter.repr_ignore
+      ~Filter.select_by_name
+      ~Filter.select_by_tag
+      ~Filter.set_aggregation
+      ~Filter.set_post
+      ~Filter.set_pre
+      ~Filter.set_schema
+      ~Filter.set_weights
+      ~Filter.super
+      ~Filter.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Filter.REQUIRES_SCHEMA
+      ~Filter.activity_regularizer
+      ~Filter.aggregation
+      ~Filter.compute_dtype
+      ~Filter.context
+      ~Filter.dtype
+      ~Filter.dtype_policy
+      ~Filter.dynamic
+      ~Filter.has_schema
+      ~Filter.inbound_nodes
+      ~Filter.input
+      ~Filter.input_mask
+      ~Filter.input_shape
+      ~Filter.input_spec
+      ~Filter.is_input
+      ~Filter.is_tabular
+      ~Filter.losses
+      ~Filter.metrics
+      ~Filter.name
+      ~Filter.name_scope
+      ~Filter.non_trainable_variables
+      ~Filter.non_trainable_weights
+      ~Filter.outbound_nodes
+      ~Filter.output
+      ~Filter.output_mask
+      ~Filter.output_shape
+      ~Filter.post
+      ~Filter.pre
+      ~Filter.registry
+      ~Filter.schema
+      ~Filter.stateful
+      ~Filter.submodules
+      ~Filter.supports_masking
+      ~Filter.trainable
+      ~Filter.trainable_variables
+      ~Filter.trainable_weights
+      ~Filter.updates
+      ~Filter.variable_dtype
+      ~Filter.variables
+      ~Filter.weights
+   
+   

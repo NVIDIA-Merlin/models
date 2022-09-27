@@ -1,0 +1,132 @@
+﻿merlin.models.tf.ParallelBlock
+==============================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: ParallelBlock
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ParallelBlock.__init__
+      ~ParallelBlock.add_branch
+      ~ParallelBlock.add_loss
+      ~ParallelBlock.add_metric
+      ~ParallelBlock.add_update
+      ~ParallelBlock.add_variable
+      ~ParallelBlock.add_weight
+      ~ParallelBlock.apply_to_all
+      ~ParallelBlock.apply_to_branch
+      ~ParallelBlock.as_tabular
+      ~ParallelBlock.build
+      ~ParallelBlock.calculate_batch_size_from_input_shapes
+      ~ParallelBlock.call
+      ~ParallelBlock.call_outputs
+      ~ParallelBlock.check_schema
+      ~ParallelBlock.compute_call_output_shape
+      ~ParallelBlock.compute_mask
+      ~ParallelBlock.compute_output_shape
+      ~ParallelBlock.compute_output_signature
+      ~ParallelBlock.connect
+      ~ParallelBlock.connect_branch
+      ~ParallelBlock.connect_debug_block
+      ~ParallelBlock.connect_with_residual
+      ~ParallelBlock.connect_with_shortcut
+      ~ParallelBlock.copy
+      ~ParallelBlock.count_params
+      ~ParallelBlock.finalize_state
+      ~ParallelBlock.from_config
+      ~ParallelBlock.from_features
+      ~ParallelBlock.from_layer
+      ~ParallelBlock.from_schema
+      ~ParallelBlock.get_config
+      ~ParallelBlock.get_input_at
+      ~ParallelBlock.get_input_mask_at
+      ~ParallelBlock.get_input_shape_at
+      ~ParallelBlock.get_item_ids_from_inputs
+      ~ParallelBlock.get_output_at
+      ~ParallelBlock.get_output_mask_at
+      ~ParallelBlock.get_output_shape_at
+      ~ParallelBlock.get_padding_mask_from_item_id
+      ~ParallelBlock.get_weights
+      ~ParallelBlock.parse
+      ~ParallelBlock.parse_block
+      ~ParallelBlock.parse_config
+      ~ParallelBlock.post_call
+      ~ParallelBlock.pre_call
+      ~ParallelBlock.prepare
+      ~ParallelBlock.register_features
+      ~ParallelBlock.repeat
+      ~ParallelBlock.repeat_in_parallel
+      ~ParallelBlock.repr_add
+      ~ParallelBlock.repr_extra
+      ~ParallelBlock.repr_ignore
+      ~ParallelBlock.select_by_name
+      ~ParallelBlock.select_by_names
+      ~ParallelBlock.select_by_tag
+      ~ParallelBlock.set_aggregation
+      ~ParallelBlock.set_post
+      ~ParallelBlock.set_pre
+      ~ParallelBlock.set_schema
+      ~ParallelBlock.set_weights
+      ~ParallelBlock.super
+      ~ParallelBlock.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ParallelBlock.REQUIRES_SCHEMA
+      ~ParallelBlock.activity_regularizer
+      ~ParallelBlock.aggregation
+      ~ParallelBlock.compute_dtype
+      ~ParallelBlock.context
+      ~ParallelBlock.dtype
+      ~ParallelBlock.dtype_policy
+      ~ParallelBlock.dynamic
+      ~ParallelBlock.has_schema
+      ~ParallelBlock.inbound_nodes
+      ~ParallelBlock.input
+      ~ParallelBlock.input_mask
+      ~ParallelBlock.input_shape
+      ~ParallelBlock.input_spec
+      ~ParallelBlock.is_input
+      ~ParallelBlock.is_tabular
+      ~ParallelBlock.layers
+      ~ParallelBlock.losses
+      ~ParallelBlock.metrics
+      ~ParallelBlock.name
+      ~ParallelBlock.name_scope
+      ~ParallelBlock.non_trainable_variables
+      ~ParallelBlock.non_trainable_weights
+      ~ParallelBlock.outbound_nodes
+      ~ParallelBlock.output
+      ~ParallelBlock.output_mask
+      ~ParallelBlock.output_shape
+      ~ParallelBlock.parallel_dict
+      ~ParallelBlock.parallel_values
+      ~ParallelBlock.post
+      ~ParallelBlock.pre
+      ~ParallelBlock.registry
+      ~ParallelBlock.schema
+      ~ParallelBlock.stateful
+      ~ParallelBlock.submodules
+      ~ParallelBlock.supports_masking
+      ~ParallelBlock.trainable
+      ~ParallelBlock.trainable_variables
+      ~ParallelBlock.trainable_weights
+      ~ParallelBlock.updates
+      ~ParallelBlock.variable_dtype
+      ~ParallelBlock.variables
+      ~ParallelBlock.weights
+   
+   

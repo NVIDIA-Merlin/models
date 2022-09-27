@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 # Copyright 2021 NVIDIA Corporation. All Rights Reserved.
@@ -26,13 +26,13 @@
 # 
 # This notebook is created using the latest stable [merlin-tensorflow](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/merlin/containers/merlin-tensorflow/tags) container. 
 # 
-# In this example, we'll define several popular deep learning-based model architectures, train, and evaluate them and show how Merlin Models simplifies and eases this common and iterative process.
+# In this example, we'll demonstrate how to build and train several popular deep learning-based ranking model architectures. Merlin Models provides a high-level API to define those architectures, but allows for customization  as they are composed by reusable building blocks.
 # 
-# In this example notebook, we use synthetic dataset that is mimicking the Ali-CCP: Alibaba Click and Conversion Prediction dataset to build our recommender system models. ALI-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit [tianchi.aliyun.com](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1). You can curate the raw dataset via this [get_aliccp() function](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43) and generated the parquet files to be used in this example.
+# In this example notebook, we use for training and evaluation synthetic data that mimics the schema (features and cardinalities) of [Ali-CCP dataset](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1): Alibaba Click and Conversion Prediction dataset. The Ali-CCP is a dataset gathered from real-world traffic logs of the recommender system in Taobao, the largest online retail platform in the world. To download the raw Ali-CCP training and test datasets visit [tianchi.aliyun.com](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408#1). You can get the raw dataset via this [get_aliccp() function](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/datasets/ecommerce/aliccp/dataset.py#L43) and generate the parquet files from it to be used in this example.
 # 
 # ### Learning objectives
 # - Preparing the data with NVTabular
-# - Training different deep learning-based recommender models with Merlin Models
+# - Training different deep learning-based ranking models with Merlin Models
 
 # ## Importing Libraries
 
@@ -70,6 +70,7 @@ import tensorflow as tf
 from merlin.datasets.synthetic import generate_data
 
 DATA_FOLDER = os.environ.get("DATA_FOLDER", "/workspace/data/")
+
 NUM_ROWS = os.environ.get("NUM_ROWS", 1000000)
 SYNTHETIC_DATA = eval(os.environ.get("SYNTHETIC_DATA", "True"))
 
@@ -90,7 +91,7 @@ output_path = os.path.join(DATA_FOLDER, "processed")
 
 # Our dataset has only categorical features. Below, we create continuous features using target encoding (TE) technique. Target Encoding calculates the statistics from a target variable grouped by the unique values of one or more categorical features. For example, in a binary classification problem, TE calculates the conditional probability that the target is true for each category value- a simple mean. To learn more about TE, visit this [medium blog](https://medium.com/rapids-ai/target-encoding-with-rapids-cuml-do-more-with-your-categorical-data-8c762c79e784).
 # 
-# Note that the `Ali-CCP` dataset has `click` and `conversion` target columns but we only focus on building different ranking models with binary target column `click`.
+# Note that the `Ali-CCP` dataset has `click` and `conversion` target columns (which could be used for Multi-Task Learning) but we only focus on building different ranking models with binary target column `click`.
 
 # We use a utility function, `workflow_fit_transform` perform to fit and transform steps on the raw dataset applying the operators defined in the NVTabular workflow pipeline below, and also save our workflow model. After fit and transform, the processed parquet files are saved to `output_path`.
 
@@ -102,7 +103,7 @@ get_ipython().run_cell_magic('time', '', '\nuser_id = ["user_id"] >> Categorify(
 
 # ## Training Recommender Models
 
-# NVTabular exported the schema file of our processed dataset. The `schema.pbtxt` is a protobuf text file contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to automatically build all necessary input and output layers.
+# NVTabular exported the schema file of our processed dataset. The `schema.pbtxt` is a protobuf text file that contains features metadata, including statistics about features such as cardinality, min and max values and also tags based on their characteristics and dtypes (e.g., categorical, continuous, list, item_id). The metadata information is loaded from schema and their tags are used to automatically set the parameters of Merlin Models. In other words, Merlin Models relies on the schema object to automatically build all necessary input and output layers.
 
 # In[ ]:
 
@@ -131,7 +132,16 @@ schema.column_names
 
 # ### Initialize Dataloaders
 
-# We're ready to start training, for that, we create our dataset objects, and under the hood we use Merlin `BatchedDataset` class for reading chunks of parquet files. `BatchedDataset` asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular `Dataset`. To read more about Merlin optimized dataloaders visit [here](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141).
+# We're ready to start training, for that, we create our dataset objects, and under the hood we use Merlin `Loader` class for reading chunks of parquet files. `Loader` asynchronously iterate through CSV or Parquet dataframes on GPU by leveraging an NVTabular `Dataset`. To read more about Merlin optimized dataloaders visit [here](https://github.com/NVIDIA-Merlin/models/blob/main/merlin/models/tf/dataset.py#L141).
+
+# ### Configures training for all models
+
+# In[ ]:
+
+
+batch_size = 16 * 1024
+LR = 0.03
+
 
 # ### NCF Model
 
@@ -159,7 +169,7 @@ model = mm.benchmark.NCFModel(
 # In[ ]:
 
 
-get_ipython().run_cell_magic('time', '', 'batch_size = 16 * 1024\nLR = 0.03\n\nopt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
 
 
 # Let's save our accuracy results
@@ -225,6 +235,106 @@ save_results("MLP", model)
 
 metrics_mlp = model.evaluate(valid, batch_size=1024, return_dict=True)
 metrics_mlp
+
+
+# ### Wide&Deep model
+
+# The [Wide&Deep architecture](https://arxiv.org/abs/1606.07792) was proposed by Google in 2016 to balance between the ability of neural networks to generalize and capacity of linear models to memorize relevant feature interactions. The deep part is an MLP model, with categorical features represented as embeddings, which are concatenated with continuous features and fed through multiple MLP layers. The wide part is a linear model takes a sparse representation of categorical features (i.e. one-hot or multi-hot representation). Both wide and deep sub-models output a logit, which is summed and followed by sigmoid for binary classification loss.
+# 
+# <img src="./images/wide_and_deep.png"  width="30%">
+
+# #### Wide part
+
+# Typically we feed only categorical features to the wide part. So we filter only categorical features from the schema for the wide part. The categorical features are encoded with one_hot representation, like commonly done for linear models. 
+
+# In[ ]:
+
+
+cat_schema = schema.select_by_tag(Tags.CATEGORICAL)
+
+one_hot_encoding = mm.CategoryEncoding(cat_schema, sparse=True, output_mode="one_hot") # One-hot encoding
+
+
+# Linear models are not able to compute feature interaction (like MLPs). So to give the wide part more power we perform feature interactions as a preprocessing step for wide part, so that every possible combination of the values of two categorical features is mapped to a single id. That way, the model is be able to pick paired feature relationships, e.g., a pattern between the a category of a product and the city of a user.   
+# Although, this approach leads to very high-cardinality resulting feature (product between the two features cardinalities). So typically we apply the *hashing trick* to limit the resulting cardinality. 
+# In below example you can see how easily can compute crossed features with Merlin Models. We use `max_level=2` here for paired feature interactions. Typically maximum `max_level=3` (3rd level), as the higher the level the greater the combinatorial explosion.
+# 
+# *Note*: some feature combinations might not add information to the model, for example, the feature cross between the item id and item category, as every item only maps to a single item category. You can explicitly ignore those combinations to reduce a bit the feature space.
+
+# In[ ]:
+
+
+features_crossing = mm.HashedCrossAll(
+        cat_schema,
+        num_bins=100, # The crossed features will be hashed to this number of bins
+        max_level=2,
+        output_mode="one_hot",
+        sparse=True,
+        ignore_combinations=[["item_id", "item_category"], 
+                             ["item_id", "item_brand"]]
+    )
+
+
+# You might have noticed that we set output of the one-hot and crossed features to be a sparse tensor (`sparse=True`), as only a few values are 1s and the large majority of values are 0s. This saves a lot of memory and also speeds up the computation of the wide part.  
+# *Note*: If you have categorical features which have multiple values (multi-hot) for the same data sample, you can set `output_mode="multi_hot"` for both `CategoryEncoding()` and `HashedCrossAll()`.
+
+# Below, we create a list with the preprocessing transformations for the wide part, where we concatenate all sparse outputs to be used by the linear model.
+
+# In[ ]:
+
+
+wide_preprocessing_blocks = mm.ParallelBlock([
+                                              one_hot_encoding, 
+                                              features_crossing
+                                             ],
+                                             aggregation="concat")
+
+
+# #### Deep part
+
+# The deep block is just an MLP model, which expects dense representation. 
+# The input continuous features are used as they are loaded, but categorical features need to be embedded. The embedding tables are created automatically based on the `deep_schema`, and optionally you can provide the `deep_input_block` for custom representation of input features.
+
+# In[ ]:
+
+
+deep_part = mm.MLPBlock([128, 64, 32])
+
+
+# #### Putting it all together
+
+# In[ ]:
+
+
+model = mm.WideAndDeepModel(
+        schema,
+        wide_schema=cat_schema,
+        deep_schema=schema,
+        wide_preprocess=wide_preprocessing_blocks,
+        deep_block=deep_part,
+        prediction_tasks=mm.BinaryClassificationTask(target_column),
+    )
+
+
+# In[ ]:
+
+
+get_ipython().run_cell_magic('time', '', 'opt = tf.keras.optimizers.Adagrad(learning_rate=LR)\nmodel.compile(optimizer=opt, run_eagerly=False, metrics=[tf.keras.metrics.AUC()])\nmodel.fit(train, validation_data=valid, batch_size=batch_size)\n')
+
+
+# *Note*: Here we use a single optimizer (Adagrad), but in the [Wide&Deep paper](https://arxiv.org/abs/1606.07792) the  authors describe to have used the Adagrad optimizer for the deep part and the FTRL optimizer for the wide part, which worked better with sparse inputs according to their experiments. With Merlin Models wou can use multiple optimizers for different sets of parameters, check the API documentation of `MultiOptimizer()` for more details.
+
+# In[ ]:
+
+
+save_results("Wide&Deep", model)
+
+
+# In[ ]:
+
+
+metrics_wide_n_deep = model.evaluate(valid, batch_size=1024, return_dict=True)
+metrics_wide_n_deep
 
 
 # ### DLRM Model
@@ -353,16 +463,16 @@ def create_bar_chart(text_file_name, models_name):
     plt.show()
 
 
-# In[27]:
+# In[ ]:
 
 
-models_name = ["NCF", "MLP", "DLRM", "DCN"]
+models_name = ["NCF", "MLP", "Wide&Deep", "DLRM", "DCN"]
 create_bar_chart("results.txt", models_name)
 
 
 # Let's remove the results file.
 
-# In[28]:
+# In[ ]:
 
 
 if os.path.isfile("results.txt"):

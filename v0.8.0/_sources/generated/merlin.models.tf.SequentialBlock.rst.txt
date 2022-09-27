@@ -1,0 +1,113 @@
+﻿merlin.models.tf.SequentialBlock
+================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: SequentialBlock
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~SequentialBlock.__init__
+      ~SequentialBlock.add_loss
+      ~SequentialBlock.add_metric
+      ~SequentialBlock.add_update
+      ~SequentialBlock.add_variable
+      ~SequentialBlock.add_weight
+      ~SequentialBlock.as_tabular
+      ~SequentialBlock.build
+      ~SequentialBlock.call
+      ~SequentialBlock.call_outputs
+      ~SequentialBlock.check_schema
+      ~SequentialBlock.compute_loss
+      ~SequentialBlock.compute_mask
+      ~SequentialBlock.compute_output_shape
+      ~SequentialBlock.compute_output_signature
+      ~SequentialBlock.connect
+      ~SequentialBlock.connect_branch
+      ~SequentialBlock.connect_debug_block
+      ~SequentialBlock.connect_with_residual
+      ~SequentialBlock.connect_with_shortcut
+      ~SequentialBlock.copy
+      ~SequentialBlock.count_params
+      ~SequentialBlock.finalize_state
+      ~SequentialBlock.from_config
+      ~SequentialBlock.from_layer
+      ~SequentialBlock.get_config
+      ~SequentialBlock.get_input_at
+      ~SequentialBlock.get_input_mask_at
+      ~SequentialBlock.get_input_shape_at
+      ~SequentialBlock.get_item_ids_from_inputs
+      ~SequentialBlock.get_output_at
+      ~SequentialBlock.get_output_mask_at
+      ~SequentialBlock.get_output_shape_at
+      ~SequentialBlock.get_padding_mask_from_item_id
+      ~SequentialBlock.get_weights
+      ~SequentialBlock.parse
+      ~SequentialBlock.parse_block
+      ~SequentialBlock.prepare
+      ~SequentialBlock.register_features
+      ~SequentialBlock.repeat
+      ~SequentialBlock.repeat_in_parallel
+      ~SequentialBlock.select_by_name
+      ~SequentialBlock.select_by_tag
+      ~SequentialBlock.set_schema
+      ~SequentialBlock.set_weights
+      ~SequentialBlock.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~SequentialBlock.REQUIRES_SCHEMA
+      ~SequentialBlock.activity_regularizer
+      ~SequentialBlock.compute_dtype
+      ~SequentialBlock.context
+      ~SequentialBlock.dtype
+      ~SequentialBlock.dtype_policy
+      ~SequentialBlock.dynamic
+      ~SequentialBlock.filter_features
+      ~SequentialBlock.first
+      ~SequentialBlock.has_schema
+      ~SequentialBlock.inbound_nodes
+      ~SequentialBlock.input
+      ~SequentialBlock.input_mask
+      ~SequentialBlock.input_shape
+      ~SequentialBlock.input_spec
+      ~SequentialBlock.inputs
+      ~SequentialBlock.is_tabular
+      ~SequentialBlock.last
+      ~SequentialBlock.losses
+      ~SequentialBlock.metrics
+      ~SequentialBlock.name
+      ~SequentialBlock.name_scope
+      ~SequentialBlock.non_trainable_variables
+      ~SequentialBlock.non_trainable_weights
+      ~SequentialBlock.outbound_nodes
+      ~SequentialBlock.output
+      ~SequentialBlock.output_mask
+      ~SequentialBlock.output_shape
+      ~SequentialBlock.registry
+      ~SequentialBlock.regularizers
+      ~SequentialBlock.schema
+      ~SequentialBlock.stateful
+      ~SequentialBlock.submodules
+      ~SequentialBlock.supports_masking
+      ~SequentialBlock.trainable
+      ~SequentialBlock.trainable_variables
+      ~SequentialBlock.trainable_weights
+      ~SequentialBlock.updates
+      ~SequentialBlock.variable_dtype
+      ~SequentialBlock.variables
+      ~SequentialBlock.weights
+   
+   

@@ -1,0 +1,138 @@
+﻿merlin.models.tf.ParallelPredictionBlock
+========================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: ParallelPredictionBlock
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ParallelPredictionBlock.__init__
+      ~ParallelPredictionBlock.add_branch
+      ~ParallelPredictionBlock.add_loss
+      ~ParallelPredictionBlock.add_metric
+      ~ParallelPredictionBlock.add_task
+      ~ParallelPredictionBlock.add_update
+      ~ParallelPredictionBlock.add_variable
+      ~ParallelPredictionBlock.add_weight
+      ~ParallelPredictionBlock.apply_to_all
+      ~ParallelPredictionBlock.apply_to_branch
+      ~ParallelPredictionBlock.as_tabular
+      ~ParallelPredictionBlock.build
+      ~ParallelPredictionBlock.calculate_batch_size_from_input_shapes
+      ~ParallelPredictionBlock.call
+      ~ParallelPredictionBlock.call_outputs
+      ~ParallelPredictionBlock.check_schema
+      ~ParallelPredictionBlock.compute_call_output_shape
+      ~ParallelPredictionBlock.compute_mask
+      ~ParallelPredictionBlock.compute_output_shape
+      ~ParallelPredictionBlock.compute_output_signature
+      ~ParallelPredictionBlock.connect
+      ~ParallelPredictionBlock.connect_branch
+      ~ParallelPredictionBlock.connect_debug_block
+      ~ParallelPredictionBlock.connect_with_residual
+      ~ParallelPredictionBlock.connect_with_shortcut
+      ~ParallelPredictionBlock.copy
+      ~ParallelPredictionBlock.count_params
+      ~ParallelPredictionBlock.finalize_state
+      ~ParallelPredictionBlock.from_config
+      ~ParallelPredictionBlock.from_features
+      ~ParallelPredictionBlock.from_layer
+      ~ParallelPredictionBlock.from_schema
+      ~ParallelPredictionBlock.get_config
+      ~ParallelPredictionBlock.get_input_at
+      ~ParallelPredictionBlock.get_input_mask_at
+      ~ParallelPredictionBlock.get_input_shape_at
+      ~ParallelPredictionBlock.get_item_ids_from_inputs
+      ~ParallelPredictionBlock.get_output_at
+      ~ParallelPredictionBlock.get_output_mask_at
+      ~ParallelPredictionBlock.get_output_shape_at
+      ~ParallelPredictionBlock.get_padding_mask_from_item_id
+      ~ParallelPredictionBlock.get_tasks_from_schema
+      ~ParallelPredictionBlock.get_weights
+      ~ParallelPredictionBlock.parse
+      ~ParallelPredictionBlock.parse_block
+      ~ParallelPredictionBlock.parse_config
+      ~ParallelPredictionBlock.pop_labels
+      ~ParallelPredictionBlock.post_call
+      ~ParallelPredictionBlock.pre_call
+      ~ParallelPredictionBlock.prepare
+      ~ParallelPredictionBlock.register_features
+      ~ParallelPredictionBlock.repeat
+      ~ParallelPredictionBlock.repeat_in_parallel
+      ~ParallelPredictionBlock.repr_add
+      ~ParallelPredictionBlock.repr_extra
+      ~ParallelPredictionBlock.repr_ignore
+      ~ParallelPredictionBlock.select_by_name
+      ~ParallelPredictionBlock.select_by_names
+      ~ParallelPredictionBlock.select_by_tag
+      ~ParallelPredictionBlock.set_aggregation
+      ~ParallelPredictionBlock.set_post
+      ~ParallelPredictionBlock.set_pre
+      ~ParallelPredictionBlock.set_schema
+      ~ParallelPredictionBlock.set_weights
+      ~ParallelPredictionBlock.super
+      ~ParallelPredictionBlock.task_names_from_schema
+      ~ParallelPredictionBlock.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ParallelPredictionBlock.REQUIRES_SCHEMA
+      ~ParallelPredictionBlock.activity_regularizer
+      ~ParallelPredictionBlock.aggregation
+      ~ParallelPredictionBlock.compute_dtype
+      ~ParallelPredictionBlock.context
+      ~ParallelPredictionBlock.dtype
+      ~ParallelPredictionBlock.dtype_policy
+      ~ParallelPredictionBlock.dynamic
+      ~ParallelPredictionBlock.has_schema
+      ~ParallelPredictionBlock.inbound_nodes
+      ~ParallelPredictionBlock.input
+      ~ParallelPredictionBlock.input_mask
+      ~ParallelPredictionBlock.input_shape
+      ~ParallelPredictionBlock.input_spec
+      ~ParallelPredictionBlock.is_input
+      ~ParallelPredictionBlock.is_tabular
+      ~ParallelPredictionBlock.layers
+      ~ParallelPredictionBlock.losses
+      ~ParallelPredictionBlock.metrics
+      ~ParallelPredictionBlock.name
+      ~ParallelPredictionBlock.name_scope
+      ~ParallelPredictionBlock.non_trainable_variables
+      ~ParallelPredictionBlock.non_trainable_weights
+      ~ParallelPredictionBlock.outbound_nodes
+      ~ParallelPredictionBlock.output
+      ~ParallelPredictionBlock.output_mask
+      ~ParallelPredictionBlock.output_shape
+      ~ParallelPredictionBlock.parallel_dict
+      ~ParallelPredictionBlock.parallel_values
+      ~ParallelPredictionBlock.post
+      ~ParallelPredictionBlock.pre
+      ~ParallelPredictionBlock.registry
+      ~ParallelPredictionBlock.schema
+      ~ParallelPredictionBlock.stateful
+      ~ParallelPredictionBlock.submodules
+      ~ParallelPredictionBlock.supports_masking
+      ~ParallelPredictionBlock.task_blocks
+      ~ParallelPredictionBlock.task_names
+      ~ParallelPredictionBlock.trainable
+      ~ParallelPredictionBlock.trainable_variables
+      ~ParallelPredictionBlock.trainable_weights
+      ~ParallelPredictionBlock.updates
+      ~ParallelPredictionBlock.variable_dtype
+      ~ParallelPredictionBlock.variables
+      ~ParallelPredictionBlock.weights
+   
+   

@@ -1,0 +1,131 @@
+﻿merlin.models.tf.SequenceEmbeddingFeatures
+==========================================
+
+.. currentmodule:: merlin.models.tf
+
+.. autoclass:: SequenceEmbeddingFeatures
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~SequenceEmbeddingFeatures.__init__
+      ~SequenceEmbeddingFeatures.add_loss
+      ~SequenceEmbeddingFeatures.add_metric
+      ~SequenceEmbeddingFeatures.add_update
+      ~SequenceEmbeddingFeatures.add_variable
+      ~SequenceEmbeddingFeatures.add_weight
+      ~SequenceEmbeddingFeatures.apply_to_all
+      ~SequenceEmbeddingFeatures.as_tabular
+      ~SequenceEmbeddingFeatures.build
+      ~SequenceEmbeddingFeatures.calculate_batch_size_from_input_shapes
+      ~SequenceEmbeddingFeatures.call
+      ~SequenceEmbeddingFeatures.call_outputs
+      ~SequenceEmbeddingFeatures.check_schema
+      ~SequenceEmbeddingFeatures.compute_call_output_shape
+      ~SequenceEmbeddingFeatures.compute_mask
+      ~SequenceEmbeddingFeatures.compute_output_shape
+      ~SequenceEmbeddingFeatures.compute_output_signature
+      ~SequenceEmbeddingFeatures.connect
+      ~SequenceEmbeddingFeatures.connect_branch
+      ~SequenceEmbeddingFeatures.connect_debug_block
+      ~SequenceEmbeddingFeatures.connect_with_residual
+      ~SequenceEmbeddingFeatures.connect_with_shortcut
+      ~SequenceEmbeddingFeatures.copy
+      ~SequenceEmbeddingFeatures.count_params
+      ~SequenceEmbeddingFeatures.embedding_table_dataset
+      ~SequenceEmbeddingFeatures.embedding_table_df
+      ~SequenceEmbeddingFeatures.export_embedding_table
+      ~SequenceEmbeddingFeatures.finalize_state
+      ~SequenceEmbeddingFeatures.from_config
+      ~SequenceEmbeddingFeatures.from_features
+      ~SequenceEmbeddingFeatures.from_layer
+      ~SequenceEmbeddingFeatures.from_schema
+      ~SequenceEmbeddingFeatures.get_config
+      ~SequenceEmbeddingFeatures.get_embedding_table
+      ~SequenceEmbeddingFeatures.get_input_at
+      ~SequenceEmbeddingFeatures.get_input_mask_at
+      ~SequenceEmbeddingFeatures.get_input_shape_at
+      ~SequenceEmbeddingFeatures.get_item_ids_from_inputs
+      ~SequenceEmbeddingFeatures.get_output_at
+      ~SequenceEmbeddingFeatures.get_output_mask_at
+      ~SequenceEmbeddingFeatures.get_output_shape_at
+      ~SequenceEmbeddingFeatures.get_padding_mask_from_item_id
+      ~SequenceEmbeddingFeatures.get_weights
+      ~SequenceEmbeddingFeatures.lookup_feature
+      ~SequenceEmbeddingFeatures.parse
+      ~SequenceEmbeddingFeatures.parse_block
+      ~SequenceEmbeddingFeatures.post_call
+      ~SequenceEmbeddingFeatures.pre_call
+      ~SequenceEmbeddingFeatures.prepare
+      ~SequenceEmbeddingFeatures.register_features
+      ~SequenceEmbeddingFeatures.repeat
+      ~SequenceEmbeddingFeatures.repeat_in_parallel
+      ~SequenceEmbeddingFeatures.repr_add
+      ~SequenceEmbeddingFeatures.repr_extra
+      ~SequenceEmbeddingFeatures.repr_ignore
+      ~SequenceEmbeddingFeatures.select_by_name
+      ~SequenceEmbeddingFeatures.select_by_tag
+      ~SequenceEmbeddingFeatures.set_aggregation
+      ~SequenceEmbeddingFeatures.set_post
+      ~SequenceEmbeddingFeatures.set_pre
+      ~SequenceEmbeddingFeatures.set_schema
+      ~SequenceEmbeddingFeatures.set_weights
+      ~SequenceEmbeddingFeatures.super
+      ~SequenceEmbeddingFeatures.table_config
+      ~SequenceEmbeddingFeatures.with_name_scope
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~SequenceEmbeddingFeatures.REQUIRES_SCHEMA
+      ~SequenceEmbeddingFeatures.activity_regularizer
+      ~SequenceEmbeddingFeatures.aggregation
+      ~SequenceEmbeddingFeatures.compute_dtype
+      ~SequenceEmbeddingFeatures.context
+      ~SequenceEmbeddingFeatures.dtype
+      ~SequenceEmbeddingFeatures.dtype_policy
+      ~SequenceEmbeddingFeatures.dynamic
+      ~SequenceEmbeddingFeatures.has_schema
+      ~SequenceEmbeddingFeatures.inbound_nodes
+      ~SequenceEmbeddingFeatures.input
+      ~SequenceEmbeddingFeatures.input_mask
+      ~SequenceEmbeddingFeatures.input_shape
+      ~SequenceEmbeddingFeatures.input_spec
+      ~SequenceEmbeddingFeatures.is_input
+      ~SequenceEmbeddingFeatures.is_tabular
+      ~SequenceEmbeddingFeatures.losses
+      ~SequenceEmbeddingFeatures.metrics
+      ~SequenceEmbeddingFeatures.name
+      ~SequenceEmbeddingFeatures.name_scope
+      ~SequenceEmbeddingFeatures.non_trainable_variables
+      ~SequenceEmbeddingFeatures.non_trainable_weights
+      ~SequenceEmbeddingFeatures.outbound_nodes
+      ~SequenceEmbeddingFeatures.output
+      ~SequenceEmbeddingFeatures.output_mask
+      ~SequenceEmbeddingFeatures.output_shape
+      ~SequenceEmbeddingFeatures.post
+      ~SequenceEmbeddingFeatures.pre
+      ~SequenceEmbeddingFeatures.registry
+      ~SequenceEmbeddingFeatures.schema
+      ~SequenceEmbeddingFeatures.stateful
+      ~SequenceEmbeddingFeatures.submodules
+      ~SequenceEmbeddingFeatures.supports_masking
+      ~SequenceEmbeddingFeatures.trainable
+      ~SequenceEmbeddingFeatures.trainable_variables
+      ~SequenceEmbeddingFeatures.trainable_weights
+      ~SequenceEmbeddingFeatures.updates
+      ~SequenceEmbeddingFeatures.variable_dtype
+      ~SequenceEmbeddingFeatures.variables
+      ~SequenceEmbeddingFeatures.weights
+   
+   
