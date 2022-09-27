@@ -35,7 +35,7 @@ def test_fm_pairwise_interaction():
 
 
 def test_fm_block(ecommerce_data: Dataset):
-    schema = ecommerce_data.schema
+    schema = ecommerce_data.schema.remove_by_tag(Tags.TARGET)
 
     fm_block = mm.FMBlock(
         schema,

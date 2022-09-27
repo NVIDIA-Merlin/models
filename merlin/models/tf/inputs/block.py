@@ -112,6 +112,9 @@ def InputBlockV2(
         continuous and embeddings
     """
 
+    if schema:
+        input_schema = schema.remove_by_tag(Tags.TARGET)
+
     unparsed = {"categorical": categorical, "continuous": continuous, **branches}
     parsed = {}
     for name, branch in unparsed.items():
@@ -125,7 +128,7 @@ def InputBlockV2(
                 )
             if branch not in tag_to_block:
                 raise ValueError(f"No default-block provided for {branch}")
-            branch_schema: Schema = schema.select_by_tag(branch)
+            branch_schema: Schema = input_schema.select_by_tag(branch)
             parsed[name] = tag_to_block[branch](branch_schema)
 
     if not parsed:

@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 
-from typing import Set, Union
+from typing import Optional, Set, Union
+
+from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.outputs.base import ModelOutput
@@ -24,8 +26,35 @@ from merlin.schema import Schema, Tags
 
 
 def OutputBlock(
-    schema: Schema, pre=None, post=None, **branches
+    schema: Schema, pre: Optional[Layer] = None, post: Optional[Layer] = None, **branches
 ) -> Union[ModelOutput, ParallelBlock]:
+    """Creates model output(s) based on the columns tagged as target in the schema.
+
+    Simple Usage::
+        outputs = OutputBlock(schema)
+
+    Parameters
+    ----------
+    schema : Schema
+        Schema of the input data. This Schema object will be automatically generated using
+        [NVTabular](https://nvidia-merlin.github.io/NVTabular/main/Introduction.html).
+        Next to this, it's also possible to construct it manually.
+    pre : Optional[Layer], optional
+        Transformation block to apply before the embeddings lookup, by default None
+    post : Optional[Layer], optional
+        Transformation block to apply after the embeddings lookup, by default None
+
+
+    Raises
+    -------
+        ValueError: when the schema does not contain any target columns.
+
+    Returns
+    -------
+    Union[ModelOutput, ParallelBlock]
+        Returns a single output block or a parallel block depending on the number of target columns.
+    """
+
     targets_schema = schema.select_by_tag(Tags.TARGET)
     cols = []
 
