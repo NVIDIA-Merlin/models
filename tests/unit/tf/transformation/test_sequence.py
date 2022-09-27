@@ -18,7 +18,7 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.dataset import BatchedDataset
+from merlin.models.tf.loader import Loader
 from merlin.models.tf.utils.testing_utils import assert_output_shape
 from merlin.schema import Tags
 
@@ -30,21 +30,22 @@ def test_predict_next(sequence_testing_data: Dataset):
 
     batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
     output = predict_next(batch)
+    output_x, output_y = output
 
-    as_ragged = mm.AsRaggedFeatures()
+    as_ragged = mm.ListToRagged()
     batch = as_ragged(batch)
 
     # Checks if sequential input features were truncated in the last position
     for k, v in batch.items():
         if k in seq_schema.column_names:
-            tf.Assert(tf.reduce_all(output.outputs[k] == v[:, :-1]), [output.outputs[k], v[:, :-1]])
+            tf.Assert(tf.reduce_all(output_x[k] == v[:, :-1]), [output_x[k], v[:, :-1]])
         else:
-            tf.Assert(tf.reduce_all(output.outputs[k] == v), [output.outputs[k], v])
+            tf.Assert(tf.reduce_all(output_x[k] == v), [output_x[k], v])
 
     # Checks if the target is the shifted input feature
     tf.Assert(
-        tf.reduce_all(output.targets == batch[target][:, 1:]),
-        [output.targets, batch[target][:, 1:]],
+        tf.reduce_all(output_y == batch[target][:, 1:]),
+        [output_y, batch[target][:, 1:]],
     )
 
 
@@ -57,20 +58,19 @@ def test_predict_next_with_loader(sequence_testing_data: Dataset):
         sequence_testing_data, batch_size=8, to_ragged=True, include_targets=False
     )
 
-    dataset_transformed = BatchedDataset(sequence_testing_data, batch_size=8, shuffle=False).map(
-        predict_next
+    dataset_transformed = Loader(
+        sequence_testing_data, batch_size=8, shuffle=False, transform=predict_next
     )
     batch_transformed = next(iter(dataset_transformed))
+    output_x, output_y = batch_transformed
 
     for col_name, col_val in batch.items():
         if col_name in seq_schema.column_names:
-            tf.Assert(
-                tf.reduce_all(batch_transformed.outputs[col_name] == batch[col_name][:, :-1]), []
-            )
+            tf.Assert(tf.reduce_all(output_x[col_name] == batch[col_name][:, :-1]), [])
         else:
-            tf.Assert(tf.reduce_all(batch_transformed.outputs[col_name] == batch[col_name]), [])
+            tf.Assert(tf.reduce_all(output_x[col_name] == batch[col_name]), [])
 
-    tf.Assert(tf.reduce_all(batch_transformed.targets == batch[target][:, 1:]), [])
+    tf.Assert(tf.reduce_all(output_y == batch[target][:, 1:]), [])
 
 
 def test_predict_next_output_shape(sequence_testing_data):

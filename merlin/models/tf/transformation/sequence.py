@@ -13,15 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import tensorflow as tf
 
 from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import TabularBlock
 from merlin.models.tf.core.prediction import Prediction
-from merlin.models.tf.core.transformations import AsRaggedFeatures
+from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
+from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -40,7 +41,7 @@ class PredictNext(TabularBlock):
         The sequential input column that will be used to extract the target
     pre : Optional[BlockType], optional
         A block that is called before this method call().
-        If not set, the AsRaggedFeatures() block is applied to convert
+        If not set, the ListToRagged() block is applied to convert
         the tuple representation of sequential features to RaggedTensors,
         so that the tensors sequences can be shifted/truncated
     """
@@ -53,10 +54,11 @@ class PredictNext(TabularBlock):
         **kwargs,
     ):
         if not pre:
-            pre = AsRaggedFeatures()
+            pre = ListToRagged()
         super().__init__(pre=pre, **kwargs)
 
         self.schema = schema
+        self.target = target
         self.target_name = self._get_target(target)
 
     def _get_target(self, target):
@@ -80,7 +82,9 @@ class PredictNext(TabularBlock):
             target_name = self.schema.select_by_tag(target).column_names[0]
         return target_name
 
-    def call(self, inputs: TabularData, targets=None, testing=False, **kwargs) -> Prediction:
+    def call(
+        self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
+    ) -> Union[Prediction, Tuple]:
         target_shape = inputs[self.target_name].get_shape().as_list()
         if len(target_shape) != 2:
             raise ValueError(
@@ -111,7 +115,7 @@ class PredictNext(TabularBlock):
         elif isinstance(targets, dict):
             targets[self.target_name] = new_target
         else:
-            targets = dict(target=targets)
+            targets = dict()
             targets[self.target_name] = new_target
 
         new_inputs = dict()
@@ -122,7 +126,12 @@ class PredictNext(TabularBlock):
             else:
                 new_inputs[k] = v
 
-        return Prediction(new_inputs, targets)
+        def get_tuple(x, y):
+            if training or testing or y is None:
+                return Prediction(x, y)
+            return (x, y)
+
+        return get_tuple(new_inputs, targets)
 
     def compute_output_shape(self, input_shape):
         new_input_shapes = dict()
@@ -170,3 +179,23 @@ class PredictNext(TabularBlock):
             else:
                 output_column_schemas[col_name] = col_schema
         return Schema(column_schemas=output_column_schemas)
+
+    def get_config(self):
+        """Returns the config of the layer as a Python dictionary."""
+        config = super().get_config()
+        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
+        config["target"] = self.target
+        config["pre"] = self.pre
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        """Creates layer from its config. Returning the instance."""
+        schema = schema_utils.tensorflow_metadata_json_to_schema(config.pop("schema"))
+        target = config.pop("target")
+        pre = None
+        if "pre" in config:
+            pre = config.pop("pre")
+        kwargs = config
+        return cls(schema, target, pre=pre, **kwargs)
