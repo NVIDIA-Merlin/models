@@ -22,6 +22,7 @@ from merlin.models.tf.core.combinators import TabularBlock
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
+from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -101,9 +102,8 @@ class PredictNext(TabularBlock):
     ):
         if not pre:
             pre = ListToRagged()
-        super().__init__(pre=pre, **kwargs)
+        super().__init__(pre=pre, schema=schema, **kwargs)
 
-        self.schema = schema
         self.target = target
         self.target_name = self._get_target(target)
 
@@ -172,12 +172,7 @@ class PredictNext(TabularBlock):
             else:
                 new_inputs[k] = v
 
-        def get_tuple(x, y):
-            if training or testing or y is None:
-                return Prediction(x, y)
-            return (x, y)
-
-        return get_tuple(new_inputs, targets)
+        return (new_inputs, targets)
 
     def compute_output_shape(self, input_shape):
         new_input_shapes = dict()
@@ -229,19 +224,15 @@ class PredictNext(TabularBlock):
     def get_config(self):
         """Returns the config of the layer as a Python dictionary."""
         config = super().get_config()
-        config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(self.schema)
         config["target"] = self.target
-        config["pre"] = self.pre
 
         return config
 
     @classmethod
     def from_config(cls, config):
         """Creates layer from its config. Returning the instance."""
-        schema = schema_utils.tensorflow_metadata_json_to_schema(config.pop("schema"))
+        config = tf_utils.maybe_deserialize_keras_objects(config, ["pre", "post", "aggregation"])
+        config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
+        schema = config.pop("schema")
         target = config.pop("target")
-        pre = None
-        if "pre" in config:
-            pre = config.pop("pre")
-        kwargs = config
-        return cls(schema, target, pre=pre, **kwargs)
+        return cls(schema, target, **config)

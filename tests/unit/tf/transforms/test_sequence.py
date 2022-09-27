@@ -110,3 +110,8 @@ def test_predict_next_output_schema(sequence_testing_data):
             assert output_col.value_count.max == col_schema.value_count.max - 1
         else:
             assert output_col == col_schema
+
+
+def test_predict_next_serialize_deserialize(sequence_testing_data):
+    predict_next = mm.PredictNext(sequence_testing_data.schema, "item_id_seq")
+    assert isinstance(predict_next.from_config(predict_next.get_config()), mm.PredictNext)
