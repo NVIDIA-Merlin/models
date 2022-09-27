@@ -122,7 +122,6 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
-from merlin.models.tf.transformation.sequence import PredictNext
 from merlin.models.tf.transforms.features import (
     CategoryEncoding,
     HashedCross,
@@ -134,6 +133,7 @@ from merlin.models.tf.transforms.features import (
 )
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
+from merlin.models.tf.transforms.sequence import PredictNext
 from merlin.models.tf.transforms.tensor import ExpandDims, ListToDense, ListToRagged, ListToSparse
 from merlin.models.tf.utils import repr_utils
 from merlin.models.tf.utils.tf_utils import TensorInitializer
