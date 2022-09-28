@@ -43,7 +43,7 @@ def DLRMModel(
 
     Parameters
     ----------
-    schema : Schema
+    schema : ~merlin.schema.Schema
         The `Schema` with the input features
     embeddings : Optional[Block]
         Optional block for categorical embeddings.
@@ -109,7 +109,7 @@ def DCNModel(
 
     Parameters
     ----------
-    schema : Schema
+    schema : ~merlin.schema.Schema
         The `Schema` with the input features
     depth : int, optional
         Number of cross-layers to be stacked, by default 1
@@ -180,7 +180,7 @@ def DeepFMModel(
 
     Parameters
     ----------
-    schema : Schema
+    schema : ~merlin.schema.Schema
         The `Schema` with the input features
     embedding_dim : int
         Dimension of the embeddings
@@ -428,7 +428,7 @@ def WideAndDeepModel(
 
     Parameters
     ----------
-    schema : Schema
+    schema : ~merlin.schema.Schema
         The `Schema` with the input features
     deep_block: Block
         Block (structure) of deep model.
