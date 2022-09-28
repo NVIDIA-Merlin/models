@@ -75,6 +75,50 @@ This label excludes the PR from the change log.
 For more information, see `.github/release-drafter.yml` in the repository
 or go to <https://github.com/release-drafter/release-drafter>.
 
+## Adding classes, methods, and so on
+
+If you add a class, method, or function, make an update to `docs/source/api.rst`
+to reference your change. If you remove one of these items, please also remove
+it from the same `api.rst` file.
+
+> In this second case, you probably want to mark your PR with the `breaking`
+> label when you open the PR.
+
+Please make sure to build the documentation by following the guidance in
+`docs/README.md` and check that you do not introduce any build errors or warnings.
+
+The following line is an example of a warning. Check that the specified class,
+`CachedCrossBatchSampler` is still part of the software or remove it from
+`api.rst` and label your PR with the `breaking` label.
+
+```terminal
+WARNING: [autosummary] failed to import 'merlin.models.tf.CachedCrossBatchSampler': no module named merlin.models.tf.CachedCrossBatchSampler
+```
+
+Also look for warnings that report mistakes with formatting docstrings:
+
+```terminal
+merlin/models/merlin/models/tf/blocks/retrieval/base.py:docstring of merlin.models.tf.blocks.retrieval.base.DualEncoderBlock.__ini
+t__:11: WARNING: Unexpected indentation.
+```
+
+**TIP**: To add a link from a docstring to class documentation in the
+Merlin Core repository, specify the fully qualified class name and prefix it
+with a tilde like the following example:
+
+```python
+Parameters
+----------
+schema : ~merlin.schema.Schema
+    The `Schema` with the input features
+deep_block: Block
+    Block (structure) of deep model.
+```
+
+The [Intersphinx](https://docs.readthedocs.io/en/stable/guides/intersphinx.html)
+extension truncates the text to [Schema](https://nvidia-merlin.github.io/core/main/api/merlin.schema.html)
+and makes it a link.
+
 ## Attribution
 
 Portions adopted from https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md
