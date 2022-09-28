@@ -357,7 +357,9 @@ class SeqPredictRandom(SequenceTransform):
             1,
         )
 
-        positions_matrix = tf.tile(tf.expand_dims(tf.range(0, max_length), 0), [batch_size, 1])
+        positions_matrix = tf.tile(
+            tf.expand_dims(tf.range(0, max_length, dtype=tf.int32), 0), [batch_size, 1]
+        )
         input_mask = positions_matrix < random_targets_indices
         target_mask = positions_matrix == random_targets_indices
 
