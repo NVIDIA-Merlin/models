@@ -701,11 +701,11 @@ class BaseModel(tf.keras.Model):
         train_metrics_steps=1,
         **kwargs,
     ):
-        x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
-
         # Bind schema from dataset to model in case we can't infer it from the inputs
-        if isinstance(x, Loader):
+        if isinstance(x, (Loader, merlin.io.Dataset)):
             self.schema = x.schema
+
+        x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
         validation_data = _maybe_convert_merlin_dataset(
             validation_data, batch_size, shuffle=shuffle, **kwargs
@@ -1407,5 +1407,8 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
 
         if not shuffle:
             kwargs.pop("shuffle", None)
+
+    if isinstance(data, Loader):
+        data = (batch for batch in data)
 
     return data
