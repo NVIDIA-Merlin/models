@@ -122,7 +122,7 @@ class ListToDense(TabularBlock):
     def _get_output_tensor_shape(self, val_shape):
         if isinstance(val_shape, tuple) and isinstance(val_shape[1], tf.TensorShape):
             val_shape = val_shape[1]
-        if val_shape.rank > 1:
+        if val_shape.rank > 1 and val_shape[-1] > 1:
             shapes = val_shape.as_list()
             if self.max_seq_length:
                 shapes[1] = self.max_seq_length
