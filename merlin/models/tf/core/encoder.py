@@ -145,3 +145,42 @@ class EncoderBlock(tf.keras.Model):
             config[i] = tf.keras.utils.serialize_keras_object(layer)
 
         return config
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class TopKEncoder(EncoderBlock):
+    """Block that can be used for top-k prediction & evaluation from a trained
+    retrieval model
+
+    Parameters
+    ----------
+    inputs: Union[Schema, tf.keras.layers.Layer]
+        The input block or schema.
+        When a schema is provided, a default input block will be created.
+    *blocks: tf.keras.layers.Layer
+        The blocks to use for encoding.
+    pre: Optional[tf.keras.layers.Layer]
+        A block to use before the main blocks
+    post: Optional[tf.keras.layers.Layer]
+        A block to use after the main blocks
+    """
+
+    def __init__(
+        self,
+        query_encoder: tf.keras.layers.Layer,
+        strategy: Union[str, tf.keras.layers.Layer] = "brute-force-topk",
+        candidate_encoder: Optional[Union[tf.Tensor, tf.keras.layers.Layer]] = None,
+        pre: Optional[tf.keras.layers.Layer] = None,
+        post: Optional[tf.keras.layers.Layer] = None,
+        **kwargs,
+    ):
+        pass
+
+    @classmethod
+    def from_candidate_dataset(
+        cls,
+        query_encoder,
+        candidate_encoder,
+        canidates_dataset,
+    ):
+        pass
