@@ -162,6 +162,43 @@ This label excludes the PR from the change log.</p>
 <p>For more information, see <code class="docutils literal notranslate"><span class="pre">.github/release-drafter.yml</span></code> in the repository
 or go to <a class="reference external" href="https://github.com/release-drafter/release-drafter">https://github.com/release-drafter/release-drafter</a>.</p>
 </div>
+<div class="section" id="adding-classes-methods-and-so-on">
+<h2>Adding classes, methods, and so on<a class="headerlink" href="#adding-classes-methods-and-so-on" title="Permalink to this headline"></a></h2>
+<p>If you add a class, method, or function, make an update to <code class="docutils literal notranslate"><span class="pre">docs/source/api.rst</span></code>
+to reference your change. If you remove one of these items, please also remove
+it from the same <code class="docutils literal notranslate"><span class="pre">api.rst</span></code> file.</p>
+<blockquote>
+<div><p>In this second case, you probably want to mark your PR with the <code class="docutils literal notranslate"><span class="pre">breaking</span></code>
+label when you open the PR.</p>
+</div></blockquote>
+<p>Please make sure to build the documentation by following the guidance in
+<code class="docutils literal notranslate"><span class="pre">docs/README.md</span></code> and check that you do not introduce any build errors or warnings.</p>
+<p>The following line is an example of a warning. Check that the specified class,
+<code class="docutils literal notranslate"><span class="pre">CachedCrossBatchSampler</span></code> is still part of the software or remove it from
+<code class="docutils literal notranslate"><span class="pre">api.rst</span></code> and label your PR with the <code class="docutils literal notranslate"><span class="pre">breaking</span></code> label.</p>
+<div class="highlight-terminal notranslate"><div class="highlight"><pre><span></span>WARNING: [autosummary] failed to import &#39;merlin.models.tf.CachedCrossBatchSampler&#39;: no module named merlin.models.tf.CachedCrossBatchSampler
+</pre></div>
+</div>
+<p>Also look for warnings that report mistakes with formatting docstrings:</p>
+<div class="highlight-terminal notranslate"><div class="highlight"><pre><span></span>merlin/models/merlin/models/tf/blocks/retrieval/base.py:docstring of merlin.models.tf.blocks.retrieval.base.DualEncoderBlock.__ini
+t__:11: WARNING: Unexpected indentation.
+</pre></div>
+</div>
+<p><strong>TIP</strong>: To add a link from a docstring to class documentation in the
+Merlin Core repository, specify the fully qualified class name and prefix it
+with a tilde like the following example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>Parameters
+----------
+schema : ~merlin.schema.Schema
+    The `Schema` with the input features
+deep_block: Block
+    Block (structure) of deep model.
+</pre></div>
+</div>
+<p>The <a class="reference external" href="https://docs.readthedocs.io/en/stable/guides/intersphinx.html">Intersphinx</a>
+extension truncates the text to <a class="reference external" href="https://nvidia-merlin.github.io/core/main/api/merlin.schema.html">Schema</a>
+and makes it a link.</p>
+</div>
 <div class="section" id="attribution">
 <h2>Attribution<a class="headerlink" href="#attribution" title="Permalink to this headline"></a></h2>
 <p>Portions adopted from <a class="reference external" href="https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md">https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md</a></p>
