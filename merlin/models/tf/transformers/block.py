@@ -57,8 +57,9 @@ class TransformerBlock(Block):
     Parameters
     ----------
     transformer: TransformerBody
-        The T4RecConfig, The pre-trained HF model or the custom keras layer TF*MainLayer,
-        related to specific transformer architecture.
+        One of the following HuggingFace classes:
+        Pretrained Config or model, or the custom keras layer `TF*MainLayer`,
+        related to a specific transformer architecture.
     transformer_pre: tf.keras.layers.Layer
         Prepare the dictionary of inputs expected by the transformer layer
         by default PrepareTransformerInputs()
@@ -149,7 +150,7 @@ class TransformerBlock(Block):
         config = maybe_serialize_keras_objects(
             self,
             config,
-            ["transformer", "pre", "post", "from_huggingface_outputs", "to_huggingface_inputs"],
+            ["transformer", "pre", "post", "transformer_pre", "transformer_post"],
         )
         return config
 
@@ -157,7 +158,7 @@ class TransformerBlock(Block):
     def from_config(cls, config, custom_objects=None):
         config = maybe_deserialize_keras_objects(
             config,
-            ["transformer", "pre", "post", "from_huggingface_outputs", "to_huggingface_inputs"],
+            ["transformer", "pre", "post", "transformer_pre", "transformer_post"],
         )
 
         output = TransformerBlock(**config)

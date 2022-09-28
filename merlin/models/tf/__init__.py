@@ -122,20 +122,24 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
-from merlin.models.tf.transformers.block import (
-    AlbertBlock,
-    BertBlock,
-    GPT2Block,
-    RobertaBlock,
-    TransformerBlock,
-    XLNetBlock,
-)
-from merlin.models.tf.transformers.transforms import (
-    AttentionWeights,
-    HiddenStates,
-    LastHiddenState,
-    LastHiddenStateAndAttention,
-)
+from merlin.models.utils.dependencies import is_transformers_available
+
+if is_transformers_available():
+    from merlin.models.tf.transformers.block import (
+        AlbertBlock,
+        BertBlock,
+        GPT2Block,
+        RobertaBlock,
+        TransformerBlock,
+        XLNetBlock,
+    )
+    from merlin.models.tf.transformers.transforms import (
+        AttentionWeights,
+        HiddenStates,
+        LastHiddenState,
+        LastHiddenStateAndAttention,
+    )
+
 from merlin.models.tf.transforms.features import (
     CategoryEncoding,
     HashedCross,
