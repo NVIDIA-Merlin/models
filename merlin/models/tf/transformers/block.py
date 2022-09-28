@@ -59,13 +59,13 @@ class TransformerBlock(Block):
     transformer: TransformerBody
         The T4RecConfig, The pre-trained HF model or the custom keras layer TF*MainLayer,
         related to specific transformer architecture.
-    from_huggingface_outputs: [Union[str, tf.keras.layers.Layer]]
+    transformer_pre: tf.keras.layers.Layer
+        Prepare the dictionary of inputs expected by the transformer layer
+        by default PrepareTransformerInputs()
+    transformer_post: [Union[str, tf.keras.layers.Layer]]
         Layer to extract the desired tensors from the HuggingFace dataclass
         `TFBaseModelOutputWithPoolingAndCrossAttentions`
         by default `last_hidden_state`
-    to_huggingface_inputs: tf.keras.layers.Layer
-        Prepare the dictionary of inputs expected by the transformer layer
-        by default PrepareTransformerInputs()
     pre: Optional[Union[str, tf.keras.layers.Layer]]
         A block to use before the main transformer block, by default None
     post: Optional[Union[str, tf.keras.layers.Layer]]
@@ -75,10 +75,10 @@ class TransformerBlock(Block):
     def __init__(
         self,
         transformer: TransformerBody,
-        from_huggingface_outputs: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
-        to_huggingface_inputs=PrepareTransformerInputs(),
+        pre: Optional[Union[str, tf.keras.layers.Layer]] = None,
         post: Optional[Union[str, tf.keras.layers.Layer]] = None,
-        pre=None,
+        transformer_pre=PrepareTransformerInputs(),
+        transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -91,15 +91,58 @@ class TransformerBlock(Block):
         else:
             self.transformer = transformer
 
-        if isinstance(from_huggingface_outputs, str):
-            from_huggingface_outputs = block_registry.parse(from_huggingface_outputs)
-        self.from_huggingface_outputs = from_huggingface_outputs
-        if "transformer" in inspect.signature(to_huggingface_inputs.__init__).parameters:
-            to_huggingface_inputs = to_huggingface_inputs(transformer=self.transformer)
-        self.to_huggingface_inputs = to_huggingface_inputs
+        if "transformer" in inspect.signature(transformer_pre.__init__).parameters:
+            transformer_pre = transformer_pre(transformer=self.transformer)
+        self.transformer_pre = transformer_pre
+        if isinstance(transformer_post, str):
+            transformer_post = block_registry.parse(transformer_post)
+        self.transformer_post = transformer_post
 
         self.post = post
         self.pre = pre
+
+    def build(self, input_shape=None):
+        """Builds the sequential block
+
+        Parameters
+        ----------
+        input_shape : tf.TensorShape, optional
+            The input shape, by default None
+        """
+        combinators.build_sequentially(
+            self, [*list(self.to_call_pre), self.transformer, *list(self.to_call_post)], input_shape
+        )
+
+    def call(self, inputs: tf.Tensor, **kwargs):
+        """
+        Parameters
+        ----------
+        inputs: tf.Tensor
+            The 3D tensor of the sequence of interactions embeddings.
+        """
+        if isinstance(inputs, tf.RaggedTensor):
+            # convert to a dense tensor as HF transformers do not support ragged tensors
+            inputs = inputs.to_tensor()
+
+        pre = combinators.call_sequentially(list(self.to_call_pre), inputs, **kwargs)
+        transformer = self.transformer(pre)
+        out = combinators.call_sequentially(list(self.to_call_post), transformer, **kwargs)
+
+        return out
+
+    @property
+    def to_call_pre(self):
+        if self.pre:
+            yield self.pre
+
+        yield self.transformer_pre
+
+    @property
+    def to_call_post(self):
+        yield self.transformer_post
+
+        if self.post:
+            yield self.post
 
     def get_config(self):
         config = super().get_config()
@@ -122,33 +165,6 @@ class TransformerBlock(Block):
 
         return output
 
-    def call(self, inputs: tf.Tensor, **kwargs):
-        """
-        Parameters
-        ----------
-        inputs: tf.Tensor
-            The 3D tensor of the sequence of interactions embeddings.
-        """
-        if isinstance(inputs, tf.RaggedTensor):
-            # convert to a dense tensor as HF transformers do not support ragged tensors
-            inputs = inputs.to_tensor()
-
-        return combinators.call_sequentially(list(self.to_call), inputs=inputs, **kwargs)
-
-    @property
-    def to_call(self):
-        if self.pre:
-            yield self.pre
-
-        yield self.to_huggingface_inputs
-
-        yield self.transformer
-
-        yield self.from_huggingface_outputs
-
-        if self.post:
-            yield self.post
-
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BertBlock(TransformerBlock):
@@ -167,10 +183,10 @@ class BertBlock(TransformerBlock):
         dropout=0.3,
         pad_token=0,
         log_attention_weights=False,
-        from_huggingface_outputs: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
-        to_huggingface_inputs=PrepareTransformerInputs(),
         pre=None,
         post=None,
+        transformer_pre=PrepareTransformerInputs(),
+        transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
         **kwargs,
     ):
         config = self.create_config(
@@ -190,8 +206,8 @@ class BertBlock(TransformerBlock):
             transformer=config,
             pre=pre,
             post=post,
-            from_huggingface_outputs=from_huggingface_outputs,
-            to_huggingface_inputs=to_huggingface_inputs,
+            transformer_pre=transformer_pre,
+            transformer_post=transformer_post,
         )
 
     def create_config(
@@ -243,8 +259,8 @@ class AlbertBlock(TransformerBlock):
         dropout=0.3,
         pad_token=0,
         log_attention_weights=False,
-        from_huggingface_outputs: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
-        to_huggingface_inputs=PrepareTransformerInputs(),
+        transformer_pre=PrepareTransformerInputs(),
+        transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
         pre=None,
         post=None,
         **kwargs,
@@ -266,8 +282,8 @@ class AlbertBlock(TransformerBlock):
             config,
             pre=pre,
             post=post,
-            from_huggingface_outputs=from_huggingface_outputs,
-            to_huggingface_inputs=to_huggingface_inputs,
+            transformer_pre=transformer_pre,
+            transformer_post=transformer_post,
         )
 
     @classmethod
@@ -320,10 +336,10 @@ class RobertaBlock(TransformerBlock):
         dropout=0.3,
         pad_token=0,
         log_attention_weights=False,
-        from_huggingface_outputs: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
-        to_huggingface_inputs=PrepareTransformerInputs(),
         pre=None,
         post=None,
+        transformer_pre=PrepareTransformerInputs(),
+        transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
         **kwargs,
     ):
         config = self.create_config(
@@ -343,8 +359,8 @@ class RobertaBlock(TransformerBlock):
             config,
             pre=pre,
             post=post,
-            from_huggingface_outputs=from_huggingface_outputs,
-            to_huggingface_inputs=to_huggingface_inputs,
+            transformer_pre=transformer_pre,
+            transformer_post=transformer_post,
         )
 
     @classmethod
@@ -398,10 +414,10 @@ class XLNetBlock(TransformerBlock):
         pad_token=0,
         log_attention_weights=False,
         mem_len=1,
-        from_huggingface_outputs: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
-        to_huggingface_inputs=PrepareTransformerInputs(),
         pre=None,
         post=None,
+        transformer_pre=PrepareTransformerInputs(),
+        transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
         **kwargs,
     ):
         config = self.create_config(
@@ -423,8 +439,8 @@ class XLNetBlock(TransformerBlock):
             config,
             pre=pre,
             post=post,
-            from_huggingface_outputs=from_huggingface_outputs,
-            to_huggingface_inputs=to_huggingface_inputs,
+            transformer_pre=transformer_pre,
+            transformer_post=transformer_post,
         )
 
     @classmethod
@@ -479,10 +495,10 @@ class GPT2Block(TransformerBlock):
         dropout=0.3,
         pad_token=0,
         log_attention_weights=False,
-        from_huggingface_outputs: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
-        to_huggingface_inputs=PrepareTransformerInputs(),
         pre=None,
         post=None,
+        transformer_pre=PrepareTransformerInputs(),
+        transformer_post: Optional[Union[str, tf.keras.layers.Layer]] = "last_hidden_state",
         **kwargs,
     ):
         config = self.create_config(
@@ -502,8 +518,8 @@ class GPT2Block(TransformerBlock):
             config,
             pre=pre,
             post=post,
-            from_huggingface_outputs=from_huggingface_outputs,
-            to_huggingface_inputs=to_huggingface_inputs,
+            transformer_pre=transformer_pre,
+            transformer_post=transformer_post,
         )
 
     @classmethod
