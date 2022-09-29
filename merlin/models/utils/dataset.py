@@ -58,7 +58,7 @@ def unique_rows_by_features(
 
     columns = dataset.schema.select_by_tag(features_tag).column_names
     if columns:
-        id_col = dataset.schema.select_by_tag(grouping_tag).first.name
+        id_col = dataset.schema.select_by_tag(features_tag).select_by_tag(grouping_tag).first.name
         ddf = ddf[columns].drop_duplicates(id_col, keep="first")
 
     return Dataset(ddf)
