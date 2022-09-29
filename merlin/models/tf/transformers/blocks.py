@@ -30,7 +30,8 @@ from merlin.schema import Schema, Tags
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class SequenceRandomTargetMasking(Block):
     """This block implements the Masked Language Modeling (MLM) training approach
-    introduced in BERT. Given an input tf.RaggedTensor with sequences of embeddings
+    introduced in BERT (NLP) and later adapted to RecSys by BERT4Rec [1].
+    Given an input tf.RaggedTensor with sequences of embeddings
     and the corresponding sequence of item ids, some positions are randomly selected (masked)
     to be the targets for prediction.
     The input embeddings at the masked positions are
@@ -39,6 +40,12 @@ class SequenceRandomTargetMasking(Block):
     can be discovered later by checking the outputs._keras_mask.
     This transformation is only applied during training, as during inference you want
     to use all available information of the sequence for prediction.
+
+    References
+    ----------
+    .. [1] Sun, Fei, et al. "BERT4Rec: Sequential recommendation with bidirectional encoder
+           representations from transformer." Proceedings of the 28th ACM international
+           conference on information and knowledge management. 2019.
 
     Parameters
     ----------
