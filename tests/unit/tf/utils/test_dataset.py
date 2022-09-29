@@ -36,9 +36,10 @@ def test_unique_rows_by_features():
     )
 
     dataset = Dataset(df, schema=schema, npartitions=6)
-    dataset = unique_rows_by_features(dataset, Tags.USER, Tags.ID)
+    result_dataset = unique_rows_by_features(dataset, Tags.USER, Tags.ID)
 
-    result_df = dataset.compute()
+    result_df = result_dataset.compute()
     assert set(result_df.columns) == {"user_id", "user_feat"}
     assert result_df["user_id"].values.tolist() == [1, 2, 3, 4]
     assert result_df["user_feat"].values.tolist() == [11, 22, 33, 44]
+    assert result_dataset.schema == schema.excluding_by_name(["item_id"])
