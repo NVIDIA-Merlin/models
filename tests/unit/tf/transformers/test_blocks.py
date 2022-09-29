@@ -38,9 +38,17 @@ def test_seq_random_target_masking():
     tf.assert_equal(tf.reduce_all(masked_elements == masking.target_mask), True)
 
     # Checking if there is no sequence with no elements masked as target
-    tf.assert_equal(tf.reduce_all(tf.reduce_any(output.outputs._keras_mask, axis=1)), True)
+    tf.assert_equal(
+        tf.reduce_all(tf.reduce_any(masked_elements, axis=1)),
+        True,
+        message=f"There are sequences with no targets masked {masked_elements.numpy()}",
+    )
     # Checking if there is no sequence with all elements masked
-    tf.assert_equal(tf.reduce_any(tf.reduce_all(output.outputs._keras_mask, axis=1)), False)
+    tf.assert_equal(
+        tf.reduce_any(tf.reduce_all(masked_elements, axis=1)),
+        False,
+        message=f"There are sequences with all targets masked {masked_elements.numpy()}",
+    )
 
 
 def test_seq_random_target_should_not_mask_if_not_training():
