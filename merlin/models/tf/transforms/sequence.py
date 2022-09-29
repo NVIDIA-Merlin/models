@@ -347,7 +347,9 @@ class SeqPredictRandom(SequenceTransform):
             tf.cast(
                 tf.math.floor(
                     (
-                        tf.random.uniform(shape=[8], minval=0.0, maxval=1.0, dtype=tf.float32)
+                        tf.random.uniform(
+                            shape=[batch_size], minval=0.0, maxval=1.0, dtype=tf.float32
+                        )
                         * tf.cast(seq_length - 1, tf.float32)
                     )
                     + 1
