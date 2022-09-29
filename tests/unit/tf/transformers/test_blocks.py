@@ -32,10 +32,14 @@ def test_seq_random_target_masking():
     masking = mm.SequenceRandomTargetMasking(schema, masking_prob=0.3)
     output = masking(inputs, features=input_features, training=True)
 
+    inputs_mask = output.outputs._keras_mask
+    targets_mask = output.targets._keras_mask
+    tf.assert_equal(tf.reduce_all(targets_mask == masking.target_mask), True)
+    tf.assert_equal(tf.reduce_all(inputs_mask == tf.logical_not(targets_mask)), True)
+
     masked_elements = tf.logical_not(tf.reduce_all(output.outputs == inputs, axis=-1))
     # Checks if only elements maskes as targets had the corresponding embeddings replaced
-    tf.assert_equal(tf.reduce_all(masked_elements == output.outputs._keras_mask), True)
-    tf.assert_equal(tf.reduce_all(masked_elements == masking.target_mask), True)
+    tf.assert_equal(tf.reduce_all(masked_elements == targets_mask), True)
 
     # Checking if there is no sequence with no elements masked as target
     tf.assert_equal(

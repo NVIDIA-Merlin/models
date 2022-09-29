@@ -133,7 +133,7 @@ class SequenceRandomTargetMasking(Block):
             item_id_seq = features[self.item_id_col]
             self.target_mask = self._generate_target_mask(item_id_seq)
             outputs = self._mask_inputs(inputs)
-            targets = features[self.item_id_col]
+            targets = tf.identity(features[self.item_id_col])
         return Prediction(outputs, targets)
 
     def _generate_target_mask(self, ids_seq: tf.RaggedTensor):
@@ -213,7 +213,11 @@ class SequenceRandomTargetMasking(Block):
         be assigned to the input tensor, being accessible
         by inputs._keras_mask
         """
-        return self.target_mask
+        if self.target_mask is None:
+            return (None, None)
+
+        input_mask = tf.logical_not(self.target_mask)
+        return (input_mask, self.target_mask)
 
     def get_config(self):
         config = super().get_config()
