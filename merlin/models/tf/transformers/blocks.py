@@ -160,7 +160,6 @@ class SequenceRandomTargetMasking(Block):
             target_mask = tf.where(
                 tf.expand_dims(replacement_cond, -1), one_target_mask, target_mask_by_prob
             )
-
             padding_mask = tf.sequence_mask(row_lengths)
             target_mask_ragged = tf.ragged.boolean_mask(target_mask, padding_mask)
 
@@ -175,6 +174,9 @@ class SequenceRandomTargetMasking(Block):
         """
         max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
         output = tf.cast(random_bernoulli([batch_size, max_seq_length], p=prob), tf.bool)
+        padding_mask = tf.sequence_mask(row_lengths)
+        # Ignoring masked items in the padding positions
+        output = tf.logical_and(output, padding_mask)
         return output
 
     @staticmethod
