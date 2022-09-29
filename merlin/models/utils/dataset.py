@@ -59,7 +59,7 @@ def unique_rows_by_features(
 
     Parameters
     ----------
-    dataset : ~merlin.io.dataset
+    dataset : ~merlin.io.Dataset
         Dataset to transform
     features_tag : ~merlin.schema.Tags
         Tag representing the columns to return in the new Dataset
