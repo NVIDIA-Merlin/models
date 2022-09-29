@@ -1,7 +1,11 @@
+import tempfile
+
 import pytest
+import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf.core.encoder import TopKEncoder
 from merlin.models.tf.utils import testing_utils
 
 
@@ -37,3 +41,65 @@ def test_encoder_block(music_streaming_data: Dataset):
 
     item_features = testing_utils.get_model_inputs(item_schema)
     testing_utils.test_model_signature(item_encoder, item_features, ["output_1"])
+
+
+def test_topk_encoder(music_streaming_data: Dataset):
+    # TODO: Simplify the test after RetrievalModelV2 is merged
+    TOP_K = 50
+    NUM_CANDIDATES = 100
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(
+        ["user_id", "item_id", "user_genres"]
+    )
+
+    schema = music_streaming_data.schema
+    user_schema = schema.select_by_name(["user_id", "user_genres"])
+    user_encoder = mm.EncoderBlock(user_schema, mm.MLPBlock([4]), name="query")
+    item_schema = schema.select_by_name(["item_id"])
+    item_encoder = mm.EncoderBlock(item_schema, mm.MLPBlock([4]), name="candidate")
+    model = mm.Model(
+        mm.ParallelBlock(user_encoder, item_encoder),
+        mm.ContrastiveOutput(item_schema, "in-batch"),
+    )
+    testing_utils.model_test(model, music_streaming_data)
+
+    _candidate_embeddings = tf.random.uniform(shape=(NUM_CANDIDATES, 4), dtype=tf.float32)
+
+    def _item_id_as_target(inputs, targets):
+        targets = tf.squeeze(inputs["item_id"])
+        return inputs, targets
+
+    loader = mm.Loader(music_streaming_data, batch_size=32, transform=_item_id_as_target)
+    batch = next(iter(loader))
+
+    topk_encoder = TopKEncoder(
+        query_encoder=model.blocks[0]["query"], candidates=_candidate_embeddings, k=TOP_K
+    )
+    batch_output = topk_encoder(batch[0])
+    predict_output = topk_encoder.predict(loader)
+    assert isinstance(batch_output, tuple)
+    assert list(batch_output[0].shape) == [32, TOP_K]
+    assert list(predict_output[0].shape) == [100, TOP_K]
+
+    topk_encoder.compile()
+    topk_evaluation_metrics = topk_encoder.evaluate(loader, return_dict=True)
+    assert set(topk_evaluation_metrics.keys()) == set(
+        [
+            "loss",
+            "mrr_at_10",
+            "ndcg_at_10",
+            "map_at_10",
+            "regularization_loss",
+            "recall_at_10",
+            "precision_at_10",
+        ]
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        topk_encoder.save(tmpdir)
+        loaded_topk_encoder = tf.keras.models.load_model(tmpdir)
+    batch_output = loaded_topk_encoder(batch[0])
+    assert isinstance(batch_output, tuple)
+    tf.assert_equal(
+        topk_encoder.layers[-1].to_call._candidates,
+        loaded_topk_encoder.layers[-1].to_call._candidates,
+    )

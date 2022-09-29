@@ -5,7 +5,7 @@ from tensorflow.keras.layers import Layer
 
 import merlin.io
 from merlin.core.dispatch import DataFrameType
-from merlin.models.tf.blocks.core import Block, block_registry
+from merlin.models.tf.core.base import Block, block_registry
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.outputs.base import MetricsFn, ModelOutput
 from merlin.models.tf.outputs.classification import default_categorical_prediction_metrics
@@ -87,7 +87,7 @@ class TopKLayer(Layer):
             ids = tf.squeeze(ids)
         return ids, values
 
-    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, inputs: tf.Tensor, targets=None, testing=False, **kwargs) -> tf.Tensor:
         """Method to return the tuple of top-k (ids, scores)"""
         raise NotImplementedError()
 
@@ -95,13 +95,22 @@ class TopKLayer(Layer):
         """Computes the standard dot product score from queries and candidates."""
         return tf.matmul(queries, candidates, transpose_b=True)
 
+    @classmethod
+    def from_config(cls, config, custom_objects=None):
+        return super().from_config(config)
+
+    def get_config(self):
+        config = super().get_config()
+        config["k"] = self._k
+        return config
+
 
 @Block.registry.register("brute-force-topk")
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class BruteForce(TopKLayer):
     """Top-k layer that performs Brute force search over the candidates index."""
 
-    def __init__(self, k: int = 10, name: Optional[str] = None):
+    def __init__(self, k: int = 10, name: Optional[str] = None, **kwargs):
         """Initializes the layer.
 
         Parameters:
@@ -112,9 +121,12 @@ class BruteForce(TopKLayer):
             Name of the layer. By default None
         """
 
-        super().__init__(k=k, name=name)
+        super().__init__(k=k, name=name, **kwargs)
 
-    def index(self, candidates: tf.Tensor, identifiers: Optional[tf.Tensor]) -> "BruteForce":
+    def index(self, candidates: tf.Tensor, identifiers: Optional[tf.Tensor] = None) -> "BruteForce":
+
+        if identifiers is None:
+            identifiers = tf.range(candidates.shape[0])
 
         self._ids = self.add_weight(
             name="ids",
@@ -137,7 +149,10 @@ class BruteForce(TopKLayer):
         return self
 
     def call(
-        self, inputs, targets=None, k=None, testing=False
+        self,
+        inputs,
+        targets=None,
+        testing=False,
     ) -> Union[Prediction, Tuple[tf.Tensor, tf.Tensor]]:
         """Compute the scores between the query inputs and all indexed candidates,
         then retrieve the top-k candidates with the highest scores.
@@ -148,12 +163,9 @@ class BruteForce(TopKLayer):
             The query embeddings representation
         targets: tf.Tensor
             The tensor of positive candidates
-        k : int, optional
-            The threshold for top-k retrieval, by default None
         testing: bool
         """
-        if not k:
-            k = self._k
+        k = self._k
         scores = self._score(inputs, self._candidates)
         top_scores, top_ids = tf.math.top_k(scores, k=k)
         if testing:
@@ -166,13 +178,19 @@ class BruteForce(TopKLayer):
             return Prediction(top_scores, targets)
         return top_scores, top_ids
 
+    def compute_output_shape(self, input_shape):
+        return (
+            tf.TensorShape((input_shape[0], self._k)),
+            tf.TensorShape((input_shape[0], self._k)),
+        )
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopKOutput(ModelOutput):
     """Prediction block for top-k evaluation
     Parameters
     ----------
-    to_call:  Union[str, tf.keras.layers.Layer, TopKLayer]
+    to_call:  Union[str, TopKLayer]
        The top-k layer to use for retrieving top-k candidates ids and scores
     item_dataset:  merlin.io.Dataset,
         Dataset of the pretrained candidates embeddings to use for the top-k index.
@@ -200,9 +218,9 @@ class TopKOutput(ModelOutput):
     def __init__(
         self,
         to_call: Union[str, TopKLayer],
-        candidate_dataset: merlin.io.Dataset = None,
+        candidates: Union[tf.Tensor, merlin.io.Dataset] = None,
         k: int = 10,
-        target: Optional[str, Schema] = None,
+        target: Optional[Union[str, Schema]] = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
         logits_temperature: float = 1.0,
@@ -213,13 +231,19 @@ class TopKOutput(ModelOutput):
     ):
 
         if isinstance(to_call, str):
-            if candidate_dataset is None:
+            if candidates is None:
                 raise ValueError(
                     "You should provide the dataset of pre-trained embeddings"
                     " when `to_call` is the string name of the top-k strategy "
                 )
-                to_call = block_registry.parse(to_call).index_from_dataset(candidate_dataset)
+            if isinstance(candidates, merlin.io.Dataset):
+                to_call = block_registry.parse(to_call).index_from_dataset(candidates)
+            else:
+                to_call = block_registry.parse(to_call).index(candidates)
 
+        assert isinstance(to_call, TopKLayer)
+        to_call._k = k
+        self.to_call = to_call
         super().__init__(
             to_call=to_call,
             default_loss=default_loss,
