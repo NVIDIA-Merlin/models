@@ -15,11 +15,11 @@
 #
 from merlin.core.dispatch import make_df
 from merlin.io import Dataset
-from merlin.models.utils.dataset import unique_rows_by_features
+from merlin.models.utils.dataset import unique_by_tag
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
-def test_unique_rows_by_features():
+def test_unique_by_tag():
     df = make_df(
         {
             "user_id": [1, 1, 2, 3, 4, 3],
@@ -36,7 +36,7 @@ def test_unique_rows_by_features():
     )
 
     dataset = Dataset(df, schema=schema, npartitions=6)
-    result_dataset = unique_rows_by_features(dataset, Tags.USER, Tags.ID)
+    result_dataset = unique_by_tag(dataset, Tags.USER)
 
     result_df = result_dataset.compute()
     assert set(result_df.columns) == {"user_id", "user_feat"}
