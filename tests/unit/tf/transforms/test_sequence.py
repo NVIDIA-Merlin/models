@@ -28,7 +28,7 @@ from merlin.schema import Tags
 def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_next = mm.SeqPredictNext(schema=seq_schema, target=target, pre=mm.ListToRagged())
+    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target, pre=mm.ListToRagged())
 
     batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
     if use_loader:
@@ -61,7 +61,7 @@ def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
 def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_last = mm.SeqPredictLast(schema=seq_schema, target=target)
+    predict_last = mm.SequencePredictLast(schema=seq_schema, target=target)
 
     batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
     if use_loader:
@@ -95,7 +95,7 @@ def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
 def test_seq_predict_random(sequence_testing_data: Dataset, use_loader: bool):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_random = mm.SeqPredictRandom(schema=seq_schema, target=target)
+    predict_random = mm.SequencePredictRandom(schema=seq_schema, target=target)
 
     batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
     if use_loader:
@@ -136,7 +136,7 @@ def test_seq_predict_random(sequence_testing_data: Dataset, use_loader: bool):
 def test_seq_predict_next_output_shape(sequence_testing_data):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_next = mm.SeqPredictNext(schema=seq_schema, target=target)
+    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
 
     batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
 
@@ -158,5 +158,5 @@ def test_seq_predict_next_output_shape(sequence_testing_data):
 
 
 def test_seq_predict_next_serialize_deserialize(sequence_testing_data):
-    predict_next = mm.SeqPredictNext(sequence_testing_data.schema, "item_id_seq")
-    assert isinstance(predict_next.from_config(predict_next.get_config()), mm.SeqPredictNext)
+    predict_next = mm.SequencePredictNext(sequence_testing_data.schema, "item_id_seq")
+    assert isinstance(predict_next.from_config(predict_next.get_config()), mm.SequencePredictNext)

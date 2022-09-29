@@ -19,7 +19,6 @@ import tensorflow as tf
 
 from merlin.models.tf.core.base import Block, BlockType, PredictionOutput
 from merlin.models.tf.core.combinators import TabularBlock
-from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
@@ -130,7 +129,7 @@ class SequenceTransform(TabularBlock):
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
-    ) -> Union[Prediction, Tuple]:
+    ) -> Union[Tuple]:
         raise NotImplementedError()
 
     def _check_seq_inputs_targets(self, inputs: TabularData):
@@ -190,7 +189,7 @@ class SequenceTransform(TabularBlock):
 
 @Block.registry.register_with_multiple_names("seq_predict_next")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class SeqPredictNext(SequenceTransform):
+class SequencePredictNext(SequenceTransform):
     """Prepares sequential inputs and targets for next-item prediction.
     The target is extracted from the shifted sequence of item ids and
     the sequential input features are truncated in the last position.
@@ -210,7 +209,7 @@ class SeqPredictNext(SequenceTransform):
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
-    ) -> Union[Prediction, Tuple]:
+    ) -> Union[Tuple]:
         self._check_seq_inputs_targets(inputs)
 
         # Shifts the target column to be the next item of corresponding input column
@@ -236,7 +235,7 @@ class SeqPredictNext(SequenceTransform):
 
 @Block.registry.register_with_multiple_names("seq_predict_last")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class SeqPredictLast(SequenceTransform):
+class SequencePredictLast(SequenceTransform):
     """Prepares sequential inputs and targets for last-item prediction.
     The target is extracted from the last element of sequence of item ids and
     the sequential input features are truncated before the last position.
@@ -256,7 +255,7 @@ class SeqPredictLast(SequenceTransform):
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
-    ) -> Union[Prediction, Tuple]:
+    ) -> Union[Tuple]:
         self._check_seq_inputs_targets(inputs)
 
         # Shifts the target column to be the next item of corresponding input column
@@ -283,7 +282,7 @@ class SeqPredictLast(SequenceTransform):
 
 @Block.registry.register_with_multiple_names("seq_predict_random")
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
-class SeqPredictRandom(SequenceTransform):
+class SequencePredictRandom(SequenceTransform):
     """Prepares sequential inputs and targets for random-item prediction.
     A random element in the sequence (except the first one) is selected
     as target and all elements before the selected target as used as
@@ -304,7 +303,7 @@ class SeqPredictRandom(SequenceTransform):
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
-    ) -> Union[Prediction, Tuple]:
+    ) -> Union[Tuple]:
         self._check_seq_inputs_targets(inputs)
 
         batch_size = inputs[self.target_name].nrows()
