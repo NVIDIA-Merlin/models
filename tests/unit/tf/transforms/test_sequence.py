@@ -52,8 +52,7 @@ def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
 
     # Checks if the target is the shifted input feature
     tf.Assert(
-        tf.reduce_all(output_y == batch[target][:, 1:]),
-        [output_y, batch[target][:, 1:]],
+        tf.reduce_all(output_y == batch[target][:, 1:]), [output_y, batch[target][:, 1:]],
     )
 
 
@@ -86,8 +85,7 @@ def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
     expected_target = tf.squeeze(tf.sparse.to_dense(batch[target][:, -1:].to_sparse()), axis=1)
     # Checks if the target is the last item
     tf.Assert(
-        tf.reduce_all(output_y == expected_target),
-        [output_y, expected_target],
+        tf.reduce_all(output_y == expected_target), [output_y, expected_target],
     )
 
 
