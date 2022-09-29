@@ -16,7 +16,7 @@ jobs:
       matrix:
         python-version: [3.9.7]
         os: [ubuntu-latest]
-        tensorflow-version: ["~=2.8.0", "~=2.9.0"]
+        tensorflow-version: ["~=2.8.0", "~=2.9.0", "~=2.10.0"]
 
     steps:
       - uses: actions/checkout@v2
