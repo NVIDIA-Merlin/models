@@ -137,18 +137,15 @@ class SequenceRandomTargetMasking(Block):
         return Prediction(outputs, targets)
 
     def _generate_target_mask(self, ids_seq: tf.RaggedTensor):
-        batch_size = tf.shape(ids_seq)[0]
         row_lengths = ids_seq.row_lengths(1)
 
         assertion_min_seq_length = tf.Assert(tf.reduce_all(row_lengths > 1), [row_lengths])
 
         with tf.control_dependencies([assertion_min_seq_length]):
             # Targets are masked according to a probability
-            target_mask_by_prob = self._get_masked_by_prob(
-                batch_size, row_lengths, prob=self.masking_prob
-            )
+            target_mask_by_prob = self._get_masked_by_prob(row_lengths, prob=self.masking_prob)
             # Exactly one target is masked per row
-            one_target_mask = self._get_one_masked(batch_size, row_lengths)
+            one_target_mask = self._get_one_masked(row_lengths)
 
             # For sequences (rows) with either all or none elements sampled (masked) as targets
             # as those sequences would be invalid for training
@@ -166,13 +163,12 @@ class SequenceRandomTargetMasking(Block):
             return target_mask_ragged
 
     @staticmethod
-    def _get_masked_by_prob(
-        batch_size: tf.Tensor, row_lengths: tf.Tensor, prob: float
-    ) -> tf.Tensor:
+    def _get_masked_by_prob(row_lengths: tf.Tensor, prob: float) -> tf.Tensor:
         """Generates a dense mask boolean tensor with True values
         for randomly selected targets
         """
         max_seq_length = tf.cast(tf.reduce_max(row_lengths), tf.int32)
+        batch_size = tf.shape(row_lengths)[0]
         output = tf.cast(random_bernoulli([batch_size, max_seq_length], p=prob), tf.bool)
         padding_mask = tf.sequence_mask(row_lengths)
         # Ignoring masked items in the padding positions
@@ -180,7 +176,7 @@ class SequenceRandomTargetMasking(Block):
         return output
 
     @staticmethod
-    def _get_one_masked(batch_size: tf.Tensor, row_lengths: tf.Tensor):
+    def _get_one_masked(row_lengths: tf.Tensor):
         """Generates a dense mask boolean tensor where for each tensor (row)
         there is exactly one True value (selected target)
         """
@@ -188,7 +184,9 @@ class SequenceRandomTargetMasking(Block):
         random_targets_indices = tf.cast(
             tf.math.floor(
                 (
-                    tf.random.uniform(shape=[batch_size], minval=0.0, maxval=1.0, dtype=tf.float32)
+                    tf.random.uniform(
+                        shape=tf.shape(row_lengths), minval=0.0, maxval=1.0, dtype=tf.float32
+                    )
                     * tf.cast(row_lengths, tf.float32)
                 )
             ),
