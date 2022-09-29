@@ -153,6 +153,7 @@ from merlin.models.tf.transforms.features import (
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.tf.transforms.sequence import (
+    PredictMasked,
     SequencePredictLast,
     SequencePredictNext,
     SequencePredictRandom,
@@ -282,4 +283,5 @@ __all__ = [
     "SequencePredictNext",
     "SequencePredictLast",
     "SequencePredictRandom",
+    "PredictMasked",
 ]
