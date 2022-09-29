@@ -157,21 +157,6 @@ def test_seq_predict_next_output_shape(sequence_testing_data):
     assert_output_shape(output_shape, expected_output_shapes)
 
 
-def test_seq_predict_next_output_schema(sequence_testing_data):
-    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
-    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_next = mm.SeqPredictNext(schema=seq_schema, target=target)
-
-    output_schema = predict_next.compute_output_schema(sequence_testing_data.schema)
-
-    for col_name, col_schema in sequence_testing_data.schema.column_schemas.items():
-        output_col = output_schema.select_by_name(col_name).first
-        if col_name in seq_schema.column_names:
-            assert output_col.value_count.max == col_schema.value_count.max - 1
-        else:
-            assert output_col == col_schema
-
-
 def test_seq_predict_next_serialize_deserialize(sequence_testing_data):
     predict_next = mm.SeqPredictNext(sequence_testing_data.schema, "item_id_seq")
     assert isinstance(predict_next.from_config(predict_next.get_config()), mm.SeqPredictNext)

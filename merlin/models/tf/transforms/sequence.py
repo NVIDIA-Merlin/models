@@ -171,39 +171,6 @@ class SequenceTransform(TabularBlock):
 
         return new_input_shapes
 
-    def compute_output_schema(self, input_schema: Schema) -> Schema:
-        output_column_schemas = {}
-        for col_name, col_schema in input_schema.column_schemas.items():
-            if col_name in self.schema.column_names:
-                # TODO: Fix ColumnSchema.with_properties() to not override the new values
-                # of existing properties with old values
-                # This should work instead:
-                # col_schema.with_properties({"value_count":
-                #           Domain(min=col_schema.value_count.min,
-                #                  max=col_schema.value_count.max-1,
-                #                  name=col_schema.name)})
-                output_column_schemas[col_name] = ColumnSchema(
-                    col_schema.name,
-                    tags=col_schema.tags,
-                    properties={
-                        **col_schema.properties,
-                        **{
-                            "value_count": {
-                                "min": col_schema.value_count.min,
-                                "max": col_schema.value_count.max - 1,
-                                "name": col_schema.name,
-                            }
-                        },
-                    },
-                    dtype=col_schema.dtype,
-                    is_list=col_schema.is_list,
-                    is_ragged=col_schema.is_ragged,
-                )
-
-            else:
-                output_column_schemas[col_name] = col_schema
-        return Schema(column_schemas=output_column_schemas)
-
     def get_config(self):
         """Returns the config of the layer as a Python dictionary."""
         config = super().get_config()
