@@ -66,6 +66,7 @@ def unique_by_tag(
         Tag representing the columns to return in the new Dataset
     grouping_tag : ~merlin.schema.Tags
         Tag representing the columns to check for uniqueness.
+        Default: Tags.ID
 
     Returns
     -------
@@ -98,13 +99,14 @@ def unique_features_by_row(
         Tag representing the columns to return in the new Dataset
     grouping_tag : ~merlin.schema.Tags
         Tag representing the columns to check for uniqueness.
+        Default: Tags.ID
 
     Returns
     -------
         Dataset
     """
     warnings.warn(
-        "`unique_features_by_row` is deprecated and will be removed in a future version"
+        "`unique_features_by_row` is deprecated and will be removed in a future version. "
         "Please use `unique_by_tag` instead.",
         DeprecationWarning,
     )
