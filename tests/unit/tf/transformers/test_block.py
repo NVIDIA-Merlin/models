@@ -13,10 +13,12 @@ from merlin.models.tf.transformers.block import (
 )
 from merlin.models.tf.utils import testing_utils
 
+
 def test_import():
     import transformers
 
     assert transformers is not None
+
 
 def test_transformer_encoder():
     NUM_ROWS = 100
