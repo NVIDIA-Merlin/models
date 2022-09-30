@@ -131,6 +131,5 @@ def classification_loader(sequence_testing_data: Dataset):
         schema["user_country"].tags + "target"
     )
     sequence_testing_data.schema = schema
-    dataloader = mm.Loader(sequence_testing_data, batch_size=50)
-    dataloader = dataloader.map(_target_to_onehot)
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=_target_to_onehot)
     return dataloader, schema
