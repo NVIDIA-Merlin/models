@@ -179,7 +179,9 @@ Merlin Models supports the core tasks:  <code class="docutils literal notranslat
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-12 17:57:26.504390: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 24570 MB memory:  -&gt; device: 0, name: NVIDIA RTX A6000, pci bus id: 0000:65:00.0, compute capability: 8.6
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-09-14 20:23:06.071868: I tensorflow/core/platform/cpu_feature_guard.cc:194] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2022-09-14 20:23:07.207541: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
 </pre></div>
 </div>
 </div>
@@ -192,16 +194,11 @@ Merlin Models supports the core tasks:  <code class="docutils literal notranslat
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
-2022-04-12 17:57:27.081082: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:0 with 24570 MB memory:  -&gt; device: 0, name: NVIDIA RTX A6000, pci bus id: 0000:65:00.0, compute capability: 8.6
-/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1253: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/cudf/core/frame.py:384: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+  warnings.warn(
+/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
   warnings.warn(
 </pre></div>
 </div>
@@ -254,98 +251,98 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
   <tbody>
     <tr>
       <th>0</th>
-      <td>178</td>
-      <td>60</td>
-      <td>60</td>
-      <td>[3, 7, 14]</td>
-      <td>2</td>
+      <td>1332</td>
+      <td>724</td>
+      <td>726</td>
+      <td>[2]</td>
       <td>1</td>
-      <td>8</td>
-      <td>178</td>
-      <td>-0.520464</td>
-      <td>1.792874</td>
-      <td>-0.076353</td>
-      <td>-0.251986</td>
-      <td>-0.320740</td>
-      <td>-0.461858</td>
+      <td>5</td>
+      <td>7</td>
+      <td>76</td>
+      <td>1.992826</td>
+      <td>-0.580296</td>
+      <td>1.166594</td>
+      <td>1.093124</td>
+      <td>0.526717</td>
+      <td>1.030316</td>
       <td>1</td>
-      <td>4.0</td>
+      <td>5.0</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>81</td>
-      <td>1408</td>
-      <td>1409</td>
-      <td>[1]</td>
+      <td>4320</td>
+      <td>102</td>
+      <td>102</td>
+      <td>[2]</td>
       <td>1</td>
       <td>5</td>
-      <td>11</td>
-      <td>240</td>
-      <td>1.955704</td>
-      <td>-0.537666</td>
-      <td>1.541820</td>
-      <td>1.849453</td>
-      <td>0.161224</td>
-      <td>1.619103</td>
+      <td>3</td>
+      <td>1424</td>
+      <td>1.985156</td>
+      <td>-0.599401</td>
+      <td>0.337638</td>
+      <td>0.394303</td>
+      <td>0.875647</td>
+      <td>1.060459</td>
       <td>1</td>
       <td>4.0</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>183</td>
-      <td>349</td>
-      <td>352</td>
-      <td>[1, 9]</td>
+      <td>1351</td>
+      <td>581</td>
+      <td>583</td>
+      <td>[3, 7, 1]</td>
       <td>1</td>
+      <td>5</td>
+      <td>16</td>
+      <td>1107</td>
+      <td>1.949597</td>
+      <td>-0.534489</td>
+      <td>0.687319</td>
+      <td>-0.252332</td>
+      <td>-0.630569</td>
+      <td>-0.574388</td>
+      <td>0</td>
+      <td>2.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>700</td>
+      <td>1070</td>
+      <td>1074</td>
+      <td>[7, 10, 2]</td>
       <td>1</td>
-      <td>4</td>
-      <td>58</td>
-      <td>-0.561167</td>
-      <td>-0.602045</td>
-      <td>-0.140828</td>
-      <td>0.369887</td>
-      <td>-0.701068</td>
-      <td>-0.095035</td>
+      <td>3</td>
+      <td>1</td>
+      <td>316</td>
+      <td>-1.045463</td>
+      <td>-0.576565</td>
+      <td>-0.751345</td>
+      <td>0.135090</td>
+      <td>-1.847183</td>
+      <td>0.218730</td>
       <td>0</td>
       <td>3.0</td>
     </tr>
     <tr>
-      <th>3</th>
-      <td>153</td>
-      <td>1310</td>
-      <td>1311</td>
-      <td>[2, 6]</td>
-      <td>1</td>
-      <td>1</td>
-      <td>10</td>
-      <td>338</td>
-      <td>-0.535551</td>
-      <td>-0.506479</td>
-      <td>0.173980</td>
-      <td>0.671975</td>
-      <td>-0.082473</td>
-      <td>0.599116</td>
-      <td>1</td>
-      <td>4.0</td>
-    </tr>
-    <tr>
       <th>4</th>
-      <td>297</td>
-      <td>1491</td>
-      <td>1496</td>
-      <td>[5, 4]</td>
-      <td>2</td>
+      <td>2366</td>
+      <td>130</td>
+      <td>130</td>
+      <td>[1]</td>
       <td>1</td>
-      <td>11</td>
-      <td>408</td>
-      <td>-0.523482</td>
-      <td>1.630173</td>
-      <td>1.541820</td>
-      <td>-0.721210</td>
-      <td>-3.000164</td>
-      <td>-0.781899</td>
-      <td>0</td>
-      <td>1.0</td>
+      <td>4</td>
+      <td>4</td>
+      <td>1848</td>
+      <td>0.774309</td>
+      <td>-0.599401</td>
+      <td>-0.098956</td>
+      <td>0.586722</td>
+      <td>0.945900</td>
+      <td>0.524332</td>
+      <td>1</td>
+      <td>5.0</td>
     </tr>
   </tbody>
 </table>
@@ -361,11 +358,11 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
 </div>
 <div class="cell_output docutils container">
 <div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;tf.Tensor: shape=(5, 1), dtype=int32, numpy=
-array([[178],
-       [ 81],
-       [183],
-       [153],
-       [297]], dtype=int32)&gt;
+array([[1332],
+       [4320],
+       [1351],
+       [ 700],
+       [2366]], dtype=int32)&gt;
 </pre></div>
 </div>
 </div>
@@ -407,17 +404,17 @@ array([[178],
 </div>
 <div class="cell_output docutils container">
 <div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;TE_zipcode_rating&#39;: &lt;tf.Tensor: shape=(5, 1), dtype=float32, numpy=
- array([[-0.25198567],
-        [ 1.8494534 ],
-        [ 0.36988667],
-        [ 0.67197526],
-        [-0.7212096 ]], dtype=float32)&gt;,
+ array([[ 1.0931238 ],
+        [ 0.39430296],
+        [-0.25233188],
+        [ 0.13508965],
+        [ 0.5867218 ]], dtype=float32)&gt;,
  &#39;TE_movieId_rating&#39;: &lt;tf.Tensor: shape=(5, 1), dtype=float32, numpy=
- array([[-0.3207402 ],
-        [ 0.16122401],
-        [-0.70106816],
-        [-0.08247337],
-        [-3.0001638 ]], dtype=float32)&gt;}
+ array([[ 0.5267168],
+        [ 0.8756474],
+        [-0.6305694],
+        [-1.8471828],
+        [ 0.9459003]], dtype=float32)&gt;}
 </pre></div>
 </div>
 </div>
@@ -431,9 +428,6 @@ array([[178],
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-12 17:57:48.227735: I tensorflow/stream_executor/cuda/cuda_blas.cc:1792] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
-</pre></div>
-</div>
 <div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>TensorShape([5, 64])
 </pre></div>
 </div>
@@ -516,17 +510,132 @@ array([[178],
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;tf.Tensor: shape=(5, 2080), dtype=float32, numpy=
-array([[ 0.03531839,  0.        ,  0.02178912, ...,  0.00348584,
-         0.01123738,  0.05082896],
-       [ 0.        ,  0.06999855,  0.38183114, ...,  0.02661334,
-         0.00329179, -0.0324194 ],
-       [ 0.03445464,  0.        ,  0.25753298, ..., -0.0443273 ,
-         0.08484615, -0.04135836],
-       [ 0.        ,  0.        ,  0.17358088, ..., -0.0163713 ,
-         0.02033711, -0.03035038],
-       [ 0.25441766,  0.        ,  0.5767709 , ...,  0.01078878,
-        -0.02322949,  0.04039076]], dtype=float32)&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;tf.Tensor: shape=(5, 74), dtype=float32, numpy=
+array([[ 2.30220780e-02,  0.00000000e+00,  0.00000000e+00,
+         7.56775588e-02,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  2.28175014e-01,  0.00000000e+00,
+         3.19941580e-01,  0.00000000e+00,  2.78777480e-02,
+         0.00000000e+00,  4.73161668e-01,  7.64442533e-02,
+         2.35672563e-01,  2.91652471e-01,  1.66354105e-01,
+         3.41646910e-01,  0.00000000e+00,  2.71705240e-01,
+         1.37824044e-01,  0.00000000e+00,  2.48484939e-01,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         1.39127672e-01,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         3.48613858e-02,  1.25599518e-01,  0.00000000e+00,
+         4.45570499e-02,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  1.99817121e-02,  1.44250020e-02,
+         0.00000000e+00,  1.90662712e-01,  0.00000000e+00,
+         0.00000000e+00,  6.26910478e-02,  0.00000000e+00,
+         0.00000000e+00,  2.94190586e-01,  1.50031894e-01,
+         0.00000000e+00,  1.84342951e-01,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  1.04685947e-01,  6.66037053e-02,
+         4.16741706e-03,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  4.50987183e-02, -2.46724137e-03,
+        -6.76170439e-02, -9.77967530e-02, -9.46517102e-03,
+         9.14053060e-03, -2.63647735e-02, -1.81730222e-02,
+        -3.92094720e-03,  3.92234437e-02],
+       [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  3.07496935e-02,  9.01977122e-02,
+         0.00000000e+00,  6.98774904e-02,  0.00000000e+00,
+         1.15502082e-01,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  3.65737498e-01,  9.89171788e-02,
+         2.00192884e-01,  2.92842209e-01,  0.00000000e+00,
+         1.84250385e-01,  0.00000000e+00,  4.24410552e-02,
+         1.90225601e-01,  1.20380744e-01,  1.70127630e-01,
+         1.58379674e-01,  0.00000000e+00,  0.00000000e+00,
+         9.06804949e-03,  7.82235116e-02,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  1.78655088e-01,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         1.76252164e-02,  3.10025290e-02,  0.00000000e+00,
+         0.00000000e+00,  2.63492391e-02,  1.61362186e-01,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  4.64269891e-03,  0.00000000e+00,
+         9.54076052e-02,  2.13437006e-01,  1.52400732e-01,
+         0.00000000e+00,  1.64790913e-01,  6.50010034e-02,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  2.11483538e-01,  0.00000000e+00,
+         7.20069092e-03,  1.05328977e-01,  0.00000000e+00,
+         0.00000000e+00, -5.07842051e-03, -3.00218947e-02,
+         4.93249968e-02,  6.40595555e-02,  2.05376633e-02,
+        -3.37055735e-02,  2.52429601e-02,  3.80666833e-03,
+        -2.01439932e-02, -5.69556700e-03],
+       [ 2.18789969e-02,  3.36510167e-02,  1.95350796e-01,
+         6.10727519e-02,  0.00000000e+00,  0.00000000e+00,
+         1.02285758e-01,  0.00000000e+00,  4.84003574e-02,
+         0.00000000e+00,  1.55193418e-01,  1.38503924e-01,
+         7.77052790e-02,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  6.71746209e-03,
+         0.00000000e+00,  1.04955822e-01,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  1.85306251e-01,  6.36328012e-02,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         2.10280612e-01,  1.58533588e-01,  0.00000000e+00,
+         5.32950163e-02,  9.59217921e-03,  2.31691465e-01,
+         0.00000000e+00,  0.00000000e+00,  1.55598149e-01,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         5.84047437e-02,  2.57161334e-02,  1.14955440e-01,
+         7.11445585e-02,  0.00000000e+00,  6.75121546e-02,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         1.76699877e-01,  0.00000000e+00,  0.00000000e+00,
+         3.69086601e-02,  0.00000000e+00,  1.93824619e-03,
+         4.37308550e-02,  0.00000000e+00,  1.04565844e-01,
+         0.00000000e+00,  0.00000000e+00,  1.72027379e-01,
+         1.87704325e-01, -6.01736642e-03, -9.64383222e-03,
+         1.43044777e-02,  2.08113343e-04, -1.79108307e-02,
+         4.82701696e-04, -1.83034837e-02, -3.67737515e-03,
+        -3.17467004e-02, -3.01161502e-03],
+       [ 1.05011471e-01,  0.00000000e+00,  5.52209735e-01,
+         3.04437160e-01,  0.00000000e+00,  0.00000000e+00,
+         2.06330895e-01,  6.28595725e-02,  7.87643418e-02,
+         3.92730497e-02,  2.44794011e-01,  5.47987223e-01,
+         8.38067681e-02,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  1.90068081e-01,
+         0.00000000e+00,  3.45876396e-01,  1.88550934e-01,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  3.29886556e-01,  2.34476715e-01,
+         1.31867975e-01,  0.00000000e+00,  0.00000000e+00,
+         3.70391816e-01,  3.36082906e-01,  0.00000000e+00,
+         2.34773606e-01,  1.60487220e-01,  5.28671205e-01,
+         1.17527368e-03,  0.00000000e+00,  1.98144943e-01,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         1.11697763e-01,  2.85532802e-01,  2.98117757e-01,
+         1.21483751e-01,  5.78673929e-02,  2.20516354e-01,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         3.86492640e-01,  0.00000000e+00,  0.00000000e+00,
+         1.85204111e-02,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  4.58851695e-01,
+         0.00000000e+00,  0.00000000e+00,  3.30851346e-01,
+         5.57816863e-01, -7.11362436e-03,  4.32709344e-02,
+        -3.88916172e-02, -1.30204365e-01,  1.82463657e-02,
+        -1.38023719e-02, -2.07279958e-02, -1.39129860e-02,
+        -1.52076939e-02,  1.52949709e-03],
+       [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  3.72213125e-03,  8.35260451e-02,
+         0.00000000e+00,  1.10449523e-01,  0.00000000e+00,
+         1.71817169e-01,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  4.42635894e-01,  1.10036075e-01,
+         2.37903923e-01,  3.38033378e-01,  3.05014253e-02,
+         2.42390379e-01,  0.00000000e+00,  9.20888484e-02,
+         2.09882915e-01,  9.92736742e-02,  2.11230367e-01,
+         1.30059257e-01,  0.00000000e+00,  0.00000000e+00,
+         3.49052809e-02,  6.48877323e-02,  0.00000000e+00,
+         0.00000000e+00,  0.00000000e+00,  1.62512243e-01,
+         0.00000000e+00,  1.71390176e-02,  0.00000000e+00,
+         2.54175626e-02,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  2.92394385e-02,  1.58785328e-01,
+         0.00000000e+00,  1.14827603e-02,  0.00000000e+00,
+         0.00000000e+00,  1.62667409e-02,  0.00000000e+00,
+         8.40894058e-02,  2.61706412e-01,  1.75590441e-01,
+         0.00000000e+00,  1.94019809e-01,  4.01518792e-02,
+         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+         0.00000000e+00,  2.24219605e-01,  0.00000000e+00,
+         7.74760824e-03,  9.18345302e-02,  0.00000000e+00,
+         0.00000000e+00,  4.90122102e-03, -2.59129852e-02,
+        -2.30328739e-02,  1.15348995e-02,  1.12771615e-02,
+        -3.55871092e-03, -3.02606113e-02,  2.49744840e-02,
+         1.98186152e-02,  1.06542893e-02]], dtype=float32)&gt;
 </pre></div>
 </div>
 </div>
@@ -541,16 +650,16 @@ array([[ 0.03531839,  0.        ,  0.02178912, ...,  0.00348584,
 </div>
 <div class="cell_output docutils container">
 <div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;tf.Tensor: shape=(5, 512), dtype=float32, numpy=
-array([[0.00196931, 0.        , 0.01411253, ..., 0.00167978, 0.00330653,
-        0.        ],
-       [0.00134648, 0.02019053, 0.04212135, ..., 0.00931738, 0.        ,
-        0.        ],
-       [0.00061063, 0.00702857, 0.        , ..., 0.        , 0.        ,
-        0.        ],
-       [0.00954365, 0.        , 0.00239623, ..., 0.        , 0.        ,
-        0.        ],
-       [0.01073698, 0.04097259, 0.        , ..., 0.00655706, 0.01244057,
-        0.        ]], dtype=float32)&gt;
+array([[0.        , 0.        , 0.06550899, ..., 0.00943315, 0.        ,
+        0.02917717],
+       [0.        , 0.00613478, 0.02798904, ..., 0.00486526, 0.        ,
+        0.0473245 ],
+       [0.        , 0.        , 0.04229244, ..., 0.        , 0.        ,
+        0.02768494],
+       [0.        , 0.        , 0.09441784, ..., 0.        , 0.        ,
+        0.04710757],
+       [0.        , 0.        , 0.03271887, ..., 0.00290654, 0.        ,
+        0.04926534]], dtype=float32)&gt;
 </pre></div>
 </div>
 </div>
@@ -584,12 +693,25 @@ We note that the <code class="docutils literal notranslate"><span class="pre">Mo
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>merlin.models.tf.models.base.Model
+</pre></div>
+</div>
+</div>
 </div>
 <p>We train the model using the built-in tf.keras <code class="docutils literal notranslate"><span class="pre">fit</span></code> method:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s2">&quot;adam&quot;</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">AUC</span><span class="p">()])</span>
 <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>782/782 [==============================] - 16s 14ms/step - loss: 0.6473 - auc: 0.7240 - regularization_loss: 0.0000e+00
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f3f5856f250&gt;
 </pre></div>
 </div>
 </div>
@@ -603,16 +725,12 @@ We note that the <code class="docutils literal notranslate"><span class="pre">Mo
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-04-12 17:58:03.691971: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/then/_0/cond/cond/branch_executed/_128
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>196/196 [==============================] - 3s 9ms/step - loss: 0.6393 - auc: 0.7334 - regularization_loss: 0.0000e+00
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>196/196 [==============================] - 3s 8ms/step - rating_binary/binary_classification_task/auc: 0.7464 - loss: 2.2079 - regularization_loss: 0.0000e+00 - total_loss: 2.2079
-</pre></div>
-</div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;rating_binary/binary_classification_task/auc&#39;: 0.746394157409668,
- &#39;loss&#39;: 2.0516271591186523,
- &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 2.0516271591186523}
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.6393412947654724,
+ &#39;auc&#39;: 0.7334249019622803,
+ &#39;regularization_loss&#39;: 0.0}
 </pre></div>
 </div>
 </div>
@@ -627,7 +745,7 @@ We note that the <code class="docutils literal notranslate"><span class="pre">Mo
 </div>
 <div class="cell_output docutils container">
 <div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:absl:Function `_wrapped_model` contains input name(s) TE_age_rating, TE_gender_rating, TE_movieId_rating, TE_occupation_rating, TE_userId_rating, TE_zipcode_rating, movieId, userId with unsupported characters which will be renamed to te_age_rating, te_gender_rating, te_movieid_rating, te_occupation_rating, te_userid_rating, te_zipcode_rating, movieid, userid in the SavedModel.
-WARNING:absl:Found untraced functions such as sequential_block_9_layer_call_fn, sequential_block_9_layer_call_and_return_conditional_losses, binary_classification_task_layer_call_fn, binary_classification_task_layer_call_and_return_conditional_losses, sequential_block_9_layer_call_fn while saving (showing 5 of 155). These functions will not be directly callable after loading.
+WARNING:absl:Found untraced functions such as model_context_layer_call_fn, model_context_layer_call_and_return_conditional_losses, logits_temperature_scaler_layer_call_fn, logits_temperature_scaler_layer_call_and_return_conditional_losses, output_layer_layer_call_fn while saving (showing 5 of 66). These functions will not be directly callable after loading.
 </pre></div>
 </div>
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>INFO:tensorflow:Assets written to: custom_dlrm/assets
