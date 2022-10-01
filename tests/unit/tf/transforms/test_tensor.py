@@ -59,3 +59,28 @@ def test_expand_dims_axis_as_dict():
     assert list(expanded_inputs["cont_feat1"].shape) == [NUM_ROWS]
     assert list(expanded_inputs["cont_feat2"].shape) == [1, NUM_ROWS]
     assert list(expanded_inputs["multi_hot_categ_feat"].shape) == [NUM_ROWS, 1, 4]
+
+
+def test_list_to_dense():
+    NUM_ROWS = 100
+    MAX_LEN = 10
+    inputs = {
+        "cont_feat": tf.random.uniform((NUM_ROWS,)),
+        "multi_hot_categ_feat": tf.RaggedTensor.from_tensor(
+            tf.random.uniform((NUM_ROWS, 4), minval=1, maxval=100, dtype=tf.int32)
+        ),
+        "multi_hot_embedding_feat": tf.RaggedTensor.from_tensor(
+            tf.random.uniform((NUM_ROWS, 4, 32), minval=1, maxval=100, dtype=tf.int32)
+        ),
+    }
+    list_to_dense_op = mm.ListToDense(max_seq_length=MAX_LEN)
+    dense_inputs = list_to_dense_op(inputs)
+    dense_tensor = list_to_dense_op(inputs["multi_hot_embedding_feat"])
+    output_shape = list_to_dense_op.compute_output_shape(inputs["multi_hot_embedding_feat"].shape)
+
+    assert inputs.keys() == dense_inputs.keys()
+    assert list(dense_inputs["cont_feat"].shape) == [NUM_ROWS]
+    assert list(dense_inputs["multi_hot_categ_feat"].shape) == [NUM_ROWS, MAX_LEN]
+    assert list(dense_inputs["multi_hot_embedding_feat"].shape) == [NUM_ROWS, MAX_LEN, 32]
+    assert list(dense_tensor.shape) == [NUM_ROWS, MAX_LEN, 32]
+    assert list(output_shape) == [NUM_ROWS, MAX_LEN, 32]

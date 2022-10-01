@@ -101,32 +101,47 @@ class ListToDense(TabularBlock):
         super().__init__(**kwargs)
         self.max_seq_length = max_seq_length
 
-    def call(self, inputs: TabularData, **kwargs) -> TabularData:
+    def call(self, inputs: Union[tuple, tf.RaggedTensor, TabularData], **kwargs) -> TabularData:
+        if isinstance(inputs, (tf.RaggedTensor, tuple)):
+            return self._convert_tensor_to_dense(inputs)
+
         outputs = {}
         for name, val in inputs.items():
-            if isinstance(val, tuple):
-                val = list_col_to_ragged(val)
-            if isinstance(val, tf.RaggedTensor):
-                if self.max_seq_length:
-                    outputs[name] = val.to_tensor(shape=[None, self.max_seq_length])
-                else:
-                    outputs[name] = tf.squeeze(val.to_tensor())
-            else:
-                outputs[name] = tf.squeeze(val)
-
+            outputs[name] = self._convert_tensor_to_dense(val)
         return outputs
 
     def compute_output_shape(self, input_shape):
-        batch_size = self.calculate_batch_size_from_input_shapes(input_shape)
+        if not isinstance(input_shape, dict):
+            return self._get_output_tensor_shape(input_shape)
+
         outputs = {}
-
         for key, val in input_shape.items():
-            if isinstance(val, tuple):
-                outputs[key] = tf.TensorShape((batch_size, self.max_seq_length))
-            else:
-                outputs[key] = tf.TensorShape((batch_size))
-
+            outputs[key] = self._get_output_tensor_shape(val)
         return outputs
+
+    def _get_output_tensor_shape(self, val_shape):
+        if isinstance(val_shape, tuple) and isinstance(val_shape[1], tf.TensorShape):
+            val_shape = val_shape[1]
+            return tf.TensorShape([val_shape[0], self.max_seq_length])
+        if val_shape.rank > 1 and val_shape[-1] > 1:
+            shapes = val_shape.as_list()
+            if self.max_seq_length:
+                shapes[1] = self.max_seq_length
+            return tf.TensorShape(shapes)
+        return tf.TensorShape((val_shape[0]))
+
+    def _convert_tensor_to_dense(self, val):
+        if isinstance(val, tuple):
+            val = list_col_to_ragged(val)
+        if isinstance(val, tf.RaggedTensor):
+            if self.max_seq_length:
+                shape = [None] * val.shape.rank
+                shape[1] = self.max_seq_length
+                val = val.to_tensor(shape=shape)
+            else:
+                val = tf.squeeze(val.to_tensor())
+            return val
+        return tf.squeeze(val)
 
     def get_config(self):
         config = super().get_config()
