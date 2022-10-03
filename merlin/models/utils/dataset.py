@@ -51,6 +51,35 @@ def dataset_to_coo(dataset: Dataset):
     return coo_matrix((targets.astype("float32"), (userids, itemids)))
 
 
+def unique_rows_by_features(
+    dataset: Dataset, features_tag: Union[str, Tags], grouping_tag: Union[str, Tags] = Tags.ID
+) -> Dataset:
+    """
+    Select unique rows from a Dataset. Returns columns specified by `features_tag`
+     that are unique based on the columns specified by the `grouping_tag`.
+
+    Parameters
+    ----------
+    dataset : ~merlin.io.Dataset
+        Dataset to transform
+    features_tag : ~merlin.schema.Tags
+        Tag representing the columns to return in the new Dataset
+    grouping_tag : ~merlin.schema.Tags
+        Tag representing the columns to check for uniqueness.
+        Default: Tags.ID
+
+    Returns
+    -------
+        Dataset
+    """
+    warnings.warn(
+        "`unique_rows_by_features` is deprecated and will be removed in a future version. "
+        "Please use `unique_by_tag` instead.",
+        DeprecationWarning,
+    )
+    return unique_by_tag(dataset, features_tag, grouping_tag)
+
+
 def unique_by_tag(
     dataset: Dataset, features_tag: Union[str, Tags], grouping_tag: Union[str, Tags] = Tags.ID
 ) -> Dataset:
@@ -82,35 +111,6 @@ def unique_by_tag(
         ddf = ddf[columns].drop_duplicates(id_col, keep="first")
 
     return Dataset(ddf, schema=features_schema)
-
-
-def unique_rows_by_features(
-    dataset: Dataset, features_tag: Union[str, Tags], grouping_tag: Union[str, Tags] = Tags.ID
-) -> Dataset:
-    """
-    Select unique rows from a Dataset. Returns columns specified by `features_tag`
-     that are unique based on the columns specified by the `grouping_tag`.
-
-    Parameters
-    ----------
-    dataset : ~merlin.io.Dataset
-        Dataset to transform
-    features_tag : ~merlin.schema.Tags
-        Tag representing the columns to return in the new Dataset
-    grouping_tag : ~merlin.schema.Tags
-        Tag representing the columns to check for uniqueness.
-        Default: Tags.ID
-
-    Returns
-    -------
-        Dataset
-    """
-    warnings.warn(
-        "`unique_features_by_row` is deprecated and will be removed in a future version. "
-        "Please use `unique_by_tag` instead.",
-        DeprecationWarning,
-    )
-    return unique_by_tag(dataset, features_tag, grouping_tag)
 
 
 def _to_numpy(series):
