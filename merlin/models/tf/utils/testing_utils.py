@@ -431,3 +431,20 @@ def assert_allclose_according_to_type(
         atol = max(atol, bfloat16_atol)
 
     np.testing.assert_allclose(a, b, rtol=rtol, atol=atol)
+
+
+def assert_output_shape(output, expected_output_shape):
+    def _get_shape(tensor_or_shape) -> tf.TensorShape:
+        if hasattr(tensor_or_shape, "shape"):
+            output_shape = tensor_or_shape.shape
+        else:
+            output_shape = tensor_or_shape
+        return output_shape
+
+    if isinstance(expected_output_shape, dict):
+        for key in expected_output_shape.keys():
+            output_shape = _get_shape(output[key])
+            assert list(output_shape) == list(expected_output_shape[key])
+    else:
+        output_shape = _get_shape(output)
+        assert list(output_shape) == list(expected_output_shape)
