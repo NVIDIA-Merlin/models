@@ -84,7 +84,7 @@ def unique_by_tag(
     return Dataset(ddf, schema=features_schema)
 
 
-def unique_features_by_row(
+def unique_rows_by_features(
     dataset: Dataset, features_tag: Union[str, Tags], grouping_tag: Union[str, Tags] = Tags.ID
 ) -> Dataset:
     """
