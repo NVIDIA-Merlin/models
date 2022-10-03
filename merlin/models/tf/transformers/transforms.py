@@ -112,4 +112,7 @@ class PrepareTransformerInputs(tf.keras.layers.Layer):
     """Prepare the dictionary of inputs expected by the transformer layer"""
 
     def call(self, inputs: tf.Tensor) -> Dict[str, tf.Tensor]:
+        if isinstance(inputs, tf.RaggedTensor):
+            # convert to a dense tensor as HF transformers do not support ragged tensors
+            inputs = inputs.to_tensor()
         return {"inputs_embeds": inputs}

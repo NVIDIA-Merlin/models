@@ -121,10 +121,6 @@ class TransformerBlock(Block):
         inputs: tf.Tensor
             The 3D tensor of the sequence of interactions embeddings.
         """
-        if isinstance(inputs, tf.RaggedTensor):
-            # convert to a dense tensor as HF transformers do not support ragged tensors
-            inputs = inputs.to_tensor()
-
         pre = combinators.call_sequentially(list(self.to_call_pre), inputs, **kwargs)
         transformer = self.transformer(pre)
         out = combinators.call_sequentially(list(self.to_call_post), transformer, **kwargs)
