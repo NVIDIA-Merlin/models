@@ -18,6 +18,7 @@ from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is
 from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
+from merlin.models.tf.distributed.backend import hvd, multi_gpu
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.losses.base import loss_registry
@@ -121,6 +122,13 @@ class ModelBlock(Block, tf.keras.Model):
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
+        if multi_gpu:
+            callbacks = self._add_distributed_callbacks(callbacks)
+        # Horovod: write logs on worker 0.
+        verbose = verbose if hvd.rank() == 0 else 0
+        # Horovod: adjust number of steps based on number of GPUs.
+        if steps_per_epoch:
+            steps_per_epoch = steps_per_epoch // hvd.size()
 
         fit_kwargs = {
             k: v
@@ -317,7 +325,7 @@ class BaseModel(tf.keras.Model):
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
 
         super(BaseModel, self).compile(
-            optimizer=optimizer,
+            optimizer=self._create_optimizer(optimizer),
             loss=self._create_loss(loss),
             metrics=self._create_metrics(metrics),
             weighted_metrics=self._create_weighted_metrics(weighted_metrics),
@@ -328,6 +336,27 @@ class BaseModel(tf.keras.Model):
             from_serialized=from_serialized,
             **kwargs,
         )
+
+    def _create_optimizer(self, optimizer):
+        if multi_gpu:
+            if isinstance(optimizer, merlin.models.tf.DistributedOptimizer):
+                # TODO
+                pass
+            if isinstance(optimizer, merlin.models.tf.MultiOptimizer):
+                # TODO
+                pass
+            else:
+                if isinstance(optimizer, str):
+                    optimizer = tf.keras.optimizers.get(optimizer)
+                scaled_lr = optimizer.learning_rate * hvd.size()
+                tf.keras.backend.set_value(optimizer.learning_rate, scaled_lr)
+                optimizer = hvd.DistributedOptimizer(
+                    optimizer,
+                    backward_passes_per_step=1,
+                    average_aggregated_gradients=True,
+                )
+
+        return optimizer
 
     def _create_metrics(self, metrics=None):
         out = {}
@@ -711,6 +740,13 @@ class BaseModel(tf.keras.Model):
             validation_data, batch_size, shuffle=shuffle, **kwargs
         )
         callbacks = self._add_metrics_callback(callbacks, train_metrics_steps)
+        if multi_gpu:
+            # Horovod: broadcast initial variable states from rank 0 to all other processes.
+            # This is necessary to ensure consistent initialization of all workers when
+            # training is started with random weights or restored from a checkpoint.
+            callbacks.append(hvd.callbacks.BroadcastGlobalVariablesCallback(0))
+            # Horovod: average metrics among workers at the end of every epoch.
+            callbacks.append(hvd.callbacks.MetricAverageCallback())
 
         fit_kwargs = {
             k: v
