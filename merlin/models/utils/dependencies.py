@@ -39,3 +39,11 @@ def is_pyarrow_available() -> bool:
     except ImportError:
         pyarrow = None
     return pyarrow is not None
+
+
+def is_transformers_available() -> bool:
+    try:
+        import transformers
+    except ImportError:
+        transformers = None
+    return transformers is not None
