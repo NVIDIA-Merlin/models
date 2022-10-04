@@ -254,6 +254,14 @@ class XGBoost:
         export_dir.mkdir(parents=True)
         self.booster.save_model(export_dir / "model.json")
         schema_to_tensorflow_metadata_json(self.schema, export_dir / "schema.json")
+        schema_to_tensorflow_metadata_json(
+            self.schema.select_by_name(self.feature_columns),
+            export_dir / "merlin_metadata" / "input_schema.json",
+        )
+        schema_to_tensorflow_metadata_json(
+            self.schema.select_by_name(self.target_columns),
+            export_dir / "merlin_metadata" / "output_schema.json",
+        )
         with open(export_dir / "params.json", "w") as f:
             json.dump(self.params, f, indent=4)
         with open(export_dir / "config.json", "w") as f:
