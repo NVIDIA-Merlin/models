@@ -22,6 +22,7 @@ from tensorflow.test import TestCase
 import merlin.models.tf as ml
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
+from merlin.models.io import load_model
 from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.schema import Schema, Tags
 
@@ -654,3 +655,26 @@ def test_unfreeze_all_blocks(ecommerce_data):
 
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
+
+
+@pytest.mark.parametrize("load_fn", [ml.Model.load, load_model])
+def test_reload(load_fn, tmpdir):
+    dataset = generate_data("e-commerce", num_rows=10)
+    dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
+    model = ml.Model(
+        ml.InputBlock(dataset.schema),
+        ml.MLPBlock([4]),
+        ml.BinaryClassificationTask("click"),
+    )
+    model.compile()
+    _ = model.fit(
+        dataset,
+        epochs=1,
+        batch_size=10,
+    )
+    model.save(tmpdir)
+    reloaded_model = load_fn(tmpdir)
+    test_case = TestCase()
+    test_case.assertAllClose(
+        model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)
+    )
