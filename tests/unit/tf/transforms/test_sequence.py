@@ -246,7 +246,7 @@ def test_seq_predict_masked_replace_embeddings(
     batch = next(iter(dataset_transformed))
     inputs, targets = batch
 
-    emb = tf.keras.layers.Embedding(100, 16)
+    emb = tf.keras.layers.Embedding(1000, 16)
     item_id_emb_seq = emb(inputs["item_id_seq"])
     if dense:
         item_id_emb_seq = tf.sparse.to_dense(item_id_emb_seq.to_sparse())
@@ -282,7 +282,7 @@ def test_seq_predict_masked_no_replace_embeddings_not_training(sequence_testing_
     batch = next(iter(dataset_transformed))
     inputs, targets = batch
 
-    emb = tf.keras.layers.Embedding(100, 16)
+    emb = tf.keras.layers.Embedding(1000, 16)
     item_id_emb_seq = emb(inputs["item_id_seq"])
 
     masked_embeddings = mm.MaskSequenceEmbeddings()
@@ -296,7 +296,7 @@ def test_seq_replace_embeddings_no_mask(sequence_testing_data: Dataset):
         sequence_testing_data, batch_size=8, shuffle=False, include_targets=False, to_ragged=True
     )
 
-    emb = tf.keras.layers.Embedding(100, 16)
+    emb = tf.keras.layers.Embedding(1000, 16)
     item_id_emb_seq = emb(inputs["item_id_seq"])
 
     masked_embeddings = mm.MaskSequenceEmbeddings()
@@ -332,7 +332,7 @@ def test_seq_replace_embeddings_ragged_tensor_invalid_mask(sequence_testing_data
         sequence_testing_data, batch_size=8, shuffle=False, include_targets=False, to_ragged=True
     )
 
-    emb = tf.keras.layers.Embedding(100, 16)
+    emb = tf.keras.layers.Embedding(1000, 16)
     item_id_emb_seq = emb(inputs["item_id_seq"])
     item_id_emb_seq._keras_mask = tf.ragged.constant([[[1, 2]], [[3, 4]]])
 
