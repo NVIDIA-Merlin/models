@@ -352,7 +352,7 @@ class SequencePredictRandom(SequenceTransform):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class PredictMasked(SequenceTransform):
+class SequencePredictMasked(SequenceTransform):
     """This block implements the Masked Language Modeling (MLM) training approach
     introduced in BERT (NLP) and later adapted to RecSys by BERT4Rec [1].
     Given an input tf.RaggedTensor with sequences of embeddings
@@ -443,7 +443,23 @@ class PredictMasked(SequenceTransform):
 
         return (inputs_mask, self.target_mask)
 
-    def _generate_target_mask(self, ids_seq: tf.RaggedTensor):
+    def _generate_target_mask(self, ids_seq: tf.RaggedTensor) -> tf.RaggedTensor:
+        """Generates a target mask according to the defined probability and
+        to the constraints for Masked Language Modeling training (i.e., each
+        sequence might have between 1 and length-1 masked positions.)
+
+        Parameters
+        ----------
+        ids_seq : tf.RaggedTensor
+            Sequence of ids, which are used to infer how many values
+            each sequence contains
+
+        Returns
+        -------
+        tf.RaggedTensor
+            Mask tensor, with True at the positions where targets were
+            selected to be predicted
+        """
         row_lengths = ids_seq.row_lengths(1)
 
         assertion_min_seq_length = tf.Assert(tf.reduce_all(row_lengths > 1), [row_lengths])
@@ -515,3 +531,159 @@ class PredictMasked(SequenceTransform):
         target = config.pop("target")
         masking_prob = config.pop("masking_prob")
         return cls(schema, target, masking_prob, **config)
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class MaskSequenceEmbeddings(Block):
+    """Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces
+    by a dummy trainable single embedding at the positions to be masked.
+    This block looks for the Keras mask (`._keras_mask`) in the following order:
+      1. Checks if the input tensor has a mask
+      2. Checks if there is a single target and if it has a mask
+      3. If there are multiple targets (dict) returns the mask of the target
+      that matches the first 2 dims of the input
+    This is useful to be used when PredictMasked() transformation is used in
+    the Loader, which randomly selects some targets to be predicted and uses
+    Keras Masking to cascade the `_keras_mask`. By replacing input embeddings
+    at masked positions we avoid target leakage when training models with
+    Masked Language Modeling (BERT-like)
+    """
+
+    def build(self, input_shape):
+        if len(input_shape) != 3:
+            raise ValueError("The inputs must be a 3D tensor (batch_size, seq_length, vector_dim)")
+        self.hidden_size = input_shape[-1]
+        if self.hidden_size is None:
+            raise ValueError("The last dim of inputs cannot be None")
+        # Create a trainable embedding to replace masked interactions
+        initializer = tf.random_normal_initializer(mean=0.0, stddev=0.001)
+        self.masked_item_embedding = tf.Variable(
+            initializer(shape=[self.hidden_size], dtype=tf.float32)
+        )
+
+        return super().build(input_shape)
+
+    def call(
+        self,
+        inputs: Union[tf.Tensor, tf.RaggedTensor],
+        targets: Optional[Union[tf.Tensor, tf.RaggedTensor, TabularData]] = None,
+        training: bool = False,
+    ) -> Union[tf.Tensor, tf.RaggedTensor]:
+        """Masks some items from the input sequence to be the targets
+        and output the input tensor with replaced embeddings for masked
+        elements and also the targets (copy of the items ids sequence)
+        Parameters
+        ----------
+        inputs : Union[tf.Tensor, tf.RaggedTensor]
+            A tensor with sequences of vectors.
+            Needs to be 3D (batch_size, sequence_length, embeddings dim).
+            If inputs._keras_mask is defined uses it to infer the mask
+        targets : Union[tf.Tensor, tf.RaggedTensor, TabularData], optional
+            The target values, from which the mask can be extracted
+            if targets inputs._keras_mask is defined.
+        training : bool, optional
+            A flag indicating whether model is being trained or not, by default False.
+            If True, the masked positions of the inputs tensor are replaced by
+            the dummy embedding
+        Returns
+        -------
+        Union[tf.Tensor, tf.RaggedTensor]
+            If training, returns a tensor with the masked inputs replaced by the dummy embedding
+        """
+
+        if len(inputs.shape.as_list()) != 3:
+            raise ValueError("The inputs must be a 3D tensor (batch_size, seq_length, vector_dim)")
+
+        outputs = inputs
+        if training:
+            # Infers the mask from the inputs or targets
+            mask = self._infer_mask_from_inputs_or_targets(inputs, targets)
+            # Replaces the embeddings at masked positions by a dummy trainable embedding
+            outputs = self._mask_inputs(inputs, mask)
+        return outputs
+
+    def _infer_mask_from_inputs_or_targets(
+        self,
+        inputs: Union[tf.Tensor, tf.RaggedTensor],
+        targets: Optional[Union[tf.Tensor, tf.RaggedTensor]] = None,
+    ):
+        mask = None
+        if getattr(inputs, "_keras_mask", None) is not None:
+            mask = inputs._keras_mask
+
+        elif targets is not None:
+            if isinstance(targets, dict):
+                if len(targets) == 1:
+                    single_target = list(targets.values())[0]
+                    if getattr(single_target, "_keras_mask", None) is not None:
+                        mask = single_target._keras_mask
+                elif len(targets) > 1:
+                    # If there is more than 1 target, checks if only one
+                    # target matches the shape sequence of the inputs
+                    for _, v in targets.items():
+                        if getattr(
+                            v, "_keras_mask", None
+                        ) is not None and self._check_inputs_mask_compatible_shape(
+                            inputs, v._keras_mask
+                        ):
+                            if mask is None:
+                                mask = v._keras_mask
+                            else:
+                                raise ValueError(
+                                    "It is not possible to infer the mask "
+                                    "from the targets because there are more than "
+                                    "one target with the expected shape that matches "
+                                    "the inputs shape (batch_size x seq_length)"
+                                )
+            elif getattr(targets, "_keras_mask", None) is not None:
+                mask = targets._keras_mask
+
+        if mask is None:
+            raise ValueError("No valid mask was found on inputs or targets")
+
+        if len(mask.shape.as_list()) != 2:
+            raise ValueError(
+                "The mask should be a 2D Tensor (batch_size x seq_length) but "
+                f"its shape is {mask.shape}"
+            )
+
+        return mask
+
+    def _check_inputs_mask_compatible_shape(
+        self, inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
+    ):
+        result = False
+        if inputs.shape.as_list()[:2] == mask.shape.as_list()[:2]:
+            if isinstance(inputs, tf.RaggedTensor):
+                result = tf.reduce_all(
+                    tf.cast(inputs.row_lengths(1), tf.int32)
+                    == tf.cast(mask.row_lengths(1), tf.int32)
+                )
+            else:
+                result = inputs.shape.as_list()[1] == mask.shape.as_list()[1]
+        return result
+
+    def _mask_inputs(
+        self, inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
+    ) -> tf.RaggedTensor:
+        """
+        Replaces in the input tensor the values masked as targets by a common trainable
+        embedding
+        """
+
+        if not (isinstance(inputs, tf.RaggedTensor) and isinstance(mask, tf.RaggedTensor)) and not (
+            isinstance(inputs, tf.Tensor) and isinstance(mask, tf.Tensor)
+        ):
+            raise ValueError(
+                "The inputs and mask need to be both either tf.Tensor or tf.RaggedTensor"
+            )
+
+        if isinstance(mask, tf.RaggedTensor):
+            mask = mask.with_row_splits_dtype(inputs.row_splits.dtype)
+
+        output = tf.where(
+            tf.cast(tf.expand_dims(mask, -1), tf.bool),
+            tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
+            inputs,
+        )
+        return output
