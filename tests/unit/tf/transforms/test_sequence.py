@@ -263,7 +263,7 @@ def test_seq_predict_masked_replace_embeddings(
     replaced_mask = tf.logical_not(tf.reduce_all(output == item_id_emb_seq, axis=2))
     if not dense:
         targets_mask = targets_mask.with_row_splits_dtype(tf.int32)
-    tf.Assert(tf.reduce_all(replaced_mask == targets_mask), [])
+    tf.Assert(tf.reduce_all(replaced_mask == targets_mask), [replaced_mask, targets_mask])
     asserts_mlm_target_mask(replaced_mask)
 
 

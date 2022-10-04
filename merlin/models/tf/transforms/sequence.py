@@ -557,9 +557,7 @@ class MaskSequenceEmbeddings(Block):
             raise ValueError("The last dim of inputs cannot be None")
         # Create a trainable embedding to replace masked interactions
         initializer = tf.random_normal_initializer(mean=0.0, stddev=0.001)
-        self.masked_item_embedding = tf.Variable(
-            initializer(shape=[self.hidden_size], dtype=tf.float32)
-        )
+        self.masked_embedding = tf.Variable(initializer(shape=[self.hidden_size], dtype=tf.float32))
 
         return super().build(input_shape)
 
@@ -599,7 +597,7 @@ class MaskSequenceEmbeddings(Block):
             # Infers the mask from the inputs or targets
             mask = self._infer_mask_from_inputs_or_targets(inputs, targets)
             # Replaces the embeddings at masked positions by a dummy trainable embedding
-            outputs = self._mask_inputs(inputs, mask)
+            outputs = self._replace_masked_embeddings(inputs, mask)
         return outputs
 
     def _infer_mask_from_inputs_or_targets(
@@ -663,7 +661,7 @@ class MaskSequenceEmbeddings(Block):
                 result = inputs.shape.as_list()[1] == mask.shape.as_list()[1]
         return result
 
-    def _mask_inputs(
+    def _replace_masked_embeddings(
         self, inputs: Union[tf.Tensor, tf.RaggedTensor], mask: Union[tf.Tensor, tf.RaggedTensor]
     ) -> tf.RaggedTensor:
         """
@@ -683,7 +681,7 @@ class MaskSequenceEmbeddings(Block):
 
         output = tf.where(
             tf.cast(tf.expand_dims(mask, -1), tf.bool),
-            tf.cast(self.masked_item_embedding, dtype=inputs.dtype),
+            tf.cast(self.masked_embedding, dtype=inputs.dtype),
             inputs,
         )
         return output
