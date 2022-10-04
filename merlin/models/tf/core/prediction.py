@@ -61,3 +61,8 @@ class Prediction(NamedTuple):
     @property
     def predictions(self):
         return self.outputs
+
+
+class TopKPrediction(NamedTuple):
+    scores: tf.Tensor
+    identifiers: tf.Tensor
