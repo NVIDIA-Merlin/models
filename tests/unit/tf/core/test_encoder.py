@@ -5,7 +5,6 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.core.encoder import TopKEncoder
 from merlin.models.tf.utils import testing_utils
 
 
@@ -61,7 +60,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
         mm.ParallelBlock(user_encoder, item_encoder),
         mm.ContrastiveOutput(item_schema, "in-batch"),
     )
-    testing_utils.model_test(retrieval_model, music_streaming_data)
+    testing_utils.model_test(retrieval_model, music_streaming_data, reload_model=True)
 
     # 2. Get candidates embeddings for the top-k encoder
     _candidate_embeddings = tf.random.uniform(shape=(NUM_CANDIDATES, 4), dtype=tf.float32)
@@ -75,7 +74,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
     batch = next(iter(loader))
 
     # 4. Define the top-k encoder
-    topk_encoder = TopKEncoder(
+    topk_encoder = mm.TopKEncoder(
         query_encoder=retrieval_model.blocks[0]["query"], candidates=_candidate_embeddings, k=TOP_K
     )
     # 5. Get top-k predictions
@@ -84,7 +83,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
     assert list(batch_output.scores.shape) == [32, TOP_K]
     assert list(predict_output.scores.shape) == [100, TOP_K]
 
-    # 6. Compute top-k evaluation metrics
+    # 6. Compute top-k evaluation metrics (using the whole candidates catalog)
     topk_encoder.compile()
     topk_evaluation_metrics = topk_encoder.evaluate(loader, return_dict=True)
     assert set(topk_evaluation_metrics.keys()) == set(
@@ -99,7 +98,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
         ]
     )
 
-    # 7. Top-k batch predict: get dataframe with top-k scores and ids
+    # 7. Top-k batch predict: get a dataframe with top-k scores and ids
     topk_dataset = topk_encoder.batch_predict(
         dataset=music_streaming_data,
         batch_size=32,
@@ -107,14 +106,15 @@ def test_topk_encoder(music_streaming_data: Dataset):
     )
     assert set(topk_dataset.head().columns) == set(["user_id", "top_ids", "top_scores"])
 
-    # 8. Save and load a top-k encoder
+    # 8. Save and load the top-k encoder
     with tempfile.TemporaryDirectory() as tmpdir:
         topk_encoder.save(tmpdir)
         loaded_topk_encoder = tf.keras.models.load_model(tmpdir)
     batch_output = loaded_topk_encoder(batch[0])
-    assert isinstance(batch_output, tuple)
-    tf.assert_equal(
+    assert list(batch_output.scores.shape) == [32, TOP_K]
+    tf.debugging.assert_equal(
         topk_encoder.topk_layer._candidates,
         loaded_topk_encoder.topk_layer._candidates,
     )
+
     assert not loaded_topk_encoder.topk_layer._candidates.trainable

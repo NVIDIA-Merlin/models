@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
@@ -15,7 +15,9 @@ from merlin.schema import Schema
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopKLayer(Layer):
-    """Top-K index to retrieve top-k scores and indices from an item block.
+    """Base class for Top-K index.
+    The objective is to retrieve top-k scores and candidates ids
+    for a given query.
 
     Parameters:
     -----------
@@ -123,11 +125,24 @@ class BruteForce(TopKLayer):
         """
 
         super().__init__(k=k, name=name, **kwargs)
+        self._candidates = kwargs.pop("_candidates", None)
 
     def index(self, candidates: tf.Tensor, identifiers: Optional[tf.Tensor] = None) -> "BruteForce":
 
+        tf.assert_equal(
+            tf.rank(candidates), 2, f"candidates must be 2-D tensor (got {candidates.shape})"
+        )
+
         if identifiers is None:
             identifiers = tf.range(candidates.shape[0])
+
+        tf.assert_equal(
+            tf.shape(candidates)[0],
+            tf.shape(identifiers)[0],
+            "The candidates and identifiers tensors must have the same number of rows "
+            f"(got {candidates.shape[0]} candidates rows and {identifiers.shape[0]} "
+            "identifier rows).",
+        )
 
         self._ids = self.add_weight(
             name="ids",
@@ -154,7 +169,7 @@ class BruteForce(TopKLayer):
         inputs,
         targets=None,
         testing=False,
-    ) -> Union[Prediction, Tuple[tf.Tensor, tf.Tensor]]:
+    ) -> Union[Prediction, TopKPrediction]:
         """Compute the scores between the query inputs and all indexed candidates,
         then retrieve the top-k candidates with the highest scores.
 
@@ -167,12 +182,23 @@ class BruteForce(TopKLayer):
         testing: bool
             Flag that indicates whether in evaluation mode, by default False
         """
-        k = self._k
+        if self._candidates is None:
+            raise ValueError(
+                "You should call the `index` method first to " "set the _candidates index."
+            )
+
+        tf.assert_equal(
+            tf.shape(inputs)[1],
+            tf.shape(self._candidates)[1],
+            "Query and candidates vectors must have the same embedding size "
+            f"(got query dimension of {tf.shape(inputs)[1]} and candidates"
+            f" dimension of {tf.shape(self._candidates)[1]} ",
+        )
         scores = self._score(inputs, self._candidates)
-        top_scores, top_ids = tf.math.top_k(scores, k=k)
+        top_scores, top_ids = tf.math.top_k(scores, k=self._k)
         if testing:
             assert targets is not None, ValueError(
-                "Targets should be provided during evaluation mode"
+                "Targets should be provided during the evaluation mode"
             )
             targets = tf.cast(tf.squeeze(targets), tf.int32)
             targets = tf.cast(tf.expand_dims(targets, -1) == top_ids, tf.float32)
@@ -238,7 +264,7 @@ class TopKOutput(ModelOutput):
             if candidates is None:
                 raise ValueError(
                     "You should provide the dataset of pre-trained embeddings"
-                    " when `to_call` is the string name of the top-k strategy "
+                    " when `to_call` is the top-k strategy name "
                 )
             if isinstance(candidates, merlin.io.Dataset):
                 to_call = block_registry.parse(to_call).index_from_dataset(candidates)
@@ -247,7 +273,8 @@ class TopKOutput(ModelOutput):
             to_call._k = k
 
         assert isinstance(to_call, TopKLayer), ValueError(
-            f"TopKOutput requires `to_call` to be a top-k layer, {type(to_call)} is provided"
+            "TopKOutput requires `to_call` to be an instance of a `TopKLayer`,"
+            f" {type(to_call)} is provided"
         )
         self.to_call = to_call
         super().__init__(

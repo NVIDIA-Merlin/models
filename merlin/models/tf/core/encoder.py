@@ -273,7 +273,7 @@ class TopKEncoder(EncoderBlock, BaseModel):
             by default None
         candidate_encoder : Union[EncoderBlock, tf.keras.layers.Layer], optional
             The encoder layer to use for computing the candidates embeddings.
-            If not specified, the candidate_encoder set in the class constructor
+            If not specified, the candidate_encoder set in the constructor
             will be used instead.
             by default None
         Returns
