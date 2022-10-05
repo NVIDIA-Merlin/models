@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import tensorflow as tf
 from tensorflow.keras.backend import random_bernoulli
@@ -25,6 +25,7 @@ from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
+from merlin.models.utils.constants import MASK_TARGETS_KEY
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -130,7 +131,7 @@ class SequenceTransform(TabularBlock):
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
-    ) -> Union[Tuple]:
+    ) -> Tuple:
         raise NotImplementedError()
 
     def _check_seq_inputs_targets(self, inputs: TabularData):
@@ -210,7 +211,7 @@ class SequencePredictNext(SequenceTransform):
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
-    ) -> Union[Tuple]:
+    ) -> Tuple:
         self._check_seq_inputs_targets(inputs)
 
         # Shifts the target column to be the next item of corresponding input column
@@ -256,7 +257,7 @@ class SequencePredictLast(SequenceTransform):
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
-    ) -> Union[Tuple]:
+    ) -> Tuple:
         self._check_seq_inputs_targets(inputs)
 
         # Shifts the target column to be the next item of corresponding input column
@@ -304,7 +305,7 @@ class SequencePredictRandom(SequenceTransform):
 
     def call(
         self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
-    ) -> Union[Tuple]:
+    ) -> Tuple:
         self._check_seq_inputs_targets(inputs)
 
         batch_size = inputs[self.target_name].nrows()
@@ -355,14 +356,18 @@ class SequencePredictRandom(SequenceTransform):
 class SequencePredictMasked(SequenceTransform):
     """This block implements the Masked Language Modeling (MLM) training approach
     introduced in BERT (NLP) and later adapted to RecSys by BERT4Rec [1].
+    It is meant to be used as a transformation in the data loader
+    (e.g. `Loader(..., transform=SequencePredictMasked())`).
     Given an input tf.RaggedTensor with sequences of embeddings
     and the corresponding sequence of item ids, some positions are randomly selected (masked)
     to be the targets for prediction.
-    The input embeddings at the masked positions are
-    replaced by a common trainable embedding, to avoid leakage of the targets information.
-    The targets are output being the same as the input id sequence. The masked targets
-    can be discovered later by checking the outputs._keras_mask.
-    This transformation is only applied during training, as during inference you want
+    The targets are output being the same as the input ids sequence.
+    The mask to be applied is stored as a dummy feature "__mask__", that contains a dict
+    with the mask for the target. The ExtractTargetsMask() should be used in the model to
+    extract the mask from dummy feature "__mask__" and make it available
+    to following blocks/layers via Keras Masking (._keras_mask)
+
+    Note: This transformation should be applied only during training, as you want
     to use all available information of the sequence for prediction.
 
     References
@@ -376,6 +381,8 @@ class SequencePredictMasked(SequenceTransform):
     schema : Schema
         The input schema, that will be used to discover the name
         of the item id column
+    target : Union[str, Tags, ColumnSchema]
+        The sequential input column that will be used to extract the target
     masking_prob : float, optional
         Probability of an item to be selected (masked) as a label of the given sequence.
         Note: We enforce that at least one item is masked for each sequence, so that it
@@ -392,22 +399,27 @@ class SequencePredictMasked(SequenceTransform):
         self.masking_prob = masking_prob
         super().__init__(schema, target, **kwargs)
 
-    def call(self, inputs: TabularBlock, targets=None) -> Prediction:
-        """Masks some items from the input sequence features to be the targets
-        and output the input sequence features with replaced embeddings for masked
-        elements and also the targets (copy of the items ids sequence)
+    def call(
+        self, inputs: TabularBlock, targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]] = None
+    ) -> Prediction:
+        """Selects (masks) some positions from the input sequence features to be the targets
+        and outputs as targets a copy of the items id sequence.
+        It adds to the input features a dummy "__mask__" key, that contains a dict
+        with the mask for the target.  The ExtractTargetsMask() should be used in the model to
+        extract the mask from dummy feature "__mask__" and make it available
+        to following blocks/layers via Keras Masking (._keras_mask)
 
         Parameters
         ----------
         inputs : TabularBlock
             A dict with the input features
-        training : bool, optional
-            A flag indicating whether model is being trained or not, by default False
+        targets : Union[tf.Tensor, Dict[str, tf.Tensor]], optional
+            The targets tensor or dict of tensors
 
         Returns
         -------
         Prediction
-            Returns a Prediction(replaced_inputs, targets)
+            Returns a Prediction(inputs, targets)
         """
         self._check_seq_inputs_targets(inputs)
 
@@ -424,24 +436,33 @@ class SequencePredictMasked(SequenceTransform):
                 targets = dict()
             targets[self.target_name] = new_target
 
+        target_mask = self._generate_target_mask(inputs[self.target_name])
+        self.save_mask_to_inputs(inputs, target_mask)
+
         return (inputs, targets)
 
-    def compute_mask(self, inputs, mask=None):
-        """Is called by Keras and returns the targets mask that will
-        be assigned to the input tensors and targets, being accessible
-        by inputs._keras_mask
-        """
-        item_id_seq = inputs[self.target_name]
-        self.target_mask = self._generate_target_mask(item_id_seq)
+    def save_mask_to_inputs(self, inputs, target_mask):
+        if MASK_TARGETS_KEY not in inputs:
+            inputs[MASK_TARGETS_KEY] = {self.target_name: target_mask}
+        else:
+            inputs[MASK_TARGETS_KEY][self.target_name] = target_mask
 
-        inputs_mask = dict()
-        for k, v in inputs.items():
-            if k in self.schema.column_names:
-                inputs_mask[k] = tf.logical_not(self.target_mask)
-            else:
-                inputs_mask[k] = None
+    # def compute_mask(self, inputs, mask=None):
+    #     """Is called by Keras and returns the targets mask that will
+    #     be assigned to the input tensors and targets, being accessible
+    #     by inputs._keras_mask
+    #     """
+    #     item_id_seq = inputs[self.target_name]
+    #     self.target_mask = self._generate_target_mask(item_id_seq)
 
-        return (inputs_mask, self.target_mask)
+    #     inputs_mask = dict()
+    #     for k, v in inputs.items():
+    #         if k in self.schema.column_names:
+    #             inputs_mask[k] = tf.logical_not(self.target_mask)
+    #         else:
+    #             inputs_mask[k] = None
+
+    #     return (inputs_mask, self.target_mask)
 
     def _generate_target_mask(self, ids_seq: tf.RaggedTensor) -> tf.RaggedTensor:
         """Generates a target mask according to the defined probability and
@@ -534,6 +555,41 @@ class SequencePredictMasked(SequenceTransform):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
+class ExtractTargetsMask(Block):
+    """Extracts the target masks from the "__mask__" input
+
+    Parameters
+    ----------
+    Block : _type_
+        _description_
+    """
+
+    def call(self, inputs: TabularBlock, targets=None, features=None) -> Prediction:
+        if (
+            targets is not None
+            and MASK_TARGETS_KEY in features
+            and len(features[MASK_TARGETS_KEY]) > 0
+        ):
+            if isinstance(targets, dict):
+                for k, v in targets.items():
+                    v._keras_mask = features[MASK_TARGETS_KEY][k]
+            else:
+                if len(features[MASK_TARGETS_KEY]) == 1:
+                    targets._keras_mask = list(features[MASK_TARGETS_KEY].values())[0]
+                else:
+                    raise ValueError(
+                        "Many targets masks are provided "
+                        f"({list(features[MASK_TARGETS_KEY].keys())})"
+                        " as a dict target is not a dict."
+                    )
+
+        return Prediction(inputs, targets)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class MaskSequenceEmbeddings(Block):
     """Takes a 3D input tensor (batch size x seq. length x embedding dim) and replaces
     by a dummy trainable single embedding at the positions to be masked.
@@ -566,6 +622,8 @@ class MaskSequenceEmbeddings(Block):
         inputs: Union[tf.Tensor, tf.RaggedTensor],
         targets: Optional[Union[tf.Tensor, tf.RaggedTensor, TabularData]] = None,
         training: bool = False,
+        features=None,
+        testing: bool = False,
     ) -> Union[tf.Tensor, tf.RaggedTensor]:
         """Masks some items from the input sequence to be the targets
         and output the input tensor with replaced embeddings for masked
@@ -588,12 +646,11 @@ class MaskSequenceEmbeddings(Block):
         Union[tf.Tensor, tf.RaggedTensor]
             If training, returns a tensor with the masked inputs replaced by the dummy embedding
         """
-
         if len(inputs.shape.as_list()) != 3:
             raise ValueError("The inputs must be a 3D tensor (batch_size, seq_length, vector_dim)")
 
         outputs = inputs
-        if training:
+        if training or testing:
             # Infers the mask from the inputs or targets
             mask = self._infer_mask_from_inputs_or_targets(inputs, targets)
             # Replaces the embeddings at masked positions by a dummy trainable embedding

@@ -123,6 +123,7 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.transforms.sequence import ExtractTargetsMask
 from merlin.models.utils.dependencies import is_transformers_available
 
 if is_transformers_available():
@@ -287,4 +288,5 @@ __all__ = [
     "SequencePredictRandom",
     "SequencePredictMasked",
     "MaskSequenceEmbeddings",
+    "ExtractTargetsMask",
 ]
