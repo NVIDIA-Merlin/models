@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import warnings
 from typing import Union
 
 import numpy as np
@@ -51,17 +52,65 @@ def dataset_to_coo(dataset: Dataset):
 
 
 def unique_rows_by_features(
-    dataset: Dataset, features_tag: Union[str, Tags], grouping_tag: Union[str, Tags]
-):
-    # Check if merlin-dataset is passed
-    ddf = dataset.to_ddf() if hasattr(dataset, "to_ddf") else dataset
+    dataset: Dataset, features_tag: Union[str, Tags], grouping_tag: Union[str, Tags] = Tags.ID
+) -> Dataset:
+    """
+    Select unique rows from a Dataset. Returns columns specified by `features_tag`
+     that are unique based on the columns specified by the `grouping_tag`.
 
-    columns = dataset.schema.select_by_tag(features_tag).column_names
+    Parameters
+    ----------
+    dataset : ~merlin.io.Dataset
+        Dataset to transform
+    features_tag : ~merlin.schema.Tags
+        Tag representing the columns to return in the new Dataset
+    grouping_tag : ~merlin.schema.Tags
+        Tag representing the columns to check for uniqueness.
+        Default: Tags.ID
+
+    Returns
+    -------
+        Dataset
+    """
+    warnings.warn(
+        "`unique_rows_by_features` is deprecated and will be removed in a future version. "
+        "Please use `unique_by_tag` instead.",
+        DeprecationWarning,
+    )
+    return unique_by_tag(dataset, features_tag, grouping_tag)
+
+
+def unique_by_tag(
+    dataset: Dataset, features_tag: Union[str, Tags], grouping_tag: Union[str, Tags] = Tags.ID
+) -> Dataset:
+    """
+    Select unique rows from a Dataset. Returns columns specified by `features_tag`
+     that are unique based on the columns specified by the `grouping_tag`.
+
+    Parameters
+    ----------
+    dataset : ~merlin.io.Dataset
+        Dataset to transform
+    features_tag : ~merlin.schema.Tags
+        Tag representing the columns to return in the new Dataset
+    grouping_tag : ~merlin.schema.Tags
+        Tag representing the columns to check for uniqueness.
+        Default: Tags.ID
+
+    Returns
+    -------
+        Dataset
+    """
+    ddf = dataset.to_ddf()
+
+    features_schema = dataset.schema.select_by_tag(features_tag)
+    columns = features_schema.column_names
+
     if columns:
-        id_col = dataset.schema.select_by_tag(grouping_tag).first.name
+        id_col = features_schema.select_by_tag(grouping_tag).first.name
         ddf = ddf[columns].drop_duplicates(id_col, keep="first")
 
-    return Dataset(ddf)
+    return Dataset(ddf, schema=features_schema)
 
 
 def _to_numpy(series):

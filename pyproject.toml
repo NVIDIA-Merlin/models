@@ -56,6 +56,7 @@ markers = [
     "lightfm",
     "implicit",
     "xgboost",
+    "transformers",
     "example",
     "integration",
     "unit",
