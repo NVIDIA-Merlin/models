@@ -17,7 +17,7 @@ import merlin.io
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.core.block import TargetMixin
 from merlin.models.tf.core.combinators import SequentialBlock
-from merlin.models.tf.core.prediction import Prediction, PredictionContext
+from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.core.tabular import TabularBlock
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.loader import Loader
@@ -554,7 +554,11 @@ class BaseModel(tf.keras.Model):
             task_x = forward
             if isinstance(forward, dict) and task.full_name in forward:
                 task_x = forward[task.full_name]
-            if isinstance(task_x, Prediction):
+            if task.target is not None:
+                task_y = task.target
+                # TODO: Add support for a sample-weight transformation in `ModelOutput`
+                task_sample_weight = None
+            elif isinstance(task_x, Prediction):
                 output = task_x
                 task_y = output.targets
                 task_x = output.outputs
@@ -905,59 +909,14 @@ class Model(BaseModel, TargetMixin):
         self.built = True
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
-        context = self._create_context(
-            ListToRagged()(inputs),
+        return self.call_sequentially(
+            self.layers_to_call,
+            inputs=inputs,
             targets=targets,
+            features=ListToRagged()(inputs),
             training=training,
             testing=testing,
         )
-
-        outputs = inputs
-        if self.pre:
-            outputs, context = self._call_child(self.pre, outputs, context)
-
-        for block in self.blocks:
-            outputs, context = self._call_child(block, outputs, context)
-
-        if self.post:
-            outputs, context = self._call_child(self.post, outputs, context)
-
-        if output_context:
-            return outputs, context
-
-        return outputs
-
-    def _create_context(
-        self, inputs, targets=None, training=False, testing=False
-    ) -> PredictionContext:
-        context = PredictionContext(inputs, targets=targets, training=training, testing=testing)
-
-        return context
-
-    def _call_child(
-        self,
-        child: tf.keras.layers.Layer,
-        inputs,
-        context: PredictionContext,
-    ):
-        call_kwargs = context.to_call_dict()
-
-        # Prevent features to be part of signature of model-blocks
-        if any(isinstance(sub, ModelBlock) for sub in child.submodules):
-            del call_kwargs["features"]
-
-        outputs = call_layer(child, inputs, **call_kwargs)
-        if isinstance(outputs, Prediction):
-            targets = outputs.targets if outputs.targets is not None else context.targets
-            features = outputs.features if outputs.features is not None else context.features
-            if isinstance(child, ModelOutput):
-                if not (context.training or context.testing):
-                    outputs = outputs[0]
-            else:
-                outputs = outputs[0]
-            context = context.with_updates(targets=targets, features=features)
-
-        return outputs, context
 
     @property
     def first(self):
@@ -1004,20 +963,20 @@ class Model(BaseModel, TargetMixin):
         prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
 
         return cls(_input_block, block, prediction_tasks)
-    
+
     @property
     def to_call_generator(self):
         if self.pre:
             yield self.pre
-            
+
         for block in self.blocks:
             yield block
-        
+
         if self.post:
             yield self.post
-            
+
     @property
-    def to_call(self) -> List[tf.keras.layers.Layer]:
+    def layers_to_call(self) -> List[tf.keras.layers.Layer]:
         return list(self.to_call_generator)
 
     @classmethod

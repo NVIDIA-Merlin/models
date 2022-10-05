@@ -24,6 +24,7 @@ from keras.utils.generic_utils import to_snake_case
 from tensorflow.keras.layers import Layer
 
 from merlin.models.tf.core.base import name_fn
+from merlin.models.tf.core.block import BlockV2
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.transforms.bias import LogitsTemperatureScaler
 from merlin.models.tf.utils import tf_utils
@@ -32,7 +33,7 @@ MetricsFn = Callable[[], Sequence[tf.keras.metrics.Metric]]
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class ModelOutput(Layer):
+class ModelOutput(BlockV2):
     """Base-class for prediction blocks.
 
     Parameters
@@ -65,23 +66,21 @@ class ModelOutput(Layer):
         default_loss: Union[str, tf.keras.losses.Loss],
         default_metrics_fn: MetricsFn,
         name: Optional[str] = None,
-        target: Optional[str] = None,
+        target_name: Optional[str] = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
         logits_temperature: float = 1.0,
         **kwargs,
     ):
         logits_scaler = kwargs.pop("logits_scaler", None)
-        self.target = target
+        self.target_name = target_name
         base_name = to_snake_case(self.__class__.__name__)
-        self.full_name = name_fn(self.target, base_name) if self.target else base_name
+        self.full_name = name_fn(self.target_name, base_name) if self.target_name else base_name
 
-        super().__init__(name=name or self.full_name, **kwargs)
+        super().__init__(pre=pre, post=post, name=name or self.full_name, **kwargs)
         self.to_call = to_call
         self.default_loss = default_loss
         self.default_metrics_fn = default_metrics_fn
-        self.pre = pre
-        self.post = post
         if logits_scaler is not None:
             self.logits_scaler = logits_scaler
             self.logits_temperature = logits_scaler.temperature
@@ -145,7 +144,18 @@ class ModelOutput(Layer):
             else:
                 outputs = self.logits_scaler(outputs)
 
+        # Bind target
+        target = self.targets or kwargs.get("targets", None)
+        if target:
+            self.process_target(target)
+
         return outputs
+
+    def process_target(self, target):
+        if isinstance(target, dict):
+            target = target[self.target_name]
+
+        self._thread_local._target = target
 
     def create_default_metrics(self):
         metrics = self.get_default_metrics()
@@ -213,6 +223,10 @@ class ModelOutput(Layer):
             )
         return function
 
+    @property
+    def target(self):
+        return getattr(self._thread_local, "_target", None)
+
     def get_config(self):
         config = super(ModelOutput, self).get_config()
         function_config = self._serialize_function_to_config(self.default_metrics_fn)
@@ -221,14 +235,12 @@ class ModelOutput(Layer):
                 "default_metrics_fn": function_config[0],
                 "function_type": function_config[1],
                 "module": function_config[2],
-                "target": self.target,
+                "target_name": self.target_name,
             }
         )
 
         objects = [
             "to_call",
-            "pre",
-            "post",
             "logits_scaler",
         ]
 
@@ -258,7 +270,7 @@ class ModelOutput(Layer):
             },
         )
 
-        return super().from_config(config)
+        return cls(**config)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")

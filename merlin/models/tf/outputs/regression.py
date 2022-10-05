@@ -33,7 +33,7 @@ class RegressionOutput(ModelOutput):
 
     def __init__(
         self,
-        target: Optional[str] = None,
+        target_name: Optional[str] = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
         name: Optional[str] = None,
@@ -48,7 +48,7 @@ class RegressionOutput(ModelOutput):
             to_call=to_call or tf.keras.layers.Dense(1, activation="linear"),
             default_loss=default_loss,
             default_metrics_fn=default_metrics_fn,
-            target=target,
+            target_name=target_name,
             pre=pre,
             post=post,
             name=name,

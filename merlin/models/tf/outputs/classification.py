@@ -83,7 +83,7 @@ class BinaryOutput(ModelOutput):
 
     def __init__(
         self,
-        target: Optional[str] = None,
+        target_name: Optional[str] = None,
         pre: Optional[Layer] = None,
         post: Optional[Layer] = None,
         logits_temperature: float = 1.0,
@@ -97,7 +97,7 @@ class BinaryOutput(ModelOutput):
             to_call=to_call or tf.keras.layers.Dense(1, activation="sigmoid"),
             default_loss=default_loss,
             default_metrics_fn=default_metrics_fn,
-            target=target,
+            target_name=target_name,
             pre=pre,
             post=post,
             logits_temperature=logits_temperature,
@@ -182,7 +182,7 @@ class CategoricalOutput(ModelOutput):
             default_loss=default_loss,
             default_metrics_fn=default_metrics_fn,
             name=name,
-            target=self.target_name,
+            target_name=self.target_name,
             pre=pre,
             post=post,
             logits_temperature=logits_temperature,

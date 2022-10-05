@@ -146,7 +146,7 @@ class ContrastiveOutput(ModelOutput):
             default_loss=default_loss,
             default_metrics_fn=default_metrics_fn,
             name=name,
-            target=self.target_name,
+            target_name=self.target_name,
             pre=pre,
             post=post,
             logits_temperature=logits_temperature,
