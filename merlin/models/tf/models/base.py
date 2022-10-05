@@ -583,7 +583,13 @@ class BaseModel(tf.keras.Model):
         # Run backwards pass.
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-        metrics = self.compute_metrics(outputs, training=True)
+        metrics = tf.cond(
+            self._should_compute_train_metrics_for_batch,
+            lambda: self.compute_metrics(outputs),
+            lambda: self.metrics_results(),
+        )
+
+        metrics = self.compute_metrics(outputs)
 
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
@@ -603,7 +609,7 @@ class BaseModel(tf.keras.Model):
 
         self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
-        metrics = self.compute_metrics(outputs, training=False)
+        metrics = self.compute_metrics(outputs)
 
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
@@ -614,7 +620,6 @@ class BaseModel(tf.keras.Model):
     def compute_metrics(
         self,
         prediction_outputs: PredictionOutput,
-        training: bool,
     ) -> Dict[str, tf.Tensor]:
         """Overrides Model.compute_metrics() for some custom behaviour
            like compute metrics each N steps during training
@@ -633,28 +638,23 @@ class BaseModel(tf.keras.Model):
         Dict[str, tf.Tensor]
             Dict with the metrics values
         """
+        # This ensures that compiled metrics are built
+        # to make self.compiled_metrics.metrics available
+        if not self.compiled_metrics.built:
+            self.compiled_metrics.build(prediction_outputs.predictions, prediction_outputs.targets)
 
-        should_compute_metrics = self._should_compute_train_metrics_for_batch or not training
-        if should_compute_metrics:
-            # This ensures that compiled metrics are built
-            # to make self.compiled_metrics.metrics available
-            if not self.compiled_metrics.built:
-                self.compiled_metrics.build(
-                    prediction_outputs.predictions, prediction_outputs.targets
-                )
+        # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
+        # should have standard signature for better compatibility with Keras methods
+        # like self.compiled_metrics.update_state()
+        if hasattr(prediction_outputs, "label_relevant_counts"):
+            for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
+                topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
 
-            # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
-            # should have standard signature for better compatibility with Keras methods
-            # like self.compiled_metrics.update_state()
-            if hasattr(prediction_outputs, "label_relevant_counts"):
-                for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
-                    topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
-
-            self.compiled_metrics.update_state(
-                prediction_outputs.targets,
-                prediction_outputs.predictions,
-                prediction_outputs.sample_weight,
-            )
+        self.compiled_metrics.update_state(
+            prediction_outputs.targets,
+            prediction_outputs.predictions,
+            prediction_outputs.sample_weight,
+        )
         # Returns the current value of metrics
         metrics = self.metrics_results()
         return metrics
