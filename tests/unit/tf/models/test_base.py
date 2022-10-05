@@ -42,7 +42,7 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
     testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
 
 
-def test_fit_twice():
+def test_fit_compile_twice():
     dataset = Dataset(pd.DataFrame({"feature": [1, 2, 3, 4, 5, 6], "target": [1, 0, 0, 1, 1, 0]}))
     dataset.schema = Schema(
         [
@@ -56,8 +56,9 @@ def test_fit_twice():
         tf.keras.layers.Dense(1),
         mm.BinaryClassificationTask("target"),
     )
-    model.compile(run_eagerly=True, optimizer="adam")
+    model.compile()
     model.fit(loader, epochs=2)
+    model.compile()
     model.fit(loader, epochs=2)
 
 
