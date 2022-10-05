@@ -111,6 +111,7 @@ def test_topk_encoder(music_streaming_data: Dataset):
         topk_encoder.save(tmpdir)
         loaded_topk_encoder = tf.keras.models.load_model(tmpdir)
     batch_output = loaded_topk_encoder(batch[0])
+
     assert list(batch_output.scores.shape) == [32, TOP_K]
     tf.debugging.assert_equal(
         topk_encoder.topk_layer._candidates,
