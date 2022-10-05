@@ -49,7 +49,7 @@ def flip_target(target):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class FlipTarget(TargetLayer):
+class FlipTarget(mm.BlockV2):
     def call(self, inputs, targets=None, **kwargs):
         if targets: 
             self.compute_target("click", flip_target(targets["click"]))

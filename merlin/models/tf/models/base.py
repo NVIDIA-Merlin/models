@@ -15,6 +15,7 @@ from tensorflow.keras.utils import unpack_x_y_sample_weight
 
 import merlin.io
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
+from merlin.models.tf.core.block import TargetMixin
 from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
@@ -826,7 +827,7 @@ class BaseModel(tf.keras.Model):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class Model(BaseModel):
+class Model(BaseModel, TargetMixin):
     def __init__(
         self,
         *blocks: Block,
@@ -1003,6 +1004,21 @@ class Model(BaseModel):
         prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
 
         return cls(_input_block, block, prediction_tasks)
+    
+    @property
+    def to_call_generator(self):
+        if self.pre:
+            yield self.pre
+            
+        for block in self.blocks:
+            yield block
+        
+        if self.post:
+            yield self.post
+            
+    @property
+    def to_call(self) -> List[tf.keras.layers.Layer]:
+        return list(self.to_call_generator)
 
     @classmethod
     def from_config(cls, config, custom_objects=None):

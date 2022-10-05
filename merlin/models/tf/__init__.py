@@ -68,6 +68,7 @@ from merlin.models.tf.core.base import (
     NoOp,
     right_shift_layer,
 )
+from merlin.models.tf.core.block import BlockV2
 from merlin.models.tf.core.combinators import (
     Cond,
     MapValues,
@@ -154,6 +155,7 @@ Optimizer.__repr__ = repr_utils.layer_repr_no_children
 
 __all__ = [
     "Block",
+    "BlockV2",
     "Cond",
     "MapValues",
     "ModelContext",
