@@ -35,7 +35,7 @@ class FlipTarget(mm.BlockV2):
         return inputs
 
 
-def test_1(ecommerce_data: Dataset, run_eagerly=True):
+def test_1(ecommerce_data: Dataset, run_eagerly=False):
     flip = FlipTarget()
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),

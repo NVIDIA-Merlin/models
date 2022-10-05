@@ -3,7 +3,7 @@ from typing import Optional, Union
 import tensorflow as tf
 from packaging import version
 
-from merlin.models.tf.core import combinators
+from merlin.models.tf.core import block
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.utils import tf_utils
 from merlin.schema import Schema
@@ -53,15 +53,15 @@ class EncoderBlock(tf.keras.Model):
         if "features" not in kwargs:
             kwargs["features"] = inputs
 
-        return combinators.call_sequentially(list(self.to_call), inputs=inputs, **kwargs)
+        return block.call_sequentially(list(self.to_call), inputs=inputs, **kwargs)
 
     def build(self, input_shape):
-        combinators.build_sequentially(self, list(self.to_call), input_shape=input_shape)
+        block.build_sequentially(self, list(self.to_call), input_shape=input_shape)
         if not hasattr(self.build, "_is_default"):
             self._build_input_shape = input_shape
 
     def compute_output_shape(self, input_shape):
-        return combinators.compute_output_shape_sequentially(list(self.to_call), input_shape)
+        return block.compute_output_shape_sequentially(list(self.to_call), input_shape)
 
     def __call__(self, inputs, **kwargs):
         # We remove features here since we don't expect them at inference time
@@ -100,8 +100,8 @@ class EncoderBlock(tf.keras.Model):
         if self.pre:
             yield self.pre
 
-        for block in self.blocks:
-            yield block
+        for b in self.blocks:
+            yield b
 
         if self.post:
             yield self.post

@@ -12,7 +12,7 @@ from merlin.models.tf.utils import tf_utils
 
 class TargetMixin:
     def compute_target(self, name: Optional[str], target):
-        if not getattr(self, "_targets", None):
+        if not getattr(self._thread_local, "_eager_targets", None):
             self._thread_local._eager_targets = {}
         self._thread_local._eager_targets[name] = target
 
@@ -66,7 +66,7 @@ class TargetMixin:
         targets = {}
 
         for child in set(self._flatten_layers()):
-            layer_targets = getattr(child, "_targets", None)
+            layer_targets = getattr(child._thread_local, "_eager_targets", None)
             if layer_targets:
                 for key, val in layer_targets.items():
                     if key in targets:
@@ -94,6 +94,7 @@ class BlockV2(Layer, TargetMixin):
         **kwargs,
     ):
         super().__init__(trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs)
+        # TODO: Add parsing for when pre/post contain strings
         self.pre = pre
         self.post = post
 
@@ -149,7 +150,7 @@ class BlockV2(Layer, TargetMixin):
 def get_targets(layer, targets=None):
     outputs = {**targets} if targets else {}
 
-    layer_targets = getattr(layer._thread_local, "_eager_targets", None)
+    layer_targets = getattr(layer, "targets", None)
     if layer_targets:
         for key, val in layer_targets.items():
             outputs[key] = val
