@@ -4,6 +4,7 @@ from transformers import BertConfig
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf.loader import Loader
 from merlin.models.tf.transformers.block import (
     AlbertBlock,
     BertBlock,
@@ -11,7 +12,9 @@ from merlin.models.tf.transformers.block import (
     RobertaBlock,
     XLNetBlock,
 )
+from merlin.models.tf.transforms.sequence import ExtractTargetsMask
 from merlin.models.tf.utils import testing_utils
+from merlin.schema import Tags
 
 
 def test_import():
@@ -154,3 +157,69 @@ def classification_loader(sequence_testing_data: Dataset):
     sequence_testing_data.schema = schema
     dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=_target_to_onehot)
     return dataloader, schema
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_transformer_with_causal_language_modeling(sequence_testing_data: Dataset, run_eagerly):
+
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
+        Tags.CATEGORICAL
+    )
+    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    predict_next = mm.SequencePredictNext(schema=seq_schema, target=target)
+
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False, transform=predict_next)
+
+    model = mm.Model(
+        mm.InputBlockV2(
+            seq_schema,
+            embeddings=mm.Embeddings(
+                seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+            ),
+        ),
+        GPT2Block(d_model=48, n_head=8, n_layer=2),
+        mm.CategoricalOutput(
+            seq_schema.select_by_name(target), default_loss="sparse_categorical_crossentropy"
+        ),
+    )
+
+    batch = next(iter(loader))[0]
+    outputs = model(batch)
+    assert list(outputs.shape) == [8, 3, 51997]
+    testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_transformer_with_masked_language_modeling(sequence_testing_data: Dataset, run_eagerly):
+
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
+        Tags.CATEGORICAL
+    )
+    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    predict_masked = mm.SequencePredictMasked(schema=seq_schema, target=target, masking_prob=0.3)
+
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False, transform=predict_masked)
+    model = mm.Model(
+        ExtractTargetsMask(),
+        mm.InputBlockV2(
+            seq_schema,
+            embeddings=mm.Embeddings(
+                seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+            ),
+        ),
+        # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.MaskSequenceEmbeddings()),
+        GPT2Block(
+            d_model=48,
+            n_head=4,
+            n_layer=2,
+            pre=mm.MaskSequenceEmbeddings(),
+        ),
+        mm.CategoricalOutput(
+            seq_schema.select_by_name(target), default_loss="sparse_categorical_crossentropy"
+        ),
+    )
+
+    inputs, targets = next(iter(loader))
+    outputs = model(inputs, targets=targets, training=True)
+    assert list(outputs.shape) == [8, 4, 51997]
+    testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
