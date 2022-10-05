@@ -16,7 +16,6 @@ from tensorflow.keras.utils import unpack_x_y_sample_weight
 import merlin.io
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
-from merlin.models.tf.core.encoder import Encoder
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
 from merlin.models.tf.inputs.base import InputBlock
@@ -39,6 +38,7 @@ from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import ColumnSchema, Schema, Tags
 
 if TYPE_CHECKING:
+    from merlin.models.tf.core.encoder import Encoder
     from merlin.models.tf.core.index import TopKIndexBlock
 
 
@@ -1502,6 +1502,9 @@ class RetrievalModelV2(Model):
 
     def _check_encoder(self, maybe_encoder):
         output = maybe_encoder
+
+        from merlin.models.tf.core.encoder import Encoder
+
         if isinstance(output, SequentialBlock):
             output = Encoder(*maybe_encoder.layers)
 
