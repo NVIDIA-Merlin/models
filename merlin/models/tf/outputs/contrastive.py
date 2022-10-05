@@ -19,6 +19,7 @@ from typing import List, Optional, Protocol, Union, runtime_checkable
 import tensorflow as tf
 from tensorflow.keras.layers import Layer
 
+import merlin.io
 from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.inputs.embedding import EmbeddingTable
 from merlin.models.tf.outputs.base import DotProduct, MetricsFn, ModelOutput
@@ -292,6 +293,9 @@ class ContrastiveOutput(ModelOutput):
     def embedding_lookup(self, ids: tf.Tensor):
         return self.to_call.embedding_lookup(tf.squeeze(ids))
 
+    def to_dataset(self, gpu=None) -> merlin.io.Dataset:
+        return merlin.io.Dataset(tf_utils.tensor_to_df(self.to_call.embeddings, gpu=gpu))
+
     @property
     def has_candidate_weights(self) -> bool:
         if isinstance(self.to_call, DotProduct):
@@ -337,6 +341,10 @@ class ContrastiveOutput(ModelOutput):
 @runtime_checkable
 class LookUpProtocol(Protocol):
     """Protocol for embedding lookup layers"""
+
+    @property
+    def embeddings(self):
+        pass
 
     def embedding_lookup(self, inputs, **kwargs):
         pass
