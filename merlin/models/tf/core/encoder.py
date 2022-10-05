@@ -8,9 +8,9 @@ import merlin.io
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
 from merlin.models.tf.models.base import BaseModel
 from merlin.models.tf.outputs.topk import TopKOutput
-from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
 from merlin.models.tf.utils import tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
