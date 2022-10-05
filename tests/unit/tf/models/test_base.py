@@ -672,14 +672,14 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
 
-@pytest.mark.parametrize("load_fn", [ml.Model.load, load_model])
+@pytest.mark.parametrize("load_fn", [mm.Model.load, load_model])
 def test_reload(load_fn, tmpdir):
     dataset = generate_data("e-commerce", num_rows=10)
     dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
-    model = ml.Model(
-        ml.InputBlock(dataset.schema),
-        ml.MLPBlock([4]),
-        ml.BinaryClassificationTask("click"),
+    model = mm.Model(
+        mm.InputBlock(dataset.schema),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
     )
     model.compile()
     _ = model.fit(
