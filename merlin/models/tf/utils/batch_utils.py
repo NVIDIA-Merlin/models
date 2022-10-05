@@ -6,7 +6,6 @@ import tensorflow as tf
 
 from merlin.core.dispatch import DataFrameType, concat_columns, get_lib
 from merlin.models.tf.core.base import Block
-from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.models.base import Model, RetrievalModel
 from merlin.models.utils.schema_utils import select_targets
@@ -155,18 +154,15 @@ def model_encode(model, batch):
 
     model_outputs = model(batch[0])
 
+    # handle when the model outputs a NamedTuple
+    if hasattr(model_outputs, "to_df"):
+        return model_outputs.to_df()
+    elif hasattr(model_outputs, "_asdict"):
+        model_outputs = model_outputs._asdict()
+
     if isinstance(model_outputs, dict):
         return get_lib().DataFrame({key: encode_output(val) for key, val in model_outputs.items()})
 
-    if isinstance(model_outputs, TopKPrediction):
-        return get_lib().DataFrame(
-            [
-                {
-                    "top_scores": encode_output(model_outputs.scores),
-                    "top_ids": encode_output(model_outputs.identifiers),
-                }
-            ]
-        )
     return encode_output(model_outputs)
 
 

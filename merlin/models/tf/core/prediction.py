@@ -17,6 +17,8 @@ from typing import Dict, NamedTuple, Optional, Union
 
 import tensorflow as tf
 
+from merlin.core.dispatch import DataFrameType, get_lib
+
 TensorLike = Union[tf.Tensor, tf.SparseTensor, tf.RaggedTensor]
 
 
@@ -66,3 +68,31 @@ class Prediction(NamedTuple):
 class TopKPrediction(NamedTuple):
     scores: tf.Tensor
     identifiers: tf.Tensor
+
+    def to_df(self) -> DataFrameType:
+        score_names = [f"score_{i}" for i in range(self.scores.shape[1])]
+        id_names = [f"id_{i}" for i in range(self.identifiers.shape[1])]
+
+        rows = []
+        for batch_i in range(self.scores.shape[0]):
+            row = {}
+            for k in range(self.scores.shape[1]):
+                row[score_names[k]] = encode_output(self.scores[batch_i, k])
+                row[id_names[k]] = encode_output(self.identifiers[batch_i, k])
+            rows.append(row)
+
+        return get_lib().DataFrame(rows)
+
+    @staticmethod
+    def output_names(k: int):
+        score_names = [f"score_{i}" for i in range(k)]
+        id_names = [f"id_{i}" for i in range(k)]
+
+        return score_names + id_names
+
+
+def encode_output(output: tf.Tensor):
+    if len(output.shape) == 2 and output.shape[1] == 1:
+        output = tf.squeeze(output)
+
+    return output.numpy()

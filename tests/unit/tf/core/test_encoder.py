@@ -103,8 +103,8 @@ def test_topk_encoder(music_streaming_data: Dataset):
         dataset=music_streaming_data,
         batch_size=32,
         output_schema=music_streaming_data.schema.select_by_name("user_id"),
-    )
-    assert set(topk_dataset.head().columns) == set(["user_id", "top_ids", "top_scores"])
+    ).compute()
+    assert len(topk_dataset.head().columns) == 1 + (TOP_K * 2)
 
     # 8. Save and load the top-k encoder
     with tempfile.TemporaryDirectory() as tmpdir:

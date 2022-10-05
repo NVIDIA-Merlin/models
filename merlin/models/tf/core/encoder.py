@@ -5,6 +5,7 @@ from packaging import version
 
 import merlin.io
 from merlin.models.tf.core import combinators
+from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.models.base import BaseModel
 from merlin.models.tf.outputs.topk import TopKOutput
@@ -198,6 +199,7 @@ class TopKEncoder(EncoderBlock, BaseModel):
             topk_output = topk_layer
         else:
             topk_output = TopKOutput(to_call=topk_layer, candidates=candidates, k=k, **kwargs)
+        self.k = k
 
         EncoderBlock.__init__(self, query_encoder, topk_output, pre=pre, post=post, **kwargs)
         # The base model is required for the evaluation step:
@@ -315,7 +317,10 @@ class TopKEncoder(EncoderBlock, BaseModel):
         from merlin.models.tf.utils.batch_utils import TFModelEncode
 
         model_encode = TFModelEncode(
-            model=self, batch_size=batch_size, output_names=["top_scores", "top_ids"], **kwargs
+            model=self,
+            batch_size=batch_size,
+            output_names=TopKPrediction.output_names(self.k),
+            **kwargs,
         )
 
         dataset = dataset.to_ddf()
