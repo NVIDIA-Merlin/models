@@ -589,8 +589,6 @@ class BaseModel(tf.keras.Model):
             lambda: self.metrics_results(),
         )
 
-        metrics = self.compute_metrics(outputs)
-
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
