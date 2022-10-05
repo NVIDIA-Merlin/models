@@ -25,7 +25,7 @@ from keras.utils import tf_inspect
 from tensorflow.python.framework.test_util import disable_cudnn_autotune
 
 import merlin.io
-from merlin.models.tf.dataset import BatchedDataset, sample_batch
+from merlin.models.tf.loader import Loader, sample_batch
 from merlin.models.tf.models.base import Model
 from merlin.schema import Schema
 
@@ -76,7 +76,7 @@ def assert_model_is_retrainable(
 
 def model_test(
     model: Model,
-    dataset: Union[merlin.io.Dataset, BatchedDataset],
+    dataset: Union[merlin.io.Dataset, Loader],
     run_eagerly: bool = True,
     optimizer="adam",
     epochs: int = 1,
@@ -88,7 +88,7 @@ def model_test(
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
     losses = model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1)
 
-    batch = sample_batch(dataset, batch_size=50)
+    batch = sample_batch(dataset, batch_size=50, to_ragged=reload_model)
 
     if reload_model:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -97,7 +97,7 @@ def model_test(
 
         assert isinstance(loaded_model, type(model))
 
-        np.array_equal(
+        np.testing.assert_array_almost_equal(
             model.predict(batch[0]),
             loaded_model.predict(batch[0]),
         )
@@ -161,6 +161,7 @@ def numeric_test(actual, expected):
 @disable_cudnn_autotune
 def layer_test(
     layer_cls,
+    args=None,
     kwargs=None,
     input_shape=None,
     input_dtype=None,
@@ -234,8 +235,9 @@ def layer_test(
             assert_equal = numeric_test
 
     # instantiation
+    args = args or []
     kwargs = kwargs or {}
-    layer = layer_cls(**kwargs)
+    layer = layer_cls(*args, **kwargs)
 
     if supports_masking is not None and layer.supports_masking != supports_masking:
         raise AssertionError(
@@ -260,7 +262,7 @@ def layer_test(
     # test and instantiation from weights
     if "weights" in tf_inspect.getargspec(layer_cls.__init__):
         kwargs["weights"] = weights
-        layer = layer_cls(**kwargs)
+        layer = layer_cls(*args, **kwargs)
 
     # test in functional API
     x = tf.keras.layers.Input(shape=input_shape[1:], dtype=input_dtype)
@@ -429,3 +431,20 @@ def assert_allclose_according_to_type(
         atol = max(atol, bfloat16_atol)
 
     np.testing.assert_allclose(a, b, rtol=rtol, atol=atol)
+
+
+def assert_output_shape(output, expected_output_shape):
+    def _get_shape(tensor_or_shape) -> tf.TensorShape:
+        if hasattr(tensor_or_shape, "shape"):
+            output_shape = tensor_or_shape.shape
+        else:
+            output_shape = tensor_or_shape
+        return output_shape
+
+    if isinstance(expected_output_shape, dict):
+        for key in expected_output_shape.keys():
+            output_shape = _get_shape(output[key])
+            assert list(output_shape) == list(expected_output_shape[key])
+    else:
+        output_shape = _get_shape(output)
+        assert list(output_shape) == list(expected_output_shape)

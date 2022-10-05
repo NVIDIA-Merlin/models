@@ -64,7 +64,7 @@ def testing_data() -> Dataset:
 
 @pytest.fixture(scope="module")
 def dask_client() -> distributed.Client:
-    with Distributed(cluster_type="cpu") as dist:
+    with Distributed() as dist:
         yield dist.client
 
 
@@ -104,3 +104,5 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.xgboost)
         if "/datasets/" in path:
             item.add_marker(pytest.mark.datasets)
+        if "/transformers/" in path:
+            item.add_marker(pytest.mark.transformers)

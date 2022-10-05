@@ -5,7 +5,6 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
     MRRAt,
@@ -120,7 +119,7 @@ def test_two_tower_model_with_custom_options(
 ):
     from tensorflow.keras import regularizers
 
-    from merlin.models.tf.core.transformations import PopularityLogitsCorrection
+    from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
     from merlin.models.utils import schema_utils
 
     data = ecommerce_data
@@ -350,7 +349,7 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
     )
     model.compile(optimizer="adam", run_eagerly=False)
 
-    as_ragged = mm.AsRaggedFeatures()
+    as_ragged = mm.ListToRagged()
 
     def last_interaction_as_target(inputs, targets):
         inputs = as_ragged(inputs)
@@ -362,8 +361,9 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 
         return inputs, targets
 
-    dataloader = BatchedDataset(sequence_testing_data, batch_size=50)
-    dataloader = dataloader.map(last_interaction_as_target)
+    dataloader = mm.Loader(
+        sequence_testing_data, batch_size=50, transform=last_interaction_as_target
+    )
 
     losses = model.fit(dataloader, epochs=1)
 

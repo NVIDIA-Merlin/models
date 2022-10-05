@@ -283,24 +283,26 @@ class ParallelPredictionBlock(ParallelBlock):
         task_weight_dict = task_weight_dict or {}
         task_pre_dict = task_pre_dict or {}
 
-        tasks: List[PredictionTask] = []
-        task_weights = []
+        tasks = []
         from merlin.models.tf.prediction_tasks.classification import BinaryClassificationTask
         from merlin.models.tf.prediction_tasks.regression import RegressionTask
 
-        for binary_target in schema.select_by_tag(Tags.BINARY_CLASSIFICATION).column_names:
-            tasks.append(
-                BinaryClassificationTask(binary_target, pre=task_pre_dict.get(binary_target, None))
-            )
-            task_weights.append(task_weight_dict.get(binary_target, 1.0))
-        for regression_target in schema.select_by_tag(Tags.REGRESSION).column_names:
-            tasks.append(
-                RegressionTask(regression_target, pre=task_pre_dict.get(regression_target, None))
-            )
-            task_weights.append(task_weight_dict.get(regression_target, 1.0))
+        for target in sorted(schema.select_by_tag(Tags.BINARY_CLASSIFICATION).column_names):
+            task = BinaryClassificationTask(target, pre=task_pre_dict.get(target, None))
+            task_weight = task_weight_dict.get(target, 1.0)
+            tasks.append((target, task, task_weight))
+
+        for target in sorted(schema.select_by_tag(Tags.REGRESSION).column_names):
+            task = RegressionTask(target, pre=task_pre_dict.get(target, None))
+            task_weight = task_weight_dict.get(target, 1.0)
+            tasks.append((target, task, task_weight))
         # TODO: Add multi-class classification here. Figure out how to get number of classes
 
-        return task_weights, tasks
+        # Ensures tasks are sorted by name, so that they match the metrics
+        # which are sorted the same way by Keras
+        _, tasks, tasks_weights = zip(*sorted(tasks))
+
+        return tasks_weights, tasks
 
     @classmethod
     def from_schema(  # type: ignore

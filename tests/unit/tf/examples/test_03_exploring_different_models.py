@@ -32,10 +32,18 @@ def test_example_03_exploring_different_models(tb):
             "regularization_loss",
         ]
     )
+    metrics_wide_n_deep = tb.ref("metrics_wide_n_deep")
+    assert set(metrics_wide_n_deep.keys()) == set(
+        [
+            "auc_2",
+            "loss",
+            "regularization_loss",
+        ]
+    )
     metrics_dlrm = tb.ref("metrics_dlrm")
     assert set(metrics_dlrm.keys()) == set(
         [
-            "auc_2",
+            "auc_3",
             "loss",
             "regularization_loss",
         ]
@@ -43,7 +51,7 @@ def test_example_03_exploring_different_models(tb):
     metrics_dcn = tb.ref("metrics_dcn")
     assert set(metrics_dcn.keys()) == set(
         [
-            "auc_3",
+            "auc_4",
             "loss",
             "regularization_loss",
         ]

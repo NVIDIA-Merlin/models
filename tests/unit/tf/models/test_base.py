@@ -15,24 +15,26 @@
 #
 import copy
 
+import numpy as np
+import pandas as pd
 import pytest
 import tensorflow as tf
 from tensorflow.test import TestCase
 
-import merlin.models.tf as ml
+import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
 from merlin.models.io import load_model
 from merlin.models.tf.utils import testing_utils, tf_utils
-from merlin.schema import Schema, Tags
+from merlin.schema import ColumnSchema, Schema, Tags
 
 
 @pytest.mark.parametrize("run_eagerly", [False])
 def test_simple_model(ecommerce_data: Dataset, run_eagerly):
-    model = ml.Model(
-        ml.InputBlock(ecommerce_data.schema),
-        ml.MLPBlock([4]),
-        ml.BinaryClassificationTask("click"),
+    model = mm.Model(
+        mm.InputBlock(ecommerce_data.schema),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
     )
 
     loaded_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -41,13 +43,32 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
     testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
 
 
+def test_fit_twice():
+    dataset = Dataset(pd.DataFrame({"feature": [1, 2, 3, 4, 5, 6], "target": [1, 0, 0, 1, 1, 0]}))
+    dataset.schema = Schema(
+        [
+            ColumnSchema("feature", dtype=np.int32, tags=[Tags.CONTINUOUS]),
+            ColumnSchema("target", dtype=np.int32, tags=[Tags.BINARY_CLASSIFICATION]),
+        ]
+    )
+    loader = mm.Loader(dataset, batch_size=2, shuffle=False)
+    model = mm.Model(
+        tf.keras.layers.Lambda(lambda x: x["feature"]),
+        tf.keras.layers.Dense(1),
+        mm.BinaryClassificationTask("target"),
+    )
+    model.compile(run_eagerly=True, optimizer="adam")
+    model.fit(loader, epochs=2)
+    model.fit(loader, epochs=2)
+
+
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
-    embedding_options = ml.EmbeddingOptions(embedding_dim_default=2)
-    model = ml.Model.from_block(
-        ml.MLPBlock([4]),
+    embedding_options = mm.EmbeddingOptions(embedding_dim_default=2)
+    model = mm.Model.from_block(
+        mm.MLPBlock([4]),
         ecommerce_data.schema,
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        prediction_tasks=mm.BinaryClassificationTask("click"),
         embedding_options=embedding_options,
     )
 
@@ -59,11 +80,11 @@ def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
 
 
 def test_block_from_model_with_input(ecommerce_data: Dataset):
-    inputs = ml.InputBlock(ecommerce_data.schema)
-    block = inputs.connect(ml.MLPBlock([2]))
+    inputs = mm.InputBlock(ecommerce_data.schema)
+    block = inputs.connect(mm.MLPBlock([2]))
 
     with pytest.raises(ValueError) as excinfo:
-        ml.Model.from_block(
+        mm.Model.from_block(
             block,
             ecommerce_data.schema,
             input_block=inputs,
@@ -99,6 +120,29 @@ class MetricsLogger(tf.keras.callbacks.Callback):
         self.epoch_logs[self.epoch].append(logs)
 
 
+class UpdateCountMetric(tf.keras.metrics.Metric):
+    """Metric that returns a value representing the number of times it has been updated."""
+
+    def __init__(self, name="update_count_metric", **kwargs):
+        super().__init__(name=name, **kwargs)
+        self._built = False
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        if not self._built:
+            self.call_count = self.add_weight(
+                "call_count", shape=tf.TensorShape([1]), initializer="zeros"
+            )
+            self._built = True
+
+        self.call_count.assign(self.call_count + tf.constant([1.0]))
+
+    def result(self):
+        return self.call_count[0]
+
+    def reset_state(self):
+        self.call_count.assign(tf.constant([0.0]))
+
+
 @pytest.mark.parametrize(
     ["num_rows", "batch_size", "train_metrics_steps", "expected_steps", "expected_metrics_steps"],
     [
@@ -112,15 +156,15 @@ def test_train_metrics_steps(
     num_rows, batch_size, train_metrics_steps, expected_steps, expected_metrics_steps
 ):
     dataset = generate_data("e-commerce", num_rows=num_rows)
-    model = ml.Model(
-        ml.InputBlock(dataset.schema),
-        ml.MLPBlock([64]),
-        ml.BinaryClassificationTask("click"),
+    model = mm.Model(
+        mm.InputBlock(dataset.schema),
+        mm.MLPBlock([64]),
+        mm.BinaryClassificationTask("click"),
     )
     model.compile(
         run_eagerly=True,
         optimizer="adam",
-        metrics=[tf.keras.metrics.AUC(from_logits=True, name="auc")],
+        metrics=[UpdateCountMetric()],
     )
     metrics_callback = MetricsLogger()
     callbacks = [metrics_callback]
@@ -137,37 +181,39 @@ def test_train_metrics_steps(
     assert len(epoch0_logs) == expected_steps
 
     # number of times metrics computed (every train_metrics_steps batches)
-    assert len({metrics["auc"] for metrics in epoch0_logs}) == expected_metrics_steps
+    assert (
+        len({metrics["update_count_metric"] for metrics in epoch0_logs}) == expected_metrics_steps
+    )
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_model_pre_post(ecommerce_data: Dataset, run_eagerly):
-    model = ml.Model(
-        ml.InputBlock(ecommerce_data.schema),
-        ml.MLPBlock([4]),
-        ml.BinaryClassificationTask("click"),
-        post=ml.NoOp(),
+    model = mm.Model(
+        mm.InputBlock(ecommerce_data.schema),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+        post=mm.NoOp(),
     )
 
-    model.pre = ml.StochasticSwapNoise(ecommerce_data.schema)
+    model.pre = mm.StochasticSwapNoise(ecommerce_data.schema)
 
     loaded_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
 
-    assert isinstance(loaded_model.pre, ml.StochasticSwapNoise)
-    assert isinstance(loaded_model.post, ml.NoOp)
+    assert isinstance(loaded_model.pre, mm.StochasticSwapNoise)
+    assert isinstance(loaded_model.post, mm.NoOp)
 
 
 def test_sub_class_model(ecommerce_data: Dataset):
     blocks = ["input_block", "mlp", "prediction"]
 
     @tf.keras.utils.register_keras_serializable(package="merlin.models")
-    class SubClassedModel(ml.BaseModel):
+    class SubClassedModel(mm.BaseModel):
         def __init__(self, schema: Schema, target: str, **kwargs):
             super(SubClassedModel, self).__init__()
             if "input_block" not in kwargs:
-                self.input_block = ml.InputBlock(schema)
-                self.mlp = ml.MLPBlock([4])
-                self.prediction = ml.BinaryClassificationTask(target)
+                self.input_block = mm.InputBlock(schema)
+                self.mlp = mm.MLPBlock([4])
+                self.prediction = mm.BinaryClassificationTask(target)
             else:
                 self.input_block = kwargs["input_block"]
                 self.mlp = kwargs["mlp"]
@@ -197,13 +243,13 @@ def test_sub_class_model(ecommerce_data: Dataset):
 def test_find_blocks_and_sub_blocks(ecommerce_data):
     test_case = TestCase()
     schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
-    input_block = ml.InputBlockV2(schema)
-    layer_1 = ml.MLPBlock([64], name="layer_1")
-    layer_2 = ml.MLPBlock([1], no_activation_last_layer=True, name="layer_2")
-    two_layer = ml.SequentialBlock([layer_1, layer_2], name="two_layers")
+    input_block = mm.InputBlockV2(schema)
+    layer_1 = mm.MLPBlock([64], name="layer_1")
+    layer_2 = mm.MLPBlock([1], no_activation_last_layer=True, name="layer_2")
+    two_layer = mm.SequentialBlock([layer_1, layer_2], name="two_layers")
     body = input_block.connect(two_layer)
 
-    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+    model = mm.Model(body, mm.BinaryClassificationTask("click"))
     testing_utils.model_test(model, ecommerce_data)
 
     print(model.summary(expand_nested=True, show_trainable=True, line_length=80))
@@ -272,11 +318,11 @@ def test_freeze_parallel_block(ecommerce_data, run_eagerly):
     schema = ecommerce_data.schema.select_by_name(
         names=["user_categories", "item_category", "click"]
     )
-    input_block = ml.InputBlockV2(schema)
-    layer_1 = ml.MLPBlock([64], name="layer_1")
+    input_block = mm.InputBlockV2(schema)
+    layer_1 = mm.MLPBlock([64], name="layer_1")
     body = input_block.connect(layer_1)
 
-    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+    model = mm.Model(body, mm.BinaryClassificationTask("click"))
 
     # Compile(Make sure set run_eagerly mode) and fit -> model.freeze_blocks -> compile and fit
     # Set run_eagerly=True in order to avoid error: "Called a function referencing variables which
@@ -366,13 +412,13 @@ def test_freeze_parallel_block(ecommerce_data, run_eagerly):
 def test_freeze_sequential_block(ecommerce_data):
     test_case = TestCase()
     schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
-    input_block = ml.InputBlockV2(schema)
-    layer_1 = ml.MLPBlock([64], name="layer_1")
-    layer_2 = ml.MLPBlock([1], no_activation_last_layer=True, name="layer_2")
-    two_layer = ml.SequentialBlock([layer_1, layer_2], name="two_layers")
+    input_block = mm.InputBlockV2(schema)
+    layer_1 = mm.MLPBlock([64], name="layer_1")
+    layer_2 = mm.MLPBlock([1], no_activation_last_layer=True, name="layer_2")
+    two_layer = mm.SequentialBlock([layer_1, layer_2], name="two_layers")
     body = input_block.connect(two_layer)
 
-    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+    model = mm.Model(body, mm.BinaryClassificationTask("click"))
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
@@ -464,46 +510,15 @@ def test_freeze_sequential_block(ecommerce_data):
     )
 
 
-@pytest.mark.parametrize("run_eagerly", [True])
-def test_wide_deep_model(ecommerce_data, run_eagerly):
-    wide_schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
-    deep_schema = ecommerce_data.schema
-    deep_input_block = ml.InputBlockV2(
-        deep_schema,
-    )
-    deep_block = ml.MLPBlock([63], name="MLPBlock_deep_block")
-    deep_body = deep_input_block.connect(deep_block).connect(
-        ml.MLPBlock([0], no_activation_last_layer=True)
-    )
-
-    wide_preprocess = ml.HashedCross(wide_schema, num_bins=100)
-    wide_input_block = ml.ParallelBlock(
-        ml.TabularBlock.from_schema(schema=wide_schema, pre=wide_preprocess),
-        is_input=True,
-        aggregation="concat",
-        name="Parallelblock_wide_input",
-    )
-    wide_body = wide_input_block.connect(ml.MLPBlock([0], no_activation_last_layer=True))
-
-    branches = {"wide": wide_body, "deep": deep_body}
-    wide_and_deep_body = ml.ParallelBlock(branches, aggregation="element-wise-sum")
-    model = ml.Model(wide_and_deep_body, ml.BinaryClassificationTask("click"))
-    model.compile(run_eagerly=True, optimizer="adam")
-    model.fit(ecommerce_data, batch_size=128, epochs=1)
-
-    model.freeze_blocks([wide_body])
-    testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
-
-
 def test_freeze_unfreeze(ecommerce_data):
     schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
-    input_block = ml.InputBlockV2(schema)
-    layer_1 = ml.MLPBlock([64], name="layer_1")
-    layer_2 = ml.MLPBlock([1], no_activation_last_layer=True, name="layer_2")
-    two_layer = ml.SequentialBlock([layer_1, layer_2], name="two_layers")
+    input_block = mm.InputBlockV2(schema)
+    layer_1 = mm.MLPBlock([64], name="layer_1")
+    layer_2 = mm.MLPBlock([1], no_activation_last_layer=True, name="layer_2")
+    two_layer = mm.SequentialBlock([layer_1, layer_2], name="two_layers")
     body = input_block.connect(two_layer)
 
-    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+    model = mm.Model(body, mm.BinaryClassificationTask("click"))
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
@@ -577,13 +592,13 @@ def test_freeze_unfreeze(ecommerce_data):
 
 def test_unfreeze_all_blocks(ecommerce_data):
     schema = ecommerce_data.schema.select_by_name(names=["user_categories", "item_category"])
-    input_block = ml.InputBlockV2(schema)
-    layer_1 = ml.MLPBlock([64], name="layer_1")
-    layer_2 = ml.MLPBlock([1], no_activation_last_layer=True, name="layer_2")
-    two_layer = ml.SequentialBlock([layer_1, layer_2], name="two_layers")
+    input_block = mm.InputBlockV2(schema)
+    layer_1 = mm.MLPBlock([64], name="layer_1")
+    layer_2 = mm.MLPBlock([1], no_activation_last_layer=True, name="layer_2")
+    two_layer = mm.SequentialBlock([layer_1, layer_2], name="two_layers")
     body = input_block.connect(two_layer)
 
-    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+    model = mm.Model(body, mm.BinaryClassificationTask("click"))
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 

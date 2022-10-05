@@ -35,14 +35,14 @@ from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is
 from merlin.models.tf.core.combinators import SequentialBlock
 from merlin.models.tf.core.prediction import Prediction, PredictionContext
 from merlin.models.tf.core.tabular import TabularBlock
-from merlin.models.tf.core.transformations import AsRaggedFeatures
-from merlin.models.tf.dataset import BatchedDataset
 from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.loader import Loader
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
 from merlin.models.tf.models.utils import parse_prediction_tasks
+from merlin.models.tf.outputs.base import ModelOutput
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.predictions.base import ContrastivePredictionBlock, PredictionBlock
+from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
 from merlin.models.tf.utils.tf_utils import (
@@ -92,6 +92,9 @@ class ModelBlock(Block, tf.keras.Model):
     def __init__(self, block: Block, **kwargs):
         super().__init__(**kwargs)
         self.block = block
+        if hasattr(self, "set_schema"):
+            block_schema = getattr(block, "schema", None)
+            self.set_schema(block_schema)
 
     def call(self, inputs, **kwargs):
         if "features" not in kwargs:
@@ -314,7 +317,7 @@ class BaseModel(tf.keras.Model):
         )
 
         num_v1_blocks = len(self.prediction_tasks)
-        num_v2_blocks = len(self.prediction_blocks)
+        num_v2_blocks = len(self.model_outputs)
 
         if num_v1_blocks > 1 and num_v2_blocks > 1:
             raise ValueError(
@@ -325,15 +328,7 @@ class BaseModel(tf.keras.Model):
         if num_v1_blocks > 0:
             self.output_names = [task.task_name for task in self.prediction_tasks]
         else:
-            self.output_names = [block.full_name for block in self.prediction_blocks]
-            negative_sampling = kwargs.pop("negative_sampling", None)
-            if negative_sampling:
-                if not isinstance(self.prediction_blocks[0], ContrastivePredictionBlock):
-                    raise ValueError(
-                        "Negative sampling strategy can be used only with a"
-                        " `ContrastivePredictionBlock` prediction block"
-                    )
-                self.prediction_blocks[0].compile(negative_sampling=negative_sampling)
+            self.output_names = [block.full_name for block in self.model_outputs]
 
         # This flag will make Keras change the metric-names which is not needed in v2
         from_serialized = kwargs.pop("from_serialized", num_v2_blocks > 0)
@@ -372,21 +367,23 @@ class BaseModel(tf.keras.Model):
                     for i, task in enumerate(self.prediction_tasks):
                         out[task.task_name] = metrics[i]
             else:
-                if len(self.prediction_blocks) == 1:
-                    out[self.prediction_blocks[0].full_name] = metrics
+                if len(self.model_outputs) == 1:
+                    out[self.model_outputs[0].full_name] = metrics
                 else:
-                    for i, block in enumerate(self.prediction_blocks):
+                    for i, block in enumerate(self.model_outputs):
                         out[block.full_name] = metrics[i]
 
         elif metrics is None:
             for task_name, task in self.prediction_tasks_by_name().items():
                 out[task_name] = [m() if inspect.isclass(m) else m for m in task.DEFAULT_METRICS]
 
-            for prediction_name, prediction_block in self.predictions_by_name().items():
+            for prediction_name, prediction_block in self.outputs_by_name().items():
                 out[prediction_name] = prediction_block.default_metrics_fn()
-                if len(self.prediction_blocks) > 1:
+                if len(self.model_outputs) > 1:
                     for metric in out[prediction_name]:
                         metric._name = "/".join([prediction_block.full_name, metric.name])
+        else:
+            out = metrics
 
         return out
 
@@ -406,10 +403,10 @@ class BaseModel(tf.keras.Model):
                     for i, task in enumerate(self.prediction_tasks):
                         out[task.task_name] = weighted_metrics[i]
             else:
-                if len(self.prediction_blocks) == 1:
-                    out[self.prediction_blocks[0].full_name] = weighted_metrics
+                if len(self.model_outputs) == 1:
+                    out[self.model_outputs[0].full_name] = weighted_metrics
                 else:
-                    for i, block in enumerate(self.prediction_blocks):
+                    for i, block in enumerate(self.model_outputs):
                         out[block.full_name] = weighted_metrics[i]
 
         return out
@@ -420,15 +417,15 @@ class BaseModel(tf.keras.Model):
         if isinstance(loss, (tf.keras.losses.Loss, str)):
             if len(self.prediction_tasks) == 1:
                 out = {task.task_name: loss for task in self.prediction_tasks}
-            elif len(self.prediction_blocks) == 1:
-                out = {task.name: loss for task in self.prediction_blocks}
+            elif len(self.model_outputs) == 1:
+                out = {task.name: loss for task in self.model_outputs}
 
         # If loss is not provided, use the defaults from the prediction-tasks.
         if not loss:
             for task_name, task in self.prediction_tasks_by_name().items():
                 out[task_name] = task.DEFAULT_LOSS
 
-            for task_name, task in self.predictions_by_name().items():
+            for task_name, task in self.outputs_by_name().items():
                 out[task_name] = task.default_loss
 
         for key in out:
@@ -468,15 +465,15 @@ class BaseModel(tf.keras.Model):
         return outputs
 
     @property
-    def prediction_blocks(self) -> List[PredictionBlock]:
-        results = find_all_instances_in_layers(self, PredictionBlock)
+    def model_outputs(self) -> List[ModelOutput]:
+        results = find_all_instances_in_layers(self, ModelOutput)
 
         return results
 
-    def predictions_by_name(self) -> Dict[str, PredictionBlock]:
-        return {task.full_name: task for task in self.prediction_blocks}
+    def outputs_by_name(self) -> Dict[str, ModelOutput]:
+        return {task.full_name: task for task in self.model_outputs}
 
-    def predictions_by_target(self) -> Dict[str, List[PredictionBlock]]:
+    def outputs_by_target(self) -> Dict[str, List[ModelOutput]]:
         """Method to index the model's prediction blocks by target names.
 
         Returns
@@ -484,8 +481,8 @@ class BaseModel(tf.keras.Model):
         Dict[str, List[PredictionBlock]]
             List of prediction blocks.
         """
-        outputs: Dict[str, List[PredictionBlock]] = {}
-        for task in self.prediction_blocks:
+        outputs: Dict[str, List[ModelOutput]] = {}
+        for task in self.model_outputs:
             if task.target in outputs:
                 if isinstance(outputs[task.target], list):
                     outputs[task.target].append(task)
@@ -532,7 +529,7 @@ class BaseModel(tf.keras.Model):
             testing=testing,
             **kwargs,
         )
-        if not (self.prediction_tasks or self.prediction_blocks):
+        if not (self.prediction_tasks or self.model_outputs):
             return PredictionOutput(forward, y)
 
         predictions, targets, sample_weights, output = {}, {}, {}, None
@@ -569,7 +566,7 @@ class BaseModel(tf.keras.Model):
                 return PredictionOutput(predictions, targets, sample_weight=sample_weights)
 
         # V2
-        for task in self.prediction_blocks:
+        for task in self.model_outputs:
             task_x = forward
             if isinstance(forward, dict) and task.full_name in forward:
                 task_x = forward[task.full_name]
@@ -604,6 +601,7 @@ class BaseModel(tf.keras.Model):
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
         metrics = self.compute_metrics(outputs, training=True)
+
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -621,7 +619,9 @@ class BaseModel(tf.keras.Model):
             outputs = self.pre_eval_topk.call_outputs(outputs)
 
         self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
+
         metrics = self.compute_metrics(outputs, training=False)
+
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
@@ -653,7 +653,6 @@ class BaseModel(tf.keras.Model):
 
         should_compute_metrics = self._should_compute_train_metrics_for_batch or not training
         if should_compute_metrics:
-
             # This ensures that compiled metrics are built
             # to make self.compiled_metrics.metrics available
             if not self.compiled_metrics.built:
@@ -722,7 +721,7 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
 
         # Bind schema from dataset to model in case we can't infer it from the inputs
-        if isinstance(x, BatchedDataset):
+        if isinstance(x, Loader):
             self.schema = x.schema
 
         validation_data = _maybe_convert_merlin_dataset(
@@ -904,7 +903,7 @@ class Model(BaseModel):
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
-            _ragged_inputs = AsRaggedFeatures()(inputs)
+            _ragged_inputs = ListToRagged()(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
 
@@ -951,7 +950,7 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            AsRaggedFeatures()(inputs),
+            ListToRagged()(inputs),
             targets=targets,
             training=training,
             testing=testing,
@@ -995,7 +994,11 @@ class Model(BaseModel):
         if isinstance(outputs, Prediction):
             targets = outputs.targets if outputs.targets is not None else context.targets
             features = outputs.features if outputs.features is not None else context.features
-            outputs = outputs[0]
+            if isinstance(child, ModelOutput):
+                if not (context.training or context.testing):
+                    outputs = outputs[0]
+            else:
+                outputs = outputs[0]
             context = context.with_updates(targets=targets, features=features)
 
         return outputs, context
@@ -1445,7 +1448,7 @@ def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
         if not batch_size:
             raise ValueError("batch_size must be specified when using merlin-dataset.")
 
-        data = BatchedDataset(data, batch_size=batch_size, shuffle=shuffle, **kwargs)
+        data = Loader(data, batch_size=batch_size, shuffle=shuffle, **kwargs)
 
         if not shuffle:
             kwargs.pop("shuffle", None)

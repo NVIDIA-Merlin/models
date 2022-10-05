@@ -42,6 +42,8 @@ if TYPE_CHECKING:
 
 
 class PredictionOutput(NamedTuple):
+    "class to hold PredictionOutput"
+
     predictions: Union[TabularData, tf.Tensor]
     targets: Union[TabularData, tf.Tensor]
     positive_item_ids: Optional[tf.Tensor] = None
@@ -471,7 +473,12 @@ class Block(SchemaMixin, ContextMixin, Layer):
     def select_by_name(self, name: str) -> Optional["Block"]:
         if name == self.name:
             return self
+        return None
 
+    def select_by_tag(self, tags: Tags) -> Optional["Block"]:
+        selected_schema = self.schema.select_by_tag(tags)
+        if selected_schema:
+            return self
         return None
 
     def copy(self):

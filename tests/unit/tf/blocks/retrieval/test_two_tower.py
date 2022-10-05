@@ -20,6 +20,7 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
+from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
 from merlin.models.tf.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.utils import testing_utils
@@ -157,6 +158,29 @@ def test_two_tower_block_serialization(testing_data: Dataset):
 #
 #     outputs = copy_two_tower(ecommerce_data.tf_tensor_dict)
 #     assert list(outputs.shape) == [100, 1]
+
+
+def test_two_tower_with_embeddings():
+    train = generate_data("e-commerce", 10)
+    schema = train.schema.without(["click", "conversion"])
+    train.schema = schema
+
+    item_embeddings = ml.Embeddings(schema.select_by_tag(Tags.ITEM), infer_embedding_sizes=True)
+    query_embeddings = ml.Embeddings(schema.select_by_tag(Tags.USER), infer_embedding_sizes=True)
+
+    item_input_block = ml.InputBlockV2(schema.select_by_tag(Tags.ITEM), categorical=item_embeddings)
+    query_input_block = ml.InputBlockV2(
+        schema.select_by_tag(Tags.USER), categorical=query_embeddings
+    )
+
+    model = ml.TwoTowerModel(
+        schema,
+        item_tower=item_input_block.connect(ml.MLPBlock([4])),
+        query_tower=query_input_block.connect(ml.MLPBlock([4])),
+        samplers=[ml.InBatchSampler()],
+    )
+    model.compile(optimizer="adam")
+    model.fit(train, batch_size=10, epochs=1)
 
 
 def test_two_tower_block_no_item_features(testing_data: Dataset):
