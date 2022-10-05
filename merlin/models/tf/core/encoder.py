@@ -139,11 +139,15 @@ class Encoder(tf.keras.Model):
 
         return merlin.io.Dataset(predictions)
 
-    def call(self, inputs, **kwargs):
-        if "features" not in kwargs:
-            kwargs["features"] = inputs
-
-        return combinators.call_sequentially(list(self.to_call), inputs=inputs, **kwargs)
+    def call(self, inputs, training=False, testing=False, targets=None):
+        return combinators.call_sequentially(
+            list(self.to_call),
+            inputs=inputs,
+            features=inputs,
+            targets=targets,
+            training=training,
+            testing=testing,
+        )
 
     def build(self, input_shape):
         combinators.build_sequentially(self, list(self.to_call), input_shape=input_shape)
@@ -247,7 +251,7 @@ class TopKEncoder(Encoder, BaseModel):
 
     Parameters
     ----------
-    query_encoder: Union[EncoderBlock, tf.keras.layers.Layer],
+    query_encoder: Union[Encoder, tf.keras.layers.Layer],
         The layer to use for encoding the query features
     topk_layer: Union[str, tf.keras.layers.Layer, TopKOutput]
         The layer to use for computing the top-k predictions.
@@ -261,7 +265,7 @@ class TopKEncoder(Encoder, BaseModel):
         the candidates ids.
         This is required when `topk_layer` is a string
         By default None
-    candidate_encoder:  Union[EncoderBlock, tf.keras.layers.Layer],
+    candidate_encoder:  Union[Encoder, tf.keras.layers.Layer],
         The layer to use for encoding the item features
     k: int, Optional
         Number of candidates to return, by default 10
@@ -309,9 +313,9 @@ class TopKEncoder(Encoder, BaseModel):
 
         Parameters
         ----------
-        query_encoder : Union[EncoderBlock, tf.keras.layers.Layer]
+        query_encoder : Union[Encoder, tf.keras.layers.Layer]
             The encoder layer to use for computing the query embeddings.
-        candidate_encoder : Union[EncoderBlock, tf.keras.layers.Layer]
+        candidate_encoder : Union[Encoder, tf.keras.layers.Layer]
             The encoder layer to use for computing the candidates embeddings.
         dataset : merlin.io.Dataset
             Raw candidate features dataset
@@ -430,6 +434,7 @@ class TopKEncoder(Encoder, BaseModel):
         )
 
 
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
 class EmbeddingEncoder(Encoder):
     def __init__(
         self,
