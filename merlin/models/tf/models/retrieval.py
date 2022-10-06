@@ -1,14 +1,23 @@
+import warnings
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+
+import tensorflow as tf
 
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
 from merlin.models.tf.blocks.retrieval.two_tower import TwoTowerBlock
 from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.core.base import Block, BlockType
-from merlin.models.tf.inputs.base import InputBlock
+from merlin.models.tf.core.combinators import ParallelBlock
+from merlin.models.tf.core.encoder import EmbeddingEncoder, Encoder
+from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
-from merlin.models.tf.models.base import Model, RetrievalModel
+from merlin.models.tf.models.base import Model, RetrievalModel, RetrievalModelV2
 from merlin.models.tf.models.utils import parse_prediction_tasks
+from merlin.models.tf.outputs.base import DotProduct, ModelOutput
+from merlin.models.tf.outputs.contrastive import ContrastiveOutput
+from merlin.models.tf.outputs.sampling.base import ItemSamplersType
+from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
@@ -300,3 +309,307 @@ def YoutubeDNNRetrievalModel(
     # TODO: Figure out how to make this fit as
     # a RetrievalModel (which must have a RetrievalBlock)
     return Model(inputs, top_block, task)
+
+
+def MatrixFactorizationModelV2(
+    schema: Schema,
+    dim: int,
+    query_id_tag=Tags.USER_ID,
+    candidate_id_tag=Tags.ITEM_ID,
+    embeddings_initializers: Optional[
+        Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
+    ] = None,
+    embeddings_l2_reg: float = 0.0,
+    post: Optional[BlockType] = None,
+    outputs: Optional[Union[ModelOutput, List[ModelOutput]]] = None,
+    negative_samplers: ItemSamplersType = None,
+    logits_temperature: float = 1.0,
+    **kwargs,
+) -> RetrievalModelV2:
+    """Builds a matrix factorization (MF) model.
+
+    Example Usage::
+        mf = MatrixFactorizationModelV2(schema, dim=128)
+        mf.compile(optimizer="adam")
+        mf.fit(train_data, epochs=10)
+
+    Parameters
+    ----------
+    schema: Schema
+        The `Schema` with the input features
+    dim: int
+        The dimension of the embeddings.
+    query_id_tag : Tag
+        The tag to select query-id feature, by default `Tags.USER_ID`
+    candidate_id_tag : Tag
+        The tag to select cnadidate-id feature, by default `Tags.ITEM_ID`
+    embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]] = None
+        An initializer function or a dict where keys are feature names and values are
+        callable to initialize embedding tables
+    embeddings_l2_reg: float = 0.0
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
+    post: Optional[Block], optional
+        The optional `Block` to apply on both outputs of the MF towers.
+    outputs: optional
+        The optional `ModelOutput` or list of `ModelOutput` to apply on the MF model.
+    negative_samplers: List[ItemSampler]
+        List of samplers for negative sampling, by default None
+    logits_temperature: float
+        Parameter used to reduce model overconfidence, so that logits / T.
+        Defaults to 1.
+
+
+    Returns
+    -------
+    RetrievalModelV2
+    """
+
+    query = schema.select_by_tag(query_id_tag)
+    candidate = schema.select_by_tag(candidate_id_tag)
+
+    query_encoder = EmbeddingEncoder(
+        query,
+        dim=dim,
+        embeddings_initializer=embeddings_initializers,
+        embeddings_regularizer=tf.keras.regularizers.L2(embeddings_l2_reg),
+        post=post,
+    )
+    candidate_encoder = EmbeddingEncoder(
+        candidate,
+        dim=dim,
+        embeddings_initializer=embeddings_initializers,
+        embeddings_regularizer=tf.keras.regularizers.L2(embeddings_l2_reg),
+        post=post,
+    )
+
+    if not outputs:
+        if not negative_samplers:
+            warnings.warn(
+                "By default, the MatrixFactorization model is trained using constrastive learning."
+                "When `negative_samplers` is not specified, `in-batch` negative sampling is used."
+            )
+            negative_samplers = ["in-batch"]
+        outputs = ContrastiveOutput(
+            to_call=DotProduct(),
+            negative_samplers=negative_samplers,
+            logits_temperature=logits_temperature,
+            schema=candidate,
+            **kwargs,
+        )
+
+    if isinstance(outputs, list):
+        outputs = ParallelBlock(*outputs)
+
+    model = RetrievalModelV2(
+        query=query_encoder,
+        candidate=candidate_encoder,
+        output=outputs,
+    )
+
+    return model
+
+
+def TwoTowerModelV2(
+    schema: Schema,
+    query_tower: Union[Encoder, tf.keras.layers.Layer],
+    candidate_tower: Optional[Union[Encoder, tf.keras.layers.Layer]] = None,
+    query_tag=Tags.USER,
+    candidate_tag=Tags.ITEM,
+    candidate_id_tag=Tags.ITEM_ID,
+    post: Optional[tf.keras.layers.Layer] = None,
+    outputs: Optional[Union[ModelOutput, List[ModelOutput]]] = None,
+    logits_temperature: float = 1.0,
+    negative_samplers: ItemSamplersType = None,
+    inputs: Optional[tf.keras.layers.Layer] = None,
+    **kwargs,
+) -> RetrievalModelV2:
+    """Builds the Two-tower architecture, as proposed in [1].
+
+    Example Usage::
+        two_tower = TwoTowerModelV2(schema, query_tower=mm.MLPBlock([256, 64]))
+        two_tower.compile(optimizer="adam")
+        two_tower.fit(train_data, epochs=10)
+
+    References
+    ----------
+    [1] Yi, Xinyang, et al.
+        "Sampling-bias-corrected neural modeling for large corpus item recommendations."
+        Proceedings of the 13th ACM Conference on Recommender Systems. 2019.
+
+    Parameters
+    ----------
+    schema: Schema
+        The `Schema` with the input features
+    query_tower: Union[Encoder, tf.keras.layers.Layer]
+        The layer that encodes query features
+    candidate_tower: Union[Encoder, tf.keras.layers.Layer], optional
+        The optional layer that encodes candidates features
+        If not provided, a copy of the query_tower is used.
+        by default None.
+    query_tower_tag: Tag, optional
+        The tag to select query features, by default `Tags.USER`
+    candidate_tower_tag: Tag, optional
+        The tag to select candidate features, by default `Tags.ITEM`
+    candidate_id_tag: Tag, optional
+        The tag to select candidate-id feature, by default `Tags.ITEM_ID`
+    post: Optional[tf.keras.layers.Layer], optional
+        The optional `Block` to apply on both outputs of Two-tower model
+        by default None.
+    outputs:  Union[ModelOutput, List[ModelOutput]], optional
+        The optional `ModelOutput` or list of `ModelOutput` to apply on the model.
+    logits_temperature: float
+        Parameter used to reduce model overconfidence, so that logits / T.
+        Defaults to 1.
+    negative_samplers: List[ItemSampler]
+        List of samplers for negative sampling, by default None
+    inputs: tf.keras.layers.Layer, optional
+        The input layer to encode raw candidates and query features
+        If not specified, the input layer for the query and item tower
+        is inferred from the schema
+        By default None
+
+    Returns
+    -------
+    RetrievalModelV2
+    """
+    if query_tower is None:
+        raise ValueError("The query_tower is required by TwoTower")
+
+    if not inputs:
+        query = schema.select_by_tag(query_tag)
+        if len(query) == 0:
+            raise ValueError(f"Schema must contain features tagged with `{query_tag}` tag")
+
+        candidate = schema.select_by_tag(candidate_tag)
+        if len(candidate) == 0:
+            raise ValueError(f"Schema must contain features tagged with `{candidate_tag}` tag")
+    else:
+        query = inputs
+        candidate = inputs
+
+    _candidate_tower: tf.keras.layers.Layer = candidate_tower or query_tower.copy()
+
+    query_encoder = Encoder(query, query_tower, post=post)
+    candidate_encoder = Encoder(candidate, _candidate_tower, post=post)
+
+    if not outputs:
+        if not negative_samplers:
+            warnings.warn(
+                "By default, the TwoTower model is trained using constrastive learning."
+                "When `negative_samplers` is not specified, `in-batch` negative sampling is used."
+            )
+            negative_samplers = ["in-batch"]
+        outputs = ContrastiveOutput(
+            to_call=DotProduct(),
+            negative_samplers=negative_samplers,
+            logits_temperature=logits_temperature,
+            schema=schema.select_by_tag(candidate_id_tag),
+            **kwargs,
+        )
+
+    if isinstance(outputs, list):
+        outputs = ParallelBlock(*outputs)
+
+    model = RetrievalModelV2(
+        query=query_encoder,
+        candidate=candidate_encoder,
+        output=outputs,
+    )
+
+    return model
+
+
+def YoutubeDNNRetrievalModelV2(
+    schema: Schema,
+    candidate_id_tag=Tags.ITEM_ID,
+    top_block: Optional[tf.keras.layers.Layer] = MLPBlock([64]),
+    post: Optional[tf.keras.layers.Layer] = None,
+    inputs: tf.keras.layers.Layer = None,
+    outputs: Optional[Union[ModelOutput, List[ModelOutput]]] = None,
+    logits_temperature: float = 1.0,
+    num_sampled: int = 100,
+    min_sampled_id: int = 0,
+    **kwargs,
+) -> RetrievalModelV2:
+    """Build the Youtube-DNN retrieval model.
+    More details of the architecture can be found in [1]_.
+    Training with sampled_softmax is enabled by default [2]_ [3]_ [4]_.
+
+    Example Usage::
+        model = YoutubeDNNRetrievalModelV2(schema, num_sampled=100)
+        model.compile(optimizer="adam")
+        model.fit(train_data, epochs=10)
+
+    References
+    ----------
+    .. [1] Covington, Paul, Jay Adams, and Emre Sargin.
+        "Deep neural networks for youtube recommendations."
+        Proceedings of the 10th ACM conference on recommender systems. 2016.
+
+    .. [2] Yoshua Bengio and Jean-Sébastien Sénécal. 2003. Quick Training of Probabilistic
+       Neural Nets by Importance Sampling. In Proceedings of the conference on Artificial
+       Intelligence and Statistics (AISTATS).
+
+    .. [3] Y. Bengio and J. S. Senecal. 2008. Adaptive Importance Sampling to Accelerate
+       Training of a Neural Probabilistic Language Model. Trans. Neur. Netw. 19, 4 (April
+       2008), 713–722. https://doi.org/10.1109/TNN.2007.912312
+
+    .. [4] Jean, Sébastien, et al. "On using very large target vocabulary for neural
+        machine translation." arXiv preprint arXiv:1412.2007 (2014).
+
+
+    Parameters
+    ----------
+    schema: Schema
+        The `Schema` with the input features
+    candidate_id_tag : Tag
+        The tag to select cnadidate-id feature, by default `Tags.ITEM_ID`
+    top_block: tf.keras.layers.Layer
+        The hidden layers to apply on top of the features representation
+        vector.
+    inputs: tf.keras.layers.Layer, optional
+        The input layer to encode input features (sparse and context features)
+        If not specified, the input layer is inferred from the schema
+        By default None
+    post: Optional[tf.keras.layers.Layer], optional
+        The optional layer to apply on top of the query encoder.
+    logits_temperature: float, optional
+        Parameter used to reduce model overconfidence, so that logits / T.
+        Defaults to 1.
+    num_sampled: int, optional
+        When sampled_softmax is enabled, specify the number of
+        negative candidates to generate for each batch.
+        By default 100
+    min_sampled_id: int, optional
+        The minimum id value to be sampled with sampled softmax.
+        Useful to ignore the first categorical
+        encoded ids, which are usually reserved for <nulls>,
+        out-of-vocabulary or padding.
+        By default 0.
+    """
+    if not inputs:
+        inputs = InputBlockV2(schema, **kwargs)
+
+    candidate = schema.select_by_tag(candidate_id_tag)
+    if not candidate:
+        raise ValueError(f"The schema should contain a feature tagged as `{candidate_id_tag}`")
+    candidate = candidate.first
+    candidate_table = inputs["categorical"][candidate.name]
+    num_classes = candidate.int_domain.max + 1
+
+    query = Encoder(inputs, top_block, post=post)
+
+    if not outputs:
+        warnings.warn(
+            "By default, the YoutubeDNN model is trained using popularity-bases sampled softmax."
+        )
+        outputs = ContrastiveOutput(
+            to_call=candidate_table,
+            logits_temperature=logits_temperature,
+            post=post,
+            negative_samplers=PopularityBasedSamplerV2(
+                max_num_samples=num_sampled, max_id=num_classes - 1, min_id=min_sampled_id
+            ),
+        )
+
+    return RetrievalModelV2(query=query, output=outputs)

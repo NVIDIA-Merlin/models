@@ -451,6 +451,7 @@ class EmbeddingEncoder(Encoder):
         name=None,
         dtype=None,
         dynamic=False,
+        post: Optional[tf.keras.layers.Layer] = None,
     ):
         if isinstance(schema, ColumnSchema):
             col = schema
@@ -474,7 +475,7 @@ class EmbeddingEncoder(Encoder):
             dynamic=dynamic,
         )
 
-        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col_name]))
+        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col_name]), post=post)
 
     def to_dataset(self, gpu=None) -> merlin.io.Dataset:
         return self.blocks[0].to_dataset(gpu=gpu)
