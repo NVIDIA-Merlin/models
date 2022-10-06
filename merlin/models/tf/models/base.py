@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Sequence, Unio
 
 import six
 import tensorflow as tf
+from keras.engine.compile_utils import MetricsContainer
 from keras.utils.losses_utils import cast_losses_to_common_dtype
 from packaging import version
 from tensorflow.keras.utils import unpack_x_y_sample_weight
@@ -583,11 +584,7 @@ class BaseModel(tf.keras.Model):
         # Run backwards pass.
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-        metrics = tf.cond(
-            self._should_compute_train_metrics_for_batch,
-            lambda: self.compute_metrics(outputs),
-            lambda: self.metrics_results(),
-        )
+        metrics = self.train_compute_metrics(outputs, self.compiled_metrics)
 
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
@@ -615,9 +612,22 @@ class BaseModel(tf.keras.Model):
         return metrics
 
     @tf.function
+    def train_compute_metrics(self, outputs: PredictionOutput, compiled_metrics: MetricsContainer):
+        """Returns metrics for the outputs of this step.
+
+        Re-computing metrics every `train_metrics_steps` steps.
+        """
+        # Compiled_metrics as an argument here because it is re-defined by `model.compile()`
+        # And checking `self.compiled_metrics` inside this function results in a reference to
+        # a deleted version of `compiled_metrics` if the model is re-compiled.
+        if self._should_compute_train_metrics_for_batch:
+            return self.compute_metrics(outputs, compiled_metrics)
+        return self.metrics_results()
+
     def compute_metrics(
         self,
         prediction_outputs: PredictionOutput,
+        compiled_metrics: Optional[MetricsContainer] = None,
     ) -> Dict[str, tf.Tensor]:
         """Overrides Model.compute_metrics() for some custom behaviour
            like compute metrics each N steps during training
@@ -627,28 +637,31 @@ class BaseModel(tf.keras.Model):
         ----------
         prediction_outputs : PredictionOutput
             Contains properties with targets and predictions
-        training : bool
-            Flag that indicates if metrics are being computed during
-            training or evaluation
+        compiled_metrics : MetricsContainer
+            The metrics container to compute metrics on.
+            If not provided, uses self.compiled_metrics
 
         Returns
         -------
         Dict[str, tf.Tensor]
             Dict with the metrics values
         """
+        if compiled_metrics is None:
+            compiled_metrics = self.compiled_metrics
+
         # This ensures that compiled metrics are built
         # to make self.compiled_metrics.metrics available
-        if not self.compiled_metrics.built:
-            self.compiled_metrics.build(prediction_outputs.predictions, prediction_outputs.targets)
+        if not compiled_metrics.built:
+            compiled_metrics.build(prediction_outputs.predictions, prediction_outputs.targets)
 
         # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
         # should have standard signature for better compatibility with Keras methods
         # like self.compiled_metrics.update_state()
         if hasattr(prediction_outputs, "label_relevant_counts"):
-            for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
+            for topk_metric in filter_topk_metrics(compiled_metrics.metrics):
                 topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
 
-        self.compiled_metrics.update_state(
+        compiled_metrics.update_state(
             prediction_outputs.targets,
             prediction_outputs.predictions,
             prediction_outputs.sample_weight,
