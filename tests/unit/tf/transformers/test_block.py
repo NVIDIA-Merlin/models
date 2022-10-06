@@ -179,14 +179,16 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
         ),
         GPT2Block(d_model=48, n_head=8, n_layer=2),
         mm.CategoricalOutput(
-            seq_schema.select_by_name(target), default_loss="sparse_categorical_crossentropy"
+            seq_schema.select_by_name(target), default_loss="categorical_crossentropy"
         ),
     )
 
     batch = next(iter(loader))[0]
     outputs = model(batch)
     assert list(outputs.shape) == [8, 3, 51997]
-    testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
+    # TODO: Make TopkMetric work with 3D tensors (sequential predictions) and consider
+    # only masked predictions/targets for metrics computation
+    testing_utils.model_test(model, loader, run_eagerly=run_eagerly, metrics=[])
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -215,11 +217,13 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
             pre=mm.MaskSequenceEmbeddings(),
         ),
         mm.CategoricalOutput(
-            seq_schema.select_by_name(target), default_loss="sparse_categorical_crossentropy"
+            seq_schema.select_by_name(target), default_loss="categorical_crossentropy"
         ),
     )
 
     inputs, targets = next(iter(loader))
     outputs = model(inputs, targets=targets, training=True)
     assert list(outputs.shape) == [8, 4, 51997]
-    testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
+    # TODO: Make TopkMetric work with 3D tensors (sequential predictions) and consider
+    # only masked predictions/targets for metrics computation
+    testing_utils.model_test(model, loader, run_eagerly=run_eagerly, metrics=[])

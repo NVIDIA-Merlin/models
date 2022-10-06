@@ -362,10 +362,17 @@ class SequencePredictMasked(SequenceTransform):
     and the corresponding sequence of item ids, some positions are randomly selected (masked)
     to be the targets for prediction.
     The targets are output being the same as the input ids sequence.
-    The mask to be applied is stored as a dummy feature "__mask__", that contains a dict
-    with the mask for the target. The ExtractTargetsMask() should be used in the model to
-    extract the mask from dummy feature "__mask__" and make it available
-    to following blocks/layers via Keras Masking (._keras_mask)
+    The target masks can be returned in two different ways, depending on enable_keras_masking:
+    (1) by using Keras Masking (._keras_mask) or (2) by
+    including a special feature "__mask__", that contains a dict
+    with the mask for the target. In the latter ExtractTargetsMask() block
+    should be used in the model to extract the mask from special feature "__mask__"
+    and make it available to following blocks/layers via Keras Masking (._keras_mask).
+    This `enable_keras_masking=False` option is needed because the tensors _keras_mask set
+    in the Loader transformation are lost when the model is trained.
+    So the ExtractTargetsMask() transformation
+    was created to convert the special input "__mask__" to Keras Masking (._keras_mask)
+    inside the model, so that mask can be cascaded through the model layers/blocks
 
     Note: This transformation should be applied only during training, as you want
     to use all available information of the sequence for prediction.
@@ -387,6 +394,14 @@ class SequencePredictMasked(SequenceTransform):
         Probability of an item to be selected (masked) as a label of the given sequence.
         Note: We enforce that at least one item is masked for each sequence, so that it
         is useful for training, by default 0.2
+    enable_keras_masking : bool, by default False
+        If True, returns the masks in inputs and targets by using Keras Masking
+        (._keras_mask), which is set by the compute_mask() method.
+        If False, returns the target masks as a special input feature with key "__mask__".
+        This option is needed because the _keras_mask set in the Loader transformation
+        are lost when the model is trained. So the ExtractTargetsMask() transformation
+        was created to convert the special input "__mask__" to Keras Masking (._keras_mask)
+        inside the model, so that mask can be cascaded through the model layers/blocks
     """
 
     def __init__(
@@ -394,9 +409,11 @@ class SequencePredictMasked(SequenceTransform):
         schema: Schema,
         target: Union[str, Tags, ColumnSchema],
         masking_prob: float = 0.2,
+        enable_keras_masking: bool = False,
         **kwargs,
     ):
         self.masking_prob = masking_prob
+        self.enable_keras_masking = enable_keras_masking
         super().__init__(schema, target, **kwargs)
 
     def call(
@@ -437,7 +454,9 @@ class SequencePredictMasked(SequenceTransform):
             targets[self.target_name] = new_target
 
         target_mask = self._generate_target_mask(inputs[self.target_name])
-        self.save_mask_to_inputs(inputs, target_mask)
+
+        if not self.enable_keras_masking:
+            self.save_mask_to_inputs(inputs, target_mask)
 
         return (inputs, targets)
 
@@ -447,22 +466,25 @@ class SequencePredictMasked(SequenceTransform):
         else:
             inputs[MASK_TARGETS_KEY][self.target_name] = target_mask
 
-    # def compute_mask(self, inputs, mask=None):
-    #     """Is called by Keras and returns the targets mask that will
-    #     be assigned to the input tensors and targets, being accessible
-    #     by inputs._keras_mask
-    #     """
-    #     item_id_seq = inputs[self.target_name]
-    #     self.target_mask = self._generate_target_mask(item_id_seq)
+    def compute_mask(self, inputs, mask=None):
+        """Is called by Keras and returns the targets mask that will
+        be assigned to the input tensors and targets, being accessible
+        by inputs._keras_mask
+        """
+        if not self.enable_keras_masking:
+            return None
 
-    #     inputs_mask = dict()
-    #     for k, v in inputs.items():
-    #         if k in self.schema.column_names:
-    #             inputs_mask[k] = tf.logical_not(self.target_mask)
-    #         else:
-    #             inputs_mask[k] = None
+        item_id_seq = inputs[self.target_name]
+        self.target_mask = self._generate_target_mask(item_id_seq)
 
-    #     return (inputs_mask, self.target_mask)
+        inputs_mask = dict()
+        for k, v in inputs.items():
+            if k in self.schema.column_names:
+                inputs_mask[k] = self.target_mask
+            else:
+                inputs_mask[k] = None
+
+        return (inputs_mask, self.target_mask)
 
     def _generate_target_mask(self, ids_seq: tf.RaggedTensor) -> tf.RaggedTensor:
         """Generates a target mask according to the defined probability and
@@ -543,6 +565,7 @@ class SequencePredictMasked(SequenceTransform):
     def get_config(self):
         config = super().get_config()
         config["masking_prob"] = self.masking_prob
+        config["enable_keras_masking"] = self.enable_keras_masking
         return config
 
     @classmethod
@@ -551,7 +574,8 @@ class SequencePredictMasked(SequenceTransform):
         schema = schema_utils.tensorflow_metadata_json_to_schema(config.pop("schema"))
         target = config.pop("target")
         masking_prob = config.pop("masking_prob")
-        return cls(schema, target, masking_prob, **config)
+        enable_keras_masking = config.pop("enable_keras_masking")
+        return cls(schema, target, masking_prob, enable_keras_masking, **config)
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
