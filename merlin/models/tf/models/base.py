@@ -718,6 +718,9 @@ class BaseModel(tf.keras.Model):
                 for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
                     topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
 
+            # Update state of all metrics
+            # If predictions contains _keras_mask, they will be combined with sample_weight
+            # and provided as sample_weight to the metrics, so that they are properly masked
             self.compiled_metrics.update_state(
                 prediction_outputs.targets,
                 prediction_outputs.predictions,

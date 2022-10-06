@@ -219,7 +219,7 @@ def test_topk_reload(topk_metrics_test_data, metric_class):
     tf.assert_equal(result, reloaded_result)
 
 
-def test_topk_metrics_sequential_3d_with_mask():
+def test_topk_metrics_sequential_3d_with_sample_weights():
 
     labels = tf.convert_to_tensor(
         [
@@ -246,16 +246,9 @@ def test_topk_metrics_sequential_3d_with_mask():
     result = metric.result()
     tf.debugging.assert_near(result, 0.5)
 
-    # Masking metrics at some positions
-    predictions._keras_mask = tf.convert_to_tensor([[False, True, False], [True, False, False]])
-    metric.reset_state()
-    metric.update_state(labels, predictions)
-    result = metric.result()
-    tf.debugging.assert_near(result, (1.0 + 0.5) / 2)
-
-    # Now adding sample weight on top of the masked positions weighting
-    sample_weight = tf.convert_to_tensor([[1, 2, 3], [4, 5, 6]], tf.float32)
+    # Using sample weights to mask some positions
+    sample_weight = tf.convert_to_tensor([[0, 1, 0], [1, 0, 0]], tf.float32)
     metric.reset_state()
     metric.update_state(labels, predictions, sample_weight=sample_weight)
     result = metric.result()
-    tf.debugging.assert_near(result, ((2 * 0.5) + (4 * 1.0)) / (2 + 4))
+    tf.debugging.assert_near(result, (1.0 + 0.5) / 2)

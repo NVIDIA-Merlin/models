@@ -223,10 +223,6 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         y_pred: tf.Tensor,
         sample_weight: Optional[tf.Tensor] = None,
     ):
-        # TODO: Investigate why y_pred is losing _keras_mask
-        # when self.compiled_metrics.update_state() is called
-        preds_mask = getattr(y_pred, "_keras_mask", None)
-
         tf.debugging.assert_greater_equal(
             tf.shape(y_true)[-1],
             self.k,
@@ -253,7 +249,7 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         y_pred = tf.reshape(y_pred, new_shape)
         y_true = tf.reshape(y_true, new_shape)
         if label_relevant_counts is not None:
-            label_relevant_counts = tf.reshape(label_relevant_counts, -1)
+            label_relevant_counts = tf.reshape(label_relevant_counts, (-1,))
 
         y_pred, y_true, label_relevant_counts = self._maybe_sort_top_k(
             y_pred, y_true, label_relevant_counts
@@ -276,13 +272,6 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         # with the sample weights
         matches = tf.reshape(matches, original_shape[:-1])
 
-        if preds_mask is not None:
-            preds_mask = tf.cast(preds_mask, matches.dtype)
-            if sample_weight is None:
-                sample_weight = preds_mask
-            else:
-                sample_weight *= preds_mask
-
         return super().update_state(matches, sample_weight=sample_weight)
 
     def _maybe_sort_top_k(self, y_pred, y_true, label_relevant_counts: tf.Tensor = None):
@@ -301,11 +290,6 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         return y_pred, y_true, label_relevant_counts
 
     def check_cast_inputs(self, labels, predictions):
-        # tf.assert_equal(
-        #     tf.rank(predictions), 2, f"predictions must be 2-D tensor (got {predictions.shape})"
-        # )
-        # tf.assert_equal(tf.rank(labels), 2, f"labels must be 2-D tensor (got {labels.shape})")
-
         predictions.get_shape().assert_is_compatible_with(labels.get_shape())
 
         return tf.cast(labels, self._dtype), tf.cast(predictions, self._dtype)

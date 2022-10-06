@@ -186,7 +186,6 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     batch = next(iter(loader))[0]
     outputs = model(batch)
     assert list(outputs.shape) == [8, 3, 51997]
-    # TODO: Considers only masked predictions/targets for metrics computation
     testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
 
 
@@ -211,12 +210,12 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
         # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.MaskSequenceEmbeddings()),
         GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.MaskSequenceEmbeddings()),
         mm.CategoricalOutput(
-            seq_schema.select_by_name(target), default_loss="categorical_crossentropy"
+            seq_schema.select_by_name(target),
+            default_loss="categorical_crossentropy",
         ),
     )
 
     inputs, targets = next(iter(loader))
     outputs = model(inputs, targets=targets, training=True)
     assert list(outputs.shape) == [8, 4, 51997]
-    # TODO: Considers only masked predictions/targets for metrics computation
     testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
