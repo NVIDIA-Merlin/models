@@ -16,7 +16,7 @@ from tensorflow.keras.utils import unpack_x_y_sample_weight
 import merlin.io
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
-from merlin.models.tf.core.prediction import Prediction, PredictionContext
+from merlin.models.tf.core.prediction import Prediction, PredictionContext, TensorLike
 from merlin.models.tf.core.tabular import TabularBlock
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.loader import Loader
@@ -509,13 +509,7 @@ class BaseModel(tf.keras.Model):
         Union[Prediction, PredictionOutput]
         """
 
-        forward = self(
-            x,
-            targets=y,
-            training=training,
-            testing=testing,
-            **kwargs,
-        )
+        forward = self(x, targets=y, training=training, testing=testing, **kwargs,)
         if not (self.prediction_tasks or self.model_outputs):
             return PredictionOutput(forward, y)
 
@@ -541,6 +535,8 @@ class BaseModel(tf.keras.Model):
                 targets[task.task_name] = task_y
                 predictions[task.task_name] = task_x
                 sample_weights[task.task_name] = task_sample_weight
+
+            self.mask_predictions_from_targets(predictions, targets)
 
             if len(predictions) == 1 and len(targets) == 1:
                 predictions = list(predictions.values())[0]
@@ -572,7 +568,39 @@ class BaseModel(tf.keras.Model):
             predictions[task.full_name] = task_x
             sample_weights[task.full_name] = task_sample_weight
 
+            self.mask_predictions_from_targets(predictions, targets)
+
         return Prediction(predictions, targets, sample_weights)
+
+    def mask_predictions_from_targets(
+        self,
+        predictions: Dict[str, TensorLike],
+        targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]],
+    ):
+        if targets is None:
+            return
+        for k in predictions:
+            if isinstance(targets[k], tf.RaggedTensor):
+                dense_target_mask = None
+                if getattr(targets[k], "_keras_mask", None) is not None:
+                    dense_target_mask = targets[k]._keras_mask.to_tensor()
+                targets[k] = targets[k].to_tensor()
+                if dense_target_mask is not None:
+                    targets[k]._keras_mask = dense_target_mask
+
+            if getattr(targets[k], "_keras_mask", None) is not None:
+                # Copies the mask from the targets to the predictions
+                # because Keras considers the prediction mask in loss
+                # and metrics computation
+                predictions[k]._keras_mask = targets[k]._keras_mask
+
+            if (
+                len(targets[k].get_shape().as_list())
+                == len(predictions[k].get_shape().as_list()) - 1
+            ):
+                num_classes = tf.shape(predictions[k])[-1]
+                # Making targets one-hot encoded if they are not
+                targets[k] = tf.one_hot(targets[k], num_classes)
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
@@ -644,9 +672,7 @@ class BaseModel(tf.keras.Model):
 
     @tf.function
     def compute_metrics(
-        self,
-        prediction_outputs: PredictionOutput,
-        training: bool,
+        self, prediction_outputs: PredictionOutput, training: bool,
     ) -> Dict[str, tf.Tensor]:
         """Overrides Model.compute_metrics() for some custom behaviour
            like compute metrics each N steps during training
@@ -965,10 +991,7 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            ListToRagged()(inputs),
-            targets=targets,
-            training=training,
-            testing=testing,
+            ListToRagged()(inputs), targets=targets, training=training, testing=testing,
         )
 
         outputs = inputs
@@ -994,10 +1017,7 @@ class Model(BaseModel):
         return context
 
     def _call_child(
-        self,
-        child: tf.keras.layers.Layer,
-        inputs,
-        context: PredictionContext,
+        self, child: tf.keras.layers.Layer, inputs, context: PredictionContext,
     ):
         call_kwargs = context.to_call_dict()
 
@@ -1117,8 +1137,7 @@ class Model(BaseModel):
         return list(self._frozen_blocks)
 
     def freeze_blocks(
-        self,
-        blocks: Union[Sequence[Block], Sequence[str]],
+        self, blocks: Union[Sequence[Block], Sequence[str]],
     ):
         """Freeze all sub-blocks of given blocks recursively. Please make sure to compile the model
         after freezing.
@@ -1173,8 +1192,7 @@ class Model(BaseModel):
         self._frozen_blocks.update(blocks_to_freeze)
 
     def unfreeze_blocks(
-        self,
-        blocks: Union[Sequence[Block], Sequence[str]],
+        self, blocks: Union[Sequence[Block], Sequence[str]],
     ):
         """
         Unfreeze all sub-blocks of given blocks recursively
