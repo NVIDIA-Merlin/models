@@ -20,3 +20,6 @@ MIN_FLOAT = np.finfo(np.float16).min / 100.0
 MAX_FLOAT = np.finfo(np.float16).max / 100.0
 
 MASK_TARGETS_KEY = "__mask__"
+
+MASK_NAME = "__mask__"
+TARGET_MASK_NAME = "__target_mask__"

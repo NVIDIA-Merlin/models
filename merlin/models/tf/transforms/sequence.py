@@ -25,7 +25,7 @@ from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
-from merlin.models.utils.constants import MASK_TARGETS_KEY
+from merlin.models.utils import constants
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -210,7 +210,7 @@ class SequencePredictNext(SequenceTransform):
     """
 
     def call(
-        self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
+        self, inputs: TabularData, targets=None, **kwargs
     ) -> Tuple:
         self._check_seq_inputs_targets(inputs)
 
@@ -256,7 +256,7 @@ class SequencePredictLast(SequenceTransform):
     """
 
     def call(
-        self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
+        self, inputs: TabularData, targets=None, **kwargs
     ) -> Tuple:
         self._check_seq_inputs_targets(inputs)
 
@@ -304,7 +304,7 @@ class SequencePredictRandom(SequenceTransform):
     """
 
     def call(
-        self, inputs: TabularData, targets=None, training=False, testing=False, **kwargs
+        self, inputs: TabularData, targets=None, **kwargs
     ) -> Tuple:
         self._check_seq_inputs_targets(inputs)
 
@@ -440,31 +440,28 @@ class SequencePredictMasked(SequenceTransform):
         """
         self._check_seq_inputs_targets(inputs)
 
-        if self.target_name not in self.target_name:
+        if self.target_name not in inputs:
             raise ValueError(
                 f"The inputs provided does contain the target column ({self.target_name})"
-            )
-
-        new_target = tf.identity(inputs[self.target_name])
-        if targets is None:
-            targets = new_target
-        else:
-            if not isinstance(targets, dict):
-                targets = dict()
-            targets[self.target_name] = new_target
+            )       
 
         target_mask = self._generate_target_mask(inputs[self.target_name])
 
         if not self.enable_keras_masking:
-            self.save_mask_to_inputs(inputs, target_mask)
-
-        return (inputs, targets)
-
-    def save_mask_to_inputs(self, inputs, target_mask):
-        if MASK_TARGETS_KEY not in inputs:
-            inputs[MASK_TARGETS_KEY] = {self.target_name: target_mask}
+            inputs[self.mask_name] = tf.logical_not(target_mask)
+            
+            return inputs, targets
+            # targets[self.target_mask_name] = target_mask
+            
+        new_target = tf.identity(inputs[self.target_name], name=f"masked_{self.target_name}")
+        if targets is None:
+            targets = {self.target_name: new_target}
         else:
-            inputs[MASK_TARGETS_KEY][self.target_name] = target_mask
+            if not isinstance(targets, dict):
+                targets = dict()
+            targets[self.target_name] = new_target
+            
+        return (inputs, targets)
 
     def compute_mask(self, inputs, mask=None):
         """Is called by Keras and returns the targets mask that will
@@ -485,6 +482,28 @@ class SequencePredictMasked(SequenceTransform):
                 inputs_mask[k] = None
 
         return (inputs_mask, self.target_mask)
+    
+    def compute_output_schema(self, input_schema: Schema) -> Schema:
+        if self.enable_keras_masking:
+            return input_schema
+        
+        mask = Schema([
+            ColumnSchema(
+                self.mask_name,
+                tags=["mask"],
+                properties=dict(masked_columns=self.schema.column_names)
+            ),
+        ])
+        
+        return input_schema + mask
+    
+    @property
+    def mask_name(self) -> str:
+        return "".join([self.target_name, constants.MASK_NAME])
+    
+    @property
+    def target_mask_name(self) -> str:
+        return "".join([self.target_name, constants.TARGET_MASK_NAME])
 
     def _generate_target_mask(self, ids_seq: tf.RaggedTensor) -> tf.RaggedTensor:
         """Generates a target mask according to the defined probability and
@@ -580,34 +599,117 @@ class SequencePredictMasked(SequenceTransform):
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ExtractTargetsMask(Block):
-    """Extracts the target masks from the "__mask__" input
+    def call(self, inputs: TabularBlock, targets=None, features=None, training=False, testing=False):
+        if self.schema.select_by_tag("mask"):
+            # feature_schema = self.schema.remove_by_tag(Tags.TARGET)
+            # target_schema = self.schema.select_by_tag(Tags.TARGET)
+            self._masks, self._target_masks = {}, {}
 
-    Parameters
-    ----------
-    Block : _type_
-        _description_
-    """
+            for feature_mask in self.schema.select_by_tag("mask"):
+                self._masks[feature_mask.name] = inputs[feature_mask.name]
+            
+            outputs = {}    
+            for key, val in inputs.items():
+                if key not in self._masks:
+                    outputs[key] = val
+             
+            if training or testing:       
+                if targets is not None:
+                    if isinstance(targets, dict):
+                        output_targets = {**targets}
+                        for key, val in self._masks.items():
+                            name = key[:-len(constants.MASK_NAME)]
+                            output_targets[name] = inputs[name]
+                    else:
+                        # TODO: How to handle this?
+                        raise ValueError("targets must be a dict")
+                else:               
+                    if len(self._masks) == 1:
+                        name = list(self._masks.keys())[0][:-len(constants.MASK_NAME)]
+                        output_targets = inputs[name]
+                    elif len(self._masks) > 1:
+                        output_targets = {}
+                        for key, val in self._masks.items():
+                            name = key[:-len(constants.MASK_NAME)]
+                            output_targets[name] = inputs[name]
+                    
+            return (outputs, output_targets)
 
-    def call(self, inputs: TabularBlock, targets=None, features=None) -> Prediction:
-        if (
-            targets is not None
-            and MASK_TARGETS_KEY in features
-            and len(features[MASK_TARGETS_KEY]) > 0
-        ):
-            if isinstance(targets, dict):
-                for k, v in targets.items():
-                    v._keras_mask = features[MASK_TARGETS_KEY][k]
-            else:
-                if len(features[MASK_TARGETS_KEY]) == 1:
-                    targets._keras_mask = list(features[MASK_TARGETS_KEY].values())[0]
-                else:
-                    raise ValueError(
-                        "Many targets masks are provided "
-                        f"({list(features[MASK_TARGETS_KEY].keys())})"
-                        " as a dict target is not a dict."
-                    )
+        return (inputs, targets)
+    
+    def compute_mask(self, inputs, mask=None):
+        if not self.schema.select_by_tag("mask"):
+            return None
+        
+        features = {}
+        target_schema = self.schema.select_by_tag(Tags.TARGET)
+        if len(target_schema) + len(self._masks) > 1:
+            targets = {}
+        else:
+            targets = None
 
-        return Prediction(inputs, targets)
+        for feature_mask in self.schema.select_by_tag("mask"):
+            masked_cols = set(feature_mask.properties["masked_columns"])
+            for col in inputs:
+                if col in masked_cols:                    
+                    features[col] = self._masks[feature_mask.name]
+                elif col == feature_mask.name:
+                    target_name = col[:-len(constants.MASK_NAME)]
+                    if isinstance(targets, dict):
+                        targets[target_name] = tf.logical_not(self._masks[col])
+                    else:
+                        targets = tf.logical_not(self._masks[col])
+                else:                    
+                    features[col] = None            
+
+        return (features, targets)
+    
+    def _set_mask_metadata(self, inputs, outputs, previous_mask, build_graph):
+        # Many `Layer`s don't need to call `compute_mask`.
+        # This method is optimized to do as little work as needed for the common
+        # case.
+        if not self._supports_masking:
+            return
+
+        flat_outputs = tf.nest.flatten(outputs)
+
+        mask_already_computed = (
+            getattr(self, '_compute_output_and_mask_jointly', False) or
+            all(getattr(x, '_keras_mask', None) is not None for x in flat_outputs))
+        if mask_already_computed:
+            if build_graph:
+                self._set_mask_keras_history_checked(flat_outputs)
+            return
+
+        output_masks = self.compute_mask(inputs, previous_mask)
+        if output_masks is None:
+            return
+
+        features, targets = outputs
+        feature_masks, target_masks = output_masks
+        for key, mask in feature_masks.items():
+            try:
+                features[key]._keras_mask = mask
+            except AttributeError:
+                # C Type such as np.ndarray.
+                pass
+        
+        if isinstance(target_masks, dict):
+            for key, mask in target_masks.items():
+                try:
+                    targets[key]._keras_mask = mask
+                except AttributeError:
+                    # C Type such as np.ndarray.
+                    pass
+        elif target_masks is not None:
+            try:
+                targets._keras_mask = target_masks
+            except AttributeError:
+                # C Type such as np.ndarray.
+                pass
+
+        if build_graph:
+            self._set_mask_keras_history_checked(flat_outputs)
 
     def compute_output_shape(self, input_shape):
         return input_shape
