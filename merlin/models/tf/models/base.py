@@ -600,13 +600,15 @@ class BaseModel(tf.keras.Model):
                 # and metrics computation
                 predictions[k]._keras_mask = targets[k]._keras_mask
 
-            if (
-                len(targets[k].get_shape().as_list())
-                == len(predictions[k].get_shape().as_list()) - 1
-            ):
-                num_classes = tf.shape(predictions[k])[-1]
-                # Ensuring targets are one-hot encoded
-                targets[k] = tf.one_hot(targets[k], num_classes)
+            # Ensuring targets are one-hot encoded if they are not
+            targets[k] = tf.cond(
+                tf.rank(targets[k]) == tf.rank(predictions[k]) - 1,
+                lambda: tf.cast(
+                    tf.one_hot(tf.cast(targets[k], tf.int64), tf.shape(predictions[k])[-1]),
+                    tf.float32,
+                ),
+                lambda: tf.cast(targets[k], tf.float32),
+            )
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
@@ -712,7 +714,7 @@ class BaseModel(tf.keras.Model):
             # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
             # should have standard signature for better compatibility with Keras methods
             # like self.compiled_metrics.update_state()
-            if hasattr(prediction_outputs, "label_relevant_counts", None) is not None:
+            if hasattr(prediction_outputs, "label_relevant_counts"):
                 for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
                     topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
 

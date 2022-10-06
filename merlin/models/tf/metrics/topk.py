@@ -248,16 +248,12 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         # For prediction tensor with rank > 2 (e.g. sequences)
         # reshapes the predictions, targets and label_relevant_counts
         # so that they are 2D and metrics work properly
-        needs_reshape = False
-        if len(y_pred.get_shape().as_list()) > 2:
-            needs_reshape = True
-            original_shape = tf.shape(y_pred)
-            new_shape = [-1, original_shape[-1]]
-
-            y_pred = tf.reshape(y_pred, new_shape)
-            y_true = tf.reshape(y_true, new_shape)
-            if label_relevant_counts is not None:
-                label_relevant_counts = tf.reshape(label_relevant_counts, -1)
+        original_shape = tf.shape(y_pred)
+        new_shape = [-1, original_shape[-1]]
+        y_pred = tf.reshape(y_pred, new_shape)
+        y_true = tf.reshape(y_true, new_shape)
+        if label_relevant_counts is not None:
+            label_relevant_counts = tf.reshape(label_relevant_counts, -1)
 
         y_pred, y_true, label_relevant_counts = self._maybe_sort_top_k(
             y_pred, y_true, label_relevant_counts
@@ -275,11 +271,10 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
             **self._fn_kwargs,
         )
 
-        if needs_reshape:
-            # Reshapes the metrics results so that they match the
-            # original shape of predictions/targets before combining
-            # with the sample weights
-            matches = tf.reshape(matches, original_shape[:-1])
+        # Reshapes the metrics results so that they match the
+        # original shape of predictions/targets before combining
+        # with the sample weights
+        matches = tf.reshape(matches, original_shape[:-1])
 
         if preds_mask is not None:
             preds_mask = tf.cast(preds_mask, matches.dtype)
