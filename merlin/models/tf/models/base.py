@@ -508,7 +508,13 @@ class BaseModel(tf.keras.Model):
         Union[Prediction, PredictionOutput]
         """
 
-        forward = self(x, targets=y, training=training, testing=testing, **kwargs,)
+        forward = self(
+            x,
+            targets=y,
+            training=training,
+            testing=testing,
+            **kwargs,
+        )
         if not (self.prediction_tasks or self.model_outputs):
             return PredictionOutput(forward, y)
 
@@ -598,7 +604,7 @@ class BaseModel(tf.keras.Model):
                 == len(predictions[k].get_shape().as_list()) - 1
             ):
                 num_classes = tf.shape(predictions[k])[-1]
-                # Making targets one-hot encoded if they are not
+                # Ensuring targets are one-hot encoded
                 targets[k] = tf.one_hot(targets[k], num_classes)
 
     def train_step(self, data):
@@ -643,7 +649,9 @@ class BaseModel(tf.keras.Model):
 
     @tf.function
     def compute_metrics(
-        self, prediction_outputs: PredictionOutput, training: bool,
+        self,
+        prediction_outputs: PredictionOutput,
+        training: bool,
     ) -> Dict[str, tf.Tensor]:
         """Overrides Model.compute_metrics() for some custom behaviour
            like compute metrics each N steps during training
@@ -935,7 +943,10 @@ class Model(BaseModel):
 
     def call(self, inputs, targets=None, training=False, testing=False, output_context=False):
         context = self._create_context(
-            ListToRagged()(inputs), targets=targets, training=training, testing=testing,
+            ListToRagged()(inputs),
+            targets=targets,
+            training=training,
+            testing=testing,
         )
 
         outputs = inputs
@@ -961,7 +972,10 @@ class Model(BaseModel):
         return context
 
     def _call_child(
-        self, child: tf.keras.layers.Layer, inputs, context: PredictionContext,
+        self,
+        child: tf.keras.layers.Layer,
+        inputs,
+        context: PredictionContext,
     ):
         call_kwargs = context.to_call_dict()
 
@@ -1081,7 +1095,8 @@ class Model(BaseModel):
         return list(self._frozen_blocks)
 
     def freeze_blocks(
-        self, blocks: Union[Sequence[Block], Sequence[str]],
+        self,
+        blocks: Union[Sequence[Block], Sequence[str]],
     ):
         """Freeze all sub-blocks of given blocks recursively. Please make sure to compile the model
         after freezing.
@@ -1136,7 +1151,8 @@ class Model(BaseModel):
         self._frozen_blocks.update(blocks_to_freeze)
 
     def unfreeze_blocks(
-        self, blocks: Union[Sequence[Block], Sequence[str]],
+        self,
+        blocks: Union[Sequence[Block], Sequence[str]],
     ):
         """
         Unfreeze all sub-blocks of given blocks recursively
