@@ -14,6 +14,7 @@ from merlin.models.tf.metrics.topk import (
     TopKMetricsAggregator,
 )
 from merlin.models.tf.utils import testing_utils
+from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import Tags
 from tests.common.tf.retrieval import retrieval_tests_common
 
@@ -62,19 +63,17 @@ def test_matrix_factorization_model_v2(music_streaming_data: Dataset, run_eagerl
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_matrix_factorization_topk_evaluation(music_streaming_data: Dataset, run_eagerly):
-    music_streaming_data.schema = music_streaming_data.schema.select_by_name(["user_id", "item_id"])
 
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(["user_id", "item_id"])
     model = mm.MatrixFactorizationModelV2(
         music_streaming_data.schema, negative_samplers="in-batch", dim=4
     )
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
-
     _, losses = testing_utils.model_test(model, music_streaming_data, reload_model=False)
 
     # Top-K evaluation
-    candidates = model.candidate_embeddings(
-        music_streaming_data, batch_size=10, index=Tags.ITEM_ID
-    ).compute()
+    candidate_features = unique_rows_by_features(music_streaming_data, Tags.ITEM, Tags.ITEM_ID)
+    candidates = model.candidate_embeddings(candidate_features, batch_size=10, index=Tags.ITEM_ID)
 
     topk_model = mm.TopKEncoder(model.query_encoder, candidates=candidates)
     topk_model.compile(run_eagerly=run_eagerly)
@@ -291,9 +290,8 @@ def test_two_tower_model_topk_evaluation(ecommerce_data: Dataset, run_eagerly):
     _ = testing_utils.model_test(model, dataset)
 
     # Top-K evaluation
-    candidates = model.candidate_embeddings(
-        ecommerce_data, batch_size=10, index=Tags.ITEM_ID
-    ).compute()
+    candidate_features = unique_rows_by_features(dataset, Tags.ITEM, Tags.ITEM_ID)
+    candidates = model.candidate_embeddings(candidate_features, batch_size=10, index=Tags.ITEM_ID)
 
     topk_model = mm.TopKEncoder(query, candidates=candidates)
     topk_model.compile(run_eagerly=run_eagerly)

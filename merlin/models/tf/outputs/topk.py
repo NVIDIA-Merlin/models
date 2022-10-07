@@ -80,7 +80,7 @@ class TopKLayer(Layer):
             Whether to check if `data` has unique indices, by default True
         """
         if hasattr(data, "to_ddf"):
-            data = data.to_ddf()
+            data = data.to_ddf().compute()
         if check_unique_ids:
             self._check_unique_ids(data=data)
         values = tf_utils.df_to_tensor(data)
