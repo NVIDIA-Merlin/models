@@ -730,3 +730,30 @@ def _check_embeddings(embeddings, extected_len, index_name=None):
     assert list(embeddings.columns) == [str(i) for i in range(8)]
     assert len(embeddings.index) == extected_len
     assert embeddings.index.name == index_name
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_model_fit_pre(ecommerce_data: Dataset, run_eagerly):
+    model = mm.Model(
+        mm.InputBlock(ecommerce_data.schema),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+    )
+
+    @tf.keras.utils.register_keras_serializable(package="merlin_=.models")
+    class NoOpLayer(tf.keras.layers.Layer):
+        def call(self, inputs):
+            self._has_run = True
+
+            return inputs
+
+    no_op_fit = NoOpLayer()
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, fit_kwargs=dict(pre=no_op_fit)
+    )
+
+    assert no_op_fit._has_run
+
+    no_op_eval = NoOpLayer()
+    model.evaluate(ecommerce_data, batch_size=10, pre=no_op_eval)
+    assert no_op_eval._has_run

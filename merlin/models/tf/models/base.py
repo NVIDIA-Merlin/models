@@ -487,7 +487,8 @@ class BaseModel(tf.keras.Model):
         **kwargs,
     ) -> Union[Prediction, PredictionOutput]:
         """Apply the model's call method during Train or Test modes and prepare
-        Prediction (v2) or PredictionOutput (v1 - depreciated) objects
+        Prediction (v2) or PredictionOutput (v1 -
+        depreciated) objects
 
         Parameters
         ----------
@@ -746,7 +747,7 @@ class BaseModel(tf.keras.Model):
         fit_kwargs = {
             k: v
             for k, v in locals().items()
-            if k not in ["self", "kwargs", "train_metrics_steps"] or not k.startswith("__")
+            if k not in ["self", "kwargs", "train_metrics_steps", "pre"] and not k.startswith("__")
         }
 
         if pre:
