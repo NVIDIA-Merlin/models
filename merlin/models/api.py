@@ -22,10 +22,16 @@ class MerlinModel(Protocol):
     """Protocol for a merlin model.
 
     This defines common methods that should be implemented on all model implementations.
-    Including those with different backends (e.g. Tensorflow, XGBoost, Pytorch)
+    Including those with different frameworks (e.g. Tensorflow, XGBoost, Pytorch)
     """
 
     def save(self, path) -> None:
+        """Save the model to a local path.
+
+        Parameters
+        ----------
+        path : Union[str, os.PathLike]
+        """
         ...
 
     @classmethod
@@ -34,7 +40,7 @@ class MerlinModel(Protocol):
 
         Parameters
         ----------
-        path : os.PathLike
+        path : Union[str, os.PathLike]
             A path correspoonding to the directory where a model was previously saved.
         """
         ...
