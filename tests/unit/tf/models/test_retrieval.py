@@ -544,7 +544,23 @@ def test_two_tower_retrieval_model_v2_with_topk_metrics_aggregator(
     metrics = model.evaluate(ecommerce_data, batch_size=10, return_dict=True, steps=1)
     assert set(metrics.keys()) == set(expected_metrics_all)
 
-    # TODO: Add top-k evaluation using TopKEncoder
+    # Top-K evaluation
+    candidates = model.candidate_embeddings(
+        ecommerce_data, batch_size=10, index=Tags.ITEM_ID
+    ).compute()
+
+    topk_model = mm.TopKEncoder(query, candidates=candidates)
+    topk_model.compile(run_eagerly=run_eagerly, metrics=[metrics_agg])
+
+    def item_id_as_target(features, targets):
+        candidate_name = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID).first.name
+        targets = features.pop(candidate_name)
+        return features, targets
+
+    loader = mm.Loader(ecommerce_data, batch_size=32, transform=item_id_as_target)
+
+    metrics = topk_model.evaluate(loader, return_dict=True)
+    assert set(metrics.keys()) == set(expected_metrics_all)
 
 
 def test_two_tower_advanced_options(ecommerce_data):
