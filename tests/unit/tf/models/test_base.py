@@ -673,7 +673,7 @@ def test_unfreeze_all_blocks(ecommerce_data):
 
 
 @pytest.mark.parametrize("load_fn", [mm.Model.load, load_model])
-def test_reload(load_fn, tmpdir):
+def test_save_and_load(load_fn, tmpdir):
     dataset = generate_data("e-commerce", num_rows=10)
     dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
     model = mm.Model(
@@ -689,6 +689,10 @@ def test_reload(load_fn, tmpdir):
     )
     model.save(tmpdir)
     reloaded_model = load_fn(tmpdir)
+    signature_input_keys = set(
+        reloaded_model.signatures["serving_default"].structured_input_signature[1].keys()
+    )
+    assert signature_input_keys == {"user_age"}
     test_case = TestCase()
     test_case.assertAllClose(
         model.predict(dataset, batch_size=10), reloaded_model.predict(dataset, batch_size=10)

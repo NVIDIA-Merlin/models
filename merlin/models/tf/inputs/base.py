@@ -290,6 +290,8 @@ def InputBlockV2(
         Returns a ParallelBlock with a Dict with two branches:
         continuous and embeddings
     """
+    # remove any targets that might be provided to the input schema
+    schema = schema.remove_by_tag(Tags.TARGET)
 
     unparsed = {"categorical": categorical, "continuous": continuous, **branches}
     parsed = {}
