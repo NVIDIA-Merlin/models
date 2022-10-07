@@ -577,6 +577,14 @@ class BaseModel(tf.keras.Model):
 
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
+
+            if getattr(self, "train_pre"):
+                out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
+                if isinstance(out, Prediction):
+                    x, y = out.outputs, out.targets
+                else:
+                    x = out
+
             outputs = self.call_train_test(x, y, sample_weight=sample_weight, training=True)
             loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
@@ -596,6 +604,14 @@ class BaseModel(tf.keras.Model):
         """Custom test step using the `compute_loss` method."""
 
         x, y, sample_weight = unpack_x_y_sample_weight(data)
+
+        if getattr(self, "test_pre"):
+            out = call_layer(self.test_pre, x, targets=y, features=x, training=True)
+            if isinstance(out, Prediction):
+                x, y = out.outputs, out.targets
+            else:
+                x = out
+
         outputs = self.call_train_test(x, y, sample_weight=sample_weight, testing=True)
 
         if getattr(self, "pre_eval_topk", None) is not None:
@@ -611,6 +627,18 @@ class BaseModel(tf.keras.Model):
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
         return metrics
+
+    def predict_step(self, data):
+        x, _, _ = unpack_x_y_sample_weight(data)
+
+        if getattr(self, "predict_pre"):
+            out = call_layer(self.predict_pr, x, features=x, training=False)
+            if isinstance(out, Prediction):
+                x = out.outputs
+            else:
+                x = out
+
+        return self(x, training=False)
 
     @tf.function
     def compute_metrics(
@@ -701,6 +729,7 @@ class BaseModel(tf.keras.Model):
         workers=1,
         use_multiprocessing=False,
         train_metrics_steps=1,
+        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
@@ -717,10 +746,18 @@ class BaseModel(tf.keras.Model):
         fit_kwargs = {
             k: v
             for k, v in locals().items()
-            if k not in ["self", "kwargs", "train_metrics_steps", "__class__"]
+            if k not in ["self", "kwargs", "train_metrics_steps"] or not k.startswith("__")
         }
 
-        return super().fit(**fit_kwargs)
+        if pre:
+            self.train_pre = pre
+
+        out = super().fit(**fit_kwargs)
+
+        if pre:
+            del self.train_pre
+
+        return out
 
     def _add_metrics_callback(self, callbacks, train_metrics_steps):
         if callbacks is None:
@@ -751,11 +788,15 @@ class BaseModel(tf.keras.Model):
         workers=1,
         use_multiprocessing=False,
         return_dict=False,
+        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
-        return super().evaluate(
+        if pre:
+            self.test_pre = pre
+
+        out = super().evaluate(
             x,
             y,
             batch_size,
@@ -770,6 +811,11 @@ class BaseModel(tf.keras.Model):
             **kwargs,
         )
 
+        if pre:
+            del self.test_pre
+
+        return out
+
     def predict(
         self,
         x,
@@ -780,11 +826,15 @@ class BaseModel(tf.keras.Model):
         max_queue_size=10,
         workers=1,
         use_multiprocessing=False,
+        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
-        return super(BaseModel, self).predict(
+        if pre:
+            self.predict_pre = pre
+
+        out = super(BaseModel, self).predict(
             x,
             batch_size=batch_size,
             verbose=verbose,
@@ -794,6 +844,11 @@ class BaseModel(tf.keras.Model):
             workers=workers,
             use_multiprocessing=use_multiprocessing,
         )
+
+        if pre:
+            del self.predict_pre
+
+        return out
 
     def batch_predict(
         self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
