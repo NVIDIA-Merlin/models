@@ -299,12 +299,11 @@ def test_seq_predict_masked_replace_embeddings_with_keras_masking(
 
     emb = tf.keras.layers.Embedding(1000, 16)
     item_id_emb_seq = emb(inputs["item_id_seq"])
+    targets_mask = targets._keras_mask
     if dense:
         item_id_emb_seq = item_id_emb_seq.to_tensor()
-        targets._keras_mask = targets._keras_mask.to_tensor()
-    targets_mask = targets._keras_mask
-    if not dense:
-        targets_mask = targets_mask.with_row_splits_dtype(tf.int32)
+        targets = targets.to_tensor()
+        targets._keras_mask = targets_mask.to_tensor()
 
     if target_as_dict:
         # Making targets different in dict, the valid one is "target2" which is 2D
@@ -315,6 +314,8 @@ def test_seq_predict_masked_replace_embeddings_with_keras_masking(
 
     replaced_mask = tf.logical_not(tf.reduce_all(output == item_id_emb_seq, axis=2))
 
+    if not dense:
+        replaced_mask = replaced_mask.with_row_splits_dtype(tf.int64)
     tf.Assert(tf.reduce_all(replaced_mask == targets_mask), [replaced_mask, targets_mask])
     asserts_mlm_target_mask(replaced_mask)
 
