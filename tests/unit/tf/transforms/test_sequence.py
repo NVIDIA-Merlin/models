@@ -21,7 +21,6 @@ import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.utils.testing_utils import assert_output_shape
-from merlin.models.utils.constants import MASK_TARGETS_KEY
 from merlin.schema import Tags
 
 
@@ -175,70 +174,15 @@ def asserts_mlm_target_mask(target_mask):
     )
 
 
-@pytest.mark.parametrize("use_loader", [False, True])
-def test_seq_predict_masked_with_special_input_masking(
-    sequence_testing_data: Dataset, use_loader: bool
-):
+def test_seq_random_masking(sequence_testing_data: Dataset):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_masked = mm.SequencePredictMasked(schema=seq_schema, target=target, masking_prob=0.3)
+    predict_masked = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
     batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
-    if use_loader:
-        dataset_transformed = Loader(
-            sequence_testing_data, batch_size=8, shuffle=False, transform=predict_masked
-        )
-        output = next(iter(dataset_transformed))
-    else:
-        output = predict_masked(batch)
-    output_x, output_y = output
 
-    tf.Assert(tf.reduce_all(output_y == output_x[target]), [output_y, output_x[target]])
-
-    assert MASK_TARGETS_KEY in output_x
-    assert isinstance(output_x[MASK_TARGETS_KEY], dict)
-    assert len(output_x[MASK_TARGETS_KEY]) == 1
-    target_mask = list(output_x[MASK_TARGETS_KEY].values())[0]
-
-    asserts_mlm_target_mask(target_mask)
-
-    as_ragged = mm.ListToRagged()
-    batch = as_ragged(batch)
-
-    for k, v in batch.items():
-        # Checking if inputs values didn't change
-        tf.Assert(tf.reduce_all(output_x[k] == v), [output_x[k], v])
-
-    extract_target_mask = mm.ExtractTargetsMask()
-    output = extract_target_mask(output_x, targets=output_y, features=output_x)
-
-    tf.Assert(
-        tf.reduce_all(output.targets._keras_mask == target_mask),
-        [output.targets._keras_mask, target_mask],
-    )
-
-    for k, v in batch.items():
-        # Checking if inputs values didn't change
-        tf.Assert(tf.reduce_all(output.outputs[k] == v), [output.outputs[k], v])
-
-
-@pytest.mark.parametrize("use_loader", [False, True])
-def test_seq_predict_masked_with_keras_masking(sequence_testing_data: Dataset, use_loader: bool):
-    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
-    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_masked = mm.SequencePredictMasked(
-        schema=seq_schema, target=target, masking_prob=0.3, enable_keras_masking=True
-    )
-
-    batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
-    if use_loader:
-        dataset_transformed = Loader(
-            sequence_testing_data, batch_size=8, shuffle=False, transform=predict_masked
-        )
-        output = next(iter(dataset_transformed))
-    else:
-        output = predict_masked(batch)
-    output_x, output_y = output
+    output = predict_masked(batch)
+    output_x, output_y = output.outputs, output.targets
 
     tf.Assert(tf.reduce_all(output_y == output_x[target]), [output_y, output_x[target]])
 
@@ -265,20 +209,20 @@ def test_seq_predict_masked_with_keras_masking(sequence_testing_data: Dataset, u
 def test_seq_predict_masked_target_not_present(sequence_testing_data: Dataset):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
     with pytest.raises(ValueError) as exc_info:
-        _ = mm.SequencePredictMasked(schema=seq_schema, target="NOT_EXISTS", masking_prob=0.3)
+        _ = mm.SequenceMaskRandom(schema=seq_schema, target="NOT_EXISTS", masking_prob=0.3)
     assert "The target column needs to be part of the sequential schema" in str(exc_info.value)
 
 
 def test_seq_predict_masked_serialize_deserialize(sequence_testing_data):
-    predict_masked = mm.SequencePredictMasked(sequence_testing_data.schema, "item_id_seq")
+    predict_masked = mm.SequenceMaskRandom(sequence_testing_data.schema, "item_id_seq")
     assert isinstance(
-        predict_masked.from_config(predict_masked.get_config()), mm.SequencePredictMasked
+        predict_masked.from_config(predict_masked.get_config()), mm.SequenceMaskRandom
     )
 
 
 @pytest.mark.parametrize("dense", [False, True])
 @pytest.mark.parametrize("target_as_dict", [False, True])
-def test_seq_predict_masked_replace_embeddings_with_keras_masking(
+def test_seq_mask_random_replace_embeddings(
     sequence_testing_data: Dataset, dense: bool, target_as_dict: bool
 ):
     seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_name(
@@ -286,16 +230,12 @@ def test_seq_predict_masked_replace_embeddings_with_keras_masking(
     )
 
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_masked = mm.SequencePredictMasked(
-        schema=seq_schema, target=target, masking_prob=0.3, enable_keras_masking=True
-    )
+    predict_masked = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
-    dataset_transformed = Loader(
-        sequence_testing_data, batch_size=8, shuffle=False, transform=predict_masked
-    )
+    batch = mm.sample_batch(sequence_testing_data, batch_size=8, include_targets=False)
 
-    batch = next(iter(dataset_transformed))
-    inputs, targets = batch
+    output = predict_masked(batch)
+    inputs, targets = output.outputs, output.targets
 
     emb = tf.keras.layers.Embedding(1000, 16)
     item_id_emb_seq = emb(inputs["item_id_seq"])
@@ -309,7 +249,7 @@ def test_seq_predict_masked_replace_embeddings_with_keras_masking(
         # Making targets different in dict, the valid one is "target2" which is 2D
         targets = {"target1": tf.ragged.constant([1, 2, 3, 4, 5, 6, 7, 8]), "target2": targets}
 
-    masked_embeddings = mm.MaskSequenceEmbeddings()
+    masked_embeddings = mm.ReplaceMaskedEmbeddings()
     output = masked_embeddings(item_id_emb_seq, targets=targets, training=True)
 
     replaced_mask = tf.logical_not(tf.reduce_all(output == item_id_emb_seq, axis=2))
@@ -320,109 +260,57 @@ def test_seq_predict_masked_replace_embeddings_with_keras_masking(
     asserts_mlm_target_mask(replaced_mask)
 
 
-@pytest.mark.parametrize("dense", [False, True])
-@pytest.mark.parametrize("target_as_dict", [False, True])
-def test_seq_predict_masked_replace_embeddings_with_special_input_masking(
-    dense: bool, target_as_dict: bool
-):
-    targets_mask = tf.ragged.constant(
-        [[False, False, True, False], [False, False, True], [True, False]]
-    ).with_row_splits_dtype(tf.int64)
-    item_ids = tf.ragged.constant([[1, 2, 3, 4], [5, 6, 7], [8, 9]])
-    targets = tf.ragged.constant([[1, 2, 3, 4], [5, 6, 7], [8, 9]])
-
-    emb = tf.keras.layers.Embedding(10, 16)
-    item_id_emb_seq = emb(item_ids)
-    if dense:
-        item_id_emb_seq = item_id_emb_seq.to_tensor()
-        targets_mask = targets_mask.to_tensor()
-
-    targets._keras_mask = targets_mask
-
-    if target_as_dict:
-        # Making targets different in dict, the valid one is "target2" which is 2D
-        targets = {"target1": tf.ragged.constant([1, 2, 3]), "target2": targets}
-
-    masked_embeddings = mm.MaskSequenceEmbeddings()
-    output = masked_embeddings(item_id_emb_seq, targets=targets, training=True)
-
-    replaced_mask = tf.logical_not(tf.reduce_all(output == item_id_emb_seq, axis=2))
-    tf.Assert(tf.reduce_all(replaced_mask == targets_mask), [replaced_mask, targets_mask])
-    asserts_mlm_target_mask(replaced_mask)
-
-
-def test_seq_predict_masked_no_replace_embeddings_not_training(sequence_testing_data: Dataset):
-    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_name(
-        ["item_id_seq", "categories"]
+def test_replace_masked_input_embeddings_no_target():
+    item_id_emb_seq = tf.random.uniform((8, 10), dtype=tf.float32)
+    item_id_emb_seq._keras_mask = tf.cast(
+        tf.random.uniform((8,), minval=0, maxval=2, dtype=tf.int32), tf.bool
     )
+    targets = None
 
-    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_masked = mm.SequencePredictMasked(
-        schema=seq_schema, target=target, masking_prob=0.3, enable_keras_masking=True
-    )
+    masked_embeddings = mm.ReplaceMaskedEmbeddings()
+    output = masked_embeddings(item_id_emb_seq, targets=targets)
+    # Checks that no input embedding was replaced, as there was no masking defined
+    tf.Assert(tf.logical_not(tf.reduce_all(output == item_id_emb_seq)), [])
 
-    dataset_transformed = Loader(
-        sequence_testing_data, batch_size=8, shuffle=False, transform=predict_masked
-    )
 
-    batch = next(iter(dataset_transformed))
-    inputs, targets = batch
+def test_not_replace_unmasked_sequence_embeddings():
+    item_id_emb_seq = tf.random.uniform((8, 10), dtype=tf.float32)
+    targets = tf.random.uniform((8, 10), dtype=tf.float32)
 
-    emb = tf.keras.layers.Embedding(1000, 16)
-    item_id_emb_seq = emb(inputs["item_id_seq"])
-
-    masked_embeddings = mm.MaskSequenceEmbeddings()
-    output = masked_embeddings(item_id_emb_seq, targets=targets, training=False)
-    # Checks that no input embedding was replaced, as training==False
+    masked_embeddings = mm.ReplaceMaskedEmbeddings()
+    output = masked_embeddings(item_id_emb_seq, targets=targets)
+    # Checks that no input embedding was replaced, as there was no masking defined
     tf.Assert(tf.reduce_all(output == item_id_emb_seq), [])
 
 
-def test_seq_replace_embeddings_no_mask(sequence_testing_data: Dataset):
-    inputs = mm.sample_batch(
-        sequence_testing_data, batch_size=8, shuffle=False, include_targets=False, to_ragged=True
+def test_replace_masked_input_2d_embeddings_incompatible_2d_mask():
+    item_id_emb_seq = tf.random.uniform((8, 10), dtype=tf.float32)
+    item_id_emb_seq._keras_mask = tf.cast(
+        tf.random.uniform((8, 10), minval=0, maxval=2, dtype=tf.int32), tf.bool
     )
-
-    emb = tf.keras.layers.Embedding(1000, 16)
-    item_id_emb_seq = emb(inputs["item_id_seq"])
-
-    masked_embeddings = mm.MaskSequenceEmbeddings()
+    masked_embeddings = mm.ReplaceMaskedEmbeddings()
 
     with pytest.raises(ValueError) as exc_info:
-        _ = masked_embeddings(item_id_emb_seq, targets=inputs["item_id_seq"], training=True)
-    assert "No valid mask was found on inputs or targets" in str(exc_info.value)
+        _ = masked_embeddings(item_id_emb_seq)
+    assert "The inputs and mask need to be compatible" in str(exc_info.value)
 
 
-def test_seq_replace_embeddings_2d_tensor(sequence_testing_data: Dataset):
-    inputs = mm.sample_batch(
-        sequence_testing_data, batch_size=8, shuffle=False, include_targets=False, to_ragged=True
+def test_replace_masked_input_2d_embeddings_incompatible_ragged_2d_mask():
+    item_id_emb_seq = tf.random.uniform((8, 10), dtype=tf.float32)
+    item_id_emb_seq._keras_mask = tf.RaggedTensor.from_tensor(
+        tf.cast(tf.random.uniform((8, 10), minval=0, maxval=2, dtype=tf.int32), tf.bool)
     )
-
-    masked_embeddings = mm.MaskSequenceEmbeddings()
+    masked_embeddings = mm.ReplaceMaskedEmbeddings()
 
     with pytest.raises(ValueError) as exc_info:
-        _ = masked_embeddings(inputs["item_id_seq"], training=True)
-    assert "The inputs must be a 3D tensor" in str(exc_info.value)
+        _ = masked_embeddings(item_id_emb_seq)
+    assert "The inputs and mask need to be compatible" in str(exc_info.value)
 
 
 def test_seq_replace_embeddings_ragged_tensor_last_dim_none():
     inputs = tf.ragged.constant([[[1, 2]], [[3]]])
 
-    masked_embeddings = mm.MaskSequenceEmbeddings()
+    masked_embeddings = mm.ReplaceMaskedEmbeddings()
     with pytest.raises(ValueError) as exc_info:
         _ = masked_embeddings(inputs, training=True)
     assert "The last dim of inputs cannot be None" in str(exc_info.value)
-
-
-def test_seq_replace_embeddings_ragged_tensor_invalid_mask(sequence_testing_data: Dataset):
-    inputs = mm.sample_batch(
-        sequence_testing_data, batch_size=8, shuffle=False, include_targets=False, to_ragged=True
-    )
-
-    emb = tf.keras.layers.Embedding(1000, 16)
-    item_id_emb_seq = emb(inputs["item_id_seq"])
-    item_id_emb_seq._keras_mask = tf.ragged.constant([[[1, 2]], [[3, 4]]])
-
-    masked_embeddings = mm.MaskSequenceEmbeddings()
-    with pytest.raises(ValueError) as exc_info:
-        _ = masked_embeddings(item_id_emb_seq, training=True)
-    assert "The mask should be a 2D Tensor" in str(exc_info.value)

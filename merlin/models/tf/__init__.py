@@ -123,7 +123,6 @@ from merlin.models.tf.prediction_tasks.classification import (
 from merlin.models.tf.prediction_tasks.multi import PredictionTasks
 from merlin.models.tf.prediction_tasks.regression import RegressionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
-from merlin.models.tf.transforms.sequence import ExtractTargetsMask
 from merlin.models.utils.dependencies import is_transformers_available
 
 if is_transformers_available():
@@ -154,9 +153,9 @@ from merlin.models.tf.transforms.features import (
 from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.tf.transforms.sequence import (
-    MaskSequenceEmbeddings,
+    ReplaceMaskedEmbeddings,
+    SequenceMaskRandom,
     SequencePredictLast,
-    SequencePredictMasked,
     SequencePredictNext,
     SequencePredictRandom,
 )
@@ -286,7 +285,6 @@ __all__ = [
     "SequencePredictNext",
     "SequencePredictLast",
     "SequencePredictRandom",
-    "SequencePredictMasked",
-    "MaskSequenceEmbeddings",
-    "ExtractTargetsMask",
+    "SequenceMaskRandom",
+    "ReplaceMaskedEmbeddings",
 ]

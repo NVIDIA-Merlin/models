@@ -12,7 +12,6 @@ from merlin.models.tf.transformers.block import (
     RobertaBlock,
     XLNetBlock,
 )
-from merlin.models.tf.transforms.sequence import ExtractTargetsMask
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -196,19 +195,18 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
         Tags.CATEGORICAL
     )
     target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
-    predict_masked = mm.SequencePredictMasked(schema=seq_schema, target=target, masking_prob=0.3)
 
-    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False, transform=predict_masked)
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
     model = mm.Model(
-        ExtractTargetsMask(),
+        mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3),
         mm.InputBlockV2(
             seq_schema,
             embeddings=mm.Embeddings(
                 seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
             ),
         ),
-        # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.MaskSequenceEmbeddings()),
-        GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.MaskSequenceEmbeddings()),
+        # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
         mm.CategoricalOutput(
             seq_schema.select_by_name(target),
             default_loss="categorical_crossentropy",
