@@ -542,7 +542,7 @@ class BaseModel(tf.keras.Model):
                 predictions[task.task_name] = task_x
                 sample_weights[task.task_name] = task_sample_weight
 
-            self.mask_predictions_from_targets(predictions, targets)
+            self.adjust_predictions_and_targets(predictions, targets)
 
             if len(predictions) == 1 and len(targets) == 1:
                 predictions = list(predictions.values())[0]
@@ -574,18 +574,35 @@ class BaseModel(tf.keras.Model):
             predictions[task.full_name] = task_x
             sample_weights[task.full_name] = task_sample_weight
 
-            self.mask_predictions_from_targets(predictions, targets)
+            self.adjust_predictions_and_targets(predictions, targets)
 
         return Prediction(predictions, targets, sample_weights)
 
-    def mask_predictions_from_targets(
+    def adjust_predictions_and_targets(
         self,
         predictions: Dict[str, TensorLike],
         targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]],
     ):
+        """Adjusts the predctions and targets, doing the following transformations
+        if the target is provided:
+        - Converts ragged targets (and their masks) to dense, so that they are compatible
+        with most losses and metrics
+        - Copies the targets mask to predictions mask, if defined
+        - One-hot encode targets if their tf.rank(targest) == tf.rank(predictions)-1
+        - Ensures targets has the same shape and dtype as predicitnos
+
+        Parameters
+        ----------
+        predictions : Dict[str, TensorLike]
+            A dict with predictions for the tasks
+        targets : Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]]
+            A dict with targets for the tasks
+        """
         if targets is None:
             return
-        for k in predictions:
+
+        for k in targets:
+            # Convert ragged targets (and ragged mask) to dense
             if isinstance(targets[k], tf.RaggedTensor):
                 dense_target_mask = None
                 if getattr(targets[k], "_keras_mask", None) is not None:
@@ -600,15 +617,21 @@ class BaseModel(tf.keras.Model):
                 # and metrics computation
                 predictions[k]._keras_mask = targets[k]._keras_mask
 
+            # Ensuring targets and preds have the same dtype
+            targets[k] = tf.cast(targets[k], predictions[k].dtype)
+
             # Ensuring targets are one-hot encoded if they are not
             targets[k] = tf.cond(
                 tf.rank(targets[k]) == tf.rank(predictions[k]) - 1,
-                lambda: tf.cast(
-                    tf.one_hot(tf.cast(targets[k], tf.int64), tf.shape(predictions[k])[-1]),
-                    tf.float32,
+                lambda: tf.one_hot(
+                    tf.cast(targets[k], tf.int32),
+                    tf.shape(predictions[k])[-1],
+                    dtype=predictions[k].dtype,
                 ),
-                lambda: tf.cast(targets[k], tf.float32),
+                lambda: targets[k],
             )
+            # Makes target shape equal to the predictions tensor, as shape is lost after tf.cond
+            targets[k] = tf.reshape(targets[k], tf.shape(predictions[k]))
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
