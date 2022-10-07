@@ -24,7 +24,7 @@ from merlin.models.api import MerlinModel
 from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
 from merlin.schema import Schema
 
-MERLIN_METADATA_DIR_NAME = "merlin_metadata"
+_MERLIN_METADATA_DIR_NAME = "merlin_metadata"
 
 
 def save_merlin_metadata(
@@ -35,7 +35,7 @@ def save_merlin_metadata(
 ) -> None:
     """Saves data to Merlin Metadata Directory."""
     export_path = pathlib.Path(export_path)
-    merlin_metadata_dir = export_path / MERLIN_METADATA_DIR_NAME
+    merlin_metadata_dir = export_path / _MERLIN_METADATA_DIR_NAME
     merlin_metadata_dir.mkdir()
     model_metadata = dict(
         model_module_name=model.__module__,
@@ -65,7 +65,7 @@ def load_model(path: os.PathLike) -> MerlinModel:
     if not load_path.is_dir():
         raise ValueError("path provided to 'load' must be a directory.")
 
-    model_metadata_path = load_path / MERLIN_METADATA_DIR_NAME / "model.json"
+    model_metadata_path = load_path / _MERLIN_METADATA_DIR_NAME / "model.json"
     with open(model_metadata_path, "r", encoding="utf-8") as f:
         model_metadata = json.load(f)
 
