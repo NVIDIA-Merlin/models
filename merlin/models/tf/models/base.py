@@ -342,9 +342,12 @@ class BaseModel(tf.keras.Model):
         elif isinstance(metrics, (list, tuple)):
             # Retrieve top-k metrics & wrap them in TopKMetricsAggregator
             topk_metrics, topk_aggregators, other_metrics = split_metrics(metrics)
-            if len(topk_metrics) > 0:
-                topk_aggregators.append(TopKMetricsAggregator(*topk_metrics))
             metrics = other_metrics + topk_aggregators
+            if len(topk_metrics) > 0:
+                if len(topk_metrics) == 1:
+                    metrics.append(topk_metrics[0])
+                else:
+                    metrics.append(TopKMetricsAggregator(*topk_metrics))
 
             if num_v1_blocks > 0:
                 if num_v1_blocks == 1:

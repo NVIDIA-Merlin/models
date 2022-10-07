@@ -84,9 +84,7 @@ def test_block_from_model_with_input(ecommerce_data: Dataset):
 
     with pytest.raises(ValueError) as excinfo:
         mm.Model.from_block(
-            block,
-            ecommerce_data.schema,
-            input_block=inputs,
+            block, ecommerce_data.schema, input_block=inputs,
         )
     assert "The block already includes an InputBlock" in str(excinfo.value)
 
@@ -144,26 +142,17 @@ class UpdateCountMetric(tf.keras.metrics.Metric):
 
 @pytest.mark.parametrize(
     ["num_rows", "batch_size", "train_metrics_steps", "expected_steps", "expected_metrics_steps"],
-    [
-        (1, 1, 1, 1, 1),
-        (60, 10, 2, 6, 3),
-        (60, 10, 3, 6, 2),
-        (120, 10, 4, 12, 3),
-    ],
+    [(1, 1, 1, 1, 1), (60, 10, 2, 6, 3), (60, 10, 3, 6, 2), (120, 10, 4, 12, 3),],
 )
 def test_train_metrics_steps(
     num_rows, batch_size, train_metrics_steps, expected_steps, expected_metrics_steps
 ):
     dataset = generate_data("e-commerce", num_rows=num_rows)
     model = mm.Model(
-        mm.InputBlock(dataset.schema),
-        mm.MLPBlock([64]),
-        mm.BinaryClassificationTask("click"),
+        mm.InputBlock(dataset.schema), mm.MLPBlock([64]), mm.BinaryClassificationTask("click"),
     )
     model.compile(
-        run_eagerly=True,
-        optimizer="adam",
-        metrics=[UpdateCountMetric()],
+        run_eagerly=True, optimizer="adam", metrics=[UpdateCountMetric()],
     )
     metrics_callback = MetricsLogger()
     callbacks = [metrics_callback]
@@ -399,8 +388,7 @@ def test_freeze_parallel_block(ecommerce_data, run_eagerly):
 
     # Compare whether weights are updated or not
     test_case.assertAllClose(
-        frozen_weights["user_categories"],
-        user_categories_block.weights[0].numpy(),
+        frozen_weights["user_categories"], user_categories_block.weights[0].numpy(),
     )
     test_case.assertNotAllClose(unfrozen_weights["layer_1"], layer_1_block.weights[0].numpy())
     test_case.assertNotAllClose(
@@ -499,8 +487,7 @@ def test_freeze_sequential_block(ecommerce_data):
 
     # Compare whether weights are updated or not
     test_case.assertAllClose(
-        frozen_weights["user_categories"],
-        user_categories_block.weights[0].numpy(),
+        frozen_weights["user_categories"], user_categories_block.weights[0].numpy(),
     )
     test_case.assertAllClose(frozen_weights["layer_2"], layer_2.weights[0].numpy())
     test_case.assertNotAllClose(unfrozen_weights["layer_1"], layer_1.weights[0].numpy())
@@ -683,8 +670,7 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     loader = mm.Loader(ecommerce_data, batch_size=50, transform=item_id_as_target)
 
     model = mm.RetrievalModelV2(
-        query=mm.EmbeddingEncoder(query, dim=8),
-        output=mm.ContrastiveOutput(candidate, "in-batch"),
+        query=mm.EmbeddingEncoder(query, dim=8), output=mm.ContrastiveOutput(candidate, "in-batch"),
     )
 
     model, _ = testing_utils.model_test(model, loader, reload_model=True, run_eagerly=run_eagerly)
@@ -758,3 +744,72 @@ class _NoOpLayer(tf.keras.layers.Layer):
         self._has_run = True
 
         return inputs
+
+
+# TODO: Add support of 3D predictions and Keras masking to custom pairwise losses (e.g. "bpr")
+@pytest.mark.parametrize("loss", ["categorical_crossentropy"])
+@pytest.mark.parametrize(
+    "metrics", [mm.RecallAt(3), mm.TopKMetricsAggregator(mm.RecallAt(3), mm.NDCGAt(3))]
+)
+def test_model_compute_loss_metrics_with_without_masking(
+    sequence_testing_data: Dataset, loss, metrics
+):
+    def _reset_model_metrics_loss(model):
+        model.compiled_metrics.reset_state()
+        for m in model.metrics:
+            m.reset_state()
+
+    def _compute_model_metrics(
+        model, targets, predictions, sample_weights,
+    ):
+        model.compiled_metrics.update_state(
+            targets, predictions, sample_weights,
+        )
+        return model.metrics_results()
+
+    targets = tf.convert_to_tensor(
+        [
+            [[0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 0, 1]],
+            [[0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 0, 1]],
+        ],
+        tf.float32,
+    )
+
+    predictions = tf.convert_to_tensor(
+        [
+            [[10, 9, 8, 7, 6], [5, 4, 3, 2, 1], [10, 9, 8, 7, 6]],
+            [[10, 9, 8, 7, 6], [5, 4, 3, 2, 1], [10, 9, 8, 7, 6]],
+        ],
+        tf.float32,
+    )
+    sample_weights = None
+
+    # Creating a model that contains just an output block,
+    # which is necessary for computing the loss and metrics
+    model = mm.Model(mm.CategoricalOutput(sequence_testing_data.schema["item_id_seq"]))
+
+    model.compile(loss=loss, metrics=metrics)
+
+    loss1 = model.compute_loss(None, targets, predictions, sample_weights)
+    metrics1 = _compute_model_metrics(model, targets, predictions, sample_weights)
+
+    _reset_model_metrics_loss(model)
+    loss2 = model.compute_loss(None, targets, predictions, sample_weights)
+    metrics2 = _compute_model_metrics(model, targets, predictions, sample_weights)
+
+    # Checks if metrics and loss are the same for the same preds and targets (idempotent)
+    assert np.isclose(loss1, loss2)
+    for k in metrics1:
+        assert np.isclose(metrics1[k], metrics2[k])
+
+    # Sets the mask in predictions. Should compute loss and metrics only at masked positions
+    predictions._keras_mask = tf.convert_to_tensor([[1, 0, 0], [0, 0, 1]], tf.float32)
+
+    _reset_model_metrics_loss(model)
+    loss_masked = model.compute_loss(None, targets, predictions, sample_weights)
+    metrics_masked = _compute_model_metrics(model, targets, predictions, sample_weights)
+
+    # Checks that metrics and loss are different when masked
+    assert not np.isclose(loss1, loss_masked)
+    for k in metrics1:
+        assert not np.isclose(metrics1[k], metrics_masked[k])

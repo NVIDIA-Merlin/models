@@ -192,6 +192,20 @@ class TopkMetricWithLabelRelevantCountsMixin:
     def label_relevant_counts(self, new_value: tf.Tensor):
         self._label_relevant_counts = new_value
 
+    def _reshape_tensors(
+        self,
+        y_pred: tf.Tensor,
+        y_true: tf.Tensor,
+        label_relevant_counts: Optional[tf.Tensor],
+        new_shape: Union[tf.TensorShape, tuple, list],
+    ) -> Tuple[tf.Tensor, tf.Tensor, Optional[tf.Tensor]]:
+        """Reshapes the predictions, targets and label_relevant_counts"""
+        y_pred = tf.reshape(y_pred, new_shape)
+        y_true = tf.reshape(y_true, new_shape)
+        if label_relevant_counts is not None:
+            label_relevant_counts = tf.reshape(label_relevant_counts, new_shape[:-1])
+        return y_pred, y_true, label_relevant_counts
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
@@ -245,11 +259,9 @@ class TopkMetric(Mean, TopkMetricWithLabelRelevantCountsMixin):
         # reshapes the predictions, targets and label_relevant_counts
         # so that they are 2D and metrics work properly
         original_shape = tf.shape(y_pred)
-        new_shape = [-1, original_shape[-1]]
-        y_pred = tf.reshape(y_pred, new_shape)
-        y_true = tf.reshape(y_true, new_shape)
-        if label_relevant_counts is not None:
-            label_relevant_counts = tf.reshape(label_relevant_counts, (-1,))
+        y_pred, y_true, label_relevant_counts = self._reshape_tensors(
+            y_pred, y_true, label_relevant_counts, new_shape=[-1, original_shape[-1]]
+        )
 
         y_pred, y_true, label_relevant_counts = self._maybe_sort_top_k(
             y_pred, y_true, label_relevant_counts
@@ -385,11 +397,28 @@ class TopKMetricsAggregator(Metric, TopkMetricWithLabelRelevantCountsMixin):
     def update_state(
         self, y_true: tf.Tensor, y_pred: tf.Tensor, sample_weight: Optional[tf.Tensor] = None
     ):
+        # For prediction tensor with rank > 2 (e.g. sequences)
+        # reshapes the predictions, targets and label_relevant_counts
+        # so that they are 2D and extract_topk() work properly
+        original_shape = tf.shape(y_pred)
+        y_pred, y_true, _ = self._reshape_tensors(
+            y_pred, y_true, None, new_shape=[-1, original_shape[-1]]
+        )
+
         # Extracting sorted top-k prediction scores and labels only ONCE
         # so that sorting does not need to happen for each individual metric
         # (as the top-k metrics have been set with pre_sorted=True in this constructor
         y_pred, y_true, label_relevant_counts_from_targets = extract_topk(
             self.k, y_pred, y_true, shuffle_ties=True
+        )
+
+        # Reshaping tensors back to their original shape (expect for the last dim that
+        # equals to k)
+        y_pred, y_true, label_relevant_counts_from_targets = self._reshape_tensors(
+            y_pred,
+            y_true,
+            label_relevant_counts_from_targets,
+            new_shape=tf.concat([original_shape[:-1], [-1]], axis=-1),
         )
 
         # If label_relevant_counts is not set by a block (e.g. TopKIndexBlock) that
