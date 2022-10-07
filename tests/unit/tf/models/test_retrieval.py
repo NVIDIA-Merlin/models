@@ -60,6 +60,36 @@ def test_matrix_factorization_model_v2(music_streaming_data: Dataset, run_eagerl
     assert all(measure >= 0 for metric in losses.history for measure in losses.history[metric])
 
 
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_matrix_factorization_topk_evaluation(music_streaming_data: Dataset, run_eagerly):
+    music_streaming_data.schema = music_streaming_data.schema.select_by_name(["user_id", "item_id"])
+
+    model = mm.MatrixFactorizationModelV2(
+        music_streaming_data.schema, negative_samplers="in-batch", dim=4
+    )
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+
+    _, losses = testing_utils.model_test(model, music_streaming_data, reload_model=False)
+
+    # Top-K evaluation
+    candidates = model.candidate_embeddings(
+        music_streaming_data, batch_size=10, index=Tags.ITEM_ID
+    ).compute()
+
+    topk_model = mm.TopKEncoder(model.query_encoder, candidates=candidates)
+    topk_model.compile(run_eagerly=run_eagerly)
+
+    def item_id_as_target(features, targets):
+        candidate_name = music_streaming_data.schema.select_by_tag(Tags.ITEM_ID).first.name
+        targets = features.pop(candidate_name)
+        return features, targets
+
+    loader = mm.Loader(music_streaming_data, batch_size=32, transform=item_id_as_target)
+
+    metrics = topk_model.evaluate(loader, return_dict=True)
+    assert all([metric >= 0 for metric in metrics.values()])
+
+
 def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
     model = mm.MatrixFactorizationModelV2(
         testing_data.schema,
@@ -78,6 +108,21 @@ def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
 
     for reg_loss in l2_emb_losses:
         assert reg_loss > 0.0
+
+
+def test_matrix_factorization_model_v2_save(tmpdir, testing_data: Dataset):
+    model = mm.MatrixFactorizationModelV2(
+        testing_data.schema,
+        dim=4,
+        embeddings_l2_reg=0.1,
+        negative_samplers="in-batch",
+    )
+
+    _ = testing_utils.model_test(model, testing_data, reload_model=True)
+
+    query_tower = model.query_encoder
+    query_tower_path = Path(tmpdir) / "query_tower"
+    query_tower.save(query_tower_path)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -225,6 +270,43 @@ def test_two_tower_model_v2_l2_reg(testing_data: Dataset):
 
     for reg_loss in l2_emb_losses:
         assert reg_loss > 0.0
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_two_tower_model_topk_evaluation(ecommerce_data: Dataset, run_eagerly):
+    dataset = ecommerce_data
+    schema = dataset.schema
+    query = mm.Encoder(
+        schema.select_by_tag(Tags.USER), mm.MLPBlock([4], no_activation_last_layer=True)
+    )
+    candidate = mm.Encoder(
+        schema.select_by_tag(Tags.ITEM), mm.MLPBlock([4], no_activation_last_layer=True)
+    )
+    model = mm.TwoTowerModelV2(
+        query,
+        candidate,
+        negative_samplers=["in-batch"],
+    )
+    model.compile(optimizer="adam", run_eagerly=run_eagerly)
+    _ = testing_utils.model_test(model, dataset)
+
+    # Top-K evaluation
+    candidates = model.candidate_embeddings(
+        ecommerce_data, batch_size=10, index=Tags.ITEM_ID
+    ).compute()
+
+    topk_model = mm.TopKEncoder(query, candidates=candidates)
+    topk_model.compile(run_eagerly=run_eagerly)
+
+    def item_id_as_target(features, targets):
+        candidate_name = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID).first.name
+        targets = features.pop(candidate_name)
+        return features, targets
+
+    loader = mm.Loader(ecommerce_data, batch_size=32, transform=item_id_as_target)
+
+    metrics = topk_model.evaluate(loader, return_dict=True)
+    assert all([metric >= 0 for metric in metrics.values()])
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -542,24 +624,6 @@ def test_two_tower_retrieval_model_v2_with_topk_metrics_aggregator(
     assert set(losses.history.keys()) == set(expected_metrics_all + expected_metrics_valid)
 
     metrics = model.evaluate(ecommerce_data, batch_size=10, return_dict=True, steps=1)
-    assert set(metrics.keys()) == set(expected_metrics_all)
-
-    # Top-K evaluation
-    candidates = model.candidate_embeddings(
-        ecommerce_data, batch_size=10, index=Tags.ITEM_ID
-    ).compute()
-
-    topk_model = mm.TopKEncoder(query, candidates=candidates)
-    topk_model.compile(run_eagerly=run_eagerly, metrics=[metrics_agg])
-
-    def item_id_as_target(features, targets):
-        candidate_name = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID).first.name
-        targets = features.pop(candidate_name)
-        return features, targets
-
-    loader = mm.Loader(ecommerce_data, batch_size=32, transform=item_id_as_target)
-
-    metrics = topk_model.evaluate(loader, return_dict=True)
     assert set(metrics.keys()) == set(expected_metrics_all)
 
 
