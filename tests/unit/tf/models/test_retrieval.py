@@ -109,8 +109,10 @@ def test_two_tower_model_v2(music_streaming_data: Dataset, run_eagerly, num_epoc
     music_streaming_data.schema = music_streaming_data.schema.select_by_name(
         ["item_id", "user_genres"]
     )
+    query = mm.Encoder(music_streaming_data.schema.select_by_tag(Tags.USER), mm.MLPBlock([2]))
+    candidate = mm.Encoder(music_streaming_data.schema.select_by_tag(Tags.ITEM), mm.MLPBlock([2]))
 
-    model = mm.TwoTowerModelV2(music_streaming_data.schema, query_tower=mm.MLPBlock([2]))
+    model = mm.TwoTowerModelV2(query, candidate)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
     losses = model.fit(music_streaming_data, batch_size=50, epochs=num_epochs, steps_per_epoch=1)
@@ -148,9 +150,15 @@ def test_two_tower_model_save(tmpdir, ecommerce_data: Dataset):
 def test_two_tower_model_v2_save(tmpdir, ecommerce_data: Dataset):
     dataset = ecommerce_data
     schema = dataset.schema
+    query = mm.Encoder(
+        schema.select_by_tag(Tags.USER), mm.MLPBlock([4], no_activation_last_layer=True)
+    )
+    candidate = mm.Encoder(
+        schema.select_by_tag(Tags.ITEM), mm.MLPBlock([4], no_activation_last_layer=True)
+    )
     model = mm.TwoTowerModelV2(
-        schema,
-        query_tower=mm.MLPBlock([4], no_activation_last_layer=True),
+        query,
+        candidate,
         negative_samplers=["in-batch"],
     )
 
@@ -184,20 +192,29 @@ def test_two_tower_model_l2_reg(testing_data: Dataset):
 
 
 def test_two_tower_model_v2_l2_reg(testing_data: Dataset):
-    inputs = mm.InputBlockV2(
-        testing_data.schema,
+    user_schema = testing_data.schema.select_by_tag(Tags.USER)
+    user_inputs = mm.InputBlockV2(
+        user_schema,
         categorical=mm.Embeddings(
-            testing_data.schema.select_by_tag(Tags.CATEGORICAL),
+            user_schema.select_by_tag(Tags.CATEGORICAL),
             dim=2,
             embeddings_regularizer=tf.keras.regularizers.L2(0.1),
         ),
     )
+    query = mm.Encoder(user_inputs, mm.MLPBlock([4], no_activation_last_layer=True))
 
-    model = mm.TwoTowerModelV2(
-        testing_data.schema,
-        inputs=inputs,
-        query_tower=mm.MLPBlock([2]),
+    item_schema = testing_data.schema.select_by_tag(Tags.ITEM)
+    item_inputs = mm.InputBlockV2(
+        item_schema,
+        categorical=mm.Embeddings(
+            item_schema.select_by_tag(Tags.CATEGORICAL),
+            dim=2,
+            embeddings_regularizer=tf.keras.regularizers.L2(0.1),
+        ),
     )
+    candidate = mm.Encoder(item_inputs, mm.MLPBlock([4], no_activation_last_layer=True))
+
+    model = mm.TwoTowerModelV2(query, candidate)
     _ = model(mm.sample_batch(testing_data, batch_size=10, include_targets=False))
 
     l2_emb_losses = model.losses
@@ -315,6 +332,8 @@ def test_two_tower_model_v2_with_custom_options(
 
     data = ecommerce_data
     data.schema = data.schema.select_by_name(["user_categories", "item_id"])
+    user_schema = data.schema.select_by_tag(Tags.USER)
+    item_schema = data.schema.select_by_tag(Tags.ITEM)
 
     metrics = [
         tf.keras.metrics.AUC(from_logits=True, name="auc"),
@@ -338,14 +357,34 @@ def test_two_tower_model_v2_with_custom_options(
             schema=data.schema,
         )
 
-    inputs = mm.InputBlockV2(
-        data.schema,
+    user_inputs = mm.InputBlockV2(
+        user_schema,
         categorical=mm.Embeddings(
-            data.schema.select_by_tag(Tags.CATEGORICAL),
+            user_schema.select_by_tag(Tags.CATEGORICAL),
             infer_dim_fn=partial(schema_utils.infer_embedding_dim, multiplier=3.0),
             embeddings_regularizer=tf.keras.regularizers.L2(1.0e-5),
         ),
     )
+
+    tower_block = mm.MLPBlock(
+        [2],
+        activation="relu",
+        no_activation_last_layer=True,
+        dropout=0.1,
+        kernel_regularizer=regularizers.l2(1e-5),
+        bias_regularizer=regularizers.l2(1e-6),
+    )
+    query = mm.Encoder(user_inputs, tower_block)
+
+    item_inputs = mm.InputBlockV2(
+        item_schema,
+        categorical=mm.Embeddings(
+            item_schema.select_by_tag(Tags.CATEGORICAL),
+            infer_dim_fn=partial(schema_utils.infer_embedding_dim, multiplier=3.0),
+            embeddings_regularizer=tf.keras.regularizers.L2(1.0e-5),
+        ),
+    )
+    candidate = mm.Encoder(item_inputs, tower_block.copy())
 
     output = mm.ContrastiveOutput(
         DotProduct(),
@@ -356,17 +395,9 @@ def test_two_tower_model_v2_with_custom_options(
     )
 
     model = mm.TwoTowerModelV2(
-        data.schema,
-        query_tower=mm.MLPBlock(
-            [2],
-            activation="relu",
-            no_activation_last_layer=True,
-            dropout=0.1,
-            kernel_regularizer=regularizers.l2(1e-5),
-            bias_regularizer=regularizers.l2(1e-6),
-        ),
+        query,
+        candidate,
         outputs=output,
-        inputs=inputs,
     )
 
     model.compile(optimizer="adam", run_eagerly=run_eagerly, loss=loss, metrics=metrics)
@@ -478,7 +509,17 @@ def test_two_tower_retrieval_model_v2_with_topk_metrics_aggregator(
     metrics_agg = TopKMetricsAggregator(
         RecallAt(5), MRRAt(5), NDCGAt(5), AvgPrecisionAt(5), PrecisionAt(5)
     )
-    model = mm.TwoTowerModelV2(schema=ecommerce_data.schema, query_tower=mm.MLPBlock([4]))
+
+    query = mm.Encoder(
+        ecommerce_data.schema.select_by_tag(Tags.USER),
+        mm.MLPBlock([4], no_activation_last_layer=True),
+    )
+    candidate = mm.Encoder(
+        ecommerce_data.schema.select_by_tag(Tags.ITEM),
+        mm.MLPBlock([4], no_activation_last_layer=True),
+    )
+
+    model = mm.TwoTowerModelV2(query, candidate)
     model.compile(optimizer="adam", run_eagerly=run_eagerly, metrics=[metrics_agg])
 
     # Training
@@ -603,6 +644,8 @@ def test_youtube_dnn_retrieval(sequence_testing_data: Dataset):
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly):
+    # remove sequential continuous features because second dimension (=[None]) is raising an error
+    # in the `compute_output_shape` of  `ConcatFeatures`)
     to_remove = (
         sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
         .select_by_tag(Tags.CONTINUOUS)
@@ -625,3 +668,58 @@ def test_youtube_dnn_retrieval_v2(sequence_testing_data: Dataset, run_eagerly):
     )
 
     assert losses is not None
+
+
+def test_two_tower_v2_export_embeddings(
+    ecommerce_data: Dataset,
+):
+    user_schema = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
+    candidate_schema = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
+
+    query = mm.Encoder(user_schema, mm.MLPBlock([8]))
+    candidate = mm.Encoder(candidate_schema, mm.MLPBlock([8]))
+    model = mm.TwoTowerModelV2(
+        query_tower=query, candidate_tower=candidate, negative_samplers=["in-batch"]
+    )
+
+    model, _ = testing_utils.model_test(model, ecommerce_data, reload_model=False)
+
+    queries = model.query_embeddings(ecommerce_data, batch_size=10, index=Tags.USER_ID).compute()
+    _check_embeddings(queries, 100, 8, "user_id")
+
+    candidates = model.candidate_embeddings(
+        ecommerce_data, batch_size=10, index=Tags.ITEM_ID
+    ).compute()
+    _check_embeddings(candidates, 100, 8, "item_id")
+
+
+def test_mf_v2_export_embeddings(
+    ecommerce_data: Dataset,
+):
+    model = mm.MatrixFactorizationModelV2(
+        ecommerce_data.schema,
+        dim=8,
+        negative_samplers="in-batch",
+    )
+
+    model, _ = testing_utils.model_test(model, ecommerce_data, reload_model=False)
+
+    queries = model.query_embeddings(ecommerce_data, batch_size=10, index=Tags.USER_ID).compute()
+    _check_embeddings(queries, 100, 8, "user_id")
+
+    candidates = model.candidate_embeddings(
+        ecommerce_data, batch_size=10, index=Tags.ITEM_ID
+    ).compute()
+    _check_embeddings(candidates, 100, 8, "item_id")
+
+
+def _check_embeddings(embeddings, extected_len, num_dim=8, index_name=None):
+    import pandas as pd
+
+    if not isinstance(embeddings, pd.DataFrame):
+        embeddings = embeddings.to_pandas()
+
+    assert isinstance(embeddings, pd.DataFrame)
+    assert list(embeddings.columns) == [str(i) for i in range(num_dim)]
+    assert len(embeddings.index) == extected_len
+    assert embeddings.index.name == index_name

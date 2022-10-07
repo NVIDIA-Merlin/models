@@ -10,7 +10,7 @@ from merlin.models.tf.blocks.sampling.base import ItemSampler
 from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.core.encoder import EmbeddingEncoder, Encoder
-from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
+from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model, RetrievalModel, RetrievalModelV2
 from merlin.models.tf.models.utils import parse_prediction_tasks
@@ -410,23 +410,20 @@ def MatrixFactorizationModelV2(
 
 
 def TwoTowerModelV2(
-    schema: Schema,
-    query_tower: Union[Encoder, tf.keras.layers.Layer],
-    candidate_tower: Optional[Union[Encoder, tf.keras.layers.Layer]] = None,
-    query_tag=Tags.USER,
-    candidate_tag=Tags.ITEM,
+    query_tower: Encoder,
+    candidate_tower: Encoder,
     candidate_id_tag=Tags.ITEM_ID,
-    post: Optional[tf.keras.layers.Layer] = None,
     outputs: Optional[Union[ModelOutput, List[ModelOutput]]] = None,
     logits_temperature: float = 1.0,
     negative_samplers: ItemSamplersType = None,
-    inputs: Optional[tf.keras.layers.Layer] = None,
     **kwargs,
 ) -> RetrievalModelV2:
     """Builds the Two-tower architecture, as proposed in [1].
 
     Example Usage::
-        two_tower = TwoTowerModelV2(schema, query_tower=mm.MLPBlock([256, 64]))
+        query = mm.Encoder(user_schema, mm.MLPBlock([128]))
+        candidate = mm.Encoder(item_schema, mm.MLPBlock([128]))
+        model = TwoTowerModel(query, candidate)
         two_tower.compile(optimizer="adam")
         two_tower.fit(train_data, epochs=10)
 
@@ -438,23 +435,12 @@ def TwoTowerModelV2(
 
     Parameters
     ----------
-    schema: Schema
-        The `Schema` with the input features
-    query_tower: Union[Encoder, tf.keras.layers.Layer]
+    query_tower: Encoder
         The layer that encodes query features
-    candidate_tower: Union[Encoder, tf.keras.layers.Layer], optional
-        The optional layer that encodes candidates features
-        If not provided, a copy of the query_tower is used.
-        by default None.
-    query_tower_tag: Tag, optional
-        The tag to select query features, by default `Tags.USER`
-    candidate_tower_tag: Tag, optional
-        The tag to select candidate features, by default `Tags.ITEM`
+    candidate_tower: Encoder
+        The  layer that encodes candidates features
     candidate_id_tag: Tag, optional
         The tag to select candidate-id feature, by default `Tags.ITEM_ID`
-    post: Optional[tf.keras.layers.Layer], optional
-        The optional `Block` to apply on both outputs of Two-tower model
-        by default None.
     outputs:  Union[ModelOutput, List[ModelOutput]], optional
         The optional `ModelOutput` or list of `ModelOutput` to apply on the model.
     logits_temperature: float
@@ -462,35 +448,17 @@ def TwoTowerModelV2(
         Defaults to 1.
     negative_samplers: List[ItemSampler]
         List of samplers for negative sampling, by default None
-    inputs: tf.keras.layers.Layer, optional
-        The input layer to encode raw candidates and query features
-        If not specified, the input layer for the query and item tower
-        is inferred from the schema
-        By default None
 
     Returns
     -------
     RetrievalModelV2
     """
-    if query_tower is None:
-        raise ValueError("The query_tower is required by TwoTower")
-
-    if not inputs:
-        query = schema.select_by_tag(query_tag)
-        if len(query) == 0:
-            raise ValueError(f"Schema must contain features tagged with `{query_tag}` tag")
-
-        candidate = schema.select_by_tag(candidate_tag)
-        if len(candidate) == 0:
-            raise ValueError(f"Schema must contain features tagged with `{candidate_tag}` tag")
-    else:
-        query = inputs
-        candidate = inputs
-
-    _candidate_tower: tf.keras.layers.Layer = candidate_tower or query_tower.copy()
-
-    query_encoder = Encoder(query, query_tower, post=post)
-    candidate_encoder = Encoder(candidate, _candidate_tower, post=post)
+    assert isinstance(query_tower, Encoder), ValueError(
+        "The query tower should be an instance of `Encoder` class"
+    )
+    assert isinstance(candidate_tower, Encoder), ValueError(
+        "The query tower should be an instance of `Encoder` class"
+    )
 
     if not outputs:
         if not negative_samplers:
@@ -503,7 +471,7 @@ def TwoTowerModelV2(
             to_call=DotProduct(),
             negative_samplers=negative_samplers,
             logits_temperature=logits_temperature,
-            schema=schema.select_by_tag(candidate_id_tag),
+            schema=candidate_tower._schema.select_by_tag(candidate_id_tag),
             **kwargs,
         )
 
@@ -511,8 +479,8 @@ def TwoTowerModelV2(
         outputs = ParallelBlock(*outputs)
 
     model = RetrievalModelV2(
-        query=query_encoder,
-        candidate=candidate_encoder,
+        query=query_tower,
+        candidate=candidate_tower,
         output=outputs,
     )
 
@@ -588,13 +556,12 @@ def YoutubeDNNRetrievalModelV2(
         By default 0.
     """
     if not inputs:
-        inputs = InputBlockV2(schema, **kwargs)
+        inputs = schema
 
     candidate = schema.select_by_tag(candidate_id_tag)
     if not candidate:
         raise ValueError(f"The schema should contain a feature tagged as `{candidate_id_tag}`")
     candidate = candidate.first
-    candidate_table = inputs["categorical"][candidate.name]
     num_classes = candidate.int_domain.max + 1
 
     query = Encoder(inputs, top_block, post=post)
@@ -603,6 +570,7 @@ def YoutubeDNNRetrievalModelV2(
         warnings.warn(
             "By default, the YoutubeDNN model is trained using popularity-bases sampled softmax."
         )
+        candidate_table = query.first["categorical"][candidate.name]
         outputs = ContrastiveOutput(
             to_call=candidate_table,
             logits_temperature=logits_temperature,
