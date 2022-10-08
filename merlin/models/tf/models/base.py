@@ -579,7 +579,7 @@ class BaseModel(tf.keras.Model):
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
 
-            if getattr(self, "train_pre"):
+            if getattr(self, "train_pre", None):
                 out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
                 if isinstance(out, Prediction):
                     x, y = out.outputs, out.targets
@@ -606,7 +606,7 @@ class BaseModel(tf.keras.Model):
 
         x, y, sample_weight = unpack_x_y_sample_weight(data)
 
-        if getattr(self, "test_pre"):
+        if getattr(self, "test_pre", None):
             out = call_layer(self.test_pre, x, targets=y, features=x, training=True)
             if isinstance(out, Prediction):
                 x, y = out.outputs, out.targets
@@ -632,7 +632,7 @@ class BaseModel(tf.keras.Model):
     def predict_step(self, data):
         x, _, _ = unpack_x_y_sample_weight(data)
 
-        if getattr(self, "predict_pre"):
+        if getattr(self, "predict_pre", None):
             out = call_layer(self.predict_pr, x, features=x, training=False)
             if isinstance(out, Prediction):
                 x = out.outputs
