@@ -740,13 +740,6 @@ def test_model_fit_pre(ecommerce_data: Dataset, run_eagerly):
         mm.BinaryClassificationTask("click"),
     )
 
-    @tf.keras.utils.register_keras_serializable(package="merlin_=.models")
-    class _NoOpLayer(tf.keras.layers.Layer):
-        def call(self, inputs):
-            self._has_run = True
-
-            return inputs
-
     no_op_fit = _NoOpLayer()
     testing_utils.model_test(
         model, ecommerce_data, run_eagerly=run_eagerly, fit_kwargs=dict(pre=no_op_fit)
@@ -757,3 +750,11 @@ def test_model_fit_pre(ecommerce_data: Dataset, run_eagerly):
     no_op_eval = _NoOpLayer()
     model.evaluate(ecommerce_data, batch_size=10, pre=no_op_eval)
     assert no_op_eval._has_run
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class _NoOpLayer(tf.keras.layers.Layer):
+    def call(self, inputs):
+        self._has_run = True
+
+        return inputs
