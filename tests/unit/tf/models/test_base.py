@@ -741,19 +741,19 @@ def test_model_fit_pre(ecommerce_data: Dataset, run_eagerly):
     )
 
     @tf.keras.utils.register_keras_serializable(package="merlin_=.models")
-    class NoOpLayer(tf.keras.layers.Layer):
+    class _NoOpLayer(tf.keras.layers.Layer):
         def call(self, inputs):
             self._has_run = True
 
             return inputs
 
-    no_op_fit = NoOpLayer()
+    no_op_fit = _NoOpLayer()
     testing_utils.model_test(
         model, ecommerce_data, run_eagerly=run_eagerly, fit_kwargs=dict(pre=no_op_fit)
     )
 
     assert no_op_fit._has_run
 
-    no_op_eval = NoOpLayer()
+    no_op_eval = _NoOpLayer()
     model.evaluate(ecommerce_data, batch_size=10, pre=no_op_eval)
     assert no_op_eval._has_run
