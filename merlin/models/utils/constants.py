@@ -18,5 +18,3 @@ import numpy as np
 
 MIN_FLOAT = np.finfo(np.float16).min / 100.0
 MAX_FLOAT = np.finfo(np.float16).max / 100.0
-
-MASK_TARGETS_KEY = "__mask__"

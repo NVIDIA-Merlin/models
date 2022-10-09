@@ -34,7 +34,6 @@ from merlin.models.tf.utils.tf_utils import (
     get_sub_blocks,
     maybe_serialize_keras_objects,
 )
-from merlin.models.utils.constants import MASK_TARGETS_KEY
 from merlin.models.utils.dataset import unique_rows_by_features
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -982,7 +981,6 @@ class Model(BaseModel):
 
     def _maybe_build(self, inputs):
         if isinstance(inputs, dict):
-            inputs = {k: v for k, v in inputs.items() if k != MASK_TARGETS_KEY}
             _ragged_inputs = ListToRagged()(inputs)
             feature_shapes = {k: v.shape for k, v in _ragged_inputs.items()}
             feature_dtypes = {k: v.dtype for k, v in _ragged_inputs.items()}
