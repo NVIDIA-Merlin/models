@@ -39,6 +39,7 @@ def test_seq_predict_next(sequence_testing_data: Dataset, use_loader: bool):
     else:
         output = predict_next(batch)
     output_x, output_y = output
+    output_y = output_y[target]
 
     as_ragged = mm.ListToRagged()
     batch = as_ragged(batch)
@@ -72,6 +73,7 @@ def test_seq_predict_last(sequence_testing_data: Dataset, use_loader: bool):
     else:
         output = predict_last(batch)
     output_x, output_y = output
+    output_y = output_y[target]
 
     as_ragged = mm.ListToRagged()
     batch = as_ragged(batch)
@@ -106,6 +108,7 @@ def test_seq_predict_random(sequence_testing_data: Dataset, use_loader: bool):
     else:
         output = predict_random(batch)
     output_x, output_y = output
+    output_y = output_y[target]
 
     as_ragged = mm.ListToRagged()
     batch = as_ragged(batch)
@@ -183,6 +186,7 @@ def test_seq_random_masking(sequence_testing_data: Dataset):
 
     output = predict_masked(batch)
     output_x, output_y = output.outputs, output.targets
+    output_y = output_y[target]
 
     tf.Assert(tf.reduce_all(output_y == output_x[target]), [output_y, output_x[target]])
 
@@ -236,6 +240,7 @@ def test_seq_mask_random_replace_embeddings(
 
     output = predict_masked(batch)
     inputs, targets = output.outputs, output.targets
+    targets = targets[target]
 
     emb = tf.keras.layers.Embedding(1000, 16)
     item_id_emb_seq = emb(inputs["item_id_seq"])
