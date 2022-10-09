@@ -154,10 +154,12 @@ from merlin.models.tf.transforms.noise import StochasticSwapNoise
 from merlin.models.tf.transforms.regularization import L2Norm
 from merlin.models.tf.transforms.sequence import (
     ReplaceMaskedEmbeddings,
+    SequenceMaskLast,
     SequenceMaskRandom,
     SequencePredictLast,
     SequencePredictNext,
     SequencePredictRandom,
+    SequenceTargetAsInput,
 )
 from merlin.models.tf.transforms.tensor import ExpandDims, ListToDense, ListToRagged, ListToSparse
 from merlin.models.tf.utils import repr_utils
@@ -285,6 +287,8 @@ __all__ = [
     "SequencePredictNext",
     "SequencePredictLast",
     "SequencePredictRandom",
+    "SequenceTargetAsInput",
+    "SequenceMaskLast",
     "SequenceMaskRandom",
     "ReplaceMaskedEmbeddings",
 ]

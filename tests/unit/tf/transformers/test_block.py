@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 import tensorflow as tf
 from transformers import BertConfig
@@ -185,7 +186,13 @@ def test_transformer_with_causal_language_modeling(sequence_testing_data: Datase
     batch = next(iter(loader))[0]
     outputs = model(batch)
     assert list(outputs.shape) == [8, 3, 51997]
-    testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
+    testing_utils.model_test(model, loader, run_eagerly=run_eagerly, reload_model=True)
+
+    metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True)
+    assert len(metrics) > 0
+
+    predictions = model.predict(loader, batch_size=8, steps=1)
+    assert predictions.shape == (8, 3, 51997)
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
@@ -198,7 +205,6 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
 
     loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
     model = mm.Model(
-        mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3),
         mm.InputBlockV2(
             seq_schema,
             embeddings=mm.Embeddings(
@@ -212,8 +218,93 @@ def test_transformer_with_masked_language_modeling(sequence_testing_data: Datase
             default_loss="categorical_crossentropy",
         ),
     )
+    seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
 
     inputs, targets = next(iter(loader))
     outputs = model(inputs, targets=targets, training=True)
     assert list(outputs.shape) == [8, 4, 51997]
-    testing_utils.model_test(model, loader, run_eagerly=run_eagerly)
+    testing_utils.model_test(
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=True,
+        fit_kwargs={"pre": seq_mask_random},
+    )
+
+    seq_mask_last = mm.SequenceMaskLast(schema=seq_schema, target=target)
+    metrics = model.evaluate(loader, batch_size=8, steps=1, return_dict=True, pre=seq_mask_last)
+    assert len(metrics) > 0
+
+    predictions = model.predict(loader, batch_size=8, steps=1)
+    # TODO: Decide what should be the output of predictions for MLM (currently it predicts for all
+    # positions of the sequence, but typically you want a single next-item prediction)
+    assert predictions.shape == (8, 4, 51997)
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_transformer_with_masked_language_modeling_check_eval_masked(
+    sequence_testing_data: Dataset, run_eagerly
+):
+
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE).select_by_tag(
+        Tags.CATEGORICAL
+    )
+    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+
+    loader = Loader(sequence_testing_data, batch_size=8, shuffle=False)
+    model = mm.Model(
+        mm.InputBlockV2(
+            seq_schema,
+            embeddings=mm.Embeddings(
+                seq_schema.select_by_tag(Tags.CATEGORICAL), sequence_combiner=None
+            ),
+        ),
+        # BertBlock(d_model=48, n_head=8, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        GPT2Block(d_model=48, n_head=4, n_layer=2, pre=mm.ReplaceMaskedEmbeddings()),
+        mm.CategoricalOutput(
+            seq_schema.select_by_name(target),
+            default_loss="categorical_crossentropy",
+        ),
+    )
+    seq_mask_random = mm.SequenceMaskRandom(schema=seq_schema, target=target, masking_prob=0.3)
+
+    inputs, targets = next(iter(loader))
+    outputs = model(inputs, targets=targets, training=True)
+    assert list(outputs.shape) == [8, 4, 51997]
+    testing_utils.model_test(
+        model,
+        loader,
+        run_eagerly=run_eagerly,
+        reload_model=True,
+        fit_kwargs={"pre": seq_mask_random},
+        metrics=[mm.RecallAt(5000), mm.NDCGAt(5000)],
+    )
+
+    # This transform only extracts targets, but without applying mask
+    seq_target_as_input_no_mask = mm.SequenceTargetAsInput(schema=seq_schema, target=target)
+    metrics_all_positions1 = model.evaluate(
+        loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
+    )
+    metrics_all_positions2 = model.evaluate(
+        loader, batch_size=8, steps=1, return_dict=True, pre=seq_target_as_input_no_mask
+    )
+
+    def _metrics_almost_equal(metrics1, metrics2):
+        return np.all(
+            [
+                np.isclose(metrics1[k], metrics2[k])
+                for k in metrics1
+                if k not in "regularization_loss"
+            ]
+        )
+
+    # Ensures metrics without masked positions are equal
+    assert _metrics_almost_equal(metrics_all_positions1, metrics_all_positions2)
+
+    seq_mask_last = mm.SequenceMaskLast(schema=seq_schema, target=target)
+    metrics_last_positions = model.evaluate(
+        loader, batch_size=8, steps=1, return_dict=True, pre=seq_mask_last
+    )
+    # Ensures metrics masking only last positions are different then the ones
+    # considering all positions
+    assert not _metrics_almost_equal(metrics_all_positions1, metrics_last_positions)

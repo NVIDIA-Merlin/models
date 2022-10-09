@@ -256,7 +256,7 @@ def test_seq_mask_random_replace_embeddings(
 
     if not dense:
         replaced_mask = replaced_mask.with_row_splits_dtype(tf.int64)
-    tf.Assert(tf.reduce_all(replaced_mask == targets_mask), [replaced_mask, targets_mask])
+    tf.Assert(tf.reduce_all(replaced_mask == targets_mask), [])
     asserts_mlm_target_mask(replaced_mask)
 
 
@@ -290,7 +290,7 @@ def test_replace_masked_input_2d_embeddings_incompatible_2d_mask():
     )
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
 
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(Exception) as exc_info:
         _ = masked_embeddings(item_id_emb_seq)
     assert "The inputs and mask need to be compatible" in str(exc_info.value)
 
@@ -302,7 +302,7 @@ def test_replace_masked_input_2d_embeddings_incompatible_ragged_2d_mask():
     )
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
 
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(Exception) as exc_info:
         _ = masked_embeddings(item_id_emb_seq)
     assert "The inputs and mask need to be compatible" in str(exc_info.value)
 
@@ -311,6 +311,6 @@ def test_seq_replace_embeddings_ragged_tensor_last_dim_none():
     inputs = tf.ragged.constant([[[1, 2]], [[3]]])
 
     masked_embeddings = mm.ReplaceMaskedEmbeddings()
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(Exception) as exc_info:
         _ = masked_embeddings(inputs, training=True)
     assert "The last dim of inputs cannot be None" in str(exc_info.value)
