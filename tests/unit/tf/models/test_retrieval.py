@@ -797,3 +797,64 @@ def _check_embeddings(embeddings, extected_len, num_dim=8, index_name=None):
     assert list(embeddings.columns) == [str(i) for i in range(num_dim)]
     assert len(embeddings.index) == extected_len
     assert embeddings.index.name == index_name
+
+
+def test_youtube_dnn_v2_export_embeddings(sequence_testing_data: Dataset):
+    to_remove = (
+        sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+        .select_by_tag(Tags.CONTINUOUS)
+        .column_names
+    )
+    sequence_testing_data.schema = sequence_testing_data.schema.excluding_by_name(to_remove)
+
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    predict_next = mm.SequencePredictLast(schema=seq_schema, target=target)
+
+    model = mm.YoutubeDNNRetrievalModelV2(
+        schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
+    )
+
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=predict_next)
+    model, _ = testing_utils.model_test(model, dataloader, reload_model=False)
+
+    candidates = model.candidate_embeddings().compute()
+    assert list(candidates.columns) == [str(i) for i in range(32)]
+    assert len(candidates.index) == 51997
+
+    # Export the query embeddings is raising an error from dask, related to
+    # the support of multi-hot input features.
+
+    # queries = model.query_embeddings(
+    #    sequence_testing_data, batch_size=10, index=Tags.USER_ID
+    # ).compute()
+    # _check_embeddings(queries, 100, 32, "user_id")
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly):
+    to_remove = (
+        sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+        .select_by_tag(Tags.CONTINUOUS)
+        .column_names
+    )
+    sequence_testing_data.schema = sequence_testing_data.schema.excluding_by_name(to_remove)
+
+    seq_schema = sequence_testing_data.schema.select_by_tag(Tags.SEQUENCE)
+    target = sequence_testing_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
+    predict_next = mm.SequencePredictLast(schema=seq_schema, target=target)
+
+    model = mm.YoutubeDNNRetrievalModelV2(
+        schema=sequence_testing_data.schema, top_block=mm.MLPBlock([32]), num_sampled=1000
+    )
+
+    dataloader = mm.Loader(sequence_testing_data, batch_size=50, transform=predict_next)
+
+    model, _ = testing_utils.model_test(model, dataloader, reload_model=False)
+
+    # Top-K evaluation
+    topk_model = model.to_top_k_encoder()
+    topk_model.compile(run_eagerly=run_eagerly)
+
+    metrics = topk_model.evaluate(dataloader, return_dict=True)
+    assert all([metric >= 0 for metric in metrics.values()])
