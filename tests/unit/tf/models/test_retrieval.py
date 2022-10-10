@@ -73,9 +73,7 @@ def test_matrix_factorization_topk_evaluation(music_streaming_data: Dataset, run
 
     # Top-K evaluation
     candidate_features = unique_rows_by_features(music_streaming_data, Tags.ITEM, Tags.ITEM_ID)
-    candidates = model.candidate_embeddings(candidate_features, batch_size=10, index=Tags.ITEM_ID)
-
-    topk_model = mm.TopKEncoder(model.query_encoder, candidates=candidates)
+    topk_model = model.to_top_k_encoder(candidate_features, batch_size=16)
     topk_model.compile(run_eagerly=run_eagerly)
 
     def item_id_as_target(features, targets):
@@ -290,10 +288,8 @@ def test_two_tower_model_topk_evaluation(ecommerce_data: Dataset, run_eagerly):
     _ = testing_utils.model_test(model, dataset)
 
     # Top-K evaluation
-    candidate_features = unique_rows_by_features(dataset, Tags.ITEM, Tags.ITEM_ID)
-    candidates = model.candidate_embeddings(candidate_features, batch_size=10, index=Tags.ITEM_ID)
-
-    topk_model = mm.TopKEncoder(query, candidates=candidates)
+    candidate_features = unique_rows_by_features(ecommerce_data, Tags.ITEM, Tags.ITEM_ID)
+    topk_model = model.to_top_k_encoder(candidate_features, batch_size=16)
     topk_model.compile(run_eagerly=run_eagerly)
 
     def item_id_as_target(features, targets):

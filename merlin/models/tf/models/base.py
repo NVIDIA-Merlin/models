@@ -1674,6 +1674,36 @@ class RetrievalModelV2(Model):
 
         return config
 
+    def to_top_k_encoder(
+        self,
+        candidates: merlin.io.Dataset = None,
+        candidate_id=Tags.ITEM_ID,
+        strategy: Union[str, tf.keras.layers.Layer] = "brute-force-topk",
+        **kwargs,
+    ):
+        from merlin.models.tf.core.encoder import TopKEncoder
+
+        """Method to get a top-k encoder
+
+        Parameters
+        ----------
+        candidate : merlin.io.Dataset, optional
+            Dataset of unique candidates, by default None
+        candidate_id:
+            Column to use as the candidates index,
+            by default Tags.ITEM_ID
+        strategy: str
+            Strategy to use for retrieving the top-k candidates of
+            a given query, by default brute-force-topk
+        """
+        candidates_embeddings = self.candidate_embeddings(candidates, index=candidate_id, **kwargs)
+        topk_model = TopKEncoder(
+            self.query_encoder,
+            topk_layer=strategy,
+            candidates=candidates_embeddings,
+        )
+        return topk_model
+
 
 def _maybe_convert_merlin_dataset(data, batch_size, shuffle=True, **kwargs):
     # Check if merlin-dataset is passed
