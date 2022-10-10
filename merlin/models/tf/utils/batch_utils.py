@@ -154,6 +154,12 @@ def model_encode(model, batch):
 
     model_outputs = model(batch[0])
 
+    # handle when the model outputs a NamedTuple
+    if hasattr(model_outputs, "to_df"):
+        return model_outputs.to_df()
+    elif hasattr(model_outputs, "_asdict"):
+        model_outputs = model_outputs._asdict()
+
     if isinstance(model_outputs, dict):
         return get_lib().DataFrame({key: encode_output(val) for key, val in model_outputs.items()})
 

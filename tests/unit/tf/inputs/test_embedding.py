@@ -23,7 +23,7 @@ from tensorflow.keras.initializers import RandomUniform
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.utils import testing_utils
-from merlin.models.tf.utils.testing_utils import model_test
+from merlin.models.tf.utils.testing_utils import assert_output_shape, model_test
 from merlin.schema import ColumnSchema, Schema, Tags
 
 
@@ -87,7 +87,7 @@ class TestEmbeddingTable:
         layer = mm.EmbeddingTable(dim, column_schema, **kwargs)
 
         output = layer(inputs)
-        self._assert_output_shape(output, expected_output_shape)
+        assert_output_shape(output, expected_output_shape)
 
         if "sequence_combiner" in kwargs:
             assert isinstance(output, tf.Tensor)
@@ -102,23 +102,7 @@ class TestEmbeddingTable:
         assert copied_layer.input_dim == layer.input_dim
 
         output = copied_layer(inputs)
-        self._assert_output_shape(output, expected_output_shape)
-
-    def _get_shape(self, tensor_or_shape) -> tf.TensorShape:
-        if hasattr(tensor_or_shape, "shape"):
-            output_shape = tensor_or_shape.shape
-        else:
-            output_shape = tensor_or_shape
-        return output_shape
-
-    def _assert_output_shape(self, output, expected_output_shape):
-        if isinstance(expected_output_shape, dict):
-            for key in expected_output_shape.keys():
-                output_shape = self._get_shape(output[key])
-                assert list(output_shape) == list(expected_output_shape[key])
-        else:
-            output_shape = self._get_shape(output)
-            assert list(output_shape) == list(expected_output_shape)
+        assert_output_shape(output, expected_output_shape)
 
     def test_layer_simple(self):
         col_schema = self.sample_column_schema
@@ -146,7 +130,7 @@ class TestEmbeddingTable:
         column_schema = self.sample_column_schema
         layer = mm.EmbeddingTable(10, column_schema, **kwargs)
         output_shape = layer.compute_output_shape(input_shape)
-        self._assert_output_shape(output_shape, expected_output_shape)
+        assert_output_shape(output_shape, expected_output_shape)
 
     def test_dense_with_combiner(self):
         dim = 16

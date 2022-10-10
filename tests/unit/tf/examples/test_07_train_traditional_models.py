@@ -1,6 +1,7 @@
 import pytest
 from testbook import testbook
 
+from merlin.core.dispatch import HAS_GPU
 from tests.conftest import REPO_ROOT
 
 pytest.importorskip("xgboost")
@@ -12,6 +13,7 @@ pytest.importorskip("implicit")
     REPO_ROOT / "examples/07-Train-traditional-ML-models-using-the-Merlin-Models-API.ipynb",
     execute=False,
 )
+@pytest.mark.skipif(not HAS_GPU, reason="No GPU available")
 def test_func(tb):
     tb.execute()
     xgboost_metrics = tb.ref("metrics")

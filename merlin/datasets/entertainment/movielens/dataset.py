@@ -39,7 +39,7 @@ def validate_variant(variant: str):
 
 def get_movielens(
     path: Union[str, Path] = None,
-    variant="ml-25m",
+    variant="ml-1m",
     overwrite: bool = False,
     transformed_name: str = "transformed",
     nvt_workflow: Optional[Workflow] = None,

@@ -23,7 +23,6 @@ import merlin.io
 from merlin.core.dispatch import DataFrameType
 from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.utils import tf_utils
-from merlin.models.tf.utils.batch_utils import TFModelEncode
 from merlin.models.utils.constants import MIN_FLOAT
 from merlin.schema import Tags
 
@@ -104,6 +103,8 @@ class IndexBlock(Block):
     def get_candidates_dataset(
         cls, block: Block, data: merlin.io.Dataset, id_column: Optional[str] = None
     ):
+        from merlin.models.tf.utils.batch_utils import TFModelEncode
+
         if not id_column and getattr(block, "schema", None):
             tagged = block.schema.select_by_tag(Tags.ITEM_ID)
             if tagged.column_schemas:

@@ -81,12 +81,14 @@ def model_test(
     optimizer="adam",
     epochs: int = 1,
     reload_model: bool = False,
+    fit_kwargs=None,
     **kwargs,
 ) -> Tuple[Model, Any]:
     """Generic model test. It will compile & fit the model and make sure it can be re-trained."""
 
     model.compile(run_eagerly=run_eagerly, optimizer=optimizer, **kwargs)
-    losses = model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1)
+    fit_kwargs = fit_kwargs or {}
+    losses = model.fit(dataset, batch_size=50, epochs=epochs, steps_per_epoch=1, **fit_kwargs)
 
     batch = sample_batch(dataset, batch_size=50, to_ragged=reload_model)
 
@@ -431,3 +433,20 @@ def assert_allclose_according_to_type(
         atol = max(atol, bfloat16_atol)
 
     np.testing.assert_allclose(a, b, rtol=rtol, atol=atol)
+
+
+def assert_output_shape(output, expected_output_shape):
+    def _get_shape(tensor_or_shape) -> tf.TensorShape:
+        if hasattr(tensor_or_shape, "shape"):
+            output_shape = tensor_or_shape.shape
+        else:
+            output_shape = tensor_or_shape
+        return output_shape
+
+    if isinstance(expected_output_shape, dict):
+        for key in expected_output_shape.keys():
+            output_shape = _get_shape(output[key])
+            assert list(output_shape) == list(expected_output_shape[key])
+    else:
+        output_shape = _get_shape(output)
+        assert list(output_shape) == list(expected_output_shape)
