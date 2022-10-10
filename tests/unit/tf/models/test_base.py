@@ -759,3 +759,80 @@ class _NoOpLayer(tf.keras.layers.Layer):
         self._has_run = True
 
         return inputs
+
+
+# TODO: Add support of 3D predictions and Keras masking to custom pairwise losses (e.g. "bpr")
+@pytest.mark.parametrize(
+    "loss",
+    ["categorical_crossentropy"],
+)
+@pytest.mark.parametrize(
+    "metrics", [mm.RecallAt(3), mm.TopKMetricsAggregator(mm.RecallAt(3), mm.NDCGAt(3))]
+)
+def test_model_compute_loss_metrics_with_without_masking(
+    sequence_testing_data: Dataset, loss, metrics
+):
+    def _reset_model_metrics_loss(model):
+        model.compiled_metrics.reset_state()
+        for m in model.metrics:
+            m.reset_state()
+
+    def _compute_model_metrics(
+        model,
+        targets,
+        predictions,
+        sample_weights,
+    ):
+        model.compiled_metrics.update_state(
+            targets,
+            predictions,
+            sample_weights,
+        )
+        return model.metrics_results()
+
+    targets = tf.convert_to_tensor(
+        [
+            [[0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 0, 1]],
+            [[0, 1, 0, 0, 0], [0, 0, 1, 0, 0], [0, 0, 0, 0, 1]],
+        ],
+        tf.float32,
+    )
+
+    predictions = tf.convert_to_tensor(
+        [
+            [[10, 9, 8, 7, 6], [5, 4, 3, 2, 1], [10, 9, 8, 7, 6]],
+            [[10, 9, 8, 7, 6], [5, 4, 3, 2, 1], [10, 9, 8, 7, 6]],
+        ],
+        tf.float32,
+    )
+    sample_weights = None
+
+    # Creating a model that contains just an output block,
+    # which is necessary for computing the loss and metrics
+    model = mm.Model(mm.CategoricalOutput(sequence_testing_data.schema["item_id_seq"]))
+
+    model.compile(loss=loss, metrics=metrics)
+
+    loss1 = model.compute_loss(None, targets, predictions, sample_weights)
+    metrics1 = _compute_model_metrics(model, targets, predictions, sample_weights)
+
+    _reset_model_metrics_loss(model)
+    loss2 = model.compute_loss(None, targets, predictions, sample_weights)
+    metrics2 = _compute_model_metrics(model, targets, predictions, sample_weights)
+
+    # Checks if metrics and loss are the same for the same preds and targets (idempotent)
+    assert np.isclose(loss1, loss2)
+    for k in metrics1:
+        assert np.isclose(metrics1[k], metrics2[k])
+
+    # Sets the mask in predictions. Should compute loss and metrics only at masked positions
+    predictions._keras_mask = tf.convert_to_tensor([[1, 0, 0], [0, 0, 1]], tf.float32)
+
+    _reset_model_metrics_loss(model)
+    loss_masked = model.compute_loss(None, targets, predictions, sample_weights)
+    metrics_masked = _compute_model_metrics(model, targets, predictions, sample_weights)
+
+    # Checks that metrics and loss are different when masked
+    assert not np.isclose(loss1, loss_masked)
+    for k in metrics1:
+        assert not np.isclose(metrics1[k], metrics_masked[k])
