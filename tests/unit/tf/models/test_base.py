@@ -677,7 +677,7 @@ def test_save_and_load(load_fn, tmpdir):
     dataset = generate_data("e-commerce", num_rows=10)
     dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
     model = mm.Model(
-        mm.InputBlockV2(dataset.schema),
+        mm.InputBlockV2(dataset.schema.remove_by_tag(Tags.TARGET)),
         mm.MLPBlock([4]),
         mm.BinaryClassificationTask("click"),
     )
