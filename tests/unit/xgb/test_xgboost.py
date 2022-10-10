@@ -25,7 +25,6 @@ import xgboost
 from merlin.core.dispatch import HAS_GPU
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
-from merlin.models.io import load_model
 from merlin.models.xgb import XGBoost, dataset_to_xy
 
 
@@ -233,8 +232,7 @@ def test_predict_without_target(dask_client):
     model.predict(test_ds)
 
 
-@pytest.mark.parametrize("load_fn", [XGBoost.load, load_model])
-def test_reload(load_fn, dask_client, tmpdir):
+def test_reload(dask_client, tmpdir):
     train, valid = generate_data("social", num_rows=40, set_sizes=(0.5, 0.5))
 
     schema = train.schema
@@ -261,7 +259,7 @@ def test_reload(load_fn, dask_client, tmpdir):
     model_dir = Path(tmpdir) / "xgb_model"
 
     model.save(model_dir)
-    reloaded = load_fn(model_dir)
+    reloaded = XGBoost.load(model_dir)
 
     np.testing.assert_array_almost_equal(model.predict(valid), reloaded.predict(valid))
 

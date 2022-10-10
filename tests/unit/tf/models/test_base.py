@@ -24,7 +24,6 @@ from tensorflow.test import TestCase
 import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
-from merlin.models.io import load_model
 from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -672,8 +671,7 @@ def test_unfreeze_all_blocks(ecommerce_data):
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
 
-@pytest.mark.parametrize("load_fn", [mm.Model.load, load_model])
-def test_save_and_load(load_fn, tmpdir):
+def test_save_and_load(tmpdir):
     dataset = generate_data("e-commerce", num_rows=10)
     dataset.schema = dataset.schema.select_by_name(["click", "user_age"])
     model = mm.Model(
@@ -688,7 +686,7 @@ def test_save_and_load(load_fn, tmpdir):
         batch_size=10,
     )
     model.save(tmpdir)
-    reloaded_model = load_fn(tmpdir)
+    reloaded_model = mm.Model.load(tmpdir)
     signature_input_keys = set(
         reloaded_model.signatures["serving_default"].structured_input_signature[1].keys()
     )
