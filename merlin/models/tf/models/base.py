@@ -816,6 +816,7 @@ class BaseModel(tf.keras.Model):
         }
 
         if pre:
+            self._reset_compile_cache()
             self.train_pre = pre
 
         out = super().fit(**fit_kwargs)
@@ -860,6 +861,7 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
         if pre:
+            self._reset_compile_cache()
             self.test_pre = pre
 
         out = super().evaluate(
@@ -898,6 +900,7 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
         if pre:
+            self._reset_compile_cache()
             self.predict_pre = pre
 
         out = super(BaseModel, self).predict(
