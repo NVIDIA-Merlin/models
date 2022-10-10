@@ -18,7 +18,7 @@ import importlib
 import json
 import os
 import pathlib
-from typing import Union
+from typing import Optional, Union
 
 from merlin.models.api import MerlinModel
 from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
@@ -30,8 +30,8 @@ _MERLIN_METADATA_DIR_NAME = "merlin_metadata"
 def save_merlin_metadata(
     export_path: Union[str, os.PathLike],
     model: MerlinModel,
-    input_schema: Schema,
-    output_schema: Schema,
+    input_schema: Optional[Schema],
+    output_schema: Optional[Schema],
 ) -> None:
     """Saves data to Merlin Metadata Directory."""
     export_path = pathlib.Path(export_path)
