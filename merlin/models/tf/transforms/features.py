@@ -741,10 +741,7 @@ class ToTarget(Block):
         self, inputs: TabularData, targets=None, testing=False, **kwargs
     ) -> "PredictionOutput":
         if testing:
-            return PredictionOutput(predictions=inputs, targets=targets)
-
-        if targets is None:
-            targets = {}
+            return inputs, targets
 
         target_columns = self._target_column_schemas()
 
@@ -758,7 +755,7 @@ class ToTarget(Block):
             else:
                 targets = inputs[name]
 
-        return PredictionOutput(predictions=outputs, targets=targets or None)
+        return outputs, targets
 
     def compute_output_shape(self, input_shape):
         return input_shape
