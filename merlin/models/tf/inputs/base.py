@@ -290,13 +290,6 @@ def InputBlockV2(
         Returns a ParallelBlock with a Dict with two branches:
         continuous and embeddings
     """
-    target_schema = schema.select_by_tag(Tags.TARGET)
-    if target_schema.column_names:
-        raise ValueError(
-            "`schema` should not contain any target features. "
-            "Target columns can be removed with `scheme.remove_by_tag(Tags.TARGET)`. "
-        )
-
     unparsed = {"categorical": categorical, "continuous": continuous, **branches}
     parsed = {}
     for name, branch in unparsed.items():
