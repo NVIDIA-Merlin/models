@@ -290,6 +290,7 @@ def InputBlockV2(
         Returns a ParallelBlock with a Dict with two branches:
         continuous and embeddings
     """
+
     unparsed = {"categorical": categorical, "continuous": continuous, **branches}
     parsed = {}
     for name, branch in unparsed.items():
