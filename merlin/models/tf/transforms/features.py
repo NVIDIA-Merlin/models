@@ -15,7 +15,7 @@
 #
 import warnings
 from itertools import combinations
-from typing import Dict, Optional, Sequence, Union
+from typing import Dict, Optional, Sequence, Tuple, Union
 
 import tensorflow as tf
 from keras.layers.preprocessing import preprocessing_utils as p_utils
@@ -738,11 +738,8 @@ class ToTarget(Block):
         return target_columns
 
     def call(
-        self, inputs: TabularData, targets=None, testing=False, **kwargs
-    ) -> "PredictionOutput":
-        if testing:
-            return inputs, targets
-
+        self, inputs: TabularData, targets=None, **kwargs
+    ) -> Tuple[TabularData, Union[TabularData, tf.Tensor, None]]:
         target_columns = self._target_column_schemas()
 
         outputs = {}
