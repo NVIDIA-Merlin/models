@@ -248,7 +248,8 @@ def test_seq_mask_random_replace_embeddings(
     if dense:
         item_id_emb_seq = item_id_emb_seq.to_tensor()
         targets = targets.to_tensor()
-        targets._keras_mask = targets_mask.to_tensor()
+        targets_mask = targets_mask.to_tensor()
+        targets._keras_mask = targets_mask
 
     if target_as_dict:
         # Making targets different in dict, the valid one is "target2" which is 2D
