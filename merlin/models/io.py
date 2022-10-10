@@ -36,7 +36,7 @@ def save_merlin_metadata(
     """Saves data to Merlin Metadata Directory."""
     export_path = pathlib.Path(export_path)
     merlin_metadata_dir = export_path / _MERLIN_METADATA_DIR_NAME
-    merlin_metadata_dir.mkdir()
+    merlin_metadata_dir.mkdir(exist_ok=True)
     model_metadata = dict(
         model_module_name=model.__module__,
         model_class_name=model.__class__.__name__,
