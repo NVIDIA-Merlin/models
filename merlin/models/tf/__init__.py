@@ -75,7 +75,7 @@ from merlin.models.tf.core.combinators import (
     ResidualBlock,
     SequentialBlock,
 )
-from merlin.models.tf.core.encoder import EncoderBlock, TopKEncoder
+from merlin.models.tf.core.encoder import EmbeddingEncoder, Encoder, TopKEncoder
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
@@ -100,7 +100,7 @@ from merlin.models.tf.metrics.topk import (
     TopKMetricsAggregator,
 )
 from merlin.models.tf.models import benchmark
-from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel
+from merlin.models.tf.models.base import BaseModel, Model, RetrievalModel, RetrievalModelV2
 from merlin.models.tf.models.ranking import DCNModel, DeepFMModel, DLRMModel, WideAndDeepModel
 from merlin.models.tf.models.retrieval import (
     MatrixFactorizationModel,
@@ -179,8 +179,9 @@ __all__ = [
     "SequentialBlock",
     "ResidualBlock",
     "DualEncoderBlock",
-    "EncoderBlock",
     "TopKEncoder",
+    "Encoder",
+    "EmbeddingEncoder",
     "CrossBlock",
     "DLRMBlock",
     "MLPBlock",
@@ -251,6 +252,7 @@ __all__ = [
     "TopKMetricsAggregator",
     "Model",
     "RetrievalModel",
+    "RetrievalModelV2",
     "InputBlock",
     "InputBlockV2",
     "PredictionTasks",

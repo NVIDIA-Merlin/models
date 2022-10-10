@@ -1,5 +1,6 @@
 from typing import Optional, Union
 
+import numpy as np
 import tensorflow as tf
 from packaging import version
 
@@ -7,6 +8,7 @@ import merlin.io
 from merlin.models.tf.core import combinators
 from merlin.models.tf.core.prediction import TopKPrediction
 from merlin.models.tf.inputs.base import InputBlockV2
+from merlin.models.tf.inputs.embedding import CombinerType, EmbeddingTable
 from merlin.models.tf.models.base import BaseModel
 from merlin.models.tf.outputs.topk import TopKOutput
 from merlin.models.tf.utils import tf_utils
@@ -14,7 +16,7 @@ from merlin.schema import ColumnSchema, Schema, Tags
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class EncoderBlock(tf.keras.Model):
+class Encoder(tf.keras.Model):
     """Block that can be used for prediction & evaluation but not for training
 
     Parameters
@@ -53,11 +55,99 @@ class EncoderBlock(tf.keras.Model):
         self.pre = pre
         self.post = post
 
-    def call(self, inputs, **kwargs):
-        if "features" not in kwargs:
-            kwargs["features"] = inputs
+    def encode(
+        self,
+        dataset: merlin.io.Dataset,
+        index: Union[str, ColumnSchema, Schema, Tags],
+        batch_size: int,
+        **kwargs,
+    ) -> merlin.io.Dataset:
+        if isinstance(index, Schema):
+            output_schema = index
+        elif isinstance(index, ColumnSchema):
+            output_schema = Schema([index])
+        elif isinstance(index, str):
+            output_schema = Schema([self.schema[index]])
+        elif isinstance(index, Tags):
+            output_schema = self.schema.select_by_tag(index)
+        else:
+            raise ValueError(f"Invalid index: {index}")
 
-        return combinators.call_sequentially(list(self.to_call), inputs=inputs, **kwargs)
+        return self.batch_predict(
+            dataset,
+            batch_size=batch_size,
+            output_schema=output_schema,
+            index=index,
+            output_concat_func=np.concatenate,
+            **kwargs,
+        )
+
+    def batch_predict(
+        self,
+        dataset: merlin.io.Dataset,
+        batch_size: int,
+        output_schema: Optional[Schema] = None,
+        index: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
+        **kwargs,
+    ) -> merlin.io.Dataset:
+        """Batched prediction using Dask.
+        Parameters
+        ----------
+        dataset: merlin.io.Dataset
+            Dataset to predict on.
+        batch_size: int
+            Batch size to use for prediction.
+        Returns
+        -------
+        merlin.io.Dataset
+        """
+
+        if index:
+            if isinstance(index, ColumnSchema):
+                index = Schema([index])
+            elif isinstance(index, str):
+                index = Schema([self.schema[index]])
+            elif isinstance(index, Tags):
+                index = self.schema.select_by_tag(index)
+            elif not isinstance(index, Schema):
+                raise ValueError(f"Invalid index: {index}")
+
+            if len(index) != 1:
+                raise ValueError("Only one column can be used as index")
+            index = index.first.name
+
+        if hasattr(dataset, "schema"):
+            if not set(self.schema.column_names).issubset(set(dataset.schema.column_names)):
+                raise ValueError(
+                    f"Model schema {self.schema.column_names} does not match dataset schema"
+                    + f" {dataset.schema.column_names}"
+                )
+
+        # Check if merlin-dataset is passed
+        if hasattr(dataset, "to_ddf"):
+            dataset = dataset.to_ddf()
+
+        from merlin.models.tf.utils.batch_utils import TFModelEncode
+
+        model_encode = TFModelEncode(self, batch_size=batch_size, **kwargs)
+        encode_kwargs = {}
+        if output_schema:
+            encode_kwargs["filter_input_columns"] = output_schema.column_names
+        predictions = dataset.map_partitions(model_encode, **encode_kwargs)
+        if index:
+            predictions = predictions.set_index(index)
+
+        return merlin.io.Dataset(predictions)
+
+    def call(self, inputs, training=False, testing=False, targets=None):
+        return combinators.call_sequentially(
+            list(self.to_call),
+            inputs=inputs,
+            features=inputs,
+            targets=targets,
+            training=training,
+            testing=testing,
+        )
 
     def build(self, input_shape):
         combinators.build_sequentially(self, list(self.to_call), input_shape=input_shape)
@@ -141,7 +231,10 @@ class EncoderBlock(tf.keras.Model):
         if post is not None:
             post = tf.keras.layers.deserialize(post, custom_objects=custom_objects)
 
-        return cls(*layers, pre=pre, post=post)
+        output = Encoder(*layers, pre=pre, post=post)
+        output.__class__ = cls
+
+        return output
 
     def get_config(self):
         config = tf_utils.maybe_serialize_keras_objects(self, {}, ["pre", "post"])
@@ -152,13 +245,13 @@ class EncoderBlock(tf.keras.Model):
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
-class TopKEncoder(EncoderBlock, BaseModel):
+class TopKEncoder(Encoder, BaseModel):
     """Block that can be used for top-k prediction & evaluation, initialized
     from a trained retrieval model
 
     Parameters
     ----------
-    query_encoder: Union[EncoderBlock, tf.keras.layers.Layer],
+    query_encoder: Union[Encoder, tf.keras.layers.Layer],
         The layer to use for encoding the query features
     topk_layer: Union[str, tf.keras.layers.Layer, TopKOutput]
         The layer to use for computing the top-k predictions.
@@ -172,7 +265,7 @@ class TopKEncoder(EncoderBlock, BaseModel):
         the candidates ids.
         This is required when `topk_layer` is a string
         By default None
-    candidate_encoder:  Union[EncoderBlock, tf.keras.layers.Layer],
+    candidate_encoder:  Union[Encoder, tf.keras.layers.Layer],
         The layer to use for encoding the item features
     k: int, Optional
         Number of candidates to return, by default 10
@@ -186,10 +279,10 @@ class TopKEncoder(EncoderBlock, BaseModel):
 
     def __init__(
         self,
-        query_encoder: Union[EncoderBlock, tf.keras.layers.Layer],
+        query_encoder: Union[Encoder, tf.keras.layers.Layer],
         topk_layer: Union[str, tf.keras.layers.Layer, TopKOutput] = "brute-force-topk",
         candidates: Union[tf.Tensor, merlin.io.Dataset] = None,
-        candidate_encoder: Union[EncoderBlock, tf.keras.layers.Layer] = None,
+        candidate_encoder: Union[Encoder, tf.keras.layers.Layer] = None,
         k: int = 10,
         pre: Optional[tf.keras.layers.Layer] = None,
         post: Optional[tf.keras.layers.Layer] = None,
@@ -201,15 +294,15 @@ class TopKEncoder(EncoderBlock, BaseModel):
             topk_output = TopKOutput(to_call=topk_layer, candidates=candidates, k=k, **kwargs)
         self.k = k
 
-        EncoderBlock.__init__(self, query_encoder, topk_output, pre=pre, post=post, **kwargs)
+        Encoder.__init__(self, query_encoder, topk_output, pre=pre, post=post, **kwargs)
         # The base model is required for the evaluation step:
         BaseModel.__init__(self, **kwargs)
 
     @classmethod
     def from_candidate_dataset(
         cls,
-        query_encoder: Union[EncoderBlock, tf.keras.layers.Layer],
-        candidate_encoder: Union[EncoderBlock, tf.keras.layers.Layer],
+        query_encoder: Union[Encoder, tf.keras.layers.Layer],
+        candidate_encoder: Union[Encoder, tf.keras.layers.Layer],
         dataset: merlin.io.Dataset,
         top_k: int = 10,
         index_column: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
@@ -220,9 +313,9 @@ class TopKEncoder(EncoderBlock, BaseModel):
 
         Parameters
         ----------
-        query_encoder : Union[EncoderBlock, tf.keras.layers.Layer]
+        query_encoder : Union[Encoder, tf.keras.layers.Layer]
             The encoder layer to use for computing the query embeddings.
-        candidate_encoder : Union[EncoderBlock, tf.keras.layers.Layer]
+        candidate_encoder : Union[Encoder, tf.keras.layers.Layer]
             The encoder layer to use for computing the candidates embeddings.
         dataset : merlin.io.Dataset
             Raw candidate features dataset
@@ -259,7 +352,7 @@ class TopKEncoder(EncoderBlock, BaseModel):
         self,
         dataset: merlin.io.Dataset,
         index_column: Optional[Union[str, ColumnSchema, Schema, Tags]] = None,
-        candidate_encoder: Optional[Union[EncoderBlock, tf.keras.layers.Layer]] = None,
+        candidate_encoder: Optional[Union[Encoder, tf.keras.layers.Layer]] = None,
         **kwargs,
     ) -> merlin.io.Dataset:
         """Method to generate candidates embeddings
@@ -273,7 +366,7 @@ class TopKEncoder(EncoderBlock, BaseModel):
             for returning the topk ids of candidates with the highest scores.
             If not specified, the candidates indices will be used instead.
             by default None
-        candidate_encoder : Union[EncoderBlock, tf.keras.layers.Layer], optional
+        candidate_encoder : Union[Encoder, tf.keras.layers.Layer], optional
             The encoder layer to use for computing the candidates embeddings.
             If not specified, the candidate_encoder set in the constructor
             will be used instead.
@@ -339,3 +432,49 @@ class TopKEncoder(EncoderBlock, BaseModel):
             "This block is not meant to be trained by itself. ",
             "It can only be trained as part of a model.",
         )
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class EmbeddingEncoder(Encoder):
+    def __init__(
+        self,
+        schema: Union[ColumnSchema, Schema],
+        dim: int,
+        embeddings_initializer="uniform",
+        embeddings_regularizer=None,
+        activity_regularizer=None,
+        embeddings_constraint=None,
+        mask_zero=False,
+        input_length=None,
+        sequence_combiner: Optional[CombinerType] = None,
+        trainable=True,
+        name=None,
+        dtype=None,
+        dynamic=False,
+    ):
+        if isinstance(schema, ColumnSchema):
+            col = schema
+        else:
+            col = schema.first
+        col_name = col.name
+
+        table = EmbeddingTable(
+            dim,
+            col,
+            embeddings_initializer=embeddings_initializer,
+            embeddings_regularizer=embeddings_regularizer,
+            activity_regularizer=activity_regularizer,
+            embeddings_constraint=embeddings_constraint,
+            mask_zero=mask_zero,
+            input_length=input_length,
+            sequence_combiner=sequence_combiner,
+            trainable=trainable,
+            name=name,
+            dtype=dtype,
+            dynamic=dynamic,
+        )
+
+        super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col_name]))
+
+    def to_dataset(self, gpu=None) -> merlin.io.Dataset:
+        return self.blocks[0].to_dataset(gpu=gpu)
