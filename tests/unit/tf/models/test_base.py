@@ -42,7 +42,7 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
     testing_utils.test_model_signature(loaded_model, features, ["click/binary_classification_task"])
 
 
-def test_fit_twice():
+def test_fit_compile_twice():
     dataset = Dataset(pd.DataFrame({"feature": [1, 2, 3, 4, 5, 6], "target": [1, 0, 0, 1, 1, 0]}))
     dataset.schema = Schema(
         [
@@ -56,8 +56,9 @@ def test_fit_twice():
         tf.keras.layers.Dense(1),
         mm.BinaryClassificationTask("target"),
     )
-    model.compile(run_eagerly=True, optimizer="adam")
+    model.compile()
     model.fit(loader, epochs=2)
+    model.compile()
     model.fit(loader, epochs=2)
 
 
@@ -756,3 +757,31 @@ def _check_embeddings(embeddings, extected_len, index_name=None):
     assert list(embeddings.columns) == [str(i) for i in range(8)]
     assert len(embeddings.index) == extected_len
     assert embeddings.index.name == index_name
+
+
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_model_fit_pre(ecommerce_data: Dataset, run_eagerly):
+    model = mm.Model(
+        mm.InputBlock(ecommerce_data.schema),
+        mm.MLPBlock([4]),
+        mm.BinaryClassificationTask("click"),
+    )
+
+    no_op_fit = _NoOpLayer()
+    testing_utils.model_test(
+        model, ecommerce_data, run_eagerly=run_eagerly, fit_kwargs=dict(pre=no_op_fit)
+    )
+
+    assert no_op_fit._has_run
+
+    no_op_eval = _NoOpLayer()
+    model.evaluate(ecommerce_data, batch_size=10, pre=no_op_eval)
+    assert no_op_eval._has_run
+
+
+@tf.keras.utils.register_keras_serializable(package="merlin.models")
+class _NoOpLayer(tf.keras.layers.Layer):
+    def call(self, inputs):
+        self._has_run = True
+
+        return inputs

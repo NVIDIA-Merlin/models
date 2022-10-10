@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Protocol, Sequence, Unio
 
 import six
 import tensorflow as tf
+from keras.engine.compile_utils import MetricsContainer
 from keras.utils.losses_utils import cast_losses_to_common_dtype
 from packaging import version
 from tensorflow.keras.utils import unpack_x_y_sample_weight
@@ -504,7 +505,8 @@ class BaseModel(tf.keras.Model):
         **kwargs,
     ) -> Union[Prediction, PredictionOutput]:
         """Apply the model's call method during Train or Test modes and prepare
-        Prediction (v2) or PredictionOutput (v1 - depreciated) objects
+        Prediction (v2) or PredictionOutput (v1 -
+        depreciated) objects
 
         Parameters
         ----------
@@ -594,6 +596,14 @@ class BaseModel(tf.keras.Model):
 
         with tf.GradientTape() as tape:
             x, y, sample_weight = unpack_x_y_sample_weight(data)
+
+            if getattr(self, "train_pre", None):
+                out = call_layer(self.train_pre, x, targets=y, features=x, training=True)
+                if isinstance(out, Prediction):
+                    x, y = out.outputs, out.targets
+                else:
+                    x = out
+
             outputs = self.call_train_test(x, y, sample_weight=sample_weight, training=True)
             loss = self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
@@ -602,7 +612,7 @@ class BaseModel(tf.keras.Model):
         # Run backwards pass.
         self.optimizer.minimize(loss, self.trainable_variables, tape=tape)
 
-        metrics = self.compute_metrics(outputs, training=True)
+        metrics = self.train_compute_metrics(outputs, self.compiled_metrics)
 
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
@@ -613,6 +623,14 @@ class BaseModel(tf.keras.Model):
         """Custom test step using the `compute_loss` method."""
 
         x, y, sample_weight = unpack_x_y_sample_weight(data)
+
+        if getattr(self, "test_pre", None):
+            out = call_layer(self.test_pre, x, targets=y, features=x, training=True)
+            if isinstance(out, Prediction):
+                x, y = out.outputs, out.targets
+            else:
+                x = out
+
         outputs = self.call_train_test(x, y, sample_weight=sample_weight, testing=True)
 
         if getattr(self, "pre_eval_topk", None) is not None:
@@ -622,18 +640,42 @@ class BaseModel(tf.keras.Model):
 
         self.compute_loss(x, outputs.targets, outputs.predictions, outputs.sample_weight)
 
-        metrics = self.compute_metrics(outputs, training=False)
+        metrics = self.compute_metrics(outputs)
 
         # Adding regularization loss to metrics
         metrics["regularization_loss"] = tf.reduce_sum(cast_losses_to_common_dtype(self.losses))
 
         return metrics
 
+    def predict_step(self, data):
+        x, _, _ = unpack_x_y_sample_weight(data)
+
+        if getattr(self, "predict_pre", None):
+            out = call_layer(self.predict_pr, x, features=x, training=False)
+            if isinstance(out, Prediction):
+                x = out.outputs
+            else:
+                x = out
+
+        return self(x, training=False)
+
     @tf.function
+    def train_compute_metrics(self, outputs: PredictionOutput, compiled_metrics: MetricsContainer):
+        """Returns metrics for the outputs of this step.
+
+        Re-computing metrics every `train_metrics_steps` steps.
+        """
+        # Compiled_metrics as an argument here because it is re-defined by `model.compile()`
+        # And checking `self.compiled_metrics` inside this function results in a reference to
+        # a deleted version of `compiled_metrics` if the model is re-compiled.
+        if self._should_compute_train_metrics_for_batch:
+            return self.compute_metrics(outputs, compiled_metrics)
+        return self.metrics_results()
+
     def compute_metrics(
         self,
         prediction_outputs: PredictionOutput,
-        training: bool,
+        compiled_metrics: Optional[MetricsContainer] = None,
     ) -> Dict[str, tf.Tensor]:
         """Overrides Model.compute_metrics() for some custom behaviour
            like compute metrics each N steps during training
@@ -643,37 +685,35 @@ class BaseModel(tf.keras.Model):
         ----------
         prediction_outputs : PredictionOutput
             Contains properties with targets and predictions
-        training : bool
-            Flag that indicates if metrics are being computed during
-            training or evaluation
+        compiled_metrics : MetricsContainer
+            The metrics container to compute metrics on.
+            If not provided, uses self.compiled_metrics
 
         Returns
         -------
         Dict[str, tf.Tensor]
             Dict with the metrics values
         """
+        if compiled_metrics is None:
+            compiled_metrics = self.compiled_metrics
 
-        should_compute_metrics = self._should_compute_train_metrics_for_batch or not training
-        if should_compute_metrics:
-            # This ensures that compiled metrics are built
-            # to make self.compiled_metrics.metrics available
-            if not self.compiled_metrics.built:
-                self.compiled_metrics.build(
-                    prediction_outputs.predictions, prediction_outputs.targets
-                )
+        # This ensures that compiled metrics are built
+        # to make self.compiled_metrics.metrics available
+        if not compiled_metrics.built:
+            compiled_metrics.build(prediction_outputs.predictions, prediction_outputs.targets)
 
-            # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
-            # should have standard signature for better compatibility with Keras methods
-            # like self.compiled_metrics.update_state()
-            if hasattr(prediction_outputs, "label_relevant_counts"):
-                for topk_metric in filter_topk_metrics(self.compiled_metrics.metrics):
-                    topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
+        # Providing label_relevant_counts for TopkMetrics, as metric.update_state()
+        # should have standard signature for better compatibility with Keras methods
+        # like self.compiled_metrics.update_state()
+        if hasattr(prediction_outputs, "label_relevant_counts"):
+            for topk_metric in filter_topk_metrics(compiled_metrics.metrics):
+                topk_metric.label_relevant_counts = prediction_outputs.label_relevant_counts
 
-            self.compiled_metrics.update_state(
-                prediction_outputs.targets,
-                prediction_outputs.predictions,
-                prediction_outputs.sample_weight,
-            )
+        compiled_metrics.update_state(
+            prediction_outputs.targets,
+            prediction_outputs.predictions,
+            prediction_outputs.sample_weight,
+        )
         # Returns the current value of metrics
         metrics = self.metrics_results()
         return metrics
@@ -718,6 +758,7 @@ class BaseModel(tf.keras.Model):
         workers=1,
         use_multiprocessing=False,
         train_metrics_steps=1,
+        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, **kwargs)
@@ -734,10 +775,18 @@ class BaseModel(tf.keras.Model):
         fit_kwargs = {
             k: v
             for k, v in locals().items()
-            if k not in ["self", "kwargs", "train_metrics_steps", "__class__"]
+            if k not in ["self", "kwargs", "train_metrics_steps", "pre"] and not k.startswith("__")
         }
 
-        return super().fit(**fit_kwargs)
+        if pre:
+            self.train_pre = pre
+
+        out = super().fit(**fit_kwargs)
+
+        if pre:
+            del self.train_pre
+
+        return out
 
     def _add_metrics_callback(self, callbacks, train_metrics_steps):
         if callbacks is None:
@@ -768,11 +817,15 @@ class BaseModel(tf.keras.Model):
         workers=1,
         use_multiprocessing=False,
         return_dict=False,
+        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
-        return super().evaluate(
+        if pre:
+            self.test_pre = pre
+
+        out = super().evaluate(
             x,
             y,
             batch_size,
@@ -787,6 +840,11 @@ class BaseModel(tf.keras.Model):
             **kwargs,
         )
 
+        if pre:
+            del self.test_pre
+
+        return out
+
     def predict(
         self,
         x,
@@ -797,11 +855,15 @@ class BaseModel(tf.keras.Model):
         max_queue_size=10,
         workers=1,
         use_multiprocessing=False,
+        pre=None,
         **kwargs,
     ):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
-        return super(BaseModel, self).predict(
+        if pre:
+            self.predict_pre = pre
+
+        out = super(BaseModel, self).predict(
             x,
             batch_size=batch_size,
             verbose=verbose,
@@ -811,6 +873,11 @@ class BaseModel(tf.keras.Model):
             workers=workers,
             use_multiprocessing=use_multiprocessing,
         )
+
+        if pre:
+            del self.predict_pre
+
+        return out
 
     def batch_predict(
         self, dataset: merlin.io.Dataset, batch_size: int, **kwargs
