@@ -72,6 +72,10 @@ class PairwiseLoss(Loss, LossRegistryMixin):
         tf.Tensor
             Loss per example
         """
+        tf.assert_equal(tf.rank(y_true), 2, f"Targets must be 2-D tensor (got {y_true.shape})")
+
+        tf.assert_equal(tf.rank(y_pred), 2, f"Predictions must be 2-D tensor (got {y_pred.shape})")
+
         (
             positives_scores,
             negatives_scores,

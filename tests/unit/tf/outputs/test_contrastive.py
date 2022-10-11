@@ -190,6 +190,21 @@ def test_contrastive_only_positive_when_not_training(ecommerce_data: Dataset):
     )
 
 
+@pytest.mark.parametrize("run_eagerly", [True, False])
+def test_contrastive_output_with_pairwise_loss(ecommerce_data: Dataset, run_eagerly):
+    model = mm.RetrievalModelV2(
+        query=mm.Encoder(ecommerce_data.schema.select_by_tag(Tags.USER), mm.MLPBlock([2])),
+        candidate=mm.Encoder(ecommerce_data.schema.select_by_tag(Tags.ITEM), mm.MLPBlock([2])),
+        output=mm.ContrastiveOutput(
+            ecommerce_data.schema.select_by_tag(Tags.ITEM_ID),
+            negative_samplers="in-batch",
+            candidate_name="item",
+        ),
+    )
+    model.compile(run_eagerly=run_eagerly, loss="bpr-max")
+    _ = model.fit(ecommerce_data, batch_size=50, epochs=1)
+
+
 def _retrieval_inputs_(batch_size):
     users_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
     items_embeddings = tf.random.uniform(shape=(batch_size, 5), dtype=tf.float32)
