@@ -13,7 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
@@ -23,9 +25,10 @@ from merlin.models.tf.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.models.base import Model
-from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 from merlin.schema import Schema
+
+if TYPE_CHECKING:
+    from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 
 
 def NCFModel(
@@ -76,6 +79,7 @@ def NCFModel(
     Model
 
     """
+    from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 
     mlp_branch = QueryItemIdsEmbeddingsBlock(
         schema, dim=embedding_dim, embeddings_l2_reg=embeddings_l2_reg

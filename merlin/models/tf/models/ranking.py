@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import warnings
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from merlin.models.tf.blocks.cross import CrossBlock
 from merlin.models.tf.blocks.dlrm import DLRMBlock
@@ -11,10 +13,11 @@ from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
 from merlin.models.tf.inputs.base import InputBlockV2
 from merlin.models.tf.inputs.embedding import EmbeddingOptions, Embeddings
 from merlin.models.tf.models.base import Model
-from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 from merlin.models.tf.transforms.features import CategoryEncoding
 from merlin.schema import Schema, Tags
+
+if TYPE_CHECKING:
+    from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 
 
 def DLRMModel(
@@ -65,6 +68,8 @@ def DLRMModel(
     Model
 
     """
+
+    from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
 
@@ -136,6 +141,8 @@ def DCNModel(
     ValueError
         Number of cross layers (depth) should be positive
     """
+
+    from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 
     input_block = input_block or InputBlockV2(schema, **kwargs)
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
@@ -217,6 +224,8 @@ def DeepFMModel(
     Model
 
     """
+
+    from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 
     input_block = input_block or InputBlockV2(
         schema,
@@ -469,6 +478,7 @@ def WideAndDeepModel(
     Model
 
     """
+    from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 
     prediction_tasks = parse_prediction_tasks(schema, prediction_tasks)
 

@@ -1,4 +1,6 @@
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence, Union
 
 from merlin.models.tf.blocks.mlp import MLPBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import QueryItemIdsEmbeddingsBlock
@@ -8,11 +10,10 @@ from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model, RetrievalModel
-from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
-from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
-from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 from merlin.schema import Schema, Tags
+
+if TYPE_CHECKING:
+    from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 
 
 def MatrixFactorizationModel(
@@ -71,6 +72,8 @@ def MatrixFactorizationModel(
     -------
     RetrievalModel
     """
+    from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+    from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 
     if not prediction_tasks:
         prediction_tasks = ItemRetrievalTask(
@@ -171,6 +174,8 @@ def TwoTowerModel(
     -------
     RetrievalModel
     """
+    from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+    from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 
     if not prediction_tasks:
         prediction_tasks = ItemRetrievalTask(
@@ -278,6 +283,8 @@ def YoutubeDNNRetrievalModel(
         An EmbeddingOptions instance, which allows for a number of
         options for the embedding table, by default EmbeddingOptions()
     """
+
+    from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 
     inputs = InputBlock(
         schema,
