@@ -1387,7 +1387,7 @@ class RetrievalModel(Model):
                 )
 
             # set cache_query to True in the ItemRetrievalScorer
-            from merlin.models.tf import ItemRetrievalTask
+            from merlin.models.tf.prediction_tasks import ItemRetrievalTask
 
             if isinstance(self.prediction_tasks[0], ItemRetrievalTask):
                 self.prediction_tasks[0].set_retrieval_cache_query(True)  # type: ignore

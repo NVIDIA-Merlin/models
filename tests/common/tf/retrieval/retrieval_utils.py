@@ -28,6 +28,7 @@ from tensorflow.keras.utils import set_random_seed
 
 import merlin.models.tf as mm
 from merlin.io.dataset import Dataset
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
 from merlin.models.utils import schema_utils
 from merlin.schema.tags import Tags
@@ -189,7 +190,7 @@ def get_dual_encoder_model(
             items_frequencies, reg_factor=logq_correction_factor, schema=schema
         )
 
-    retrieval_task = mm.ItemRetrievalTask(
+    retrieval_task = tasks.ItemRetrievalTask(
         samplers=samplers,
         schema=schema,
         logits_temperature=logits_temperature,

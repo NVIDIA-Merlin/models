@@ -22,6 +22,7 @@ from tensorflow.test import TestCase
 import merlin.models.tf as ml
 from merlin.core.dispatch import HAS_GPU
 from merlin.datasets.synthetic import generate_data
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock, TabularBlock
 from merlin.models.tf.utils import testing_utils
 from merlin.models.utils import schema_utils
@@ -70,7 +71,7 @@ def test_optimizers(optimizers):
         models[t] = ml.Model.from_block(
             block=SequentialBlock([input_block, layers[t][0], layers[t][1]]),
             schema=train_schema,
-            prediction_tasks=ml.BinaryClassificationTask("click"),
+            prediction_tasks=tasks.BinaryClassificationTask("click"),
         )
         if t == "first_opt":
             optimizer = optimizers[0]
@@ -116,7 +117,7 @@ def test_model_with_multi_optimizers(ecommerce_data, run_eagerly):
     user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
     item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([256, 128]))
     two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower}, aggregation="concat")
-    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
+    model = ml.Model(two_tower, tasks.BinaryClassificationTask("click"))
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
@@ -138,7 +139,7 @@ def test_multi_optimizer_list_input(ecommerce_data, run_eagerly):
     two_tower = ml.ParallelBlock(
         {"user": user_tower, "item": item_tower, "third": third_tower}, aggregation="concat"
     )
-    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
+    model = ml.Model(two_tower, tasks.BinaryClassificationTask("click"))
     multi_optimizers = ml.MultiOptimizer(
         optimizers_and_blocks=[
             ml.OptimizerBlocks(tf.keras.optimizers.SGD(), user_tower),
@@ -159,7 +160,7 @@ def test_multi_optimizer_add(ecommerce_data, run_eagerly):
     two_tower = ml.ParallelBlock(
         {"user": user_tower, "item": item_tower, "third": third_tower}, aggregation="concat"
     )
-    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
+    model = ml.Model(two_tower, tasks.BinaryClassificationTask("click"))
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
@@ -247,7 +248,7 @@ def test_examples_in_code_comments(ecommerce_data, use_default):
         {"user": user_tower, "item": item_tower, "third": third_tower}, aggregation="concat"
     )
     # model = ml.Model(three_tower, ml.ItemRetrievalTask())
-    model = ml.Model(three_tower, ml.BinaryClassificationTask("click"))
+    model = ml.Model(three_tower, tasks.BinaryClassificationTask("click"))
 
     # The third_tower would be assigned the default_optimizer ("adagrad" in this example)
     if use_default:
@@ -282,7 +283,7 @@ def test_update_optimizer(ecommerce_data, run_eagerly):
     user_tower_0 = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
     user_tower_1 = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
     two_tower = ml.ParallelBlock({"user": user_tower_0, "item": user_tower_1}, aggregation="concat")
-    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
+    model = ml.Model(two_tower, tasks.BinaryClassificationTask("click"))
     sgd = tf.keras.optimizers.SGD()
     adam = tf.keras.optimizers.Adam()
     multi_optimizers = ml.MultiOptimizer(
@@ -541,7 +542,7 @@ def test_lazy_adam_in_model(ecommerce_data, run_eagerly):
     user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
     item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([256, 128]))
     two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower}, aggregation="concat")
-    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
+    model = ml.Model(two_tower, tasks.BinaryClassificationTask("click"))
     lazy_adam_optimizer = ml.LazyAdam()
     testing_utils.model_test(
         model, ecommerce_data, run_eagerly=run_eagerly, optimizer=lazy_adam_optimizer
@@ -554,7 +555,7 @@ def test_lazy_adam_in_model_with_multi_optimizers(ecommerce_data, run_eagerly):
     user_tower = ml.InputBlock(schema.select_by_tag(Tags.USER)).connect(ml.MLPBlock([256, 128]))
     item_tower = ml.InputBlock(schema.select_by_tag(Tags.ITEM)).connect(ml.MLPBlock([256, 128]))
     two_tower = ml.ParallelBlock({"user": user_tower, "item": item_tower}, aggregation="concat")
-    model = ml.Model(two_tower, ml.BinaryClassificationTask("click"))
+    model = ml.Model(two_tower, tasks.BinaryClassificationTask("click"))
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
@@ -594,7 +595,7 @@ def test_lazy_adam_for_large_embeddings(ecommerce_data, run_eagerly):
     large_embeddings, small_embeddings = ml.split_embeddings_on_size(embeddings, threshold=1000)
     input = ml.InputBlockV2(schema, categorical=embeddings)
     mlp = ml.MLPBlock([64])
-    model = ml.Model(input.connect(mlp), ml.BinaryClassificationTask("click"))
+    model = ml.Model(input.connect(mlp), tasks.BinaryClassificationTask("click"))
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",
         optimizers_and_blocks=[
@@ -620,7 +621,7 @@ def test_lazy_adam_by_EmbeddingTable(ecommerce_data, run_eagerly):
     )
 
     model = ml.Model(
-        embedding_layer.connect(ml.MLPBlock([128])), ml.BinaryClassificationTask("click")
+        embedding_layer.connect(ml.MLPBlock([128])), tasks.BinaryClassificationTask("click")
     )
     multi_optimizers = ml.MultiOptimizer(
         default_optimizer="adam",

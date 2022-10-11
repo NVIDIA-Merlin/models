@@ -86,7 +86,7 @@ def test_item_retrieval_scorer_no_sampler():
         users_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
         items_embeddings = tf.random.uniform(shape=(10, 5), dtype=tf.float32)
         positive_items = tf.random.uniform(shape=(10,), minval=1, maxval=100, dtype=tf.int32)
-        item_retrieval_scorer = ml.ItemRetrievalScorer(
+        item_retrieval_scorer = tasks.ItemRetrievalScorer(
             samplers=[], sampling_downscore_false_negatives=False, context=ml.ModelContext()
         )
         item_retrieval_scorer.call_outputs(

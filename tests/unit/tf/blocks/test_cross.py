@@ -19,6 +19,7 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.utils import testing_utils
 
 
@@ -139,5 +140,5 @@ def test_dcn_v2(ecommerce_data: Dataset, run_eagerly=True):
         .connect(mm.CrossBlock(3, low_rank_dim=64))
         .connect(mm.MLPBlock([512, 256]))
     )
-    model = mm.Model(dcn_body, mm.BinaryClassificationTask("click"))
+    model = mm.Model(dcn_body, tasks.BinaryClassificationTask("click"))
     testing_utils.model_test(model, ecommerce_data)

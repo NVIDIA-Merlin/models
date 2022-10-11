@@ -736,7 +736,7 @@ def test_model_fit_pre(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
         mm.MLPBlock([4]),
-        mm.BinaryClassificationTask("click"),
+        mm.BinaryOutput("click"),
     )
 
     no_op_fit = _NoOpLayer()

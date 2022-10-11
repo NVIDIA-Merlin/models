@@ -5,6 +5,7 @@ import tensorflow as tf
 
 import merlin.models.tf as mm
 from merlin.io import Dataset
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.metrics.topk import (
     AvgPrecisionAt,
     MRRAt,
@@ -147,7 +148,7 @@ def test_two_tower_model_with_custom_options(
             schema=data.schema,
         )
 
-    retrieval_task = mm.ItemRetrievalTask(
+    retrieval_task = tasks.ItemRetrievalTask(
         samplers=[mm.InBatchSampler()],
         schema=data.schema,
         logits_temperature=0.1,

@@ -201,7 +201,7 @@ def test_dlrm_model_multi_task(music_streaming_data, run_eagerly):
             top_block=mm.MLPBlock([2]),
         ),
         mm.MLPBlock([2]),
-        mm.PredictionTasks(music_streaming_data.schema, task_blocks=tasks_blocks),
+        tasks.PredictionTasks(music_streaming_data.schema, task_blocks=tasks_blocks),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -246,7 +246,7 @@ def test_wide_deep_model_wide_categorical_one_hot(ecommerce_data, run_eagerly):
         deep_schema=deep_schema,
         wide_preprocess=mm.CategoryEncoding(wide_schema, sparse=True),
         deep_block=mm.MLPBlock([32, 16]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)

@@ -22,6 +22,7 @@ import tensorflow as tf
 import merlin.models.tf as ml
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
@@ -45,7 +46,7 @@ def test_matrix_factorization_embedding_export(music_streaming_data: Dataset, tm
         music_streaming_data.schema, dim=128, aggregation=CosineSimilarity()
     )
     mf = ml.MatrixFactorizationBlock(music_streaming_data.schema, dim=128, aggregation="cosine")
-    model = ml.Model(mf, ml.BinaryClassificationTask("like"))
+    model = ml.Model(mf, tasks.BinaryClassificationTask("like"))
     model.compile(optimizer="adam")
 
     model.fit(music_streaming_data, batch_size=50, epochs=5)
