@@ -13,3 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
+from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.prediction_tasks.classification import (
+    BinaryClassificationTask,
+    MultiClassClassificationTask,
+)
+from merlin.models.tf.prediction_tasks.multi import PredictionTasks
+from merlin.models.tf.prediction_tasks.regression import RegressionTask
+from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+
+__all__ = [
+    "PredictionTask",
+    "BinaryClassificationTask",
+    "MultiClassClassificationTask",
+    "RegressionTask",
+    "ItemRetrievalTask",
+    "ItemRetrievalScorer",
+    "ParallelPredictionBlock",
+    "PredictionTasks",
+]

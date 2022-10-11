@@ -22,6 +22,7 @@ from tensorflow.keras import regularizers
 import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io import Dataset
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.utils import testing_utils
 from merlin.schema import Tags
 
@@ -32,7 +33,7 @@ def test_mf_model_single_binary_task(ecommerce_data, run_eagerly):
         ecommerce_data.schema,
         dim=4,
         aggregation="cosine",
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -47,7 +48,7 @@ def test_dlrm_model(music_streaming_data, run_eagerly):
         music_streaming_data.schema,
         embedding_dim=2,
         bottom_block=mm.MLPBlock([2]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     loaded_model, _ = testing_utils.model_test(
@@ -71,7 +72,7 @@ def test_dlrm_model_with_embeddings(music_streaming_data, run_eagerly):
         schema,
         embeddings=mm.Embeddings(schema.select_by_tag(Tags.CATEGORICAL), dim=embedding_dim),
         bottom_block=mm.MLPBlock([embedding_dim]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -94,7 +95,7 @@ def test_dlrm_model_with_sample_weights_and_weighted_metrics(music_streaming_dat
         music_streaming_data.schema.select_by_name(["item_id", "click"]),
         embedding_dim=2,
         bottom_block=mm.MLPBlock([2]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     weighted_metrics = (
@@ -133,7 +134,7 @@ def test_dlrm_model_without_continuous_features(ecommerce_data, run_eagerly):
         ecommerce_data.schema,
         embedding_dim=2,
         top_block=mm.MLPBlock([2]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -150,7 +151,7 @@ def test_dcn_model(music_streaming_data, stacked, run_eagerly):
         depth=1,
         deep_block=mm.MLPBlock([2]),
         stacked=stacked,
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -165,7 +166,7 @@ def test_deepfm_model_only_categ_feats(music_streaming_data, run_eagerly):
         music_streaming_data.schema,
         embedding_dim=16,
         deep_block=mm.MLPBlock([16]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -180,7 +181,7 @@ def test_deepfm_model_categ_and_continuous_feats(music_streaming_data, run_eager
         music_streaming_data.schema,
         embedding_dim=16,
         deep_block=mm.MLPBlock([16]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -206,7 +207,7 @@ def test_dlrm_model_multi_task(music_streaming_data, run_eagerly):
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
 
 
-@pytest.mark.parametrize("prediction_task", [mm.BinaryClassificationTask, mm.RegressionTask])
+@pytest.mark.parametrize("prediction_task", [tasks.BinaryClassificationTask, tasks.RegressionTask])
 def test_serialization_model(ecommerce_data: Dataset, prediction_task):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema), mm.MLPBlock([2]), prediction_task("click")
@@ -227,7 +228,7 @@ def test_wide_deep_model(music_streaming_data, run_eagerly):
         wide_schema=wide_schema,
         deep_schema=deep_schema,
         deep_block=mm.MLPBlock([32, 16]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -263,7 +264,7 @@ def test_wide_deep_model_hashed_cross(ecommerce_data, run_eagerly):
         deep_schema=deep_schema,
         wide_preprocess=mm.HashedCross(wide_schema, 1000, sparse=True),
         deep_block=mm.MLPBlock([32, 16]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -287,7 +288,7 @@ def test_wide_deep_embedding_custom_inputblock(music_streaming_data, run_eagerly
         wide_regularizer=regularizers.l2(1e-5),
         deep_dropout=0.1,
         wide_dropout=0.2,
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, music_streaming_data, run_eagerly=run_eagerly)
@@ -401,7 +402,7 @@ def test_wide_deep_model_wide_onehot_multihot_feature_interaction(ecommerce_data
             aggregation="concat",
         ),
         deep_block=mm.MLPBlock([32, 16]),
-        prediction_tasks=mm.BinaryClassificationTask(target_col),
+        prediction_tasks=tasks.BinaryClassificationTask(target_col),
     )
 
     testing_utils.model_test(model, ml_dataset, run_eagerly=run_eagerly)
@@ -431,7 +432,7 @@ def test_wide_deep_model_wide_feature_interaction_multi_optimizer(ecommerce_data
             aggregation="concat",
         ),
         deep_block=mm.MLPBlock([31, 16]),
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=True)

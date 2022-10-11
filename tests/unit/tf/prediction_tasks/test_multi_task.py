@@ -5,6 +5,7 @@ import tensorflow as tf
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.core.base import Block, PredictionOutput
 from merlin.models.tf.utils import testing_utils
 
@@ -27,7 +28,7 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks, r
     music_streaming_data.schema = music_streaming_data.schema.without("like")
 
     inputs = ml.InputBlock(music_streaming_data.schema)
-    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema, task_blocks=task_blocks)
+    prediction_tasks = tasks.PredictionTasks(music_streaming_data.schema, task_blocks=task_blocks)
     model = ml.Model(inputs, ml.MLPBlock([64]), prediction_tasks)
     model.compile(optimizer="adam", run_eagerly=run_eagerly)
 
@@ -54,7 +55,7 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks, r
 @testing_utils.mark_run_eagerly_modes
 def test_mmoe_head(music_streaming_data: Dataset, run_eagerly: bool):
     inputs = ml.InputBlock(music_streaming_data.schema)
-    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
+    prediction_tasks = tasks.PredictionTasks(music_streaming_data.schema)
     mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
     model = ml.Model(inputs, ml.MLPBlock([64]), mmoe, prediction_tasks)
 
@@ -108,7 +109,7 @@ def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(
             return outputs
 
     inputs = ml.InputBlock(music_streaming_data.schema)
-    prediction_tasks = ml.PredictionTasks(
+    prediction_tasks = tasks.PredictionTasks(
         music_streaming_data.schema, task_pre_dict={"like": CustomSampleWeight()}
     )
     mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
@@ -180,7 +181,7 @@ def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(
 @testing_utils.mark_run_eagerly_modes
 def test_ple_head(music_streaming_data: Dataset, run_eagerly: bool):
     inputs = ml.InputBlock(music_streaming_data.schema)
-    prediction_tasks = ml.PredictionTasks(music_streaming_data.schema)
+    prediction_tasks = tasks.PredictionTasks(music_streaming_data.schema)
     cgc = ml.CGCBlock(
         prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=2
     )

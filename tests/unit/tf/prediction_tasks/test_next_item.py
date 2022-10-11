@@ -18,6 +18,7 @@ import pytest
 import tensorflow as tf
 
 import merlin.models.tf as ml
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.core.base import PredictionOutput
 
 
@@ -26,7 +27,7 @@ def test_item_retrieval_scorer(ignore_last_batch_on_sample):
     batch_size = 10
     inbatch_sampler = ml.InBatchSampler()
 
-    item_retrieval_scorer = ml.ItemRetrievalScorer(
+    item_retrieval_scorer = tasks.ItemRetrievalScorer(
         samplers=[inbatch_sampler],
         sampling_downscore_false_negatives=False,
         context=ml.ModelContext(),
@@ -108,7 +109,7 @@ def test_item_retrieval_scorer_downscore_false_negatives():
     item_ids = tf.random.uniform(shape=(batch_size,), minval=1, maxval=10000000, dtype=tf.int32)
 
     FALSE_NEGATIVE_SCORE = -100_000_000.0
-    item_retrieval_scorer = ml.ItemRetrievalScorer(
+    item_retrieval_scorer = tasks.ItemRetrievalScorer(
         samplers=[cached_batches_sampler],
         sampling_downscore_false_negatives=True,
         sampling_downscore_false_negatives_value=FALSE_NEGATIVE_SCORE,
@@ -142,7 +143,7 @@ def test_item_retrieval_scorer_downscore_false_negatives():
 def test_item_retrieval_scorer_only_positive_when_not_training():
     batch_size = 10
 
-    item_retrieval_scorer = ml.ItemRetrievalScorer(
+    item_retrieval_scorer = tasks.ItemRetrievalScorer(
         samplers=[ml.InBatchSampler()],
         sampling_downscore_false_negatives=False,
         context=ml.ModelContext(),

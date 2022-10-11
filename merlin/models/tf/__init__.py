@@ -45,7 +45,7 @@ from merlin.models.tf.blocks.optimizer import (
     OptimizerBlocks,
     split_embeddings_on_size,
 )
-from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock, ItemRetrievalScorer
+from merlin.models.tf.blocks.retrieval.base import DualEncoderBlock
 from merlin.models.tf.blocks.retrieval.matrix_factorization import (
     MatrixFactorizationBlock,
     QueryItemIdsEmbeddingsBlock,
@@ -115,14 +115,6 @@ from merlin.models.tf.outputs.sampling.base import Candidate, CandidateSampler
 from merlin.models.tf.outputs.sampling.in_batch import InBatchSamplerV2
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
 from merlin.models.tf.outputs.topk import TopKOutput
-from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
-from merlin.models.tf.prediction_tasks.classification import (
-    BinaryClassificationTask,
-    MultiClassClassificationTask,
-)
-from merlin.models.tf.prediction_tasks.multi import PredictionTasks
-from merlin.models.tf.prediction_tasks.regression import RegressionTask
-from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
 from merlin.models.utils.dependencies import is_transformers_available
 
 if is_transformers_available():
@@ -237,17 +229,11 @@ __all__ = [
     "RegressionOutput",
     "CategoricalOutput",
     "ContrastiveOutput",
-    "PredictionTask",
-    "BinaryClassificationTask",
-    "MultiClassClassificationTask",
-    "RegressionTask",
     "MultiOptimizer",
     "LazyAdam",
     "OptimizerBlocks",
     "split_embeddings_on_size",
     "OptimizerBlocks",
-    "ItemRetrievalTask",
-    "ItemRetrievalScorer",
     "NDCGAt",
     "PrecisionAt",
     "MRRAt",
@@ -260,7 +246,6 @@ __all__ = [
     "RetrievalModelV2",
     "InputBlock",
     "InputBlockV2",
-    "PredictionTasks",
     "StochasticSwapNoise",
     "ExpandDims",
     "L2Norm",

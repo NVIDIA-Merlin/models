@@ -17,6 +17,7 @@
 import pytest
 
 import merlin.models.tf as ml
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.utils import testing_utils
 
 
@@ -27,7 +28,7 @@ def test_ncf_model(ecommerce_data, run_eagerly):
         ecommerce_data.schema,
         embedding_dim=2,
         mlp_block=ml.MLPBlock([2]),
-        prediction_tasks=ml.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
     )
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)

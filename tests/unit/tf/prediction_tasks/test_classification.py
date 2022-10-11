@@ -17,12 +17,13 @@ import pytest
 
 import merlin.models.tf as ml
 from merlin.io import Dataset
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.utils import testing_utils
 
 
 @pytest.mark.parametrize("run_eagerly", [True, False])
 def test_binary_classification_head(ecommerce_data: Dataset, run_eagerly):
     body = ml.InputBlock(ecommerce_data.schema).connect(ml.MLPBlock([64]))
-    model = ml.Model(body, ml.BinaryClassificationTask("click"))
+    model = ml.Model(body, tasks.BinaryClassificationTask("click"))
 
     testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)

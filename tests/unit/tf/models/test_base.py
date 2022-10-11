@@ -24,6 +24,7 @@ from tensorflow.test import TestCase
 import merlin.models.tf as mm
 from merlin.datasets.synthetic import generate_data
 from merlin.io.dataset import Dataset
+from merlin.models.tf import prediction_tasks as tasks
 from merlin.models.tf.utils import testing_utils, tf_utils
 from merlin.schema import ColumnSchema, Schema, Tags
 
@@ -33,7 +34,7 @@ def test_simple_model(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
         mm.MLPBlock([4]),
-        mm.BinaryClassificationTask("click"),
+        tasks.BinaryClassificationTask("click"),
     )
 
     loaded_model, _ = testing_utils.model_test(model, ecommerce_data, run_eagerly=run_eagerly)
@@ -54,7 +55,7 @@ def test_fit_compile_twice():
     model = mm.Model(
         tf.keras.layers.Lambda(lambda x: x["feature"]),
         tf.keras.layers.Dense(1),
-        mm.BinaryClassificationTask("target"),
+        tasks.BinaryClassificationTask("target"),
     )
     model.compile()
     model.fit(loader, epochs=2)
@@ -68,7 +69,7 @@ def test_model_from_block(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model.from_block(
         mm.MLPBlock([4]),
         ecommerce_data.schema,
-        prediction_tasks=mm.BinaryClassificationTask("click"),
+        prediction_tasks=tasks.BinaryClassificationTask("click"),
         embedding_options=embedding_options,
     )
 
@@ -159,7 +160,7 @@ def test_train_metrics_steps(
     model = mm.Model(
         mm.InputBlock(dataset.schema),
         mm.MLPBlock([64]),
-        mm.BinaryClassificationTask("click"),
+        tasks.BinaryClassificationTask("click"),
     )
     model.compile(
         run_eagerly=True,
@@ -191,7 +192,7 @@ def test_model_pre_post(ecommerce_data: Dataset, run_eagerly):
     model = mm.Model(
         mm.InputBlock(ecommerce_data.schema),
         mm.MLPBlock([4]),
-        mm.BinaryClassificationTask("click"),
+        tasks.BinaryClassificationTask("click"),
         post=mm.NoOp(),
     )
 
@@ -213,7 +214,7 @@ def test_sub_class_model(ecommerce_data: Dataset):
             if "input_block" not in kwargs:
                 self.input_block = mm.InputBlock(schema)
                 self.mlp = mm.MLPBlock([4])
-                self.prediction = mm.BinaryClassificationTask(target)
+                self.prediction = tasks.BinaryClassificationTask(target)
             else:
                 self.input_block = kwargs["input_block"]
                 self.mlp = kwargs["mlp"]
@@ -249,7 +250,7 @@ def test_find_blocks_and_sub_blocks(ecommerce_data):
     two_layer = mm.SequentialBlock([layer_1, layer_2], name="two_layers")
     body = input_block.connect(two_layer)
 
-    model = mm.Model(body, mm.BinaryClassificationTask("click"))
+    model = mm.Model(body, tasks.BinaryClassificationTask("click"))
     testing_utils.model_test(model, ecommerce_data)
 
     print(model.summary(expand_nested=True, show_trainable=True, line_length=80))
@@ -322,7 +323,7 @@ def test_freeze_parallel_block(ecommerce_data, run_eagerly):
     layer_1 = mm.MLPBlock([64], name="layer_1")
     body = input_block.connect(layer_1)
 
-    model = mm.Model(body, mm.BinaryClassificationTask("click"))
+    model = mm.Model(body, tasks.BinaryClassificationTask("click"))
 
     # Compile(Make sure set run_eagerly mode) and fit -> model.freeze_blocks -> compile and fit
     # Set run_eagerly=True in order to avoid error: "Called a function referencing variables which
@@ -418,7 +419,7 @@ def test_freeze_sequential_block(ecommerce_data):
     two_layer = mm.SequentialBlock([layer_1, layer_2], name="two_layers")
     body = input_block.connect(two_layer)
 
-    model = mm.Model(body, mm.BinaryClassificationTask("click"))
+    model = mm.Model(body, tasks.BinaryClassificationTask("click"))
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
@@ -518,7 +519,7 @@ def test_freeze_unfreeze(ecommerce_data):
     two_layer = mm.SequentialBlock([layer_1, layer_2], name="two_layers")
     body = input_block.connect(two_layer)
 
-    model = mm.Model(body, mm.BinaryClassificationTask("click"))
+    model = mm.Model(body, tasks.BinaryClassificationTask("click"))
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
@@ -598,7 +599,7 @@ def test_unfreeze_all_blocks(ecommerce_data):
     two_layer = mm.SequentialBlock([layer_1, layer_2], name="two_layers")
     body = input_block.connect(two_layer)
 
-    model = mm.Model(body, mm.BinaryClassificationTask("click"))
+    model = mm.Model(body, tasks.BinaryClassificationTask("click"))
     model.compile(run_eagerly=True, optimizer=tf.keras.optimizers.SGD(lr=0.1))
     model.fit(ecommerce_data, batch_size=128, epochs=1)
 
