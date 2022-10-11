@@ -275,6 +275,9 @@ class TopKEncoder(Encoder, BaseModel):
     post: Optional[tf.keras.layers.Layer]
         A block to use after getting the top-k prediction scores
         By default None
+    target: str, optional
+        The name of the target. This is required when multiple targets are provided.
+        By default None
     """
 
     def __init__(
@@ -286,12 +289,13 @@ class TopKEncoder(Encoder, BaseModel):
         k: int = 10,
         pre: Optional[tf.keras.layers.Layer] = None,
         post: Optional[tf.keras.layers.Layer] = None,
+        target: str = None,
         **kwargs,
     ):
         if isinstance(topk_layer, TopKOutput):
             topk_output = topk_layer
         else:
-            topk_output = TopKOutput(to_call=topk_layer, candidates=candidates, k=k, **kwargs)
+            topk_output = TopKOutput(to_call=topk_layer, candidates=candidates, k=k, target=target)
         self.k = k
 
         Encoder.__init__(self, query_encoder, topk_output, pre=pre, post=post, **kwargs)

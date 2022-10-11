@@ -288,3 +288,17 @@ class TopKOutput(ModelOutput):
             logits_temperature=logits_temperature,
             **kwargs,
         )
+
+    def call(self, inputs, targets=None, training=False, testing=False, **kwargs):
+        if isinstance(targets, dict):
+            if self.target is None:
+                raise ValueError(
+                    "The name of the target for top-k evaluation should be specified"
+                    " when a dictionary of multiple targets is provided"
+                )
+
+            targets = targets[self.target]
+
+        return tf_utils.call_layer(
+            self.to_call, inputs, targets=targets, training=training, testing=testing, **kwargs
+        )

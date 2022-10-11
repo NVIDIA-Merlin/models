@@ -1701,6 +1701,7 @@ class RetrievalModelV2(Model):
             self.query_encoder,
             topk_layer=strategy,
             candidates=candidates_embeddings,
+            target=self.encoder._schema.select_by_tag(candidate_id).first.name,
         )
         return topk_model
 
