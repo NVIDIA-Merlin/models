@@ -924,38 +924,34 @@ def test_to_target_loader():
 
     # target is passed as a string.
     loader0 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, "c"))
-    batch0 = next(iter(loader0))
-    assert sorted(batch0.predictions.keys()) == ["a", "b"]
-    assert sorted(batch0.targets.keys()) == ["c"]
-    assert batch0.targets["c"].numpy().tolist() == [[3], [6]]
+    inputs0, targets0 = next(iter(loader0))
+    assert sorted(inputs0.keys()) == ["a", "b"]
+    assert targets0.numpy().tolist() == [[3], [6]]
     assert loader0.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
     # target is passed as a ColumnSchema
     target_column_schema = ColumnSchema("c", tags=[Tags.CATEGORICAL])
     assert Tags.TARGET not in target_column_schema.tags
     loader1 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, target_column_schema))
-    batch1 = next(iter(loader1))
-    assert sorted(batch1.predictions.keys()) == ["a", "b"]
-    assert sorted(batch1.targets.keys()) == ["c"]
-    assert batch1.targets["c"].numpy().tolist() == [[3], [6]]
+    inputs1, targets1 = next(iter(loader1))
+    assert sorted(inputs1.keys()) == ["a", "b"]
+    assert targets1.numpy().tolist() == [[3], [6]]
     assert loader1.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
     # target is passed as a Schema
     target_schema = schema.select_by_name("c")
     assert not target_schema.select_by_tag(Tags.TARGET)
     loader2 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, target_schema))
-    batch2 = next(iter(loader2))
-    assert sorted(batch2.predictions.keys()) == ["a", "b"]
-    assert sorted(batch2.targets.keys()) == ["c"]
-    assert batch2.targets["c"].numpy().tolist() == [[3], [6]]
+    inputs2, targets2 = next(iter(loader2))
+    assert sorted(inputs2.keys()) == ["a", "b"]
+    assert targets2.numpy().tolist() == [[3], [6]]
     assert loader2.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
     # target is passed as a Tag
     loader3 = mm.Loader(dataset, batch_size=10, transform=mm.ToTarget(schema, Tags.ITEM))
-    batch3 = next(iter(loader3))
-    assert sorted(batch3.predictions.keys()) == ["a", "b"]
-    assert sorted(batch3.targets.keys()) == ["c"]
-    assert batch3.targets["c"].numpy().tolist() == [[3], [6]]
+    inputs3, targets3 = next(iter(loader3))
+    assert sorted(inputs3.keys()) == ["a", "b"]
+    assert targets3.numpy().tolist() == [[3], [6]]
     assert loader3.output_schema.select_by_tag(Tags.TARGET).column_names == ["c"]
 
 

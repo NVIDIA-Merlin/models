@@ -148,7 +148,7 @@ class PairwiseLoss(Loss, LossRegistryMixin):
         # evaluation only the top-k retrieved items are provided, and chances are
         # that the positive item is not among the top-k, resulting in a row with only
         # negatvies
-        valid_rows_with_positive_mask = tf.cast(tf.reduce_sum(y_true, axis=1), tf.bool)
+        valid_rows_with_positive_mask = tf.cast(tf.reduce_sum(y_true, axis=-1), tf.bool)
         y_pred_valid_rows = tf.boolean_mask(y_pred, valid_rows_with_positive_mask)
         y_true_valid_rows = tf.boolean_mask(y_true, valid_rows_with_positive_mask)
 
