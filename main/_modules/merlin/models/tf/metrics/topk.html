@@ -267,6 +267,20 @@
     <span class="k">def</span> <span class="nf">label_relevant_counts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_value</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_label_relevant_counts</span> <span class="o">=</span> <span class="n">new_value</span>
 
+    <span class="k">def</span> <span class="nf">_reshape_tensors</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">label_relevant_counts</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">new_shape</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Reshapes the predictions, targets and label_relevant_counts&quot;&quot;&quot;</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">)</span>
+        <span class="n">y_true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">label_relevant_counts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">label_relevant_counts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">label_relevant_counts</span><span class="p">,</span> <span class="n">new_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span>
+
 
 <span class="nd">@tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">register_keras_serializable</span><span class="p">(</span><span class="n">package</span><span class="o">=</span><span class="s2">&quot;merlin.models&quot;</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">TopkMetric</span><span class="p">(</span><span class="n">Mean</span><span class="p">,</span> <span class="n">TopkMetricWithLabelRelevantCountsMixin</span><span class="p">):</span>
@@ -282,6 +296,7 @@
         <span class="k">if</span> <span class="n">log_base</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_fn_kwargs</span><span class="p">[</span><span class="s2">&quot;log_base&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_base</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">label_relevant_counts</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">pre_sorted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -297,7 +312,15 @@
         <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">sample_weight</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_true</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;The TopkMetric </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> cutoff (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">) cannot be smaller than &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;the number of predictions per example&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
         <span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_cast_inputs</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">)</span>
+
         <span class="p">(</span>
             <span class="p">[</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">],</span>
             <span class="n">sample_weight</span><span class="p">,</span>
@@ -305,16 +328,18 @@
             <span class="p">[</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">],</span> <span class="n">sample_weight</span>
         <span class="p">)</span>
         <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span> <span class="o">=</span> <span class="n">losses_utils</span><span class="o">.</span><span class="n">squeeze_or_expand_dimensions</span><span class="p">(</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">)</span>
+        <span class="n">label_relevant_counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_relevant_counts</span>
 
-        <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_true</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
-            <span class="sa">f</span><span class="s2">&quot;The TopkMetric </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> cutoff (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">) cannot be smaller than &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;the number of predictions per example&quot;</span><span class="p">,</span>
+        <span class="c1"># For prediction tensor with rank &gt; 2 (e.g. sequences)</span>
+        <span class="c1"># reshapes the predictions, targets and label_relevant_counts</span>
+        <span class="c1"># so that they are 2D and metrics work properly</span>
+        <span class="n">original_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_pred</span><span class="p">)</span>
+        <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reshape_tensors</span><span class="p">(</span>
+            <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span><span class="p">,</span> <span class="n">new_shape</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">original_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
         <span class="p">)</span>
 
         <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_sort_top_k</span><span class="p">(</span>
-            <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_relevant_counts</span>
+            <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span>
         <span class="p">)</span>
 
         <span class="n">ag_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">__internal__</span><span class="o">.</span><span class="n">autograph</span><span class="o">.</span><span class="n">tf_convert</span><span class="p">(</span>
@@ -328,6 +353,12 @@
             <span class="n">k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span>
             <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_fn_kwargs</span><span class="p">,</span>
         <span class="p">)</span>
+
+        <span class="c1"># Reshapes the metrics results so that they match the</span>
+        <span class="c1"># original shape of predictions/targets before combining</span>
+        <span class="c1"># with the sample weights</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">matches</span><span class="p">,</span> <span class="n">original_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
         <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update_state</span><span class="p">(</span><span class="n">matches</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="n">sample_weight</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_maybe_sort_top_k</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
@@ -346,11 +377,6 @@
         <span class="k">return</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts</span>
 
     <span class="k">def</span> <span class="nf">check_cast_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">predictions</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;predictions must be 2-D tensor (got </span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">)&quot;</span>
-        <span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">labels</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;labels must be 2-D tensor (got </span><span class="si">{</span><span class="n">labels</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-
         <span class="n">predictions</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">assert_is_compatible_with</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
 
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
@@ -446,11 +472,28 @@
     <span class="k">def</span> <span class="nf">update_state</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">y_true</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">sample_weight</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
+        <span class="c1"># For prediction tensor with rank &gt; 2 (e.g. sequences)</span>
+        <span class="c1"># reshapes the predictions, targets and label_relevant_counts</span>
+        <span class="c1"># so that they are 2D and extract_topk() work properly</span>
+        <span class="n">original_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_pred</span><span class="p">)</span>
+        <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reshape_tensors</span><span class="p">(</span>
+            <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">new_shape</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">original_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="p">)</span>
+
         <span class="c1"># Extracting sorted top-k prediction scores and labels only ONCE</span>
         <span class="c1"># so that sorting does not need to happen for each individual metric</span>
         <span class="c1"># (as the top-k metrics have been set with pre_sorted=True in this constructor</span>
         <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts_from_targets</span> <span class="o">=</span> <span class="n">extract_topk</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">shuffle_ties</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Reshaping tensors back to their original shape (expect for the last dim that</span>
+        <span class="c1"># equals to k)</span>
+        <span class="n">y_pred</span><span class="p">,</span> <span class="n">y_true</span><span class="p">,</span> <span class="n">label_relevant_counts_from_targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reshape_tensors</span><span class="p">(</span>
+            <span class="n">y_pred</span><span class="p">,</span>
+            <span class="n">y_true</span><span class="p">,</span>
+            <span class="n">label_relevant_counts_from_targets</span><span class="p">,</span>
+            <span class="n">new_shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">original_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
         <span class="p">)</span>
 
         <span class="c1"># If label_relevant_counts is not set by a block (e.g. TopKIndexBlock) that</span>
