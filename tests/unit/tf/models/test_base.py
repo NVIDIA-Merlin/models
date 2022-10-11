@@ -676,12 +676,9 @@ def test_retrieval_model_query(ecommerce_data: Dataset, run_eagerly=True):
     query = ecommerce_data.schema.select_by_tag(Tags.USER_ID)
     candidate = ecommerce_data.schema.select_by_tag(Tags.ITEM_ID)
 
-    def item_id_as_target(features, targets):
-        targets[candidate.first.name] = features.pop(candidate.first.name)
-
-        return features, targets
-
-    loader = mm.Loader(ecommerce_data, batch_size=50, transform=item_id_as_target)
+    loader = mm.Loader(
+        ecommerce_data, batch_size=50, transform=mm.ToTarget(ecommerce_data.schema, Tags.ITEM_ID)
+    )
 
     model = mm.RetrievalModelV2(
         query=mm.EmbeddingEncoder(query, dim=8),
