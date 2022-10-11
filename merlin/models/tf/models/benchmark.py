@@ -23,8 +23,8 @@ from merlin.models.tf.core.aggregation import ElementWiseMultiply
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock
 from merlin.models.tf.models.base import Model
-from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 from merlin.schema import Schema
 
 

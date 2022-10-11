@@ -23,10 +23,8 @@ from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.loader import Loader
 from merlin.models.tf.losses.base import loss_registry
 from merlin.models.tf.metrics.topk import TopKMetricsAggregator, filter_topk_metrics, split_metrics
-from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.outputs.base import ModelOutput
 from merlin.models.tf.outputs.contrastive import ContrastiveOutput
-from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.transforms.tensor import ListToRagged
 from merlin.models.tf.typing import TabularData
 from merlin.models.tf.utils.search_utils import find_all_instances_in_layers
@@ -41,6 +39,7 @@ from merlin.schema import ColumnSchema, Schema, Tags
 if TYPE_CHECKING:
     from merlin.models.tf.core.encoder import Encoder
     from merlin.models.tf.core.index import TopKIndexBlock
+    from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 
 
 class MetricsComputeCallback(tf.keras.callbacks.Callback):
@@ -1128,6 +1127,8 @@ class Model(BaseModel):
         ]
             Prediction tasks to use.
         """
+        from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
+
         if isinstance(block, SequentialBlock) and is_input_block(block.first):
             if input_block is not None:
                 raise ValueError("The block already includes an InputBlock")

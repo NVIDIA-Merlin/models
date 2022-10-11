@@ -8,10 +8,10 @@ from merlin.models.tf.core.base import Block, BlockType
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.inputs.embedding import EmbeddingOptions
 from merlin.models.tf.models.base import Model, RetrievalModel
-from merlin.models.tf.models.utils import parse_prediction_tasks
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.next_item import NextItemPredictionTask
 from merlin.models.tf.prediction_tasks.retrieval import ItemRetrievalTask
+from merlin.models.tf.prediction_tasks.utils import parse_prediction_tasks
 from merlin.schema import Schema, Tags
 
 

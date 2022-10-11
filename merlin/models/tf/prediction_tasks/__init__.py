@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from merlin.models.tf.blocks.experts import CGCBlock, MMOEBlock, MMOEGate
 from merlin.models.tf.blocks.retrieval.base import ItemRetrievalScorer
 from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.prediction_tasks.classification import (
@@ -33,4 +34,7 @@ __all__ = [
     "ItemRetrievalScorer",
     "ParallelPredictionBlock",
     "PredictionTasks",
+    "MMOEGate",
+    "MMOEBlock",
+    "CGCBlock",
 ]

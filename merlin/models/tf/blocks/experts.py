@@ -13,16 +13,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Dict, List, Optional, Tuple, Union
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
 
 from merlin.models.tf.core.aggregation import StackFeatures
 from merlin.models.tf.core.base import Block
 from merlin.models.tf.core.combinators import ParallelBlock, TabularBlock
-from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 from merlin.models.tf.typing import TabularData
 from merlin.schema import Schema
+
+if TYPE_CHECKING:
+    from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
 
 
 class MMOEGate(Block):
@@ -61,6 +65,8 @@ def MMOEBlock(
     num_experts: int,
     gate_dim: int = 32,
 ):
+    from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+
     if isinstance(outputs, ParallelPredictionBlock):
         output_names = outputs.task_names
     elif all(isinstance(x, PredictionTask) for x in outputs):
@@ -145,6 +151,8 @@ class CGCBlock(ParallelBlock):
         name: Optional[str] = None,
         **kwargs,
     ):
+        from merlin.models.tf.prediction_tasks.base import ParallelPredictionBlock, PredictionTask
+
         if not isinstance(expert_block, Block):
             expert_block = Block.from_layer(expert_block)
 

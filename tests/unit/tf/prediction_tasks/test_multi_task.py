@@ -56,7 +56,7 @@ def test_model_with_multiple_tasks(music_streaming_data: Dataset, task_blocks, r
 def test_mmoe_head(music_streaming_data: Dataset, run_eagerly: bool):
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = tasks.PredictionTasks(music_streaming_data.schema)
-    mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
+    mmoe = tasks.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
     model = ml.Model(inputs, ml.MLPBlock([64]), mmoe, prediction_tasks)
 
     loss_weights = {
@@ -112,7 +112,7 @@ def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(
     prediction_tasks = tasks.PredictionTasks(
         music_streaming_data.schema, task_pre_dict={"like": CustomSampleWeight()}
     )
-    mmoe = ml.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
+    mmoe = tasks.MMOEBlock(prediction_tasks, expert_block=ml.MLPBlock([64]), num_experts=4)
     model = ml.Model(inputs, ml.MLPBlock([64]), mmoe, prediction_tasks)
 
     loss_weights = {
@@ -182,7 +182,7 @@ def test_mmoe_head_task_specific_sample_weight_and_weighted_metrics(
 def test_ple_head(music_streaming_data: Dataset, run_eagerly: bool):
     inputs = ml.InputBlock(music_streaming_data.schema)
     prediction_tasks = tasks.PredictionTasks(music_streaming_data.schema)
-    cgc = ml.CGCBlock(
+    cgc = tasks.CGCBlock(
         prediction_tasks, expert_block=ml.MLPBlock([64]), num_task_experts=2, num_shared_experts=2
     )
     model = ml.Model(inputs, ml.MLPBlock([64]), cgc, prediction_tasks)
