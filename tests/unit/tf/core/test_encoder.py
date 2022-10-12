@@ -66,11 +66,9 @@ def test_topk_encoder(music_streaming_data: Dataset):
     _candidate_embeddings = tf.random.uniform(shape=(NUM_CANDIDATES, 4), dtype=tf.float32)
 
     # 3. Set data-loader for top-k recommendation
-    def _item_id_as_target(inputs, targets):
-        targets = tf.squeeze(inputs["item_id"])
-        return inputs, targets
-
-    loader = mm.Loader(music_streaming_data, batch_size=32, transform=_item_id_as_target)
+    loader = mm.Loader(
+        music_streaming_data, batch_size=32, transform=mm.ToTarget(schema, "item_id")
+    )
     batch = next(iter(loader))
 
     # 4. Define the top-k encoder

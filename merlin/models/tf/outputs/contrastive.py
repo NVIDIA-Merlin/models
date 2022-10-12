@@ -226,7 +226,6 @@ class ContrastiveOutput(ModelOutput):
         # To ensure that the output is always fp32, avoiding numerical
         # instabilities with mixed_float16 policy
         outputs = tf.cast(outputs, tf.float32)
-        outputs = tf.squeeze(outputs)
 
         targets = tf.concat(
             [

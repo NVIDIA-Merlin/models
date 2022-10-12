@@ -34,7 +34,7 @@ import merlin.io
 from merlin.models.io import save_merlin_metadata
 from merlin.models.tf.core.base import Block, ModelContext, PredictionOutput, is_input_block
 from merlin.models.tf.core.combinators import ParallelBlock, SequentialBlock
-from merlin.models.tf.core.prediction import Prediction, PredictionContext
+from merlin.models.tf.core.prediction import Prediction, PredictionContext, TensorLike
 from merlin.models.tf.core.tabular import TabularBlock
 from merlin.models.tf.inputs.base import InputBlock
 from merlin.models.tf.loader import Loader
@@ -359,9 +359,12 @@ class BaseModel(tf.keras.Model):
         elif isinstance(metrics, (list, tuple)):
             # Retrieve top-k metrics & wrap them in TopKMetricsAggregator
             topk_metrics, topk_aggregators, other_metrics = split_metrics(metrics)
-            if len(topk_metrics) > 0:
-                topk_aggregators.append(TopKMetricsAggregator(*topk_metrics))
             metrics = other_metrics + topk_aggregators
+            if len(topk_metrics) > 0:
+                if len(topk_metrics) == 1:
+                    metrics.append(topk_metrics[0])
+                else:
+                    metrics.append(TopKMetricsAggregator(*topk_metrics))
 
             if num_v1_blocks > 0:
                 if num_v1_blocks == 1:
@@ -559,6 +562,8 @@ class BaseModel(tf.keras.Model):
                 predictions[task.task_name] = task_x
                 sample_weights[task.task_name] = task_sample_weight
 
+            self.adjust_predictions_and_targets(predictions, targets)
+
             if len(predictions) == 1 and len(targets) == 1:
                 predictions = list(predictions.values())[0]
                 targets = list(targets.values())[0]
@@ -589,7 +594,64 @@ class BaseModel(tf.keras.Model):
             predictions[task.full_name] = task_x
             sample_weights[task.full_name] = task_sample_weight
 
+            self.adjust_predictions_and_targets(predictions, targets)
+
         return Prediction(predictions, targets, sample_weights)
+
+    def adjust_predictions_and_targets(
+        self,
+        predictions: Dict[str, TensorLike],
+        targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]],
+    ):
+        """Adjusts the predctions and targets, doing the following transformations
+        if the target is provided:
+        - Converts ragged targets (and their masks) to dense, so that they are compatible
+        with most losses and metrics
+        - Copies the targets mask to predictions mask, if defined
+        - One-hot encode targets if their tf.rank(targest) == tf.rank(predictions)-1
+        - Ensures targets has the same shape and dtype as predicitnos
+
+        Parameters
+        ----------
+        predictions : Dict[str, TensorLike]
+            A dict with predictions for the tasks
+        targets : Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]]
+            A dict with targets for the tasks
+        """
+        if targets is None:
+            return
+
+        for k in targets:
+            # Convert ragged targets (and ragged mask) to dense
+            if isinstance(targets[k], tf.RaggedTensor):
+                dense_target_mask = None
+                if getattr(targets[k], "_keras_mask", None) is not None:
+                    dense_target_mask = targets[k]._keras_mask.to_tensor()
+                targets[k] = targets[k].to_tensor()
+                if dense_target_mask is not None:
+                    targets[k]._keras_mask = dense_target_mask
+
+            if getattr(targets[k], "_keras_mask", None) is not None:
+                # Copies the mask from the targets to the predictions
+                # because Keras considers the prediction mask in loss
+                # and metrics computation
+                predictions[k]._keras_mask = targets[k]._keras_mask
+
+            # Ensuring targets and preds have the same dtype
+            targets[k] = tf.cast(targets[k], predictions[k].dtype)
+
+            # Ensuring targets are one-hot encoded if they are not
+            targets[k] = tf.cond(
+                tf.rank(targets[k]) == tf.rank(predictions[k]) - 1,
+                lambda: tf.one_hot(
+                    tf.cast(targets[k], tf.int32),
+                    tf.shape(predictions[k])[-1],
+                    dtype=predictions[k].dtype,
+                ),
+                lambda: targets[k],
+            )
+            # Makes target shape equal to the predictions tensor, as shape is lost after tf.cond
+            targets[k] = tf.reshape(targets[k], tf.shape(predictions[k]))
 
     def train_step(self, data):
         """Custom train step using the `compute_loss` method."""
@@ -625,7 +687,7 @@ class BaseModel(tf.keras.Model):
         x, y, sample_weight = unpack_x_y_sample_weight(data)
 
         if getattr(self, "test_pre", None):
-            out = call_layer(self.test_pre, x, targets=y, features=x, training=True)
+            out = call_layer(self.test_pre, x, targets=y, features=x, testing=True)
             if isinstance(out, Prediction):
                 x, y = out.outputs, out.targets
             else:
@@ -714,6 +776,7 @@ class BaseModel(tf.keras.Model):
             prediction_outputs.predictions,
             prediction_outputs.sample_weight,
         )
+
         # Returns the current value of metrics
         metrics = self.metrics_results()
         return metrics
@@ -779,6 +842,7 @@ class BaseModel(tf.keras.Model):
         }
 
         if pre:
+            self._reset_compile_cache()
             self.train_pre = pre
 
         out = super().fit(**fit_kwargs)
@@ -823,6 +887,7 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
         if pre:
+            self._reset_compile_cache()
             self.test_pre = pre
 
         out = super().evaluate(
@@ -861,6 +926,7 @@ class BaseModel(tf.keras.Model):
         x = _maybe_convert_merlin_dataset(x, batch_size, shuffle=False, **kwargs)
 
         if pre:
+            self._reset_compile_cache()
             self.predict_pre = pre
 
         out = super(BaseModel, self).predict(
