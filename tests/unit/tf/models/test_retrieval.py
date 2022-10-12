@@ -73,7 +73,7 @@ def test_matrix_factorization_topk_evaluation(music_streaming_data: Dataset, run
 
     # Top-K evaluation
     candidate_features = unique_rows_by_features(music_streaming_data, Tags.ITEM, Tags.ITEM_ID)
-    topk_model = model.to_top_k_encoder(candidate_features, batch_size=16)
+    topk_model = model.to_top_k_encoder(candidate_features, k=20, batch_size=16)
     topk_model.compile(run_eagerly=run_eagerly)
 
     loader = mm.Loader(
@@ -288,7 +288,7 @@ def test_two_tower_model_topk_evaluation(ecommerce_data: Dataset, run_eagerly):
 
     # Top-K evaluation
     candidate_features = unique_rows_by_features(ecommerce_data, Tags.ITEM, Tags.ITEM_ID)
-    topk_model = model.to_top_k_encoder(candidate_features, batch_size=16)
+    topk_model = model.to_top_k_encoder(candidate_features, k=20, batch_size=16)
     topk_model.compile(run_eagerly=run_eagerly)
 
     loader = mm.Loader(ecommerce_data, batch_size=32, transform=mm.ToTarget(schema, "item_id"))
@@ -847,7 +847,7 @@ def test_youtube_dnn_topk_evaluation(sequence_testing_data: Dataset, run_eagerly
     model, _ = testing_utils.model_test(model, dataloader, reload_model=False)
 
     # Top-K evaluation
-    topk_model = model.to_top_k_encoder()
+    topk_model = model.to_top_k_encoder(k=20)
     topk_model.compile(run_eagerly=run_eagerly)
 
     metrics = topk_model.evaluate(dataloader, return_dict=True)

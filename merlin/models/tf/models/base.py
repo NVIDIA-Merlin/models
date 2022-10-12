@@ -1679,6 +1679,7 @@ class RetrievalModelV2(Model):
         candidates: merlin.io.Dataset = None,
         candidate_id=Tags.ITEM_ID,
         strategy: Union[str, tf.keras.layers.Layer] = "brute-force-topk",
+        k: int = 10,
         **kwargs,
     ):
         from merlin.models.tf.core.encoder import TopKEncoder
@@ -1700,6 +1701,7 @@ class RetrievalModelV2(Model):
         topk_model = TopKEncoder(
             self.query_encoder,
             topk_layer=strategy,
+            k=k,
             candidates=candidates_embeddings,
             target=self.encoder._schema.select_by_tag(candidate_id).first.name,
         )
