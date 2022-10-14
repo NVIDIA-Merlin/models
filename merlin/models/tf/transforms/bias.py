@@ -69,6 +69,7 @@ class LogitsTemperatureScaler(Block):
     def get_config(self):
         config = super().get_config()
         config["temperature"] = self.temperature
+        config["apply_on_call_outputs"] = self.apply_on_call_outputs
         return config
 
 

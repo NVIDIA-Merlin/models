@@ -109,6 +109,9 @@ class TopKPrediction(NamedTuple):
 
     @staticmethod
     def output_names(k: int):
+        """Set column names of scores and identifiers when
+        `to_df` is called
+        """
         score_names = [f"score_{i}" for i in range(k)]
         id_names = [f"id_{i}" for i in range(k)]
 
