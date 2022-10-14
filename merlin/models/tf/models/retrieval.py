@@ -371,14 +371,14 @@ def MatrixFactorizationModelV2(
         query,
         dim=dim,
         embeddings_initializer=embeddings_initializers,
-        embeddings_regularizer=tf.keras.regularizers.L2(embeddings_l2_reg),
+        embeddings_l2_reg=embeddings_l2_reg,
         post=post,
     )
     candidate_encoder = EmbeddingEncoder(
         candidate,
         dim=dim,
         embeddings_initializer=embeddings_initializers,
-        embeddings_regularizer=tf.keras.regularizers.L2(embeddings_l2_reg),
+        embeddings_l2_reg=embeddings_l2_reg,
         post=post,
     )
 

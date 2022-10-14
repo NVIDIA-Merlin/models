@@ -198,7 +198,11 @@ class EmbeddingTable(EmbeddingTableBase):
        for example, or generally for any layer that manipulates tensors
        using Python control flow. If `False`, we assume that the layer can
        safely be used to generate a static computation graph.
+<<<<<<< HEAD
     l2_batch_regularization_factor: float, optional
+=======
+    l2_batch_reg: float, optional
+>>>>>>> Add l2 batch regulariztion to EmbeddingTable
         Factor for L2 regularization of the embeddings vectors (from the current batch only)
         by default 0.0
     **kwargs: Forwarded Keras Layer parameters
@@ -385,6 +389,11 @@ class EmbeddingTable(EmbeddingTableBase):
         else:
             out = self._call_table(inputs, **kwargs)
 
+        if self.l2_batch_reg > 0:
+            if isinstance(out, dict):
+                self.add_loss(self.l2_batch_reg * tf.reduce_sum(tf.square(out[feature_name])))
+            else:
+                self.add_loss(self.l2_batch_reg * tf.reduce_sum(tf.square(out)))
         return out
 
     def _call_table(self, inputs, **kwargs):

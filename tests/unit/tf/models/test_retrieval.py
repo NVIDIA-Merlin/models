@@ -239,7 +239,7 @@ def test_two_tower_model_v2_l2_reg(testing_data: Dataset):
         categorical=mm.Embeddings(
             user_schema.select_by_tag(Tags.CATEGORICAL),
             dim=2,
-            embeddings_regularizer=tf.keras.regularizers.L2(0.1),
+            l2_batch_reg=0.1,
         ),
     )
     query = mm.Encoder(user_inputs, mm.MLPBlock([4], no_activation_last_layer=True))
@@ -250,7 +250,7 @@ def test_two_tower_model_v2_l2_reg(testing_data: Dataset):
         categorical=mm.Embeddings(
             item_schema.select_by_tag(Tags.CATEGORICAL),
             dim=2,
-            embeddings_regularizer=tf.keras.regularizers.L2(0.1),
+            l2_batch_reg=0.1,
         ),
     )
     candidate = mm.Encoder(item_inputs, mm.MLPBlock([4], no_activation_last_layer=True))
@@ -432,7 +432,7 @@ def test_two_tower_model_v2_with_custom_options(
         categorical=mm.Embeddings(
             user_schema.select_by_tag(Tags.CATEGORICAL),
             infer_dim_fn=partial(schema_utils.infer_embedding_dim, multiplier=3.0),
-            embeddings_regularizer=tf.keras.regularizers.L2(1.0e-5),
+            l2_batch_reg=1.0e-5,
         ),
     )
 
@@ -451,7 +451,7 @@ def test_two_tower_model_v2_with_custom_options(
         categorical=mm.Embeddings(
             item_schema.select_by_tag(Tags.CATEGORICAL),
             infer_dim_fn=partial(schema_utils.infer_embedding_dim, multiplier=3.0),
-            embeddings_regularizer=tf.keras.regularizers.L2(1.0e-5),
+            l2_batch_reg=1.0e-5,
         ),
     )
     candidate = mm.Encoder(item_inputs, tower_block.copy())
