@@ -195,7 +195,8 @@ class BruteForce(TopKLayer):
             f" dimension of {tf.shape(self._candidates)[1]} ",
         )
         scores = self._score(inputs, self._candidates)
-        top_scores, top_ids = tf.math.top_k(scores, k=self._k)
+        top_scores, top_idx = tf.math.top_k(scores, k=self._k)
+        top_ids = tf.gather(self._ids, top_idx)
         if testing:
             assert targets is not None, ValueError(
                 "Targets should be provided during the evaluation mode"
