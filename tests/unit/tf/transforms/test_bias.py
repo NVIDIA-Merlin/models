@@ -65,8 +65,8 @@ def test_popularity_logits_correct():
         outputs=inputs_v2, features={"item_feature": positive_item_ids}, training=True
     )
 
-    tf.debugging.assert_less_equal(logits, corrected_logits.predictions)
-    tf.debugging.assert_less_equal(logits, corrected_logits_v2.outputs)
+    tf.debugging.assert_less(logits, corrected_logits.predictions)
+    tf.debugging.assert_less(logits, corrected_logits_v2.outputs)
 
     _ = testing_utils.assert_serialization(log_q_correction)
 
