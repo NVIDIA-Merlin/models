@@ -74,6 +74,7 @@ setup(
     long_description=open("README.md", encoding="utf8").read(),
     long_description_content_type="text/markdown",
     install_requires=requirements["base"],
+    python_requires=">=3.8",
     test_suite="tests",
     extras_require={
         **requirements,
