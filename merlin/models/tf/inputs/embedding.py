@@ -198,6 +198,9 @@ class EmbeddingTable(EmbeddingTableBase):
        for example, or generally for any layer that manipulates tensors
        using Python control flow. If `False`, we assume that the layer can
        safely be used to generate a static computation graph.
+    l2_batch_regularization_factor: float, optional
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
+        by default 0.0
     **kwargs: Forwarded Keras Layer parameters
     """
 
@@ -217,6 +220,7 @@ class EmbeddingTable(EmbeddingTableBase):
         dtype=None,
         dynamic=False,
         table=None,
+        l2_batch_regularization_factor=0.0,
         **kwargs,
     ):
         """Create an EmbeddingTable."""
@@ -249,6 +253,7 @@ class EmbeddingTable(EmbeddingTableBase):
             )
         self.sequence_combiner = sequence_combiner
         self.supports_masking = True
+        self.l2_batch_regularization_factor = l2_batch_regularization_factor
 
     def select_by_tag(self, tags: Union[Tags, Sequence[Tags]]) -> Optional["EmbeddingTable"]:
         """Select features in EmbeddingTable by tags.
@@ -380,6 +385,14 @@ class EmbeddingTable(EmbeddingTableBase):
         else:
             out = self._call_table(inputs, **kwargs)
 
+        if self.l2_batch_regularization_factor > 0:
+            if isinstance(out, dict):
+                self.add_loss(
+                    self.l2_batch_regularization_factor
+                    * tf.reduce_sum(tf.square(out[feature_name]))
+                )
+            else:
+                self.add_loss(self.l2_batch_regularization_factor * tf.reduce_sum(tf.square(out)))
         return out
 
     def _call_table(self, inputs, **kwargs):
@@ -483,6 +496,7 @@ def Embeddings(
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
     block_name: str = "embeddings",
+    l2_batch_regularization_factor: float = 0.0,
     **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
@@ -552,7 +566,11 @@ def Embeddings(
             tables[table_name].add_feature(col)
         else:
             tables[table_name] = table_cls(
-                _get_dim(col, dim, infer_dim_fn), col, name=table_name, **table_kwargs
+                _get_dim(col, dim, infer_dim_fn),
+                col,
+                name=table_name,
+                l2_batch_regularization_factor=l2_batch_regularization_factor,
+                **table_kwargs,
             )
 
     return ParallelBlock(
