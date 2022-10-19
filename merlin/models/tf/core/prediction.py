@@ -55,10 +55,13 @@ class PredictionContext(NamedTuple):
 
 
 class Prediction(NamedTuple):
+    """Prediction object returned by `ModelOutput` classes"""
+
     outputs: Dict[str, TensorLike]
     targets: Optional[Union[tf.Tensor, Dict[str, tf.Tensor]]] = None
     sample_weight: Optional[tf.Tensor] = None
     features: Optional[Dict[str, TensorLike]] = None
+    negative_candidate_ids: Optional[tf.Tensor] = None
 
     @property
     def predictions(self):
@@ -66,10 +69,13 @@ class Prediction(NamedTuple):
 
 
 class TopKPrediction(NamedTuple):
+    """Prediction object returned by `TopKOutput` classes"""
+
     scores: tf.Tensor
     identifiers: tf.Tensor
 
     def to_df(self) -> DataFrameType:
+        """Convert Top-k scores and identifiers to a data-frame."""
         score_names = [f"score_{i}" for i in range(self.scores.shape[1])]
         id_names = [f"id_{i}" for i in range(self.identifiers.shape[1])]
 
