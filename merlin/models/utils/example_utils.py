@@ -35,7 +35,9 @@ def workflow_fit_transform(
     workflow.transform(_valid).to_parquet(str(valid_path))
 
     if save_workflow:
-        _name = Path(output_path) / workflow_name if workflow_name else "workflow"
+        if workflow_name is None:
+            workflow_name = "workflow"
+        _name = Path(output_path) / workflow_name
         workflow.save(str(_name))
 
 
