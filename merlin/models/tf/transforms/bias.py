@@ -215,35 +215,36 @@ class PopularityLogitsCorrection(Block):
     def call(
         self, outputs: Union[Prediction, PredictionOutput], features, training=False, **kwargs
     ):
-        if training:
-            if not isinstance(outputs, Prediction):
-                # The PredictionTask classes (V1) are
-                # applying the log-q correction in `call_outputs`
-                return outputs
+        if training and isinstance(outputs, Prediction):
+            # this logic is for the new ModelOutput api
+            positive_candidate_ids = tf.squeeze(features[self.candidate_id_name])
+            negative_candidate_ids = outputs.negative_candidate_ids
 
-            positive_item_ids = tf.squeeze(features[self.candidate_id_name])
-            negative_item_ids = outputs.negative_candidate_ids
-            positive_probs = tf.gather(self.candidate_probs, positive_item_ids)
-
-            if negative_item_ids is not None:
-                negative_probs = tf.gather(self.candidate_probs, negative_item_ids)
-                # repeat negative scores for each positive item
-                negative_probs = tf.reshape(
-                    tf.tile(tf.squeeze(negative_probs), tf.shape(positive_item_ids)[0:1]),
-                    (-1, tf.shape(negative_item_ids)[0]),
-                )
-                positive_probs = tf.concat(
-                    [tf.expand_dims(positive_probs, -1), negative_probs], axis=1
-                )
-
-            # Applies the logQ correction
-            epsilon = 1e-16
-            predictions = outputs.predictions - (
-                self.reg_factor * tf.math.log(positive_probs + epsilon)
+            predictions = self.compute_log_q_correction(
+                outputs.predictions, positive_candidate_ids, negative_candidate_ids
             )
-            return Prediction(predictions, outputs.targets)
+
+            return Prediction(predictions, outputs.targets, outputs.negative_candidate_ids)
 
         return outputs
+
+    def compute_log_q_correction(
+        self, predictions, positive_candidate_ids, negative_candidate_ids=None
+    ):
+        positive_probs = tf.gather(self.candidate_probs, positive_candidate_ids)
+        if negative_candidate_ids is not None:
+            negative_probs = tf.gather(self.candidate_probs, negative_candidate_ids)
+            # repeat negative scores for each positive item
+            negative_probs = tf.reshape(
+                tf.tile(tf.squeeze(negative_probs), tf.shape(positive_candidate_ids)[0:1]),
+                (-1, tf.shape(negative_candidate_ids)[0]),
+            )
+            positive_probs = tf.concat([tf.expand_dims(positive_probs, -1), negative_probs], axis=1)
+
+        # Applies the logQ correction
+        epsilon = 1e-16
+        predictions = predictions - (self.reg_factor * tf.math.log(positive_probs + epsilon))
+        return predictions
 
     def call_outputs(
         self, outputs: PredictionOutput, training=True, **kwargs
@@ -254,23 +255,10 @@ class PopularityLogitsCorrection(Block):
                 outputs.positive_item_ids,
                 outputs.negative_item_ids,
             )
-            positive_probs = tf.gather(self.candidate_probs, positive_item_ids)
 
-            if negative_item_ids is not None:
-                negative_probs = tf.gather(self.candidate_probs, negative_item_ids)
-                # repeat negative scores for each positive item
-                negative_probs = tf.reshape(
-                    tf.tile(negative_probs, tf.shape(positive_item_ids)[0:1]),
-                    (-1, tf.shape(negative_item_ids)[0]),
-                )
-                positive_probs = tf.concat(
-                    [tf.expand_dims(positive_probs, -1), negative_probs], axis=1
-                )
-
-            # Applies the logQ correction
-            epsilon = 1e-16
-            predictions = predictions - (self.reg_factor * tf.math.log(positive_probs + epsilon))
-
+            predictions = self.compute_log_q_correction(
+                outputs.predictions, positive_item_ids, negative_item_ids
+            )
         return outputs.copy_with_updates(predictions=predictions)
 
     def _check_items_cardinality(self, item_freq_probs):

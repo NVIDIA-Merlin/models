@@ -19,8 +19,10 @@ import tensorflow as tf
 import merlin.models.tf as mm
 from merlin.io import Dataset
 from merlin.models.tf.outputs.sampling.popularity import PopularityBasedSamplerV2
+from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
 from merlin.models.tf.transforms.features import Rename
 from merlin.models.tf.utils import testing_utils
+from merlin.models.utils import schema_utils
 from merlin.schema import Tags
 
 
@@ -72,9 +74,6 @@ def test_two_tower_constrastive(ecommerce_data: Dataset):
 
 
 def test_two_tower_constrastive_with_logq_correction(ecommerce_data: Dataset):
-    from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
-    from merlin.models.utils import schema_utils
-
     cardinalities = schema_utils.categorical_cardinalities(ecommerce_data.schema)
     item_id_cardinalities = cardinalities[
         ecommerce_data.schema.select_by_tag(Tags.ITEM_ID).column_names[0]
