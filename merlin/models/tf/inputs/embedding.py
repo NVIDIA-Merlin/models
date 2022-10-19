@@ -533,9 +533,12 @@ def Embeddings(
         Transformation block to apply after the embeddings lookup, by default None
     aggregation: Optional[TabularAggregationType], optional
         Transformation block to apply for aggregating the inputs, by default None
-    block_name: Optional[float, Dict[str, float]] = 0.0
+    block_name: str, optional
         Name of the block, by default "embeddings"
-
+    l2_batch_regularization_factor: Optional[float, Dict[str, float]] = 0.0
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
+        If a dictionary is provided, the keys are feature names and the values are
+        regularization factors
     Returns
     -------
     ParallelBlock
