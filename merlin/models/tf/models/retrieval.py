@@ -319,7 +319,7 @@ def MatrixFactorizationModelV2(
     embeddings_initializers: Optional[
         Union[Dict[str, Callable[[Any], None]], Callable[[Any], None]]
     ] = None,
-    embeddings_l2_reg: float = 0.0,
+    embeddings_l2_batch_regularization: Union[float, Dict[str, float]] = 0.0,
     post: Optional[BlockType] = None,
     outputs: Optional[Union[ModelOutput, List[ModelOutput]]] = None,
     negative_samplers: ItemSamplersType = None,
@@ -346,8 +346,10 @@ def MatrixFactorizationModelV2(
     embeddings_initializers : Optional[Dict[str, Callable[[Any], None]]] = None
         An initializer function or a dict where keys are feature names and values are
         callable to initialize embedding tables
-    embeddings_l2_reg: float = 0.0
+    embeddings_l2_batch_regularization: Union[float, Dict[str, float]] = 0.0
         Factor for L2 regularization of the embeddings vectors (from the current batch only)
+        If a dictionary is provided, the keys are the query-id and candidate-id names and
+        the values are the regularization factor.
     post: Optional[Block], optional
         The optional `Block` to apply on both outputs of the MF towers.
     outputs: optional
@@ -371,14 +373,14 @@ def MatrixFactorizationModelV2(
         query,
         dim=dim,
         embeddings_initializer=embeddings_initializers,
-        embeddings_l2_reg=embeddings_l2_reg,
+        embeddings_l2_batch_regularization=embeddings_l2_batch_regularization,
         post=post,
     )
     candidate_encoder = EmbeddingEncoder(
         candidate,
         dim=dim,
         embeddings_initializer=embeddings_initializers,
-        embeddings_l2_reg=embeddings_l2_reg,
+        embeddings_l2_batch_regularization=embeddings_l2_batch_regularization,
         post=post,
     )
 

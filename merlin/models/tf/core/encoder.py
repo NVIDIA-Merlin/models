@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import numpy as np
 import tensorflow as tf
@@ -456,7 +456,7 @@ class EmbeddingEncoder(Encoder):
         dtype=None,
         dynamic=False,
         post: Optional[tf.keras.layers.Layer] = None,
-        embeddings_l2_reg: float = 0.0,
+        embeddings_l2_batch_regularization: Optional[Union[float, Dict[str, float]]] = 0.0,
     ):
         if isinstance(schema, ColumnSchema):
             col = schema
@@ -478,7 +478,7 @@ class EmbeddingEncoder(Encoder):
             name=name,
             dtype=dtype,
             dynamic=dynamic,
-            l2_batch_reg=embeddings_l2_reg,
+            l2_batch_regularization_factor=embeddings_l2_batch_regularization,
         )
 
         super().__init__(table, tf.keras.layers.Lambda(lambda x: x[col_name]), post=post)

@@ -90,7 +90,7 @@ def test_matrix_factorization_model_v2_l2_reg(testing_data: Dataset):
     model = mm.MatrixFactorizationModelV2(
         testing_data.schema,
         dim=4,
-        embeddings_l2_reg=0.1,
+        embeddings_l2_batch_regularization=0.1,
         negative_samplers="in-batch",
     )
 
@@ -110,7 +110,7 @@ def test_matrix_factorization_model_v2_save(tmpdir, testing_data: Dataset):
     model = mm.MatrixFactorizationModelV2(
         testing_data.schema,
         dim=4,
-        embeddings_l2_reg=0.1,
+        embeddings_l2_batch_regularization=0.1,
         negative_samplers="in-batch",
     )
 
@@ -239,7 +239,7 @@ def test_two_tower_model_v2_l2_reg(testing_data: Dataset):
         categorical=mm.Embeddings(
             user_schema.select_by_tag(Tags.CATEGORICAL),
             dim=2,
-            l2_batch_reg=0.1,
+            l2_batch_regularization_factor=0.1,
         ),
     )
     query = mm.Encoder(user_inputs, mm.MLPBlock([4], no_activation_last_layer=True))
@@ -250,7 +250,7 @@ def test_two_tower_model_v2_l2_reg(testing_data: Dataset):
         categorical=mm.Embeddings(
             item_schema.select_by_tag(Tags.CATEGORICAL),
             dim=2,
-            l2_batch_reg=0.1,
+            l2_batch_regularization_factor=0.1,
         ),
     )
     candidate = mm.Encoder(item_inputs, mm.MLPBlock([4], no_activation_last_layer=True))
@@ -462,6 +462,7 @@ def test_two_tower_model_v2_with_custom_options(
         post=post_logits,
         negative_samplers="in-batch",
         schema=data.schema.select_by_tag(Tags.ITEM_ID),
+        store_negative_ids=True,
     )
 
     model = mm.TwoTowerModelV2(
