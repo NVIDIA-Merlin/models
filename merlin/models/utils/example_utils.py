@@ -41,9 +41,9 @@ def workflow_fit_transform(
         workflow.save(str(_name))
 
 
-def save_results(model_name, model):
+def save_results(model_name, model, out_path):
     """a funct to save validation accuracy results in a text file"""
-    with open("results.txt", "a") as f:
+    with open(out_path, "a") as f:
         f.write(model_name)
         f.write("\n")
         for key, value in model.history.history.items():
