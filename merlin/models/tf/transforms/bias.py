@@ -209,6 +209,7 @@ class PopularityLogitsCorrection(Block):
         """
         self._check_items_cardinality(item_freq_probs)
         candidate_probs = tf_utils.get_candidate_probs(item_freq_probs, is_prob_distribution)
+        self.item_freq_probs = item_freq_probs
         self.candidate_probs.assign(candidate_probs)
 
     def compute_output_shape(self, input_shape):
@@ -282,7 +283,7 @@ class PopularityLogitsCorrection(Block):
             config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
         config["reg_factor"] = self.reg_factor
         config["candidate_tag_id"] = self.candidate_tag_id.value
-        config["item_freq_probs"] = self.item_freq_probs
+        config["item_freq_probs"] = self.item_freq_probs.numpy()
 
         return config
 
@@ -292,5 +293,6 @@ class PopularityLogitsCorrection(Block):
             config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
 
         config["candidate_tag_id"] = Tags(config["candidate_tag_id"])
+        config["item_freq_probs"] = tf.convert_to_tensor(config["item_freq_probs"])
 
         return cls(**config)
