@@ -455,6 +455,25 @@ def test_embedding_features_l2_reg(testing_data: Dataset):
         assert reg_loss > 0.0
 
 
+def test_embeddings_with_regularization(testing_data: Dataset):
+    schema = testing_data.schema.select_by_tag(Tags.ITEM_ID)
+    dim = 16
+    embeddings_wo_reg = mm.Embeddings(schema, dim=dim)
+    embeddings_batch_reg = mm.Embeddings(schema, dim=dim, l2_batch_regularization_factor=0.2)
+    embeddings_table_reg = mm.Embeddings(
+        schema, dim=dim, embeddings_regularizer=tf.keras.regularizers.L2(0.2)
+    )
+
+    inputs = mm.sample_batch(testing_data, batch_size=100, include_targets=False)
+    _ = embeddings_wo_reg(inputs)
+    _ = embeddings_batch_reg(inputs)
+    _ = embeddings_table_reg(inputs)
+
+    assert not embeddings_wo_reg.losses
+    assert embeddings_batch_reg.losses[0] > 0
+    tf.debugging.assert_greater(embeddings_table_reg.losses[0], embeddings_batch_reg.losses[0])
+
+
 def test_embedding_features_yoochoose_infer_embedding_sizes(testing_data: Dataset):
     schema = testing_data.schema.select_by_tag(Tags.CATEGORICAL)
 
