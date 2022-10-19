@@ -385,14 +385,6 @@ class EmbeddingTable(EmbeddingTableBase):
         else:
             out = self._call_table(inputs, **kwargs)
 
-        if self.l2_batch_regularization_factor > 0:
-            if isinstance(out, dict):
-                self.add_loss(
-                    self.l2_batch_regularization_factor
-                    * tf.reduce_sum(tf.square(out[feature_name]))
-                )
-            else:
-                self.add_loss(self.l2_batch_regularization_factor * tf.reduce_sum(tf.square(out)))
         return out
 
     def _call_table(self, inputs, **kwargs):
@@ -422,6 +414,9 @@ class EmbeddingTable(EmbeddingTableBase):
                     out = call_layer(self.sequence_combiner, out, **kwargs)
         else:
             out = call_layer(self.table, inputs, **kwargs)
+
+        if self.l2_batch_regularization_factor > 0:
+            self.add_loss(self.l2_batch_regularization_factor * tf.reduce_sum(tf.square(out)))
 
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
@@ -496,7 +491,7 @@ def Embeddings(
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
     block_name: str = "embeddings",
-    l2_batch_regularization_factor: float = 0.0,
+    l2_batch_regularization_factor: Optional[Union[float, Dict[str, float]]] = 0.0,
     **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
@@ -538,7 +533,7 @@ def Embeddings(
         Transformation block to apply after the embeddings lookup, by default None
     aggregation: Optional[TabularAggregationType], optional
         Transformation block to apply for aggregating the inputs, by default None
-    block_name: str, optional
+    block_name: Optional[float, Dict[str, float]] = 0.0
         Name of the block, by default "embeddings"
 
     Returns
@@ -556,6 +551,8 @@ def Embeddings(
         kwargs["activity_regularizer"] = activity_regularizer
     if sequence_combiner:
         kwargs["sequence_combiner"] = sequence_combiner
+    if l2_batch_regularization_factor:
+        kwargs["l2_batch_regularization_factor"] = l2_batch_regularization_factor
 
     tables = {}
 
@@ -569,7 +566,6 @@ def Embeddings(
                 _get_dim(col, dim, infer_dim_fn),
                 col,
                 name=table_name,
-                l2_batch_regularization_factor=l2_batch_regularization_factor,
                 **table_kwargs,
             )
 
