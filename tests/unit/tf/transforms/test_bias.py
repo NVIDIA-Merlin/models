@@ -68,7 +68,8 @@ def test_popularity_logits_correct():
     tf.debugging.assert_less(logits, corrected_logits.predictions)
     tf.debugging.assert_less(logits, corrected_logits_v2.outputs)
 
-    _ = testing_utils.assert_serialization(log_q_correction)
+    copy_layer = testing_utils.assert_serialization(log_q_correction)
+    tf.debugging.assert_equal(copy_layer.candidate_probs, log_q_correction.candidate_probs)
 
 
 def test_popularity_logits_correct_from_parquet():

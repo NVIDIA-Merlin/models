@@ -120,9 +120,11 @@ class PopularityLogitsCorrection(Block):
             self.set_schema(schema)
 
         self.reg_factor = reg_factor
-        self.candidate_id_name = self.schema.select_by_tag(candidate_tag_id).first.name
+        self.candidate_tag_id = candidate_tag_id
+        self.candidate_id_name = self.schema.select_by_tag(self.candidate_tag_id).first.name
+        self.item_freq_probs = item_freq_probs
 
-        if item_freq_probs is not None:
+        if self.item_freq_probs is not None:
             self._check_items_cardinality(item_freq_probs)
             candidate_probs = tf_utils.get_candidate_probs(item_freq_probs, is_prob_distribution)
 
@@ -279,6 +281,8 @@ class PopularityLogitsCorrection(Block):
         if self.schema:
             config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
         config["reg_factor"] = self.reg_factor
+        config["candidate_tag_id"] = self.candidate_tag_id.value
+        config["item_freq_probs"] = self.item_freq_probs
 
         return config
 
@@ -287,4 +291,6 @@ class PopularityLogitsCorrection(Block):
         if "schema" in config:
             config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
 
-        return super().from_config(config)
+        config["candidate_tag_id"] = Tags(config["candidate_tag_id"])
+
+        return cls(**config)
