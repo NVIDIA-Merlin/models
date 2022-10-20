@@ -198,6 +198,9 @@ class EmbeddingTable(EmbeddingTableBase):
        for example, or generally for any layer that manipulates tensors
        using Python control flow. If `False`, we assume that the layer can
        safely be used to generate a static computation graph.
+    l2_batch_regularization_factor: float, optional
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
+        by default 0.0
     **kwargs: Forwarded Keras Layer parameters
     """
 
@@ -217,6 +220,7 @@ class EmbeddingTable(EmbeddingTableBase):
         dtype=None,
         dynamic=False,
         table=None,
+        l2_batch_regularization_factor=0.0,
         **kwargs,
     ):
         """Create an EmbeddingTable."""
@@ -249,6 +253,7 @@ class EmbeddingTable(EmbeddingTableBase):
             )
         self.sequence_combiner = sequence_combiner
         self.supports_masking = True
+        self.l2_batch_regularization_factor = l2_batch_regularization_factor
 
     def select_by_tag(self, tags: Union[Tags, Sequence[Tags]]) -> Optional["EmbeddingTable"]:
         """Select features in EmbeddingTable by tags.
@@ -410,6 +415,9 @@ class EmbeddingTable(EmbeddingTableBase):
         else:
             out = call_layer(self.table, inputs, **kwargs)
 
+        if self.l2_batch_regularization_factor > 0:
+            self.add_loss(self.l2_batch_regularization_factor * tf.reduce_sum(tf.square(out)))
+
         if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
             # this is mathematically equivalent but is faster.
@@ -483,6 +491,7 @@ def Embeddings(
     post: Optional[BlockType] = None,
     aggregation: Optional[TabularAggregationType] = None,
     block_name: str = "embeddings",
+    l2_batch_regularization_factor: Optional[Union[float, Dict[str, float]]] = 0.0,
     **kwargs,
 ) -> ParallelBlock:
     """Creates a ParallelBlock with an EmbeddingTable for each categorical feature
@@ -526,7 +535,10 @@ def Embeddings(
         Transformation block to apply for aggregating the inputs, by default None
     block_name: str, optional
         Name of the block, by default "embeddings"
-
+    l2_batch_regularization_factor: Optional[float, Dict[str, float]] = 0.0
+        Factor for L2 regularization of the embeddings vectors (from the current batch only)
+        If a dictionary is provided, the keys are feature names and the values are
+        regularization factors
     Returns
     -------
     ParallelBlock
@@ -542,6 +554,8 @@ def Embeddings(
         kwargs["activity_regularizer"] = activity_regularizer
     if sequence_combiner:
         kwargs["sequence_combiner"] = sequence_combiner
+    if l2_batch_regularization_factor:
+        kwargs["l2_batch_regularization_factor"] = l2_batch_regularization_factor
 
     tables = {}
 
@@ -552,7 +566,10 @@ def Embeddings(
             tables[table_name].add_feature(col)
         else:
             tables[table_name] = table_cls(
-                _get_dim(col, dim, infer_dim_fn), col, name=table_name, **table_kwargs
+                _get_dim(col, dim, infer_dim_fn),
+                col,
+                name=table_name,
+                **table_kwargs,
             )
 
     return ParallelBlock(

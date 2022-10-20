@@ -216,6 +216,13 @@ class PredictionTask(Layer, ContextMixin):
 
         return metrics
 
+    def compute_output_shape(self, input_shape):
+        if self.task_block:
+            input_shape = self.task_block.compute_output_shape(input_shape)
+        if self.pre:
+            input_shape = self.pre.compute_output_shape(input_shape)
+        return input_shape
+
 
 @tf.keras.utils.register_keras_serializable(package="merlin.models")
 class ParallelPredictionBlock(ParallelBlock):
