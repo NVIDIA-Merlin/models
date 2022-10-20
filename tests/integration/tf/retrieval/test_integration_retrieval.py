@@ -33,7 +33,8 @@ def train_eval_datasets_last_fm():
     return train_ds, eval_ds
 
 
-def test_integration_train_eval_two_tower(train_eval_datasets_last_fm):
+@pytest.mark.parametrize("version", [1, 2])
+def test_integration_train_eval_two_tower(train_eval_datasets_last_fm, version):
     train_ds, eval_ds = train_eval_datasets_last_fm
     metrics = retrieval_tests_common.train_eval_two_tower_for_lastfm(
         train_ds,
@@ -45,6 +46,7 @@ def test_integration_train_eval_two_tower(train_eval_datasets_last_fm):
         eval_batch_size=512,
         log_to_wandb=True,
         wandb_project=os.getenv("CI_WANDB_PROJECT", STANDARD_CI_WANDB_PROJECT),
+        retrieval_api_version=version,
     )
     assert metrics["loss-final"] > 0.0
     assert metrics["recall_at_100-final"] > 0.0
@@ -52,7 +54,8 @@ def test_integration_train_eval_two_tower(train_eval_datasets_last_fm):
     assert metrics["avg_examples_per_sec-final"] > 0.0
 
 
-def test_integration_train_eval_mf(train_eval_datasets_last_fm):
+@pytest.mark.parametrize("version", [1, 2])
+def test_integration_train_eval_mf(train_eval_datasets_last_fm, version):
     train_ds, eval_ds = train_eval_datasets_last_fm
     metrics = retrieval_tests_common.train_eval_mf_for_lastfm(
         train_ds,
@@ -64,6 +67,7 @@ def test_integration_train_eval_mf(train_eval_datasets_last_fm):
         eval_batch_size=512,
         log_to_wandb=True,
         wandb_project=os.getenv("CI_WANDB_PROJECT", STANDARD_CI_WANDB_PROJECT),
+        retrieval_api_version=version,
     )
     assert metrics["loss-final"] > 0.0
     assert metrics["recall_at_100-final"] > 0.0
