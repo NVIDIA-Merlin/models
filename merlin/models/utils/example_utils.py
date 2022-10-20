@@ -35,15 +35,13 @@ def workflow_fit_transform(
     workflow.transform(_valid).to_parquet(str(valid_path))
 
     if save_workflow:
-        if workflow_name is None:
-            workflow_name = "workflow"
-        _name = Path(output_path) / workflow_name
+        _name = Path(output_path) / workflow_name if workflow_name else "workflow"
         workflow.save(str(_name))
 
 
-def save_results(model_name, model, out_path):
+def save_results(model_name, model):
     """a funct to save validation accuracy results in a text file"""
-    with open(out_path, "a") as f:
+    with open("results.txt", "a") as f:
         f.write(model_name)
         f.write("\n")
         for key, value in model.history.history.items():

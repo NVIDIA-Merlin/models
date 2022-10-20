@@ -56,7 +56,7 @@ def test_synthetic_aliccp_raw_data(tmp_path):
     ecommerce.transform_aliccp((dataset, dataset), tmp_path)
     output_files = list(tmp_path.glob("*/*"))
 
-    assert len(output_files) == 13
+    assert len(output_files) == 10
 
 
 @pytest.mark.skipif(
