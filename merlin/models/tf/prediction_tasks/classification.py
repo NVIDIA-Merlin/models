@@ -226,6 +226,3 @@ class MultiClassClassificationTask(PredictionTask):
 
     def call(self, inputs, training=False, **kwargs):
         return inputs
-
-    def compute_output_shape(self, input_shape):
-        return input_shape

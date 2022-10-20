@@ -181,6 +181,3 @@ class ItemRetrievalTask(MultiClassClassificationTask):
                 tf.keras.layers.deserialize(sampler) for sampler in config["samplers"]
             ]
         return super().from_config(config)
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
