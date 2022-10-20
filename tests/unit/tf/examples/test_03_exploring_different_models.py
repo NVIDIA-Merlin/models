@@ -6,11 +6,11 @@ from tests.conftest import REPO_ROOT
 
 
 @testbook(REPO_ROOT / "examples/03-Exploring-different-models.ipynb", execute=False)
-def test_example_03_exploring_different_models(tb):
+def test_example_03_exploring_different_models(tb, tmpdir):
     tb.inject(
-        """
+        f"""
         import os
-        os.environ["DATA_FOLDER"] = "/tmp/data/"
+        os.environ["DATA_FOLDER"] = "{tmpdir}"
         os.environ["NUM_ROWS"] = "999"
         """
     )
@@ -56,5 +56,5 @@ def test_example_03_exploring_different_models(tb):
             "regularization_loss",
         ]
     )
-    assert os.path.isfile("results.txt")
+    assert os.path.isfile(os.path.join(tmpdir, "results.txt"))
     tb.execute_cell(NUM_OF_CELLS - 2)

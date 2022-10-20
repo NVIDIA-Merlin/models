@@ -19,8 +19,10 @@ import tensorflow as tf
 
 from merlin.models.config.schema import requires_schema
 from merlin.models.tf.core.base import Block, PredictionOutput
+from merlin.models.tf.core.prediction import Prediction
 from merlin.models.tf.utils import tf_utils
 from merlin.models.utils import schema_utils
+from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
 from merlin.schema import Schema, Tags
 
 
@@ -100,6 +102,8 @@ class PopularityLogitsCorrection(Block):
     schema: Schema, optional
         The `Schema` with input features,
         by default None
+    candidate_tag_id: Tag, optional
+        The tag of the candidate id
     """
 
     def __init__(
@@ -108,6 +112,7 @@ class PopularityLogitsCorrection(Block):
         is_prob_distribution: bool = False,
         reg_factor: float = 1.0,
         schema: Schema = None,
+        candidate_tag_id=Tags.ITEM_ID,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -115,8 +120,11 @@ class PopularityLogitsCorrection(Block):
             self.set_schema(schema)
 
         self.reg_factor = reg_factor
+        self.candidate_tag_id = candidate_tag_id
+        self.candidate_id_name = self.schema.select_by_tag(self.candidate_tag_id).first.name
+        self.item_freq_probs = item_freq_probs
 
-        if item_freq_probs is not None:
+        if self.item_freq_probs is not None:
             self._check_items_cardinality(item_freq_probs)
             candidate_probs = tf_utils.get_candidate_probs(item_freq_probs, is_prob_distribution)
 
@@ -201,10 +209,45 @@ class PopularityLogitsCorrection(Block):
         """
         self._check_items_cardinality(item_freq_probs)
         candidate_probs = tf_utils.get_candidate_probs(item_freq_probs, is_prob_distribution)
+        self.item_freq_probs = item_freq_probs
         self.candidate_probs.assign(candidate_probs)
 
     def compute_output_shape(self, input_shape):
         return input_shape
+
+    def call(
+        self, outputs: Union[Prediction, PredictionOutput], features, training=False, **kwargs
+    ):
+        if training and isinstance(outputs, Prediction):
+            # this logic is for the new ModelOutput api
+            positive_candidate_ids = tf.squeeze(features[self.candidate_id_name])
+            negative_candidate_ids = outputs.negative_candidate_ids
+
+            predictions = self.compute_log_q_correction(
+                outputs.predictions, positive_candidate_ids, negative_candidate_ids
+            )
+
+            return Prediction(predictions, outputs.targets, outputs.negative_candidate_ids)
+
+        return outputs
+
+    def compute_log_q_correction(
+        self, predictions, positive_candidate_ids, negative_candidate_ids=None
+    ):
+        positive_probs = tf.gather(self.candidate_probs, positive_candidate_ids)
+        if negative_candidate_ids is not None:
+            negative_probs = tf.gather(self.candidate_probs, negative_candidate_ids)
+            # repeat negative scores for each positive item
+            negative_probs = tf.reshape(
+                tf.tile(tf.squeeze(negative_probs), tf.shape(positive_candidate_ids)[0:1]),
+                (-1, tf.shape(negative_candidate_ids)[0]),
+            )
+            positive_probs = tf.concat([tf.expand_dims(positive_probs, -1), negative_probs], axis=1)
+
+        # Applies the logQ correction
+        epsilon = 1e-16
+        predictions = predictions - (self.reg_factor * tf.math.log(positive_probs + epsilon))
+        return predictions
 
     def call_outputs(
         self, outputs: PredictionOutput, training=True, **kwargs
@@ -215,23 +258,10 @@ class PopularityLogitsCorrection(Block):
                 outputs.positive_item_ids,
                 outputs.negative_item_ids,
             )
-            positive_probs = tf.gather(self.candidate_probs, positive_item_ids)
 
-            if negative_item_ids is not None:
-                negative_probs = tf.gather(self.candidate_probs, negative_item_ids)
-                # repeat negative scores for each positive item
-                negative_probs = tf.reshape(
-                    tf.tile(negative_probs, tf.shape(positive_item_ids)[0:1]),
-                    (-1, tf.shape(negative_item_ids)[0]),
-                )
-                positive_probs = tf.concat(
-                    [tf.expand_dims(positive_probs, -1), negative_probs], axis=1
-                )
-
-            # Applies the logQ correction
-            epsilon = 1e-16
-            predictions = predictions - (self.reg_factor * tf.math.log(positive_probs + epsilon))
-
+            predictions = self.compute_log_q_correction(
+                outputs.predictions, positive_item_ids, negative_item_ids
+            )
         return outputs.copy_with_updates(predictions=predictions)
 
     def _check_items_cardinality(self, item_freq_probs):
@@ -243,3 +273,26 @@ class PopularityLogitsCorrection(Block):
                 f"(expected {cardinalities[item_id_feature_name]}"
                 f", got {tf.shape(item_freq_probs)[0]})"
             )
+
+    def compute_call_output_shape(self, input_shapes):
+        return self.compute_output_shape(input_shapes)
+
+    def get_config(self):
+        config = super().get_config()
+        if self.schema:
+            config["schema"] = schema_to_tensorflow_metadata_json(self.schema)
+        config["reg_factor"] = self.reg_factor
+        config["candidate_tag_id"] = self.candidate_tag_id.value
+        config["item_freq_probs"] = self.item_freq_probs.numpy()
+
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        if "schema" in config:
+            config["schema"] = schema_utils.tensorflow_metadata_json_to_schema(config["schema"])
+
+        config["candidate_tag_id"] = Tags(config["candidate_tag_id"])
+        config["item_freq_probs"] = tf.convert_to_tensor(config["item_freq_probs"])
+
+        return cls(**config)

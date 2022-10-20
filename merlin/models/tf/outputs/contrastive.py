@@ -74,6 +74,9 @@ class ContrastiveOutput(ModelOutput):
     get_default_metrics: Callable, optional
         A function returning the list of default metrics
         to use for categorical-classification
+    store_negative_ids: bool, optional
+        Whether to store negative ids for post-processing
+        by default False
 
     References:
     ----------
@@ -105,6 +108,7 @@ class ContrastiveOutput(ModelOutput):
         false_negative_score: float = MIN_FLOAT,
         query_name: str = "query",
         candidate_name: str = "candidate",
+        store_negative_ids: bool = False,
         **kwargs,
     ):
         self.col_schema = None
@@ -140,6 +144,7 @@ class ContrastiveOutput(ModelOutput):
         self.false_negative_score = false_negative_score
         self.query_name = query_name
         self.candidate_name = candidate_name
+        self.store_negative_ids = store_negative_ids
 
         self.target_name = kwargs.pop("target", target_name)
         super().__init__(
@@ -204,6 +209,24 @@ class ContrastiveOutput(ModelOutput):
     def outputs(
         self, query_embedding: tf.Tensor, positive: Candidate, negative: Candidate
     ) -> Prediction:
+        """Method to compute the dot product between the query embeddings and
+        positive/negative candidates
+
+        Parameters
+        ----------
+        query_embedding : tf.Tensor
+            tensor of query embeddings.
+        positive : Candidate
+            Store the ids and metadata (such as embeddings) of the positive candidates.
+        negative : Candidate
+            Store the ids and metadata (such as embeddings) of the sampled negative candidates.
+
+        Returns
+        -------
+        Prediction
+            a Prediction object with the prediction scores, the targets and
+            the negative candidates ids if specified.
+        """
         if not positive.has_embedding:
             raise ValueError("Positive candidate must have an embedding")
         if not negative.has_embedding:
@@ -237,7 +260,8 @@ class ContrastiveOutput(ModelOutput):
             ],
             axis=1,
         )
-
+        if self.store_negative_ids:
+            return Prediction(outputs, targets, negative_candidate_ids=negative.id)
         return Prediction(outputs, targets)
 
     def sample_negatives(
@@ -321,6 +345,7 @@ class ContrastiveOutput(ModelOutput):
         config["false_negative_score"] = self.false_negative_score
         config["query_name"] = self.query_name
         config["candidate_name"] = self.candidate_name
+        config["store_negative_ids"] = self.store_negative_ids
 
         config["schema"] = schema_utils.schema_to_tensorflow_metadata_json(
             Schema([self.col_schema])

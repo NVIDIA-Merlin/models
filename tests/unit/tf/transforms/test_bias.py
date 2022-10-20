@@ -17,12 +17,14 @@ import tempfile
 
 import tensorflow as tf
 
+from merlin.models.tf.utils import testing_utils
 from merlin.models.utils.schema_utils import create_categorical_column
 from merlin.schema import Schema, Tags
 
 
 def test_popularity_logits_correct():
     from merlin.models.tf.core.base import PredictionOutput
+    from merlin.models.tf.core.prediction import Prediction
     from merlin.models.tf.transforms.bias import PopularityLogitsCorrection
 
     schema = Schema(
@@ -44,18 +46,30 @@ def test_popularity_logits_correct():
     positive_item_ids = tf.random.uniform((NUM_ROWS,), minval=1, maxval=NUM_ITEMS, dtype=tf.int32)
     item_frequency = tf.sort(tf.random.uniform((NUM_ITEMS,), minval=0, maxval=1000, dtype=tf.int32))
 
+    log_q_correction = PopularityLogitsCorrection(item_frequency, reg_factor=0.5, schema=schema)
+
     inputs = PredictionOutput(
         predictions=logits,
         targets=[],
         positive_item_ids=positive_item_ids,
         negative_item_ids=negative_item_ids,
     )
+    corrected_logits = log_q_correction.call_outputs(outputs=inputs)
 
-    corrected_logits = PopularityLogitsCorrection(
-        item_frequency, reg_factor=0.5, schema=schema
-    ).call_outputs(outputs=inputs)
+    inputs_v2 = Prediction(
+        outputs=logits,
+        targets=[],
+        negative_candidate_ids=negative_item_ids,
+    )
+    corrected_logits_v2 = log_q_correction(
+        outputs=inputs_v2, features={"item_feature": positive_item_ids}, training=True
+    )
 
-    tf.debugging.assert_less_equal(logits, corrected_logits.predictions)
+    tf.debugging.assert_less(logits, corrected_logits.predictions)
+    tf.debugging.assert_less(logits, corrected_logits_v2.outputs)
+
+    copy_layer = testing_utils.assert_serialization(log_q_correction)
+    tf.debugging.assert_equal(copy_layer.candidate_probs, log_q_correction.candidate_probs)
 
 
 def test_popularity_logits_correct_from_parquet():
