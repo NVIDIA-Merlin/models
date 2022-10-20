@@ -273,6 +273,9 @@
 <span class="sd">       for example, or generally for any layer that manipulates tensors</span>
 <span class="sd">       using Python control flow. If `False`, we assume that the layer can</span>
 <span class="sd">       safely be used to generate a static computation graph.</span>
+<span class="sd">    l2_batch_regularization_factor: float, optional</span>
+<span class="sd">        Factor for L2 regularization of the embeddings vectors (from the current batch only)</span>
+<span class="sd">        by default 0.0</span>
 <span class="sd">    **kwargs: Forwarded Keras Layer parameters</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -292,6 +295,7 @@
         <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">dynamic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">table</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">l2_batch_regularization_factor</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Create an EmbeddingTable.&quot;&quot;&quot;</span>
@@ -324,6 +328,7 @@
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sequence_combiner</span> <span class="o">=</span> <span class="n">sequence_combiner</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">supports_masking</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">l2_batch_regularization_factor</span> <span class="o">=</span> <span class="n">l2_batch_regularization_factor</span>
 
     <span class="k">def</span> <span class="nf">select_by_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tags</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tags</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;EmbeddingTable&quot;</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Select features in EmbeddingTable by tags.</span>
@@ -485,6 +490,9 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">=</span> <span class="n">call_layer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2_batch_regularization_factor</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_loss</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l2_batch_regularization_factor</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">out</span><span class="p">)))</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype_policy</span><span class="o">.</span><span class="n">compute_dtype</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype_policy</span><span class="o">.</span><span class="n">variable_dtype</span><span class="p">:</span>
             <span class="c1"># Instead of casting the variable as in most layers, cast the output, as</span>
             <span class="c1"># this is mathematically equivalent but is faster.</span>
@@ -558,6 +566,7 @@
     <span class="n">post</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BlockType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">aggregation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">TabularAggregationType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">block_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;embeddings&quot;</span><span class="p">,</span>
+    <span class="n">l2_batch_regularization_factor</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ParallelBlock</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Creates a ParallelBlock with an EmbeddingTable for each categorical feature</span>
@@ -601,7 +610,10 @@
 <span class="sd">        Transformation block to apply for aggregating the inputs, by default None</span>
 <span class="sd">    block_name: str, optional</span>
 <span class="sd">        Name of the block, by default &quot;embeddings&quot;</span>
-
+<span class="sd">    l2_batch_regularization_factor: Optional[float, Dict[str, float]] = 0.0</span>
+<span class="sd">        Factor for L2 regularization of the embeddings vectors (from the current batch only)</span>
+<span class="sd">        If a dictionary is provided, the keys are feature names and the values are</span>
+<span class="sd">        regularization factors</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    ParallelBlock</span>
@@ -617,6 +629,8 @@
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;activity_regularizer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">activity_regularizer</span>
     <span class="k">if</span> <span class="n">sequence_combiner</span><span class="p">:</span>
         <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sequence_combiner&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sequence_combiner</span>
+    <span class="k">if</span> <span class="n">l2_batch_regularization_factor</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;l2_batch_regularization_factor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">l2_batch_regularization_factor</span>
 
     <span class="n">tables</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -627,7 +641,10 @@
             <span class="n">tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span><span class="o">.</span><span class="n">add_feature</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">table_cls</span><span class="p">(</span>
-                <span class="n">_get_dim</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">infer_dim_fn</span><span class="p">),</span> <span class="n">col</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span> <span class="o">**</span><span class="n">table_kwargs</span>
+                <span class="n">_get_dim</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">infer_dim_fn</span><span class="p">),</span>
+                <span class="n">col</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">table_name</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">table_kwargs</span><span class="p">,</span>
             <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ParallelBlock</span><span class="p">(</span>
