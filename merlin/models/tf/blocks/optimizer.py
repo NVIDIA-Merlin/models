@@ -433,3 +433,7 @@ def split_embeddings_on_size(
             f"input dim than threshold {threshold}, thus return empty list."
         )
     return (large_embeddings, small_embeddings)
+
+
+class DistributedOptimizer:
+    pass

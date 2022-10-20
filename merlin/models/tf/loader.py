@@ -23,10 +23,10 @@ import numpy as np
 import tensorflow as tf
 from packaging import version
 
-from merlin.core.dispatch import HAS_GPU
 from merlin.io import Dataset
 from merlin.models.loader.backend import DataLoader
 from merlin.models.loader.tf_utils import get_dataset_schema_from_feature_columns
+from merlin.models.tf.distributed.backend import hvd
 from merlin.models.utils.schema_utils import select_targets
 from merlin.schema import Schema, Tags
 
@@ -293,7 +293,12 @@ class Loader(tf.keras.utils.Sequence, DataLoader):
         )
 
         device = device or 0
-        device = "cpu" if not HAS_GPU else device
+        if hvd:
+            device = hvd.local_rank()
+            global_size = global_size or hvd.size()
+            global_rank = global_rank or hvd.rank()
+        else:
+            device = "cpu"
         DataLoader.__init__(
             self,
             dataset,

@@ -106,3 +106,5 @@ def pytest_collection_modifyitems(items):
             item.add_marker(pytest.mark.datasets)
         if "/transformers/" in path:
             item.add_marker(pytest.mark.transformers)
+        if "/horovod/" in path:
+            item.add_marker(pytest.mark.horovod)

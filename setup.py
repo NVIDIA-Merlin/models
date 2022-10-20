@@ -42,6 +42,7 @@ _dev = read_requirements("requirements/dev.txt")
 _docs = read_requirements("requirements/docs.txt")
 _nvt = read_requirements("requirements/nvtabular.txt")
 _transformers = read_requirements("requirements/transformers.txt")
+_horovod = read_requirements("requirements/horovod.txt")
 
 requirements = {
     "base": read_requirements("requirements/base.txt"),
@@ -51,12 +52,13 @@ requirements = {
     "implicit": read_requirements("requirements/implicit.txt"),
     "xgboost": read_requirements("requirements/xgboost.txt"),
     "transformers": _transformers,
+    "horovod": _horovod,
     "nvtabular": _nvt,
     "dev": _dev,
     "docs": _docs,
 }
 dev_requirements = {
-    "tensorflow-dev": requirements["tensorflow"] + _transformers + _dev + _nvt,
+    "tensorflow-dev": requirements["tensorflow"] + _transformers + _horovod + _dev + _nvt,
     "pytorch-dev": requirements["pytorch"] + _dev + _nvt,
     "implicit-dev": requirements["implicit"] + _dev + _nvt,
     "lightfm-dev": requirements["lightfm"] + _dev + _nvt,
