@@ -15,7 +15,6 @@
 #
 
 import os
-import warnings
 
 import tensorflow as tf
 from packaging import version
@@ -36,8 +35,6 @@ def configure_tensorflow(memory_allocation=None, device=None):
     memory_allocation = int(memory_allocation)
     assert memory_allocation < total_gpu_mem_mb
 
-    # TODO: what will this look like in any sort
-    # of distributed set up?
     if device is None:
         device = int(os.environ.get("TF_VISIBLE_DEVICE", 0))
     tf_devices = tf.config.list_physical_devices("GPU")

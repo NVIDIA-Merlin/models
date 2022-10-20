@@ -18,8 +18,6 @@
 
 # Must happen before any importing of tensorflow to curtail mem usage
 from merlin.models.loader.tf_utils import configure_tensorflow
-from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
-from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
 
 configure_tensorflow()
 
@@ -77,6 +75,8 @@ from merlin.models.tf.core.combinators import (
     SequentialBlock,
 )
 from merlin.models.tf.core.encoder import EncoderBlock
+from merlin.models.tf.core.index import IndexBlock, TopKIndexBlock
+from merlin.models.tf.core.tabular import AsTabular, Filter, TabularBlock
 from merlin.models.tf.inputs.base import InputBlock, InputBlockV2
 from merlin.models.tf.inputs.continuous import Continuous, ContinuousFeatures, ContinuousProjection
 from merlin.models.tf.inputs.embedding import (
