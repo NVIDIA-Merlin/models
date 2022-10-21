@@ -21,7 +21,7 @@ from merlin.models.api import MerlinModel
 from merlin.models.utils.schema_utils import schema_to_tensorflow_metadata_json
 from merlin.schema import Schema
 
-_MERLIN_METADATA_DIR_NAME = "merlin_metadata"
+_MERLIN_METADATA_DIR_NAME = ".merlin"
 
 
 def save_merlin_metadata(
