@@ -139,9 +139,12 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-06-03 16:47:15.434414: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-10-19 17:20:17.650375: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2022-10-19 17:20:19.081535: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library &#39;libcudnn.so.8&#39;; dlerror: libcudnn.so.8: cannot open shared object file: No such file or directory
+2022-10-19 17:20:19.081560: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1850] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2022-10-19 17:20:19.121312: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-06-03 16:47:16.472878: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16254 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:15:00.0, compute capability: 7.0
 </pre></div>
 </div>
 </div>
@@ -155,7 +158,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">merlin.datasets.synthetic</span> <span class="kn">import</span> <span class="n">generate_data</span>
 
-<span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;/workspace/data/&quot;</span><span class="p">)</span>
+<span class="n">DATA_FOLDER</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;DATA_FOLDER&quot;</span><span class="p">,</span> <span class="s2">&quot;workspace/data/&quot;</span><span class="p">)</span>
 <span class="n">NUM_ROWS</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;NUM_ROWS&quot;</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)</span>
 <span class="n">SYNTHETIC_DATA</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SYNTHETIC_DATA&quot;</span><span class="p">,</span> <span class="s2">&quot;True&quot;</span><span class="p">))</span>
 <span class="n">BATCH_SIZE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;BATCH_SIZE&quot;</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>
@@ -165,6 +168,16 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
     <span class="c1"># save the datasets as parquet files</span>
     <span class="n">train</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;train&quot;</span><span class="p">))</span>
     <span class="n">valid</span><span class="o">.</span><span class="n">to_ddf</span><span class="p">()</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;valid&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
 </pre></div>
 </div>
 </div>
@@ -183,11 +196,12 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
-<span class="n">user_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserID</span><span class="p">()</span>
-<span class="n">item_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemID</span><span class="p">()</span>
+<span class="n">category_temp_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;categories&quot;</span><span class="p">)</span>
+<span class="n">user_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserID</span><span class="p">()</span>
+<span class="n">item_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemID</span><span class="p">()</span>
 <span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;click&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">AddMetadata</span><span class="p">(</span><span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="n">Tags</span><span class="o">.</span><span class="n">BINARY_CLASSIFICATION</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">])</span>
 
-<span class="n">item_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_category&quot;</span><span class="p">,</span> <span class="s2">&quot;item_shop&quot;</span><span class="p">,</span> <span class="s2">&quot;item_brand&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemFeatures</span><span class="p">()</span>
+<span class="n">item_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_category&quot;</span><span class="p">,</span> <span class="s2">&quot;item_shop&quot;</span><span class="p">,</span> <span class="s2">&quot;item_brand&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemFeatures</span><span class="p">()</span>
 
 <span class="n">user_features</span> <span class="o">=</span> <span class="p">(</span>
     <span class="p">[</span>
@@ -203,7 +217,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
         <span class="s2">&quot;user_brands&quot;</span><span class="p">,</span>
         <span class="s2">&quot;user_categories&quot;</span><span class="p">,</span>
     <span class="p">]</span>
-    <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span>
+    <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span>
     <span class="o">&gt;&gt;</span> <span class="n">TagAsUserFeatures</span><span class="p">()</span>
 <span class="p">)</span>
 
@@ -221,12 +235,16 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
   warnings.warn(
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 1.28 s, sys: 682 ms, total: 1.96 s
-Wall time: 2.04 s
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 7.6 s, sys: 1.49 s, total: 9.09 s
+Wall time: 8.23 s
 </pre></div>
 </div>
 </div>
@@ -234,7 +252,7 @@ Wall time: 2.04 s
 <p>We save NVTabular <code class="docutils literal notranslate"><span class="pre">workflow</span></code> model in the current working directory.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">workflow</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;workflow&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">workflow</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;workflow&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -243,6 +261,20 @@ Wall time: 2.04 s
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>pip install seedir
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Collecting seedir
+  Using cached seedir-0.3.1-py3-none-any.whl (114 kB)
+Collecting emoji
+  Using cached emoji-2.1.0-py3-none-any.whl
+Requirement already satisfied: natsort in /home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages (from seedir) (8.1.0)
+Installing collected packages: emoji, seedir
+Successfully installed emoji-2.1.0 seedir-0.3.1
+
+<span class=" -Color -Color-Bold">[</span><span class=" -Color -Color-Blue">notice</span><span class=" -Color -Color-Bold">]</span> A new release of pip available: <span class=" -Color -Color-Red">22.2.2</span> -&gt; <span class=" -Color -Color-Green">22.3</span>
+<span class=" -Color -Color-Bold">[</span><span class=" -Color -Color-Blue">notice</span><span class=" -Color -Color-Bold">]</span> To update, run: <span class=" -Color -Color-Green">python -m pip install --upgrade pip</span>
 </pre></div>
 </div>
 </div>
@@ -264,6 +296,18 @@ Wall time: 2.04 s
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>data/
+├─categories/
+│ └─categories/
+│   ├─unique.item_brand.parquet
+│   ├─unique.item_category.parquet
+│   ├─unique.item_id.parquet
+│   ├─unique.item_shop.parquet
+│   ├─unique.user_age.parquet
+│   ├─unique.user_brands.parquet
+│   ├─unique.user_categories.parquet
+│   ├─unique.user_consumption_2.parquet
+│   ├─unique.user_gender.parquet
+│   └─unique.user_geography.parquet
 ├─processed/
 │ ├─train/
 │ │ ├─_file_list.txt
@@ -278,11 +322,23 @@ Wall time: 2.04 s
 │   ├─part_0.parquet
 │   └─schema.pbtxt
 ├─train/
-│ ├─_metadata
 │ └─part.0.parquet
-└─valid/
-  ├─_metadata
-  └─part.0.parquet
+├─valid/
+│ └─part.0.parquet
+└─workflow/
+  ├─categories/
+  │ ├─unique.item_brand.parquet
+  │ ├─unique.item_category.parquet
+  │ ├─unique.item_id.parquet
+  │ ├─unique.item_shop.parquet
+  │ ├─unique.user_age.parquet
+  │ ├─unique.user_brands.parquet
+  │ ├─unique.user_categories.parquet
+  │ ├─unique.user_consumption_2.parquet
+  │ ├─unique.user_gender.parquet
+  │ └─unique.user_geography.parquet
+  ├─metadata.json
+  └─workflow.pkl
 </pre></div>
 </div>
 </div>
@@ -329,11 +385,6 @@ Wall time: 2.04 s
 </pre></div>
 </div>
 </div>
-<div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-06-03 16:47:31.255173: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
-</pre></div>
-</div>
-</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -345,12 +396,12 @@ Wall time: 2.04 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1368/1368 [==============================] - 36s 22ms/step - loss: 0.6932 - auc: 0.5001 - val_loss: 0.6932 - val_auc: 0.4996
-CPU times: user 1min 13s, sys: 11.9 s, total: 1min 25s
-Wall time: 39 s
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>1368/1368 [==============================] - 30s 18ms/step - loss: 0.6932 - auc: 0.4999 - regularization_loss: 0.0000e+00 - val_loss: 0.6932 - val_auc: 0.4998 - val_regularization_loss: 0.0000e+00
+CPU times: user 1min 21s, sys: 12.1 s, total: 1min 33s
+Wall time: 30.9 s
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f51480815e0&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f5127386700&gt;
 </pre></div>
 </div>
 </div>
@@ -361,7 +412,22 @@ Wall time: 39 s
 <p>Let’s save our DLRM model.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;dlrm&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;dlrm&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>INFO:tensorflow:Unsupported signature for serialization: ((PredictionOutput(predictions=TensorSpec(shape=(None, 1), dtype=tf.float32, name=&#39;outputs/predictions&#39;), targets=TensorSpec(shape=(None, 1), dtype=tf.float32, name=&#39;outputs/targets&#39;), positive_item_ids=None, label_relevant_counts=None, valid_negatives_mask=None, negative_item_ids=None, sample_weight=None), &lt;tensorflow.python.framework.func_graph.UnknownArgument object at 0x7f4ebc177f40&gt;), {}).
+INFO:tensorflow:Unsupported signature for serialization: ((PredictionOutput(predictions=TensorSpec(shape=(None, 1), dtype=tf.float32, name=&#39;outputs/predictions&#39;), targets=TensorSpec(shape=(None, 1), dtype=tf.float32, name=&#39;outputs/targets&#39;), positive_item_ids=None, label_relevant_counts=None, valid_negatives_mask=None, negative_item_ids=None, sample_weight=None), &lt;tensorflow.python.framework.func_graph.UnknownArgument object at 0x7f4ebc177f40&gt;), {}).
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:absl:Found untraced functions such as train_compute_metrics, model_context_layer_call_fn, model_context_layer_call_and_return_conditional_losses, output_layer_layer_call_fn, output_layer_layer_call_and_return_conditional_losses while saving (showing 5 of 97). These functions will not be directly callable after loading.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>INFO:tensorflow:Assets written to: workspace/data/dlrm/assets
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>INFO:tensorflow:Assets written to: workspace/data/dlrm/assets
 </pre></div>
 </div>
 </div>

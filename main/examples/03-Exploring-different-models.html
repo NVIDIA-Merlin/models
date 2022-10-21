@@ -142,6 +142,16 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-10-19 17:09:23.159971: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2022-10-19 17:09:24.697224: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library &#39;libcudnn.so.8&#39;; dlerror: libcudnn.so.8: cannot open shared object file: No such file or directory
+2022-10-19 17:09:24.697249: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1850] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2022-10-19 17:09:24.915070: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 <div class="section" id="feature-engineering-with-nvtabular">
@@ -164,6 +174,16 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+</pre></div>
+</div>
+</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -180,9 +200,10 @@
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">category_temp_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;categories&quot;</span><span class="p">)</span>
 
-<span class="n">user_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">freq_threshold</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserID</span><span class="p">()</span>
-<span class="n">item_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">freq_threshold</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemID</span><span class="p">()</span>
+<span class="n">user_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">freq_threshold</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserID</span><span class="p">()</span>
+<span class="n">item_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">freq_threshold</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemID</span><span class="p">()</span>
 <span class="n">add_feat</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s2">&quot;user_item_categories&quot;</span><span class="p">,</span>
     <span class="s2">&quot;user_item_shops&quot;</span><span class="p">,</span>
@@ -191,11 +212,11 @@
     <span class="s2">&quot;item_category&quot;</span><span class="p">,</span>
     <span class="s2">&quot;item_shop&quot;</span><span class="p">,</span>
     <span class="s2">&quot;item_brand&quot;</span><span class="p">,</span>
-<span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span>
+<span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span>
 
 <span class="n">te_feat</span> <span class="o">=</span> <span class="p">(</span>
     <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">add_feat</span>
-    <span class="o">&gt;&gt;</span> <span class="n">TargetEncoding</span><span class="p">([</span><span class="s2">&quot;click&quot;</span><span class="p">],</span> <span class="n">kfold</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">p_smooth</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+    <span class="o">&gt;&gt;</span> <span class="n">TargetEncoding</span><span class="p">([</span><span class="s2">&quot;click&quot;</span><span class="p">],</span> <span class="n">kfold</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">p_smooth</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span>
     <span class="o">&gt;&gt;</span> <span class="n">Normalize</span><span class="p">()</span>
 <span class="p">)</span>
 
@@ -207,6 +228,20 @@
 <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span> <span class="o">&gt;&gt;</span> <span class="n">Filter</span><span class="p">(</span><span class="n">f</span><span class="o">=</span><span class="k">lambda</span> <span class="n">df</span><span class="p">:</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">))</span>
 
 <span class="n">workflow_fit_transform</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">train_path</span><span class="p">,</span> <span class="n">valid_path</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 16.1 s, sys: 2.63 s, total: 18.7 s
+Wall time: 17.4 s
 </pre></div>
 </div>
 </div>
@@ -233,11 +268,39 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;click&#39;
+</pre></div>
+</div>
+</div>
 </div>
 <p>We can print out all the features that are included in the <code class="docutils literal notranslate"><span class="pre">schema.pbtxt</span></code> file.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">schema</span><span class="o">.</span><span class="n">column_names</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[&#39;user_id&#39;,
+ &#39;item_id&#39;,
+ &#39;click&#39;,
+ &#39;user_item_categories&#39;,
+ &#39;user_item_shops&#39;,
+ &#39;user_item_brands&#39;,
+ &#39;user_item_intentions&#39;,
+ &#39;item_category&#39;,
+ &#39;item_shop&#39;,
+ &#39;item_brand&#39;,
+ &#39;TE_user_item_categories_click&#39;,
+ &#39;TE_user_item_shops_click&#39;,
+ &#39;TE_user_item_brands_click&#39;,
+ &#39;TE_user_item_intentions_click&#39;,
+ &#39;TE_item_category_click&#39;,
+ &#39;TE_item_shop_click&#39;,
+ &#39;TE_item_brand_click&#39;,
+ &#39;TE_user_id_click&#39;,
+ &#39;TE_item_id_click&#39;]
 </pre></div>
 </div>
 </div>
@@ -285,19 +348,30 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 6s 53ms/step - loss: 0.6932 - auc: 0.4997 - regularization_loss: 0.0000e+00 - val_loss: 0.6932 - val_auc: 0.4983 - val_regularization_loss: 0.0000e+00
+CPU times: user 17.5 s, sys: 1.91 s, total: 19.4 s
+Wall time: 7.42 s
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f9302a95b20&gt;
+</pre></div>
+</div>
+</div>
 </div>
 <p>Let’s save our accuracy results</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="s2">&quot;results.txt&quot;</span><span class="p">):</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;results.txt&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">results_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;results.txt&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">results_path</span><span class="p">):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">results_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;NCF&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;NCF&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">results_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -307,6 +381,16 @@
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_ncf</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">metrics_ncf</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 3s 9ms/step - loss: 0.6932 - auc: 0.4983 - regularization_loss: 0.0000e+00
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.6932048201560974,
+ &#39;auc&#39;: 0.4983401298522949,
+ &#39;regularization_loss&#39;: 0.0}
 </pre></div>
 </div>
 </div>
@@ -341,10 +425,20 @@
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 4s 56ms/step - loss: 0.5932 - auc_1: 0.8512 - regularization_loss: 0.0000e+00 - val_loss: 0.7543 - val_auc_1: 0.5001 - val_regularization_loss: 0.0000e+00
+CPU times: user 29.1 s, sys: 2.1 s, total: 31.2 s
+Wall time: 5.21 s
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f902d25b850&gt;
+</pre></div>
+</div>
+</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;MLP&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;MLP&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">results_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -354,6 +448,16 @@
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_mlp</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">metrics_mlp</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 3s 8ms/step - loss: 0.7543 - auc_1: 0.5001 - regularization_loss: 0.0000e+00
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.7542504072189331,
+ &#39;auc_1&#39;: 0.5001050233840942,
+ &#39;regularization_loss&#39;: 0.0}
 </pre></div>
 </div>
 </div>
@@ -446,11 +550,25 @@ The input continuous features are used as they are loaded, but categorical featu
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/tensorflow/python/framework/indexed_slices.py:444: UserWarning: Converting sparse IndexedSlices(IndexedSlices(indices=Tensor(&quot;gradient_tape/model_2/parallel_block_6/sequential_block_16/sequential_block_15/private__dense_11/dense_11/embedding_lookup_sparse/Reshape_1:0&quot;, shape=(None,), dtype=int32), values=Tensor(&quot;gradient_tape/model_2/parallel_block_6/sequential_block_16/sequential_block_15/private__dense_11/dense_11/embedding_lookup_sparse/Reshape:0&quot;, shape=(None, 1), dtype=float32), dense_shape=Tensor(&quot;gradient_tape/model_2/parallel_block_6/sequential_block_16/sequential_block_15/private__dense_11/dense_11/embedding_lookup_sparse/Cast:0&quot;, shape=(2,), dtype=int32))) to a dense Tensor of unknown shape. This may consume a large amount of memory.
+  warnings.warn(
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 34s 648ms/step - loss: 0.6748 - auc_2: 0.7995 - regularization_loss: 0.0000e+00 - val_loss: 0.6954 - val_auc_2: 0.5007 - val_regularization_loss: 0.0000e+00
+CPU times: user 1min 53s, sys: 3.39 s, total: 1min 57s
+Wall time: 36.1 s
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f9014cacee0&gt;
+</pre></div>
+</div>
+</div>
 </div>
 <p><em>Note</em>: Here we use a single optimizer (Adagrad), but in the <a class="reference external" href="https://arxiv.org/abs/1606.07792">Wide&amp;Deep paper</a> the  authors describe to have used the Adagrad optimizer for the deep part and the FTRL optimizer for the wide part, which worked better with sparse inputs according to their experiments. With Merlin Models wou can use multiple optimizers for different sets of parameters, check the API documentation of <code class="docutils literal notranslate"><span class="pre">MultiOptimizer()</span></code> for more details.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;Wide&amp;Deep&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;Wide&amp;Deep&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">results_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -459,6 +577,16 @@ The input continuous features are used as they are loaded, but categorical featu
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_wide_n_deep</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">metrics_wide_n_deep</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 14s 48ms/step - loss: 0.6954 - auc_2: 0.5007 - regularization_loss: 0.0000e+00
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.6954308152198792,
+ &#39;auc_2&#39;: 0.5006649494171143,
+ &#39;regularization_loss&#39;: 0.0}
 </pre></div>
 </div>
 </div>
@@ -503,10 +631,20 @@ The input continuous features are used as they are loaded, but categorical featu
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 6s 77ms/step - loss: 0.6557 - auc_3: 0.8000 - regularization_loss: 0.0000e+00 - val_loss: 0.7112 - val_auc_3: 0.4997 - val_regularization_loss: 0.0000e+00
+CPU times: user 37.4 s, sys: 2.52 s, total: 39.9 s
+Wall time: 6.71 s
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f91a80d8760&gt;
+</pre></div>
+</div>
+</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;DLRM&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;DLRM&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">results_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -516,6 +654,16 @@ The input continuous features are used as they are loaded, but categorical featu
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_dlrm</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">metrics_dlrm</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 4s 11ms/step - loss: 0.7112 - auc_3: 0.4997 - regularization_loss: 0.0000e+00
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.7112371325492859,
+ &#39;auc_3&#39;: 0.49972301721572876,
+ &#39;regularization_loss&#39;: 0.0}
 </pre></div>
 </div>
 </div>
@@ -553,10 +701,20 @@ The input continuous features are used as they are loaded, but categorical featu
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>43/43 [==============================] - 5s 75ms/step - loss: 0.5500 - auc_4: 0.8734 - regularization_loss: 0.0000e+00 - val_loss: 0.8090 - val_auc_4: 0.5002 - val_regularization_loss: 0.0000e+00
+CPU times: user 45.8 s, sys: 1.99 s, total: 47.8 s
+Wall time: 6.3 s
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f8fc5eaafa0&gt;
+</pre></div>
+</div>
+</div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;DCN&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">save_results</span><span class="p">(</span><span class="s2">&quot;DCN&quot;</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">results_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -566,6 +724,16 @@ The input continuous features are used as they are loaded, but categorical featu
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">metrics_dcn</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">valid</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">metrics_dcn</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>293/293 [==============================] - 3s 9ms/step - loss: 0.8090 - auc_4: 0.5002 - regularization_loss: 0.0000e+00
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.8090491890907288,
+ &#39;auc_4&#39;: 0.5001701712608337,
+ &#39;regularization_loss&#39;: 0.0}
 </pre></div>
 </div>
 </div>
@@ -602,16 +770,19 @@ The input continuous features are used as they are loaded, but categorical featu
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">models_name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;NCF&quot;</span><span class="p">,</span> <span class="s2">&quot;MLP&quot;</span><span class="p">,</span> <span class="s2">&quot;Wide&amp;Deep&quot;</span><span class="p">,</span> <span class="s2">&quot;DLRM&quot;</span><span class="p">,</span> <span class="s2">&quot;DCN&quot;</span><span class="p">]</span>
-<span class="n">create_bar_chart</span><span class="p">(</span><span class="s2">&quot;results.txt&quot;</span><span class="p">,</span> <span class="n">models_name</span><span class="p">)</span>
+<span class="n">create_bar_chart</span><span class="p">(</span><span class="n">results_path</span><span class="p">,</span> <span class="n">models_name</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/03-Exploring-different-models_76_0.png" src="../_images/03-Exploring-different-models_76_0.png" />
 </div>
 </div>
 <p>Let’s remove the results file.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="s2">&quot;results.txt&quot;</span><span class="p">):</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;results.txt&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">results_path</span><span class="p">):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">results_path</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>

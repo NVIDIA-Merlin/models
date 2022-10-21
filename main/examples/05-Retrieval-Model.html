@@ -141,9 +141,12 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-09-14 20:25:46.371744: I tensorflow/core/platform/cpu_feature_guard.cc:194] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-10-19 17:29:47.304225: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2022-10-19 17:29:48.706986: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library &#39;libcudnn.so.8&#39;; dlerror: libcudnn.so.8: cannot open shared object file: No such file or directory
+2022-10-19 17:29:48.707008: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1850] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2022-10-19 17:29:48.739806: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-09-14 20:25:47.490333: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 16249 MB memory:  -&gt; device: 0, name: Quadro GV100, pci bus id: 0000:2d:00.0, compute capability: 7.0
 </pre></div>
 </div>
 </div>
@@ -179,9 +182,11 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
   warnings.warn(
-/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
   warnings.warn(
 </pre></div>
 </div>
@@ -198,10 +203,11 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 <p>We keep only positive interactions where clicks==1 in the dataset with <code class="docutils literal notranslate"><span class="pre">Filter()</span></code> op.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">user_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserID</span><span class="p">()</span>
-<span class="n">item_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemID</span><span class="p">()</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">category_temp_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;categories&quot;</span><span class="p">)</span>
+<span class="n">user_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsUserID</span><span class="p">()</span>
+<span class="n">item_id</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemID</span><span class="p">()</span>
 
-<span class="n">item_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_category&quot;</span><span class="p">,</span> <span class="s2">&quot;item_shop&quot;</span><span class="p">,</span> <span class="s2">&quot;item_brand&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemFeatures</span><span class="p">()</span>
+<span class="n">item_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;item_category&quot;</span><span class="p">,</span> <span class="s2">&quot;item_shop&quot;</span><span class="p">,</span> <span class="s2">&quot;item_brand&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span> <span class="o">&gt;&gt;</span> <span class="n">TagAsItemFeatures</span><span class="p">()</span>
 
 <span class="n">user_features</span> <span class="o">=</span> <span class="p">(</span>
     <span class="p">[</span>
@@ -217,7 +223,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
         <span class="s2">&quot;user_brands&quot;</span><span class="p">,</span>
         <span class="s2">&quot;user_categories&quot;</span><span class="p">,</span>
     <span class="p">]</span>
-    <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">()</span>
+    <span class="o">&gt;&gt;</span> <span class="n">Categorify</span><span class="p">(</span><span class="n">out_path</span><span class="o">=</span><span class="n">category_temp_directory</span><span class="p">)</span>
     <span class="o">&gt;&gt;</span> <span class="n">TagAsUserFeatures</span><span class="p">()</span>
 <span class="p">)</span>
 
@@ -238,7 +244,13 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/cudf/core/frame.py:384: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
   warnings.warn(
 </pre></div>
 </div>
@@ -259,7 +271,7 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;/workspace/data/processed&#39;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;workspace/data/processed&#39;
 </pre></div>
 </div>
 </div>
@@ -365,14 +377,14 @@ In Merlin Models we provide some scalable negative sampling algorithms for the I
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Epoch 1/3
-86/86 [==============================] - 12s 46ms/step - loss: 8.2960 - recall_at_10: 0.0249 - ndcg_at_10: 0.0232 - regularization_loss: 0.0000e+00 - val_loss: 8.2910 - val_recall_at_10: 0.0287 - val_ndcg_at_10: 0.0286 - val_regularization_loss: 0.0000e+00
+86/86 [==============================] - 18s 135ms/step - loss: 8.2951 - recall_at_10: 0.0223 - ndcg_at_10: 0.0182 - regularization_loss: 0.0000e+00 - val_loss: 8.2900 - val_recall_at_10: 0.0308 - val_ndcg_at_10: 0.0305 - val_regularization_loss: 0.0000e+00
 Epoch 2/3
-86/86 [==============================] - 3s 32ms/step - loss: 8.2954 - recall_at_10: 0.0302 - ndcg_at_10: 0.0299 - regularization_loss: 0.0000e+00 - val_loss: 8.2914 - val_recall_at_10: 0.0249 - val_ndcg_at_10: 0.0234 - val_regularization_loss: 0.0000e+00
+86/86 [==============================] - 11s 124ms/step - loss: 8.2947 - recall_at_10: 0.0301 - ndcg_at_10: 0.0298 - regularization_loss: 0.0000e+00 - val_loss: 8.2903 - val_recall_at_10: 0.0215 - val_ndcg_at_10: 0.0201 - val_regularization_loss: 0.0000e+00
 Epoch 3/3
-86/86 [==============================] - 3s 32ms/step - loss: 8.2943 - recall_at_10: 0.0247 - ndcg_at_10: 0.0229 - regularization_loss: 0.0000e+00 - val_loss: 8.2922 - val_recall_at_10: 0.0166 - val_ndcg_at_10: 0.0135 - val_regularization_loss: 0.0000e+00
+86/86 [==============================] - 11s 123ms/step - loss: 8.2937 - recall_at_10: 0.0212 - ndcg_at_10: 0.0192 - regularization_loss: 0.0000e+00 - val_loss: 8.2913 - val_recall_at_10: 0.0137 - val_ndcg_at_10: 0.0109 - val_regularization_loss: 0.0000e+00
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7fbd6b8b71f0&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f6c3f7c4880&gt;
 </pre></div>
 </div>
 </div>
@@ -394,7 +406,7 @@ Epoch 3/3
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">query_tower</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">retrieval_block</span><span class="o">.</span><span class="n">query_block</span><span class="p">()</span>
-<span class="n">query_tower</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;query_tower&quot;</span><span class="p">)</span>
+<span class="n">query_tower</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;query_tower&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -410,6 +422,12 @@ Epoch 3/3
 <span class="n">user_features</span> <span class="o">=</span> <span class="p">(</span>
     <span class="n">unique_rows_by_features</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">USER</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">USER_ID</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
 </pre></div>
 </div>
 </div>
@@ -471,8 +489,8 @@ Epoch 3/3
     </tr>
     <tr>
       <th>1</th>
-      <td>2</td>
-      <td>2</td>
+      <td>4</td>
+      <td>4</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
@@ -480,14 +498,14 @@ Epoch 3/3
       <td>1</td>
       <td>1</td>
       <td>1</td>
-      <td>2</td>
-      <td>2</td>
-      <td>2</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>3</td>
-      <td>3</td>
+      <td>14</td>
+      <td>14</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
@@ -495,24 +513,24 @@ Epoch 3/3
       <td>1</td>
       <td>1</td>
       <td>1</td>
-      <td>3</td>
-      <td>3</td>
-      <td>3</td>
+      <td>14</td>
+      <td>14</td>
+      <td>14</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>4</td>
-      <td>4</td>
+      <td>52</td>
+      <td>52</td>
+      <td>2</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
       <td>1</td>
-      <td>1</td>
-      <td>4</td>
-      <td>4</td>
-      <td>4</td>
+      <td>52</td>
+      <td>52</td>
+      <td>52</td>
     </tr>
     <tr>
       <th>4</th>
@@ -540,7 +558,7 @@ Epoch 3/3
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(657, 12)
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(673, 12)
 </pre></div>
 </div>
 </div>
@@ -548,7 +566,7 @@ Epoch 3/3
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># save to disk</span>
-<span class="n">user_features</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s2">&quot;user_features.parquet&quot;</span><span class="p">)</span>
+<span class="n">user_features</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;user_features.parquet&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -561,6 +579,12 @@ Epoch 3/3
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">item_features</span> <span class="o">=</span> <span class="p">(</span>
     <span class="n">unique_rows_by_features</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM</span><span class="p">,</span> <span class="n">Tags</span><span class="o">.</span><span class="n">ITEM_ID</span><span class="p">)</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
 </pre></div>
 </div>
 </div>
@@ -599,31 +623,31 @@ Epoch 3/3
   <tbody>
     <tr>
       <th>0</th>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
+      <td>30</td>
+      <td>30</td>
+      <td>30</td>
+      <td>30</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>2</td>
-      <td>2</td>
-      <td>2</td>
-      <td>2</td>
+      <td>27</td>
+      <td>27</td>
+      <td>27</td>
+      <td>27</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>3</td>
-      <td>3</td>
-      <td>3</td>
-      <td>3</td>
+      <td>15</td>
+      <td>15</td>
+      <td>15</td>
+      <td>15</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>4</td>
-      <td>4</td>
-      <td>4</td>
-      <td>4</td>
+      <td>6</td>
+      <td>6</td>
+      <td>6</td>
+      <td>6</td>
     </tr>
     <tr>
       <th>4</th>
@@ -639,7 +663,7 @@ Epoch 3/3
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># save to disk</span>
-<span class="n">item_features</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s2">&quot;item_features.parquet&quot;</span><span class="p">)</span>
+<span class="n">item_features</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;item_features.parquet&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -655,7 +679,11 @@ Epoch 3/3
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
   warnings.warn(
 </pre></div>
 </div>
@@ -712,99 +740,99 @@ Epoch 3/3
   <tbody>
     <tr>
       <th>0</th>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-      <td>1</td>
-      <td>-0.000645</td>
-      <td>-0.001204</td>
-      <td>-0.041410</td>
-      <td>0.089803</td>
-      <td>0.058981</td>
-      <td>0.041372</td>
+      <td>30</td>
+      <td>30</td>
+      <td>30</td>
+      <td>30</td>
+      <td>0.013722</td>
+      <td>-0.038877</td>
+      <td>0.027160</td>
+      <td>-0.056064</td>
+      <td>-0.088141</td>
+      <td>0.037771</td>
       <td>...</td>
-      <td>0.016396</td>
-      <td>-0.032169</td>
-      <td>0.071051</td>
-      <td>0.050464</td>
-      <td>0.025372</td>
-      <td>0.045610</td>
-      <td>-0.061057</td>
-      <td>0.007790</td>
-      <td>-0.167027</td>
-      <td>-0.053427</td>
+      <td>-0.002621</td>
+      <td>-0.047390</td>
+      <td>-0.036058</td>
+      <td>0.040486</td>
+      <td>0.094787</td>
+      <td>0.034536</td>
+      <td>-0.020187</td>
+      <td>0.016947</td>
+      <td>0.037674</td>
+      <td>-0.054949</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>2</td>
-      <td>2</td>
-      <td>2</td>
-      <td>2</td>
-      <td>0.108750</td>
-      <td>0.058709</td>
-      <td>-0.111856</td>
-      <td>-0.067593</td>
-      <td>0.015925</td>
-      <td>-0.055041</td>
+      <td>27</td>
+      <td>27</td>
+      <td>27</td>
+      <td>27</td>
+      <td>0.017832</td>
+      <td>0.000882</td>
+      <td>0.004411</td>
+      <td>-0.000135</td>
+      <td>-0.045962</td>
+      <td>0.000952</td>
       <td>...</td>
-      <td>-0.019538</td>
-      <td>0.082256</td>
-      <td>0.022989</td>
-      <td>0.099734</td>
-      <td>0.074534</td>
-      <td>0.094016</td>
-      <td>-0.008902</td>
-      <td>-0.099134</td>
-      <td>0.003340</td>
-      <td>-0.147583</td>
+      <td>-0.041442</td>
+      <td>-0.057827</td>
+      <td>-0.059980</td>
+      <td>0.031100</td>
+      <td>0.032169</td>
+      <td>0.116988</td>
+      <td>0.001392</td>
+      <td>0.100734</td>
+      <td>-0.007959</td>
+      <td>-0.018133</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>3</td>
-      <td>3</td>
-      <td>3</td>
-      <td>3</td>
-      <td>0.006825</td>
-      <td>0.009164</td>
-      <td>-0.114095</td>
-      <td>0.076496</td>
-      <td>-0.056996</td>
-      <td>0.025556</td>
+      <td>15</td>
+      <td>15</td>
+      <td>15</td>
+      <td>15</td>
+      <td>0.043520</td>
+      <td>-0.088271</td>
+      <td>0.005647</td>
+      <td>0.039733</td>
+      <td>0.047905</td>
+      <td>-0.018342</td>
       <td>...</td>
-      <td>0.062647</td>
-      <td>0.113492</td>
-      <td>0.035417</td>
-      <td>0.046737</td>
-      <td>-0.067891</td>
-      <td>-0.111733</td>
-      <td>-0.043777</td>
-      <td>0.023095</td>
-      <td>0.057462</td>
-      <td>-0.114370</td>
+      <td>0.060803</td>
+      <td>-0.057762</td>
+      <td>0.009969</td>
+      <td>-0.001141</td>
+      <td>0.111599</td>
+      <td>0.048858</td>
+      <td>-0.035187</td>
+      <td>0.030356</td>
+      <td>-0.069294</td>
+      <td>-0.060928</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>4</td>
-      <td>4</td>
-      <td>4</td>
-      <td>4</td>
-      <td>0.029534</td>
-      <td>0.041215</td>
-      <td>-0.042976</td>
-      <td>-0.005567</td>
-      <td>0.043733</td>
-      <td>0.091881</td>
+      <td>6</td>
+      <td>6</td>
+      <td>6</td>
+      <td>6</td>
+      <td>0.016514</td>
+      <td>0.062687</td>
+      <td>-0.019989</td>
+      <td>-0.072054</td>
+      <td>-0.090658</td>
+      <td>0.031691</td>
       <td>...</td>
-      <td>-0.078722</td>
-      <td>0.064461</td>
-      <td>0.059294</td>
-      <td>0.054870</td>
-      <td>0.067469</td>
-      <td>-0.046624</td>
-      <td>-0.075757</td>
-      <td>-0.089032</td>
-      <td>-0.085359</td>
-      <td>-0.068102</td>
+      <td>0.065355</td>
+      <td>-0.058297</td>
+      <td>-0.126050</td>
+      <td>-0.066580</td>
+      <td>-0.001697</td>
+      <td>-0.022819</td>
+      <td>0.023825</td>
+      <td>0.042565</td>
+      <td>-0.015717</td>
+      <td>-0.043056</td>
     </tr>
     <tr>
       <th>4</th>
@@ -812,23 +840,23 @@ Epoch 3/3
       <td>5</td>
       <td>5</td>
       <td>5</td>
-      <td>0.035721</td>
-      <td>-0.042282</td>
-      <td>-0.167316</td>
-      <td>-0.004608</td>
-      <td>0.052254</td>
-      <td>0.044603</td>
+      <td>0.034221</td>
+      <td>-0.018455</td>
+      <td>-0.008388</td>
+      <td>-0.067058</td>
+      <td>-0.078019</td>
+      <td>0.144726</td>
       <td>...</td>
-      <td>0.000567</td>
-      <td>-0.057452</td>
-      <td>-0.001513</td>
-      <td>0.101587</td>
-      <td>0.032081</td>
-      <td>-0.018756</td>
-      <td>-0.062611</td>
-      <td>-0.065444</td>
-      <td>-0.031990</td>
-      <td>-0.105818</td>
+      <td>0.006008</td>
+      <td>0.012593</td>
+      <td>-0.017191</td>
+      <td>-0.003372</td>
+      <td>-0.016305</td>
+      <td>0.097570</td>
+      <td>-0.027198</td>
+      <td>-0.005796</td>
+      <td>0.104270</td>
+      <td>-0.095587</td>
     </tr>
     <tr>
       <th>...</th>
@@ -855,128 +883,128 @@ Epoch 3/3
       <td>...</td>
     </tr>
     <tr>
-      <th>658</th>
-      <td>755</td>
-      <td>755</td>
-      <td>755</td>
-      <td>755</td>
-      <td>0.067260</td>
-      <td>0.006107</td>
-      <td>0.003706</td>
-      <td>0.034731</td>
-      <td>0.041444</td>
-      <td>0.055807</td>
+      <th>651</th>
+      <td>592</td>
+      <td>592</td>
+      <td>592</td>
+      <td>592</td>
+      <td>0.034567</td>
+      <td>-0.019798</td>
+      <td>0.036869</td>
+      <td>0.006455</td>
+      <td>0.041020</td>
+      <td>0.032228</td>
       <td>...</td>
-      <td>-0.026011</td>
-      <td>-0.042968</td>
-      <td>0.027535</td>
-      <td>0.012622</td>
-      <td>-0.000667</td>
-      <td>0.008178</td>
-      <td>-0.105089</td>
-      <td>0.026094</td>
-      <td>-0.076065</td>
-      <td>0.003433</td>
+      <td>-0.066052</td>
+      <td>-0.005500</td>
+      <td>-0.038382</td>
+      <td>-0.046610</td>
+      <td>0.040762</td>
+      <td>0.064137</td>
+      <td>0.032616</td>
+      <td>0.023622</td>
+      <td>-0.038059</td>
+      <td>0.005311</td>
     </tr>
     <tr>
-      <th>659</th>
-      <td>758</td>
-      <td>758</td>
-      <td>758</td>
-      <td>758</td>
-      <td>0.027046</td>
-      <td>-0.053613</td>
-      <td>-0.117797</td>
-      <td>0.012776</td>
-      <td>-0.002381</td>
-      <td>-0.002983</td>
+      <th>652</th>
+      <td>738</td>
+      <td>738</td>
+      <td>738</td>
+      <td>738</td>
+      <td>0.040859</td>
+      <td>-0.010400</td>
+      <td>0.026859</td>
+      <td>-0.013399</td>
+      <td>-0.074890</td>
+      <td>0.031183</td>
       <td>...</td>
-      <td>0.066567</td>
-      <td>0.000500</td>
-      <td>0.047679</td>
-      <td>0.049228</td>
-      <td>0.055786</td>
-      <td>-0.031709</td>
-      <td>-0.063680</td>
-      <td>-0.034298</td>
-      <td>0.007169</td>
-      <td>-0.063405</td>
+      <td>0.061172</td>
+      <td>-0.042710</td>
+      <td>-0.046173</td>
+      <td>-0.093668</td>
+      <td>0.030414</td>
+      <td>0.080392</td>
+      <td>-0.050578</td>
+      <td>0.011348</td>
+      <td>-0.069107</td>
+      <td>-0.096119</td>
     </tr>
     <tr>
-      <th>660</th>
-      <td>759</td>
-      <td>759</td>
-      <td>759</td>
-      <td>759</td>
-      <td>0.013336</td>
-      <td>0.043213</td>
-      <td>0.013565</td>
-      <td>0.041074</td>
-      <td>0.110008</td>
-      <td>0.056040</td>
+      <th>653</th>
+      <td>528</td>
+      <td>528</td>
+      <td>528</td>
+      <td>528</td>
+      <td>-0.003552</td>
+      <td>-0.038933</td>
+      <td>0.008198</td>
+      <td>-0.109951</td>
+      <td>0.010384</td>
+      <td>0.003504</td>
       <td>...</td>
-      <td>-0.038761</td>
-      <td>-0.020616</td>
-      <td>0.079571</td>
-      <td>0.054057</td>
-      <td>0.071308</td>
-      <td>0.010730</td>
-      <td>-0.041588</td>
-      <td>-0.065301</td>
-      <td>-0.081675</td>
-      <td>-0.091705</td>
+      <td>0.035436</td>
+      <td>-0.026332</td>
+      <td>0.011653</td>
+      <td>-0.040085</td>
+      <td>0.044650</td>
+      <td>0.023294</td>
+      <td>-0.016258</td>
+      <td>-0.009846</td>
+      <td>0.039786</td>
+      <td>0.012646</td>
     </tr>
     <tr>
-      <th>661</th>
-      <td>761</td>
-      <td>761</td>
-      <td>761</td>
-      <td>761</td>
-      <td>0.028308</td>
-      <td>0.024164</td>
-      <td>-0.032404</td>
-      <td>0.068866</td>
-      <td>-0.018572</td>
-      <td>0.003615</td>
+      <th>654</th>
+      <td>550</td>
+      <td>550</td>
+      <td>550</td>
+      <td>550</td>
+      <td>0.081330</td>
+      <td>0.029574</td>
+      <td>-0.079281</td>
+      <td>-0.054133</td>
+      <td>-0.048405</td>
+      <td>-0.011560</td>
       <td>...</td>
-      <td>0.036454</td>
-      <td>0.021737</td>
-      <td>0.059020</td>
-      <td>-0.007279</td>
-      <td>0.002234</td>
-      <td>0.002154</td>
-      <td>-0.122746</td>
-      <td>0.007301</td>
-      <td>0.080260</td>
-      <td>-0.058809</td>
+      <td>0.052818</td>
+      <td>0.024629</td>
+      <td>-0.014590</td>
+      <td>-0.066076</td>
+      <td>-0.050809</td>
+      <td>0.085821</td>
+      <td>-0.064984</td>
+      <td>-0.030180</td>
+      <td>-0.011900</td>
+      <td>-0.093892</td>
     </tr>
     <tr>
-      <th>662</th>
-      <td>765</td>
-      <td>765</td>
-      <td>765</td>
-      <td>765</td>
-      <td>-0.007203</td>
-      <td>-0.001262</td>
-      <td>-0.044594</td>
-      <td>0.073354</td>
-      <td>-0.008520</td>
-      <td>0.084151</td>
+      <th>655</th>
+      <td>600</td>
+      <td>600</td>
+      <td>600</td>
+      <td>600</td>
+      <td>0.002396</td>
+      <td>-0.044717</td>
+      <td>0.022094</td>
+      <td>0.005330</td>
+      <td>0.030306</td>
+      <td>-0.010537</td>
       <td>...</td>
-      <td>0.050872</td>
-      <td>0.028378</td>
-      <td>0.101839</td>
-      <td>0.061484</td>
-      <td>0.000917</td>
-      <td>-0.130745</td>
-      <td>-0.048985</td>
-      <td>-0.064347</td>
-      <td>-0.012837</td>
-      <td>-0.072822</td>
+      <td>0.044282</td>
+      <td>-0.069714</td>
+      <td>0.005738</td>
+      <td>-0.022341</td>
+      <td>0.022882</td>
+      <td>0.062106</td>
+      <td>-0.046273</td>
+      <td>0.110572</td>
+      <td>0.017938</td>
+      <td>-0.013358</td>
     </tr>
   </tbody>
 </table>
-<p>663 rows × 68 columns</p>
+<p>656 rows × 68 columns</p>
 </div></div></div>
 </div>
 <div class="cell docutils container">
@@ -1038,123 +1066,123 @@ Epoch 3/3
   <tbody>
     <tr>
       <th>0</th>
-      <td>-0.000645</td>
-      <td>-0.001204</td>
-      <td>-0.041410</td>
-      <td>0.089803</td>
-      <td>0.058981</td>
-      <td>0.041372</td>
-      <td>0.085023</td>
-      <td>0.005569</td>
-      <td>0.044896</td>
-      <td>-0.101422</td>
+      <td>0.013722</td>
+      <td>-0.038877</td>
+      <td>0.027160</td>
+      <td>-0.056064</td>
+      <td>-0.088141</td>
+      <td>0.037771</td>
+      <td>-0.015925</td>
+      <td>0.007615</td>
+      <td>-0.041389</td>
+      <td>-0.028759</td>
       <td>...</td>
-      <td>0.016396</td>
-      <td>-0.032169</td>
-      <td>0.071051</td>
-      <td>0.050464</td>
-      <td>0.025372</td>
-      <td>0.045610</td>
-      <td>-0.061057</td>
-      <td>0.007790</td>
-      <td>-0.167027</td>
-      <td>-0.053427</td>
+      <td>-0.002621</td>
+      <td>-0.047390</td>
+      <td>-0.036058</td>
+      <td>0.040486</td>
+      <td>0.094787</td>
+      <td>0.034536</td>
+      <td>-0.020187</td>
+      <td>0.016947</td>
+      <td>0.037674</td>
+      <td>-0.054949</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>0.108750</td>
-      <td>0.058709</td>
-      <td>-0.111856</td>
-      <td>-0.067593</td>
-      <td>0.015925</td>
-      <td>-0.055041</td>
-      <td>0.013301</td>
-      <td>0.015440</td>
-      <td>0.042656</td>
-      <td>-0.081866</td>
+      <td>0.017832</td>
+      <td>0.000882</td>
+      <td>0.004411</td>
+      <td>-0.000135</td>
+      <td>-0.045962</td>
+      <td>0.000952</td>
+      <td>-0.051164</td>
+      <td>-0.024453</td>
+      <td>-0.031280</td>
+      <td>-0.057322</td>
       <td>...</td>
-      <td>-0.019538</td>
-      <td>0.082256</td>
-      <td>0.022989</td>
-      <td>0.099734</td>
-      <td>0.074534</td>
-      <td>0.094016</td>
-      <td>-0.008902</td>
-      <td>-0.099134</td>
-      <td>0.003340</td>
-      <td>-0.147583</td>
+      <td>-0.041442</td>
+      <td>-0.057827</td>
+      <td>-0.059980</td>
+      <td>0.031100</td>
+      <td>0.032169</td>
+      <td>0.116988</td>
+      <td>0.001392</td>
+      <td>0.100734</td>
+      <td>-0.007959</td>
+      <td>-0.018133</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>0.006825</td>
-      <td>0.009164</td>
-      <td>-0.114095</td>
-      <td>0.076496</td>
-      <td>-0.056996</td>
-      <td>0.025556</td>
-      <td>-0.000656</td>
-      <td>0.027554</td>
-      <td>-0.030654</td>
-      <td>-0.160846</td>
+      <td>0.043520</td>
+      <td>-0.088271</td>
+      <td>0.005647</td>
+      <td>0.039733</td>
+      <td>0.047905</td>
+      <td>-0.018342</td>
+      <td>-0.126344</td>
+      <td>-0.119511</td>
+      <td>-0.060764</td>
+      <td>0.027011</td>
       <td>...</td>
-      <td>0.062647</td>
-      <td>0.113492</td>
-      <td>0.035417</td>
-      <td>0.046737</td>
-      <td>-0.067891</td>
-      <td>-0.111733</td>
-      <td>-0.043777</td>
-      <td>0.023095</td>
-      <td>0.057462</td>
-      <td>-0.114370</td>
+      <td>0.060803</td>
+      <td>-0.057762</td>
+      <td>0.009969</td>
+      <td>-0.001141</td>
+      <td>0.111599</td>
+      <td>0.048858</td>
+      <td>-0.035187</td>
+      <td>0.030356</td>
+      <td>-0.069294</td>
+      <td>-0.060928</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>0.029534</td>
-      <td>0.041215</td>
-      <td>-0.042976</td>
-      <td>-0.005567</td>
-      <td>0.043733</td>
-      <td>0.091881</td>
-      <td>-0.087923</td>
-      <td>-0.019214</td>
-      <td>0.012008</td>
-      <td>0.004425</td>
+      <td>0.016514</td>
+      <td>0.062687</td>
+      <td>-0.019989</td>
+      <td>-0.072054</td>
+      <td>-0.090658</td>
+      <td>0.031691</td>
+      <td>-0.047631</td>
+      <td>-0.063941</td>
+      <td>-0.046331</td>
+      <td>0.050307</td>
       <td>...</td>
-      <td>-0.078722</td>
-      <td>0.064461</td>
-      <td>0.059294</td>
-      <td>0.054870</td>
-      <td>0.067469</td>
-      <td>-0.046624</td>
-      <td>-0.075757</td>
-      <td>-0.089032</td>
-      <td>-0.085359</td>
-      <td>-0.068102</td>
+      <td>0.065355</td>
+      <td>-0.058297</td>
+      <td>-0.126050</td>
+      <td>-0.066580</td>
+      <td>-0.001697</td>
+      <td>-0.022819</td>
+      <td>0.023825</td>
+      <td>0.042565</td>
+      <td>-0.015717</td>
+      <td>-0.043056</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>0.035721</td>
-      <td>-0.042282</td>
-      <td>-0.167316</td>
-      <td>-0.004608</td>
-      <td>0.052254</td>
-      <td>0.044603</td>
-      <td>-0.090058</td>
-      <td>-0.008549</td>
-      <td>0.081712</td>
-      <td>0.047568</td>
+      <td>0.034221</td>
+      <td>-0.018455</td>
+      <td>-0.008388</td>
+      <td>-0.067058</td>
+      <td>-0.078019</td>
+      <td>0.144726</td>
+      <td>-0.026256</td>
+      <td>-0.017077</td>
+      <td>0.069507</td>
+      <td>0.046839</td>
       <td>...</td>
-      <td>0.000567</td>
-      <td>-0.057452</td>
-      <td>-0.001513</td>
-      <td>0.101587</td>
-      <td>0.032081</td>
-      <td>-0.018756</td>
-      <td>-0.062611</td>
-      <td>-0.065444</td>
-      <td>-0.031990</td>
-      <td>-0.105818</td>
+      <td>0.006008</td>
+      <td>0.012593</td>
+      <td>-0.017191</td>
+      <td>-0.003372</td>
+      <td>-0.016305</td>
+      <td>0.097570</td>
+      <td>-0.027198</td>
+      <td>-0.005796</td>
+      <td>0.104270</td>
+      <td>-0.095587</td>
     </tr>
   </tbody>
 </table>
@@ -1164,7 +1192,7 @@ Epoch 3/3
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># save to disk</span>
-<span class="n">item_embeddings</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="s2">&quot;item_embeddings.parquet&quot;</span><span class="p">)</span>
+<span class="n">item_embeddings</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_FOLDER</span><span class="p">,</span> <span class="s2">&quot;item_embeddings.parquet&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>

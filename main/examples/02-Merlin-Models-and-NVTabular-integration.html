@@ -152,9 +152,12 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-03 09:41:22.016529: I tensorflow/core/platform/cpu_feature_guard.cc:152] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  SSE3 SSE4.1 SSE4.2 AVX
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-10-19 16:27:55.626510: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2022-10-19 16:27:57.186621: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library &#39;libcudnn.so.8&#39;; dlerror: libcudnn.so.8: cannot open shared object file: No such file or directory
+2022-10-19 16:27:57.186648: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1850] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2022-10-19 16:27:57.226145: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
 To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
-2022-05-03 09:41:23.018388: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0
 </pre></div>
 </div>
 </div>
@@ -168,16 +171,11 @@ To enable them in other operations, rebuild TensorFlow with the appropriate comp
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>WARNING:tensorflow:From /models/merlin/models/utils/nvt_utils.py:14: is_gpu_available (from tensorflow.python.framework.test_util) is deprecated and will be removed in a future version.
-Instructions for updating:
-Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
-2022-05-03 09:41:23.192916: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1525] Created device /device:GPU:0 with 20268 MB memory:  -&gt; device: 0, name: NVIDIA A100-SXM4-40GB, pci bus id: 0000:4e:00.0, compute capability: 8.0
-/usr/local/lib/python3.8/dist-packages/cudf/core/dataframe.py:1292: UserWarning: The deep parameter is ignored and is only included for pandas compatibility.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
   warnings.warn(
 </pre></div>
 </div>
@@ -223,11 +221,11 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <th>dtype</th>
       <th>is_list</th>
       <th>is_ragged</th>
-      <th>properties.num_buckets</th>
       <th>properties.freq_threshold</th>
       <th>properties.max_size</th>
-      <th>properties.start_index</th>
       <th>properties.cat_path</th>
+      <th>properties.num_buckets</th>
+      <th>properties.start_index</th>
       <th>properties.embedding_sizes.cardinality</th>
       <th>properties.embedding_sizes.dimension</th>
       <th>properties.domain.min</th>
@@ -240,38 +238,38 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>0</th>
       <td>userId</td>
-      <td>(Tags.USER, Tags.CATEGORICAL, Tags.USER_ID)</td>
+      <td>(Tags.CATEGORICAL, Tags.USER_ID, Tags.USER, Ta...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>NaN</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.userId.parquet</td>
+      <td>NaN</td>
+      <td>0.0</td>
       <td>6041.0</td>
       <td>210.0</td>
       <td>0.0</td>
-      <td>6041.0</td>
+      <td>6040.0</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
     <tr>
       <th>1</th>
       <td>movieId</td>
-      <td>(Tags.ITEM, Tags.CATEGORICAL, Tags.ITEM_ID)</td>
+      <td>(Tags.ITEM_ID, Tags.CATEGORICAL, Tags.ITEM, Ta...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>NaN</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.movieId.parquet</td>
-      <td>3688.0</td>
+      <td>NaN</td>
+      <td>0.0</td>
+      <td>3677.0</td>
       <td>159.0</td>
       <td>0.0</td>
-      <td>3688.0</td>
+      <td>3676.0</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -282,15 +280,15 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>NaN</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.title.parquet</td>
-      <td>3688.0</td>
+      <td>NaN</td>
+      <td>0.0</td>
+      <td>3677.0</td>
       <td>159.0</td>
       <td>0.0</td>
-      <td>3688.0</td>
+      <td>3676.0</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -301,15 +299,15 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <td>int32</td>
       <td>True</td>
       <td>True</td>
-      <td>NaN</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.genres.parquet</td>
+      <td>NaN</td>
+      <td>0.0</td>
       <td>19.0</td>
       <td>16.0</td>
       <td>0.0</td>
-      <td>19.0</td>
+      <td>18.0</td>
       <td>1.0</td>
       <td>6.0</td>
     </tr>
@@ -320,15 +318,15 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>NaN</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.gender.parquet</td>
+      <td>NaN</td>
+      <td>0.0</td>
       <td>3.0</td>
       <td>16.0</td>
       <td>0.0</td>
-      <td>3.0</td>
+      <td>2.0</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -339,15 +337,15 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>NaN</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.age.parquet</td>
+      <td>NaN</td>
+      <td>0.0</td>
       <td>8.0</td>
       <td>16.0</td>
       <td>0.0</td>
-      <td>8.0</td>
+      <td>7.0</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -358,15 +356,15 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>NaN</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.occupation.parquet</td>
+      <td>NaN</td>
+      <td>0.0</td>
       <td>22.0</td>
       <td>16.0</td>
       <td>0.0</td>
-      <td>22.0</td>
+      <td>21.0</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -377,22 +375,22 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>NaN</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.zipcode.parquet</td>
+      <td>NaN</td>
+      <td>0.0</td>
       <td>3440.0</td>
       <td>153.0</td>
       <td>0.0</td>
-      <td>3440.0</td>
+      <td>3439.0</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
     <tr>
       <th>8</th>
       <td>TE_age_rating</td>
-      <td>(Tags.CONTINUOUS, Tags.USER)</td>
+      <td>(Tags.USER, Tags.CONTINUOUS)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -411,7 +409,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>9</th>
       <td>TE_gender_rating</td>
-      <td>(Tags.CONTINUOUS, Tags.USER)</td>
+      <td>(Tags.USER, Tags.CONTINUOUS)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -430,7 +428,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>10</th>
       <td>TE_occupation_rating</td>
-      <td>(Tags.CONTINUOUS, Tags.USER)</td>
+      <td>(Tags.USER, Tags.CONTINUOUS)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -449,7 +447,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>11</th>
       <td>TE_zipcode_rating</td>
-      <td>(Tags.CONTINUOUS, Tags.USER)</td>
+      <td>(Tags.USER, Tags.CONTINUOUS)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -468,7 +466,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>12</th>
       <td>TE_movieId_rating</td>
-      <td>(Tags.CONTINUOUS, Tags.ITEM)</td>
+      <td>(Tags.ITEM, Tags.CONTINUOUS)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -487,7 +485,7 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>13</th>
       <td>TE_userId_rating</td>
-      <td>(Tags.CONTINUOUS, Tags.USER)</td>
+      <td>(Tags.USER, Tags.CONTINUOUS)</td>
       <td>float64</td>
       <td>False</td>
       <td>False</td>
@@ -576,11 +574,11 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
       <th>dtype</th>
       <th>is_list</th>
       <th>is_ragged</th>
-      <th>properties.num_buckets</th>
       <th>properties.freq_threshold</th>
       <th>properties.max_size</th>
-      <th>properties.start_index</th>
       <th>properties.cat_path</th>
+      <th>properties.num_buckets</th>
+      <th>properties.start_index</th>
       <th>properties.embedding_sizes.cardinality</th>
       <th>properties.embedding_sizes.dimension</th>
       <th>properties.domain.min</th>
@@ -591,19 +589,19 @@ Use `tf.config.list_physical_devices(&#39;GPU&#39;)` instead.
     <tr>
       <th>0</th>
       <td>userId</td>
-      <td>(Tags.USER, Tags.CATEGORICAL, Tags.USER_ID)</td>
+      <td>(Tags.CATEGORICAL, Tags.USER_ID, Tags.USER, Ta...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>None</td>
-      <td>0.0</td>
       <td>0.0</td>
       <td>0.0</td>
       <td>.//categories/unique.userId.parquet</td>
+      <td>None</td>
+      <td>0.0</td>
       <td>6041.0</td>
       <td>210.0</td>
       <td>0</td>
-      <td>6041</td>
+      <td>6040</td>
     </tr>
   </tbody>
 </table>
@@ -751,13 +749,13 @@ In our example preprocessing workflow for this dataset, we also set the <code cl
       <th>dtype</th>
       <th>is_list</th>
       <th>is_ragged</th>
+      <th>properties.cat_path</th>
+      <th>properties.max_size</th>
+      <th>properties.embedding_sizes.dimension</th>
+      <th>properties.embedding_sizes.cardinality</th>
+      <th>properties.start_index</th>
       <th>properties.num_buckets</th>
       <th>properties.freq_threshold</th>
-      <th>properties.max_size</th>
-      <th>properties.start_index</th>
-      <th>properties.cat_path</th>
-      <th>properties.embedding_sizes.cardinality</th>
-      <th>properties.embedding_sizes.dimension</th>
       <th>properties.domain.min</th>
       <th>properties.domain.max</th>
     </tr>
@@ -766,19 +764,19 @@ In our example preprocessing workflow for this dataset, we also set the <code cl
     <tr>
       <th>0</th>
       <td>movieId</td>
-      <td>(Tags.ITEM, Tags.CATEGORICAL, Tags.ITEM_ID)</td>
+      <td>(Tags.ITEM_ID, Tags.CATEGORICAL, Tags.ITEM, Ta...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
+      <td>.//categories/unique.movieId.parquet</td>
+      <td>0.0</td>
+      <td>159.0</td>
+      <td>3677.0</td>
+      <td>0.0</td>
       <td>None</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>.//categories/unique.movieId.parquet</td>
-      <td>3688.0</td>
-      <td>159.0</td>
       <td>0</td>
-      <td>3688</td>
+      <td>3676</td>
     </tr>
   </tbody>
 </table>
@@ -796,8 +794,7 @@ In our example preprocessing workflow for this dataset, we also set the <code cl
 <p>We will download the dataset, if it is not already downloaded and cached locally.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;INPUT_DATA_DIR&quot;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s2">&quot;~/merlin-models-data/movielens/&quot;</span><span class="p">))</span>
-<span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ml-1m&quot;</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;ml-1m&quot;</span>
 <span class="n">download_file</span><span class="p">(</span>
     <span class="s2">&quot;http://files.grouplens.org/datasets/movielens/ml-1m.zip&quot;</span><span class="p">,</span>
     <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="s2">&quot;ml-1m.zip&quot;</span><span class="p">),</span>
@@ -807,7 +804,7 @@ In our example preprocessing workflow for this dataset, we also set the <code cl
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>unzipping files: 100%|██████████| 5/5 [00:00&lt;00:00, 40.65files/s]
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>unzipping files: 100%|██████████| 5/5 [00:00&lt;00:00, 29.61files/s]
 </pre></div>
 </div>
 </div>
@@ -832,7 +829,7 @@ In our example preprocessing workflow for this dataset, we also set the <code cl
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/usr/local/lib/python3.8/dist-packages/pandas/util/_decorators.py:311: ParserWarning: Falling back to the &#39;python&#39; engine because the &#39;c&#39; engine does not support regex separators (separators &gt; 1 char and different from &#39;\s+&#39; are interpreted as regex); you can avoid this warning by specifying engine=&#39;python&#39;.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/pandas/util/_decorators.py:311: ParserWarning: Falling back to the &#39;python&#39; engine because the &#39;c&#39; engine does not support regex separators (separators &gt; 1 char and different from &#39;\s+&#39; are interpreted as regex); you can avoid this warning by specifying engine=&#39;python&#39;.
   return func(*args, **kwargs)
 </pre></div>
 </div>
@@ -856,7 +853,7 @@ In our example preprocessing workflow for this dataset, we also set the <code cl
 <p>Categorify will transform categorical columns into contiguous integers (<code class="docutils literal notranslate"><span class="pre">0,</span> <span class="pre">...,</span> <span class="pre">|C|</span></code>) for embedding layers. It collects the cardinality of the embedding table and tags it as categorical.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cat_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">,</span> <span class="s2">&quot;movieId&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">ops</span><span class="o">.</span><span class="n">Categorify</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cat_features</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;userId&quot;</span><span class="p">,</span> <span class="s2">&quot;movieId&quot;</span><span class="p">]</span> <span class="o">&gt;&gt;</span> <span class="n">ops</span><span class="o">.</span><span class="n">Categorify</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="n">out_path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="s2">&quot;categories&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -890,8 +887,16 @@ In our example preprocessing workflow for this dataset, we also set the <code cl
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 663 ms, sys: 269 ms, total: 932 ms
-Wall time: 1.01 s
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/io/dataset.py:251: UserWarning: Initializing an NVTabular Dataset in CPU mode.This is an experimental feature with extremely limited support!
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.ITEM_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.ITEM: &#39;item&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+/home/alaiacano/.pyenv/versions/3.8.10/envs/merlin38/lib/python3.8/site-packages/merlin/schema/tags.py:148: UserWarning: Compound tags like Tags.USER_ID have been deprecated and will be removed in a future version. Please use the atomic versions of these tags, like [&lt;Tags.USER: &#39;user&#39;&gt;, &lt;Tags.ID: &#39;id&#39;&gt;].
+  warnings.warn(
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 2.53 s, sys: 384 ms, total: 2.92 s
+Wall time: 2.73 s
 </pre></div>
 </div>
 </div>
@@ -956,13 +961,13 @@ As we prepared only a minimal example, our schema has only tree features <code c
       <th>dtype</th>
       <th>is_list</th>
       <th>is_ragged</th>
-      <th>properties.num_buckets</th>
-      <th>properties.freq_threshold</th>
       <th>properties.max_size</th>
-      <th>properties.start_index</th>
-      <th>properties.cat_path</th>
       <th>properties.embedding_sizes.cardinality</th>
       <th>properties.embedding_sizes.dimension</th>
+      <th>properties.freq_threshold</th>
+      <th>properties.num_buckets</th>
+      <th>properties.start_index</th>
+      <th>properties.cat_path</th>
       <th>properties.domain.min</th>
       <th>properties.domain.max</th>
     </tr>
@@ -971,36 +976,36 @@ As we prepared only a minimal example, our schema has only tree features <code c
     <tr>
       <th>0</th>
       <td>movieId</td>
-      <td>(Tags.ITEM_ID, Tags.CATEGORICAL, Tags.ITEM)</td>
+      <td>(Tags.CATEGORICAL, Tags.ITEM, Tags.ID, Tags.IT...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>NaN</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>.//categories/unique.movieId.parquet</td>
-      <td>3682.0</td>
+      <td>3680.0</td>
       <td>159.0</td>
       <td>0.0</td>
-      <td>3682.0</td>
+      <td>NaN</td>
+      <td>0.0</td>
+      <td>/tmp/pytest-of-alaiacano/pytest-2/test_example...</td>
+      <td>0.0</td>
+      <td>3679.0</td>
     </tr>
     <tr>
       <th>1</th>
       <td>userId</td>
-      <td>(Tags.USER_ID, Tags.CATEGORICAL, Tags.USER)</td>
+      <td>(Tags.CATEGORICAL, Tags.USER_ID, Tags.USER, Ta...</td>
       <td>int32</td>
       <td>False</td>
       <td>False</td>
-      <td>NaN</td>
       <td>0.0</td>
-      <td>0.0</td>
-      <td>0.0</td>
-      <td>.//categories/unique.userId.parquet</td>
       <td>6041.0</td>
       <td>210.0</td>
       <td>0.0</td>
-      <td>6041.0</td>
+      <td>NaN</td>
+      <td>0.0</td>
+      <td>/tmp/pytest-of-alaiacano/pytest-2/test_example...</td>
+      <td>0.0</td>
+      <td>6040.0</td>
     </tr>
     <tr>
       <th>2</th>
@@ -1042,14 +1047,10 @@ As we prepared only a minimal example, our schema has only tree features <code c
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-03 09:41:29.062309: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
-2022-05-03 09:41:30.155353: I tensorflow/stream_executor/cuda/cuda_blas.cc:1804] TensorFloat-32 will be used for the matrix multiplication. This will only be logged once.
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>782/782 [==============================] - 11s 10ms/step - loss: 0.6152 - precision: 0.6412 - recall: 0.8850 - binary_accuracy: 0.6490 - auc: 0.6863 - regularization_loss: 0.0000e+00
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>782/782 [==============================] - 8s 5ms/step - rating_binary/binary_classification_task/precision: 0.7083 - rating_binary/binary_classification_task/recall: 0.8311 - rating_binary/binary_classification_task/binary_accuracy: 0.7059 - rating_binary/binary_classification_task/auc: 0.7671 - loss: 0.5653 - regularization_loss: 0.0000e+00 - total_loss: 0.5653
-</pre></div>
-</div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f40f8239700&gt;
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;keras.callbacks.History at 0x7f202c4d4d60&gt;
 </pre></div>
 </div>
 </div>
@@ -1062,13 +1063,7 @@ As we prepared only a minimal example, our schema has only tree features <code c
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span> 16/196 [=&gt;............................] - ETA: 0s - rating_binary/binary_classification_task/precision: 0.7338 - rating_binary/binary_classification_task/recall: 0.8259 - rating_binary/binary_classification_task/binary_accuracy: 0.7275 - rating_binary/binary_classification_task/auc: 0.7888 - loss: 0.5428 - regularization_loss: 0.0000e+00 - total_loss: 0.5428  
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>2022-05-03 09:41:38.534255: W tensorflow/core/grappler/optimizers/loop_optimizer.cc:907] Skipping loop optimization for Merge node with control input: cond/branch_executed/_19
-</pre></div>
-</div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>196/196 [==============================] - 1s 3ms/step - rating_binary/binary_classification_task/precision: 0.7323 - rating_binary/binary_classification_task/recall: 0.8276 - rating_binary/binary_classification_task/binary_accuracy: 0.7272 - rating_binary/binary_classification_task/auc: 0.7902 - loss: 0.5419 - regularization_loss: 0.0000e+00 - total_loss: 0.5419
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>196/196 [==============================] - 2s 5ms/step - loss: 0.5430 - precision: 0.7248 - recall: 0.8316 - binary_accuracy: 0.7217 - auc: 0.7893 - regularization_loss: 0.0000e+00
 </pre></div>
 </div>
 </div>
@@ -1080,13 +1075,12 @@ As we prepared only a minimal example, our schema has only tree features <code c
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;rating_binary/binary_classification_task/precision&#39;: 0.73233962059021,
- &#39;rating_binary/binary_classification_task/recall&#39;: 0.8276368975639343,
- &#39;rating_binary/binary_classification_task/binary_accuracy&#39;: 0.7271909117698669,
- &#39;rating_binary/binary_classification_task/auc&#39;: 0.7902334928512573,
- &#39;loss&#39;: 0.5232772827148438,
- &#39;regularization_loss&#39;: 0.0,
- &#39;total_loss&#39;: 0.5232772827148438}
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;loss&#39;: 0.5429587364196777,
+ &#39;precision&#39;: 0.7248351573944092,
+ &#39;recall&#39;: 0.8315683603286743,
+ &#39;binary_accuracy&#39;: 0.7216570377349854,
+ &#39;auc&#39;: 0.789269208908081,
+ &#39;regularization_loss&#39;: 0.0}
 </pre></div>
 </div>
 </div>
