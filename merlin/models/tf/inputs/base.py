@@ -305,7 +305,8 @@ def InputBlockV2(
             if branch not in tag_to_block:
                 raise ValueError(f"No default-block provided for {branch}")
             branch_schema: Schema = schema.select_by_tag(branch)
-            parsed[name] = tag_to_block[branch](branch_schema)
+            if branch_schema:
+                parsed[name] = tag_to_block[branch](branch_schema)
 
     if not parsed:
         raise ValueError("No columns selected for the input block")
