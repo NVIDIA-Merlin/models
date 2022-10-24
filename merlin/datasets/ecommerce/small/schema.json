@@ -5,7 +5,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_categories",
-        "max": "300",
+        "max": "3",
         "isCategorical": true
       },
       "annotation": {
@@ -23,7 +23,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_shops",
-        "max": "500",
+        "max": "5",
         "isCategorical": true
       },
       "annotation": {
@@ -41,7 +41,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_brands",
-        "max": "250",
+        "max": "5",
         "isCategorical": true
       },
       "annotation": {
@@ -59,7 +59,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_intentions",
-        "max": "50",
+        "max": "5",
         "isCategorical": true
       },
       "annotation": {
@@ -77,7 +77,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_profile",
-        "max": "20",
+        "max": "2",
         "isCategorical": true
       },
       "annotation": {
@@ -95,7 +95,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_group",
-        "max": "14",
+        "max": "4",
         "isCategorical": true
       },
       "annotation": {
@@ -221,7 +221,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_id",
-        "max": "1000",
+        "max": "10",
         "isCategorical": true
       },
       "annotation": {
@@ -240,7 +240,7 @@
       "type": "INT",
       "intDomain": {
         "name": "item_category",
-        "max": "100",
+        "max": "10",
         "isCategorical": true
       },
       "annotation": {
@@ -258,7 +258,7 @@
       "type": "INT",
       "intDomain": {
         "name": "item_shop",
-        "max": "500",
+        "max": "5",
         "isCategorical": true
       },
       "annotation": {
@@ -276,7 +276,7 @@
       "type": "INT",
       "intDomain": {
         "name": "item_intention",
-        "max": "25",
+        "max": "5",
         "isCategorical": true
       },
       "annotation": {
@@ -294,7 +294,7 @@
       "type": "INT",
       "intDomain": {
         "name": "item_brand",
-        "max": "250",
+        "max": "5",
         "isCategorical": true
       },
       "annotation": {
@@ -312,7 +312,7 @@
       "type": "INT",
       "intDomain": {
         "name": "item_id",
-        "max": "1000",
+        "max": "10",
         "isCategorical": true
       },
       "annotation": {
@@ -331,7 +331,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_item_categories",
-        "max": "300",
+        "max": "3",
         "isCategorical": true
       },
       "annotation": {
@@ -349,7 +349,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_item_shops",
-        "max": "500",
+        "max": "5",
         "isCategorical": true
       },
       "annotation": {
@@ -367,7 +367,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_item_brands",
-        "max": "250",
+        "max": "5",
         "isCategorical": true
       },
       "annotation": {
@@ -385,7 +385,7 @@
       "type": "INT",
       "intDomain": {
         "name": "user_item_intentions",
-        "max": "25",
+        "max": "5",
         "isCategorical": true
       },
       "annotation": {
