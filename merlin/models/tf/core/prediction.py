@@ -67,6 +67,24 @@ class Prediction(NamedTuple):
     def predictions(self):
         return self.outputs
 
+    def copy_with_updates(
+        self,
+        outputs=None,
+        targets=None,
+        sample_weight=None,
+        features=None,
+        negative_candidate_ids=None,
+    ) -> "Prediction":
+        return Prediction(
+            outputs if outputs is not None else self.outputs,
+            targets if targets is not None else self.targets,
+            sample_weight if sample_weight is not None else self.sample_weight,
+            features if features is not None else self.features,
+            negative_candidate_ids
+            if negative_candidate_ids is not None
+            else self.negative_candidate_ids,
+        )
+
 
 class TopKPrediction(NamedTuple):
     """Prediction object returned by `TopKOutput` classes"""

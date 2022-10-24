@@ -4,11 +4,11 @@ from tests.conftest import REPO_ROOT
 
 
 @testbook(REPO_ROOT / "examples/02-Merlin-Models-and-NVTabular-integration.ipynb", execute=False)
-def test_example_02_nvt_integration(tb):
+def test_example_02_nvt_integration(tb, tmpdir):
     tb.inject(
-        """
+        f"""
         import os
-        os.environ["INPUT_DATA_DIR"] = "/tmp/data/"
+        os.environ["INPUT_DATA_DIR"] = "{tmpdir}"
         from unittest.mock import patch
         from merlin.datasets.synthetic import generate_data
         mock_train, mock_valid = generate_data(
@@ -39,12 +39,12 @@ def test_example_02_nvt_integration(tb):
             mock_data = mock_data.to_pandas()
         input_path = os.environ.get(
             "INPUT_DATA_DIR",
-            os.path.expanduser("~/merlin-models-data/movielens/")
+            "{tmpdir}"
         )
-        path = Path(input_path + "ml-1m/")
+        path = Path(input_path) / "ml-1m"
         path.mkdir(parents=True, exist_ok=True)
         np.savetxt(
-            input_path + 'ml-1m/ratings.dat',
+            str(path / "ratings.dat"),
             mock_data.values,
             delimiter='::',
             fmt='%s',
