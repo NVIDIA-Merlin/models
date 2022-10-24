@@ -35,21 +35,20 @@ class LogitsTemperatureScaler(Block):
     ----------
     temperature : float
         Divide the logits by this scaler.
-    apply_on_call_outputs: bool
-        Whether to apply the transform (logits / temperature) on
-        `call()` or `call_outputs()`. By default True
     """
 
-    def __init__(self, temperature: float, apply_on_call_outputs: bool = True, **kwargs):
+    def __init__(self, temperature: float, **kwargs):
         super(LogitsTemperatureScaler, self).__init__(**kwargs)
         self.temperature = temperature
-        self.apply_on_call_outputs = apply_on_call_outputs
 
-    def call(self, inputs, training=False, **kwargs) -> tf.Tensor:
-        if not self.apply_on_call_outputs:
-            return self.apply_temperature(inputs)
+    def call(
+        self, outputs: Union[Prediction, PredictionOutput], training=False, **kwargs
+    ) -> Union[tf.Tensor, Prediction]:
+        if isinstance(outputs, Prediction):
+            predictions = self.apply_temperature(outputs.predictions)
+            return outputs.copy_with_updates(outputs=predictions)
         else:
-            return inputs
+            return outputs
 
     def call_outputs(
         self, outputs: PredictionOutput, training=True, **kwargs
@@ -66,6 +65,11 @@ class LogitsTemperatureScaler(Block):
         assert isinstance(predictions, tf.Tensor), "Predictions must be a tensor"
         predictions = predictions / self.temperature
         return predictions
+
+    def get_config(self):
+        config = super().get_config()
+        config["temperature"] = self.temperature
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package="merlin_models")
@@ -227,7 +231,7 @@ class PopularityLogitsCorrection(Block):
                 outputs.predictions, positive_candidate_ids, negative_candidate_ids
             )
 
-            return Prediction(predictions, outputs.targets, outputs.negative_candidate_ids)
+            return outputs.copy_with_updates(outputs=predictions)
 
         return outputs
 
