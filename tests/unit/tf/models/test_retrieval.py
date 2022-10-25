@@ -469,7 +469,7 @@ def test_two_tower_model_v2_with_custom_options(
         categorical=mm.Embeddings(
             user_schema.select_by_tag(Tags.CATEGORICAL),
             infer_dim_fn=partial(schema_utils.infer_embedding_dim, multiplier=3.0),
-            l2_batch_reg=1.0e-5,
+            l2_batch_regularization_factor=1.0e-5,
         ),
     )
 
@@ -488,7 +488,7 @@ def test_two_tower_model_v2_with_custom_options(
         categorical=mm.Embeddings(
             item_schema.select_by_tag(Tags.CATEGORICAL),
             infer_dim_fn=partial(schema_utils.infer_embedding_dim, multiplier=3.0),
-            l2_batch_reg=1.0e-5,
+            l2_batch_regularization_factor=1.0e-5,
         ),
     )
     candidate = mm.Encoder(item_inputs, tower_block.copy())
